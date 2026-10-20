@@ -36,8 +36,8 @@ function ChatComponent3() {
   const chat = useChat();
 
   return (
-    (<button onClick={() => chat.addToolOutput({ tool: 'test', toolCallId: 'id', output: 'out' })}>Submit
-                </button>)
+    <button onClick={() => chat.addToolOutput({ tool: 'test', toolCallId: 'id', output: 'out' })}>Submit
+                </button>
   );
 }
 

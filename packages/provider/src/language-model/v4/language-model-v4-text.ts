@@ -1,4 +1,5 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { LanguageModelV4Citation } from './language-model-v4-citation';
 
 /**
  * Text that the model has generated.
@@ -11,5 +12,8 @@ export type LanguageModelV4Text = {
    */
   text: string;
 
-  providerMetadata?: SharedV3ProviderMetadata;
+  /** References supporting this text, separate from retrieved sources. */
+  citations?: Array<LanguageModelV4Citation>;
+
+  providerMetadata?: SharedV4ProviderMetadata;
 };

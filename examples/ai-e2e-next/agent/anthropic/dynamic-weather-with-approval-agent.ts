@@ -1,5 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { ToolLoopAgent, dynamicTool, InferAgentUIMessage, ToolSet } from 'ai';
+import {
+  ToolLoopAgent,
+  dynamicTool,
+  type InferAgentUIMessage,
+  type ToolSet,
+} from 'ai';
 import { z } from 'zod';
 
 function randomWeather() {
@@ -29,7 +34,7 @@ const weatherTool = dynamicTool({
 const tools: {} = { weather: weatherTool } satisfies ToolSet;
 
 export const dynamicWeatherWithApprovalAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   // context engineering required to make sure the model does not retry
   // the tool execution if it is not approved:
   instructions:

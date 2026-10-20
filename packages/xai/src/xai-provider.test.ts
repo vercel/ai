@@ -1,16 +1,21 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiImageModel } from './xai-image-model';
 import { XaiVideoModel } from './xai-video-model';
+import { XaiSpeechModel } from './xai-speech-model';
+import { XaiTranscriptionModel } from './xai-transcription-model';
 
-const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
+const XaiResponsesLanguageModelMock =
+  XaiResponsesLanguageModel as unknown as Mock;
 const XaiImageModelMock = XaiImageModel as unknown as Mock;
 const XaiVideoModelMock = XaiVideoModel as unknown as Mock;
+const XaiSpeechModelMock = XaiSpeechModel as unknown as Mock;
+const XaiTranscriptionModelMock = XaiTranscriptionModel as unknown as Mock;
 
-vi.mock('./xai-chat-language-model', () => ({
-  XaiChatLanguageModel: vi.fn(),
+vi.mock('./responses/xai-responses-language-model', () => ({
+  XaiResponsesLanguageModel: vi.fn(),
 }));
 
 vi.mock('./xai-image-model', () => ({
@@ -19,6 +24,14 @@ vi.mock('./xai-image-model', () => ({
 
 vi.mock('./xai-video-model', () => ({
   XaiVideoModel: vi.fn(),
+}));
+
+vi.mock('./xai-speech-model', () => ({
+  XaiSpeechModel: vi.fn(),
+}));
+
+vi.mock('./xai-transcription-model', () => ({
+  XaiTranscriptionModel: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/provider-utils', async () => {
@@ -46,7 +59,7 @@ describe('xAIProvider', () => {
       const provider = createXai();
       const model = provider('model-id');
 
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -66,7 +79,7 @@ describe('xAIProvider', () => {
       const provider = createXai(options);
       provider('model-id');
 
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -77,45 +90,19 @@ describe('xAIProvider', () => {
       });
     });
 
-    it('should return a chat model when called as a function', () => {
+    it('should return a responses model when called as a function', () => {
       const provider = createXai();
       const modelId = 'foo-model-id';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
-    });
-  });
-
-  describe('chatModel', () => {
-    it('should construct a chat model with correct configuration', () => {
-      const provider = createXai();
-      const modelId = 'xai-chat-model';
-
-      const model = provider.chat(modelId);
-
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
-    });
-
-    it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
-      const provider = createXai();
-      const modelId = 'xai-chat-model';
-
-      const model = provider.chat(modelId);
-
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
-
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
-
-      expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1].provider).toBe('xai.chat');
-      expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
+      expect(model).toBeInstanceOf(XaiResponsesLanguageModel);
     });
   });
 
   describe('imageModel', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createXai();
-      const modelId = 'grok-2-image';
+      const modelId = 'grok-imagine-image';
 
       const model = provider.imageModel(modelId);
 
@@ -132,7 +119,7 @@ describe('xAIProvider', () => {
     it('should use custom baseURL for image model', () => {
       const customBaseURL = 'https://custom.xai.api';
       const provider = createXai({ baseURL: customBaseURL });
-      const modelId = 'grok-2-image';
+      const modelId = 'grok-imagine-image';
 
       provider.imageModel(modelId);
 
@@ -145,7 +132,7 @@ describe('xAIProvider', () => {
       const customHeaders = { 'Custom-Header': 'test-value' };
       const provider = createXai({ headers: customHeaders });
 
-      provider.imageModel('grok-2-image-1212');
+      provider.imageModel('grok-imagine-image');
 
       const constructorCall = XaiImageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -154,7 +141,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
   });
@@ -200,7 +187,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -213,6 +200,95 @@ describe('xAIProvider', () => {
       expect(XaiVideoModelMock).toHaveBeenCalledOnce();
       const constructorCall = XaiVideoModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
+    });
+  });
+
+  describe('speechModel', () => {
+    it('should construct a speech model with correct configuration', () => {
+      const provider = createXai();
+
+      provider.speechModel();
+
+      expect(XaiSpeechModelMock).toHaveBeenCalledOnce();
+
+      const constructorCall = XaiSpeechModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('');
+      expect(constructorCall[1].provider).toBe('xai.speech');
+      expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
+    });
+
+    it('should use custom baseURL and headers for speech models', () => {
+      const provider = createXai({
+        baseURL: 'https://custom.xai.api',
+        headers: { 'Custom-Header': 'test-value' },
+      });
+
+      provider.speech();
+
+      const constructorCall = XaiSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://custom.xai.api');
+      expect(constructorCall[1].headers()).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'test-value',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
+      });
+    });
+
+    it('should create a speech model via .speech() alias', () => {
+      const provider = createXai();
+
+      provider.speech();
+
+      expect(XaiSpeechModelMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('transcriptionModel', () => {
+    it('should construct a transcription model with correct configuration', () => {
+      const provider = createXai();
+
+      provider.transcriptionModel();
+
+      expect(XaiTranscriptionModelMock).toHaveBeenCalledOnce();
+
+      const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('');
+      expect(constructorCall[1].provider).toBe('xai.transcription');
+      expect(constructorCall[1].baseURL).toBe('https://api.x.ai/v1');
+    });
+
+    it('should use custom baseURL and headers for transcription models', () => {
+      const provider = createXai({
+        baseURL: 'https://custom.xai.api',
+        headers: { 'Custom-Header': 'test-value' },
+      });
+
+      provider.transcription();
+
+      const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://custom.xai.api');
+      expect(constructorCall[1].headers()).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'test-value',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
+      });
+    });
+
+    it('should create a transcription model via .transcription() alias', () => {
+      const provider = createXai();
+
+      provider.transcription();
+
+      expect(XaiTranscriptionModelMock).toHaveBeenCalledOnce();
+    });
+
+    it('should pass the transcription model id to the constructor', () => {
+      const provider = createXai();
+
+      provider.transcription('grok-voice-transcribe-2.0');
+
+      const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('grok-voice-transcribe-2.0');
     });
   });
 });

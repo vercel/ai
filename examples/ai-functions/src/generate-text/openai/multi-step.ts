@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage } = await generateText({
-    model: openai('gpt-4o-2024-08-06'),
+    model: openai('gpt-6-astra'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
@@ -28,7 +28,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt: 'What is the weather in my current location?',
 
     onStepFinish: step => {

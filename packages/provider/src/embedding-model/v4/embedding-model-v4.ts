@@ -1,9 +1,9 @@
-import { EmbeddingModelV4CallOptions } from './embedding-model-v4-call-options';
-import { EmbeddingModelV4Result } from './embedding-model-v4-result';
+import type { EmbeddingModelV4CallOptions } from './embedding-model-v4-call-options';
+import type { EmbeddingModelV4Result } from './embedding-model-v4-result';
 
 /**
  * Specification for an embedding model that implements the embedding model
- * interface version 3.
+ * interface version 4.
  *
  * It is specific to text embeddings.
  */

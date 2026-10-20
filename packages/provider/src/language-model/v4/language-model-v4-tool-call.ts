@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * Tool calls that the model has generated.
@@ -17,8 +17,9 @@ export type LanguageModelV4ToolCall = {
   toolName: string;
 
   /**
-   * Stringified JSON object with the tool call arguments. Must match the
-   * parameters schema of the tool.
+   * JSON-encoded tool input. Must match the input schema of the tool.
+   * String inputs must also be JSON-encoded, even when input deltas use text
+   * encoding.
    */
   input: string;
 
@@ -37,5 +38,5 @@ export type LanguageModelV4ToolCall = {
   /**
    * Additional provider-specific metadata for the tool call.
    */
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 };

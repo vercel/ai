@@ -1,6 +1,10 @@
-import { JSONValue } from '../../json-value/json-value';
-import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
-import { LanguageModelV4DataContent } from './language-model-v4-data-content';
+import type { JSONValue } from '../../json-value/json-value';
+import type {
+  SharedV4FileData,
+  SharedV4FileDataData,
+  SharedV4FileDataUrl,
+} from '../../shared/v4/shared-v4-file-data';
+import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 
 /**
  * A prompt is a list of messages.
@@ -31,7 +35,9 @@ export type LanguageModelV4Message =
         content: Array<
           | LanguageModelV4TextPart
           | LanguageModelV4FilePart
+          | LanguageModelV4CustomPart
           | LanguageModelV4ReasoningPart
+          | LanguageModelV4ReasoningFilePart
           | LanguageModelV4ToolCallPart
           | LanguageModelV4ToolResultPart
         >;
@@ -49,7 +55,7 @@ export type LanguageModelV4Message =
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: SharedV3ProviderOptions;
+    providerOptions?: SharedV4ProviderOptions;
   };
 
 /**
@@ -68,7 +74,7 @@ export interface LanguageModelV4TextPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -87,7 +93,56 @@ export interface LanguageModelV4ReasoningPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
+}
+
+/**
+ * Reasoning file content part of a prompt. It contains a file generated as part of reasoning.
+ */
+export interface LanguageModelV4ReasoningFilePart {
+  type: 'reasoning-file';
+
+  /**
+   * File data as a tagged discriminated union:
+   *
+   * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+   * - `{ type: 'url', url }`: a URL that points to the file.
+   */
+  data: SharedV4FileDataData | SharedV4FileDataUrl;
+
+  /**
+   * IANA media type of the file.
+   *
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+   */
+  mediaType: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV4ProviderOptions;
+}
+
+/**
+ * Provider-specific content part of a prompt. It contains no standardized
+ * payload beyond provider-specific options.
+ */
+export interface LanguageModelV4CustomPart {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
+   */
+  kind: `${string}.${string}`;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -102,14 +157,24 @@ export interface LanguageModelV4FilePart {
   filename?: string;
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   * File data as a tagged discriminated union:
+   *
+   * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+   * - `{ type: 'url', url }`: a URL that points to the file.
+   * - `{ type: 'reference', reference }`: a provider reference (`{ [provider]: id }`).
+   * - `{ type: 'text', text }`: inline text content (e.g. an inline text document).
    */
-  data: LanguageModelV4DataContent;
+  data: SharedV4FileData;
 
   /**
-   * IANA media type of the file.
+   * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+   * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
    *
-   * Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
+   * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+   * top-level segment alone (e.g. `image`). Providers can use the helpers in
+   * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+   * `detectMediaType`) to resolve the field according to their API
+   * requirements.
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
@@ -120,7 +185,7 @@ export interface LanguageModelV4FilePart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -155,7 +220,7 @@ export interface LanguageModelV4ToolCallPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -184,7 +249,7 @@ export interface LanguageModelV4ToolResultPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -214,7 +279,7 @@ export interface LanguageModelV4ToolApprovalResponsePart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -231,7 +296,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'json';
@@ -240,7 +305,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       /**
@@ -256,7 +321,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'error-text';
@@ -265,7 +330,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'error-json';
@@ -274,7 +339,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'content';
@@ -290,18 +355,31 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
-            type: 'file-data';
+            type: 'file';
 
             /**
-             * Base-64 encoded media data.
+             * File data as a tagged discriminated union:
+             *
+             * - `{ type: 'data', data }`: raw bytes (Uint8Array) or base64-encoded string.
+             * - `{ type: 'url', url }`: a URL that points to the file.
+             * - `{ type: 'reference', reference }`: a provider reference (`{ [provider]: id }`).
+             * - `{ type: 'text', text }`: inline text content (e.g. an inline text document).
              */
-            data: string;
+            data: SharedV4FileData;
 
             /**
-             * IANA media type.
+             * Either a full IANA media type (`type/subtype`, e.g. `image/png`) or just
+             * the top-level IANA segment (e.g. `image`, `audio`, `video`, `text`).
+             *
+             * `*`-subtype wildcards (e.g. `image/*`) are normalized as equivalent to the
+             * top-level segment alone (e.g. `image`). Providers can use the helpers in
+             * `@ai-sdk/provider-utils` (`isFullMediaType`, `getTopLevelMediaType`,
+             * `detectMediaType`) to resolve the field according to their API
+             * requirements.
+             *
              * @see https://www.iana.org/assignments/media-types/media-types.xhtml
              */
             mediaType: string;
@@ -314,97 +392,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
-          }
-        | {
-            type: 'file-url';
-
-            /**
-             * URL of the file.
-             */
-            url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV3ProviderOptions;
-          }
-        | {
-            type: 'file-id';
-
-            /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV3ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using base64 encoded data.
-             */
-            type: 'image-data';
-
-            /**
-             * Base-64 encoded image data.
-             */
-            data: string;
-
-            /**
-             * IANA media type.
-             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
-             */
-            mediaType: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV3ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using a URL.
-             */
-            type: 'image-url';
-
-            /**
-             * URL of the image.
-             */
-            url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV3ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using a provider file id.
-             */
-            type: 'image-file-id';
-
-            /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             /**
@@ -416,7 +404,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
       >;
     };

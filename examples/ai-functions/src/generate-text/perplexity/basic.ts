@@ -1,15 +1,23 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
-        search_recency_filter: 'week',
-      },
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
+      } satisfies PerplexityLanguageModelOptions,
     },
   });
 
@@ -18,7 +26,7 @@ run(async () => {
   console.log('Sources:', result.sources);
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-  console.log('Metadata:', result.providerMetadata);
+  console.log('Metadata:', result.finalStep.providerMetadata);
 
   for (const source of result.sources) {
     if (source.sourceType === 'url') {

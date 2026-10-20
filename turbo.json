@@ -37,8 +37,10 @@
         "GOOGLE_VERTEX_API_KEY",
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
+        "GMI_CLOUD_APIKEY",
         "GROQ_API_KEY",
         "KLINGAI_ACCESS_KEY",
+        "KLINGAI_API_KEY",
         "KLINGAI_SECRET_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
@@ -55,13 +57,17 @@
         "SENTRY_PROJECT",
         "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
+        "TOPAZ_API_KEY",
+        "HEYGEN_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_DEPLOYMENT_ID",
         "VERCEL_ENV",
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "TYPESAFE_AI_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
       ],
       "outputs": [
         "dist/**",
@@ -72,14 +78,16 @@
         ".vinxi/**"
       ]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
     "type-check": {
       "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+    },
+    "test:e2e:ci": {
+      "env": ["SKIP_RSC_E2E"]
     },
     "test:update": {
       "dependsOn": ["^build", "build"]
@@ -94,9 +102,16 @@
       "cache": false,
       "persistent": true
     },
-    "prettier-check": {},
     "integration-test": {
       "dependsOn": ["^build", "build"]
+    },
+    "//#konsistent:check": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
+    },
+    "//#konsistent:validate": {
+      "dependsOn": ["konsistent-provider#build"],
+      "cache": false
     }
   }
 }

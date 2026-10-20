@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 import path from 'path';
@@ -36,10 +36,10 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-data',
-            data: output.pdfData,
+            type: 'file',
             mediaType: 'application/pdf',
             filename: 'ai.pdf',
+            data: { type: 'data', data: output.pdfData },
           },
         ],
       };
@@ -47,13 +47,13 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt:
       'Please read the pdf document using the tool provided and return the summary of that pdf',
     tools: {
       readPDFDocument,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assisstant response : ${JSON.stringify(result.text, null, 2)}`);

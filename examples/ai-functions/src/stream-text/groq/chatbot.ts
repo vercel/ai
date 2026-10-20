@@ -1,5 +1,5 @@
 import { groq } from '@ai-sdk/groq';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -22,7 +22,7 @@ run(async () => {
       onError(error) {
         console.error(error);
       },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
@@ -37,7 +37,7 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       messages,
       onStepFinish(step) {
         console.log(
@@ -47,7 +47,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'raw':
           console.log(JSON.stringify(chunk.rawValue, null, 2));

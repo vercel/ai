@@ -3,6 +3,8 @@
 The **[Amazon Bedrock provider](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the Amazon Bedrock [converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Amazon Bedrock (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Amazon Bedrock provider is available in the `@ai-sdk/amazon-bedrock` module. You can install it with
@@ -48,7 +50,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrock('us.anthropic.claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   // API key is automatically loaded from AWS_BEARER_TOKEN_BEDROCK
 });
@@ -68,7 +70,7 @@ const bedrockWithApiKey = bedrock.withSettings({
 });
 
 const { text } = await generateText({
-  model: bedrockWithApiKey('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrockWithApiKey('us.anthropic.claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -83,7 +85,7 @@ import { generateText } from 'ai';
 
 // Uses AWS credentials from environment variables or AWS credential chain
 const { text } = await generateText({
-  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrock('us.anthropic.claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

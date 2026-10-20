@@ -1,23 +1,24 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV3 {
+export interface ElevenLabsProvider extends ProviderV4 {
   (
-    modelId: 'scribe_v1',
+    modelId: ElevenLabsTranscriptionModelId,
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;
@@ -26,12 +27,12 @@ export interface ElevenLabsProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -55,6 +56,12 @@ export interface ElevenLabsProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for realtime transcription.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -73,7 +80,7 @@ export function createElevenLabs(
         }),
         ...options.headers,
       },
-      `ai-sdk/elevenlabs/${VERSION}`,
+      `ai-sdk-elevenlabs/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
@@ -82,6 +89,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>
@@ -98,7 +106,7 @@ export function createElevenLabs(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
@@ -135,4 +143,4 @@ export function createElevenLabs(
 /**
  * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

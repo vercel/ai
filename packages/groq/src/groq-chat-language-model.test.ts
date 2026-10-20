@@ -1,9 +1,9 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createGroq } from './groq-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -12,7 +12,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -71,6 +71,34 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should reject a response without choices', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gemma2-9b-it',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('groq-tool-call');
@@ -96,6 +124,111 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('groq-text');
+    });
+
+    it('should map top-level reasoning to reasoning_effort', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should coerce top-level reasoning minimal to low', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+
+    it('should coerce top-level reasoning xhigh to high', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should coerce top-level reasoning max to high with a warning', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
+    it('should map top-level reasoning none to reasoning_effort for Qwen 3.6', async () => {
+      const qwenModel = provider('qwen/qwen3.6-27b');
+
+      const result = await qwenModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should omit unsupported top-level reasoning none and warn', async () => {
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'reasoning "none" is not supported by this model.',
+      });
+    });
+
+    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+      const gptOssModel = provider('openai/gpt-oss-120b');
+
+      const result = await gptOssModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          groq: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -225,9 +358,9 @@ describe('doGenerate', () => {
     expect(usage).toMatchInlineSnapshot(`
       {
         "inputTokens": {
-          "cacheRead": undefined,
+          "cacheRead": 15,
           "cacheWrite": undefined,
-          "noCache": 20,
+          "noCache": 5,
           "total": 20,
         },
         "outputTokens": {
@@ -388,6 +521,32 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass performance serviceTier provider option', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    await provider('gemma2-9b-it').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        groq: {
+          serviceTier: 'performance',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "service_tier": "performance",
+      }
+    `);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('groq-text');
 
@@ -478,7 +637,7 @@ describe('doGenerate', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/groq/0.0.0-test`,
+      `ai-sdk-groq/0.0.0-test`,
     );
   });
 
@@ -967,6 +1126,36 @@ describe('doStream', () => {
       prepareChunksFixtureResponse('groq-reasoning');
     });
 
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+      ]);
+    });
+
     it('should stream reasoning', async () => {
       const result = await model.doStream({
         prompt: TEST_PROMPT,
@@ -1230,6 +1419,11 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -1359,12 +1553,16 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
+    const data = {
+      error: {
+        message: 'Rate limit reached',
+        type: 'rate_limit_error',
+      },
+    };
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
-      chunks: [
-        `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
+      chunks: [`data: ${JSON.stringify(data)}\n\n`, 'data: [DONE]\n\n'],
     };
 
     const { stream } = await model.doStream({
@@ -1379,8 +1577,17 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "message": "The server had an error processing your request. Sorry about that!",
-            "type": "invalid_request_error",
+            "code": undefined,
+            "data": {
+              "error": {
+                "message": "Rate limit reached",
+                "type": "rate_limit_error",
+              },
+            },
+            "isRetryable": true,
+            "message": "Rate limit reached",
+            "statusCode": 429,
+            "type": "rate_limit_error",
           },
           "type": "error",
         },
@@ -1409,19 +1616,17 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls[CHAT_COMPLETIONS_URL].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -1429,7 +1634,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -1455,8 +1660,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should expose the raw response headers', async () => {
     prepareChunksFixtureResponse('groq-text', {

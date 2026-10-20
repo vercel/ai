@@ -1,12 +1,15 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { generateText, Output, stepCountIs } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText, Output, isStepCount } from 'ai';
 import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     providerOptions: {
       openai: {
         strictJsonSchema: true,
@@ -15,7 +18,7 @@ run(async () => {
     tools: {
       weather: weatherTool,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     output: Output.choice({
       options: [
         'winter jacket',

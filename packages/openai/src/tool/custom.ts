@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -8,8 +8,8 @@ import { z } from 'zod/v4';
 export const customArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      name: z.string(),
       description: z.string().optional(),
+      async: z.boolean().optional(),
       format: z
         .union([
           z.object({
@@ -28,18 +28,19 @@ export const customArgsSchema = lazySchema(() =>
 
 const customInputSchema = lazySchema(() => zodSchema(z.string()));
 
-export const customToolFactory = createProviderToolFactory<
+export const customToolFactory = createProviderDefinedToolFactory<
   string,
   {
-    /**
-     * The name of the custom tool, used to identify it in the API.
-     */
-    name: string;
-
     /**
      * An optional description of what the tool does.
      */
     description?: string;
+
+    /**
+     * Whether the model can continue generating after calling this tool
+     * without waiting for its result.
+     */
+    async?: boolean;
 
     /**
      * The output format specification for the tool.

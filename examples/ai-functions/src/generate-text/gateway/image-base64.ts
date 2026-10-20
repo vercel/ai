@@ -4,15 +4,16 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: 'xai/grok-2-vision',
+    model: 'spacexai/grok-4.7',
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png').toString('base64'),
           },
         ],
       },

@@ -1,23 +1,23 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
-import { DeepgramSpeechModelId } from './deepgram-speech-options';
+import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
-export interface DeepgramProvider extends ProviderV3 {
+export interface DeepgramProvider extends ProviderV4 {
   (
-    modelId: 'nova-3',
+    modelId: DeepgramTranscriptionModelId,
     settings?: {},
   ): {
     transcription: DeepgramTranscriptionModel;
@@ -26,12 +26,12 @@ export interface DeepgramProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
+  speech(modelId: DeepgramSpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -73,7 +73,7 @@ export function createDeepgram(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepgram/${VERSION}`,
+      `ai-sdk-deepgram/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: DeepgramTranscriptionModelId) =>
@@ -98,13 +98,13 @@ export function createDeepgram(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  // Required ProviderV3 methods that are not supported
+  // Required ProviderV4 methods that are not supported
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,

@@ -3,14 +3,14 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt: `Search for news about AI regulations from the first week of January 2025.`,
     tools: {
       perplexity_search: gateway.tools.perplexitySearch(),
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta':
         process.stdout.write(`\x1b[34m${part.text}\x1b[0m`);
@@ -41,7 +41,7 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Provider metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 }
 

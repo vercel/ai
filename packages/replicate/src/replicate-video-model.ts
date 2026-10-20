@@ -1,49 +1,28 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   type Resolvable,
   resolve,
-  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
+import {
+  replicateVideoModelOptionsSchema,
+  type ReplicateVideoModelOptions,
+} from './replicate-video-model-options';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
-
-export type ReplicateVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-  maxWaitTimeInSeconds?: number | null;
-
-  // Common video generation options
-  guidance_scale?: number | null;
-  num_inference_steps?: number | null;
-
-  // Stable Video Diffusion specific
-  motion_bucket_id?: number | null;
-  cond_aug?: number | null;
-  decoding_t?: number | null;
-  video_length?: string | null;
-  sizing_strategy?: string | null;
-  frames_per_second?: number | null;
-
-  // MiniMax specific
-  prompt_optimizer?: boolean | null;
-
-  [key: string]: unknown; // For passthrough
-};
 
 interface ReplicateVideoModelConfig {
   provider: string;
@@ -55,8 +34,8 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class ReplicateVideoModel implements VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
   get provider(): string {
@@ -68,11 +47,23 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     private readonly config: ReplicateVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+  private async buildInput(options: {
+    prompt?: string;
+    image?:
+      | { type: 'url'; url: string }
+      | { type: 'file'; data: string | Uint8Array; mediaType: string };
+    aspectRatio?: string;
+    resolution?: string;
+    duration?: number;
+    fps?: number;
+    seed?: number;
+    providerOptions?: Record<string, Record<string, unknown>>;
+  }): Promise<{
+    input: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+    replicateOptions: ReplicateVideoModelOptions | undefined;
+  }> {
+    const warnings: SharedV4Warning[] = [];
 
     const replicateOptions = (await parseProviderOptions({
       provider: 'replicate',
@@ -80,7 +71,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       schema: replicateVideoModelOptionsSchema,
     })) as ReplicateVideoModelOptions | undefined;
 
-    const [modelId, version] = this.modelId.split(':');
     const input: Record<string, unknown> = {};
 
     if (options.prompt != null) {
@@ -179,11 +169,23 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    const maxWaitTimeInSeconds = replicateOptions?.maxWaitTimeInSeconds;
-    const preferHeader: Record<string, string> =
-      maxWaitTimeInSeconds != null
-        ? { prefer: `wait=${maxWaitTimeInSeconds}` }
-        : { prefer: 'wait' };
+    return { input, warnings, replicateOptions };
+  }
+
+  async handleWebhookOption(
+    options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
+  ) {
+    const { url, received } = await options.webhook();
+    return { webhookUrl: url, received };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { input, warnings } = await this.buildInput(options);
+
+    const [modelId, version] = this.modelId.split(':');
 
     const predictionUrl =
       version != null
@@ -195,11 +197,16 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
-        preferHeader,
       ),
       body: {
         input,
         ...(version != null ? { version } : {}),
+        ...(options.webhookUrl != null
+          ? {
+              webhook: options.webhookUrl,
+              webhook_events_filter: ['completed'],
+            }
+          : {}),
       },
       successfulResponseHandler: createJsonResponseHandler(
         replicatePredictionSchema,
@@ -209,97 +216,101 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finalPrediction = prediction;
-    if (
-      prediction.status === 'starting' ||
-      prediction.status === 'processing'
-    ) {
-      const pollIntervalMs = replicateOptions?.pollIntervalMs ?? 2000; // 2 seconds
-      const pollTimeoutMs = replicateOptions?.pollTimeoutMs ?? 300000; // 5 minutes
-
-      const startTime = Date.now();
-
-      while (
-        finalPrediction.status === 'starting' ||
-        finalPrediction.status === 'processing'
-      ) {
-        if (Date.now() - startTime > pollTimeoutMs) {
-          throw new AISDKError({
-            name: 'REPLICATE_VIDEO_GENERATION_TIMEOUT',
-            message: `Video generation timed out after ${pollTimeoutMs}ms`,
-          });
-        }
-
-        await delay(pollIntervalMs);
-
-        if (options.abortSignal?.aborted) {
-          throw new AISDKError({
-            name: 'REPLICATE_VIDEO_GENERATION_ABORTED',
-            message: 'Video generation request was aborted',
-          });
-        }
-
-        const { value: statusPrediction } = await getFromApi({
-          url: finalPrediction.urls.get,
-          headers: await resolve(this.config.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            replicatePredictionSchema,
-          ),
-          failedResponseHandler: replicateFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-        finalPrediction = statusPrediction;
-      }
-    }
-
-    if (finalPrediction.status === 'failed') {
-      throw new AISDKError({
-        name: 'REPLICATE_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${finalPrediction.error ?? 'Unknown error'}`,
-      });
-    }
-
-    if (finalPrediction.status === 'canceled') {
-      throw new AISDKError({
-        name: 'REPLICATE_VIDEO_GENERATION_CANCELED',
-        message: 'Video generation was canceled',
-      });
-    }
-
-    const videoUrl = finalPrediction.output;
-    if (!videoUrl) {
-      throw new AISDKError({
-        name: 'REPLICATE_VIDEO_GENERATION_ERROR',
-        message: 'No video URL in response',
-      });
-    }
-
     return {
-      videos: [
-        {
-          type: 'url',
-          url: videoUrl,
-          mediaType: 'video/mp4',
-        },
-      ],
+      operation: { getUrl: prediction.urls.get },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        replicate: {
-          videos: [
-            {
-              url: videoUrl,
-            },
-          ],
-          predictionId: finalPrediction.id,
-          metrics: finalPrediction.metrics,
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { getUrl } = options.operation as { getUrl: string };
+
+    const { value: prediction, responseHeaders } = await getFromApi({
+      url: getUrl,
+      // getUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        replicatePredictionSchema,
+      ),
+      failedResponseHandler: replicateFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (prediction.status === 'failed') {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${prediction.error ?? 'Unknown error'}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
         },
+      };
+    }
+
+    if (prediction.status === 'canceled') {
+      return {
+        status: 'error' as const,
+        error: 'Video generation was canceled',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (prediction.status === 'succeeded') {
+      if (!prediction.output) {
+        throw new AISDKError({
+          name: 'REPLICATE_VIDEO_GENERATION_ERROR',
+          message: 'No video URL in response',
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          { type: 'url', url: prediction.output, mediaType: 'video/mp4' },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+        providerMetadata: {
+          replicate: {
+            videos: [{ url: prediction.output }],
+            predictionId: prediction.id,
+            metrics: prediction.metrics,
+          },
+        },
+      };
+    }
+
+    // starting or processing
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }
@@ -319,24 +330,3 @@ const replicatePredictionSchema = z.object({
     })
     .nullish(),
 });
-
-const replicateVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        maxWaitTimeInSeconds: z.number().positive().nullish(),
-        guidance_scale: z.number().nullish(),
-        num_inference_steps: z.number().nullish(),
-        motion_bucket_id: z.number().nullish(),
-        cond_aug: z.number().nullish(),
-        decoding_t: z.number().nullish(),
-        video_length: z.string().nullish(),
-        sizing_strategy: z.string().nullish(),
-        frames_per_second: z.number().nullish(),
-        prompt_optimizer: z.boolean().nullish(),
-      })
-      .loose(),
-  ),
-);

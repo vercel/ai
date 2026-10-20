@@ -1,38 +1,17 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { DeepgramConfig } from './deepgram-config';
+import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramSpeechModelId } from './deepgram-speech-options';
-
-// https://developers.deepgram.com/reference/text-to-speech/speak-request
-const deepgramSpeechModelOptionsSchema = z.object({
-  /** Bitrate of the audio in bits per second. Can be a number or predefined enum value. */
-  bitRate: z.union([z.number(), z.string()]).nullish(),
-  /** Container format for the output audio (mp3, wav, etc.). */
-  container: z.string().nullish(),
-  /** Encoding type for the audio output (linear16, mulaw, alaw, etc.). */
-  encoding: z.string().nullish(),
-  /** Sample rate for the output audio in Hz (8000, 16000, 24000, 44100, 48000). */
-  sampleRate: z.number().nullish(),
-  /** URL to which we'll make the callback request. */
-  callback: z.string().url().nullish(),
-  /** HTTP method by which the callback request will be made (POST or PUT). */
-  callbackMethod: z.enum(['POST', 'PUT']).nullish(),
-  /** Opts out requests from the Deepgram Model Improvement Program. */
-  mipOptOut: z.boolean().nullish(),
-  /** Label your requests for the purpose of identification during usage reporting. */
-  tag: z.union([z.string(), z.array(z.string())]).nullish(),
-});
-
-export type DeepgramSpeechModelOptions = z.infer<
-  typeof deepgramSpeechModelOptionsSchema
->;
+import { deepgramSpeechModelOptionsSchema } from './deepgram-speech-model-options';
+import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 
 interface DeepgramSpeechModelConfig extends DeepgramConfig {
   _internal?: {
@@ -40,11 +19,30 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+// Deepgram embeds voice and language in the model ID
+// (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
+// compose the upstream model ID from the voice and language call options.
+const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
+
+export class DeepgramSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepgramSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepgramSpeechModelId;
+    config: DeepgramSpeechModelConfig;
+  }) {
+    return new DeepgramSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -60,8 +58,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     language,
     instructions,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -70,6 +68,26 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       schema: deepgramSpeechModelOptionsSchema,
     });
 
+    // Compose the upstream model ID from voice/language when a bare voice
+    // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
+    let upstreamModelId: string = this.modelId;
+    if (VOICE_FAMILY_IDS.has(this.modelId)) {
+      const trimmedVoice = voice?.trim();
+      if (!trimmedVoice) {
+        throw new Error(
+          `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
+        );
+      }
+      if (language === 'auto') {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'language',
+          details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
+        });
+      }
+      upstreamModelId = `${this.modelId}-${trimmedVoice}-${language && language !== 'auto' ? language : 'en'}`;
+    }
+
     // Create request body
     const requestBody = {
       text,
@@ -77,7 +95,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
 
     // Prepare query parameters
     const queryParams: Record<string, string> = {
-      model: this.modelId,
+      model: upstreamModelId,
     };
 
     // Map outputFormat to encoding/container/sample_rate
@@ -410,9 +428,9 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       }
     }
 
-    // Handle voice parameter - Deepgram embeds voice in model ID
-    // If voice is provided and different from model, warn user
-    if (voice && voice !== this.modelId) {
+    // Handle voice parameter - only relevant for full voice model IDs, where
+    // the voice is embedded in the model ID and a voice param cannot compose.
+    if (upstreamModelId === this.modelId && voice && voice !== this.modelId) {
       warnings.push({
         type: 'unsupported',
         feature: 'voice',
@@ -420,17 +438,15 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       });
     }
 
-    // Handle speed - not supported in Deepgram REST API
+    // Map speed to Deepgram's speed query parameter. Deepgram does not
+    // support it for all languages and validates the value upstream.
     if (speed != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'speed',
-        details: `Deepgram TTS REST API does not support speed adjustment. Speed parameter was ignored.`,
-      });
+      queryParams.speed = String(speed);
     }
 
-    // Handle language - Deepgram models are language-specific via model ID
-    if (language) {
+    // Handle language - full voice model IDs are already language-specific;
+    // language was already consumed when composing from a voice family ID.
+    if (upstreamModelId === this.modelId && language) {
       warnings.push({
         type: 'unsupported',
         feature: 'language',
@@ -455,8 +471,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings } = await this.getArgs(options);
 
@@ -473,7 +489,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: deepgramFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -481,9 +497,26 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       fetch: this.config.fetch,
     });
 
+    // Deepgram returns usage and model details in response headers
+    // (dg-project-id deliberately excluded: account identifier).
+    const headerNumber = (name: string): number | undefined => {
+      const value = responseHeaders?.[name];
+      if (value == null) {
+        return undefined;
+      }
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+    const charCount = headerNumber('dg-char-count');
+    const breaksApplied = headerNumber('dg-breaks-applied');
+    const pronunciationsApplied = headerNumber('dg-pronunciations-applied');
+    const additionalModelUuids =
+      responseHeaders?.['dg-additional-model-uuids']?.split(',');
+
     return {
       audio,
       warnings,
+      ...(charCount != null ? { usage: { characters: charCount } } : {}),
       request: {
         body: JSON.stringify(requestBody),
       },
@@ -492,6 +525,29 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
+      },
+      providerMetadata: {
+        deepgram: {
+          ...(responseHeaders?.['dg-model-name']
+            ? { modelName: responseHeaders['dg-model-name'] }
+            : {}),
+          ...(responseHeaders?.['dg-model-uuid']
+            ? { modelUuid: responseHeaders['dg-model-uuid'] }
+            : {}),
+          ...(additionalModelUuids ? { additionalModelUuids } : {}),
+          ...(charCount != null ? { charCount } : {}),
+          ...(breaksApplied != null ? { breaksApplied } : {}),
+          ...(pronunciationsApplied != null ? { pronunciationsApplied } : {}),
+          ...(responseHeaders?.['dg-pronunciation-warnings']
+            ? {
+                pronunciationWarnings:
+                  responseHeaders['dg-pronunciation-warnings'],
+              }
+            : {}),
+          ...(responseHeaders?.['dg-request-id']
+            ? { requestId: responseHeaders['dg-request-id'] }
+            : {}),
+        },
       },
     };
   }

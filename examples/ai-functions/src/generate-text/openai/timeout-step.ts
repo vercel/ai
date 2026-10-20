@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage, steps } = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'What is the weather in San Francisco?',
     tools: {
       weather: tool({
@@ -20,7 +20,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     timeout: { stepMs: 1000 }, // 1 second timeout per step
   });
 

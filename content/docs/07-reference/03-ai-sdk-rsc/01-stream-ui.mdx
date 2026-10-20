@@ -26,7 +26,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     {
       name: 'model',
       type: 'LanguageModel',
-      description: 'The language model to use. Example: openai("gpt-4.1")',
+      description: 'The language model to use. Example: openai("gpt-6-astra")',
     },
     {
       name: 'initial',
@@ -35,10 +35,11 @@ To see `streamUI` in action, check out [these examples](#examples).
       description: 'The initial UI to render.',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      name: 'instructions',
+      isOptional: true,
+      type: 'Instructions',
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions to use that specify the behavior of the model.'
     },
     {
       name: 'prompt',
@@ -207,7 +208,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -254,6 +255,13 @@ To see `streamUI` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `instructions` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
     },
     {
       name: 'maxOutputTokens',
@@ -356,7 +364,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'generate',
               isOptional: true,
-              type: '(async (parameters) => ReactNode) | AsyncGenerator<ReactNode, ReactNode, void>',
+              type: '(parameters) => ReactNode | Promise<ReactNode> | Generator<ReactNode, ReactNode, void> | AsyncGenerator<ReactNode, ReactNode, void>',
               description:
                 'A function or a generator function that is called with the arguments from the tool call and yields React nodes as the UI.',
             },
@@ -509,6 +517,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
+              isOptional: true,
               description: 'Optional response data.',
               properties: [
                 {

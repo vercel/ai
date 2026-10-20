@@ -1,5 +1,5 @@
-import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import {
+import { google as provider, type GoogleErrorData } from '@ai-sdk/google';
+import type {
   APICallError,
   LanguageModelV3,
   LanguageModelV4,
@@ -7,15 +7,14 @@ import {
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
   createImageModelWithCapabilities,
   defaultChatModelCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
+import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 
 const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
@@ -48,7 +47,7 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
@@ -64,8 +63,14 @@ createFeatureTestSuite({
       createEmbeddingModelWithCapabilities(
         provider.embeddingModel('gemini-embedding-001'),
       ),
+      createEmbeddingModelWithCapabilities(
+        provider.embeddingModel('gemini-embedding-2-preview'),
+      ),
     ],
-    imageModels: [createImageModel('imagen-3.0-generate-002')],
+    imageModels: [
+      createImageModel('gemini-2.5-flash-image'),
+      createImageModel('gemini-nano-banana-2.1'),
+    ],
   },
   timeout: 20000,
   customAssertions: {
@@ -73,7 +78,7 @@ createFeatureTestSuite({
     errorValidator: (error: APICallError) => {
       console.log(error);
       expect((error.data as GoogleErrorData).error.message).match(
-        /models\/no\-such\-model is not found/,
+        /models\/no-such-model is not found/,
       );
     },
   },

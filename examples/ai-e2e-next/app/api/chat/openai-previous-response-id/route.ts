@@ -1,16 +1,17 @@
 import {
   openai,
-  OpenaiResponsesProviderMetadata,
-  OpenAILanguageModelResponsesOptions,
+  type OpenaiResponsesProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
-  UIMessage,
+  toUIMessageStream,
+  type InferUITools,
+  type UIMessage,
 } from 'ai';
 import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 
@@ -37,30 +38,31 @@ export async function POST(req: Request) {
     reqJson as PreviousResponseIdRequestBody;
 
   // Extract the prior OpenAI responseId so the Responses API can replay history.
-  const previousResponseId: string | null | undefined =
-    !!previousProviderMetadata
-      ? previousProviderMetadata.openai.responseId
-      : undefined;
+  const previousResponseId: string | null | undefined = previousProviderMetadata
+    ? previousProviderMetadata.openai.responseId
+    : undefined;
 
   const stream = createUIMessageStream<PreviousResponseIdUIMessage>({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-5-mini'),
+        model: openai('gpt-6-luna'),
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
+        reasoning: 'low',
         providerOptions: {
           openai: {
-            reasoningEffort: 'low',
             reasoningSummary: 'auto',
             store: true,
             // Enable history lookup by passing the responseId from the previous call.
             previousResponseId,
           } satisfies OpenAILanguageModelResponsesOptions,
         },
-        onFinish: ({ providerMetadata }) => {
-          if (!!providerMetadata) {
+        onEnd: ({ finalStep }) => {
+          const providerMetadata = finalStep.providerMetadata;
+
+          if (providerMetadata) {
             // Return provider metadata so the client can persist the latest responseId.
             writer.write({
               type: 'data-providerMetadata',
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
           }
         },
       });
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 

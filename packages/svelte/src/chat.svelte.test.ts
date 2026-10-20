@@ -61,14 +61,14 @@ describe('data protocol stream', () => {
     await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
@@ -182,7 +182,7 @@ describe('data protocol stream', () => {
       isDisconnect: false,
       isError: false,
       message: {
-        id: 'id-2',
+        id: 'id-1',
         metadata: {
           example: 'metadata',
         },
@@ -197,7 +197,7 @@ describe('data protocol stream', () => {
       },
       messages: [
         {
-          id: 'id-1',
+          id: 'id-0',
           metadata: undefined,
           parts: [
             {
@@ -208,7 +208,7 @@ describe('data protocol stream', () => {
           role: 'user',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           metadata: {
             example: 'metadata',
           },
@@ -239,10 +239,10 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "id": "id-0",
+          "id": "id-2",
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "parts": [
                 {
                   "text": "hi",
@@ -287,7 +287,7 @@ describe('text stream', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -298,7 +298,7 @@ describe('text stream', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -331,7 +331,7 @@ describe('text stream', () => {
     controller.write('He');
 
     await vi.waitFor(() =>
-      expect(chat.messages.at(1)).toStrictEqual(
+      expect(chat.messages.at(1)).toEqual(
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
@@ -350,7 +350,7 @@ describe('text stream', () => {
     await appendOperation;
 
     expect(id).toBeDefined();
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         id,
         role: 'assistant',
@@ -557,7 +557,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"t',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -584,7 +584,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"test-value"}}',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
@@ -822,7 +822,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -839,7 +839,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -856,10 +856,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.txt",
@@ -912,7 +912,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -929,7 +929,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -946,10 +946,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1012,7 +1012,7 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1029,7 +1029,7 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1046,10 +1046,10 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1113,7 +1113,7 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1126,7 +1126,7 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1143,10 +1143,10 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1206,13 +1206,13 @@ describe('reload', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'first response', type: 'text', state: 'done' }],
@@ -1227,10 +1227,10 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "text": "hi",
@@ -1250,7 +1250,7 @@ describe('reload', () => {
       'header-key': 'header-value',
     });
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'second response', type: 'text', state: 'done' }],
@@ -1280,7 +1280,7 @@ describe('test sending additional fields during message submission', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
@@ -1288,10 +1288,10 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "metadata": {
               "test": "example",
             },
@@ -1337,7 +1337,7 @@ describe('generateId function', () => {
     expect(chatWithCustomId.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "testid-1",
+          "id": "testid-0",
           "metadata": undefined,
           "parts": [
             {

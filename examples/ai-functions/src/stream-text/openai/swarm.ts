@@ -1,23 +1,23 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const agentA = {
-    system: 'You are a helpful agent.',
+    instructions: 'You are a helpful agent.',
     activeTools: ['transferToAgentB'] as 'transferToAgentB'[],
   };
 
   const agentB = {
-    system: 'Only speak in Haikus.',
+    instructions: 'Only speak in Haikus.',
     activeTools: [],
   };
 
   let activeAgent = agentA;
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: {
       transferToAgentB: tool({
         description: 'Transfer to agent B.',
@@ -28,7 +28,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prepareStep: () => activeAgent,
     prompt: 'I want to talk to agent B.',
   });

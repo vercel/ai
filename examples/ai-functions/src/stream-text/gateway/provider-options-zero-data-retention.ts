@@ -1,4 +1,4 @@
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       gateway: {
         zeroDataRetention: true,
-      } satisfies GatewayLanguageModelOptions,
+      } satisfies GatewayProviderOptions,
     },
   });
 
@@ -22,6 +22,6 @@ run(async () => {
   console.log('Finish reason:', await result.finishReason);
   console.log(
     'Provider metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });

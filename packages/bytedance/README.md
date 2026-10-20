@@ -2,6 +2,8 @@
 
 The **ByteDance provider** for the [AI SDK](https://ai-sdk.dev/docs) contains video model support for ByteDance's Seedance family of video generation models through the [BytePlus ModelArk](https://docs.byteplus.com/en/docs/ModelArk/Video_Generation_API) platform.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access ByteDance (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The ByteDance provider is available in the `@ai-sdk/bytedance` module. You can install it with:
@@ -37,7 +39,7 @@ Generate video from a text prompt.
 Available models: `seedance-1-5-pro-251215`, `seedance-1-0-pro-250528`, `seedance-1-0-pro-fast-251015`, `seedance-1-0-lite-t2v-250428`
 
 ```ts
-import { byteDance } from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -48,7 +50,7 @@ const { video } = await generateVideo({
   providerOptions: {
     bytedance: {
       watermark: false,
-    },
+    } satisfies ByteDanceVideoModelOptions,
   },
 });
 
@@ -62,7 +64,7 @@ Generate video from a first-frame image with an optional text prompt.
 Available models: `seedance-1-5-pro-251215`, `seedance-1-0-pro-250528`, `seedance-1-0-pro-fast-251015`, `seedance-1-0-lite-i2v-250428`
 
 ```ts
-import { byteDance } from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -75,7 +77,7 @@ const { video } = await generateVideo({
   providerOptions: {
     bytedance: {
       watermark: false,
-    },
+    } satisfies ByteDanceVideoModelOptions,
   },
 });
 ```
@@ -85,7 +87,7 @@ const { video } = await generateVideo({
 Seedance 1.5 Pro supports generating synchronized audio alongside the video.
 
 ```ts
-import { byteDance } from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -99,7 +101,7 @@ const { video } = await generateVideo({
     bytedance: {
       generateAudio: true,
       watermark: false,
-    },
+    } satisfies ByteDanceVideoModelOptions,
   },
 });
 ```
@@ -109,7 +111,7 @@ const { video } = await generateVideo({
 Generate smooth transitions between a starting and ending keyframe image.
 
 ```ts
-import { byteDance } from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -124,7 +126,7 @@ const { video } = await generateVideo({
       lastFrameImage: 'https://example.com/last-frame.jpg',
       generateAudio: true,
       watermark: false,
-    },
+    } satisfies ByteDanceVideoModelOptions,
   },
 });
 ```
@@ -136,7 +138,7 @@ Provide multiple reference images (1-4) that the model uses to faithfully reprod
 Available models: `seedance-1-0-lite-i2v-250428`
 
 ```ts
-import { byteDance } from '@ai-sdk/bytedance';
+import { byteDance, type ByteDanceVideoModelOptions } from '@ai-sdk/bytedance';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -153,27 +155,30 @@ const { video } = await generateVideo({
         'https://example.com/lawn.png',
       ],
       watermark: false,
-    },
+    } satisfies ByteDanceVideoModelOptions,
   },
 });
 ```
 
 ## Provider Options
 
-Use `providerOptions.bytedance` to configure video generation:
+Use `providerOptions.bytedance` to configure video generation. You can type the
+object with `ByteDanceVideoModelOptions`.
 
-| Option            | Description                                                                            |
-| ----------------- | -------------------------------------------------------------------------------------- |
-| `watermark`       | Whether to add a watermark to the generated video                                      |
-| `generateAudio`   | Generate synchronized audio (Seedance 1.5 Pro only)                                    |
-| `cameraFixed`     | Whether to fix the camera during generation                                            |
-| `returnLastFrame` | Return the last frame of the generated video (useful for chaining)                     |
-| `serviceTier`     | `'default'` for online inference, `'flex'` for offline at 50% price                    |
-| `draft`           | Enable draft mode for low-cost 480p preview generation (Seedance 1.5 Pro only)         |
-| `lastFrameImage`  | URL of last frame image for first-and-last frame generation                            |
-| `referenceImages` | Array of reference image URLs (1-4) for multi-reference generation (1.0 Lite I2V only) |
-| `pollIntervalMs`  | Poll interval for async generation (default: 3000ms)                                   |
-| `pollTimeoutMs`   | Max wait time for generation (default: 300000ms)                                       |
+| Option            | Description                                                                    |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `watermark`       | Whether to add a watermark to the generated video                              |
+| `generateAudio`   | Generate synchronized audio for supported Seedance models                      |
+| `cameraFixed`     | Whether to fix the camera during generation                                    |
+| `returnLastFrame` | Return the last frame of the generated video (useful for chaining)             |
+| `serviceTier`     | `'default'` for online inference, `'flex'` for offline at 50% price            |
+| `draft`           | Enable draft mode for low-cost 480p preview generation (Seedance 1.5 Pro only) |
+| `lastFrameImage`  | URL of last frame image for first-and-last frame generation                    |
+| `referenceImages` | Array of reference image URLs for multi-reference generation                   |
+| `referenceVideos` | Array of reference video URLs for reference-guided generation                  |
+| `referenceAudio`  | Array of reference audio URLs for audio-guided generation                      |
+| `pollIntervalMs`  | Poll interval for async generation (default: 3000ms)                           |
+| `pollTimeoutMs`   | Max wait time for generation (default: 300000ms)                               |
 
 Supported aspect ratios: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`, `adaptive` (image-to-video only).
 

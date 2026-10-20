@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -19,7 +19,7 @@ const retrieveInformation = tool({
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     tools: { retrieveInformation },
     prepareStep({ stepNumber }) {
@@ -31,7 +31,7 @@ run(async () => {
       }
     },
     activeTools: [],
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   await result.consumeStream();

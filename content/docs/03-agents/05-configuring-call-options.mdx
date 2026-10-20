@@ -9,7 +9,7 @@ Call options allow you to pass type-safe structured inputs to your agent. Use th
 
 ## Why Use Call Options?
 
-When you need agent behavior to change based on runtime context:
+When you need agent behavior to change based on runtime inputs:
 
 - **Add dynamic context** - Inject retrieved documents, user preferences, or session data into prompts
 - **Select models dynamically** - Choose faster or more capable models based on request complexity
@@ -68,7 +68,7 @@ The `options` parameter is now required and type-checked. If you don't provide i
 
 ## Modifying Agent Settings
 
-Use `prepareCall` to modify any agent setting. Return only the settings you want to change.
+Use `prepareCall` to modify any agent setting. The returned object replaces the call settings, so spread the incoming settings and override only the ones you want to change.
 
 ### Dynamic Model Selection
 
@@ -87,7 +87,9 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     model:
-      options.complexity === 'simple' ? 'openai/gpt-4o-mini' : 'openai/o1-mini',
+      options.complexity === 'simple'
+        ? 'openai/gpt-6-luna'
+        : 'openai/gpt-6-astra',
   }),
 });
 
@@ -106,7 +108,7 @@ await agent.generate({
 
 ### Dynamic Tool Configuration
 
-Configure tools based on runtime context:
+Configure tools based on runtime inputs:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -153,12 +155,12 @@ await newsAgent.generate({
 Configure provider settings dynamically:
 
 ```ts
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/o3',
+  model: 'openai/gpt-6-astra',
   callOptionsSchema: z.object({
     taskDifficulty: z.enum(['low', 'medium', 'high']),
   }),

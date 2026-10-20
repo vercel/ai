@@ -29,7 +29,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     <Snippet text="import { Chat } from '@ai-sdk/svelte'" dark prompt={false} />
   </Tab>
   <Tab>
-    <Snippet text="import { Chat } from '@ai-sdk/vue'" dark prompt={false} />
+    <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
   </Tab>
   <Tab>
     <Snippet
@@ -68,6 +68,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: "string = '/api/chat'",
               isOptional: true,
               description: 'The API endpoint for chat requests.',
+            },
+            {
+              name: 'resumeStreamIsReplay',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Defaults to true. Resets the interrupted response on the first resumed start chunk and rebuilds it from the replay. Set to false for endpoints that only send the remaining chunks of the same response.',
             },
             {
               name: 'credentials',
@@ -231,7 +238,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'string',
       isOptional: true,
       description:
-        'A unique identifier for the chat. If not provided, a random one will be generated.',
+        'A unique identifier for the chat. If not provided, a random one will be generated on first access, including when sending a message or resuming a stream.',
     },
     {
       name: 'messages',
@@ -334,18 +341,18 @@ Allows you to easily create a conversational user interface for your chatbot app
         'Optional callback function that is called when a data part is received.',
     },
     {
-      name: 'experimental_throttle',
+      name: 'throttle',
       type: 'number',
       isOptional: true,
       description:
-        'Custom throttle wait in ms for the chat messages and data updates. Default is undefined, which disables throttling.',
+        'React and Vue only. Custom throttle wait time in milliseconds for reactive chat message updates. Positive values reduce UI update frequency without delaying stream processing or callbacks, and the latest messages are published before a ready or error status. Default is undefined, which disables throttling.',
     },
     {
       name: 'resume',
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to resume an ongoing chat generation stream. Defaults to false.',
+        'Whether to automatically resume an ongoing chat generation stream on mount and after the page becomes visible again following a network disconnect. Defaults to false.',
     },
   ]}
 />
@@ -408,7 +415,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'sendMessage',
       type: '(message?: { text: string; files?: FileList | FileUIPart[]; metadata?; messageId?: string } | CreateUIMessage, options?: ChatRequestOptions) => Promise<void>',
       description:
-        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). If no message is provided, resubmits the current messages (useful after adding tool outputs).',
+        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). When replacing with a CreateUIMessage, provide its id to assign a new ID to the replacement. If no message is provided, resubmits the current messages (useful after adding tool outputs).',
       properties: [
         {
           type: 'ChatRequestOptions',
@@ -485,6 +492,19 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
   ]}
 />
+
+## React rendering and shared Chat instances
+
+In React, `messages`, `status`, and `error` describe the snapshot for the current render.
+The underlying `Chat` updates as stream chunks are processed. React may batch updates,
+and `throttle` can delay message rendering without delaying stream processing or callbacks.
+Status and error updates include the latest messages, so a completed or failed response
+is rendered with its final message snapshot.
+
+Each `useChat({ chat })` call subscribes independently. Consumers sharing a `Chat`
+can display different message snapshots when they use different throttle intervals.
+A functional `setMessages` updater receives the Chat's latest messages, which may be
+newer than the messages in the current render.
 
 ## Learn more
 

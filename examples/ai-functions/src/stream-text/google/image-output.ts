@@ -5,11 +5,11 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash-image'),
+    model: google('gemini-3.1-flash-image-preview'),
     prompt: 'Generate an image of a comic cat',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);

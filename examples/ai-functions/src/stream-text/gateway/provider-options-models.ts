@@ -1,4 +1,4 @@
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -11,8 +11,8 @@ run(async () => {
     prompt: 'Tell me a short tale of the krakens of the deep.',
     providerOptions: {
       gateway: {
-        models: ['openai/gpt-5-nano', 'zai/glm-4.6'],
-      } satisfies GatewayLanguageModelOptions,
+        models: ['openai/gpt-5.4-nano', 'zai/glm-4.6'],
+      } satisfies GatewayProviderOptions,
     },
   });
 
@@ -23,7 +23,7 @@ run(async () => {
   console.log();
   console.log(
     'Provider metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);

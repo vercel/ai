@@ -1,4 +1,4 @@
-import { SharedV4ProviderMetadata } from '../../shared';
+import type { SharedV4ProviderMetadata } from '../../shared';
 
 /**
  * A video or image file that can be used for video editing or image-to-video generation.
@@ -32,6 +32,13 @@ export type VideoModelV4File =
        * The URL of the video or image file.
        */
       url: string;
+
+      /**
+       * The media type of the referenced file, when known.
+       * Video types: 'video/mp4', 'video/webm', 'video/quicktime'
+       * Image types: 'image/png', 'image/jpeg', 'image/webp'
+       */
+      mediaType?: string;
 
       /**
        * Optional provider-specific metadata for the file part.

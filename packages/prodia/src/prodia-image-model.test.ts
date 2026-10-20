@@ -82,6 +82,13 @@ describe('ProdiaImageModel', () => {
     },
   });
 
+  it('advertises that editing inputs are unsupported', () => {
+    const model = createBasicModel();
+
+    expect(model.supportsFileInputs).toBe(false);
+    expect(model.supportsMaskInputs).toBe(false);
+  });
+
   describe('doGenerate', () => {
     it('passes the correct parameters including providerOptions', async () => {
       const model = createBasicModel();
@@ -616,7 +623,7 @@ describe('ProdiaImageModel', () => {
 
       expect(model.provider).toBe('prodia.image');
       expect(model.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

@@ -6,10 +6,12 @@ run(async () => {
   const result = streamText({
     model: azure.completion('model-router'),
     prompt: 'Say where is copenhagen in three words max',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     console.log(`[CHUNK ${chunk.type}]`, chunk);
   }
 

@@ -1,4 +1,4 @@
-import { JSONObject } from '../../json-value';
+import type { JSONObject } from '../../json-value';
 
 /**
  * Usage information for a language model call.

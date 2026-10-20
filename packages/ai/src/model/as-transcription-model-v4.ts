@@ -1,4 +1,4 @@
-import {
+import type {
   TranscriptionModelV2,
   TranscriptionModelV3,
   TranscriptionModelV4,

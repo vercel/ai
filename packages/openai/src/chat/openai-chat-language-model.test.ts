@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -187,6 +187,89 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
   it('should extract usage', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
@@ -260,6 +343,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -581,6 +665,59 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should not set reasoning_effort when reasoning is "provider-default"', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'provider-default',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+  });
+
+  it('should pass top-level reasoning as reasoning_effort', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'medium',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'medium',
+    });
+  });
+
+  it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'medium',
+      providerOptions: {
+        openai: { reasoningEffort: 'high' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -638,6 +775,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort max setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'max' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'max',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -655,6 +811,28 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       verbosity: 'low',
     });
+  });
+
+  it('should warn that reasoningSummary is not supported by the chat API', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o3');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningSummary: 'detailed' },
+      },
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      },
+    ]);
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -749,7 +927,7 @@ describe('doGenerate', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -967,6 +1145,66 @@ describe('doGenerate', () => {
       `);
 
       expect(warnings).toEqual([]);
+    });
+
+    it('should remove string propertyNames from response schemas and warn', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              variables: {
+                type: 'object',
+                propertyNames: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                additionalProperties: { type: 'string' },
+              },
+            },
+            required: ['variables'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ]);
     });
 
     it('should use json_schema & strict with responseFormat json', async () => {
@@ -1332,11 +1570,12 @@ describe('doGenerate', () => {
           },
         ],
         usage: {
-          prompt_tokens: 15,
+          prompt_tokens: 2000,
           completion_tokens: 20,
-          total_tokens: 35,
+          total_tokens: 2020,
           prompt_tokens_details: {
             cached_tokens: 1152,
+            cache_write_tokens: 256,
           },
         },
         system_fingerprint: 'fp_3bc1b5746c',
@@ -1353,9 +1592,9 @@ describe('doGenerate', () => {
       {
         "inputTokens": {
           "cacheRead": 1152,
-          "cacheWrite": undefined,
-          "noCache": -1137,
-          "total": 15,
+          "cacheWrite": 256,
+          "noCache": 592,
+          "total": 2000,
         },
         "outputTokens": {
           "reasoning": 0,
@@ -1364,11 +1603,12 @@ describe('doGenerate', () => {
         },
         "raw": {
           "completion_tokens": 20,
-          "prompt_tokens": 15,
+          "prompt_tokens": 2000,
           "prompt_tokens_details": {
+            "cache_write_tokens": 256,
             "cached_tokens": 1152,
           },
-          "total_tokens": 35,
+          "total_tokens": 2020,
         },
       }
     `);
@@ -1476,6 +1716,141 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
+    });
+
+    it('should allow temperature when top-level reasoning is none on gpt-5.1', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-5.1');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        temperature: 0.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-5.1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'none',
+        temperature: 0.5,
+      });
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('openai-text');
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should omit unsupported GPT-6 reasoning effort %s',
+      async reasoningEffort => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffort',
+            details:
+              'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        },
+      ]);
+    });
+
+    it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('o4-mini');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        temperature: 0.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'o4-mini',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'none',
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 
@@ -1823,6 +2198,57 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheOptions extension value', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    await provider.chat('gpt-5.6').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheOptions: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_options: {
+        mode: 'explicit',
+        ttl: '30m',
+      },
+    });
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -2085,9 +2511,138 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('priority');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier fast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4o-mini",
+        "service_tier": "fast",
+      }
+    `);
+  });
+
+  it('should show warning when using fast processing with unsupported model', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-3.5-turbo');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBeUndefined();
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should allow fast processing with gpt-4o model without warnings', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'fast',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.service_tier).toBe('fast');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
+  });
 });
 
 describe('doStream', () => {
+  it('should stream text after Azure content filter chunks', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"choices":[],"created":0,"id":"","model":"","object":"","prompt_filter_results":[{"prompt_index":0,"content_filter_results":{}}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"","role":"assistant"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"gpt-4o","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        `data: {"choices":[{"content_filter_offsets":{},"content_filter_results":{},"finish_reason":null,"index":0}],"created":0,"id":"","model":"","object":""}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toStrictEqual([
+      { type: 'text-delta', id: '0', delta: '' },
+      { type: 'text-delta', id: '0', delta: 'Hello' },
+    ]);
+  });
+
   it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -2739,6 +3294,15 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -2747,10 +3311,6 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
         },
         {
           "finishReason": {
@@ -2782,6 +3342,82 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should not finalize tool call early when partial JSON is coincidentally parsable', async () => {
+    // Regression test: if streamed tool call arguments form valid JSON before
+    // all chunks have arrived, the tool call must NOT be finalized early.
+    // For example, {"query": "test"} is valid JSON but the full args are
+    // {"query": "test", "limit": 10}. Finalizing early would lose "limit".
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // initial chunk with tool call start
+        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gpt-4","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_early123","type":"function",` +
+          `"function":{"name":"search","arguments":""}}]},"finish_reason":null}]}\n\n`,
+        // This chunk produces valid JSON: {"query": "test"}
+        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"{\\"query\\": \\"test\\"}"}}]},"finish_reason":null}]}\n\n`,
+        // More data arrives - the full args include "limit"
+        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":""}}]},"finish_reason":null}]}\n\n`,
+        // Even more data: adding the comma and limit field
+        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":", \\"limit\\": 10}"}}]},"finish_reason":null}]}\n\n`,
+        // finish
+        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"gpt-4","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string' },
+              limit: { type: 'number' },
+            },
+            required: ['query'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Find the tool-call event
+    const toolCallEvent = result.find(
+      (e: { type: string }) => e.type === 'tool-call',
+    );
+
+    // The tool call must contain the COMPLETE arguments, not just the
+    // partial JSON that happened to be parsable mid-stream.
+    expect(toolCallEvent).toEqual({
+      type: 'tool-call',
+      toolCallId: 'call_early123',
+      toolName: 'search',
+      input: '{"query": "test"}, "limit": 10}',
+    });
+
+    // Verify there is exactly one tool-call event (no premature duplicate)
+    const toolCallEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-call',
+    );
+    expect(toolCallEvents).toHaveLength(1);
   });
 
   it('should stream tool call with missing type field (Azure AI Foundry / Mistral)', async () => {
@@ -2937,12 +3573,56 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should throw an api error when the first stream chunk is an error', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
           `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        'The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.',
+      statusCode: 500,
+      isRetryable: true,
+    });
+  });
+
+  it('should preserve numeric status codes from early stream errors', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error":{"message":"bad request","type":"provider_error","param":null,"code":400}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message: 'bad request',
+      statusCode: 400,
+      isRetryable: false,
+    });
+  });
+
+  it('should forward error stream parts after output has started', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-error-after-output","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"error":{"message":"stream failed after output","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -2959,13 +3639,39 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": "chatcmpl-error-after-output",
+          "modelId": "gpt-3.5-turbo-0613",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
           "error": {
-            "code": null,
-            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
-            "param": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
+            "message": "stream failed after output",
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": {
@@ -2995,20 +3701,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://api.openai.com/v1/chat/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -3016,7 +3720,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -3045,8 +3749,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should send request body', async () => {
     prepareChunksFixtureResponse('openai-text');
@@ -3076,6 +3779,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -3180,7 +3884,7 @@ describe('doStream', () => {
       chunks: [
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"prompt_tokens_details":{"cached_tokens":1152}}}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":2000,"completion_tokens":20,"total_tokens":2020,"prompt_tokens_details":{"cached_tokens":1152,"cache_write_tokens":256}}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3211,9 +3915,9 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": {
               "cacheRead": 1152,
-              "cacheWrite": undefined,
-              "noCache": -1137,
-              "total": 15,
+              "cacheWrite": 256,
+              "noCache": 592,
+              "total": 2000,
             },
             "outputTokens": {
               "reasoning": 0,
@@ -3222,11 +3926,12 @@ describe('doStream', () => {
             },
             "raw": {
               "completion_tokens": 20,
-              "prompt_tokens": 15,
+              "prompt_tokens": 2000,
               "prompt_tokens_details": {
+                "cache_write_tokens": 256,
                 "cached_tokens": 1152,
               },
-              "total_tokens": 35,
+              "total_tokens": 2020,
             },
           },
         }

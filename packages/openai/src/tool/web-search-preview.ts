@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -50,7 +50,7 @@ const webSearchPreviewOutputSchema = lazySchema(() =>
   ),
 );
 
-export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
+export const webSearchPreview = createProviderExecutedToolFactory<
   {
     // Web search preview doesn't take input parameters - it's controlled by the prompt
   },

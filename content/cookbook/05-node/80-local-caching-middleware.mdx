@@ -37,10 +37,10 @@ The middleware handles all transformations needed to make cached responses indis
 
 ```ts
 import {
-  type LanguageModelV3Middleware,
-  type LanguageModelV3StreamPart,
-  type LanguageModelV3CallOptions,
-  type LanguageModelV3,
+  type LanguageModelV4Middleware,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import 'dotenv/config';
@@ -50,7 +50,7 @@ import { wrapLanguageModel, simulateReadableStream } from 'ai';
 
 const CACHE_FILE = path.join(process.cwd(), '.cache/ai-cache.json');
 
-export const cached = (model: LanguageModelV3) =>
+export const cached = (model: LanguageModelV4) =>
   wrapLanguageModel({
     middleware: cacheMiddleware,
     model,
@@ -77,7 +77,7 @@ const getCachedResult = (key: string | object) => {
       console.error('Failed to parse cache:', parseResult.error);
       return null;
     }
-    const cache = parseResult.value as Record<string, unknown>;
+    const cache = parseResult.value as Record<string, any>;
 
     const result = cache[cacheKey];
 
@@ -104,7 +104,7 @@ const updateCache = (key: string, value: any) => {
   }
 };
 
-const cleanPrompt = (prompt: LanguageModelV3CallOptions['prompt']) => {
+const cleanPrompt = (prompt: LanguageModelV4CallOptions['prompt']) => {
   return prompt.map(m => {
     if (m.role === 'assistant') {
       return {
@@ -129,10 +129,11 @@ const cleanPrompt = (prompt: LanguageModelV3CallOptions['prompt']) => {
   });
 };
 
-export const cacheMiddleware: LanguageModelV3Middleware = {
-  specificationVersion: 'v3',
+export const cacheMiddleware: LanguageModelV4Middleware = {
+  specificationVersion: 'v4',
   wrapGenerate: async ({ doGenerate, params, model }) => {
     const cacheKey = JSON.stringify({
+      ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'generate',
       model: model.modelId,
@@ -161,6 +162,7 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
 
   wrapStream: async ({ doStream, params, model }) => {
     const cacheKey = JSON.stringify({
+      ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'stream',
       model: model.modelId,
@@ -170,7 +172,7 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
 
     if (cached && cached !== null) {
       const { chunks, ...rest } = cached;
-      const formattedChunks = (chunks as LanguageModelV3StreamPart[]).map(p => {
+      const formattedChunks = (chunks as LanguageModelV4StreamPart[]).map(p => {
         if (p.type === 'response-metadata' && p.timestamp) {
           return { ...p, timestamp: new Date(p.timestamp) };
         }
@@ -189,11 +191,11 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
 
     const { stream, ...rest } = await doStream();
 
-    const fullResponse: LanguageModelV3StreamPart[] = [];
+    const fullResponse: LanguageModelV4StreamPart[] = [];
 
     const transformStream = new TransformStream<
-      LanguageModelV3StreamPart,
-      LanguageModelV3StreamPart
+      LanguageModelV4StreamPart,
+      LanguageModelV4StreamPart
     >({
       transform(chunk, controller) {
         fullResponse.push(chunk);
@@ -225,7 +227,7 @@ import { cached } from '../middleware/your-cache-middleware';
 
 async function main() {
   const result = streamText({
-    model: cached(openai('gpt-4o')),
+    model: cached(openai('gpt-4.1')),
     maxOutputTokens: 512,
     temperature: 0.3,
     maxRetries: 5,

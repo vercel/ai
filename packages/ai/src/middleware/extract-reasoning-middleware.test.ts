@@ -1,15 +1,16 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 5,
     noCache: 5,
@@ -23,10 +24,187 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
+type ObjectPrototypeState = {
+  afterSwitch?: unknown;
+  buffer?: unknown;
+  isFirstText?: unknown;
+  providerMetadata?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.afterSwitch;
+  delete objectPrototype.buffer;
+  delete objectPrototype.isFirstText;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.text;
+}
+
+function normalizeStreamPerformance(parts: Array<TextStreamPart<any>>) {
+  return parts.map(part =>
+    part.type === 'finish-step'
+      ? {
+          ...part,
+          performance: {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: 0,
+            inputTokensPerSecond: 0,
+            effectiveTotalTokensPerSecond: 0,
+            responseTimeMs: 0,
+            stepTimeMs: 0,
+            timeToFirstOutputMs: 0,
+            toolExecutionMs: {},
+          },
+        }
+      : part,
+  );
+}
+
 describe('extractReasoningMiddleware', () => {
+  describe('custom delimiters', () => {
+    const gemmaTags = {
+      opening: '<|channel>thought\n',
+      closing: '<channel|>',
+    };
+
+    const cases = [
+      {
+        name: 'Gemma thought channel',
+        options: { tagName: gemmaTags },
+        input: '<|channel>thought\nChecking the sum.\nIt is four.<channel|>4',
+        reasoning: 'Checking the sum.\nIt is four.',
+        text: '4',
+      },
+      {
+        name: 'empty Gemma thought channel',
+        options: { tagName: gemmaTags },
+        input: '<|channel>thought\n<channel|>4',
+        reasoning: '',
+        text: '4',
+      },
+      {
+        name: 'omitted opening delimiter',
+        options: { tagName: gemmaTags, startWithReasoning: true },
+        input: 'Checking the sum.<channel|>4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+      {
+        name: 'literal regex metacharacters',
+        options: {
+          tagName: { opening: '[.*+?^${}()|\\]', closing: '(end.*+?^${}|\\)' },
+        },
+        input: '[.*+?^${}()|\\]Checking the sum.(end.*+?^${}|\\)4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+      {
+        name: 'multiple reasoning blocks and a custom separator',
+        options: { tagName: gemmaTags, separator: ' / ' },
+        input:
+          'Before<|channel>thought\nFirst<channel|>Between<|channel>thought\nSecond<channel|>After',
+        reasoning: 'First / Second',
+        text: 'Before / Between / After',
+      },
+      {
+        name: 'text without delimiters',
+        options: { tagName: gemmaTags },
+        input: '4',
+        reasoning: undefined,
+        text: '4',
+      },
+      {
+        name: 'literal regex metacharacters in a string tag name',
+        options: { tagName: 'think|reason' },
+        input: '<think|reason>Checking the sum.</think|reason>4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+    ];
+
+    describe.each(cases)('$name', ({ options, input, reasoning, text }) => {
+      it('extracts reasoning in generateText', async () => {
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                content: [{ type: 'text', text: input }],
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                warnings: [],
+              },
+            }),
+            middleware: extractReasoningMiddleware(options),
+          }),
+          prompt: 'What is 2 + 2?',
+        });
+
+        expect(result.text).toBe(text);
+        expect(result.reasoningText).toBe(
+          reasoning === '' ? undefined : reasoning,
+        );
+        if (reasoning === '') {
+          expect(result.reasoning).toEqual([{ type: 'reasoning', text: '' }]);
+        }
+      });
+
+      it('extracts reasoning when every delimiter character is streamed separately', async () => {
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doStream: {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: 'text-0' },
+                  ...Array.from(input, delta => ({
+                    type: 'text-delta' as const,
+                    id: 'text-0',
+                    delta,
+                  })),
+                  { type: 'text-end', id: 'text-0' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              },
+            }),
+            middleware: extractReasoningMiddleware(options),
+          }),
+          prompt: 'What is 2 + 2?',
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(await result.text).toBe(text);
+        expect(await result.reasoningText).toBe(
+          reasoning === '' ? undefined : reasoning,
+        );
+        if (reasoning !== undefined) {
+          const starts = parts.filter(part => part.type === 'reasoning-start');
+          const ends = parts.filter(part => part.type === 'reasoning-end');
+          expect(starts.length).toBeGreaterThan(0);
+          expect(ends.map(part => part.id)).toEqual(
+            starts.map(part => part.id),
+          );
+        }
+      });
+    });
+
+    it.each([
+      { opening: '', closing: '<channel|>' },
+      { opening: '<|channel>thought\n', closing: '' },
+    ])('rejects empty delimiters: %j', tagName => {
+      expect(() => extractReasoningMiddleware({ tagName })).toThrow(
+        'Reasoning delimiters must not be empty.',
+      );
+    });
+  });
+
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -65,7 +243,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from <think> tags when there is no text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -105,7 +283,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -146,7 +324,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should prepend <think> tag IFF startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -207,7 +385,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should preserve reasoning property even when rest contains other properties', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -248,8 +426,55 @@ describe('extractReasoningMiddleware', () => {
   });
 
   describe('wrapStream', () => {
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+      const protoKey: string = '__proto__';
+
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-delta', id: protoKey, delta: 'Hello' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+        onError: () => {},
+      });
+
+      try {
+        await convertAsyncIterableToArray(result.stream);
+
+        expect(Object.hasOwn(Object.prototype, 'afterSwitch')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'buffer')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'isFirstText')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
     it('should extract reasoning from split <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -285,113 +510,125 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(result.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Here",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": " is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "Here",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from single chunk with multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -427,123 +664,135 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(result.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "analyzing the request",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Here is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "reasoning-1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-1",
+            "providerMetadata": undefined,
+            "text": "
+        thinking about the response",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "
+        more",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "analyzing the request",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "Here is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "reasoning-1",
-              "type": "reasoning-start",
-            },
-            {
-              "id": "reasoning-1",
-              "providerMetadata": undefined,
-              "text": "
-          thinking about the response",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-1",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "
-          more",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should extract reasoning from <think> when there is no text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -577,102 +826,114 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(result.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should prepend <think> tag if startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -717,205 +978,229 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(resultTrue.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(resultTrue.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning-0",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "reasoning-delta",
-            },
-            {
-              "id": "reasoning-0",
-              "type": "reasoning-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
 
-      expect(await convertAsyncIterableToArray(resultFalse.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(resultFalse.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "ana",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "lyzing the request
+        ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "</think>",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "1",
-              "type": "text-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "ana",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "lyzing the request
-          ",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "</think>",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should keep original text when <think> tag is not present', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -946,87 +1231,240 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(await convertAsyncIterableToArray(result.fullStream))
-        .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
+      expect(
+        normalizeStreamPerformance(
+          await convertAsyncIterableToArray(result.stream),
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "start",
+          },
+          {
+            "request": {
+              "body": undefined,
+              "messages": undefined,
             },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "this is the response",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
             },
-            {
-              "id": "1",
-              "type": "text-start",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": "this is the response",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "rawFinishReason": "stop",
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+            "type": "finish-step",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "raw": undefined,
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 15,
             },
-            {
-              "finishReason": "stop",
-              "rawFinishReason": "stop",
-              "totalUsage": {
-                "cachedInputTokens": 0,
-                "inputTokenDetails": {
-                  "cacheReadTokens": 0,
-                  "cacheWriteTokens": 0,
-                  "noCacheTokens": 5,
-                },
-                "inputTokens": 5,
-                "outputTokenDetails": {
-                  "reasoningTokens": 3,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "totalUsage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
+              "inputTokens": 5,
+              "outputTokenDetails": {
                 "reasoningTokens": 3,
-                "totalTokens": 15,
+                "textTokens": 10,
               },
-              "type": "finish",
+              "outputTokens": 10,
+              "totalTokens": 15,
             },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
+    });
+
+    it.each([
+      {
+        delta: 'Use the <th',
+        expectedText: 'Use the <th',
+        expectedReasoningText: undefined,
+        location: 'text',
+      },
+      {
+        delta: '<think>a </th',
+        expectedText: '',
+        expectedReasoningText: 'a </th',
+        location: 'reasoning',
+      },
+    ])(
+      'should preserve a partial tag in $location when the text part ends',
+      async ({ delta, expectedText, expectedReasoningText }) => {
+        const mockModel = new MockLanguageModelV4({
+          async doStream() {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: extractReasoningMiddleware({ tagName: 'think' }),
+          }),
+          prompt: 'Test prompt',
+        });
+
+        expect(await result.text).toBe(expectedText);
+        expect(await result.reasoningText).toBe(expectedReasoningText);
+      },
+    );
+
+    it('should preserve overlapping text parts', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: 'a' },
+              { type: 'text-start', id: 'b' },
+              { type: 'text-delta', id: 'a', delta: 'Alpha.' },
+              { type: 'text-delta', id: 'b', delta: 'Beta.' },
+              { type: 'text-end', id: 'a' },
+              { type: 'text-end', id: 'b' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const errors: unknown[] = [];
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      for await (const event of result.fullStream) {
+        if (event.type === 'error') {
+          errors.push(event.error);
+        }
+      }
+
+      expect(await result.text).toBe('Alpha.Beta.');
+      expect(errors).toEqual([]);
+    });
+
+    it('should preserve reasoning from overlapping text parts', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: 'a' },
+              { type: 'text-start', id: 'b' },
+              { type: 'text-delta', id: 'a', delta: '<think>A' },
+              { type: 'text-delta', id: 'b', delta: '<think>B' },
+              { type: 'text-delta', id: 'a', delta: '1</think>Alpha.' },
+              { type: 'text-delta', id: 'b', delta: '2</think>Beta.' },
+              { type: 'text-end', id: 'a' },
+              { type: 'text-end', id: 'b' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const errors: unknown[] = [];
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      for await (const event of result.fullStream) {
+        if (event.type === 'error') {
+          errors.push(event.error);
+        }
+      }
+
+      expect(await result.reasoningText).toBe('A1B2');
+      expect(await result.text).toBe('Alpha.Beta.');
+      expect(errors).toEqual([]);
     });
 
     it('should handle empty <think></think> tags without crashing', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -1058,13 +1496,13 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Test prompt',
       });
 
-      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+      const stream = await convertAsyncIterableToArray(result.stream);
 
       // Find the reasoning events
-      const reasoningStartIndex = fullStream.findIndex(
+      const reasoningStartIndex = stream.findIndex(
         part => part.type === 'reasoning-start' && part.id === 'reasoning-0',
       );
-      const reasoningEndIndex = fullStream.findIndex(
+      const reasoningEndIndex = stream.findIndex(
         part => part.type === 'reasoning-end' && part.id === 'reasoning-0',
       );
 

@@ -1,8 +1,5 @@
-import {
-  createAnthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
-import { ModelMessage, generateText, stepCountIs } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -31,17 +28,13 @@ run(async () => {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
 
-    const { steps, response } = await generateText({
+    const { steps, responseMessages } = await generateText({
       model: anthropic('claude-sonnet-4-5-20250929'),
       tools: { weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       messages,
-      stopWhen: stepCountIs(5),
-      providerOptions: {
-        anthropic: {
-          thinking: { type: 'enabled', budgetTokens: 12000 },
-        } satisfies AnthropicLanguageModelOptions,
-      },
+      stopWhen: isStepCount(5),
+      reasoning: 'medium',
     });
 
     console.log('Assistant:');
@@ -67,6 +60,6 @@ run(async () => {
 
     console.log('\n');
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
   }
 });

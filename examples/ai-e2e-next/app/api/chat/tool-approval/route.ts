@@ -1,13 +1,11 @@
-import { weatherWithApprovalAgent } from '@/agent/anthropic/weather-with-approval-agent';
+import { openaiWeatherToolApprovalAgent } from '@/agent/openai/weather-tool-approval-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
-export async function POST(request: Request) {
-  const body = await request.json();
-
-  console.dir(body.messages, { depth: Infinity });
+export async function POST(req: Request) {
+  const body = await req.json();
 
   return createAgentUIStreamResponse({
-    agent: weatherWithApprovalAgent,
+    agent: openaiWeatherToolApprovalAgent,
     uiMessages: body.messages,
   });
 }

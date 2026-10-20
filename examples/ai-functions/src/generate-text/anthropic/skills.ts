@@ -1,7 +1,7 @@
 import {
   anthropic,
-  AnthropicMessageMetadata,
   type AnthropicLanguageModelOptions,
+  type AnthropicMessageMetadata,
 } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { print } from '../../lib/print';
@@ -26,7 +26,8 @@ run(async () => {
   });
 
   const anthropicContainer = (
-    result.providerMetadata?.anthropic as unknown as AnthropicMessageMetadata
+    result.finalStep.providerMetadata
+      ?.anthropic as unknown as AnthropicMessageMetadata
   )?.container;
 
   print('content', result.content);

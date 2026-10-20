@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAIImageModelEditOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -19,6 +19,7 @@ run(async () => {
   console.log('Removing background...');
 
   const { images } = await generateImage({
+    // Keep this model for transparent backgrounds, which GPT Image 2 does not support.
     model: openai.image('gpt-image-1.5'),
     prompt: {
       text: 'do not change anything',
@@ -27,8 +28,8 @@ run(async () => {
     providerOptions: {
       openai: {
         background: 'transparent',
-        output_format: 'png',
-      },
+        outputFormat: 'png',
+      } satisfies OpenAIImageModelEditOptions,
     },
   });
 

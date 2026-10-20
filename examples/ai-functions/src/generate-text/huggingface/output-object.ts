@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText, Output } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
+    model: huggingFace.responses('moonshotai/Kimi-K2-Instruct'),
     output: Output.object({
       schema: z.object({
         name: z.string(),

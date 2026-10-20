@@ -7,15 +7,17 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'How many "r"s are in the word "strawberry"?',
+    reasoning: 'low',
     providerOptions: {
       openai: {
-        reasoningEffort: 'low',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;
@@ -24,7 +26,7 @@ run(async () => {
   let fullText = '';
   let fullReasoning = '';
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'raw') {
       rawChunkCount++;
       console.log(

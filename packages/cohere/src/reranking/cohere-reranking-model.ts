@@ -1,21 +1,20 @@
-import { RerankingModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { cohereFailedResponseHandler } from '../cohere-error';
 import {
-  CohereRerankingInput,
   cohereRerankingResponseSchema,
+  type CohereRerankingInput,
 } from './cohere-reranking-api';
 import {
-  CohereRerankingModelId,
   cohereRerankingModelOptionsSchema,
-} from './cohere-reranking-options';
-
+  type CohereRerankingModelId,
+} from './cohere-reranking-model-options';
 type CohereRerankingConfig = {
   provider: string;
   baseURL: string;
@@ -23,8 +22,8 @@ type CohereRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereRerankingModel implements RerankingModelV3 {
-  readonly specificationVersion = 'v3';
+export class CohereRerankingModel implements RerankingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: CohereRerankingModelId;
 
   private readonly config: CohereRerankingConfig;
@@ -46,8 +45,8 @@ export class CohereRerankingModel implements RerankingModelV3 {
     topN,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV3['doRerank']>>
+  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV4['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'cohere',
@@ -55,7 +54,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
       schema: cohereRerankingModelOptionsSchema,
     });
 
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     if (documents.type === 'object') {
       warnings.push({

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { output } = await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     output: Output.object({
       schema: z.object({
         artwork: z.object({
@@ -16,13 +16,17 @@ run(async () => {
         }),
       }),
     }),
-    system: 'You are an art critic reviewing a piece of art.',
+    instructions: 'You are an art critic reviewing a piece of art.',
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail and review it' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
         ],
       },
     ],

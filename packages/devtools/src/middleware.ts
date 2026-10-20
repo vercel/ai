@@ -1,8 +1,8 @@
-import {
-  type LanguageModelV3FinishReason,
-  type LanguageModelV3Usage,
-  type LanguageModelV3Middleware,
-  type LanguageModelV3StreamPart,
+import type {
+  LanguageModelV4FinishReason,
+  LanguageModelV4Usage,
+  LanguageModelV4Middleware,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   createRun,
@@ -10,6 +10,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 const generateId = () => crypto.randomUUID();
 
@@ -39,7 +40,7 @@ const registerSignalHandlers = () => {
         const durationMs = Date.now() - data.startTime;
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify(data.collectedOutput),
+          output: serializeForDevTools(data.collectedOutput),
           usage: null,
           error: 'Request aborted',
           raw_request:
@@ -97,7 +98,7 @@ const generateRunId = (): string => {
  * });
  * ```
  */
-export const devToolsMiddleware = (): LanguageModelV3Middleware => {
+export const devToolsMiddleware = (): LanguageModelV4Middleware => {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
@@ -125,7 +126,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
   };
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     wrapGenerate: async ({ doGenerate, params, model }) => {
       const startTime = Date.now();
@@ -143,7 +144,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -167,7 +168,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
 
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify({
+          output: serializeForDevTools({
             content: result.content,
             finishReason: result.finishReason,
             response: result.response,
@@ -217,7 +218,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -242,9 +243,10 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         const collectedOutput: {
           textParts: Array<{ id: string; text: string }>;
           reasoningParts: Array<{ id: string; text: string }>;
-          toolCalls: LanguageModelV3StreamPart[];
-          finishReason?: LanguageModelV3FinishReason;
-          usage?: LanguageModelV3Usage;
+          toolCalls: LanguageModelV4StreamPart[];
+          content?: LanguageModelV4StreamPart[];
+          finishReason?: LanguageModelV4FinishReason;
+          usage?: LanguageModelV4Usage;
         } = {
           textParts: [],
           reasoningParts: [],
@@ -253,7 +255,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
 
         const currentText: Map<string, string> = new Map();
         const currentReasoning: Map<string, string> = new Map();
-        const fullStreamChunks: LanguageModelV3StreamPart[] = [];
+        const fullStreamChunks: LanguageModelV4StreamPart[] = [];
         const rawChunks: unknown[] = [];
 
         // Track this step for cleanup on process exit
@@ -266,8 +268,8 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         });
 
         const transformStream = new TransformStream<
-          LanguageModelV3StreamPart,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart,
+          LanguageModelV4StreamPart
         >({
           transform(chunk, controller) {
             // Separate raw provider chunks from other stream chunks
@@ -319,6 +321,11 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
               case 'tool-call':
                 collectedOutput.toolCalls.push(chunk);
                 break;
+              case 'file':
+              case 'reasoning-file':
+              case 'tool-result':
+                (collectedOutput.content ??= []).push(chunk);
+                break;
               case 'finish':
                 collectedOutput.finishReason = chunk.finishReason;
                 collectedOutput.usage = chunk.usage;
@@ -335,7 +342,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
                 ? JSON.stringify(collectedOutput.usage)
                 : null,
@@ -354,7 +361,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
                 ? JSON.stringify(collectedOutput.usage)
                 : null,

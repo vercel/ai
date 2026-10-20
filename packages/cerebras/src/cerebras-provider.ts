@@ -1,18 +1,18 @@
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
+import type { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { CerebrasChatModelId } from './cerebras-chat-options';
+import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
+import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
-import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import { VERSION } from './version';
 
 // Add error schema and structure
@@ -29,6 +29,65 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
   errorSchema: cerebrasErrorSchema,
   errorToMessage: data => data.message,
 };
+
+/**
+ * Cerebras expects assistant reasoning history in the `reasoning` field, while
+ * the shared OpenAI-compatible converter serializes it as `reasoning_content`.
+ */
+function transformCerebrasRequestBody(
+  args: Record<string, any>,
+): Record<string, any> {
+  const {
+    max_tokens: maxTokens,
+    parallelToolCalls,
+    topLogprobs,
+    logitBias,
+    serviceTier,
+    reasoningFormat,
+    promptCacheKey,
+    ...restArgs
+  } = args;
+
+  return {
+    ...restArgs,
+    ...(maxTokens !== undefined && {
+      max_completion_tokens: maxTokens,
+    }),
+    ...(parallelToolCalls !== undefined && {
+      parallel_tool_calls: parallelToolCalls,
+    }),
+    ...(topLogprobs !== undefined && { top_logprobs: topLogprobs }),
+    ...(logitBias !== undefined && { logit_bias: logitBias }),
+    ...(serviceTier !== undefined && { service_tier: serviceTier }),
+    ...(reasoningFormat !== undefined && {
+      reasoning_format: reasoningFormat,
+    }),
+    ...(promptCacheKey !== undefined && {
+      prompt_cache_key: promptCacheKey,
+    }),
+    messages: Array.isArray(args.messages)
+      ? args.messages.map(message => {
+          if (
+            message == null ||
+            typeof message !== 'object' ||
+            message.role !== 'assistant' ||
+            !('reasoning_content' in message)
+          ) {
+            return message;
+          }
+
+          const { reasoning_content, ...rest } = message;
+
+          return {
+            ...rest,
+            ...(!('reasoning' in rest) && reasoning_content !== undefined
+              ? { reasoning: reasoning_content }
+              : {}),
+          };
+        })
+      : args.messages,
+  };
+}
 
 export interface CerebrasProviderSettings {
   /**
@@ -50,21 +109,21 @@ export interface CerebrasProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV3 {
+export interface CerebrasProvider extends ProviderV4 {
   /**
    * Creates a Cerebras model for text generation.
    */
-  (modelId: CerebrasChatModelId): LanguageModelV3;
+  (modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * Creates a Cerebras model for text generation.
    */
-  languageModel(modelId: CerebrasChatModelId): LanguageModelV3;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * Creates a Cerebras chat model for text generation.
    */
-  chat(modelId: CerebrasChatModelId): LanguageModelV3;
+  chat(modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -88,24 +147,25 @@ export function createCerebras(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/cerebras/${VERSION}`,
+      `ai-sdk-cerebras/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
+    return new CerebrasChatLanguageModel(modelId, {
       provider: `cerebras.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
       supportsStructuredOutputs: true,
+      transformRequestBody: transformCerebrasRequestBody,
     });
   };
 
   const provider = (modelId: CerebrasChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 

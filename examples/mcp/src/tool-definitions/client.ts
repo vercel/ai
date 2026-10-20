@@ -1,6 +1,6 @@
 import { createMCPClient } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -18,9 +18,9 @@ async function main() {
   const tools = mcpClient.toolsFromDefinitions(definitions);
 
   const { text: answer, steps } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     onStepFinish: async ({ toolResults }) => {
       if (toolResults.length > 0) {
         console.log('Tool results:', JSON.stringify(toolResults, null, 2));

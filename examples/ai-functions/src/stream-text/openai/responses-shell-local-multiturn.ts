@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, streamText } from 'ai';
+import { generateText, isStepCount, streamText } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result1 = await generateText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {
@@ -19,13 +19,13 @@ run(async () => {
       }),
     },
     prompt: 'Run uname -a',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Turn 1:', result1.text);
 
   const result2 = streamText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {
@@ -40,13 +40,13 @@ run(async () => {
     },
     messages: [
       { role: 'user', content: 'Run uname -a' },
-      ...result1.response.messages,
+      ...result1.responseMessages,
       { role: 'user', content: 'What architecture do you run in?' },
     ],
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
-  for await (const chunk of result2.fullStream) {
+  for await (const chunk of result2.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

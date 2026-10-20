@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared';
+import type { SharedV3ProviderMetadata } from '../../shared';
 
 /**
  * A video or image file that can be used for video editing or image-to-video generation.

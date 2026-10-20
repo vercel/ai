@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -47,7 +47,7 @@ const computer_20251124InputSchema = lazySchema(() =>
   ),
 );
 
-export const computer_20251124 = createProviderToolFactory<
+export const computer_20251124 = createProviderDefinedToolFactory<
   {
     /**
      * - `key`: Press a key or key-combination on the keyboard.

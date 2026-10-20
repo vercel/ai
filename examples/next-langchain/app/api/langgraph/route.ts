@@ -1,6 +1,6 @@
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { NextResponse } from 'next/server';
 
@@ -13,7 +13,7 @@ export const maxDuration = 30;
  * The model to use for the graph
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-4.1-mini',
   temperature: 0,
 });
 

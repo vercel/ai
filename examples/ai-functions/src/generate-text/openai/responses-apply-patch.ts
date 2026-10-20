@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createApplyPatchExecutor } from '../../lib/apply-patch-file-editor';
@@ -10,14 +10,14 @@ run(async () => {
   await fs.mkdir(workspaceRoot, { recursive: true });
 
   const result = await generateText({
-    model: openai.responses('gpt-5.1'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       apply_patch: openai.tools.applyPatch({
         execute: createApplyPatchExecutor(workspaceRoot),
       }),
     },
     prompt: `Create a markdown file with a shopping checklist of 5 entries.`,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('\n=== Result ===');

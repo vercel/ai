@@ -118,7 +118,7 @@ Update the following files to accept `V2 | V3 | V4` models at their public bound
 
 - `packages/ai/src/middleware/wrap-language-model.ts` — accept `LanguageModelV2 | V3 | V4`
 - `packages/ai/src/middleware/wrap-image-model.ts` — accept `ImageModelV2 | V3 | V4`
-- `packages/ai/src/middleware/wrap-embedding-model.ts` — accept `EmbeddingModelV3 | V4` (V2 is generic, not included)
+- `packages/ai/src/middleware/wrap-embedding-model.ts` — accept `EmbeddingModelV3 | V4` (V2 is generic, not included; V3 kept for backward compatibility)
 - `packages/ai/src/registry/custom-provider.ts` — accept V2/V3/V4 models in all model maps
 - `packages/ai/src/registry/provider-registry.ts` — accept `ProviderV2 | V3 | V4`, convert with `asProviderV4`
 - `packages/ai/src/types/language-model-middleware.ts` — relax to accept both V3 and V4 middleware
@@ -156,6 +156,10 @@ Open a PR with all the changes from steps 3-7. Once merged, the first beta relea
 - All feature PRs continue to target `main`.
 - Every PR still needs a changeset (use `patch` by default).
 - Beta versions are published automatically when the **Version Packages** PR is merged.
+
+### Adding a new package
+
+When introducing a new package while `main` is in pre-release mode, set its initial `version` in `package.json` to plain `0.0.0` — **never** `0.0.0-canary.0` (or any `-<tag>.N` suffix). A pre-release suffix makes the version a "premajor", and semver treats a `major`/`minor`/`patch` bump on a premajor as merely dropping the suffix, so the package gets stuck at `0.0.0-canary.N` instead of advancing (e.g. a `major` changeset should produce `1.0.0-canary.0`). See [add-new-provider.md → When in pre-release mode](./add-new-provider.md#when-in-pre-release-mode).
 
 ### Backporting fixes to stable
 

@@ -1,12 +1,14 @@
-import {
+import type {
+  CustomPart,
   FilePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
   ToolResultPart,
 } from './content-part';
-import { ProviderOptions } from './provider-options';
-import { ToolApprovalRequest } from './tool-approval-request';
+import type { ProviderOptions } from './provider-options';
+import type { ToolApprovalRequest } from './tool-approval-request';
 
 /**
  * An assistant message. It can contain text, tool calls, or a combination of text and tool calls.
@@ -31,8 +33,10 @@ export type AssistantContent =
   | string
   | Array<
       | TextPart
+      | CustomPart
       | FilePart
       | ReasoningPart
+      | ReasoningFilePart
       | ToolCallPart
       | ToolResultPart
       | ToolApprovalRequest

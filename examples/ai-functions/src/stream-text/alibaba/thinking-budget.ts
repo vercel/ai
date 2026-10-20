@@ -1,4 +1,4 @@
-import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelChatOptions } from '@ai-sdk/alibaba';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -10,11 +10,11 @@ run(async () => {
       alibaba: {
         enableThinking: true,
         thinkingBudget: 50,
-      } satisfies AlibabaLanguageModelOptions,
+      } satisfies AlibabaLanguageModelChatOptions,
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-start':
         console.log('--- Reasoning Process ---');

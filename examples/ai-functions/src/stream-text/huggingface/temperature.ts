@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   console.log('Streaming with temperature 0.7:');
   const result = streamText({
-    model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+    model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
     prompt: 'Tell me an interesting fact about space exploration.',
     temperature: 0.7,
     maxOutputTokens: 200,

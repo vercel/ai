@@ -1,48 +1,67 @@
 import {
-  APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4Usage,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
-  isParsableJson,
+  isCustomReasoning,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  serializeModelOptions,
+  StreamingToolCallTracker,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type StreamingToolCallDelta,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  resolveProviderOptionsKey,
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
+import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleChatModelId,
   openaiCompatibleLanguageModelChatOptions,
-} from './openai-compatible-chat-options';
-import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+  type OpenAICompatibleChatModelId,
+} from './openai-compatible-chat-language-model-options';
+import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -55,27 +74,67 @@ export type OpenAICompatibleChatConfig = {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the model supports multi-part content in tool results.
+   */
+  supportsMultiPartToolContent?: boolean;
+
+  /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 
   /**
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    warnings?: SharedV4Warning[],
+  ) => Record<string, any>;
+
+  /**
+   * Optional usage converter for OpenAI-compatible providers with different
+   * token accounting semantics.
+   */
+  convertUsage?: (
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ) => LanguageModelV4Usage;
 };
 
-export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+type PendingToolCall = {
+  id: string | null;
+  bufferedArguments: string;
+  extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
+};
+
+export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly supportsStructuredOutputs: boolean;
 
   readonly modelId: OpenAICompatibleChatModelId;
-  private readonly config: OpenAICompatibleChatConfig;
+  protected readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleChatConfig;
+  }) {
+    return new OpenAICompatibleChatLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
@@ -107,8 +166,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    warnings: SharedV4Warning[],
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, warnings) ?? args;
+  }
+
+  private convertUsage(
+    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  ): LanguageModelV4Usage {
+    return (
+      this.config.convertUsage?.(usage) ??
+      convertOpenAICompatibleChatUsage(usage)
+    );
   }
 
   private async getArgs({
@@ -119,14 +190,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
     seed,
     toolChoice,
     tools,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
     const deprecatedOptions = await parseProviderOptions({
@@ -137,10 +209,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: 'other',
-        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+        type: 'deprecated',
+        setting: "providerOptions key 'openai-compatible'",
+        message: "Use 'openaiCompatible' instead.",
       });
     }
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},
@@ -151,6 +231,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
         providerOptions,
         schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
@@ -184,7 +269,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
 
+    const metadataKey = resolveProviderOptionsKey(
+      this.providerOptionsName,
+      providerOptions,
+    );
+
     return {
+      metadataKey,
       args: {
         // model id:
         model: this.modelId,
@@ -217,9 +308,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         stop: stopSequences,
         seed,
         ...Object.fromEntries(
-          Object.entries(
-            providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
+          Object.entries({
+            ...providerOptions?.[this.providerOptionsName],
+            ...providerOptions?.[toCamelCase(this.providerOptionsName)],
+          }).filter(
             ([key]) =>
               !Object.keys(
                 openaiCompatibleLanguageModelChatOptions.shape,
@@ -227,11 +319,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           ),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
+        reasoning_effort:
+          compatibleOptions.reasoningEffort ??
+          (isCustomReasoning(reasoning) ? reasoning : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          provider: this.providerOptionsName,
+          providerOptionsKey: metadataKey,
+          supportsMultiPartToolContent:
+            this.config.supportsMultiPartToolContent,
+        }),
 
         // tools:
         tools: openaiTools,
@@ -242,11 +341,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
-    const transformedBody = this.transformRequestBody(args);
+    const transformedBody = this.transformRequestBody(args, warnings);
     const body = JSON.stringify(transformedBody);
 
     const {
@@ -258,7 +357,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -269,13 +368,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
-
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
     }
+
+    const content: Array<LanguageModelV4Content> = [];
 
     // reasoning content:
     const reasoning =
@@ -287,6 +387,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+    content.push(...convertOpenAICompatibleContent(choice.message.content));
+
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
@@ -294,13 +396,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
           ...(thoughtSignature
             ? {
                 providerMetadata: {
-                  [this.providerOptionsName]: { thoughtSignature },
+                  [metadataKey]: { thoughtSignature },
                 },
               }
             : {}),
@@ -309,8 +411,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     }
 
     // provider metadata:
-    const providerMetadata: SharedV3ProviderMetadata = {
-      [this.providerOptionsName]: {},
+    const providerMetadata: SharedV4ProviderMetadata = {
+      [metadataKey]: {},
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
       })),
@@ -318,11 +420,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
+      providerMetadata[metadataKey].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
     }
     if (completionTokenDetails?.rejected_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
+      providerMetadata[metadataKey].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
 
@@ -332,7 +434,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: convertOpenAICompatibleChatUsage(responseBody.usage),
+      usage: this.convertUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -345,19 +447,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
-
-    const body = this.transformRequestBody({
-      ...args,
-      stream: true,
-
-      // only include stream_options when in strict compatibility mode:
-      stream_options: this.config.includeUsage
-        ? { include_usage: true }
-        : undefined,
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
+    const { args, warnings, metadataKey } = await this.getArgs({
+      ...options,
     });
+
+    const body = this.transformRequestBody(
+      {
+        ...args,
+        stream: true,
+
+        // only include stream_options when in strict compatibility mode:
+        stream_options: this.config.includeUsage
+          ? { include_usage: true }
+          : undefined,
+      },
+      warnings,
+    );
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
@@ -367,7 +474,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -377,35 +484,100 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-      thoughtSignature?: string;
-    }> = [];
+    const providerOptionsName = metadataKey;
+    let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
 
-    let finishReason: LanguageModelV3FinishReason = {
-      unified: 'other',
-      raw: undefined,
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<number, PendingToolCall>();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
+    ) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta);
+        return;
+      }
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = {
+          id: toolCallDelta.id ?? null,
+          bufferedArguments: '',
+          extraContent: toolCallDelta.extra_content ?? null,
+        };
+        pendingToolCalls.set(index, pending);
+      } else {
+        if (pending.id == null && toolCallDelta.id != null) {
+          pending.id = toolCallDelta.id;
+        }
+        if (
+          pending.extraContent == null &&
+          toolCallDelta.extra_content != null
+        ) {
+          pending.extraContent = toolCallDelta.extra_content;
+        }
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        const forwardDelta: OpenAICompatibleStreamingToolCallDelta = {
+          index,
+          id: pending.id,
+          function: {
+            name,
+            arguments: pending.bufferedArguments,
+          },
+          extra_content: pending.extraContent ?? undefined,
+        };
+        toolCallTracker.processDelta(forwardDelta);
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
     };
+
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
-    let isFirstChunk = true;
-    const providerOptionsName = this.providerOptionsName;
+    let metadataExtracted = false;
     let isActiveReasoning = false;
     let isActiveText = false;
+    const convertUsage = (
+      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    ) => this.convertUsage(usage);
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker =
+              new StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>(
+                controller,
+                {
+                  generateId,
+                  extractMetadata: delta => {
+                    const thoughtSignature =
+                      delta.extra_content?.google?.thought_signature;
+
+                    return thoughtSignature
+                      ? { [providerOptionsName]: { thoughtSignature } }
+                      : undefined;
+                  },
+                  buildToolCallProviderMetadata: metadata => metadata,
+                },
+              );
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -429,7 +601,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error.message,
+                error: chunk.value.error,
               });
               return;
             }
@@ -438,13 +610,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             // remove this workaround when the issue is fixed
             const value = chunk.value as z.infer<typeof chunkBaseSchema>;
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // Extract and emit response metadata once. Usually it comes in the
+            // first chunk, but some providers prepend a placeholder chunk with
+            // empty metadata.
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...metadata,
+                });
+              }
             }
 
             if (value.usage != null) {
@@ -466,9 +643,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             const delta = choice.delta;
 
-            // enqueue reasoning before text deltas:
-            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
-            if (reasoningContent) {
+            const enqueueReasoningDelta = (reasoningDelta: string) => {
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: 'txt-0' });
+                isActiveText = false;
+              }
+
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -480,12 +660,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: 'reasoning-0',
-                delta: reasoningContent,
+                delta: reasoningDelta,
               });
-            }
+            };
 
-            if (delta.content) {
-              // end active reasoning block before text starts
+            const enqueueTextDelta = (textDelta: string) => {
               if (isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-end',
@@ -502,11 +681,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',
-                delta: delta.content,
+                delta: textDelta,
               });
+            };
+
+            // enqueue reasoning before text deltas:
+            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
+            if (reasoningContent) {
+              enqueueReasoningDelta(reasoningContent);
             }
 
-            if (delta.tool_calls != null) {
+            for (const contentPart of convertOpenAICompatibleContent(
+              delta.content,
+            )) {
+              if (contentPart.type === 'reasoning') {
+                enqueueReasoningDelta(contentPart.text);
+              } else {
+                enqueueTextDelta(contentPart.text);
+              }
+            }
+
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
                 controller.enqueue({
@@ -517,134 +712,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                    thoughtSignature:
-                      toolCallDelta.extra_content?.google?.thought_signature ??
-                      undefined,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                        ...(toolCall.thoughtSignature
-                          ? {
-                              providerMetadata: {
-                                [providerOptionsName]: {
-                                  thoughtSignature: toolCall.thoughtSignature,
-                                },
-                              },
-                            }
-                          : {}),
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                    ...(toolCall.thoughtSignature
-                      ? {
-                          providerMetadata: {
-                            [providerOptionsName]: {
-                              thoughtSignature: toolCall.thoughtSignature,
-                            },
-                          },
-                        }
-                      : {}),
-                  });
-                  toolCall.hasFinished = true;
-                }
+                processToolCallDelta(toolCallDelta);
               }
             }
           },
@@ -658,33 +726,32 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            // go through all tool calls and send the ones that are not finished
-            for (const toolCall of toolCalls.filter(
-              toolCall => !toolCall.hasFinished,
-            )) {
-              controller.enqueue({
-                type: 'tool-input-end',
-                id: toolCall.id,
+            // Forward any tool-call deltas that never received a
+            // `function.name`. The tracker will throw on the missing name,
+            // preserving the original invalid-response semantics.
+            for (const [index, pending] of pendingToolCalls) {
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
               });
+            }
+            pendingToolCalls.clear();
 
+            toolCallTracker.flush();
+
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
-                type: 'tool-call',
-                toolCallId: toolCall.id ?? generateId(),
-                toolName: toolCall.function.name,
-                input: toolCall.function.arguments,
-                ...(toolCall.thoughtSignature
-                  ? {
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          thoughtSignature: toolCall.thoughtSignature,
-                        },
-                      },
-                    }
-                  : {}),
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
               });
             }
 
-            const providerMetadata: SharedV3ProviderMetadata = {
+            const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };
@@ -706,7 +773,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertOpenAICompatibleChatUsage(usage),
+              usage: convertUsage(usage),
               providerMetadata,
             });
           },
@@ -718,18 +785,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 }
 
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
 const openaiCompatibleTokenUsageSchema = z
   .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
         accepted_prediction_tokens: z.number().nullish(),
         rejected_prediction_tokens: z.number().nullish(),
@@ -737,6 +805,60 @@ const openaiCompatibleTokenUsageSchema = z
       .nullish(),
   })
   .nullish();
+
+const openAICompatibleContentSchema = z
+  .union([
+    z.string(),
+    z.array(
+      z.looseObject({
+        type: z.string(),
+      }),
+    ),
+  ])
+  .nullish();
+
+function convertOpenAICompatibleContent(
+  content: z.infer<typeof openAICompatibleContentSchema>,
+): Array<Extract<LanguageModelV4Content, { type: 'text' | 'reasoning' }>> {
+  if (content == null) {
+    return [];
+  }
+
+  if (typeof content === 'string') {
+    return content.length > 0 ? [{ type: 'text', text: content }] : [];
+  }
+
+  const result: Array<
+    Extract<LanguageModelV4Content, { type: 'text' | 'reasoning' }>
+  > = [];
+
+  for (const part of content) {
+    if (part.type === 'text' && typeof part.text === 'string') {
+      if (part.text.length > 0) {
+        result.push({ type: 'text', text: part.text });
+      }
+    } else if (part.type === 'thinking' && Array.isArray(part.thinking)) {
+      const reasoningText = part.thinking
+        .filter(
+          chunk =>
+            chunk != null &&
+            typeof chunk === 'object' &&
+            'type' in chunk &&
+            chunk.type === 'text' &&
+            'text' in chunk &&
+            typeof chunk.text === 'string',
+        )
+        .map(chunk => chunk.text)
+        .join('');
+
+      if (reasoningText.length > 0) {
+        result.push({ type: 'reasoning', text: reasoningText });
+      }
+    }
+  }
+
+  return result;
+}
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -748,7 +870,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
     z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
+        content: openAICompatibleContentSchema,
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -787,8 +909,8 @@ const chunkBaseSchema = z.looseObject({
     z.object({
       delta: z
         .object({
-          role: z.enum(['assistant']).nullish(),
-          content: z.string().nullish(),
+          role: z.enum(['assistant', '']).nullish(),
+          content: openAICompatibleContentSchema,
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
           reasoning_content: z.string().nullish(),

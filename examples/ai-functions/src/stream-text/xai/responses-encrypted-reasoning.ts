@@ -23,7 +23,7 @@ run(async () => {
     let encryptedContent: string | undefined;
     let itemId: string | undefined;
 
-    for await (const part of result.fullStream) {
+    for await (const part of result.stream) {
       if (part.type === 'text-delta') {
         textContent += part.text || '';
       }

@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [review_requested]
 
+permissions:
+  contents: read
+
 jobs:
   notify-slack:
     runs-on: ubuntu-latest

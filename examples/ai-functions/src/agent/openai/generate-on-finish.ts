@@ -3,9 +3,9 @@ import { ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'You are a helpful assistant.',
-  onFinish({ text }) {
+  onEnd({ text }) {
     console.log(text);
   },
 });

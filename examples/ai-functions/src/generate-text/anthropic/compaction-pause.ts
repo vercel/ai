@@ -11,7 +11,7 @@ import { run } from '../../lib/run';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const documentCorpus = readFileSync(
-  join(__dirname, '../../data/anthropic-compaction-data.txt'),
+  join(__dirname, '../../data/compaction-data.txt'),
   'utf-8',
 );
 
@@ -95,7 +95,7 @@ run(async () => {
           Docker is the foundation for containerization:
 
           1. **Dockerfile** - Defines how to build your application image:
-            - Base image selection (e.g., node:18-alpine)
+            - Base image selection (e.g., node:22-alpine)
             - Working directory setup
             - Dependency installation
             - Source code copying
@@ -244,7 +244,7 @@ run(async () => {
   ];
 
   let result = await generateText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages,
     providerOptions: {
       anthropic: {
@@ -271,7 +271,7 @@ run(async () => {
   if (result.finishReason === 'other') {
     // Check if this is a compaction pause by looking at provider metadata
     const iterations = (
-      result.providerMetadata?.anthropic as {
+      result.finalStep.providerMetadata?.anthropic as {
         usage?: { iterations?: Array<{ type?: string }> };
       }
     )?.usage?.iterations;
@@ -280,11 +280,11 @@ run(async () => {
     if (hasCompaction) {
       console.log('\n[Compaction detected - response paused]');
 
-      messages.push(...result.response.messages);
+      messages.push(...result.responseMessages);
       console.log('Continuing with compacted context...\n');
 
       result = await generateText({
-        model: anthropic('claude-opus-4-6'),
+        model: anthropic('claude-opus-5-5'),
         messages,
         providerOptions: {
           anthropic: {
@@ -310,6 +310,6 @@ run(async () => {
   console.log('Final text:', result.text);
   console.log(
     '\nProvider Metadata:',
-    JSON.stringify(result.providerMetadata, null, 2),
+    JSON.stringify(result.finalStep.providerMetadata, null, 2),
   );
 });

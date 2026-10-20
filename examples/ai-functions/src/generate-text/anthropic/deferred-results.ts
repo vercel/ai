@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   let stepNumber = 0;
 
   const response = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [{ role: 'user', content: 'calculate 24*78 and weather in nyc' }],
     tools: {
       web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
@@ -17,7 +17,7 @@ run(async () => {
         execute: async ({ a, b }) => a * b,
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     onStepFinish: step => {
       stepNumber++;
       console.log(`\n${'='.repeat(60)}`);

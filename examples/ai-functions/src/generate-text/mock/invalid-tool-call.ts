@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: {
       cityAttractions: tool({
         inputSchema: z.object({ city: z.string() }),
@@ -55,12 +55,12 @@ run(async () => {
       }
     },
     prompt: 'What are the tourist attractions in San Francisco?',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Content:');
   console.log(JSON.stringify(result.content, null, 2));
 
   console.log('Response messages:');
-  console.log(JSON.stringify(result.response.messages, null, 2));
+  console.log(JSON.stringify(result.responseMessages, null, 2));
 });

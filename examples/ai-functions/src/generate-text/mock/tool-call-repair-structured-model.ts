@@ -42,12 +42,7 @@ run(async () => {
     },
     prompt: 'What are the tourist attractions in San Francisco?',
 
-    experimental_repairToolCall: async ({
-      toolCall,
-      tools,
-      inputSchema,
-      error,
-    }) => {
+    repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
       if (NoSuchToolError.isInstance(error)) {
         return null; // do not attempt to fix invalid tool names
       }
@@ -56,7 +51,7 @@ run(async () => {
 
       // example approach: use a model with structured outputs for repair:
       const { output: repairedArgs } = await generateText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         output: Output.object({ schema: tool.inputSchema }),
         prompt: [
           `The model tried to call the tool "${

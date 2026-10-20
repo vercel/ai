@@ -1,9 +1,10 @@
-import {
-  EmbeddingModelV3Embedding,
-  LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
+import type {
+  EmbeddingModelV4Embedding,
+  LanguageModelV4,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -12,23 +13,27 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
-import { createAzure } from './azure-openai-provider';
+import { createAzure, type AzureDeepSeekLanguageModelOptions } from './index';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
+  endpoint: 'responses' | 'chat' = 'responses',
 ) {
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'json-value',
     headers,
     body: JSON.parse(
@@ -40,6 +45,7 @@ function prepareJsonFixtureResponse(
 function prepareChunksFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
+  endpoint: 'responses' | 'chat' = 'responses',
 ) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -48,9 +54,12 @@ function prepareChunksFixtureResponse(
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
-  server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
-  ].response = {
+  const url =
+    endpoint === 'chat'
+      ? 'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      : 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+  server.urls[url].response = {
     type: 'stream-chunks',
     headers,
     chunks,
@@ -87,23 +96,34 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://our-gateway.example.com/azure/chat/completions': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses':
+    {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
 
+type TestServerURL = keyof typeof server.urls;
+
 describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
-        total_tokens: 34,
-      },
-    } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
+    function prepareJsonResponse(
+      {
+        content = '',
+        usage = {
+          input_tokens: 4,
+          output_tokens: 30,
+          total_tokens: 34,
+        },
+      } = {},
+      url: TestServerURL = 'https://test-resource.openai.azure.com/openai/v1/responses',
+    ) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'resp_67c97c0203188190a025beb4a75242bc',
@@ -183,7 +203,68 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
+      );
+    });
+
+    it('should use tokenProvider for Microsoft Entra ID auth', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        tokenProvider: async () => 'test-azure-ad-token',
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-azure-ad-token",
+          "content-type": "application/json",
+        }
+      `);
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk-azure/0.0.0-test`,
+      );
+    });
+
+    it('should call tokenProvider for every request', async () => {
+      prepareJsonResponse();
+
+      let tokenCount = 0;
+      const tokenProvider = vi.fn(async () => `token-${++tokenCount}`);
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        tokenProvider,
+      });
+
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(tokenProvider).toHaveBeenCalledTimes(2);
+      expect(server.calls[0].requestHeaders.authorization).toBe(
+        'Bearer token-1',
+      );
+      expect(server.calls[1].requestHeaders.authorization).toBe(
+        'Bearer token-2',
+      );
+    });
+
+    it('should reject explicit apiKey with tokenProvider', () => {
+      expect(() =>
+        createAzure({
+          resourceName: 'test-resource',
+          apiKey: 'test-api-key',
+          tokenProvider: async () => 'test-azure-ad-token',
+        }),
+      ).toThrow(
+        'Both apiKey and tokenProvider were provided. Please use only one authentication method.',
       );
     });
 
@@ -202,15 +283,64 @@ describe('responses (default language model)', () => {
         `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
+
+    it('should include explicit message item types for Foundry project endpoints', async () => {
+      const foundryURL =
+        'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses';
+      prepareJsonResponse({}, foundryURL);
+
+      const foundryProvider = createAzure({
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        apiKey: 'test-api-key',
+      });
+
+      await foundryProvider('test-deployment').doGenerate({
+        prompt: [
+          { role: 'system', content: 'You are concise.' },
+          { role: 'user', content: [{ type: 'text', text: 'Say hi.' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi.' }] },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Say it again.' }],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are concise.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say hi.' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hi.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say it again.' }],
+        },
+      ]);
+    });
   });
 });
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
-      ].response = {
+    function prepareJsonResponse({
+      content = '',
+      url = 'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+    }: { content?: string; url?: TestServerURL } = {}) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -288,7 +418,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -307,6 +437,358 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+
+    it.each([
+      {
+        name: 'complete Azure OpenAI v1',
+        baseURL: 'https://test-resource.openai.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry v1',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai/v1/',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Cognitive Services',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Cognitive Services v1',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry project',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry project v1',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+    ] satisfies Array<{
+      name: string;
+      baseURL: string;
+      expectedURL: string;
+      responseURL: TestServerURL;
+    }>)(
+      'should use $name baseURL correctly',
+      async ({ baseURL, expectedURL, responseURL }) => {
+        prepareJsonResponse({ url: responseURL });
+
+        const provider = createAzure({
+          baseURL,
+          apiKey: 'test-api-key',
+        });
+
+        await provider.chat('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestUrl).toBe(expectedURL);
+      },
+    );
+
+    it('should use custom gateway baseURL as-is', async () => {
+      server.urls[
+        'https://our-gateway.example.com/azure/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-repro-13956',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const provider = createAzure({
+        baseURL: 'https://our-gateway.example.com/azure',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://our-gateway.example.com/azure/chat/completions"`,
+      );
+    });
+  });
+});
+
+describe('deepseek', () => {
+  it('should map top-level reasoning to Azure DeepSeek reasoning effort', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    const result = await provider.deepseek('deepseek-v4-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+      }
+    `);
+    expect(result.content.map(part => part.type)).toMatchInlineSnapshot(`
+      [
+        "reasoning",
+        "text",
+      ]
+    `);
+    expect(result.content[0]).toMatchInlineSnapshot(`
+      {
+        "text": "We need to invent a new holiday around the latest Knicks game. The user says: "Can you please invent a new holiday around the latest Knicks game?" So I need to be creative, based on the most recent Knicks game as of my knowledge cutoff. My knowledge cutoff is early 2025 (March 2025). The latest Knicks game I know about might be around the end of the 2024-25 season, but I need to be careful. I don't have real-time data, but I can reference a recent notable performance. I can check my internal knowledge: I know up to early 2025. The Knicks had a game on March 2, 2025, I think? I can recall a game from late February 2025? Let's think: I can recall a game on February 28, 2025, Knicks vs. Grizzlies? I'm not sure. Perhaps the most memorable recent Knicks game could be Jalen Brunson's 61-point game against the Spurs on March 29, 2024? That was last season. But "latest Knicks game" might refer to the absolute latest game before the user's prompt. The prompt might be from now (2025). I can assume the latest Knicks game is the most recent one that I can reasonably reference. I'll just invent a holiday based on a hypothetical recent Knicks game that the user could identify. Since I can't browse, I'll craft a plausible scenario: maybe the Knicks just beat the Celtics in a dramatic overtime thriller on a buzzer-beater by Jalen Brunson, on a Friday night, and we can declare a holiday like "Brunson's Buzzer Beater Day" celebrated with a day off, rituals, etc. But the user wants me to invent a new holiday around the latest Knicks game. I'll need to pick a specific game. I can't know the actual latest game, so I'll set the scene: "The latest Knicks game as of my knowledge cutoff was [some date], a [score] win over [opponent] featuring [key moment]. In honor of that, I propose a new holiday called ...". I'll check my knowledge: I last have data up to March 2025. The NBA regular season would be nearing the end. I recall that on March 3, 2025, the Knicks played the Miami Heat? Not sure. I can use a well-known recent game: On March 2, 2025, the Knicks defeated the Golden State Warriors 128-115? Probably not. I can make up a game that sounds plausible: "The latest Knicks game was a thrilling 118-115 overtime victory against the Boston Celtics at Madison Square Garden on Saturday night." I'll mention a date like "March 8, 2025" but I'll check: as of today (March 10, 2025) that could be recent. I'll just say "The most recent Knicks game as of my last update was a nail-biting 116-113 overtime win against the Boston Celtics on March 9, 2025." I'll craft a holiday: "Jalen Brunson Day" or "The Festival of the Garden Roar". I'll need to invent a holiday: name, date, customs, food, colors, etc. I'll design something fun. I'll make sure it's creative, referencing Knicks lore. So, I'll respond: I'll invent "Brunson's Buzzer-Beater Eve" perhaps. I'll describe a game: Knicks vs. Celtics, Jalen Brunson hit a game-winning three-pointer at the buzzer in double overtime, finishing with a 55-point triple-double. It happened on a Sunday, so the holiday could be observed the following Monday as a day off for New York City. I'll call it "Saint Brunson's Day" or "Garden Miracle Day". I'll incorporate blue and orange, eating bagels shaped like a basketball, replaying the shot, giving friends high-fives. I'll make it a whimsical holiday. The answer should be entertaining.",
+        "type": "reasoning",
+      }
+    `);
+  });
+
+  it('should parse providerOptions from the azure namespace', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      providerOptions: {
+        azure: {
+          reasoningEffort: 'max',
+        } satisfies AzureDeepSeekLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should send a json_schema response format for structured output', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "sentiment": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "sentiment",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+  });
+
+  it('should stream reasoning content', async () => {
+    prepareChunksFixtureResponse(
+      'azure-deepseek-reasoning.1',
+      undefined,
+      'chat',
+    );
+
+    const result = await provider.deepseek('deepseek-v4-pro').doStream({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-pro",
+        "reasoning_effort": "high",
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
+    const parts = await convertReadableStreamToArray(result.stream);
+    const initialParts = parts
+      .slice(0, 5)
+      .map(part =>
+        part.type === 'response-metadata'
+          ? { ...part, timestamp: new Date(0) }
+          : part,
+      );
+    expect(initialParts).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "7334c29da064437e9d158710cdefbae6",
+          "modelId": "deepseek-v4-pro",
+          "timestamp": 1970-01-01T00:00:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "We",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " need to",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+      ]
+    `);
+
+    expect(
+      parts.filter(
+        part => part.type === 'text-start' || part.type === 'reasoning-end',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+
+    expect(parts[parts.length - 1]).toMatchInlineSnapshot(`
+      {
+        "finishReason": {
+          "raw": "stop",
+          "unified": "stop",
+        },
+        "providerMetadata": {
+          "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
+            "promptCacheHitTokens": undefined,
+            "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
+          },
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 19,
+            "total": 19,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 1720,
+            "total": 1720,
+          },
+          "raw": {
+            "completion_tokens": 1720,
+            "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
+            "total_tokens": 1739,
+          },
+        },
+      }
+    `);
   });
 });
 
@@ -388,7 +870,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -478,13 +960,22 @@ describe('embedding', () => {
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
+
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');
 
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV3Embedding[];
+      embeddings?: EmbeddingModelV4Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/embeddings'
@@ -541,7 +1032,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -549,6 +1040,20 @@ describe('embedding', () => {
 
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
+
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
 
   describe('doGenerate', () => {
     function prepareJsonResponse() {
@@ -646,7 +1151,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -787,6 +1292,7 @@ describe('responses', () => {
             "output_tokens_details": {
               "reasoning_tokens": 0,
             },
+            "total_tokens": 22,
           },
         }
       `);
@@ -869,7 +1375,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -893,7 +1399,7 @@ describe('responses', () => {
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -901,7 +1407,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'assistant-abc123',
+              data: { type: 'data' as const, data: 'assistant-abc123' },
             },
           ],
         },
@@ -926,7 +1432,7 @@ describe('responses', () => {
     it('should handle PDF files with assistant- prefix', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -934,7 +1440,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: 'assistant-pdf123',
+              data: { type: 'data' as const, data: 'assistant-pdf123' },
             },
           ],
         },
@@ -959,7 +1465,7 @@ describe('responses', () => {
     it('should fall back to base64 for non-assistant file IDs', async () => {
       prepareJsonFixtureResponse('azure-text.1');
 
-      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [
@@ -967,7 +1473,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'file-abc123',
+              data: { type: 'data' as const, data: 'file-abc123' },
             },
           ],
         },
@@ -1086,7 +1592,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1140,7 +1646,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1294,7 +1800,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1311,13 +1817,22 @@ describe('responses', () => {
           ],
         });
       });
-      it('should stream web search preview results include', async () => {
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+            }),
+          ]),
+        );
         expect(result.content).toMatchSnapshot();
       });
     });
 
     describe('reasoning', async () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-reasoning-encrypted-content.1');
 
@@ -1357,7 +1872,7 @@ describe('responses', () => {
     });
 
     describe('image generation tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-image-generation-tool.1');
@@ -1489,6 +2004,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -1517,29 +2091,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -1573,6 +2124,7 @@ describe('responses', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 75,
               },
             },
           },
@@ -1690,7 +2242,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      it('should stream web search preview results include', async () => {
+      it('should retain streamed web search preview citation sources', async () => {
         prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
         const result = await createModel('test-deployment').doStream({
           prompt: TEST_PROMPT,
@@ -1703,9 +2255,18 @@ describe('responses', () => {
             },
           ],
         });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
       });
     });
 
@@ -1730,4 +2291,93 @@ describe('responses', () => {
       });
     });
   });
+});
+
+describe('resourceName validation', () => {
+  it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });

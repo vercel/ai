@@ -3,7 +3,7 @@ import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<
@@ -34,7 +34,7 @@ describe('GatewayImageModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
@@ -66,13 +66,16 @@ describe('GatewayImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       images = ['base64-image-1'],
+      isRetryable,
       warnings,
       providerMetadata,
     }: {
       images?: string[];
+      isRetryable?: boolean;
       warnings?: Array<
         | { type: 'unsupported'; feature: string; details?: string }
         | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'deprecated'; setting: string; message: string }
         | { type: 'other'; message: string }
       >;
       providerMetadata?: Record<string, unknown>;
@@ -81,6 +84,7 @@ describe('GatewayImageModel', () => {
         type: 'json-value',
         body: {
           images,
+          ...(isRetryable != null && { isRetryable }),
           ...(warnings && { warnings }),
           ...(providerMetadata && { providerMetadata }),
         },
@@ -104,7 +108,7 @@ describe('GatewayImageModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-image-model-specification-version': '3',
+        'ai-image-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -179,6 +183,23 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.images).toEqual(mockImages);
+    });
+
+    it('should preserve response retryability', async () => {
+      prepareJsonResponse({ images: [], isRetryable: false });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return provider metadata correctly', async () => {
@@ -286,6 +307,34 @@ describe('GatewayImageModel', () => {
     it('should return warnings when provided', async () => {
       const mockWarnings = [
         { type: 'other' as const, message: 'Setting not supported' },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return deprecated warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'size',
+          message: 'Use `aspectRatio` instead.',
+        },
       ];
 
       prepareJsonResponse({
@@ -540,7 +589,7 @@ describe('GatewayImageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'x-custom-header': 'custom-value',
-        'ai-image-model-specification-version': '3',
+        'ai-image-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });

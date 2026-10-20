@@ -1,4 +1,4 @@
-import { JSONValue } from '../../json-value/json-value';
+import type { JSONValue } from '../../json-value/json-value';
 
 type TranscriptionModelV2ProviderOptions = Record<
   string,

@@ -1,19 +1,19 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: huggingface('Qwen/Qwen2.5-VL-7B-Instruct'),
+    model: huggingFace('Qwen/Qwen2.5-VL-7B-Instruct'),
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'What do you see in this image?' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },

@@ -1,51 +1,95 @@
-import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  StreamingToolCallTracker,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type StreamingToolCallDelta,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { convertMistralUsage, MistralUsage } from './convert-mistral-usage';
+import {
+  convertMistralUsage,
+  mistralUsageSchema,
+  type MistralUsage,
+} from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  MistralChatModelId,
-  mistralLanguageModelOptions,
-} from './mistral-chat-options';
+  mistralLanguageModelChatOptions,
+  type MistralChatModelId,
+} from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+// Known non-reasoning models from https://api.mistral.ai/v1/models
+// (2026-10-06). Unknown IDs inherit current reasoning configuration support.
+const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
+  'codestral-2508',
+  'codestral-latest',
+  'ministral-14b-2512',
+  'ministral-14b-latest',
+  'ministral-3b-2512',
+  'ministral-3b-latest',
+  'ministral-8b-2512',
+  'ministral-8b-latest',
+  'mistral-code-fim-latest',
+  'mistral-code-latest',
+  'mistral-large-latest',
+  'mistral-large-2512',
+  'voxtral-small-2507',
+  'voxtral-small-latest',
+]);
+
+export class MistralChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: MistralChatModelId;
 
   private readonly config: MistralChatConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MistralChatModelId;
+    config: MistralChatConfig;
+  }) {
+    return new MistralChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
@@ -69,44 +113,68 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     stopSequences,
     responseFormat,
     seed,
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const options =
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelOptions,
+        schema: mistralLanguageModelChatOptions,
       })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
+    const supportsReasoningEffort = !modelsWithoutReasoningEffort.has(
+      this.modelId,
+    );
 
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    let resolvedReasoningEffort: string | undefined;
+    if (supportsReasoningEffort) {
+      resolvedReasoningEffort =
+        options.reasoningEffort ??
+        (isCustomReasoning(reasoning)
+          ? reasoning === 'none'
+            ? 'none'
+            : mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'high',
+                  low: 'high',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'high',
+                  max: 'high',
+                },
+                warnings,
+              })
+          : undefined);
+    } else if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This model does not support reasoning configuration.',
+      });
     }
 
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
-    // For Mistral we need to need to instruct the model to return a JSON object.
+    // For Mistral we need to instruct the model when using JSON Object mode.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    if (
+      responseFormat?.type === 'json' &&
+      (!structuredOutputs || responseFormat.schema == null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
@@ -124,7 +192,13 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      ...(frequencyPenalty != null
+        ? { frequency_penalty: frequencyPenalty }
+        : {}),
+      ...(presencePenalty != null ? { presence_penalty: presencePenalty } : {}),
+      stop: stopSequences,
       random_seed: seed,
+      reasoning_effort: resolvedReasoningEffort,
 
       // response format:
       response_format:
@@ -145,6 +219,9 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -173,8 +250,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -183,7 +260,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -194,7 +271,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // process content parts in order to preserve sequence
     if (
@@ -255,14 +332,14 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -272,7 +349,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -281,6 +358,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    let toolCallTracker: StreamingToolCallTracker<StreamingToolCallDelta>;
 
     const generateId = this.generateId;
 
@@ -288,9 +366,12 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof mistralChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -376,33 +457,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
             if (delta?.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                const toolCallId = toolCall.id;
-                const toolName = toolCall.function.name;
-                const input = toolCall.function.arguments;
-
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: toolCallId,
-                  toolName,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCallId,
-                  delta: input,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCallId,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName,
-                  input,
-                });
+                toolCallTracker.processDelta(toolCall);
               }
             }
 
@@ -424,6 +479,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
+
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',
@@ -518,12 +575,6 @@ const mistralContentSchema = z
   ])
   .nullish();
 
-const mistralUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
-
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = z.object({
@@ -566,8 +617,12 @@ const mistralChatChunkSchema = z.object({
         tool_calls: z
           .array(
             z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
+              index: z.number().nullish(),
+              id: z.string().nullish(),
+              function: z.object({
+                name: z.string().nullish(),
+                arguments: z.string().nullish(),
+              }),
             }),
           )
           .nullish(),

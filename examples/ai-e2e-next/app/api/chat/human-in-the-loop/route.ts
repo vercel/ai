@@ -4,11 +4,12 @@ import {
   streamText,
   createUIMessageStream,
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
-import { HumanInTheLoopUIMessage } from './types';
+import type { HumanInTheLoopUIMessage } from './types';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -40,14 +41,17 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         messages: await convertToModelMessages(processedMessages),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
       });
 
       writer.merge(
-        result.toUIMessageStream({ originalMessages: processedMessages }),
+        toUIMessageStream({
+          stream: result.stream,
+          originalMessages: processedMessages,
+        }),
       );
     },
     onStepFinish: ({ messages, responseMessage }) => {

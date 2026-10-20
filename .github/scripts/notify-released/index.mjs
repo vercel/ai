@@ -4,10 +4,11 @@ import { Octokit } from 'octokit';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const NPM_VERIFY_TIMEOUT_MS = parseInt(
-  process.env.NPM_VERIFY_TIMEOUT_MS || '300000',
+  process.env.NPM_VERIFY_TIMEOUT_MS || '600000',
   10,
 );
 const NPM_POLL_INTERVAL_MS = 10000;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- Step 1: Validate inputs ---
 
@@ -48,41 +49,57 @@ async function verifyPackageOnNpm(name, version) {
   return response.ok;
 }
 
-const startTime = Date.now();
-let allVerified = false;
-
-while (Date.now() - startTime < NPM_VERIFY_TIMEOUT_MS) {
-  const results = await Promise.all(
+async function getPackageVerificationResults() {
+  return Promise.all(
     publishedPackages.map(async pkg => ({
       ...pkg,
       exists: await verifyPackageOnNpm(pkg.name, pkg.version),
     })),
   );
-
-  const missing = results.filter(r => !r.exists);
-  if (missing.length === 0) {
-    allVerified = true;
-    console.log('All packages verified on npm.');
-    break;
-  }
-
-  console.log(
-    `Waiting for ${missing.length} package(s) to appear on npm: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
-  );
-  await new Promise(resolve => setTimeout(resolve, NPM_POLL_INTERVAL_MS));
 }
 
-if (!allVerified) {
-  const results = await Promise.all(
-    publishedPackages.map(async pkg => ({
-      ...pkg,
-      exists: await verifyPackageOnNpm(pkg.name, pkg.version),
-    })),
+async function waitForNpmPropagation(timeoutMs) {
+  const startTime = Date.now();
+
+  while (true) {
+    const results = await getPackageVerificationResults();
+    const missing = results.filter(r => !r.exists);
+
+    if (missing.length === 0) {
+      return { results, timedOut: false };
+    }
+
+    if (Date.now() - startTime >= timeoutMs) {
+      return { results, timedOut: true };
+    }
+
+    console.log(
+      `Waiting for ${missing.length} package(s) to appear on npm: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
+    );
+    await sleep(NPM_POLL_INTERVAL_MS);
+  }
+}
+
+const { results: initialResults, timedOut } =
+  await waitForNpmPropagation(NPM_VERIFY_TIMEOUT_MS);
+
+if (timedOut) {
+  const missing = initialResults.filter(r => !r.exists);
+  console.warn(
+    `npm propagation is still pending after ${NPM_VERIFY_TIMEOUT_MS}ms: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
   );
-  const missing = results.filter(r => !r.exists);
-  throw new Error(
-    `Timed out waiting for packages on npm: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
+} else {
+  console.log('All packages verified on npm.');
+}
+
+async function continueWaitingForNpmPropagation() {
+  if (!timedOut || DRY_RUN) return;
+
+  console.log(
+    '\nNotification posted with npm propagation warnings. Continuing to wait for npm propagation.',
   );
+  await waitForNpmPropagation(Number.POSITIVE_INFINITY);
+  console.log('All packages are now verified on npm.');
 }
 
 // --- Step 3: Parse release PR body to find commits ---
@@ -114,7 +131,8 @@ for (const match of pr.body.matchAll(depUpdatePattern)) {
 }
 
 if (commitHashes.size === 0) {
-  console.log('No commit hashes found in PR body. Exiting.');
+  console.log('No commit hashes found in PR body. No comments to post.');
+  await continueWaitingForNpmPropagation();
   process.exit(0);
 }
 
@@ -132,9 +150,12 @@ const commitAliases = [...commitHashes]
     hash => `
     c_${hash}: object(expression: "${hash}") {
       ... on Commit {
-        associatedPullRequests(first: 5) {
+        oid
+        associatedPullRequests(first: 10) {
           nodes {
             number
+            state
+            mergeCommit { oid }
             repository { nameWithOwner }
             closingIssuesReferences(first: 50) {
               nodes {
@@ -167,11 +188,19 @@ for (const hash of commitHashes) {
   const commitData = graphqlResult.repository[`c_${hash}`];
   if (!commitData?.associatedPullRequests?.nodes) continue;
 
+  const commitOid = commitData.oid;
+
   for (const prNode of commitData.associatedPullRequests.nodes) {
     // Skip PRs from other repositories
     if (prNode.repository.nameWithOwner !== repoFullName) continue;
     // Skip the release PR itself
     if (prNode.number === pullRequestNumber) continue;
+    // Only consider the PR that actually introduced this commit. GitHub's
+    // associatedPullRequests also returns open PRs whose head branch happens
+    // to contain the commit via base-branch ancestry (e.g. sibling backport
+    // PRs branched off the same release branch after the commit landed).
+    if (prNode.state !== 'MERGED') continue;
+    if (prNode.mergeCommit?.oid !== commitOid) continue;
 
     prNumbers.add(prNode.number);
 
@@ -196,21 +225,32 @@ console.log(
 
 const packageTable = publishedPackages
   .map(pkg => {
-    const encodedName = encodeURIComponent(pkg.name);
-    return `| \`${pkg.name}\` | [\`${pkg.version}\`](https://www.npmjs.com/package/${encodedName}/v/${pkg.version}) |`;
+    const tag = `${pkg.name}@${pkg.version}`;
+    const githubReleaseUrl = `https://github.com/${owner}/${repo}/releases/tag/${encodeURIComponent(tag)}`;
+    const npmUrl = `https://www.npmjs.com/package/${encodeURIComponent(pkg.name)}/v/${pkg.version}`;
+    const isAvailable = initialResults.find(
+      result => result.name === pkg.name && result.version === pkg.version,
+    )?.exists;
+    const packageName = isAvailable ? `\`${pkg.name}\`` : `⚠️ \`${pkg.name}\``;
+    return `| ${packageName} | ${pkg.version} [github](${githubReleaseUrl}) [npm](${npmUrl}) |`;
   })
   .join('\n');
+
+const propagationLegend = timedOut
+  ? '\n\n⚠️ This version had not yet propagated to npm after 10 minutes. The release workflow will continue waiting until it is available.'
+  : '';
 
 const commentBody = `:rocket: Published in:
 
 | Package | Version |
 | --- | --- |
-${packageTable}`;
+${packageTable}${propagationLegend}`;
 
 const allNumbers = [...prNumbers, ...issueNumbers];
 
 if (allNumbers.length === 0) {
-  console.log('\nNo PRs or issues to comment on. Done.');
+  console.log('\nNo PRs or issues to comment on.');
+  await continueWaitingForNpmPropagation();
   process.exit(0);
 }
 
@@ -236,5 +276,7 @@ for (const issueNumber of allNumbers) {
     console.error(`Failed to comment on #${issueNumber}: ${error.message}`);
   }
 }
+
+await continueWaitingForNpmPropagation();
 
 console.log('\nDone.');

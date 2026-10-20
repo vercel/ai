@@ -1,4 +1,4 @@
-import { EmbeddingModelV2 } from '@ai-sdk/provider';
+import type { EmbeddingModelV2 } from '@ai-sdk/provider';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
@@ -9,7 +9,9 @@ describe('asEmbeddingModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+    logWarningSpy = vi
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {

@@ -1,6 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
-import { extractApiCallResponse, GatewayError } from '.';
 import { createGatewayErrorFromResponse } from './create-gateway-error';
+import { extractApiCallResponse } from './extract-api-call-response';
+import { GatewayError } from './gateway-error';
 import { GatewayTimeoutError } from './gateway-timeout-error';
 
 /**
@@ -58,6 +59,11 @@ export async function asGatewayError(
       defaultMessage: 'Gateway request failed',
       cause: error,
       authMethod,
+      isRetryable:
+        error.isRetryable &&
+        (error.statusCode == null || error.statusCode < 400)
+          ? true
+          : undefined,
     });
   }
 

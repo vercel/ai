@@ -1,41 +1,63 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HuggingFaceConfig } from '../huggingface-config';
+import type { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
   convertHuggingFaceResponsesUsage,
-  HuggingFaceResponsesUsage,
+  type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
+import { huggingfaceLanguageModelResponsesOptions } from './huggingface-responses-language-model-options';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
-export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: HuggingFaceResponsesModelId;
 
   private readonly config: HuggingFaceConfig;
+
+  static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: HuggingFaceResponsesModelId;
+    config: HuggingFaceConfig;
+  }) {
+    return new HuggingFaceResponsesLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {
     this.modelId = modelId;
@@ -64,8 +86,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -97,7 +119,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     const huggingfaceOptions = await parseProviderOptions({
       provider: 'huggingface',
       providerOptions,
-      schema: huggingfaceResponsesProviderOptionsSchema,
+      schema: huggingfaceLanguageModelResponsesOptions,
     });
 
     const {
@@ -150,8 +172,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -170,7 +192,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -192,7 +214,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // Process output array
     for (const part of response.output) {
@@ -331,8 +353,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -345,7 +367,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -355,7 +377,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -366,7 +388,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof huggingfaceResponsesChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -383,6 +405,19 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
             }
 
             const value = chunk.value;
+
+            const streamError = createHuggingFaceResponsesStreamError(value);
+            if (streamError != null) {
+              finishReason = {
+                unified: 'error',
+                raw:
+                  streamError.code != null
+                    ? String(streamError.code)
+                    : streamError.type,
+              };
+              controller.enqueue({ type: 'error', error: streamError });
+              return;
+            }
 
             if (isResponseCreatedChunk(value)) {
               responseId = value.response.id;
@@ -500,7 +535,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                 id: value.item_id,
                 delta: value.delta,
               });
-              return;
             }
           },
 
@@ -524,12 +558,41 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 }
 
-const huggingfaceResponsesProviderOptionsSchema = z.object({
-  metadata: z.record(z.string(), z.string()).optional(),
-  instructions: z.string().optional(),
-  strictJsonSchema: z.boolean().optional(),
-  reasoningEffort: z.string().optional(),
-});
+function createHuggingFaceResponsesStreamError(
+  event: unknown,
+): ReturnType<typeof createProviderStreamError> | undefined {
+  const outer = asRecord(event);
+  if (outer?.type !== 'error' && outer?.type !== 'response.failed') {
+    return undefined;
+  }
+
+  const details =
+    outer.type === 'response.failed'
+      ? asRecord(asRecord(outer.response)?.error)
+      : (asRecord(outer.error) ?? outer);
+
+  if (details == null || typeof details.message !== 'string') {
+    return undefined;
+  }
+
+  const code =
+    typeof details.code === 'string' || typeof details.code === 'number'
+      ? details.code
+      : undefined;
+
+  return createProviderStreamError({
+    message: details.message,
+    type: outer.type,
+    code,
+    data: event,
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value != null
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
 
 const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
   z.object({

@@ -1,0 +1,21 @@
+{
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+        "violations": [
+          {
+            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.RetryInfo",
+        "retryDelay": "34.4s"
+      }
+    ]
+  }
+}

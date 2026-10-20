@@ -1,18 +1,16 @@
 import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
 import {
-  createVertex as createVertexOriginal,
-  GoogleVertexProvider,
-  GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
-} from '../google-vertex-provider';
+  createGoogleVertex as createGoogleVertexOriginal,
+  type GoogleVertexProvider,
+  type GoogleVertexProviderSettings as GoogleVertexProviderSettingsOriginal,
+} from '../google-vertex-provider-base';
 import {
   generateAuthToken,
-  GoogleCredentials,
+  type GoogleCredentials,
 } from './google-vertex-auth-edge';
-
 export type { GoogleVertexProvider };
 
-export interface GoogleVertexProviderSettings
-  extends GoogleVertexProviderSettingsOriginal {
+export interface GoogleVertexProviderSettings extends GoogleVertexProviderSettingsOriginal {
   /**
    * Optional. The Google credentials for the Google Cloud service account. If
    * not provided, the Google Vertex provider will use environment variables to
@@ -21,7 +19,7 @@ export interface GoogleVertexProviderSettings
   googleCredentials?: GoogleCredentials;
 }
 
-export function createVertex(
+export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
   const apiKey = loadOptionalSetting({
@@ -30,10 +28,10 @@ export function createVertex(
   });
 
   if (apiKey) {
-    return createVertexOriginal(options);
+    return createGoogleVertexOriginal(options);
   }
 
-  return createVertexOriginal({
+  return createGoogleVertexOriginal({
     ...options,
     headers: async () => ({
       Authorization: `Bearer ${await generateAuthToken(
@@ -47,4 +45,4 @@ export function createVertex(
 /**
  * Default Google Vertex AI provider instance.
  */
-export const vertex = createVertex();
+export const googleVertex = createGoogleVertex();

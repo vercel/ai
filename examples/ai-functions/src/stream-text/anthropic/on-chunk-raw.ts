@@ -10,10 +10,12 @@ run(async () => {
   let otherChunkCount = 0;
 
   const result = streamText({
-    model: anthropic('claude-3-haiku-20240307'),
+    model: anthropic('claude-haiku-5-5'),
     prompt:
       'Write a short poem about coding. Include reasoning about your creative process.',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
     onChunk({ chunk }) {
       if (chunk.type === 'text-delta') {
         textChunkCount++;

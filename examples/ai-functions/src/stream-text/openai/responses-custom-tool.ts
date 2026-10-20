@@ -4,10 +4,9 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.2-codex'),
+    model: openai.responses('gpt-6-sol'),
     tools: {
       write_sql: openai.tools.customTool({
-        name: 'write_sql',
         description: 'Write a SQL SELECT query to answer the user question.',
         format: {
           type: 'grammar',
@@ -20,7 +19,7 @@ run(async () => {
     prompt: 'Write a SQL query to get all users older than 25.',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'tool-call': {
         console.log(

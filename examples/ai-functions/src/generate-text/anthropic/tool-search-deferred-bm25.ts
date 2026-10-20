@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,14 +7,14 @@ run(async () => {
   let stepNumber = 0;
 
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: `You have access to a note-taking system. Please:
             1. First read the note tree to see the current structure
             2. Then add "bye" as a new bullet after "hi"
 
             The noteId is "d10aa585-982b-4bd9-984e-420f9b3717f7".
             Remember, you may need to search for the right tools to perform editor operations.`,
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     onStepFinish: step => {
       stepNumber++;
       console.log(`\n========== STEP ${stepNumber} ==========`);

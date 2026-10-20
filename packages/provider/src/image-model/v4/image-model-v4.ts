@@ -1,21 +1,12 @@
-import { JSONArray, JSONValue } from '../../json-value';
-import { ImageModelV4Usage } from './image-model-v4-usage';
-import { ImageModelV4CallOptions } from './image-model-v4-call-options';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
-
-export type ImageModelV4ProviderMetadata = Record<
-  string,
-  {
-    images: JSONArray;
-  } & JSONValue
->;
+import type { ImageModelV4CallOptions } from './image-model-v4-call-options';
+import type { ImageModelV4Result } from './image-model-v4-result';
 
 type GetMaxImagesPerCallFunction = (options: {
   modelId: string;
 }) => PromiseLike<number | undefined> | number | undefined;
 
 /**
- * Image generation model specification version 3.
+ * Image generation model specification version 4.
  */
 export type ImageModelV4 = {
   /**
@@ -46,65 +37,23 @@ export type ImageModelV4 = {
   readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
 
   /**
+   * Whether the model supports image file inputs for image editing.
+   *
+   * `undefined` means that support is unknown. Callers should only route image
+   * editing requests to the model when this value resolves to `true`.
+   */
+  readonly supportsFileInputs?: PromiseLike<boolean | undefined> | boolean;
+
+  /**
+   * Whether the model supports mask inputs for image editing.
+   *
+   * `undefined` means that support is unknown. Mask support is advertised
+   * separately because some models support image file inputs without masks.
+   */
+  readonly supportsMaskInputs?: PromiseLike<boolean | undefined> | boolean;
+
+  /**
    * Generates an array of images.
    */
-  doGenerate(options: ImageModelV4CallOptions): PromiseLike<{
-    /**
-     * Generated images as base64 encoded strings or binary data.
-     * The images should be returned without any unnecessary conversion.
-     * If the API returns base64 encoded strings, the images should be returned
-     * as base64 encoded strings. If the API returns binary data, the images should
-     * be returned as binary data.
-     */
-    images: Array<string> | Array<Uint8Array>;
-
-    /**
-     * Warnings for the call, e.g. unsupported features.
-     */
-    warnings: Array<SharedV4Warning>;
-
-    /**
-     * Additional provider-specific metadata. They are passed through
-     * from the provider to the AI SDK and enable provider-specific
-     * results that can be fully encapsulated in the provider.
-     *
-     * The outer record is keyed by the provider name, and the inner
-     * record is provider-specific metadata. It always includes an
-     * `images` key with image-specific metadata
-     *
-     * ```ts
-     * {
-     * "openai": {
-     * "images": ["revisedPrompt": "Revised prompt here."]
-     * }
-     * }
-     * ```
-     */
-    providerMetadata?: ImageModelV4ProviderMetadata;
-
-    /**
-     * Response information for telemetry and debugging purposes.
-     */
-    response: {
-      /**
-       * Timestamp for the start of the generated response.
-       */
-      timestamp: Date;
-
-      /**
-       * The ID of the response model that was used to generate the response.
-       */
-      modelId: string;
-
-      /**
-       * Response headers.
-       */
-      headers: Record<string, string> | undefined;
-    };
-
-    /**
-     * Optional token usage for the image generation call (if the provider reports it).
-     */
-    usage?: ImageModelV4Usage;
-  }>;
+  doGenerate(options: ImageModelV4CallOptions): PromiseLike<ImageModelV4Result>;
 };

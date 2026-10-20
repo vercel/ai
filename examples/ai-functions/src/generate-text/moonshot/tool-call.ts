@@ -1,13 +1,13 @@
 import { moonshotai } from '@ai-sdk/moonshotai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: moonshotai('kimi-k2.5'),
+    model: moonshotai('kimi-k3'),
     tools: { weather: weatherTool },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     prompt: 'What is the weather in San Francisco?',
   });
 

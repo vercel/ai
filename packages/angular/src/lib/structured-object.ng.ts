@@ -14,7 +14,6 @@ import {
   parsePartialJson,
   type DeepPartial,
 } from 'ai';
-
 export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
@@ -160,7 +159,7 @@ export class StructuredObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 

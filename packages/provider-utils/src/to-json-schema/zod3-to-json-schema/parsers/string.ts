@@ -1,5 +1,5 @@
-import { ZodStringDef } from 'zod/v3';
-import { Refs } from '../refs';
+import type { ZodStringDef } from 'zod/v3';
+import type { Refs } from '../refs';
 
 let emojiRegex: RegExp | undefined = undefined;
 
@@ -20,7 +20,7 @@ export const zodPatterns = {
    * `a-z` was added to replicate /i flag
    */
   email:
-    /^(?!\.)(?!.*\.\.)([a-zA-Z0-9_'+\-\.]*)[a-zA-Z0-9_+-]@([a-zA-Z0-9][a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}$/,
+    /^(?!\.)(?!.*\.\.)([a-zA-Z0-9_'+\-.]*)[a-zA-Z0-9_+-]@([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}$/,
   /**
    * Constructed a valid Unicode RegExp
    *

@@ -1,16 +1,19 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { APICallError, streamText, UserModelMessage } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { APICallError, streamText, type UserModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result1 = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'Analyze the following encrypted data: U2VjcmV0UGFzc3dvcmQxMjM=. What type of encryption is this and what secret does it contain?',
+    reasoning: 'medium',
     providerOptions: {
       openai: {
         store: false, // No data retention - makes interaction stateless
-        reasoningEffort: 'medium',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
@@ -30,7 +33,7 @@ run(async () => {
   );
 
   const result2 = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: [
       {
         role: 'user',
@@ -48,10 +51,10 @@ run(async () => {
           'Based on your previous analysis, what security recommendations would you make?',
       } satisfies UserModelMessage,
     ],
+    reasoning: 'medium',
     providerOptions: {
       openai: {
         store: false, // No data retention - makes interaction stateless
-        reasoningEffort: 'medium',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },

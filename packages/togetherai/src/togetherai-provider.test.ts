@@ -3,16 +3,27 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import {
-  EmbeddingModelV3,
-  LanguageModelV3,
-  RerankingModelV3,
+import type {
+  EmbeddingModelV4,
+  LanguageModelV4,
+  RerankingModelV4,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
 import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import { createTogetherAI } from './togetherai-provider';
+import {
+  createTogetherAI,
+  getModelStructuredOutputSupport,
+} from './togetherai-provider';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -44,21 +55,21 @@ vi.mock('./reranking/togetherai-reranking-model', () => ({
 describe('TogetherAIProvider', () => {
   const originalEnv = { ...process.env };
 
-  let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3;
-  let mockRerankingModel: RerankingModelV3;
+  let mockLanguageModel: LanguageModelV4;
+  let mockEmbeddingModel: EmbeddingModelV4;
+  let mockRerankingModel: RerankingModelV4;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV3
-    } as LanguageModelV3;
+      // Add any required methods for LanguageModelV4
+    } as LanguageModelV4;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3;
+      // Add any required methods for EmbeddingModelV4
+    } as EmbeddingModelV4;
     mockRerankingModel = {
-      // Add any required methods for RerankingModelV3
-    } as RerankingModelV3;
+      // Add any required methods for RerankingModelV4
+    } as RerankingModelV4;
 
     vi.clearAllMocks();
     delete process.env.TOGETHER_API_KEY;
@@ -188,6 +199,28 @@ describe('TogetherAIProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.chatModel('together-chat-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
+
+    it.each([
+      ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+      ['custom-model-id', false],
+    ] as const)(
+      'should set supportsStructuredOutputs for %s to %s',
+      (modelId, expected) => {
+        const provider = createTogetherAI();
+        provider.chatModel(modelId);
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(expected);
+      },
+    );
   });
 
   describe('completionModel', () => {
@@ -198,6 +231,16 @@ describe('TogetherAIProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+    });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.completionModel('together-completion-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
     });
   });
 
@@ -262,4 +305,16 @@ describe('TogetherAIProvider', () => {
       expect(model).toBeInstanceOf(TogetherAIRerankingModel);
     });
   });
+});
+
+describe('getModelStructuredOutputSupport', () => {
+  it.each([
+    ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+    ['custom-model-id', false],
+  ] as const)(
+    'returns structured output support for %s as %s',
+    (modelId, expected) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
+    },
+  );
 });

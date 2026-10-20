@@ -1,6 +1,6 @@
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { vertex } from '@ai-sdk/google-vertex';
-import { ModelMessage, streamText } from 'ai';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { googleVertex } from '@ai-sdk/google-vertex';
+import { streamText, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -17,7 +17,7 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: vertex('gemini-3-pro-image-preview'),
+      model: googleVertex('gemini-3-pro-image-preview'),
       providerOptions: {
         google: {
           responseModalities: ['TEXT', 'IMAGE'],
@@ -28,7 +28,7 @@ run(async () => {
 
     process.stdout.write('\nAssistant: ');
 
-    for await (const delta of result.fullStream) {
+    for await (const delta of result.stream) {
       switch (delta.type) {
         case 'reasoning-delta': {
           process.stdout.write('\x1b[34m' + delta.text + '\x1b[0m');

@@ -1,7 +1,7 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { safeValidateTypes, validateTypes } from './validate-types';
-import { StandardSchema } from './schema';
+import type { StandardSchema } from './schema';
 
 const customSchema: StandardSchema<{ name: string; age: number }> = {
   '~standard': {

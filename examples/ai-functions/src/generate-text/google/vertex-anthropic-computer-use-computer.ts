@@ -1,6 +1,6 @@
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'node:fs';
 
 run(async () => {
@@ -17,7 +17,8 @@ run(async () => {
             case 'screenshot': {
               // multipart result:
               return {
-                type: 'image',
+                type: 'file',
+                mediaType: 'image',
                 data: fs
                   .readFileSync('./data/screenshot-editor.png')
                   .toString('base64'),
@@ -40,9 +41,9 @@ run(async () => {
               typeof output === 'string'
                 ? { type: 'text', text: output }
                 : {
-                    type: 'image-data',
-                    data: output.data,
+                    type: 'file',
                     mediaType: 'image/png',
+                    data: { type: 'data', data: output.data },
                   },
             ],
           };
@@ -51,7 +52,7 @@ run(async () => {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(result.text);

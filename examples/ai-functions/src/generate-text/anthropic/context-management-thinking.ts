@@ -37,9 +37,9 @@ run(async () => {
         content: 'Now multiply that by 3.',
       },
     ],
+    reasoning: 'low',
     providerOptions: {
       anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 5000 },
         contextManagement: {
           edits: [
             {

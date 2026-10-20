@@ -1,21 +1,23 @@
-import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai('grok-4-latest'),
+    model: xai('grok-4.5'),
     prompt: 'write one short sentence about san francisco',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
     providerOptions: {
       xai: {
         logprobs: true,
         topLogprobs: 3,
-      } satisfies XaiLanguageModelChatOptions,
+      } satisfies XaiLanguageModelResponsesOptions,
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'raw') {
       console.log('raw:', JSON.stringify(part.rawValue));
       continue;

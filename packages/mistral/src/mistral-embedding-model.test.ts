@@ -1,4 +1,4 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createMistral } from './mistral-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -26,7 +26,7 @@ describe('doEmbed', () => {
     usage = { prompt_tokens: 8, total_tokens: 8 },
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
     headers?: Record<string, string>;
   } = {}) {
@@ -46,6 +46,31 @@ describe('doEmbed', () => {
       },
     };
   }
+
+  it.each([
+    {
+      dimensions: undefined,
+      providerDimensions: undefined,
+      expected: undefined,
+    },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 512, expected: 512 },
+    { dimensions: 256, providerDimensions: 512, expected: 512 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      prepareJsonResponse();
+
+      await provider.embeddingModel('codestral-embed').doEmbed({
+        values: testValues,
+        dimensions,
+        providerOptions: { mistral: { outputDimension: providerDimensions } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.output_dimension).toBe(expected);
+    },
+  );
 
   it('should extract embedding', async () => {
     prepareJsonResponse();
@@ -121,7 +146,7 @@ describe('doEmbed', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 });
