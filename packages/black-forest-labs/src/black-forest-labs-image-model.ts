@@ -398,42 +398,51 @@ function gcd(a: number, b: number): number {
   return x;
 }
 
-const bflSubmitSchema = z.object({
-  id: z.string(),
-  polling_url: z.url(),
-  cost: z.number().nullish(),
-  input_mp: z.number().nullish(),
-  output_mp: z.number().nullish(),
-});
+const bflSubmitSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      polling_url: z.url(),
+      cost: z.number().nullish(),
+      input_mp: z.number().nullish(),
+      output_mp: z.number().nullish(),
+    }),
+  ),
+);
 
-const bflStatus = z.union([
-  z.literal('Pending'),
-  z.literal('Ready'),
-  z.literal('Error'),
-  z.literal('Failed'),
-]);
+const bflStatus = () =>
+  z.union([
+    z.literal('Pending'),
+    z.literal('Ready'),
+    z.literal('Error'),
+    z.literal('Failed'),
+  ]);
 
-const bflPollSchema = z
-  .object({
-    status: bflStatus.optional(),
-    state: bflStatus.optional(),
-    result: z
+const bflPollSchema = lazySchema(() =>
+  zodSchema(
+    z
       .object({
-        sample: z.url(),
-        seed: z.number().optional(),
-        start_time: z.number().optional(),
-        end_time: z.number().optional(),
-        duration: z.number().optional(),
+        status: bflStatus().optional(),
+        state: bflStatus().optional(),
+        result: z
+          .object({
+            sample: z.url(),
+            seed: z.number().optional(),
+            start_time: z.number().optional(),
+            end_time: z.number().optional(),
+            duration: z.number().optional(),
+          })
+          .nullish(),
       })
-      .nullish(),
-  })
-  .refine(v => v.status != null || v.state != null, {
-    message: 'Missing status in Black Forest Labs poll response',
-  })
-  .transform(v => ({
-    status: (v.status ?? v.state)!,
-    result: v.result,
-  }));
+      .refine(v => v.status != null || v.state != null, {
+        message: 'Missing status in Black Forest Labs poll response',
+      })
+      .transform(v => ({
+        status: (v.status ?? v.state)!,
+        result: v.result,
+      })),
+  ),
+);
 
 const bflErrorSchema = z.object({
   message: z.string().optional(),
