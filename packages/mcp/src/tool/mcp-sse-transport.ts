@@ -2,18 +2,24 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
+import { parseJSONRPCMessage, type JSONRPCMessage } from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import { VERSION } from '../version';
 import {
-  OAuthClientProvider,
-  extractResourceMetadataUrl,
+  extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
+  type AuthResult,
+  type OAuthClientProvider,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
+
+function isMessageEvent(event: string | undefined): boolean {
+  return event === undefined || event === 'message';
+}
 
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
@@ -26,23 +32,37 @@ export class SseMCPTransport implements MCPTransport {
   private headers?: Record<string, string>;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
+  private redirectMode: RequestRedirect;
+  private fetchFn: FetchFunction;
+  private authPromise?: Promise<AuthResult>;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
+  protocolVersion?: string;
 
   constructor({
     url,
     headers,
     authProvider,
+    redirect = 'error',
+    fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    redirect?: 'follow' | 'error';
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.redirectMode = redirect;
+    this.fetchFn = fetchFn ?? globalThis.fetch;
+  }
+
+  setProtocolVersion(version: string): void {
+    this.protocolVersion = version;
   }
 
   private async commonHeaders(
@@ -51,7 +71,8 @@ export class SseMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version':
+        this.protocolVersion ?? LATEST_LEGACY_PROTOCOL_VERSION,
     };
 
     if (this.authProvider) {
@@ -68,6 +89,40 @@ export class SseMCPTransport implements MCPTransport {
     );
   }
 
+  /**
+   * Runs a single OAuth recovery flow for concurrent 401 responses.
+   */
+  private authorizeOnce(
+    resourceMetadataUrl?: URL,
+    scope?: string,
+  ): Promise<AuthResult> {
+    if (!this.authProvider) {
+      return Promise.resolve('REDIRECT');
+    }
+
+    if (!this.authPromise) {
+      this.authPromise = auth(this.authProvider, {
+        serverUrl: this.url,
+        resourceMetadataUrl,
+        scope,
+        fetchFn: this.fetchFn,
+      }).finally(() => {
+        this.authPromise = undefined;
+      });
+    }
+
+    return this.authPromise;
+  }
+
+  private async accessTokenChanged(
+    requestAuthorization: string | undefined,
+  ): Promise<boolean> {
+    const accessToken = (await this.authProvider?.tokens())?.access_token;
+    return (
+      accessToken != null && requestAuthorization !== `Bearer ${accessToken}`
+    );
+  }
+
   async start(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
@@ -81,18 +136,21 @@ export class SseMCPTransport implements MCPTransport {
           const headers = await this.commonHeaders({
             Accept: 'text/event-stream',
           });
-          const response = await fetch(this.url.href, {
+          const response = await this.fetchFn(this.url.href, {
             headers,
             signal: this.abortController?.signal,
+            redirect: this.redirectMode,
           });
 
           if (response.status === 401 && this.authProvider && !triedAuth) {
-            this.resourceMetadataUrl = extractResourceMetadataUrl(response);
+            const { resourceMetadataUrl, scope } =
+              extractWWWAuthenticateParams(response);
+            this.resourceMetadataUrl = resourceMetadataUrl;
             try {
-              const result = await auth(this.authProvider, {
-                serverUrl: this.url,
-                resourceMetadataUrl: this.resourceMetadataUrl,
-              });
+              const result = await this.authorizeOnce(
+                this.resourceMetadataUrl,
+                scope,
+              );
               if (result !== 'AUTHORIZED') {
                 const error = new UnauthorizedError();
                 this.onerror?.(error);
@@ -106,7 +164,8 @@ export class SseMCPTransport implements MCPTransport {
           }
 
           if (!response.ok || !response.body) {
-            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}`;
+            const text = await response.text().catch(() => null);
+            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}${text ? `: ${text}` : ''}`;
 
             if (response.status === 405) {
               errorMessage +=
@@ -115,6 +174,9 @@ export class SseMCPTransport implements MCPTransport {
 
             const error = new MCPClientError({
               message: errorMessage,
+              statusCode: response.status,
+              url: this.url.href,
+              responseBody: text ?? undefined,
             });
             this.onerror?.(error);
             return reject(error);
@@ -132,6 +194,10 @@ export class SseMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
 
                 if (done) {
+                  if (this.abortController?.signal.aborted) {
+                    return;
+                  }
+
                   if (this.connected) {
                     this.connected = false;
                     throw new MCPClientError({
@@ -139,27 +205,38 @@ export class SseMCPTransport implements MCPTransport {
                         'MCP SSE Transport Error: Connection closed unexpectedly',
                     });
                   }
-                  return;
+
+                  throw new MCPClientError({
+                    message:
+                      'MCP SSE Transport Error: Connection closed before endpoint event was received',
+                  });
                 }
 
                 const { event, data } = value;
 
                 if (event === 'endpoint') {
-                  this.endpoint = new URL(data, this.url);
+                  if (this.endpoint) {
+                    continue;
+                  }
 
-                  if (this.endpoint.origin !== this.url.origin) {
+                  const endpoint = new URL(data, this.url);
+
+                  if (endpoint.origin !== this.url.origin) {
+                    this.connected = false;
+                    this.endpoint = undefined;
+                    this.sseConnection?.close();
+                    this.abortController?.abort();
                     throw new MCPClientError({
-                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
+                      message: `MCP SSE Transport Error: Endpoint origin does not match connection origin: ${endpoint.origin}`,
                     });
                   }
 
+                  this.endpoint = endpoint;
                   this.connected = true;
                   resolve();
-                } else if (event === 'message') {
+                } else if (isMessageEvent(event)) {
                   try {
-                    const message = JSONRPCMessageSchema.parse(
-                      JSON.parse(data),
-                    );
+                    const message = await parseJSONRPCMessage(data);
                     this.onmessage?.(message);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -203,12 +280,18 @@ export class SseMCPTransport implements MCPTransport {
 
   async close(): Promise<void> {
     this.connected = false;
+    this.endpoint = undefined;
     this.sseConnection?.close();
     this.abortController?.abort();
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
+    options?.signal?.throwIfAborted();
+
     if (!this.endpoint || !this.connected) {
       throw new MCPClientError({
         message: 'MCP SSE Transport Error: Not connected',
@@ -216,6 +299,13 @@ export class SseMCPTransport implements MCPTransport {
     }
 
     const endpoint = this.endpoint as URL;
+    const transportSignal = this.abortController?.signal;
+    const requestSignal =
+      options?.signal == null
+        ? transportSignal
+        : transportSignal == null
+          ? options.signal
+          : AbortSignal.any([transportSignal, options.signal]);
 
     const attempt = async (triedAuth: boolean = false): Promise<void> => {
       try {
@@ -226,26 +316,30 @@ export class SseMCPTransport implements MCPTransport {
           method: 'POST',
           headers,
           body: JSON.stringify(message),
-          signal: this.abortController?.signal,
+          signal: requestSignal,
+          redirect: this.redirectMode,
         };
 
-        const response = await fetch(endpoint, init);
+        const response = await this.fetchFn(endpoint.href, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
-          this.resourceMetadataUrl = extractResourceMetadataUrl(response);
-          try {
-            const result = await auth(this.authProvider, {
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-            });
-            if (result !== 'AUTHORIZED') {
-              const error = new UnauthorizedError();
-              this.onerror?.(error);
-              return;
-            }
-          } catch (error) {
-            this.onerror?.(error);
-            return;
+          if (
+            await this.accessTokenChanged(
+              new Headers(headers).get('authorization') ?? undefined,
+            )
+          ) {
+            return attempt(true);
+          }
+
+          const { resourceMetadataUrl, scope } =
+            extractWWWAuthenticateParams(response);
+          this.resourceMetadataUrl = resourceMetadataUrl;
+          const result = await this.authorizeOnce(
+            this.resourceMetadataUrl,
+            scope,
+          );
+          if (result !== 'AUTHORIZED') {
+            throw new UnauthorizedError();
           }
           return attempt(true);
         }
@@ -254,19 +348,26 @@ export class SseMCPTransport implements MCPTransport {
           const text = await response.text().catch(() => null);
           const error = new MCPClientError({
             message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
+            statusCode: response.status,
+            url: endpoint.href,
+            responseBody: text ?? undefined,
           });
-          this.onerror?.(error);
-          return;
+          throw error;
         }
       } catch (error) {
+        if (options?.signal?.aborted) {
+          throw error;
+        }
         this.onerror?.(error);
-        return;
+        throw error;
       }
     };
     await attempt();
   }
 }
 
-export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+export async function deserializeMessage(
+  line: string,
+): Promise<JSONRPCMessage> {
+  return parseJSONRPCMessage(line);
 }

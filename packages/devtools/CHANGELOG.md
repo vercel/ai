@@ -1,0 +1,825 @@
+# @ai-sdk/devtools
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+
+## 1.0.48
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.42
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+
+## 1.0.32
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.27
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+
+## 1.0.26
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider@4.0.19
+
+## 1.0.24
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- d09a5fd: Add safe image, audio, and video previews for media parts in DevTools prompts and tool inputs and outputs.
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 1c53b40: feat(devtools): add a persistent light theme to the viewer
+
+## 1.0.6
+
+### Patch Changes
+
+- 5be55f1: Use an explicit latest tag in the DevTools viewer command so it starts from monorepo workspaces where DevTools is only installed transitively.
+
+## 1.0.5
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+
+## 1.0.4
+
+### Patch Changes
+
+- c29e0d7: chore (devtools): remove leftover `module` field from package.json (dual CJS/ESM publishing was removed in AI SDK 7)
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- b567a6c: dependency updates
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+- b05f5ee: fix: bump hono to ^4.12.25 to resolve CVE-2026-54290 (CORS Middleware reflects any Origin with credentials when origin defaults to the wildcard)
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 29d8cf4: feat(ai): rename the core-event types
+- 32ce45c: fix(devtools): secure devtools viewer api access
+- 275674e: fix(devtools): validate viewer database paths
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- b05f5ee: fix: bump hono to ^4.12.25 to resolve CVE-2026-54290 (CORS Middleware reflects any Origin with credentials when origin defaults to the wildcard)
+
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 1.0.0-canary.30
+
+### Patch Changes
+
+- 32ce45c: fix(devtools): secure devtools viewer api access
+- 275674e: fix(devtools): validate viewer database paths
+
+## 1.0.0-canary.29
+
+### Patch Changes
+
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+
+## 1.0.0-canary.28
+
+### Patch Changes
+
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+
+## 1.0.0-canary.27
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+
+## 1.0.0-canary.26
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 1.0.0-canary.25
+
+### Patch Changes
+
+- b567a6c: dependency updates
+
+## 1.0.0-canary.24
+
+### Patch Changes
+
+- ee7bb67: fix(devtools): add pointer cursor to DevTools buttons
+
+## 1.0.0-canary.23
+
+### Patch Changes
+
+- 98627e5: feat(ai): remove onChunk event from telemetry
+
+## 1.0.0-canary.22
+
+### Patch Changes
+
+- ddfcdc7: Fix `ToolItem` expand/collapse logic: chevron now shows whenever there's expandable content (parameters or description), expanded view shows full description plus parameters, collapsed view shows truncated description only.
+
+## 1.0.0-canary.21
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 1.0.0-canary.20
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+
+## 1.0.0-beta.17
+
+### Major Changes
+
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+
+### Patch Changes
+
+- 29d8cf4: feat(ai): rename the core-event types
+
+## 1.0.0-beta.16
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 0.0.15
+
+### Patch Changes
+
+- 4c3a932: Use explicit AI_SDK_DEVTOOLS_DEV env flag for dev mode detection
+
+## 0.0.14
+
+### Patch Changes
+
+- d14f0aa: chore (devtools): include skill instructions in readme
+
+## 0.0.13
+
+### Patch Changes
+
+- b2e7fe2: Fix dev mode detection to prevent false positives when repos are in paths containing '/src/'
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 0.0.9
+
+### Patch Changes
+
+- 87e5e2a: Fix typo in README.md: `devToolsMiddleware` should be called as a function `devToolsMiddleware()`.
+
+## 0.0.8
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+
+## 0.0.7
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider@3.0.3
+
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 0.0.3
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+
+## 0.0.2
+
+### Patch Changes
+
+- 4c527d5: fix (devtools): step output text and bin name
+
+## 0.0.1
+
+### Patch Changes
+
+- 8e9300f: Initial release of package
+- 4e9f4f5: fix: handle extended token usage format with cache and reasoning breakdowns
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+
+## 0.0.1-beta.7
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+
+## 0.0.1-beta.6
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+
+## 0.0.1-beta.5
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+
+## 0.0.1-beta.4
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+
+## 0.0.1-beta.3
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 0.0.1-beta.2
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+
+## 0.0.1-beta.1
+
+### Patch Changes
+
+- 4e9f4f5: fix: handle extended token usage format with cache and reasoning breakdowns
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- 8e9300f: Initial release of package

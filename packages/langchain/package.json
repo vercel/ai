@@ -1,23 +1,26 @@
 {
   "name": "@ai-sdk/langchain",
-  "version": "2.0.0-beta.129",
+  "version": "3.0.146",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -28,29 +31,44 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {
     "ai": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@langchain/core": "^1.1.46",
+    "@langchain/langgraph": "^1.3.0",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8",
-    "typescript": "5.8.3"
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@langchain/core": ">=1.0.0",
+    "@langchain/langgraph": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/langgraph": {
+      "optional": true
+    }
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/langchain"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

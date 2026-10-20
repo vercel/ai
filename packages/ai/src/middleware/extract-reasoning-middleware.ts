@@ -1,15 +1,18 @@
 import type {
-  LanguageModelV3Content,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { LanguageModelMiddleware } from '../types/language-model-middleware';
+import type { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { createIdMap } from '../util/create-id-map';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
- * Extract an XML-tagged reasoning section from the generated text and exposes it
+ * Extracts a delimited reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
- * @param tagName - The name of the XML tag to extract reasoning from.
+ * @param tagName - An XML tag name (without angle brackets), or literal opening
+ * and closing delimiters for formats such as Gemma's thought channel.
  * @param separator - The separator to use between reasoning and text sections.
  * @param startWithReasoning - Whether to start with reasoning tokens.
  */
@@ -18,19 +21,33 @@ export function extractReasoningMiddleware({
   separator = '\n',
   startWithReasoning = false,
 }: {
-  tagName: string;
+  tagName: string | { opening: string; closing: string };
   separator?: string;
   startWithReasoning?: boolean;
 }): LanguageModelMiddleware {
-  const openingTag = `<${tagName}>`;
-  const closingTag = `<\/${tagName}>`;
+  const openingTag =
+    typeof tagName === 'string' ? `<${tagName}>` : tagName.opening;
+  const closingTag =
+    typeof tagName === 'string' ? `</${tagName}>` : tagName.closing;
+
+  if (openingTag.length === 0 || closingTag.length === 0) {
+    throw new InvalidArgumentError({
+      parameter: 'tagName',
+      value: tagName,
+      message: 'Reasoning delimiters must not be empty.',
+    });
+  }
+
+  // Delimiters are literal strings, including regex metacharacters such as `|`.
+  const escapedOpeningTag = openingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedClosingTag = closingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV3Content[] = [];
+      const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -39,7 +56,10 @@ export function extractReasoningMiddleware({
 
         const text = startWithReasoning ? openingTag + part.text : part.text;
 
-        const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
+        const regexp = new RegExp(
+          `${escapedOpeningTag}(.*?)${escapedClosingTag}`,
+          'gs',
+        );
         const matches = Array.from(text.matchAll(regexp));
 
         if (!matches.length) {
@@ -89,52 +109,66 @@ export function extractReasoningMiddleware({
           afterSwitch: boolean;
           isReasoning: boolean;
           buffer: string;
-          idCounter: number;
+          reasoningId: string | undefined;
           textId: string;
         }
-      > = {};
+      > = createIdMap();
 
-      let delayedTextStart: LanguageModelV3StreamPart | undefined;
+      let reasoningIdCounter = 0;
+
+      const delayedTextStarts: Record<
+        string,
+        Extract<LanguageModelV4StreamPart, { type: 'text-start' }>
+      > = createIdMap();
 
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV3StreamPart,
-            LanguageModelV3StreamPart
+            LanguageModelV4StreamPart,
+            LanguageModelV4StreamPart
           >({
             transform: (chunk, controller) => {
               // do not send `text-start` before `reasoning-start`
               // https://github.com/vercel/ai/issues/7774
               if (chunk.type === 'text-start') {
-                delayedTextStart = chunk;
+                delayedTextStarts[chunk.id] = chunk;
                 return;
               }
 
-              if (chunk.type === 'text-end' && delayedTextStart) {
-                controller.enqueue(delayedTextStart);
-                delayedTextStart = undefined;
-              }
-
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text-delta' && chunk.type !== 'text-end') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (reasoningExtractions[chunk.id] == null) {
+              if (
+                chunk.type === 'text-delta' &&
+                reasoningExtractions[chunk.id] == null
+              ) {
                 reasoningExtractions[chunk.id] = {
                   isFirstReasoning: true,
                   isFirstText: true,
                   afterSwitch: false,
                   isReasoning: startWithReasoning,
                   buffer: '',
-                  idCounter: 0,
+                  reasoningId: undefined,
                   textId: chunk.id,
                 };
               }
 
               const activeExtraction = reasoningExtractions[chunk.id];
 
-              activeExtraction.buffer += chunk.delta;
+              if (activeExtraction == null) {
+                if (delayedTextStarts[chunk.id] != null) {
+                  controller.enqueue(delayedTextStarts[chunk.id]);
+                  delete delayedTextStarts[chunk.id];
+                }
+                controller.enqueue(chunk);
+                return;
+              }
+
+              function getReasoningId() {
+                return (activeExtraction.reasoningId ??= `reasoning-${reasoningIdCounter++}`);
+              }
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -153,7 +187,7 @@ export function extractReasoningMiddleware({
                   ) {
                     controller.enqueue({
                       type: 'reasoning-start',
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   }
 
@@ -161,12 +195,14 @@ export function extractReasoningMiddleware({
                     controller.enqueue({
                       type: 'reasoning-delta',
                       delta: prefix + text,
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   } else {
-                    if (delayedTextStart) {
-                      controller.enqueue(delayedTextStart);
-                      delayedTextStart = undefined;
+                    if (delayedTextStarts[activeExtraction.textId] != null) {
+                      controller.enqueue(
+                        delayedTextStarts[activeExtraction.textId],
+                      );
+                      delete delayedTextStarts[activeExtraction.textId];
                     }
                     controller.enqueue({
                       type: 'text-delta',
@@ -183,6 +219,20 @@ export function extractReasoningMiddleware({
                   }
                 }
               }
+
+              if (chunk.type === 'text-end') {
+                publish(activeExtraction.buffer);
+                activeExtraction.buffer = '';
+
+                if (delayedTextStarts[chunk.id] != null) {
+                  controller.enqueue(delayedTextStarts[chunk.id]);
+                  delete delayedTextStarts[chunk.id];
+                }
+                controller.enqueue(chunk);
+                return;
+              }
+
+              activeExtraction.buffer += chunk.delta;
 
               do {
                 const nextTag = activeExtraction.isReasoning
@@ -212,12 +262,24 @@ export function extractReasoningMiddleware({
                     startIndex + nextTag.length,
                   );
 
-                  // reasoning part finished:
                   if (activeExtraction.isReasoning) {
+                    // Emit reasoning-start for empty reasoning blocks (no delta was published).
+                    // This handles both cases:
+                    // - startWithReasoning=false: <think></think> (afterSwitch=true)
+                    // - startWithReasoning=true: immediate </think> (afterSwitch=false)
+                    if (activeExtraction.isFirstReasoning) {
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: getReasoningId(),
+                      });
+                    }
+
+                    // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: `reasoning-${activeExtraction.idCounter++}`,
+                      id: getReasoningId(),
                     });
+                    activeExtraction.reasoningId = undefined;
                   }
 
                   activeExtraction.isReasoning = !activeExtraction.isReasoning;

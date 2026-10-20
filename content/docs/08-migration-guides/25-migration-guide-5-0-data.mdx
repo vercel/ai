@@ -127,6 +127,7 @@ type V4FilePart = Extract<V4Part, { type: 'file' }>;
 // Type guards
 function isV4Message(msg: V4Message | MyUIMessage): msg is V4Message {
   return (
+    msg?.parts == null ||
     'toolInvocations' in msg ||
     (msg?.parts?.some(p => p.type === 'tool-invocation') ?? false) ||
     msg?.role === 'data' ||
@@ -452,6 +453,7 @@ import {
 } from './conversion';
 import { upsertMessage, loadChat } from './db/actions';
 import { streamText, generateId, convertToModelMessages } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { message, chatId }: { message: MyUIMessage; chatId: string } =
@@ -464,12 +466,11 @@ export async function POST(req: Request) {
     message: convertV5MessageToV4(message), // convert to v4
   });
 
-  // Load previous messages (already in v5 format)
-  const previousMessages = await loadChat(chatId);
-  const messages = [...previousMessages, message];
+  // Load all messages, including the one just saved (already in v5 format)
+  const messages = await loadChat(chatId);
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     tools: {
       // Your tools here
@@ -826,11 +827,10 @@ export async function POST(req: Request) {
     message,
   });
 
-  const previousMessages = await loadChat(chatId);
-  const messages = [...previousMessages, message];
+  const messages = await loadChat(chatId);
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     tools: {
       // Your tools here

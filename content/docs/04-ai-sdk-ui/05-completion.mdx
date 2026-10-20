@@ -41,8 +41,12 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/completion/route.ts'
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -51,11 +55,13 @@ export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     prompt,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -137,12 +143,12 @@ When the user clicks the "Stop" button, the fetch request will be aborted. This 
 <Note>This feature is currently only available for React.</Note>
 
 By default, the `useCompletion` hook will trigger a render every time a new chunk is received.
-You can throttle the UI updates with the `experimental_throttle` option.
+You can throttle the UI updates with the `throttle` option.
 
 ```tsx filename="page.tsx" highlight="2-3"
 const { completion, ... } = useCompletion({
   // Throttle the completion and data updates to 50ms:
-  experimental_throttle: 50
+  throttle: 50
 })
 ```
 
@@ -152,9 +158,6 @@ const { completion, ... } = useCompletion({
 
 ```tsx
 const { ... } = useCompletion({
-  onResponse: (response: Response) => {
-    console.log('Received response from server:', response)
-  },
   onFinish: (prompt: string, completion: string) => {
     console.log('Finished streaming completion:', completion)
   },
@@ -164,11 +167,9 @@ const { ... } = useCompletion({
 })
 ```
 
-It's worth noting that you can abort the processing by throwing an error in the `onResponse` callback. This will trigger the `onError` callback and stop the message from being appended to the chat UI. This can be useful for handling unexpected responses from the AI provider.
-
 ## Configure Request Options
 
-By default, the `useCompletion` hook sends a HTTP POST request to the `/api/completion` endpoint with the prompt as part of the request body. You can customize the request by passing additional options to the `useCompletion` hook:
+By default, the `useCompletion` hook sends an HTTP POST request to the `/api/completion` endpoint with the prompt as part of the request body. You can customize the request by passing additional options to the `useCompletion` hook:
 
 ```tsx
 const { messages, input, handleInputChange, handleSubmit } = useCompletion({
@@ -183,4 +184,25 @@ const { messages, input, handleInputChange, handleSubmit } = useCompletion({
 });
 ```
 
-In this example, the `useCompletion` hook sends a POST request to the `/api/completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+In this example, the `useCompletion` hook sends a POST request to the `/api/custom-completion` endpoint with the specified headers, additional body fields, and credentials for that fetch request. On your server side, you can handle the request with these additional information.
+
+You can provide a type for the additional body fields. The type applies to
+both the body configured on the hook and the body passed to `complete`:
+
+```tsx
+type CompletionBody = {
+  model: 'fast' | 'smart';
+};
+
+const { complete } = useCompletion<CompletionBody>({
+  body: {
+    model: 'fast',
+  },
+});
+
+await complete('What is a completion?', {
+  body: {
+    model: 'smart',
+  },
+});
+```

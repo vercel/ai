@@ -1,64 +1,122 @@
 import {
-  LanguageModelV3,
+  InvalidArgumentError,
   NoSuchModelError,
-  ProviderV3,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
-import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
+import { AnthropicFiles } from './anthropic-files';
+import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicBatch } from './anthropic-batch';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
+import { AnthropicSkills } from './skills/anthropic-skills';
+import { VERSION } from './version';
 
-export interface AnthropicProvider extends ProviderV3 {
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(
+    validateBaseURL(baseURL),
+  );
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
+
+export interface AnthropicProvider extends ProviderV4 {
   /**
-Creates a model for text generation.
-*/
-  (modelId: AnthropicMessagesModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  (modelId: AnthropicModelId): LanguageModelV4;
 
   /**
-Creates a model for text generation.
-*/
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  chat(modelId: AnthropicModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  messages(modelId: AnthropicModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
+  decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
+
+  experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
   /**
-Anthropic-specific computer use tool.
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
+   */
+  skills(): SkillsV4;
+
+  /**
+   * Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.anthropic.com/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `x-api-key` header.
-It defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * API key that is being send using the `x-api-key` header.
+   * It defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Auth token that is being sent using the `Authorization: Bearer` header.
+   * It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
+   */
+  authToken?: string;
+
+  /**
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
@@ -71,48 +129,84 @@ or to provide a custom fetch implementation for e.g. testing.
 }
 
 /**
-Create an Anthropic provider instance.
+ * Create an Anthropic provider instance.
  */
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
+  const supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+    'application/pdf': [/^https?:\/\/.*$/],
+  };
 
-  const getHeaders = () =>
-    withUserAgentSuffix(
+  // Only error if both are explicitly provided in options
+  if (options.apiKey && options.authToken) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/authToken',
+      message:
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+    });
+  }
+
+  const getHeaders = () => {
+    const authHeaders: Record<string, string> = options.authToken
+      ? { Authorization: `Bearer ${options.authToken}` }
+      : {
+          'x-api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'ANTHROPIC_API_KEY',
+            description: 'Anthropic',
+          }),
+        };
+
+    return withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
-        'x-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ANTHROPIC_API_KEY',
-          description: 'Anthropic',
-        }),
+        ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/anthropic/${VERSION}`,
+      `ai-sdk-anthropic/${VERSION}`,
     );
+  };
 
-  const createChatModel = (modelId: AnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
-      provider: providerName,
+  const languageModelConfig = {
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+    generateId: options.generateId ?? generateId,
+    supportedUrls: () => supportedUrls,
+  };
+
+  const createChatModel = (modelId: AnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, languageModelConfig);
+
+  const createBatch = () =>
+    new AnthropicBatch({
+      provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
+      config: languageModelConfig,
+      supportedUrls,
+    });
+
+  const createSkills = () =>
+    new AnthropicSkills({
+      provider: `${providerName.replace('.messages', '')}.skills`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/],
-      }),
     });
 
-  const provider = function (modelId: AnthropicMessagesModelId) {
+  const provider = function (modelId: AnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
@@ -122,17 +216,36 @@ export function createAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.decisionModel = (modelId: AnthropicModelId) =>
+    new DecisionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.messages$/, '')}.decision`,
+    });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
+  provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  provider.skills = createSkills;
 
   provider.tools = anthropicTools;
 
@@ -140,6 +253,6 @@ export function createAnthropic(
 }
 
 /**
-Default Anthropic provider instance.
+ * Default Anthropic provider instance.
  */
 export const anthropic = createAnthropic();

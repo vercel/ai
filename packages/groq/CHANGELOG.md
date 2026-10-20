@@ -1,5 +1,1476 @@
 # @ai-sdk/groq
 
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.65
+
+### Patch Changes
+
+- 869601f: fix(openai-compatible, groq, alibaba): put reasoning before text in doGenerate
+
+## 4.0.64
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.60
+
+### Patch Changes
+
+- 3569885: Keep browser search tools for unknown model IDs instead of dropping them with a warning. Known models without browser search remain excluded.
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.59
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.56
+
+### Patch Changes
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.55
+
+### Patch Changes
+
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.53
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.52
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.51
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.48
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.47
+
+### Patch Changes
+
+- c0fd23b: fix(groq): return a typed error when non-streaming responses contain no choices
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.41
+
+### Patch Changes
+
+- 0096850: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.32
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.31
+
+### Patch Changes
+
+- 2214258: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- 9e9bf11: fix: disable reasoning for supported Groq models when top-level reasoning is set to `none`
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.29
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.22
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.19
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.17
+
+### Patch Changes
+
+- d2d8744: fix(groq): map word timestamps to transcription segments when segment timestamps are unavailable
+- 817910d: Support plain-text responses from Groq transcription models when `responseFormat` is set to `text`.
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.12
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.9
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.8
+
+### Patch Changes
+
+- 23ca4c9: fix (provider/groq): surface prompt cache reads in usage
+
+  `convertGroqUsage` accepted `prompt_tokens_details.cached_tokens` but never read it, so cache hits were reported as `cacheRead: undefined` and the entire prompt was counted as `noCache`. Groq's implicit prompt caching now surfaces as `usage.cachedInputTokens` (mapped to `cacheRead`, subtracted from `noCache`). Groq has no cache-creation charge, so `cacheWrite` remains undefined.
+
+## 4.0.7
+
+### Patch Changes
+
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.6
+
+### Patch Changes
+
+- ac306ed: Fix `StreamingToolCallTracker` finalizing streaming tool calls on parsable partial JSON. Tool calls now only finalize during stream flush, restoring the behavior of #13137: a parsable argument buffer can still be the prefix of a longer argument string, so finalizing early could act on truncated tool inputs.
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.5
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 4.0.3
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.1
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.0
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 7bf717f: feat: Groq support for performance service tier
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- 0c4c275: trigger initial canary release
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- b8396f0: trigger initial beta release
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.49
+
+### Patch Changes
+
+- 023550e: Deprecate `streamText` result `fullStream` in favor of `stream`.
+
+## 4.0.0-canary.48
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.47
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.46
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.45
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.44
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.43
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.42
+
+### Patch Changes
+
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.41
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.40
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.39
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.38
+
+### Patch Changes
+
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.37
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.36
+
+### Patch Changes
+
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.35
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.34
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- 58a2ad7: fix: more precise default message for tool execution denial
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.23
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 7bf717f: feat: Groq support for performance service tier
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.25
+
+### Patch Changes
+
+- 91f8777: fix(bedrock/groq): pass strict mode for tools
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.23
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.17
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.15
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.14
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.13
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.12
+
+### Patch Changes
+
+- 25f5da3: feat(groq): expose reasoningTokens in usage data
+
+## 3.0.11
+
+### Patch Changes
+
+- 7c98577: fix timestamp_granularities handling in groq transcription
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.7
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 3.0.6
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 3.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 541abc9: Removed deprecated distil-whisper-large-v3-en model from groq transcription
+- 0adc679: feat(provider): shared spec v3
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel("my-model-id");
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel("my-model-id");
+  ```
+
+- 2625a04: feat(openai); update spec for mcp approval
+- 95f65c2: chore: use import \* from zod/v4
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 08d5419: fix(groq): remove decomissioned `moonshotai/kimi-k2-instruct`, add `moonshotai/kimi-k2-instruct-0905`
+- 8dac895: feat: `LanguageModelV3`
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 4616b86: chore: update zod peer depenedency version
+- 0f0fa34: Restrict reasoningEffort to allowed enum values in Groq provider options
+- 21e20c0: feat(provider): transcription model v3 spec
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- 3f464f4: fix(provider/groq): track cached tokens usage
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- 541abc9: Removed deprecated distil-whisper-large-v3-en model from groq transcription
+
 ## 3.0.0-beta.42
 
 ### Patch Changes
@@ -43,13 +1514,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -254,8 +1725,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 3.0.0-beta.10
@@ -290,8 +1760,7 @@
 
 - e8109d3: feat: tool execution approval
 - 21e20c0: feat(provider): transcription model v3 spec
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -300,8 +1769,7 @@
 ### Patch Changes
 
 - 0adc679: feat(provider): shared spec v3
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -328,8 +1796,7 @@
 ### Patch Changes
 
 - ed329cb: feat: `Provider-V3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -347,8 +1814,7 @@
 ### Patch Changes
 
 - 3f464f4: fix(provider/groq): track cached tokens usage
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
 
@@ -451,8 +1917,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 2.0.6
@@ -510,108 +1975,7 @@
 - 67b9604: feat (provider/groq): add llama 4 model
 - 205077b: fix: improve Zod compatibility
 - 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -661,8 +2025,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 2.0.0-beta.5
@@ -691,32 +2054,14 @@
 ### Patch Changes
 
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 2.0.0-beta.1
 
 ### Patch Changes
 
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -724,8 +2069,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -733,9 +2077,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -784,8 +2126,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 
@@ -870,10 +2211,7 @@
 ### Patch Changes
 
 - 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -881,8 +2219,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -890,8 +2227,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -899,9 +2235,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -909,9 +2243,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -927,8 +2259,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
@@ -937,10 +2268,7 @@
 ### Patch Changes
 
 - 9bd148e: feat(providers/groq): add transcribe
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
 
@@ -948,18 +2276,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
 
@@ -968,11 +2285,7 @@
 ### Patch Changes
 
 - ebeac90: chore(providers/groq): convert to providerOptions
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
 
@@ -996,11 +2309,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
 
@@ -1008,8 +2317,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/provider-utils@3.0.0-canary.2
 
@@ -1023,9 +2331,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
 
 ## 2.0.0-canary.0
@@ -1184,8 +2490,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [ed012d2]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/provider@1.0.6
 
@@ -1193,8 +2498,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/provider@1.0.5
 
@@ -1220,18 +2524,14 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
 
 ## 1.0.10
 
 ### Patch Changes
 
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
 
@@ -1306,13 +2606,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [dce4158]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [b1da952]
-- Updated dependencies [dce4158]
-- Updated dependencies [8426f55]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0
   - @ai-sdk/provider@1.0.0
 
@@ -1327,8 +2621,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [dce4158]
-- Updated dependencies [dce4158]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.2
 
 ## 1.0.0-canary.1
@@ -1346,9 +2639,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.0
   - @ai-sdk/provider@1.0.0-canary.0
 
@@ -1357,11 +2648,7 @@
 ### Patch Changes
 
 - 3b1b69a: feat: provider-defined tools
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.22
   - @ai-sdk/provider@0.0.26
 

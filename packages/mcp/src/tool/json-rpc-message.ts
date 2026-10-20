@@ -1,3 +1,4 @@
+import { parseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { BaseParamsSchema, RequestSchema, ResultSchema } from './types';
 
@@ -26,7 +27,7 @@ export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 const JSONRPCErrorSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
-    id: z.union([z.string(), z.number().int()]),
+    id: z.optional(z.union([z.string(), z.number().int()])),
     error: z.object({
       code: z.number().int(),
       message: z.string(),
@@ -59,3 +60,13 @@ export const JSONRPCMessageSchema = z.union([
 ]);
 
 export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
+
+export function validateJSONRPCMessage(message: unknown): JSONRPCMessage {
+  return JSONRPCMessageSchema.parse(message);
+}
+
+export async function parseJSONRPCMessage(
+  text: string,
+): Promise<JSONRPCMessage> {
+  return validateJSONRPCMessage(await parseJSON({ text }));
+}

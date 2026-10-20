@@ -1,12 +1,23 @@
-import { delay as originalDelay } from '@ai-sdk/provider-utils';
-import { TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import { delay as originalDelay, type ToolSet } from '@ai-sdk/provider-utils';
+import {
+  InvalidArgumentError,
+  type SharedV4ProviderMetadata,
+} from '@ai-sdk/provider';
+import type { TextStreamPart } from './stream-text-result';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,
   line: /\n+/m,
 };
+
+// Browsers heavily throttle timers in hidden documents (e.g. background tabs),
+// which would stall the smoothing delay and, through backpressure, the entire
+// stream. Smoothing has no visual purpose there, so the delay is skipped.
+function isDocumentHidden(): boolean {
+  return (
+    typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  );
+}
 
 /**
  * Detects the first chunk in a buffer.
@@ -18,10 +29,10 @@ const CHUNKING_REGEXPS = {
 export type ChunkDetector = (buffer: string) => string | undefined | null;
 
 /**
- * Smooths text streaming output.
+ * Smooths text and reasoning streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern that does not match the empty string for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
  *
  * @returns A transform stream that smooths text streaming output.
  */
@@ -31,7 +42,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp | ChunkDetector;
+  chunking?: 'word' | 'line' | RegExp | ChunkDetector | Intl.Segmenter;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -43,7 +54,21 @@ export function smoothStream<TOOLS extends ToolSet>({
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
   let detectChunk: ChunkDetector;
 
-  if (typeof chunking === 'function') {
+  // Check if chunking is an Intl.Segmenter (duck-typing for segment method)
+  if (
+    chunking != null &&
+    typeof chunking === 'object' &&
+    'segment' in chunking &&
+    typeof chunking.segment === 'function'
+  ) {
+    const segmenter = chunking as Intl.Segmenter;
+    detectChunk = (buffer: string) => {
+      if (buffer.length === 0) return null;
+      const iterator = segmenter.segment(buffer)[Symbol.iterator]();
+      const first = iterator.next().value;
+      return first?.segment || null;
+    };
+  } else if (typeof chunking === 'function') {
     detectChunk = buffer => {
       const match = chunking(buffer);
 
@@ -65,57 +90,114 @@ export function smoothStream<TOOLS extends ToolSet>({
     };
   } else {
     const chunkingRegex =
-      typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+      typeof chunking === 'string'
+        ? CHUNKING_REGEXPS[chunking]
+        : chunking instanceof RegExp
+          ? chunking
+          : undefined;
 
     if (chunkingRegex == null) {
       throw new InvalidArgumentError({
         argument: 'chunking',
-        message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+        message: `Chunking must be "word", "line", a RegExp, an Intl.Segmenter, or a ChunkDetector function. Received: ${chunking}`,
       });
     }
 
     detectChunk = buffer => {
-      const match = chunkingRegex.exec(buffer);
+      const lastIndex = chunkingRegex.lastIndex;
+      chunkingRegex.lastIndex = 0;
+
+      let match: RegExpExecArray | null;
+      try {
+        match = chunkingRegex.exec(buffer);
+      } finally {
+        chunkingRegex.lastIndex = lastIndex;
+      }
 
       if (!match) {
         return null;
       }
 
-      return buffer.slice(0, match.index) + match?.[0];
+      if (!match[0].length) {
+        throw new Error(`Chunking RegExp must not match an empty string.`);
+      }
+
+      return buffer.slice(0, match.index) + match[0];
     };
   }
 
   return () => {
     let buffer = '';
     let id = '';
+    let type: 'text-delta' | 'reasoning-delta' | undefined = undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+
+    function flushBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (
+        type !== undefined &&
+        (buffer.length > 0 || providerMetadata != null)
+      ) {
+        controller.enqueue({
+          type,
+          text: buffer,
+          id,
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        });
+        buffer = '';
+        providerMetadata = undefined;
+      }
+    }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type !== 'text-delta') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', text: buffer, id });
-            buffer = '';
-          }
-
+        // Handle non-smoothable chunks: flush buffer and pass through
+        if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
+          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
 
-        if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text-delta', text: buffer, id });
-          buffer = '';
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
+          flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
+        type = chunk.type;
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text-delta', text: match, id });
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+          await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });

@@ -1,11 +1,11 @@
-import { ValueOf } from '../util/value-of';
-import { ToolSet } from './tool-set';
+import type { ValueOf } from '../util/value-of';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Tool output when the tool execution has been denied (for static tools).
  */
 export type StaticToolOutputDenied<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: {
+  [NAME in keyof TOOLS]-?: {
     type: 'tool-output-denied';
     toolCallId: string;
     toolName: NAME & string;

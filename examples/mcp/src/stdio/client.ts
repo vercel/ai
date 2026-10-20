@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { generateText, stepCountIs } from 'ai';
-import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+import { generateText, isStepCount } from 'ai';
+import { createMCPClient } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -24,7 +24,7 @@ async function main() {
     });
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {
@@ -32,11 +32,11 @@ async function main() {
           },
         },
       }),
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are an expert in Pokemon',
+      instructions: 'You are an expert in Pokemon',
       prompt:
         'Which Pokemon could best defeat Feebas? Choose one and share details about it.',
     });

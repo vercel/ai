@@ -1,5 +1,9 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
-import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 
@@ -32,6 +36,11 @@ export const openaiChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            audio: z
+              .object({
+                transcript: z.string().nullish(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -48,10 +57,12 @@ export const openaiChatResponseSchema = lazySchema(() =>
               .array(
                 z.object({
                   type: z.literal('url_citation'),
-                  start_index: z.number(),
-                  end_index: z.number(),
-                  url: z.string(),
-                  title: z.string(),
+                  url_citation: z.object({
+                    start_index: z.number(),
+                    end_index: z.number(),
+                    url: z.string(),
+                    title: z.string(),
+                  }),
                 }),
               )
               .nullish(),
@@ -86,6 +97,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
           prompt_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
             })
             .nullish(),
           completion_tokens_details: z
@@ -133,10 +145,12 @@ export const openaiChatChunkSchema = lazySchema(() =>
                   .array(
                     z.object({
                       type: z.literal('url_citation'),
-                      start_index: z.number(),
-                      end_index: z.number(),
-                      url: z.string(),
-                      title: z.string(),
+                      url_citation: z.object({
+                        start_index: z.number(),
+                        end_index: z.number(),
+                        url: z.string(),
+                        title: z.string(),
+                      }),
                     }),
                   )
                   .nullish(),
@@ -172,6 +186,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
               })
               .nullish(),
             completion_tokens_details: z

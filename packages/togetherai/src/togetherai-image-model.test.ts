@@ -1,4 +1,4 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TogetherAIImageModel } from './togetherai-image-model';
@@ -6,23 +6,28 @@ import { TogetherAIImageModel } from './togetherai-image-model';
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
+  modelId,
   headers,
   fetch,
   currentDate,
 }: {
+  modelId?: string;
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
 } = {}) {
-  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
-    provider: 'togetherai',
-    baseURL: 'https://api.example.com',
-    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-    fetch,
-    _internal: {
-      currentDate,
+  return new TogetherAIImageModel(
+    modelId ?? 'stabilityai/stable-diffusion-xl',
+    {
+      provider: 'togetherai',
+      baseURL: 'https://api.example.com',
+      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+      fetch,
+      _internal: {
+        currentDate,
+      },
     },
-  });
+  );
 }
 
 const server = createTestServer({
@@ -39,12 +44,85 @@ const server = createTestServer({
   },
 });
 
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'black-forest-labs/FLUX.1-kontext-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+    ...[
+      'black-forest-labs/FLUX.1-kontext-max',
+      'black-forest-labs/FLUX.1-kontext-dev',
+      'black-forest-labs/FLUX.1-canny',
+      'black-forest-labs/FLUX.1-depth',
+      'black-forest-labs/FLUX.1-redux',
+      'black-forest-labs/FLUX.2-pro',
+      'black-forest-labs/FLUX.2-flex',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    })),
+    {
+      modelId: 'black-forest-labs/FLUX.1-schnell',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'black-forest-labs/FLUX.2-dev',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'google/gemini-3-pro-image',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    ...[
+      'black-forest-labs/custom-model',
+      'stabilityai/custom-model',
+      'black-forest-labs/FLUX.1-kontext-custom',
+      'custom/FLUX.1-kontext-pro',
+      'black-forest-labs/FLUX.2-custom',
+      'google/gemini-custom',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    })),
+    {
+      modelId: 'stabilityai/stable-diffusion-xl-base-1.0',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'custom/image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const model = new TogetherAIImageModel(modelId, {
+        provider: 'togetherai',
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(model.supportsFileInputs).toBe(supportsFileInputs);
+      expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
+});
+
 describe('doGenerate', () => {
   it('should pass the correct parameters including size and seed', async () => {
     const model = createBasicModel();
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -56,11 +134,106 @@ describe('doGenerate', () => {
       model: 'stabilityai/stable-diffusion-xl',
       prompt,
       seed: 42,
-      n: 1,
       width: 1024,
       height: 1024,
       response_format: 'base64',
       additional_param: 'value',
+    });
+  });
+
+  it('should omit seed from request body when seed is undefined', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      seed: undefined,
+      providerOptions: {},
+      aspectRatio: undefined,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('seed');
+    expect(requestBody).toStrictEqual({
+      model: 'stabilityai/stable-diffusion-xl',
+      prompt,
+      response_format: 'base64',
+    });
+  });
+
+  it('should omit diffusion options for non-diffusion models', async () => {
+    const model = createBasicModel({
+      modelId: 'google/gemini-3-pro-image',
+    });
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1264x848',
+      seed: 42,
+      providerOptions: {
+        togetherai: {
+          steps: 20,
+          guidance: 3.5,
+          negative_prompt: 'blurry',
+          disable_safety_checker: true,
+          additional_param: 'value',
+        },
+      },
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'google/gemini-3-pro-image',
+      prompt,
+      width: 1264,
+      height: 848,
+      response_format: 'base64',
+      additional_param: 'value',
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'This model does not support the `aspectRatio` option. Use `size` instead.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'seed',
+        details:
+          'The google/gemini-3-pro-image model does not support the `seed` option.',
+      },
+    ]);
+  });
+
+  it('should include n parameter when requesting multiple images', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 3,
+      size: '1024x1024',
+      seed: 42,
+      providerOptions: {},
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stabilityai/stable-diffusion-xl',
+      prompt,
+      seed: 42,
+      n: 3,
+      width: 1024,
+      height: 1024,
+      response_format: 'base64',
     });
   });
 
@@ -69,6 +242,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -91,6 +266,8 @@ describe('doGenerate', () => {
 
     await modelWithHeaders.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -123,6 +300,8 @@ describe('doGenerate', () => {
     await expect(
       model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -140,6 +319,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -165,6 +346,8 @@ describe('doGenerate', () => {
 
     const generatePromise = model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -187,6 +370,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -219,6 +404,8 @@ describe('doGenerate', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -241,7 +428,233 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v3');
+    expect(model.specificationVersion).toBe('v4');
     expect(model.maxImagesPerCall).toBe(1);
+  });
+});
+
+describe('Image Editing', () => {
+  const server = createTestServer({
+    'https://api.example.com/*': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          data: [{ index: 0, b64_json: 'test-base64-content' }],
+          model: 'black-forest-labs/FLUX.1-kontext-pro',
+          object: 'list',
+        },
+      },
+    },
+  });
+
+  it.each(['black-forest-labs/FLUX.2-pro', 'black-forest-labs/FLUX.2-flex'])(
+    'should send standardized file inputs as image_url for %s',
+    async modelId => {
+      const model = createBasicModel({ modelId });
+
+      await model.doGenerate({
+        prompt: 'Make the shirt yellow',
+        files: [{ type: 'url', url: 'https://example.com/input.jpg' }],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: modelId,
+        prompt: 'Make the shirt yellow',
+        image_url: 'https://example.com/input.jpg',
+        response_format: 'base64',
+      });
+    },
+  );
+
+  it('should send image_url when URL file is provided', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Make the shirt yellow',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchInlineSnapshot(`
+      {
+        "image_url": "https://example.com/input.jpg",
+        "model": "stabilityai/stable-diffusion-xl",
+        "prompt": "Make the shirt yellow",
+        "response_format": "base64",
+      }
+    `);
+  });
+
+  it('should convert Uint8Array file to data URI', async () => {
+    const model = createBasicModel();
+    const testImageData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
+    await model.doGenerate({
+      prompt: 'Transform this image',
+      files: [
+        {
+          type: 'file',
+          data: testImageData,
+          mediaType: 'image/png',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toMatch(/^data:image\/png;base64,/);
+    expect(requestBody.prompt).toBe('Transform this image');
+  });
+
+  it('should convert file with base64 string data to data URI', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Edit this',
+      files: [
+        {
+          type: 'file',
+          data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          mediaType: 'image/png',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+  });
+
+  it('should throw error when mask is provided', async () => {
+    const model = createBasicModel();
+
+    await expect(
+      model.doGenerate({
+        prompt: 'Inpaint this area',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: {
+          type: 'url',
+          url: 'https://example.com/mask.png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).rejects.toThrow(
+      'Together AI does not support mask-based image editing. ' +
+        'Use FLUX Kontext models (e.g., black-forest-labs/FLUX.1-kontext-pro) ' +
+        'with a reference image and descriptive prompt instead.',
+    );
+  });
+
+  it('should warn when multiple files are provided', async () => {
+    const model = createBasicModel();
+
+    const result = await model.doGenerate({
+      prompt: 'Edit multiple images',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input1.jpg',
+        },
+        {
+          type: 'url',
+          url: 'https://example.com/input2.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Together AI only supports a single input image. Additional images are ignored.",
+          "type": "other",
+        },
+      ]
+    `);
+
+    // Should only use the first image
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toBe('https://example.com/input1.jpg');
+  });
+
+  it('should pass provider options with image editing', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Transform the style',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        togetherai: {
+          steps: 28,
+          guidance: 3.5,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchInlineSnapshot(`
+      {
+        "guidance": 3.5,
+        "image_url": "https://example.com/input.jpg",
+        "model": "stabilityai/stable-diffusion-xl",
+        "prompt": "Transform the style",
+        "response_format": "base64",
+        "steps": 28,
+      }
+    `);
   });
 });

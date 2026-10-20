@@ -1,8 +1,14 @@
 import { delay } from '@ai-sdk/provider-utils';
-import { JSONRPCMessage } from './json-rpc-message';
-import { MCPTransport } from './mcp-transport';
-import { MCPTool, MCPResource, MCPPrompt, GetPromptResult } from './types';
-
+import type { JSONRPCMessage } from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
+import {
+  LATEST_LEGACY_PROTOCOL_VERSION,
+  type MCPTool,
+  type MCPResource,
+  type MCPPrompt,
+  type CallToolResult,
+  type CompleteResult,
+} from './types';
 const DEFAULT_TOOLS: MCPTool[] = [
   {
     name: 'mock-tool',
@@ -33,11 +39,13 @@ export class MockMCPTransport implements MCPTransport {
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
+  private toolCallResults;
+  private completionResult;
 
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
   onerror?: (error: Error) => void;
-
+  protocolVersion?: string;
   constructor({
     overrideTools = DEFAULT_TOOLS,
     resources = [
@@ -90,6 +98,8 @@ export class MockMCPTransport implements MCPTransport {
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
+    toolCallResults = {} as Record<string, CallToolResult>,
+    completionResult,
   }: {
     overrideTools?: MCPTool[];
     resources?: MCPResource[];
@@ -113,11 +123,14 @@ export class MockMCPTransport implements MCPTransport {
         name?: string;
         title?: string;
         mimeType?: string;
+        _meta?: Record<string, unknown>;
       } & ({ text: string } | { blob: string })
     >;
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
+    toolCallResults?: Record<string, CallToolResult>;
+    completionResult?: CompleteResult;
   } = {}) {
     this.tools = overrideTools;
     this.resources = resources;
@@ -128,6 +141,8 @@ export class MockMCPTransport implements MCPTransport {
     this.failOnInvalidToolParams = failOnInvalidToolParams;
     this.initializeResult = initializeResult;
     this.sendError = sendError;
+    this.toolCallResults = toolCallResults;
+    this.completionResult = completionResult;
   }
 
   async start(): Promise<void> {
@@ -148,7 +163,7 @@ export class MockMCPTransport implements MCPTransport {
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
-            protocolVersion: '2025-06-18',
+            protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
             serverInfo: {
               name: 'mock-mcp-server',
               version: '1.0.0',
@@ -157,8 +172,30 @@ export class MockMCPTransport implements MCPTransport {
               ...(this.tools.length > 0 ? { tools: {} } : {}),
               ...(this.resources.length > 0 ? { resources: {} } : {}),
               ...(this.prompts.length > 0 ? { prompts: {} } : {}),
+              ...(this.completionResult ? { completions: {} } : {}),
             },
           },
+        });
+      }
+
+      if (message.method === 'completion/complete') {
+        await delay(10);
+        if (!this.completionResult) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32601,
+              message: 'Method not supported',
+            },
+          });
+          return;
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: this.completionResult,
         });
       }
 
@@ -302,6 +339,16 @@ export class MockMCPTransport implements MCPTransport {
                 receivedArguments: message.params?.arguments,
               },
             },
+          });
+          return;
+        }
+
+        const customResult = this.toolCallResults[toolName as string];
+        if (customResult) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: customResult,
           });
           return;
         }

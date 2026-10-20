@@ -1,3 +1,4 @@
+import type { MemberExpression } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
 
 const ERROR_METHOD_MAPPINGS: Record<string, string> = {
@@ -65,9 +66,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     })
     .forEach(path => {
       context.hasChanges = true;
-      const property = (
-        path.node.callee as import('jscodeshift').MemberExpression
-      ).property;
+      const property = (path.node.callee as MemberExpression).property;
       const methodName = property.type === 'Identifier' ? property.name : '';
       const newMethodPath = ERROR_METHOD_MAPPINGS[methodName].split('.');
 

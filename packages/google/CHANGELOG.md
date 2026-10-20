@@ -1,5 +1,2256 @@
 # @ai-sdk/google
 
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.100
+
+### Patch Changes
+
+- d08bb66: Preserve grounding metadata from each automatically continued Google response in `groundingMetadataPerRequest`. Previously, a later response without grounding could leave earlier Search queries absent from the final provider metadata even though their sources were returned. The new array preserves request order and includes `null` for requests without grounding.
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.99
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.98
+
+### Patch Changes
+
+- 4cb3dec: feat(provider/google): allow AUDIO response modalities for Google language models
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.95
+
+### Patch Changes
+
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+
+## 4.0.94
+
+### Patch Changes
+
+- 2060ab9: fix(google): handle regional Gemini model IDs and valid thinking configurations
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.93
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.92
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.91
+
+### Patch Changes
+
+- 32ff7ad: Preserve tool errors in OpenAI Chat Completions and Responses by wrapping their payloads in an `error` object. Send Google tool errors and denied executions under `functionResponse.response.error`.
+
+## 4.0.90
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.89
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 8c0e699: feat(google): preserve file search custom metadata in retrieved context grounding chunks
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.88
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.87
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.86
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.85
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.84
+
+### Patch Changes
+
+- d0290cf: fix(google): preserve realtime user utterances with independent IDs and cumulative transcripts, honor text-free transcription completion markers, and advance response IDs after interruption
+
+## 4.0.83
+
+### Patch Changes
+
+- 32cf2f6: fix(google): send the default Gemini Live `thinkingLevel` when `thinkingConfig` sets neither `thinkingLevel` nor `thinkingBudget`, and stop overwriting a raw `generationConfig.thinkingConfig`
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.82
+
+### Patch Changes
+
+- bc49f78: fix(google): forward supported Vertex tool result URLs as function response file data
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.81
+
+### Patch Changes
+
+- b126c4b: fix(google): serialize Interactions video offsets as Google duration strings
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.80
+
+### Patch Changes
+
+- 8beac3e: fix(google): serialize JSON Schema references in function responses
+
+## 4.0.79
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 2db5621: fix(google): preserve code execution parts when replaying messages
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.78
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.75
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- 2b391f8: fix(google): ignore default prompt block reasons in non-streaming responses
+- 1284569: fix(google): include tool-use prompt tokens in input usage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.74
+
+### Patch Changes
+
+- d4d96bf: Add `google.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Gemini structured output, preserving provider thinking options and validating exact labels and score bounds. Boolean answers contain prompted P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.73
+
+### Patch Changes
+
+- a22b5b2: fix(google): preserve prompt feedback and metadata across streaming chunks
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.72
+
+### Patch Changes
+
+- 4a994ad: feat(google): realtime session options for Gemini 3.8 Live
+
+  Add `thinkingConfig` (`thinkingLevel`, `thinkingBudget`, `includeThoughts`) and
+  `defaultToolBehavior` to `GoogleRealtimeModelOptions`. `thinkingConfig` is merged
+  into the Live `setup.generationConfig`. Background-reasoning Live models such as
+  `gemini-3.8-live-extended-thinking` require exactly one of `thinkingLevel` or
+  `thinkingBudget`, so the provider sends `thinkingLevel: 'low'` on those models
+  when neither is set. `defaultToolBehavior` stamps `behavior` on every function
+  declaration in the setup.
+
+  Forward the Live `interactionStatus` and `waitingForInput` server messages as
+  custom events so applications can tell when a background-reasoning model is idle,
+  since `turnComplete` alone no longer means that.
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.70
+
+### Patch Changes
+
+- 2a32459: fix(google): preserve JSON Schema instead of converting to OpenAPI schema
+- d93e295: fix(google): keep a realtime `functionResponse.response` an object
+
+  Gemini types that field as a `google.protobuf.Struct`, which accepts an object and
+  nothing else. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`, so a
+  string, number, array or `null` tool result reached the wire unwrapped, Gemini closed
+  the socket with `1007`, and the close code was dropped on the way back so the
+  application saw a plain disconnect. A non-object result is now wrapped under the
+  `output` key the field's own docstring prescribes; an object is passed through
+  unchanged, as before.
+
+  An `output` that is not valid JSON no longer becomes `{}`. That branch told the model
+  the tool had returned an empty object, with nothing thrown and the socket still up, so
+  the answer was wrong with nothing to notice. The text is kept instead.
+
+## 4.0.69
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+
+## 4.0.68
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.67
+
+### Patch Changes
+
+- ab6e9f9: feat(google): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.65
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.64
+
+### Patch Changes
+
+- d4485fe: feat(ai): support minItems and maxItems in array outputs
+- 63533eb: fix(google): map code execution tool name- #20260
+
+## 4.0.63
+
+### Patch Changes
+
+- 18ad19c: feat(google): support agentic video processing in the Interactions API
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.61
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.60
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.59
+
+### Patch Changes
+
+- ca29e9b: fix(google): support video response formats in Gemini Interactions
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.57
+
+### Patch Changes
+
+- 949ef93: fix(google): recognize Google Files URLs when using a baseUrl
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.56
+
+### Patch Changes
+
+- 3ad9da9: Preserve complete Google Generative Language usage metadata in raw usage results.
+- e9bc618: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 4.0.55
+
+### Patch Changes
+
+- 56d492f: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+
+## 4.0.54
+
+### Patch Changes
+
+- 1f7835c: feat (provider/google, provider/google-vertex): Gemini 3.5 Transcribe support — unary transcription (`gemini-3.5-transcribe`) via generateContent with language detection, speaker diarization, word timestamps, and custom vocabulary, plus streaming transcription (`gemini-3.5-transcribe-live`) over the Live API WebSocket with `mode: 'VERBATIM' | 'SMART'` transcription formatting
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.52
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 92e08e6: Preserve recursive tool input schemas without aborting Google model calls.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 0246209: Fix Google file uploads failing to type-check with TypeScript 5.9 DOM types.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.51
+
+### Patch Changes
+
+- e7fc90e: feat(google): support the Gemini Batch API with experimental_startTextBatch
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.49
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
+## 4.0.48
+
+### Patch Changes
+
+- 6c5a1ed: Inline local JSON Schema references in Google tool and structured-output schemas.
+
+## 4.0.47
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.46
+
+### Patch Changes
+
+- f69920a: fix(google): use low as the minimum reasoning level for full Gemini Flash 3.7 and later
+
+## 4.0.45
+
+### Patch Changes
+
+- bb0cf2e: fix(google): coerce minimal reasoning to low for Gemini 3.7 Flash
+
+## 4.0.44
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
+## 4.0.43
+
+### Patch Changes
+
+- 8e90283: Preserve forced tool calls when strict function tools are configured.
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.41
+
+### Patch Changes
+
+- da78d58: fix(google): convert enum values to the Gemini schema format
+- 8a2482d: Preserve Google API error details in `APICallError.data`.
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.37
+
+### Patch Changes
+
+- bbd9b31: chore: rename `*TranslationModel` and its related types to `*SpeechTranslationModel` for consistency
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.32
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.31
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.29
+
+### Patch Changes
+
+- d8210b6: chore: centralize record type guards in provider-utils
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.27
+
+### Patch Changes
+
+- d2d9324: Forward `topK` through Google Interactions requests and warn when unsupported frequency or presence penalties are provided.
+- 8bedb2c: Allow fetch to derive the content length for Google file upload request bodies.
+
+## 4.0.26
+
+### Patch Changes
+
+- c49380c: feat: add experimental streaming speech translation models (`openai.translation('gpt-realtime-translate')` over the OpenAI Realtime translations WebSocket and `google.translation('gemini-3.5-live-translate-preview')` over the Gemini Live API). `connectToWebSocket` in `@ai-sdk/provider-utils` now passes close code and reason to `onClose` (additive, optional parameter).
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.24
+
+### Patch Changes
+
+- c57a353: fix(google): omit unsupported function call IDs
+
+## 4.0.23
+
+### Patch Changes
+
+- f126649: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 4.0.22
+
+### Patch Changes
+
+- 66b7151: fix(provider/google): preserve Gemini Live lifecycle events
+- 5e5453c: Avoid missing thought-signature warnings and skip-validator injection for valid unsigned Gemini 3 parallel function calls in the same model response.
+
+## 4.0.21
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
+## 4.0.19
+
+### Patch Changes
+
+- a70b027: fix(provider/google): associate multiple code execution results with their tool call
+- a3ce307: fix(provider/google): surface Gemini `responseId` as `response-metadata` (stream) and `response.id` (generate)
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [cd06458]
+  - @ai-sdk/provider-utils@5.0.11
+
+## 4.0.17
+
+### Patch Changes
+
+- 5b4a299: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
+## 4.0.16
+
+### Patch Changes
+
+- 662ddfc: Allow google.interactions agent requests to include supported tools, including file_search.
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [31c7be8]
+  - @ai-sdk/provider-utils@5.0.10
+
+## 4.0.14
+
+### Patch Changes
+
+- 4be62c1: fix(provider-utils): validate provider-response URLs in `getFromApi`
+
+  `getFromApi` now has a `validateUrl` flag. It is optional so existing callers keep compiling (omitting it behaves like `false`, i.e. no validation), but all AI SDK provider packages set it explicitly at every call site so each one makes a visible trust decision. When `true`, the URL is routed through `fetchWithValidatedRedirects` — the same guard used by `downloadBlob` — which rejects private/loopback/link-local targets, re-validates every redirect hop, strips proxy/metadata/cookie request headers, and drops all caller headers except the user-agent on cross-origin redirects (custom API-key headers must not follow a redirect off-origin any more than `Authorization` may); blocked URLs throw `DownloadError`. It is enabled at the image/video/audio download and polling call sites where the URL comes from a provider response body; URLs built from developer-configured endpoints pass `validateUrl: false` and are unaffected.
+
+  A new optional `credentialedOrigin` withholds caller headers unless the URL is same-origin with it, so the API key is not sent to a response-supplied host on a different origin.
+
+  A new optional `trustedOrigin` exempts URLs (and redirect hops) that are same-origin with the developer-configured provider endpoint from target validation, so self-hosted and localhost deployments whose response URLs point back at the configured host keep working; all other hops are still validated.
+
+  Also closes range gaps in `validateDownloadUrl` (IPv4 `224.0.0.0/4` multicast and the TEST-NET documentation ranges `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`; IPv6 documentation ranges `2001:db8::/32` and `3fff::/20`), and follows only the fetch-spec redirect status codes (301/302/303/307/308) — a `Location` header on any other status is not followed. This guard performs string/literal checks only and does not resolve DNS; hostnames that resolve to private addresses and DNS rebinding remain out of scope and must be constrained at the network layer (or by injecting a Node `fetch` that pins the resolved IP at connect time) for server deployments handling untrusted URLs. See `contributing/secure-url-handling.md`.
+
+- Updated dependencies [4be62c1]
+- Updated dependencies [7805e4a]
+- Updated dependencies [cd12954]
+  - @ai-sdk/provider-utils@5.0.9
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - @ai-sdk/provider-utils@5.0.8
+
+## 4.0.12
+
+### Patch Changes
+
+- e40118c: Forward text file references as documents when using the Google Interactions API.
+
+## 4.0.11
+
+### Patch Changes
+
+- 17d66c5: Fix Google tool result conversion to send file data as inline data instead of JSON text on the legacy tool-result path.
+- 96d40bc: Expand standalone Google `threshold` provider options into safety settings.
+- 0f93c57: feat (video): support video (not just image) reference inputs in `inputReferences` for reference-to-video generation
+- Updated dependencies [0f93c57]
+  - @ai-sdk/provider@4.0.3
+  - @ai-sdk/provider-utils@5.0.7
+
+## 4.0.10
+
+### Patch Changes
+
+- Updated dependencies [ac306ed]
+  - @ai-sdk/provider-utils@5.0.6
+
+## 4.0.9
+
+### Patch Changes
+
+- 7401c2c: Pass documented Gemini external HTTPS file URLs through without downloading them.
+
+## 4.0.8
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - @ai-sdk/provider@4.0.2
+  - @ai-sdk/provider-utils@5.0.5
+
+## 4.0.7
+
+### Patch Changes
+
+- c6f5e62: Prevent prototype pollution when synchronously parsing provider JSON inputs and expose `secureJsonParse` from provider-utils.
+- bd8d172: Fix Google embedding batch size to respect the Gemini API limit of 100 requests per batch.
+- Updated dependencies [c6f5e62]
+  - @ai-sdk/provider-utils@5.0.4
+
+## 4.0.6
+
+### Patch Changes
+
+- d20f0dc: Add `vertex.interactions()` for the Gemini Interactions API on Vertex AI. Targets the location-scoped `.../locations/{region}/interactions` resource using the existing Vertex OAuth credentials, enabling multimodal-output models such as `gemini-omni-flash-preview` (video output) through Vertex. The `GoogleInteractionsLanguageModel` is now exported from `@ai-sdk/google/internal` for provider reuse.
+
+## 4.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - @ai-sdk/provider-utils@5.0.3
+
+## 4.0.4
+
+### Patch Changes
+
+- dc1eb8d: Support Gemini Interactions video output. Parse video output blocks from the Google Interactions API into file parts (buffered and streaming), and surface the per-modality output token breakdown via `providerMetadata.google.outputTokensByModality`.
+
+## 4.0.3
+
+### Patch Changes
+
+- 0274f34: feat (video): add first-class `frameImages` and `inputReferences` call options for video generation
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - @ai-sdk/provider-utils@5.0.2
+
+## 4.0.2
+
+### Patch Changes
+
+- Updated dependencies [6a436e3]
+  - @ai-sdk/provider-utils@5.0.1
+
+## 4.0.1
+
+### Patch Changes
+
+- ba6d510: chore: fix deprecated use of zod `.passthrough()`
+
+## 4.0.0
+
+### Major Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- 8359612: Start v7 pre-release
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+- 38fc777: Add AI Gateway hint to provider READMEs
+- b71c0d7: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+- 6190649: chore(provider/google): remove obsolete Google image model
+- 55db546: fix(provider/google): fix Gemini service tier enum after upstream update
+- 9a0a618: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+- 9715ec7: feat(provider/google): add support for service tier parameter
+- 41da50c: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+- 4e825f3: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+- b563707: feat(provider/google): add Gemini text-to-speech (speech) model support
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+- cfca634: fix(google): emit Vertex no-args streaming tool calls and preserve thoughtSignature
+
+  Vertex emits a no-args function call as a single chunk shaped `{ functionCall: { name: 'X' } }` with no `args`, no `partialArgs`, and no `willContinue`. The streaming parser had no branch for this shape, so the call was dropped along with any `thoughtSignature` it carried. For Gemini 3 thinking models this caused the next multi-turn step to 400 with `missing thought_signature`. The unary (`doGenerate`) path had the same drop.
+
+  Both paths now emit the call as a complete tool call with `'{}'` input and propagate `thoughtSignature` provider metadata.
+
+  Fixes #14847.
+
+- c9c4661: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+- 045d2e8: fix(google): read `serviceTier` from `usageMetadata.serviceTier` in both generate and stream paths
+
+  The previous implementation read `serviceTier` from the `x-gemini-service-tier`
+  response header, which is only populated on non-streaming responses. Gemini
+  streaming includes the value in `usageMetadata.serviceTier` on every chunk, so
+  `providerMetadata.google.serviceTier` was always `null` for streams. Read from
+  `usageMetadata` for both paths instead.
+
+- 19b95f9: fix(google): use VALIDATED function calling mode when any tool has strict:true
+- 2ce3c65: feat(provider/google-vertex): add Gemini text-to-speech (speech) model support
+- 5878b40: fix(google): prevent prototype pollution when streaming tool args
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+- 6a26901: feat(google): add `fileData` support to embedding model
+- 01fa606: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+- 5036db8: feat(google-vertex): add support for streaming tool arguments input
+- 9f0e36c: trigger release for all packages after provenance setup
+- a2609df: fix(google): fix streaming tool call args
+- ab43029: feat(provider/google): support multimodal content parts in embedding provider options
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+- 58a2ad7: fix: more precise default message for tool execution denial
+- e59176c: chore(google): update v3 specs to v4
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- aeda373: fix: only send provider credentials to same-origin response-supplied URLs
+
+  Several provider clients followed a URL taken from the provider's API response (a polling/status URL or a final media URL such as `polling_url`, `urls.get`, `result_url`, `result.sample`, or `video.uri`) and reused the authenticated headers — or appended `?key=<API_KEY>` — on that request. Because the host of the response-supplied URL was never validated, the long-lived API key was sent to whatever host the response named (a CDN in the benign case, or an attacker-chosen host if the provider response was tampered with), allowing credential exfiltration.
+
+  A new `isSameOrigin` helper is added to `@ai-sdk/provider-utils`, and the affected fetches in `@ai-sdk/black-forest-labs`, `@ai-sdk/fireworks`, `@ai-sdk/replicate`, `@ai-sdk/gladia`, `@ai-sdk/fal`, and `@ai-sdk/google` now attach credentials only when the followed URL is same-origin with the provider's configured API origin. Requests to a foreign origin are made without the credential.
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 0c4c275: trigger initial canary release
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- 5b7e7c2: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+- 2edd14e: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- 55f0938: chore(provider/google): update available models
+- b8396f0: trigger initial beta release
+- 84f36e0: fix(google): omit passing includeServerSideToolInvocations for Vertex tool_config
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+- aeea161: feat(google): read `serviceTier` from `x-gemini-service-tier` response header in Gemini API and use PayGo for Vertex
+- 18c1970: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.50
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- 947cdab: Add Google realtime Live Translation provider options for `gemini-3.5-live-translate-preview`.
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- bdb9ea1: chore(google): remove now obsolete Interactions API `Api-Revision` header
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- b8396f0: trigger initial beta release
+- Updated dependencies [b8396f0]
+  - @ai-sdk/provider-utils@5.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.19
+
+## 4.0.0-canary.81
+
+### Patch Changes
+
+- 5878b40: fix(google): prevent prototype pollution when streaming tool args
+- aeda373: fix: only send provider credentials to same-origin response-supplied URLs
+
+  Several provider clients followed a URL taken from the provider's API response (a polling/status URL or a final media URL such as `polling_url`, `urls.get`, `result_url`, `result.sample`, or `video.uri`) and reused the authenticated headers — or appended `?key=<API_KEY>` — on that request. Because the host of the response-supplied URL was never validated, the long-lived API key was sent to whatever host the response named (a CDN in the benign case, or an attacker-chosen host if the provider response was tampered with), allowing credential exfiltration.
+
+  A new `isSameOrigin` helper is added to `@ai-sdk/provider-utils`, and the affected fetches in `@ai-sdk/black-forest-labs`, `@ai-sdk/fireworks`, `@ai-sdk/replicate`, `@ai-sdk/gladia`, `@ai-sdk/fal`, and `@ai-sdk/google` now attach credentials only when the followed URL is same-origin with the provider's configured API origin. Requests to a foreign origin are made without the credential.
+
+- Updated dependencies [aeda373]
+- Updated dependencies [375fdd7]
+- Updated dependencies [b4507d5]
+  - @ai-sdk/provider-utils@5.0.0-canary.48
+
+## 4.0.0-canary.80
+
+### Patch Changes
+
+- Updated dependencies [bae5e2b]
+  - @ai-sdk/provider-utils@5.0.0-canary.47
+
+## 4.0.0-canary.79
+
+### Patch Changes
+
+- ce769dd: feat(provider): add experimental Realtime API support for voice conversations
+
+  Adds first-class support for realtime (speech-to-speech) APIs:
+
+  - `Experimental_RealtimeModelV4` spec in `@ai-sdk/provider` with normalized event types and factory
+  - OpenAI, Google, and xAI realtime provider implementations
+  - `openai.experimental_realtime()` / `google.experimental_realtime()` / `xai.experimental_realtime()` work in both server and browser
+  - `.getToken()` static method on each provider for server-side ephemeral token creation
+  - `experimental_getRealtimeToolDefinitions` helper for provider session tool definitions
+  - `experimental_useRealtime` hook in `@ai-sdk/react` returning `UIMessage[]` (aligned with `useChat`), with `onToolCall` and `addToolOutput` for client-driven tool execution
+  - `inputAudioTranscription` session config for showing transcribed user audio messages when supported by the provider
+
+- Updated dependencies [ce769dd]
+  - @ai-sdk/provider@4.0.0-canary.18
+  - @ai-sdk/provider-utils@5.0.0-canary.46
+
+## 4.0.0-canary.78
+
+### Patch Changes
+
+- 2ce3c65: feat(provider/google-vertex): add Gemini text-to-speech (speech) model support
+
+## 4.0.0-canary.77
+
+### Patch Changes
+
+- Updated dependencies [ee798eb]
+- Updated dependencies [daf6637]
+  - @ai-sdk/provider-utils@5.0.0-canary.45
+
+## 4.0.0-canary.76
+
+### Patch Changes
+
+- b563707: feat(provider/google): add Gemini text-to-speech (speech) model support
+
+## 4.0.0-canary.75
+
+### Patch Changes
+
+- 00a0f36: feat(google, google-vertex): added `gemini-embedding-2`, `deep-research-max-preview-04-2026` and `deep-research-preview-04-2026`
+
+## 4.0.0-canary.74
+
+### Patch Changes
+
+- a8d70b6: fix(google): auto-inject `skip_thought_signature_validator` for Gemini 3 tool-call replays without a signature
+
+## 4.0.0-canary.73
+
+### Patch Changes
+
+- Updated dependencies [6c93e36]
+- Updated dependencies [f617ac2]
+  - @ai-sdk/provider-utils@5.0.0-canary.44
+
+## 4.0.0-canary.72
+
+### Patch Changes
+
+- b71c0d7: feat(provider/google): support Google search grounding when using `generateImage` with Gemini
+
+## 4.0.0-canary.71
+
+### Patch Changes
+
+- 045d2e8: fix(google): read `serviceTier` from `usageMetadata.serviceTier` in both generate and stream paths
+
+  The previous implementation read `serviceTier` from the `x-gemini-service-tier`
+  response header, which is only populated on non-streaming responses. Gemini
+  streaming includes the value in `usageMetadata.serviceTier` on every chunk, so
+  `providerMetadata.google.serviceTier` was always `null` for streams. Read from
+  `usageMetadata` for both paths instead.
+
+## 4.0.0-canary.70
+
+### Patch Changes
+
+- aeea161: feat(google): read `serviceTier` from `x-gemini-service-tier` response header in Gemini API and use PayGo for Vertex
+
+## 4.0.0-canary.69
+
+### Patch Changes
+
+- 7f04802: feat(provider/google): add support for managed agents in the Interactions API
+
+## 4.0.0-canary.68
+
+### Patch Changes
+
+- a2609df: fix(google): fix streaming tool call args
+- 546cefe: feat(provider/google): add `gemini-3.5-flash`
+
+## 4.0.0-canary.67
+
+### Patch Changes
+
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- Updated dependencies [7fc6bd6]
+  - @ai-sdk/provider-utils@5.0.0-canary.43
+  - @ai-sdk/provider@4.0.0-canary.17
+
+## 4.0.0-canary.66
+
+### Patch Changes
+
+- Updated dependencies [a6617c5]
+  - @ai-sdk/provider-utils@5.0.0-canary.42
+
+## 4.0.0-canary.65
+
+### Patch Changes
+
+- 4e825f3: feat(google): update Interactions API implementation to cater for upstream breaking changes coming May 26
+
+## 4.0.0-canary.64
+
+### Patch Changes
+
+- 41da50c: fix(provider/google): support `functionCall.id` when returned by Gemini API and provide matching `functionResponse.id`
+
+## 4.0.0-canary.63
+
+### Patch Changes
+
+- Updated dependencies [28dfa06]
+- Updated dependencies [e93fa91]
+  - @ai-sdk/provider-utils@5.0.0-canary.41
+
+## 4.0.0-canary.62
+
+### Patch Changes
+
+- Updated dependencies [a7de9c9]
+  - @ai-sdk/provider-utils@5.0.0-canary.40
+
+## 4.0.0-canary.61
+
+### Patch Changes
+
+- Updated dependencies [105f95b]
+  - @ai-sdk/provider-utils@5.0.0-canary.39
+
+## 4.0.0-canary.60
+
+### Patch Changes
+
+- 6a26901: feat(google): add `fileData` support to embedding model
+
+## 4.0.0-canary.59
+
+### Patch Changes
+
+- db394ab: feat(provider/google): support cancelling long-running Interactions API agents via AbortSignal, and process their intermittent stream
+- Updated dependencies [ca446f8]
+  - @ai-sdk/provider-utils@5.0.0-canary.38
+
+## 4.0.0-canary.58
+
+### Patch Changes
+
+- Updated dependencies [d848405]
+  - @ai-sdk/provider-utils@5.0.0-canary.37
+
+## 4.0.0-canary.57
+
+### Patch Changes
+
+- Updated dependencies [ca39020]
+  - @ai-sdk/provider-utils@5.0.0-canary.36
+
+## 4.0.0-canary.56
+
+### Patch Changes
+
+- Updated dependencies [f634bac]
+  - @ai-sdk/provider-utils@5.0.0-canary.35
+
+## 4.0.0-canary.55
+
+### Patch Changes
+
+- ebbb0f2: fix(provider/google): fix lack of image consistency when using Interactions API in stateless mode
+- Updated dependencies [69254e0]
+- Updated dependencies [3015fc3]
+  - @ai-sdk/provider-utils@5.0.0-canary.34
+
+## 4.0.0-canary.54
+
+### Patch Changes
+
+- b04e23e: feat(provider/google): add support for the Gemini Interactions API
+
+## 4.0.0-canary.53
+
+### Patch Changes
+
+- Updated dependencies [2427d88]
+  - @ai-sdk/provider-utils@5.0.0-canary.33
+
+## 4.0.0-canary.52
+
+### Patch Changes
+
+- cfca634: fix(google): emit Vertex no-args streaming tool calls and preserve thoughtSignature
+
+  Vertex emits a no-args function call as a single chunk shaped `{ functionCall: { name: 'X' } }` with no `args`, no `partialArgs`, and no `willContinue`. The streaming parser had no branch for this shape, so the call was dropped along with any `thoughtSignature` it carried. For Gemini 3 thinking models this caused the next multi-turn step to 400 with `missing thought_signature`. The unary (`doGenerate`) path had the same drop.
+
+  Both paths now emit the call as a complete tool call with `'{}'` input and propagate `thoughtSignature` provider metadata.
+
+  Fixes #14847.
+
+## 4.0.0-canary.51
+
+### Patch Changes
+
+- 5463d0d: feat(provider): align tool result output content file part types with top-level message file part types
+- Updated dependencies [5463d0d]
+  - @ai-sdk/provider-utils@5.0.0-canary.32
+  - @ai-sdk/provider@4.0.0-canary.16
+
+## 4.0.0-canary.50
+
+### Patch Changes
+
+- 0c4c275: trigger initial canary release
+- Updated dependencies [0c4c275]
+  - @ai-sdk/provider-utils@5.0.0-canary.31
+  - @ai-sdk/provider@4.0.0-canary.15
+
+## 4.0.0-beta.49
+
+### Major Changes
+
+- 04e9009: chore: make provider implementations code patterns more consistent, including renaming certain exported symbols
+
+  For all externally exported symbols that were renamed, the old names continue to work via deprecated aliases.
+
+### Patch Changes
+
+- Updated dependencies [08d2129]
+  - @ai-sdk/provider-utils@5.0.0-beta.30
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- Updated dependencies [9bd6512]
+- Updated dependencies [258c093]
+- Updated dependencies [b6783da]
+  - @ai-sdk/provider-utils@5.0.0-beta.29
+  - @ai-sdk/provider@4.0.0-beta.14
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 9f0e36c: trigger release for all packages after provenance setup
+- Updated dependencies [9f0e36c]
+  - @ai-sdk/provider@4.0.0-beta.13
+  - @ai-sdk/provider-utils@5.0.0-beta.28
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 58a2ad7: fix: more precise default message for tool execution denial
+- 84f36e0: fix(google): omit passing includeServerSideToolInvocations for Vertex tool_config
+- Updated dependencies [785fe16]
+- Updated dependencies [67df0a0]
+- Updated dependencies [befb78c]
+- Updated dependencies [0458559]
+- Updated dependencies [5852c0a]
+- Updated dependencies [fc92055]
+  - @ai-sdk/provider-utils@5.0.0-beta.27
+
+## 4.0.0-beta.45
+
+### Major Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.37
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- 9a0a618: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 5b7e7c2: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 5036db8: feat(google-vertex): add support for streaming tool arguments input
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- 55db546: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 01fa606: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9715ec7: feat(provider/google): add support for service tier parameter
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6190649: chore(provider/google): remove obsolete Google image model
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 18c1970: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ab43029: feat(provider/google): support multimodal content parts in embedding provider options
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 2edd14e: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- c9c4661: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 19b95f9: fix(google): use VALIDATED function calling mode when any tool has strict:true
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.43
+
+### Patch Changes
+
+- 7ba09a4: Fix gateway failover losing thoughtSignature when failing over from Vertex to Google AI Studio. The Google provider now falls back to checking the vertex namespace for thoughtSignature, matching the existing Vertex-to-Google fallback behavior.
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.40
+
+### Patch Changes
+
+- 89d8b45: fix(google): make urlMetadata optional in urlContextMetadata schema
+
+## 3.0.39
+
+### Patch Changes
+
+- 2565e70: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
+## 3.0.38
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
+## 3.0.37
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.35
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.33
+
+### Patch Changes
+
+- 1ece97a: feat(provider/google): add support for new Google image model aspect ratios and sizes
+
+## 3.0.32
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.31
+
+### Patch Changes
+
+- 2fa3ca8: Added missing model IDs to GoogleGenerativeAIModelId and GoogleGenerativeAIVideoModelId types for better autocomplete support.
+
+## 3.0.30
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.28
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+
+## 3.0.27
+
+### Patch Changes
+
+- 051361b: fix(vertex): add fallback for providerOptions keyname
+
+## 3.0.26
+
+### Patch Changes
+
+- 4c27179: feat(google): allow using Gemini image models with `generateImage`
+
+## 3.0.25
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.24
+
+### Patch Changes
+
+- 3b3e32f: fix(google): handle thoughtSignature on empty-text parts in doGenerate and doStream
+
+## 3.0.23
+
+### Patch Changes
+
+- ba98c56: fix(google): make `codeExecutionResult.output` optional in response schema
+
+  Gemini 3 Flash omits the `output` field in `codeExecutionResult` when code execution produces no text output (e.g., only saves files). The Zod response schema now accepts a missing `output` field and defaults it to an empty string.
+
+## 3.0.22
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.21
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
+## 3.0.20
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.17
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.16
+
+### Patch Changes
+
+- 97b3ebb: fix (provider/google): make `segment` optional in `groundingSupports` schema
+
+  The Google Generative AI API sometimes returns grounding supports without a `segment` field. This change makes the `segment` field optional to handle these responses correctly.
+
+## 3.0.15
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.11
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- 2043612: fix(google): parse structured output when using google provider tools
+
+## 3.0.5
+
+### Patch Changes
+
+- 3be4d81: Add file support for Gemini 3 models
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 3.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.1
+
+### Patch Changes
+
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 0adc679: feat(provider): shared spec v3
+- 9be07c8: feat(google): `thinking_level` option for Gemini 3
+- fd788ce: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel("my-model-id");
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel("my-model-id");
+  ```
+
+- 2625a04: feat(openai); update spec for mcp approval
+- 7728ac5: The mediaResolution option has been added and is now passed to the Google API.
+- 9a728c8: support latest gemini model id
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- 95f65c2: chore: use import \* from zod/v4
+- e300a3b: Fixed Zod validation error when using `google.tools.fileSearch()`. The Google File Search API returns `fileSearchStore` instead of `uri` in `retrievedContext`. Updated `extractSources()` function to handle both the old format (Google Search with `uri`) and new format (File Search with `fileSearchStore`), maintaining backward compatibility while preventing validation errors. Also fixed title handling to use `undefined` for URL sources and `'Unknown Document'` for document sources.
+- 218bba1: fix(google): use dynamic providerOptionsName when retrieving thoughtSignature in convertToGoogleGenerativeAIMessages
+
+  When using @ai-sdk/google-vertex provider with Gemini thinking models, multi-step tool calls would fail with "function call is missing a thought_signature" error. This was because thoughtSignature was stored under providerOptions.vertex but retrieved using hardcoded providerOptions.google. This fix passes providerOptionsName to convertToGoogleGenerativeAIMessages and uses it dynamically.
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 0c4822d: feat: `EmbeddingModelV3`
+- f8c981f: Fix adding google search along with url context in vertex ai
+- 6078060: fix(provider/google): remove includethoughts warning
+- bb28cac: Change streamText loop to merge file part processing into main parts loop
+- fff8d59: feat(provider/google): Add support for the imageSize provider option
+- 1742445: Support for custom provider name in google and anthropic providers
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 9b17031: Improve error message when mixing function tools with provider-defined tools to clarify fallback behavior and list ignored function tools
+- 8dac895: feat: `LanguageModelV3`
+- ee50cc5: fix(provider/google): lazy schema loading
+
+  import time improved by 12.5% (22.3ms ➡️ 19.5ms)
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- 9061dc0: feat: image editing
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+- 7dea60e: add promptFeedback outputs
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 8ee8edc: Prepare search tool for gemini-3-pro-preview
+- 2825757: Add Google File search tool
+- 4616b86: chore: update zod peer depenedency version
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+- 0cfae4c: feat(vertex): support 'trafficType' in provider usageMetadata
+- 09ba2dd: Support `imageConfig.aspectRatio` configuration for Gemini models
+- 32a8c82: feat: add gemini 3 pro
+- 166b6d7: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+- 522f6b8: feat: `ImageModelV3`
+- 599a97f: fix: update gemini 3 model id
+- 49e2b6a: fix(google): return request as object
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 870297d: feat(google): gemini-3-flash
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- c8003fb: fix(@ai-sdk/google): Make title field optional in grounding metadata schema
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 218bba1: fix(google): use dynamic providerOptionsName when retrieving thoughtSignature in convertToGoogleGenerativeAIMessages
+
+  When using @ai-sdk/google-vertex provider with Gemini thinking models, multi-step tool calls would fail with "function call is missing a thought_signature" error. This was because thoughtSignature was stored under providerOptions.vertex but retrieved using hardcoded providerOptions.google. This fix passes providerOptionsName to convertToGoogleGenerativeAIMessages and uses it dynamically.
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- fd788ce: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- 166b6d7: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- 870297d: feat(google): gemini-3-flash
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 49e2b6a: fix(google): return request as object
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 3.0.0-beta.62
 
 ### Patch Changes
@@ -43,13 +2294,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -355,8 +2606,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 3.0.0-beta.14
@@ -396,8 +2646,7 @@
 ### Patch Changes
 
 - e8109d3: feat: tool execution approval
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -406,8 +2655,7 @@
 ### Patch Changes
 
 - 0adc679: feat(provider): shared spec v3
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -447,8 +2695,7 @@
 
 - ed329cb: feat: `Provider-V3`
 - 522f6b8: feat: `ImageModelV3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -472,8 +2719,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
 
@@ -547,8 +2793,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 2.0.5
@@ -645,108 +2890,7 @@
 - 7badba2: fix(google): grounding streaming sources
 - 205077b: fix: improve Zod compatibility
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -799,8 +2943,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 2.0.0-beta.12
@@ -852,7 +2995,6 @@
 ### Patch Changes
 
 - 2e06f14: feat (provider/google): Change to provider defined tools
-
   - Change the google search tool to be a provider defined tool
   - Added new URL context tool as a provider defined tool
 
@@ -887,9 +3029,7 @@
 
 - cb787ac: fix: remove non-functional models
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 2.0.0-beta.2
@@ -902,23 +3042,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -926,8 +3050,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -935,9 +3058,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -988,8 +3109,7 @@
 ### Patch Changes
 
 - 1a635b5: update supportedUrls to only support native URL
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 
@@ -1074,10 +3194,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -1085,8 +3202,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -1095,8 +3211,7 @@
 ### Patch Changes
 
 - f916255: feat (provider/google): add new gemini models
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -1105,9 +3220,7 @@
 ### Patch Changes
 
 - 7378473: chore(providers/google): switch to providerOptions
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -1117,9 +3230,7 @@
 
 - 888b750: feat(providers/google): Add taskType support for Text Embedding Models
 - 66962ed: fix(packages): export node10 compatible types
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -1137,8 +3248,7 @@
 
 - 3259565: feat (providers/google): add thinking config to provider options
 - fd98925: chore(providers/google): update embedding model to use providerOptions
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
@@ -1146,10 +3256,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
 
@@ -1160,18 +3267,7 @@
 - 26735b5: chore(embedding-model): add v2 interface
 - 443d8ec: feat(embedding-model-v2): add response body field
 - fd65bc6: chore(embedding-model-v2): rename rawResponse to response
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
 
@@ -1180,11 +3276,7 @@
 ### Patch Changes
 
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
 
@@ -1208,11 +3300,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
 
@@ -1220,8 +3308,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/provider-utils@3.0.0-canary.2
 
@@ -1236,9 +3323,7 @@
 ### Patch Changes
 
 - 779d916: feat: add provider option schemas for vertex imagegen and google genai
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
 
 ## 2.0.0-canary.0
@@ -1474,8 +3559,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [ed012d2]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/provider@1.0.6
 
@@ -1483,8 +3567,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/provider@1.0.5
 
@@ -1522,18 +3605,14 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
 
 ## 1.0.13
 
 ### Patch Changes
 
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
 
@@ -1634,13 +3713,7 @@
 
 - c38a0db: fix (provider/google): allow empty candidates array when streaming
 - 0509c34: fix (provider/google): add name/content details to tool responses
-- Updated dependencies [b469a7e]
-- Updated dependencies [dce4158]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [b1da952]
-- Updated dependencies [dce4158]
-- Updated dependencies [8426f55]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0
   - @ai-sdk/provider@1.0.0
 
@@ -1674,8 +3747,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [dce4158]
-- Updated dependencies [dce4158]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.2
 
 ## 1.0.0-canary.1
@@ -1697,9 +3769,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.0
   - @ai-sdk/provider@1.0.0-canary.0
 
@@ -1716,11 +3786,7 @@
 - 1486128: feat: add supportsUrl to language model specification
 - 1486128: feat (provider/google): support native file URLs without download
 - 3b1b69a: feat: provider-defined tools
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.22
   - @ai-sdk/provider@0.0.26
 
@@ -1772,8 +3838,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [03313cd]
-- Updated dependencies [3be7c1c]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.18
   - @ai-sdk/provider@0.0.23
 
@@ -1856,8 +3921,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4bd27a9]
-- Updated dependencies [845754b]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.10
   - @ai-sdk/provider@0.0.18
 
@@ -1895,8 +3959,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9614584]
-- Updated dependencies [0762a22]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.6
 
 ## 0.0.30
@@ -1923,10 +3986,7 @@
 - a5b58845: feat (core): support topK setting
 - 4aa8deb3: feat (provider): support responseFormat setting in provider api
 - 13b27ec6: chore (ai/core): remove grammar mode
-- Updated dependencies [2b9da0f0]
-- Updated dependencies [a5b58845]
-- Updated dependencies [4aa8deb3]
-- Updated dependencies [13b27ec6]
+- Updated dependencies
   - @ai-sdk/provider@0.0.13
   - @ai-sdk/provider-utils@1.0.3
 
@@ -1958,9 +4018,7 @@
 ### Patch Changes
 
 - 5edc6110: feat (ai/core): add custom request header support
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
+- Updated dependencies
   - @ai-sdk/provider@0.0.11
   - @ai-sdk/provider-utils@1.0.0
 
@@ -1975,8 +4033,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [85712895]
-- Updated dependencies [85712895]
+- Updated dependencies
   - @ai-sdk/provider-utils@0.0.15
 
 ## 0.0.21
@@ -2001,9 +4058,7 @@
 ### Patch Changes
 
 - 09295e2e: feat (@ai-sdk/google): automatically download image URLs
-- Updated dependencies [09295e2e]
-- Updated dependencies [09295e2e]
-- Updated dependencies [043a5de2]
+- Updated dependencies
   - @ai-sdk/provider@0.0.9
   - @ai-sdk/provider-utils@0.0.12
 
@@ -2035,8 +4090,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [6a50ac4]
-- Updated dependencies [6a50ac4]
+- Updated dependencies
   - @ai-sdk/provider@0.0.6
   - @ai-sdk/provider-utils@0.0.9
 
@@ -2096,8 +4150,7 @@
 ### Patch Changes
 
 - 25f3350: ai/core: add support for getting raw response headers.
-- Updated dependencies [d6431ae]
-- Updated dependencies [25f3350]
+- Updated dependencies
   - @ai-sdk/provider@0.0.2
   - @ai-sdk/provider-utils@0.0.3
 

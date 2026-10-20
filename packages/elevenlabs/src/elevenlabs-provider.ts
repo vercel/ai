@@ -1,59 +1,71 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV3 {
+export interface ElevenLabsProvider extends ProviderV4 {
   (
-    modelId: 'scribe_v1',
+    modelId: ElevenLabsTranscriptionModelId,
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
 
   /**
-Creates a model for speech generation.
+   * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface ElevenLabsProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for realtime transcription.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
-Create an ElevenLabs provider instance.
+ * Create an ElevenLabs provider instance.
  */
 export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
@@ -68,7 +80,7 @@ export function createElevenLabs(
         }),
         ...options.headers,
       },
-      `ai-sdk/elevenlabs/${VERSION}`,
+      `ai-sdk-elevenlabs/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
@@ -77,6 +89,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>
@@ -93,7 +106,7 @@ export function createElevenLabs(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
@@ -114,6 +127,7 @@ export function createElevenLabs(
       message: 'ElevenLabs does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
@@ -127,6 +141,6 @@ export function createElevenLabs(
 }
 
 /**
-Default ElevenLabs provider instance.
+ * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

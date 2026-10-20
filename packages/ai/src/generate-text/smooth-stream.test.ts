@@ -1,8 +1,8 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
-import { TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { TextStreamPart } from './stream-text-result';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];
@@ -695,6 +695,60 @@ describe('smoothStream', () => {
         ]
       `);
     });
+
+    it.each([
+      ['global', /\S+\s+/gm],
+      ['sticky', /\S+\s+/my],
+    ])(
+      'should preserve chunk boundaries for %s regexps',
+      async (_, chunking) => {
+        chunking.lastIndex = 2;
+
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: 'text-start', id: '1' },
+          {
+            text: 'alpha beta gamma delta ',
+            type: 'text-delta',
+            id: '1',
+          },
+          { type: 'text-end', id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(
+          events
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.text),
+        ).toEqual(['alpha ', 'beta ', 'gamma ', 'delta ']);
+        expect(chunking.lastIndex).toBe(2);
+      },
+    );
+
+    it('throws when a regexp produces an empty match', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'hello', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: /\S*/,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await expect(
+        consumeStream(stream),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `[Error: Chunking RegExp must not match an empty string.]`,
+      );
+    });
   });
 
   describe('custom callback chunking', () => {
@@ -1024,6 +1078,1436 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('reasoning smoothing', () => {
+    it('should combine partial reasoning words', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'Let', type: 'reasoning-delta', id: '1' },
+        { text: ' me ', type: 'reasoning-delta', id: '1' },
+        { text: 'think...', type: 'reasoning-delta', id: '1' },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Let ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "me ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "think...",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should split larger reasoning chunks', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'First I need to analyze the problem. Then I will solve it.',
+          type: 'reasoning-delta',
+          id: '1',
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "First ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "need ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "to ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "analyze ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "problem. ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Then ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "will ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "solve ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "it.",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush reasoning buffer before tool call', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'I should check the', type: 'reasoning-delta', id: '1' },
+        { text: ' weather', type: 'reasoning-delta', id: '1' },
+        {
+          type: 'tool-call',
+          toolCallId: '1',
+          toolName: 'weather',
+          input: { city: 'London' },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "should ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "check ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "weather",
+            "type": "reasoning-delta",
+          },
+          {
+            "input": {
+              "city": "London",
+            },
+            "toolCallId": "1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should use line chunking for reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'Step 1: Analyze\nStep 2: Solve\n',
+          type: 'reasoning-delta',
+          id: '1',
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          chunking: 'line',
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Step 1: Analyze
+        ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Step 2: Solve
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('interleaved text and reasoning', () => {
+    it('should flush text buffer when switching to reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'reasoning-start', id: '2' },
+        { text: 'Hello ', type: 'text-delta', id: '1' },
+        { text: 'world', type: 'text-delta', id: '1' },
+        { text: 'Let me', type: 'reasoning-delta', id: '2' },
+        { text: ' think', type: 'reasoning-delta', id: '2' },
+        { type: 'text-end', id: '1' },
+        { type: 'reasoning-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "world",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "Let ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "me ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "2",
+            "text": "think",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush reasoning buffer when switching to text', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'Thinking ', type: 'reasoning-delta', id: '1' },
+        { text: 'hard', type: 'reasoning-delta', id: '1' },
+        { text: 'The answer', type: 'text-delta', id: '2' },
+        { text: ' is 42', type: 'text-delta', id: '2' },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Thinking ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "hard",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "2",
+            "text": "The ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "answer ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "is ",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "42",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple switches between text and reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Think ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'Hello ', type: 'text-delta', id: 't1' },
+        { text: 'more ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'world ', type: 'text-delta', id: 't1' },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "r1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "t1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "r1",
+            "text": "Think ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "t1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "r1",
+            "text": "more ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "t1",
+            "text": "world ",
+            "type": "text-delta",
+          },
+          {
+            "id": "r1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "t1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('providerMetadata preservation', () => {
+    const providerMetadataA = {
+      anthropic: { signature: 'sig-a' },
+    };
+    const providerMetadataB = {
+      anthropic: { signature: 'sig-b' },
+    };
+
+    async function smoothParts(parts: TextStreamPart<ToolSet>[]) {
+      const stream = convertArrayToReadableStream(parts).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      return events.filter(event => typeof event !== 'string');
+    }
+
+    it('should preserve metadata from an empty delta when the buffer is empty', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        {
+          text: 'Let me think. ',
+          type: 'reasoning-delta',
+          id: 'r1',
+        },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        { type: 'reasoning-start', id: 'r1' },
+        { text: 'Let ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'me ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'think. ', type: 'reasoning-delta', id: 'r1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: 'r1',
+          providerMetadata,
+        },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Hello ', type: 'text-delta', id: 't1' },
+        { text: 'world', type: 'text-delta', id: 't1' },
+        { type: 'text-end', id: 't1' },
+      ]);
+    });
+
+    it.each([
+      {
+        chunking: 'word' as const,
+        deltaType: 'reasoning-delta' as const,
+        startType: 'reasoning-start' as const,
+        endType: 'reasoning-end' as const,
+        inputText: 'First second final',
+        expectedText: ['First ', 'second ', 'final'],
+      },
+      {
+        chunking: 'line' as const,
+        deltaType: 'text-delta' as const,
+        startType: 'text-start' as const,
+        endType: 'text-end' as const,
+        inputText: 'First line\nSecond line\nfinal line',
+        expectedText: ['First line\n', 'Second line\n', 'final line'],
+      },
+    ])(
+      'should preserve providerMetadata on every $chunking-chunked $deltaType part',
+      async ({
+        chunking,
+        deltaType,
+        startType,
+        endType,
+        inputText,
+        expectedText,
+      }) => {
+        const providerMetadata = {
+          anthropic: { signature: 'sig_abc123' },
+        };
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: startType, id: '1' },
+          {
+            text: inputText,
+            type: deltaType,
+            id: '1',
+            providerMetadata,
+          },
+          { type: endType, id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(events.filter(event => event.type === deltaType)).toEqual(
+          expectedText.map(text => ({
+            type: deltaType,
+            text,
+            id: '1',
+            providerMetadata,
+          })),
+        );
+      },
+    );
+
+    it('should preserve providerMetadata on reasoning-delta chunks (signature for Anthropic thinking)', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'I am', type: 'reasoning-delta', id: '1' },
+        { text: ' thinking...', type: 'reasoning-delta', id: '1' },
+        // signature as an empty delta with providerMetadata
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: {
+            anthropic: { signature: 'sig_abc123' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'Hello!', type: 'text-delta', id: '2' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // Find the last reasoning-delta chunk
+      const reasoningDeltas = events.filter(
+        (e: any) => e.type === 'reasoning-delta',
+      );
+      const lastReasoningDelta = reasoningDeltas[reasoningDeltas.length - 1];
+
+      expect(lastReasoningDelta).toHaveProperty('providerMetadata');
+      expect(lastReasoningDelta.providerMetadata).toEqual({
+        anthropic: { signature: 'sig_abc123' },
+      });
+    });
+
+    it('should preserve an empty metadata delta after an exact boundary', async () => {
+      const output = await smoothParts([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        { text: 'Done ', type: 'reasoning-delta', id: '1' },
+        {
+          text: '',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+    });
+
+    it('should not carry metadata to a metadata-free delta with the same id', async () => {
+      const output = await smoothParts([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'Signed',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'reasoning-delta', id: '1' },
+      ]);
+    });
+
+    it('should keep different metadata values with their source deltas', async () => {
+      const output = await smoothParts([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'First',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'reasoning-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+    });
+
+    it('should not carry word-chunk metadata to a subsequent delta type', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed ',
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain ',
+          type: 'text-delta',
+          id: 'text-1',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'reasoning-delta',
+          text: 'Signed ',
+          id: 'reasoning-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain ',
+          id: 'text-1',
+        },
+      ]);
+    });
+
+    it('should not carry line-chunk metadata to a subsequent delta id', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'sig_abc123' },
+      };
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          text: 'Signed line\n',
+          type: 'text-delta',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          text: 'Plain line\n',
+          type: 'text-delta',
+          id: 'text-2',
+        },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: 'line',
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event !== 'string')).toEqual([
+        {
+          type: 'text-delta',
+          text: 'Signed line\n',
+          id: 'text-1',
+          providerMetadata,
+        },
+        {
+          type: 'text-delta',
+          text: 'Plain line\n',
+          id: 'text-2',
+        },
+      ]);
+    });
+
+    it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        {
+          type: 'reasoning-start',
+          id: '1',
+          providerMetadata: {
+            anthropic: { redactedData: 'redacted-thinking-data' },
+          },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // reasoning-start should pass through unchanged with providerMetadata
+      const reasoningStart = events.find(
+        (e: any) => e.type === 'reasoning-start',
+      );
+      expect(reasoningStart).toHaveProperty('providerMetadata');
+      expect(reasoningStart.providerMetadata).toEqual({
+        anthropic: { redactedData: 'redacted-thinking-data' },
+      });
+    });
+  });
+
+  describe('Intl.Segmenter chunking', () => {
+    it('should segment English text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello, world!', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": ",",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "world",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "!",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should segment Japanese text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'こんにちは世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こんにちは",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should segment Chinese text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: '你好世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "你好",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should handle mixed CJK and Latin content', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello こんにちは World', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こんにちは",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "World",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should combine partial chunks with Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'こんに', type: 'text-delta', id: '1' },
+        { text: 'ちは', type: 'text-delta', id: '1' },
+        { text: '世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // Note: Intl.Segmenter segments hiragana character-by-character when
+      // the full word isn't available in the buffer
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こん",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "に",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "ち",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "は",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should segment longer Japanese sentence with mixed content', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: '東京は日本の首都です。人口は約1400万人で、世界最大の都市圏の一つです。美しい桜の季節には多くの観光客が訪れます。',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "東京",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "は",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "日本",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "首都",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "です",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "。",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "人口",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "は",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "約",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "1400",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "万人",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "で",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "、",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "最大",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "都市",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "圏",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "一つ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "です",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "。",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "美しい",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "桜の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "季節",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "に",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "は",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "多く",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "観光",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "客",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "が",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "訪れ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "ます",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "。",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('document visibility', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('should skip delays while the document is hidden', async () => {
+      vi.stubGlobal('document', { visibilityState: 'hidden' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: 'Hello, World! This is an example text.',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
+    });
+
+    it('should resume without delays when the document becomes hidden', async () => {
+      const fakeDocument = {
+        visibilityState: 'visible' as DocumentVisibilityState,
+      };
+      vi.stubGlobal('document', fakeDocument);
+
+      const visibilityAwareDelay = (delayInMs: number | null) => {
+        events.push(`delay ${delayInMs}`);
+        fakeDocument.visibilityState = 'hidden';
+        return Promise.resolve();
+      };
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'one two three ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay: visibilityAwareDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay 10',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
     });
   });
 });

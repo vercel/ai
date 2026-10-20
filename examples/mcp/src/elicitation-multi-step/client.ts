@@ -1,9 +1,6 @@
-import {
-  experimental_createMCPClient as createMCPClient,
-  ElicitationRequestSchema,
-} from '@ai-sdk/mcp';
+import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import 'dotenv/config';
@@ -60,7 +57,7 @@ async function getInputFromUser(
         properties: Record<string, any>;
         required?: string[];
       };
-      const requiredFields = new Set(objectSchema.required ?? []);
+      const requiredFields = new Set(objectSchema.required);
 
       for (const [key, propertySchema] of Object.entries(
         objectSchema.properties,
@@ -152,9 +149,9 @@ async function main() {
     }
 
     const { text: response } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
-      stopWhen: stepCountIs(12),
+      stopWhen: isStepCount(12),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length > 0) {
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));

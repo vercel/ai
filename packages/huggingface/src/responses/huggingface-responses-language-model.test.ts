@@ -1,4 +1,5 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -7,7 +8,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HuggingFaceResponsesLanguageModel } from './huggingface-responses-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -100,9 +101,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "inputTokens": 12,
-            "outputTokens": 25,
-            "totalTokens": 37,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 12,
+              "total": 12,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 25,
+              "total": 25,
+            },
+            "raw": {
+              "input_tokens": 12,
+              "output_tokens": 25,
+              "total_tokens": 37,
+            },
           }
         `);
       });
@@ -197,9 +211,18 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "inputTokens": 0,
-            "outputTokens": 0,
-            "totalTokens": 0,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           }
         `);
       });
@@ -525,7 +548,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_test",
@@ -533,9 +559,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 12,
-              "outputTokens": 25,
-              "totalTokens": 37,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 12,
+                "total": 12,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 12,
+                "output_tokens": 25,
+                "total_tokens": 37,
+              },
             },
           },
         ]
@@ -564,9 +603,18 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       expect(finishChunk?.usage).toMatchInlineSnapshot(`
         {
-          "inputTokens": undefined,
-          "outputTokens": undefined,
-          "totalTokens": undefined,
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": undefined,
+            "total": undefined,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": undefined,
+          },
+          "raw": undefined,
         }
       `);
     });
@@ -617,7 +665,68 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       expect(errorChunk).toBeDefined();
       expect(errorChunk?.type).toBe('error');
-      expect(finishChunk?.finishReason).toBe('error');
+      expect(finishChunk?.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": undefined,
+          "unified": "error",
+        }
+      `);
+    });
+
+    it.each([
+      {
+        event: {
+          type: 'response.failed',
+          response: {
+            error: { code: '429', message: 'Rate limit reached' },
+          },
+          sequence_number: 1,
+        },
+        expectedType: 'response.failed',
+      },
+      {
+        event: {
+          type: 'error',
+          code: '503',
+          message: 'Service unavailable',
+          param: null,
+          sequence_number: 1,
+        },
+        expectedType: 'error',
+      },
+    ])('preserves $expectedType stream errors', async testCase => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [`data:${JSON.stringify(testCase.event)}\n\n`],
+      };
+
+      const { stream } = await createModel(
+        'deepseek-ai/DeepSeek-V3-0324',
+      ).doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(isProviderStreamError(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message:
+          'message' in testCase.event
+            ? testCase.event.message
+            : testCase.event.response.error.message,
+        type: testCase.expectedType,
+        code:
+          'code' in testCase.event
+            ? testCase.event.code
+            : testCase.event.response.error.code,
+        data: testCase.event,
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
     });
 
     it('should send correct streaming request', async () => {
@@ -683,7 +792,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
               {
                 type: 'file',
                 mediaType: 'image/jpeg',
-                data: 'AQIDBA==',
+                data: { type: 'data' as const, data: 'AQIDBA==' },
               },
             ],
           },
@@ -703,6 +812,30 @@ describe('HuggingFaceResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should throw for file parts with provider references', async () => {
+      await expect(
+        createModel('Qwen/Qwen2.5-VL-32B-Instruct').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/jpeg',
+                  data: {
+                    type: 'reference' as const,
+                    reference: { huggingface: 'file-ref-123' },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(
+        "'file parts with provider references' functionality not supported",
+      );
     });
 
     it('should handle assistant messages', async () => {
@@ -945,7 +1078,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "tool-result",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_tool_stream",
@@ -953,9 +1089,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 20,
-              "outputTokens": 15,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 20,
+                "total": 20,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 15,
+                "total": 15,
+              },
+              "raw": {
+                "input_tokens": 20,
+                "output_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1253,7 +1402,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_reasoning_stream",
@@ -1261,9 +1413,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "totalTokens": 30,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 10,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 20,
+                "total": 20,
+              },
+              "raw": {
+                "input_tokens": 10,
+                "output_tokens": 20,
+                "total_tokens": 30,
+              },
             },
           },
         ]
@@ -1455,6 +1620,109 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       requestBody = await server.calls[1].requestBodyJson;
       expect(requestBody.tool_choice).toBe('required');
+    });
+  });
+
+  describe('top-level-only media type resolution', () => {
+    const pngBase64 = 'iVBORw0KGgo=';
+
+    it('passes full image/png through unchanged for inline data', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('detects image subtype from inline bytes for top-level "image"', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
+    });
+
+    it('passes through URL source for top-level-only image', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image',
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/x.png'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: 'https://example.com/x.png',
+      });
+    });
+
+    it('normalizes image/* wildcard via detection', async () => {
+      const { convertToHuggingFaceResponsesMessages } =
+        await import('./convert-to-huggingface-responses-messages');
+      const result = await convertToHuggingFaceResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/*',
+                data: { type: 'data', data: pngBase64 },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(((result.input as any[])[0].content as unknown[])[0]).toEqual({
+        type: 'input_image',
+        image_url: `data:image/png;base64,${pngBase64}`,
+      });
     });
   });
 });

@@ -1,14 +1,64 @@
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
-import { JSONRPCMessage } from './json-rpc-message';
+import type { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { OAuthClientProvider } from './oauth';
+import type { OAuthClientProvider } from './oauth';
+import { LATEST_PROTOCOL_VERSION } from './types';
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
  * Maps to the `Transport` interface in the MCP spec.
  */
+export type MCPTransportSendOptions = {
+  /**
+   * Cancels the transport operation for this message.
+   */
+  signal?: AbortSignal;
+
+  /**
+   * Request-specific HTTP headers produced from MCP tool parameters.
+   */
+  headers?: Record<string, string>;
+
+  /**
+   * Associates an outgoing message with an incoming request.
+   */
+  relatedRequestId?: string | number;
+
+  /**
+   * Resumes a previously interrupted request.
+   */
+  resumptionToken?: string;
+
+  /**
+   * Receives updated resumption tokens from transports that support them.
+   */
+  onresumptiontoken?: (token: string) => void;
+};
+
+export type MCPTransportCloseOptions = {
+  /**
+   * Cancels transport cleanup.
+   */
+  signal?: AbortSignal;
+};
+
 export interface MCPTransport {
+  /**
+   * Whether this transport can probe for stateless MCP protocol versions.
+   *
+   * Custom transports default to the legacy initialization flow unless they
+   * explicitly opt in.
+   */
+  supportsProtocolVersionDiscovery?: boolean;
+
+  /**
+   * Whether this transport mirrors x-mcp-header tool parameters into request
+   * headers.
+   */
+  supportsMcpToolParameterHeaders?: boolean;
+
   /**
    * Initialize and start the transport
    */
@@ -17,13 +67,18 @@ export interface MCPTransport {
   /**
    * Send a JSON-RPC message through the transport
    * @param message The JSON-RPC message to send
+   * @param options Optional request-scoped cancellation options
    */
-  send(message: JSONRPCMessage): Promise<void>;
+  send(
+    message: JSONRPCMessage,
+    options?: MCPTransportSendOptions,
+  ): Promise<void>;
 
   /**
    * Clean up and close the transport
+   * @param options Optional cancellation options for transport cleanup
    */
-  close(): Promise<void>;
+  close(options?: MCPTransportCloseOptions): Promise<void>;
 
   /**
    * Event handler for transport closure
@@ -39,6 +94,16 @@ export interface MCPTransport {
    * Event handler for received messages
    */
   onmessage?: (message: JSONRPCMessage) => void;
+
+  /**
+   * The protocol version negotiated during initialization.
+   */
+  protocolVersion?: string;
+
+  /**
+   * Set the protocol version negotiated during initialization.
+   */
+  setProtocolVersion?(version: string): void;
 }
 
 export type MCPTransportConfig = {
@@ -58,6 +123,57 @@ export type MCPTransportConfig = {
    * An optional OAuth client provider to use for authentication for MCP servers.
    */
   authProvider?: OAuthClientProvider;
+
+  /**
+   * Controls how HTTP redirects are handled for transport requests.
+   * - `'follow'`: Follow redirects automatically (standard fetch behavior).
+   * - `'error'`: Reject any redirect response with an error.
+   * @default 'error'
+   */
+  redirect?: 'follow' | 'error';
+
+  /**
+   * Initial MCP session id to send with resumed Streamable HTTP requests after
+   * initialization.
+   * Only used by the HTTP transport.
+   */
+  initialSessionId?: string;
+
+  /**
+   * Initial MCP protocol version to send before initialize negotiates one.
+   * Only used by the HTTP transport.
+   */
+  initialProtocolVersion?: string;
+
+  /**
+   * Called when the Streamable HTTP server creates, changes, or clears the MCP
+   * session id.
+   * Only used by the HTTP transport.
+   */
+  onSessionIdChange?: (sessionId: string | undefined) => void;
+
+  /**
+   * Called when a Streamable HTTP request returns 404 for an existing MCP
+   * session id. The transport clears the session id before reporting the
+   * underlying HTTP error.
+   * Only used by the HTTP transport.
+   */
+  onSessionExpired?: (sessionId: string) => void;
+
+  /**
+   * Whether close() should send DELETE for the current MCP session id.
+   * Set to false when the application intends to reattach to the session later.
+   * Only used by the HTTP transport.
+   * @default true
+   */
+  terminateSessionOnClose?: boolean;
+
+  /**
+   * Optional custom fetch implementation to use for HTTP requests.
+   * Useful for runtimes that need a request-local fetch.
+   * @default globalThis.fetch
+   */
+  fetch?: FetchFunction;
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
@@ -65,7 +181,11 @@ export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
     case 'sse':
       return new SseMCPTransport(config);
     case 'http':
-      return new HttpMCPTransport(config);
+      return new HttpMCPTransport({
+        ...config,
+        initialProtocolVersion:
+          config.initialProtocolVersion ?? LATEST_PROTOCOL_VERSION,
+      });
     default:
       throw new MCPClientError({
         message:

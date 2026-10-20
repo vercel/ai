@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 
@@ -28,7 +28,7 @@ describe('doEmbed', () => {
     usage = { prompt_tokens: 8, total_tokens: 8 },
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     usage?: { prompt_tokens: number; total_tokens: number };
     headers?: Record<string, string>;
   } = {}) {
@@ -47,6 +47,33 @@ describe('doEmbed', () => {
       },
     };
   }
+
+  it.each([
+    {
+      dimensions: undefined,
+      providerDimensions: undefined,
+      expected: undefined,
+    },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 512, expected: 512 },
+    { dimensions: 256, providerDimensions: 512, expected: 512 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      prepareJsonResponse();
+
+      await model.doEmbed({
+        values: testValues,
+        dimensions,
+        providerOptions: {
+          openaiCompatible: { dimensions: providerDimensions },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.dimensions).toBe(expected);
+    },
+  );
 
   it('should extract embedding', async () => {
     prepareJsonResponse();
@@ -101,7 +128,7 @@ describe('doEmbed', () => {
     await provider.embeddingModel('text-embedding-3-large').doEmbed({
       values: testValues,
       providerOptions: {
-        'openai-compatible': {
+        openaiCompatible: {
           dimensions: 64,
         },
       },
@@ -113,6 +140,80 @@ describe('doEmbed', () => {
       encoding_format: 'float',
       dimensions: 64,
     });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .embeddingModel('text-embedding-3-large')
+      .doEmbed({
+        values: testValues,
+        providerOptions: {
+          'openai-compatible': {
+            dimensions: 64,
+          },
+        },
+      });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'text-embedding-3-large',
+      input: testValues,
+      encoding_format: 'float',
+      dimensions: 64,
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'openaiCompatible' instead.",
+          "setting": "providerOptions key 'openai-compatible'",
+          "type": "deprecated",
+        },
+      ]
+    `);
+  });
+
+  it('should emit deprecated warning when raw provider name key is used', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .embeddingModel('text-embedding-3-large')
+      .doEmbed({
+        values: testValues,
+        providerOptions: {
+          'test-provider': {
+            dimensions: 64,
+          },
+        },
+      });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'testProvider' instead.",
+          "setting": "providerOptions key 'test-provider'",
+          "type": "deprecated",
+        },
+      ]
+    `);
+  });
+
+  it('should not emit deprecated warning when camelCase provider name key is used', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .embeddingModel('text-embedding-3-large')
+      .doEmbed({
+        values: testValues,
+        providerOptions: {
+          testProvider: {
+            dimensions: 64,
+          },
+        },
+      });
+
+    expect(result.warnings).toMatchInlineSnapshot(`[]`);
   });
 
   it('should pass headers', async () => {

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -10,7 +10,10 @@ export const webSearchArgsSchema = lazySchema(() =>
     z.object({
       externalWebAccess: z.boolean().optional(),
       filters: z
-        .object({ allowedDomains: z.array(z.string()).optional() })
+        .object({
+          allowedDomains: z.array(z.string()).optional(),
+          blockedDomains: z.array(z.string()).optional(),
+        })
         .optional(),
       searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
       userLocation: z
@@ -31,21 +34,24 @@ const webSearchInputSchema = lazySchema(() => zodSchema(z.object({})));
 export const webSearchOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      action: z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        }),
-        z.object({
-          type: z.literal('openPage'),
-          url: z.string(),
-        }),
-        z.object({
-          type: z.literal('find'),
-          url: z.string(),
-          pattern: z.string(),
-        }),
-      ]),
+      action: z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('search'),
+            query: z.string().optional(),
+            queries: z.array(z.string()).optional(),
+          }),
+          z.object({
+            type: z.literal('openPage'),
+            url: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('findInPage'),
+            url: z.string().nullish(),
+            pattern: z.string().nullish(),
+          }),
+        ])
+        .optional(),
       sources: z
         .array(
           z.discriminatedUnion('type', [
@@ -58,16 +64,16 @@ export const webSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+export const webSearchToolFactory = createProviderExecutedToolFactory<
   {
     // Web search doesn't take input parameters - it's controlled by the prompt
   },
   {
     /**
      * An object describing the specific action taken in this web search call.
-     * Includes details on how the model used the web (search, open_page, find).
+     * Includes details on how the model used the web (search, open_page, find_in_page).
      */
-    action:
+    action?:
       | {
           /**
            * Action type "search" - Performs a web search query.
@@ -76,8 +82,15 @@ export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
 
           /**
            * The search query.
+           *
+           * @deprecated Use `queries` instead.
            */
           query?: string;
+
+          /**
+           * The search queries the model used.
+           */
+          queries?: string[];
         }
       | {
           /**
@@ -88,23 +101,23 @@ export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
           /**
            * The URL opened by the model.
            */
-          url: string;
+          url?: string | null;
         }
       | {
           /**
-           * Action type "find": Searches for a pattern within a loaded page.
+           * Action type "findInPage": Searches for a pattern within a loaded page.
            */
-          type: 'find';
+          type: 'findInPage';
 
           /**
            * The URL of the page searched for the pattern.
            */
-          url: string;
+          url?: string | null;
 
           /**
            * The pattern or text to search for within the page.
            */
-          pattern: string;
+          pattern?: string | null;
         };
 
     /**
@@ -130,8 +143,16 @@ export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
        * Allowed domains for the search.
        * If not provided, all domains are allowed.
        * Subdomains of the provided domains are allowed as well.
+       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
        */
       allowedDomains?: string[];
+
+      /**
+       * Blocked domains for the search.
+       * Subdomains of the provided domains are blocked as well.
+       * Omit the HTTP or HTTPS prefix. Maximum 100 domains.
+       */
+      blockedDomains?: string[];
     };
 
     /**

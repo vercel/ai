@@ -1,6 +1,7 @@
 export type DeepgramTranscriptionAPITypes = {
   // Base parameters
   language?: string;
+  detect_language?: boolean;
   model?: string;
 
   // Formatting options

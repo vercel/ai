@@ -1,0 +1,4 @@
+{"id":"chatcmpl-stream","created":1785880003,"model":"kimi-k3","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Thinking "},"finish_reason":null}]}
+{"id":"chatcmpl-stream","created":1785880003,"model":"kimi-k3","choices":[{"index":0,"delta":{"reasoning_content":"aloud. "},"finish_reason":null}]}
+{"id":"chatcmpl-stream","created":1785880003,"model":"kimi-k3","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+{"id":"chatcmpl-stream","created":1785880003,"model":"kimi-k3","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":9,"completion_tokens":12,"total_tokens":21,"completion_tokens_details":{"reasoning_tokens":7}}}

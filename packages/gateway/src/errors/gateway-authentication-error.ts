@@ -17,12 +17,14 @@ export class GatewayAuthenticationError extends GatewayError {
     message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayAuthenticationError {
@@ -35,30 +37,32 @@ export class GatewayAuthenticationError extends GatewayError {
   static createContextualError({
     apiKeyProvided,
     oidcTokenProvided,
-    message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     apiKeyProvided: boolean;
     oidcTokenProvided: boolean;
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   }): GatewayAuthenticationError {
     let contextualMessage: string;
 
     if (apiKeyProvided) {
-      contextualMessage = `AI Gateway authentication failed: Invalid API key.
+      contextualMessage = `AI Gateway authentication failed: Invalid API key or token.
 
 Create a new API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
 
-Provide via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
+Provide an API key or Vercel access token via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
     } else if (oidcTokenProvided) {
       contextualMessage = `AI Gateway authentication failed: Invalid OIDC token.
 
 Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the token.
 
-Alternatively, use an API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys`;
+Alternatively, use an API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
+or pass a Vercel access token via the 'apiKey' option.`;
     } else {
       contextualMessage = `AI Gateway authentication failed: No authentication provided.
 
@@ -66,7 +70,10 @@ Option 1 - API key:
 Create an API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
 Provide via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.
 
-Option 2 - OIDC token:
+Option 2 - Vercel access token:
+Pass a Vercel personal access token or Vercel app access token via the 'apiKey' option.
+
+Option 3 - OIDC token:
 Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the token.`;
     }
 
@@ -74,6 +81,7 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
       message: contextualMessage,
       statusCode,
       cause,
+      generationId,
     });
   }
 }

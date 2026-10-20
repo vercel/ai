@@ -1,30 +1,89 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
-  FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { TogetherAIImageModelId } from './togetherai-image-settings';
+import { togetheraiImageModelOptionsSchema } from './togetherai-image-model-options';
+import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
 
 interface TogetherAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class TogetherAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+const nonDiffusionImageModels = new Set<string>(['google/gemini-3-pro-image']);
+
+export class TogetherAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      [
+        'black-forest-labs/FLUX.1-kontext-pro',
+        'black-forest-labs/FLUX.1-kontext-max',
+        'black-forest-labs/FLUX.1-kontext-dev',
+        'black-forest-labs/FLUX.1-canny',
+        'black-forest-labs/FLUX.1-depth',
+        'black-forest-labs/FLUX.1-redux',
+        // These FLUX.2 models accept the single image_url sent by doGenerate.
+        'black-forest-labs/FLUX.2-pro',
+        'black-forest-labs/FLUX.2-flex',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return [
+      'stabilityai/stable-diffusion-xl-base-1.0',
+      'black-forest-labs/FLUX.1-dev',
+      'black-forest-labs/FLUX.1-dev-lora',
+      'black-forest-labs/FLUX.1-schnell',
+      'black-forest-labs/FLUX.1.1-pro',
+      'black-forest-labs/FLUX.1-pro',
+      'black-forest-labs/FLUX.1-schnell-Free',
+      // These models require reference_images, which doGenerate does not send.
+      'black-forest-labs/FLUX.2-dev',
+      'google/gemini-3-pro-image',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TogetherAIImageModelId;
+    config: TogetherAIImageModelConfig;
+  }) {
+    return new TogetherAIImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -40,10 +99,20 @@ export class TogetherAIImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+    files,
+    mask,
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
+
+    if (mask != null) {
+      throw new Error(
+        'Together AI does not support mask-based image editing. ' +
+          'Use FLUX Kontext models (e.g., black-forest-labs/FLUX.1-kontext-pro) ' +
+          'with a reference image and descriptive prompt instead.',
+      );
+    }
 
     if (size != null) {
       warnings.push({
@@ -55,22 +124,62 @@ export class TogetherAIImageModel implements ImageModelV3 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const togetheraiOptions = await parseProviderOptions({
+      provider: 'togetherai',
+      providerOptions,
+      schema: togetheraiImageModelOptionsSchema,
+    });
+
+    const isNonDiffusionModel = nonDiffusionImageModels.has(this.modelId);
+
+    const modelOptions = { ...togetheraiOptions };
+    if (isNonDiffusionModel) {
+      delete modelOptions.steps;
+      delete modelOptions.guidance;
+      delete modelOptions.negative_prompt;
+      delete modelOptions.disable_safety_checker;
+
+      if (seed != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'seed',
+          details: `The ${this.modelId} model does not support the \`seed\` option.`,
+        });
+      }
+    }
+
+    // Handle image input from files
+    let imageUrl: string | undefined;
+    if (files != null && files.length > 0) {
+      imageUrl = convertImageModelFileToDataUri(files[0]);
+
+      if (files.length > 1) {
+        warnings.push({
+          type: 'other',
+          message:
+            'Together AI only supports a single input image. Additional images are ignored.',
+        });
+      }
+    }
+
     const splitSize = size?.split('x');
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/images/generations`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
-        seed,
-        n,
+        ...(seed != null && !isNonDiffusionModel ? { seed } : {}),
+        ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
           height: parseInt(splitSize[1]),
         }),
+        ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(providerOptions.togetherai ?? {}),
+        ...modelOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

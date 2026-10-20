@@ -1,4 +1,7 @@
-import { LanguageModelV3ProviderTool } from '@ai-sdk/provider';
+import type {
+  JSONSchema7,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -41,13 +44,58 @@ it('should correctly prepare function tools', () => {
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
   ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should preserve recursive function tool schemas as JSON Schema', () => {
+  const inputSchema = {
+    type: 'object',
+    properties: {
+      condition: { $ref: '#/$defs/Condition' },
+    },
+    required: ['condition'],
+    $defs: {
+      Condition: {
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: '#/$defs/Condition' },
+          },
+        },
+      },
+    },
+  } as JSONSchema7;
+
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'search',
+        description: 'Search with a condition tree',
+        inputSchema,
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'search',
+          description: 'Search with a condition tree',
+          parametersJsonSchema: inputSchema,
+        },
+      ],
+    },
+  ]);
 });
 
 it('should correctly prepare provider-defined tools as array', () => {
@@ -129,7 +177,7 @@ it('should add warnings for unsupported tools', () => {
 });
 
 it('should add warnings for file search on unsupported models', () => {
-  const tool: LanguageModelV3ProviderTool = {
+  const tool: LanguageModelV4ProviderTool = {
     type: 'provider' as const,
     id: 'google.file_search',
     name: 'file_search',
@@ -145,7 +193,7 @@ it('should add warnings for file search on unsupported models', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "details": "The file search tool is only supported with Gemini 2.5 models.",
+        "details": "The file search tool is only supported with Gemini 2.5 models and Gemini 3 models.",
         "feature": "provider-defined tool google.file_search",
         "type": "unsupported",
       },
@@ -153,7 +201,7 @@ it('should add warnings for file search on unsupported models', () => {
   `);
 });
 
-it('should correctly prepare file search tool', () => {
+it('should correctly prepare file search tool for gemini-2.5 models', () => {
   const result = prepareTools({
     tools: [
       {
@@ -180,6 +228,115 @@ it('should correctly prepare file search tool', () => {
     },
   ]);
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should correctly prepare file search tool for gemini-3 models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+          metadataFilter: 'author=Robert Graves',
+          topK: 5,
+        },
+      },
+    ],
+    modelId: 'gemini-3.1-pro-preview',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      fileSearch: {
+        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+        metadataFilter: 'author=Robert Graves',
+        topK: 5,
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use newest tool support for an unknown future Gemini model', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get the weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+        },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.enterprise_web_search',
+        name: 'enterprise_web_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.url_context',
+        name: 'url_context',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.code_execution',
+        name: 'code_execution',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+    ],
+    modelId: 'gemini-99-pro-preview',
+  });
+
+  expect(result).toEqual({
+    tools: [
+      { googleSearch: {} },
+      { enterpriseWebSearch: {} },
+      { urlContext: {} },
+      { codeExecution: {} },
+      {
+        fileSearch: {
+          fileSearchStoreNames: ['fileSearchStores/example-store'],
+        },
+      },
+      {
+        functionDeclarations: [
+          {
+            name: 'getWeather',
+            description: 'Get the weather',
+            parametersJsonSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      },
+    ],
+    toolConfig: {
+      functionCallingConfig: { mode: 'VALIDATED' },
+      includeServerSideToolInvocations: true,
+    },
+    toolWarnings: [],
+  });
 });
 
 it('should handle tool choice "auto"', () => {
@@ -237,7 +394,7 @@ it('should handle tool choice "none"', () => {
         {
           name: 'testFunction',
           description: 'Test',
-          parameters: {},
+          parametersJsonSchema: {},
         },
       ],
     },
@@ -335,6 +492,262 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
   `);
 });
 
+it('should combine function and provider-defined tools on Gemini 3 models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3.1-flash-lite-preview',
+  });
+
+  expect(result.tools).toEqual([
+    { googleSearch: {} },
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should omit server-side tool invocation flag for Vertex Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+    isVertexProvider: true,
+  });
+
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "toolConfig": {
+        "functionCallingConfig": {
+          "mode": "VALIDATED",
+        },
+      },
+      "toolWarnings": [],
+      "tools": [
+        {
+          "googleSearch": {},
+        },
+        {
+          "functionDeclarations": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parametersJsonSchema": {
+                "properties": {},
+                "type": "object",
+              },
+            },
+          ],
+        },
+      ],
+    }
+  `);
+});
+
+it('should combine multiple provider tools with function tools on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'function',
+        name: 'bookVenue',
+        description: 'Book a venue',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.tools).toEqual([
+    { googleSearch: {} },
+    { googleMaps: {} },
+    {
+      functionDeclarations: [
+        {
+          name: 'getWeather',
+          description: 'Get weather',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'bookVenue',
+          description: 'Book a venue',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use VALIDATED mode for combined tools with toolChoice auto on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use ANY mode for combined tools with toolChoice required on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+    includeServerSideToolInvocations: true,
+  });
+});
+
+it('should use NONE mode for combined tools with toolChoice none on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'none' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+    includeServerSideToolInvocations: true,
+  });
+});
+
+it('should use ANY mode with allowedFunctionNames for combined tools with specific tool choice on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'testFunction' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['testFunction'],
+    },
+    includeServerSideToolInvocations: true,
+  });
+});
+
 it('should handle latest modelId for provider-defined tools correctly', () => {
   const result = prepareTools({
     tools: [
@@ -362,7 +775,7 @@ it('should handle gemini-3 modelId for provider-defined tools correctly', () => 
         args: {},
       },
     ],
-    modelId: 'gemini-3-pro-preview',
+    modelId: 'gemini-3.1-pro-preview',
   });
   expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
@@ -401,4 +814,256 @@ it('should handle url context tool alone', () => {
   expect(result.tools).toEqual([{ urlContext: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle google maps tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([{ googleMaps: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should pass searchTypes args through for google search', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {
+          searchTypes: { webSearch: {}, imageSearch: {} },
+        },
+      },
+    ],
+    modelId: 'gemini-3.1-flash-image-preview',
+  });
+  expect(result.tools).toEqual([
+    {
+      googleSearch: {
+        searchTypes: { webSearch: {}, imageSearch: {} },
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should pass timeRangeFilter args through for google search', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {
+          timeRangeFilter: {
+            startTime: '2025-01-01T00:00:00Z',
+            endTime: '2025-12-31T23:59:59Z',
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([
+    {
+      googleSearch: {
+        timeRangeFilter: {
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should add warnings for google search on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "Google Search requires Gemini 2.0 or newer.",
+        "feature": "provider-defined tool google.google_search",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
+it('should add warnings for google maps on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.",
+        "feature": "provider-defined tool google.google_maps",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
+it('should use VALIDATED mode when any function tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create a meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+});
+
+it('should use ANY mode with toolChoice required when strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should use ANY mode with named toolChoice when another tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'createMeeting' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['createMeeting'],
+    },
+  });
+});
+
+it('should use AUTO mode when no tools have strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
 });

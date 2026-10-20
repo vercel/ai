@@ -10,18 +10,23 @@ Vision-language models can analyze images alongside text prompts to generate res
 
 ```ts
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
         ],
       },
     ],

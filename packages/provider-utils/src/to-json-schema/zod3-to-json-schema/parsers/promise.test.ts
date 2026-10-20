@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parsePromiseDef } from './promise';
 import { getRefs } from '../refs';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 
 describe('promise', () => {
   it('should be possible to use promise', () => {

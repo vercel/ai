@@ -1,4 +1,4 @@
-import { JSONObject, SpeechModelV3 } from '@ai-sdk/provider';
+import type { JSONObject, SpeechModelV4 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -9,14 +9,14 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
-import { Warning } from '../types/warning';
+import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
+import type { Warning } from '../types/warning';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
-  GeneratedAudioFile,
+  type GeneratedAudioFile,
 } from './generated-audio-file';
-
+import type { GenerateSpeechEndEvent } from './speech-events';
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 const mockFile = new DefaultGeneratedAudioFile({
@@ -67,10 +67,10 @@ describe('generateSpeech', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<SpeechModelV3['doGenerate']>[0];
+    let capturedArgs!: Parameters<SpeechModelV4['doGenerate']>[0];
 
     await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -104,7 +104,7 @@ describe('generateSpeech', () => {
 
   it('should return warnings', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -146,7 +146,7 @@ describe('generateSpeech', () => {
     ];
 
     await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -166,7 +166,7 @@ describe('generateSpeech', () => {
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
     await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -186,7 +186,7 @@ describe('generateSpeech', () => {
 
   it('should return the audio data', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -209,11 +209,144 @@ describe('generateSpeech', () => {
     });
   });
 
+  it('should return ADTS AAC audio with AAC metadata', async () => {
+    const aacAudio = new DefaultGeneratedAudioFile({
+      data: new Uint8Array([0xff, 0xf1, 0x50, 0x40]),
+      mediaType: 'audio/aac',
+    });
+
+    const result = await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: aacAudio,
+          }),
+      }),
+      text: sampleText,
+      outputFormat: 'aac',
+    });
+
+    expect(result.audio.mediaType).toBe('audio/aac');
+    expect(result.audio.format).toBe('aac');
+    expect(result.audio.uint8Array).toStrictEqual(aacAudio.uint8Array);
+  });
+
+  describe('audio metadata', () => {
+    it.each([
+      { label: 'Uint8Array', audio: new Uint8Array([1, 2, 3, 4]) },
+      { label: 'base64', audio: 'AQIDBA==' },
+    ])(
+      'should identify headerless PCM returned as $label from the requested format',
+      async ({ audio }) => {
+        const result = await generateSpeech({
+          model: new MockSpeechModelV4({
+            doGenerate: async () => ({
+              audio,
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model',
+              },
+            }),
+          }),
+          text: sampleText,
+          outputFormat: 'pcm',
+        });
+
+        expect(result.audio).toMatchObject({
+          format: 'pcm',
+          mediaType: 'audio/pcm',
+        });
+      },
+    );
+
+    it.each([
+      ['audio/l16', 'audio/l16'],
+      ['mulaw', 'audio/mulaw'],
+      ['audio/mulaw', 'audio/mulaw'],
+      ['alaw', 'audio/alaw'],
+      ['audio/alaw', 'audio/alaw'],
+    ])(
+      'should identify headerless %s audio',
+      async (outputFormat, mediaType) => {
+        const result = await generateSpeech({
+          model: new MockSpeechModelV4({
+            doGenerate: async () => ({
+              audio,
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model',
+                headers: { 'content-type': 'application/json' },
+              },
+            }),
+          }),
+          text: sampleText,
+          outputFormat,
+        });
+        expect(result.audio.mediaType).toBe(mediaType);
+      },
+    );
+
+    it('should identify headerless audio from the response content type', async () => {
+      const result = await generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => ({
+            audio,
+            warnings: [],
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {
+                'Content-Type': 'audio/pcm; rate=24000',
+              },
+            },
+          }),
+        }),
+        text: sampleText,
+      });
+
+      expect(result.audio).toMatchObject({
+        format: 'pcm',
+        mediaType: 'audio/pcm',
+      });
+    });
+
+    it('should prefer the detected format over response and request metadata', async () => {
+      const wav = new Uint8Array([
+        0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45,
+      ]);
+
+      const result = await generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => ({
+            audio: wav,
+            warnings: [],
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {
+                'content-type': 'audio/pcm',
+              },
+            },
+          }),
+        }),
+        text: sampleText,
+        outputFormat: 'pcm',
+      });
+
+      expect(result.audio).toMatchObject({
+        format: 'wav',
+        mediaType: 'audio/wav',
+      });
+    });
+  });
+
   describe('error handling', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV3({
+          model: new MockSpeechModelV4({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -240,7 +373,7 @@ describe('generateSpeech', () => {
     it('should include response headers in error when no audio generated', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV3({
+          model: new MockSpeechModelV4({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -277,7 +410,7 @@ describe('generateSpeech', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateSpeech({
-      model: new MockSpeechModelV3({
+      model: new MockSpeechModelV4({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -296,5 +429,130 @@ describe('generateSpeech', () => {
         headers: testHeaders,
       },
     ]);
+  });
+
+  it('should emit telemetry start and end events without raw audio', async () => {
+    const events: Array<{ type: string; event: unknown }> = [];
+    const rawAudio = 'AQIDBA==';
+
+    await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () => ({
+          audio: rawAudio,
+          warnings: [],
+          usage: { characters: sampleText.length },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          response: {
+            timestamp: testDate,
+            modelId: 'test-model',
+            headers: { 'content-type': 'audio/mp3' },
+            body: { audioContent: rawAudio },
+          },
+        }),
+      }),
+      text: sampleText,
+      voice: 'alloy',
+      telemetry: {
+        functionId: 'speak-text',
+        recordOutputs: false,
+        integrations: {
+          onStart: event => {
+            if (event.operationId === 'ai.generateSpeech') {
+              events.push({ type: 'start', event });
+            }
+          },
+          onEnd: event => {
+            const speechEvent = event as GenerateSpeechEndEvent;
+            if (speechEvent.operationId === 'ai.generateSpeech') {
+              events.push({ type: 'end', event: speechEvent });
+            }
+          },
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
+    });
+
+    expect(events).toMatchObject([
+      {
+        type: 'start',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.generateSpeech',
+          text: sampleText,
+          voice: 'alloy',
+          functionId: 'speak-text',
+          recordOutputs: false,
+        },
+      },
+      {
+        type: 'end',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.generateSpeech',
+          text: sampleText,
+          audio: {
+            byteLength: 4,
+            mediaType: 'audio/mp3',
+            format: 'mp3',
+          },
+          usage: { characters: sampleText.length },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          functionId: 'speak-text',
+          recordOutputs: false,
+        },
+      },
+    ]);
+    expect(events[1]).not.toHaveProperty('event.audio.data');
+    expect(events[1]).not.toHaveProperty('event.response.body');
+  });
+
+  it('should not measure output bytes when no telemetry integration is configured', async () => {
+    let byteLengthReads = 0;
+    class CountingAudio extends Uint8Array {
+      override get byteLength() {
+        byteLengthReads++;
+        return super.byteLength;
+      }
+    }
+
+    await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () => ({
+          audio: new CountingAudio([1, 2, 3, 4]),
+          warnings: [],
+          response: {
+            timestamp: testDate,
+            modelId: 'test-model',
+          },
+        }),
+      }),
+      text: sampleText,
+    });
+
+    expect(byteLengthReads).toBe(0);
+  });
+
+  it('should emit a telemetry error event when speech generation fails', async () => {
+    const error = new Error('speech failed');
+    const onError = vi.fn();
+
+    await expect(
+      generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => {
+            throw error;
+          },
+        }),
+        text: sampleText,
+        maxRetries: 0,
+        telemetry: { integrations: { onError } },
+        _internal: { generateCallId: () => 'call-1' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith({
+      callId: 'call-1',
+      error,
+    });
   });
 });

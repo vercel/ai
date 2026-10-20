@@ -1,1 +1,5 @@
-export type XaiImageModelId = 'grok-2-image' | (string & {});
+export type XaiImageModelId =
+  | 'grok-imagine-image'
+  | 'grok-imagine-image-2.0'
+  | 'grok-imagine-image-pro'
+  | (string & {});

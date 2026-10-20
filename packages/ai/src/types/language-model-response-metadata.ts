@@ -1,21 +1,38 @@
+import type { ResponseMessage } from '../generate-text/response-message';
+
+/**
+ * Metadata for a language model response.
+ */
 export type LanguageModelResponseMetadata = {
   /**
-  ID for the generated response.
-     */
-  id: string;
+   * The response messages that were generated during the call.
+   * Response messages can be either assistant messages or tool messages.
+   * They contain a generated id.
+   */
+  readonly messages: Array<ResponseMessage>;
 
   /**
-  Timestamp for the start of the generated response.
-  */
-  timestamp: Date;
+   * ID for the generated response.
+   */
+  readonly id: string;
 
   /**
-  The ID of the response model that was used to generate the response.
-  */
-  modelId: string;
+   * Timestamp for the start of the generated response.
+   */
+  readonly timestamp: Date;
 
   /**
-Response headers (available only for providers that use HTTP requests).
-     */
-  headers?: Record<string, string>;
+   * The ID of the response model that was used to generate the response.
+   */
+  readonly modelId: string;
+
+  /**
+   * Response headers (available only for providers that use HTTP requests).
+   */
+  readonly headers?: Record<string, string>;
+
+  /**
+   * Response body (available only for providers that use HTTP requests).
+   */
+  readonly body?: unknown;
 };

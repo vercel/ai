@@ -1,15 +1,30 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
+  asSchema,
   dynamicTool,
   jsonSchema,
-  Tool,
+  retryWithExponentialBackoff,
+  safeParseJSON,
+  safeValidateTypes,
   tool,
-  ToolCallOptions,
+  type FlexibleSchema,
+  type Tool,
+  type ToolExecutionOptions,
+  type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { MCPClientError } from '../error/mcp-client-error';
+import type { z } from 'zod/v4';
+import { createMCPEvents } from './mcp-events';
 import {
+  createManagedMCPEvents,
+  validateMCPEventOperations,
+  type ManagedMCPEvents,
+  type MCPEventAdapter,
+} from './mcp-events-adapter';
+import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
+import { MCPClientError } from '../error/mcp-client-error';
+import type {
   JSONRPCError,
+  JSONRPCMessage,
   JSONRPCNotification,
   JSONRPCRequest,
   JSONRPCResponse,
@@ -17,50 +32,259 @@ import {
 import {
   createMcpTransport,
   isCustomMcpTransport,
-  MCPTransport,
-  MCPTransportConfig,
+  type MCPTransport,
+  type MCPTransportConfig,
+  type MCPTransportSendOptions,
 } from './mcp-transport';
+import { getMCPAppToolMeta, MCP_APP_MIME_TYPE } from './mcp-apps';
 import {
-  CallToolResult,
+  createMCPToolHeaders,
+  getMCPToolHeaderBindings,
+  type MCPToolHeaderBinding,
+} from './mcp-http-headers';
+import {
   CallToolResultSchema,
-  ClientCapabilities,
-  Configuration as ClientConfiguration,
-  ElicitationRequest,
+  CompleteResultSchema,
+  DiscoverResultSchema,
   ElicitationRequestSchema,
-  ElicitResult,
   ElicitResultSchema,
   InitializeResultSchema,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   LATEST_PROTOCOL_VERSION,
-  ListResourceTemplatesResult,
   ListResourceTemplatesResultSchema,
-  ListResourcesResult,
   ListResourcesResultSchema,
-  ListPromptsResult,
   ListPromptsResultSchema,
-  ListToolsResult,
   ListToolsResultSchema,
-  McpToolSet,
-  Notification,
-  PaginatedRequest,
-  ReadResourceResult,
   ReadResourceResultSchema,
-  GetPromptResult,
   GetPromptResultSchema,
-  Request,
-  RequestOptions,
-  ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
-  ToolSchemas,
+  type CallToolResult,
+  type ClientCapabilities,
+  type CompleteRequestParams,
+  type CompleteResult,
+  type Configuration,
+  type Configuration as ClientConfiguration,
+  type ElicitationRequest,
+  type ElicitResult,
+  type ListResourceTemplatesResult,
+  type ListResourcesResult,
+  type ListPromptsResult,
+  type ListToolsResult,
+  type McpToolSet,
+  type Notification,
+  type PaginatedRequest,
+  type ReadResourceResult,
+  type GetPromptResult,
+  type Request,
+  type RequestOptions,
+  type ServerCapabilities,
+  type ToolSchemas,
+  type ToolMeta,
+  type McpProviderMetadata,
+  type InitializeResult,
+  type DiscoverResult,
 } from './types';
-
 const CLIENT_VERSION = '1.0.0';
+const DEFAULT_MAX_TOOL_CALL_RETRIES = 0;
+const DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT = 1000;
+const MODERN_PROTOCOL_ERROR_CODES = [-32020, -32021, -32022];
+
+const DEFAULT_RETRY_ERROR_CODES = [
+  'ConnectionRefused',
+  'ConnectionClosed',
+  'FailedToOpenSocket',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+];
+
+function getErrorStatusCode(error: unknown): number | undefined {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number'
+  ) {
+    return error.statusCode;
+  }
+}
+
+function getStringErrorCode(error: unknown): string | undefined {
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof error.code === 'string'
+  ) {
+    return error.code;
+  }
+}
+
+function isRetryableMCPToolCallError(error: unknown): boolean {
+  const statusCode = getErrorStatusCode(error);
+  if (statusCode != null) {
+    return (
+      statusCode === 408 ||
+      statusCode === 409 ||
+      statusCode === 429 ||
+      statusCode >= 500
+    );
+  }
+
+  if (MCPClientError.isInstance(error) && error.code != null) {
+    return false;
+  }
+
+  const errorCode = getStringErrorCode(error);
+  return errorCode != null && DEFAULT_RETRY_ERROR_CODES.includes(errorCode);
+}
+
+function prepareMaxRetries(maxRetries: number | undefined): number {
+  if (maxRetries == null) {
+    return DEFAULT_MAX_TOOL_CALL_RETRIES;
+  }
+
+  if (!Number.isInteger(maxRetries)) {
+    throw new MCPClientError({
+      message: 'maxRetries must be an integer',
+    });
+  }
+
+  if (maxRetries < 0) {
+    throw new MCPClientError({
+      message: 'maxRetries must be >= 0',
+    });
+  }
+
+  return maxRetries;
+}
+
+function getEffectiveTimeout({
+  timeout,
+  maxTotalTimeout,
+}: RequestOptions): number | undefined {
+  if (timeout == null) {
+    return maxTotalTimeout;
+  }
+
+  if (maxTotalTimeout == null) {
+    return timeout;
+  }
+
+  return Math.min(timeout, maxTotalTimeout);
+}
+
+function waitForAbort<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+): Promise<T> {
+  if (signal == null) {
+    return promise;
+  }
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      signal.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(signal.reason);
+    };
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise
+      .then(value => {
+        cleanup();
+        resolve(value);
+      })
+      .catch(error => {
+        cleanup();
+        reject(error);
+      });
+  });
+}
+
+function mcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  const result = output as CallToolResult;
+
+  if (!('content' in result) || !Array.isArray(result.content)) {
+    return { type: 'json', value: result as JSONValue };
+  }
+
+  const convertedContent = result.content.map(
+    (part: { type: string; [key: string]: unknown }) => {
+      if (part.type === 'text' && 'text' in part) {
+        return { type: 'text' as const, text: part.text as string };
+      }
+      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'file' as const,
+          mediaType: part.mimeType as string,
+          data: { type: 'data' as const, data: part.data as string },
+        };
+      }
+      return { type: 'text' as const, text: JSON.stringify(part) };
+    },
+  );
+
+  return { type: 'content', value: convertedContent };
+}
 
 export interface MCPClientConfig {
+  /** Experimental events: choose a private durable store or a managed adapter. */
+  experimental_events?: MCPEventsConfig;
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
+  /**
+   * Whether transports that support stateless protocol discovery should probe
+   * with `server/discover` before falling back to legacy initialization.
+   *
+   * Disable this for legacy servers that require `initialize` to be the first
+   * request.
+   *
+   * @default true
+   */
+  protocolVersionDiscovery?: boolean;
+  /**
+   * Options that bound or cancel transport startup and the initialize request.
+   */
+  initializationOptions?: RequestOptions;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
+  /**
+   * Maximum number of retries for transient MCP tool call failures.
+   *
+   * Set to 0 to disable retries. Retries only apply to tools/call requests.
+   * JSON-RPC application errors, such as invalid params, are not retried.
+   *
+   * @default 0
+   */
+  maxRetries?: number;
+  /**
+   * Initialize result from a previous MCP session. When provided, the client
+   * starts the transport and reuses this metadata without sending a new
+   * initialize request.
+   */
+  initialInitializeResult?: InitializeResult;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
+  clientName?: string;
+  /**
+   * Optional client name, defaults to 'ai-sdk-mcp-client'
+   *
+   * @deprecated Use `clientName` instead.
+   */
   name?: string;
   /** Optional client version, defaults to '1.0.0' */
   version?: string;
@@ -72,18 +296,88 @@ export interface MCPClientConfig {
   capabilities?: ClientCapabilities;
 }
 
-export async function createMCPClient(
+export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
+  readonly experimental_events: ManagedMCPEvents;
+};
+
+export function createMCPClient(
+  config: MCPClientConfig & {
+    experimental_events: {
+      adapter: MCPEventAdapter;
+    };
+  },
+): Promise<ManagedMCPClient>;
+export function createMCPClient(
+  config: MCPClientConfig & {
+    experimental_events?: { adapter?: never };
+  },
+): Promise<MCPClient>;
+export function createMCPClient(
   config: MCPClientConfig,
-): Promise<MCPClient> {
+): Promise<MCPClient | ManagedMCPClient>;
+export async function createMCPClient(config: MCPClientConfig): Promise<
+  Omit<MCPClient, 'experimental_events'> & {
+    readonly experimental_events: MCPEvents | ManagedMCPEvents;
+  }
+> {
   const client = new DefaultMCPClient(config);
   await client.init();
   return client;
 }
 
 export interface MCPClient {
+  /** Experimental event discovery and webhook subscription lifecycle. */
+  readonly experimental_events: MCPEvents;
+  /**
+   * Information about the connected MCP server, as reported during initialization.
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
+   */
+  readonly serverInfo: Configuration;
+
+  /**
+   * The full initialize result used by this client, either from the server
+   * during initialization or from `initialInitializeResult`.
+   */
+  readonly initializeResult: InitializeResult;
+
+  /**
+   * Optional instructions provided by the server during the initialize handshake.
+   *
+   * These describe how to use the server and its features, and can be used by clients
+   * to improve LLM interactions (e.g. by including them in the system prompt).
+   *
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#initializeresult
+   */
+  readonly instructions?: string;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
+
+  /**
+   * Lists available tools from the MCP server.
+   */
+  listTools(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListToolsResult>;
+
+  /**
+   * Calls a tool on the MCP server.
+   */
+  callTool(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<CallToolResult>;
+
+  /**
+   * Creates AI SDK tools from tool definitions.
+   */
+  toolsFromDefinitions<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(
+    definitions: ListToolsResult,
+    options?: { schemas?: TOOL_SCHEMAS },
+  ): McpToolSet<TOOL_SCHEMAS>;
 
   listResources(options?: {
     params?: PaginatedRequest['params'];
@@ -99,16 +393,22 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
-  listPrompts(options?: {
+  experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
-  getPrompt(args: {
+  experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
+
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult>;
 
   onElicitationRequest(
     schema: typeof ElicitationRequestSchema,
@@ -132,35 +432,87 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Accepting notifications
- * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
+ * - Accepting in-band notifications (webhook events use a separate HTTP handler)
+ * - Automatic session persistence for Streamable HTTP transport
  * - Resumable SSE streams
  */
-class DefaultMCPClient implements MCPClient {
+class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
+  readonly experimental_events: MCPEvents | ManagedMCPEvents;
   private transport: MCPTransport;
+  private protocolVersionDiscovery: boolean;
   private onUncaughtError?: (error: unknown) => void;
+  private maxRetries: number;
   private clientInfo: ClientConfiguration;
   private clientCapabilities: ClientCapabilities;
+  private initialInitializeResult?: InitializeResult;
+  private initializationOptions?: RequestOptions;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  private _serverInfo: Configuration = { name: '', version: '' };
+  private _initializeResult: InitializeResult = {
+    protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
+    capabilities: {},
+    serverInfo: this._serverInfo,
+  };
+  private _serverInstructions?: string;
+  private protocolEra: 'legacy' | 'modern' = 'legacy';
+  private protocolVersion = LATEST_LEGACY_PROTOCOL_VERSION;
+  private toolHeaderBindings = new Map<string, MCPToolHeaderBinding[]>();
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
   ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
+    experimental_events: events,
     transport: transportConfig,
-    name = 'ai-sdk-mcp-client',
+    name,
+    clientName = name ?? 'ai-sdk-mcp-client',
     version = CLIENT_VERSION,
     onUncaughtError,
+    maxRetries,
     capabilities,
+    initialInitializeResult,
+    initializationOptions,
+    protocolVersionDiscovery = true,
   }: MCPClientConfig) {
+    if (
+      events?.adapter !== undefined &&
+      (events.store !== undefined || events.validateArguments !== undefined)
+    ) {
+      throw new MCPClientError({
+        message:
+          'Configure experimental_events with either an adapter or a store, not both. Managed adapters own argument validation.',
+      });
+    }
+    if (
+      events?.adapter !== undefined &&
+      typeof events.adapter?.createAdapter !== 'function'
+    ) {
+      throw new MCPClientError({
+        message:
+          'experimental_events.adapter must implement createAdapter. Wrap bound operations with { createAdapter: () => operations }.',
+      });
+    }
+    const operations = events?.adapter?.createAdapter({
+      transport: isCustomMcpTransport(transportConfig)
+        ? { type: 'custom' }
+        : { type: transportConfig.type, url: transportConfig.url },
+    });
+    if (events?.adapter !== undefined) {
+      validateMCPEventOperations(operations);
+    }
+
     this.onUncaughtError = onUncaughtError;
+    this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
+    this.initialInitializeResult = initialInitializeResult;
+    this.initializationOptions = initializationOptions;
+    this.protocolVersionDiscovery = protocolVersionDiscovery;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -188,26 +540,94 @@ class DefaultMCPClient implements MCPClient {
     };
 
     this.clientInfo = {
-      name,
+      name: clientName,
       version,
     };
+    const directEvents = createMCPEvents({
+      request: args => this.request(args),
+      store: events?.store,
+      validateArguments: events?.validateArguments,
+    });
+    this.experimental_events = operations
+      ? createManagedMCPEvents(operations, directEvents.list)
+      : directEvents;
+  }
+
+  get serverInfo(): Configuration {
+    return this._serverInfo;
+  }
+
+  get initializeResult(): InitializeResult {
+    return this._initializeResult;
+  }
+
+  get instructions(): string | undefined {
+    return this._serverInstructions;
   }
 
   async init(): Promise<this> {
+    const externalSignal = this.initializationOptions?.signal;
+    const timeout = this.initializationOptions
+      ? getEffectiveTimeout(this.initializationOptions)
+      : undefined;
+    const timeoutController =
+      timeout == null ? undefined : new AbortController();
+    const signal =
+      externalSignal == null
+        ? timeoutController?.signal
+        : timeoutController == null
+          ? externalSignal
+          : AbortSignal.any([externalSignal, timeoutController.signal]);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let timeoutError: MCPClientError | undefined;
+
+    if (timeout != null) {
+      timeoutId = setTimeout(() => {
+        timeoutError = new MCPClientError({
+          message: `MCP client initialization timed out after ${timeout}ms`,
+        });
+        timeoutController?.abort(timeoutError);
+      }, timeout);
+    }
+
     try {
-      await this.transport.start();
       this.isClosed = false;
+      signal?.throwIfAborted();
+      await waitForAbort(this.transport.start(), signal);
+
+      if (this.initialInitializeResult) {
+        const result = InitializeResultSchema.parse(
+          this.initialInitializeResult,
+        );
+        this.applyInitializeResult(result);
+        return this;
+      }
+
+      if (
+        this.protocolVersionDiscovery &&
+        this.transport.supportsProtocolVersionDiscovery
+      ) {
+        const discovered = await this.tryProtocolDiscovery(signal);
+        if (discovered) {
+          return this;
+        }
+      }
+
+      this.protocolEra = 'legacy';
+      this.protocolVersion = LATEST_LEGACY_PROTOCOL_VERSION;
+      this.setTransportProtocolVersion(this.protocolVersion);
 
       const result = await this.request({
         request: {
           method: 'initialize',
           params: {
-            protocolVersion: LATEST_PROTOCOL_VERSION,
+            protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
             capabilities: this.clientCapabilities,
             clientInfo: this.clientInfo,
           },
         },
         resultSchema: InitializeResultSchema,
+        options: { signal },
       });
 
       if (result === undefined) {
@@ -216,24 +636,125 @@ class DefaultMCPClient implements MCPClient {
         });
       }
 
-      if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
-        throw new MCPClientError({
-          message: `Server's protocol version is not supported: ${result.protocolVersion}`,
-        });
-      }
-
-      this.serverCapabilities = result.capabilities;
+      this.applyInitializeResult(result);
 
       // Complete initialization handshake:
-      await this.notification({
-        method: 'notifications/initialized',
-      });
+      await this.notification(
+        {
+          method: 'notifications/initialized',
+        },
+        { signal },
+      );
 
       return this;
     } catch (error) {
-      await this.close();
+      try {
+        await waitForAbort(this.transport.close({ signal }), signal);
+      } catch {}
+      this.onClose();
+
+      if (timeoutError != null) {
+        throw timeoutError;
+      }
+
+      if (externalSignal?.aborted) {
+        throw new MCPClientError({
+          message: 'MCP client initialization was aborted',
+          cause: externalSignal.reason,
+        });
+      }
+
       throw error;
+    } finally {
+      if (timeoutId != null) {
+        clearTimeout(timeoutId);
+      }
     }
+  }
+
+  private async tryProtocolDiscovery(
+    signal: AbortSignal | undefined,
+  ): Promise<boolean> {
+    this.protocolEra = 'modern';
+    this.protocolVersion = LATEST_PROTOCOL_VERSION;
+    this.setTransportProtocolVersion(this.protocolVersion);
+
+    try {
+      const result = await this.request({
+        request: { method: 'server/discover' },
+        resultSchema: DiscoverResultSchema,
+        options: {
+          signal,
+          timeout: DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT,
+        },
+      });
+
+      this.applyDiscoverResult(result);
+      return true;
+    } catch (error) {
+      if (
+        MCPClientError.isInstance(error) &&
+        error.code != null &&
+        MODERN_PROTOCOL_ERROR_CODES.includes(error.code)
+      ) {
+        throw error;
+      }
+
+      return false;
+    }
+  }
+
+  private applyDiscoverResult(result: DiscoverResult): void {
+    if (!result.supportedVersions.includes(this.protocolVersion)) {
+      throw new MCPClientError({
+        message: `Server does not support the requested protocol version: ${this.protocolVersion}`,
+      });
+    }
+
+    const serverInfo = result._meta?.['io.modelcontextprotocol/serverInfo'];
+    if (
+      serverInfo != null &&
+      typeof serverInfo === 'object' &&
+      'name' in serverInfo &&
+      typeof serverInfo.name === 'string' &&
+      'version' in serverInfo &&
+      typeof serverInfo.version === 'string'
+    ) {
+      this._serverInfo = serverInfo as Configuration;
+    }
+
+    this.serverCapabilities = result.capabilities;
+    this._serverInstructions = result.instructions;
+    this._initializeResult = {
+      protocolVersion: this.protocolVersion,
+      capabilities: result.capabilities,
+      serverInfo: this._serverInfo,
+      instructions: result.instructions,
+    };
+  }
+
+  private setTransportProtocolVersion(version: string): void {
+    if (this.transport.setProtocolVersion) {
+      this.transport.setProtocolVersion(version);
+    } else {
+      this.transport.protocolVersion = version;
+    }
+  }
+
+  private applyInitializeResult(result: InitializeResult): void {
+    if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
+      throw new MCPClientError({
+        message: `Server's protocol version is not supported: ${result.protocolVersion}`,
+      });
+    }
+
+    this.serverCapabilities = result.capabilities;
+    this.protocolEra = 'legacy';
+    this.protocolVersion = result.protocolVersion;
+    this._serverInfo = result.serverInfo;
+    this._initializeResult = result;
+    this.setTransportProtocolVersion(result.protocolVersion);
+    this._serverInstructions = result.instructions;
   }
 
   async close(): Promise<void> {
@@ -242,9 +763,35 @@ class DefaultMCPClient implements MCPClient {
     this.onClose();
   }
 
+  private send(
+    message: JSONRPCMessage,
+    options?: MCPTransportSendOptions,
+  ): Promise<void> {
+    return options == null
+      ? this.transport.send(message)
+      : this.transport.send(message, options);
+  }
+
   private assertCapability(method: string): void {
     switch (method) {
       case 'initialize':
+      case 'server/discover':
+        break;
+      case 'completion/complete':
+        if (!this.serverCapabilities.completions) {
+          throw new MCPClientError({
+            message: `Server does not support completions`,
+          });
+        }
+        break;
+      case 'events/list':
+      case 'events/subscribe':
+      case 'events/unsubscribe':
+        if (!this.serverCapabilities.events) {
+          throw new MCPClientError({
+            message: 'Server does not support events',
+          });
+        }
         break;
       case 'tools/list':
       case 'tools/call':
@@ -300,89 +847,264 @@ class DefaultMCPClient implements MCPClient {
 
       const signal = options?.signal;
       signal?.throwIfAborted();
+      const timeout =
+        options == null ? undefined : getEffectiveTimeout(options);
+      const timeoutController =
+        timeout == null ? undefined : new AbortController();
+      const transportSignal =
+        signal == null
+          ? timeoutController?.signal
+          : timeoutController == null
+            ? signal
+            : AbortSignal.any([signal, timeoutController.signal]);
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       const messageId = this.requestMessageId++;
+      const preparedRequest =
+        this.protocolEra === 'modern'
+          ? {
+              ...request,
+              params: {
+                ...request.params,
+                _meta: {
+                  ...request.params?._meta,
+                  'io.modelcontextprotocol/protocolVersion':
+                    this.protocolVersion,
+                  'io.modelcontextprotocol/clientCapabilities':
+                    this.clientCapabilities,
+                  'io.modelcontextprotocol/clientInfo': this.clientInfo,
+                },
+              },
+            }
+          : request;
       const jsonrpcRequest: JSONRPCRequest = {
-        ...request,
+        ...preparedRequest,
         jsonrpc: '2.0',
         id: messageId,
+      };
+      const headers = this.getToolRequestHeaders(preparedRequest);
+
+      const rejectWithAbortError = () => {
+        reject(
+          new MCPClientError({
+            message: 'Request was aborted',
+            cause: signal?.reason,
+          }),
+        );
       };
 
       const cleanup = () => {
         this.responseHandlers.delete(messageId);
+        signal?.removeEventListener('abort', onAbort);
+        if (timeoutId != null) {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      const rejectAndCleanup = (error: unknown) => {
+        cleanup();
+        reject(error);
+      };
+
+      const onAbort = () => {
+        cleanup();
+        rejectWithAbortError();
+      };
+
+      const onTimeout = () => {
+        const error = new MCPClientError({
+          message: `Request timed out after ${timeout}ms`,
+        });
+        timeoutController?.abort(error);
+        rejectAndCleanup(error);
       };
 
       this.responseHandlers.set(messageId, response => {
         if (signal?.aborted) {
-          return reject(
-            new MCPClientError({
-              message: 'Request was aborted',
-              cause: signal.reason,
-            }),
-          );
+          cleanup();
+          return rejectWithAbortError();
         }
 
         if (response instanceof Error) {
-          return reject(response);
+          return rejectAndCleanup(response);
         }
 
         try {
+          if (
+            this.protocolEra === 'modern' &&
+            response.result.resultType == null
+          ) {
+            throw new MCPClientError({
+              message: 'Modern MCP result is missing resultType',
+            });
+          }
+          if (response.result.resultType === 'input_required') {
+            throw new MCPClientError({
+              message:
+                'Server requested additional input, but multi round-trip requests are not supported yet',
+            });
+          }
+
           const result = resultSchema.parse(response.result);
+          cleanup();
           resolve(result);
         } catch (error) {
-          const parseError = new MCPClientError({
-            message: 'Failed to parse server response',
-            cause: error,
-          });
-          reject(parseError);
+          const parseError = MCPClientError.isInstance(error)
+            ? error
+            : new MCPClientError({
+                message: 'Failed to parse server response',
+                cause: error,
+              });
+          rejectAndCleanup(parseError);
         }
       });
 
-      this.transport.send(jsonrpcRequest).catch(error => {
-        cleanup();
-        reject(error);
+      signal?.addEventListener('abort', onAbort, { once: true });
+
+      if (timeout != null) {
+        timeoutId = setTimeout(onTimeout, timeout);
+      }
+
+      const sendOptions: MCPTransportSendOptions = {
+        ...(transportSignal == null ? {} : { signal: transportSignal }),
+        ...(headers == null ? {} : { headers }),
+      };
+      const sendPromise =
+        Object.keys(sendOptions).length === 0
+          ? this.send(jsonrpcRequest)
+          : this.send(jsonrpcRequest, sendOptions);
+
+      sendPromise.catch(error => {
+        rejectAndCleanup(error);
       });
     });
   }
 
-  private async listTools({
+  async listTools({
     params,
     options,
   }: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
+    const result = await this.request({
+      request: { method: 'tools/list', params },
+      resultSchema: ListToolsResultSchema,
+      options,
+    });
+    return this.prepareToolDefinitions(result, params?.cursor == null);
+  }
+
+  private prepareToolDefinitions(
+    definitions: ListToolsResult,
+    resetHeaderBindings = false,
+  ): ListToolsResult {
+    if (
+      this.protocolEra !== 'modern' ||
+      !this.transport.supportsMcpToolParameterHeaders
+    ) {
+      return definitions;
+    }
+
+    if (resetHeaderBindings) {
+      this.toolHeaderBindings.clear();
+    }
+    const tools = definitions.tools.filter(toolDefinition => {
+      const result = getMCPToolHeaderBindings(toolDefinition.inputSchema);
+      if (!result.success) {
+        this.onError(
+          new MCPClientError({
+            message: `Ignoring MCP tool "${toolDefinition.name}": ${result.error}`,
+          }),
+        );
+        return false;
+      }
+
+      this.toolHeaderBindings.set(toolDefinition.name, result.bindings);
+      return true;
+    });
+
+    return { ...definitions, tools };
+  }
+
+  private getToolRequestHeaders(
+    request: Request,
+  ): Record<string, string> | undefined {
+    if (
+      this.protocolEra !== 'modern' ||
+      request.method !== 'tools/call' ||
+      typeof request.params?.name !== 'string'
+    ) {
+      return undefined;
+    }
+
+    const bindings = this.toolHeaderBindings.get(request.params.name);
+    if (bindings == null || bindings.length === 0) {
+      return undefined;
+    }
+
+    const args = request.params.arguments;
+    if (args == null || typeof args !== 'object' || Array.isArray(args)) {
+      return undefined;
+    }
+
     try {
-      return this.request({
-        request: { method: 'tools/list', params },
-        resultSchema: ListToolsResultSchema,
-        options,
+      return createMCPToolHeaders({
+        bindings,
+        args: args as Record<string, unknown>,
       });
     } catch (error) {
-      throw error;
+      throw new MCPClientError({
+        message: `Failed to create MCP headers for tool "${request.params.name}"`,
+        cause: error,
+      });
     }
   }
 
-  private async callTool({
+  private async callToolWithRetry({
+    options,
+    execute,
+  }: {
+    options?: RequestOptions;
+    execute: () => Promise<CallToolResult>;
+  }): Promise<CallToolResult> {
+    if (this.maxRetries === 0) {
+      return execute();
+    }
+
+    return retryWithExponentialBackoff({
+      maxRetries: this.maxRetries,
+      abortSignal: options?.signal,
+      shouldRetry: isRetryableMCPToolCallError,
+      createRetryError: ({ message, errors }) =>
+        new MCPClientError({
+          message,
+          cause: errors[errors.length - 1],
+        }),
+    })(execute);
+  }
+
+  async callTool({
     name,
-    args,
+    arguments: args = {},
     options,
   }: {
     name: string;
-    args: Record<string, unknown>;
-    options?: ToolCallOptions;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
   }): Promise<CallToolResult> {
-    try {
-      return this.request({
-        request: { method: 'tools/call', params: { name, arguments: args } },
-        resultSchema: CallToolResultSchema,
-        options: {
-          signal: options?.abortSignal,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.callToolWithRetry({
+      options,
+      execute: () =>
+        this.request({
+          request: {
+            method: 'tools/call',
+            params: { name, arguments: args },
+          },
+          resultSchema: CallToolResultSchema,
+          options,
+        }),
+    });
   }
 
   private async listResourcesInternal({
@@ -392,15 +1114,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListResourcesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/list', params },
-        resultSchema: ListResourcesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/list', params },
+      resultSchema: ListResourcesResultSchema,
+      options,
+    });
   }
 
   private async readResourceInternal({
@@ -410,15 +1128,11 @@ class DefaultMCPClient implements MCPClient {
     uri: string;
     options?: RequestOptions;
   }): Promise<ReadResourceResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/read', params: { uri } },
-        resultSchema: ReadResourceResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/read', params: { uri } },
+      resultSchema: ReadResourceResultSchema,
+      options,
+    });
   }
 
   private async listResourceTemplatesInternal({
@@ -426,15 +1140,11 @@ class DefaultMCPClient implements MCPClient {
   }: {
     options?: RequestOptions;
   } = {}): Promise<ListResourceTemplatesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/templates/list' },
-        resultSchema: ListResourceTemplatesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/templates/list' },
+      resultSchema: ListResourceTemplatesResultSchema,
+      options,
+    });
   }
 
   private async listPromptsInternal({
@@ -444,15 +1154,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListPromptsResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/list', params },
-        resultSchema: ListPromptsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/list', params },
+      resultSchema: ListPromptsResultSchema,
+      options,
+    });
   }
 
   private async getPromptInternal({
@@ -464,27 +1170,46 @@ class DefaultMCPClient implements MCPClient {
     args?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/get', params: { name, arguments: args } },
-        resultSchema: GetPromptResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/get', params: { name, arguments: args } },
+      resultSchema: GetPromptResultSchema,
+      options,
+    });
   }
 
-  private async notification(notification: Notification): Promise<void> {
+  private async completeInternal({
+    options,
+    ...params
+  }: CompleteRequestParams & {
+    options?: RequestOptions;
+  }): Promise<CompleteResult> {
+    return this.request({
+      request: { method: 'completion/complete', params },
+      resultSchema: CompleteResultSchema,
+      options,
+    });
+  }
+
+  private async notification(
+    notification: Notification,
+    options?: { signal?: AbortSignal },
+  ): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
       jsonrpc: '2.0',
     };
-    await this.transport.send(jsonrpcNotification);
+    await waitForAbort(
+      this.send(
+        jsonrpcNotification,
+        options?.signal == null ? undefined : { signal: options.signal },
+      ),
+      options?.signal,
+    );
   }
 
   /**
-   * Returns a set of AI SDK tools from the MCP server
+   * Returns a set of AI SDK tools from the MCP server.
+   * This fetches tool definitions and wraps them with execute functions.
    * @returns A record of tool names to their implementations
    */
   async tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>({
@@ -492,57 +1217,191 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const tools: Record<string, Tool> = {};
+    let definitions = await this.listTools();
+    const tools = [...definitions.tools];
 
-    try {
-      const listToolsResult = await this.listTools();
-      for (const {
-        name,
-        description,
-        inputSchema,
-        annotations,
-      } of listToolsResult.tools) {
-        const title = annotations?.title;
-        if (schemas !== 'automatic' && !(name in schemas)) {
-          continue;
-        }
+    while (definitions.nextCursor != null) {
+      definitions = await this.listTools({
+        params: { cursor: definitions.nextCursor },
+      });
+      tools.push(...definitions.tools);
+    }
 
-        const self = this;
+    return this.toolsFromDefinitions({ ...definitions, tools }, {
+      schemas,
+    } as { schemas?: TOOL_SCHEMAS });
+  }
 
-        const execute = async (
-          args: any,
-          options: ToolCallOptions,
-        ): Promise<CallToolResult> => {
-          options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
-        };
+  /**
+   * Creates AI SDK tools from tool definitions without fetching from the server.
+   */
+  toolsFromDefinitions<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(
+    definitions: ListToolsResult,
+    { schemas = 'automatic' }: { schemas?: TOOL_SCHEMAS } = {} as {
+      schemas?: TOOL_SCHEMAS;
+    },
+  ): McpToolSet<TOOL_SCHEMAS> {
+    definitions = this.prepareToolDefinitions(definitions);
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> =
+      Object.create(null);
 
-        const toolWithExecute =
-          schemas === 'automatic'
-            ? dynamicTool({
-                description,
-                title,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
-                execute,
-              })
-            : tool({
-                description,
-                title,
-                inputSchema: schemas[name].inputSchema,
-                execute,
-              });
-
-        tools[name] = toolWithExecute;
+    for (const {
+      name,
+      title,
+      description,
+      inputSchema,
+      annotations,
+      _meta,
+    } of definitions.tools) {
+      const resolvedTitle = title ?? annotations?.title;
+      if (
+        schemas !== 'automatic' &&
+        !Object.prototype.hasOwnProperty.call(schemas, name)
+      ) {
+        continue;
       }
 
-      return tools as McpToolSet<TOOL_SCHEMAS>;
-    } catch (error) {
-      throw error;
+      const self = this;
+      const outputSchema =
+        schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const appMeta = getMCPAppToolMeta({ _meta });
+      const metadata = {
+        clientName: this.clientInfo.name,
+        toolName: name,
+        ...(resolvedTitle != null ? { title: resolvedTitle } : {}),
+        ...(annotations != null
+          ? {
+              annotations: {
+                ...(annotations.title != null
+                  ? { title: annotations.title }
+                  : {}),
+                ...(annotations.readOnlyHint != null
+                  ? { readOnlyHint: annotations.readOnlyHint }
+                  : {}),
+                ...(annotations.destructiveHint != null
+                  ? { destructiveHint: annotations.destructiveHint }
+                  : {}),
+                ...(annotations.idempotentHint != null
+                  ? { idempotentHint: annotations.idempotentHint }
+                  : {}),
+                ...(annotations.openWorldHint != null
+                  ? { openWorldHint: annotations.openWorldHint }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(appMeta?.resourceUri != null
+          ? {
+              app: {
+                ...appMeta,
+                mimeType: MCP_APP_MIME_TYPE,
+              } as JSONObject,
+            }
+          : {}),
+      } satisfies McpProviderMetadata;
+
+      const execute = async (
+        args: any,
+        options?: ToolExecutionOptions<{}>,
+      ): Promise<unknown> => {
+        options?.abortSignal?.throwIfAborted();
+        const result = await self.callTool({
+          name,
+          arguments: args,
+          options: { signal: options?.abortSignal },
+        });
+
+        if (result.isError) {
+          return result;
+        }
+
+        if (outputSchema != null) {
+          return self.extractStructuredContent(result, outputSchema, name);
+        }
+
+        return result;
+      };
+
+      const toolWithExecute =
+        schemas === 'automatic'
+          ? dynamicTool({
+              description,
+              title: resolvedTitle,
+              metadata,
+              inputSchema: jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7),
+              execute,
+              toModelOutput: mcpToModelOutput,
+            })
+          : tool({
+              description,
+              title: resolvedTitle,
+              metadata,
+              inputSchema: schemas[name].inputSchema,
+              ...(outputSchema != null ? { outputSchema } : {}),
+              execute,
+              toModelOutput: mcpToModelOutput,
+            });
+
+      tools[name] = { ...toolWithExecute, _meta };
     }
+
+    return tools as McpToolSet<TOOL_SCHEMAS>;
+  }
+
+  /**
+   * Extracts and validates structuredContent from a tool result.
+   */
+  private async extractStructuredContent(
+    result: CallToolResult,
+    outputSchema: FlexibleSchema<unknown>,
+    toolName: string,
+  ): Promise<unknown> {
+    if ('structuredContent' in result && result.structuredContent != null) {
+      const validationResult = await safeValidateTypes({
+        value: result.structuredContent,
+        schema: asSchema(outputSchema),
+      });
+
+      if (!validationResult.success) {
+        throw new MCPClientError({
+          message: `Tool "${toolName}" returned structuredContent that does not match the expected outputSchema`,
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
+    }
+
+    // Fallback
+    if ('content' in result && Array.isArray(result.content)) {
+      const textContent = result.content.find(
+        (content: { type: string; [key: string]: unknown }) =>
+          content.type === 'text',
+      );
+      if (textContent && 'text' in textContent) {
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
+
+        if (!parseResult.success) {
+          throw new MCPClientError({
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
+          });
+        }
+
+        return parseResult.value;
+      }
+    }
+
+    throw new MCPClientError({
+      message: `Tool "${toolName}" did not return structuredContent or parseable text content`,
+    });
   }
 
   listResources({
@@ -573,7 +1432,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  listPrompts({
+  experimental_listPrompts({
     params,
     options,
   }: {
@@ -583,7 +1442,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listPromptsInternal({ params, options });
   }
 
-  getPrompt({
+  experimental_getPrompt({
     name,
     arguments: args,
     options,
@@ -593,6 +1452,14 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  complete(
+    args: CompleteRequestParams & {
+      options?: RequestOptions;
+    },
+  ): Promise<CompleteResult> {
+    return this.completeInternal(args);
   }
 
   onElicitationRequest(
@@ -613,6 +1480,15 @@ class DefaultMCPClient implements MCPClient {
 
   private async onRequestMessage(request: JSONRPCRequest): Promise<void> {
     try {
+      if (request.method === 'ping') {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {},
+        });
+        return;
+      }
+
       if (request.method !== 'elicitation/create') {
         await this.transport.send({
           jsonrpc: '2.0',
@@ -705,6 +1581,17 @@ class DefaultMCPClient implements MCPClient {
   }
 
   private onResponse(response: JSONRPCResponse | JSONRPCError): void {
+    if (response.id == null) {
+      this.onError(
+        new MCPClientError({
+          message: `Protocol error: Received a response without a message ID: ${JSON.stringify(
+            response,
+          )}`,
+        }),
+      );
+      return;
+    }
+
     const messageId = Number(response.id);
     const handler = this.responseHandlers.get(messageId);
 

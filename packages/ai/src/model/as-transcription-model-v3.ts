@@ -1,4 +1,7 @@
-import { TranscriptionModelV2, TranscriptionModelV3 } from '@ai-sdk/provider';
+import type {
+  TranscriptionModelV2,
+  TranscriptionModelV3,
+} from '@ai-sdk/provider';
 import { logV2CompatibilityWarning } from '../util/log-v2-compatibility-warning';
 
 export function asTranscriptionModelV3(

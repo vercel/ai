@@ -1,6 +1,15 @@
 /**
- * Returns the index of the start of the searchedText in the text, or null if it
- * is not found.
+ * Finds the potential starting index where searchedText could begin in text.
+ *
+ * This function checks for both complete and partial matches:
+ * - If searchedText is found as a complete substring, returns the index of the first occurrence.
+ * - If the end of text matches the beginning of searchedText (partial match),
+ *   returns the index where that partial match starts.
+ *
+ * @param text - The text to search within.
+ * @param searchedText - The text to search for.
+ * @returns The starting index of the match (complete or partial), or null if
+ *          searchedText is empty or no match is found.
  */
 export function getPotentialStartIndex(
   text: string,

@@ -6,6 +6,6 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: weatherAgent,
-    messages,
+    uiMessages: messages,
   });
 }

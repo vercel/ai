@@ -55,7 +55,7 @@ import { z } from 'zod';
 const tools = {
   weather: {
     description: 'Get the current weather',
-    parameters: z.object({
+    inputSchema: z.object({
       location: z.string().describe('The city and state'),
     }),
     execute: async ({ location }) => {
@@ -64,7 +64,7 @@ const tools = {
   },
   calculator: {
     description: 'Perform basic arithmetic',
-    parameters: z.object({
+    inputSchema: z.object({
       operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
       a: z.number(),
       b: z.number(),

@@ -1,4 +1,4 @@
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 
 /**
  * The result of a `rerank` call.
@@ -15,7 +15,7 @@ export interface RerankResult<VALUE> {
    *
    * Sorted by relevance score in descending order.
    *
-   * Can be less than the original documents if there was a topK limit.
+   * Can be less than the original documents if there was a topN limit.
    */
   readonly rerankedDocuments: Array<VALUE>;
 
@@ -25,7 +25,7 @@ export interface RerankResult<VALUE> {
    *
    * Sorted by relevance score in descending order.
    *
-   * Can be less than the original documents if there was a topK limit.
+   * Can be less than the original documents if there was a topN limit.
    */
   readonly ranking: Array<{
     originalIndex: number;
