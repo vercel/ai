@@ -4569,6 +4569,130 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('continues a built-in approval pause with an unechoed host tool result', async () => {
+    const tickets = [{ id: 'AI-23503' }];
+    const execute = vi.fn(async () => tickets);
+    let finishPrompt!: () => void;
+    const { harness, toolResults, toolApprovals } = mockHarness({
+      builtinTools: {
+        bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+      },
+      supportsBuiltinToolApprovals: true,
+      promptDone: () =>
+        new Promise(resolve => {
+          finishPrompt = resolve;
+        }),
+      script: () => [
+        { type: 'stream-start', modelId: 'claude-code-sequence' },
+        {
+          type: 'tool-call',
+          toolCallId: 'bash-1',
+          toolName: 'bash',
+          nativeName: 'Bash',
+          input: '{"command":"pwd"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'bash-1',
+          toolCallId: 'bash-1',
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: zeroUsage(),
+        },
+      ],
+      continueScript: () => [
+        {
+          type: 'tool-result',
+          toolCallId: 'bash-1',
+          toolName: 'bash',
+          result: '/work',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          result: tickets,
+        },
+        ...finishEvents(),
+      ],
+    });
+    const agent = new HarnessAgent({
+      harness,
+      permissionMode: 'allow-reads',
+      tools: {
+        listProjectTickets: tool({ inputSchema: z.object({}), execute }),
+      },
+      toolApproval: { listProjectTickets: 'approved' },
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    try {
+      const first = await agent.stream({
+        session,
+        prompt: 'Run Bash and list the project tickets in the same response.',
+      });
+      await first.consumeStream();
+
+      expect(session.hasUnfinishedTurn()).toBe(true);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(toolResults).toEqual([{ toolCallId: 'host-1', output: tickets }]);
+      expect((await first.steps)[0]!.content).toEqual([
+        expect.objectContaining({ type: 'tool-call', toolCallId: 'bash-1' }),
+        expect.objectContaining({ type: 'tool-call', toolCallId: 'host-1' }),
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'bash-1',
+        }),
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'host-1',
+          output: tickets,
+        }),
+      ]);
+
+      const continued = await agent.stream({
+        session,
+        messages: [
+          ...(await first.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'bash-1',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      await continued.consumeStream();
+
+      expect(toolApprovals).toEqual([
+        { approvalId: 'bash-1', approved: true, reason: undefined },
+      ]);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(session.hasUnfinishedTurn()).toBe(false);
+      expect((await continued.steps).flatMap(step => step.toolResults)).toEqual(
+        [],
+      );
+    } finally {
+      finishPrompt();
+      await session.destroy();
+    }
+  });
+
   test('session.detach() after a tool approval pause returns resume state with nested continuation state', async () => {
     const { harness, doDetach, doSuspendTurn } = mockHarness({
       script: () => [

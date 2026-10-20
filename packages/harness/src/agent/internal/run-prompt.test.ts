@@ -4438,6 +4438,210 @@ describe('runPrompt host input pauses', () => {
     ]);
   });
 
+  test.each([
+    { approved: true, fails: false },
+    { approved: false, fails: false },
+    { approved: true, fails: true },
+    { approved: false, fails: true },
+  ])(
+    'pauses for a built-in approval without a host result echo (approved: $approved, fails: $fails)',
+    async ({ approved, fails }) => {
+      const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+      const pendingResults: HarnessV1PendingToolResult[] = [];
+      const submitted: SubmittedResult[] = [];
+      const execute = vi.fn(async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        if (fails) throw new Error('Ticket lookup failed');
+        return [{ id: 'AI-23503' }];
+      });
+      const bash = tool({
+        inputSchema: z.object({ command: z.string() }),
+      });
+      const listProjectTickets = tool({
+        inputSchema: z.object({}),
+        execute,
+        toModelOutput: ({ output }) => ({
+          type: 'json',
+          value: { tickets: output },
+        }),
+      });
+      const approvalHarness: HarnessV1 = {
+        ...harness,
+        builtinTools: { bash },
+        supportsBuiltinToolApprovals: true,
+      };
+      const bashCall: HarnessV1StreamPart = {
+        type: 'tool-call',
+        toolCallId: 'bash-1',
+        toolName: 'bash',
+        nativeName: 'Bash',
+        input: '{"command":"pwd"}',
+        providerExecuted: true,
+      };
+      const hostCall: HarnessV1StreamPart = {
+        type: 'tool-call',
+        toolCallId: 'host-1',
+        toolName: 'listProjectTickets',
+        input: '{}',
+        providerExecuted: false,
+      };
+      const approvalRequest: HarnessV1StreamPart = {
+        type: 'tool-approval-request',
+        approvalId: 'bash-1',
+        toolCallId: 'bash-1',
+      };
+      const session = scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit(bashCall);
+          emit(hostCall);
+          emit(approvalRequest);
+          emit(boundary(7));
+        },
+        onSubmitToolResult: submission => submitted.push(submission),
+      });
+      const options = {
+        harness: approvalHarness,
+        session,
+        instructions: undefined,
+        tools: { bash, listProjectTickets } as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      };
+      const paused = runPrompt({
+        ...options,
+        prompt: 'Run Bash and list the project tickets.',
+        toolApproval: { listProjectTickets: 'approved' },
+        onPendingToolApproval: approval => pendingApprovals.push(approval),
+        onPendingToolResult: pendingResult =>
+          pendingResults.push(pendingResult),
+      });
+
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of paused.result.fullStream) parts.push(part);
+      await paused.done;
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(submitted).toHaveLength(1);
+      expect(pendingApprovals).toEqual([
+        expect.objectContaining({
+          approvalId: 'bash-1',
+          toolCallId: 'bash-1',
+          kind: 'builtin',
+        }),
+      ]);
+      expect(pendingResults).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-1',
+          completedResult: expect.objectContaining({
+            output: submitted[0]!.output,
+          }),
+        }),
+      ]);
+      expect(
+        parts.filter(part => part.type === 'tool-approval-request'),
+      ).toHaveLength(1);
+      expect(
+        parts.filter(
+          part => part.type === (fails ? 'tool-error' : 'tool-result'),
+        ),
+      ).toEqual([expect.objectContaining({ toolCallId: 'host-1' })]);
+      const steps = await paused.result.steps;
+      expect(steps).toHaveLength(1);
+      expect(steps[0]!.usage.inputTokens).toBe(7);
+      expect(steps[0]!.finishReason).toBe('tool-calls');
+      expect(steps[0]!.content.map(part => part.type)).toEqual([
+        'tool-call',
+        'tool-call',
+        'tool-approval-request',
+        fails ? 'tool-error' : 'tool-result',
+      ]);
+
+      const settledResults: string[] = [];
+      const submitToolApproval = vi.fn(async () => {});
+      session.doContinueTurn = async continuationOptions => {
+        const continued = fakeSession(
+          [
+            bashCall,
+            hostCall,
+            approvalRequest,
+            {
+              type: 'tool-result',
+              toolCallId: 'bash-1',
+              toolName: 'bash',
+              result: approved ? WORK_DIR : 'Denied',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'host-1',
+              toolName: 'listProjectTickets',
+              result: submitted[0]!.output as string,
+              ...(fails ? { isError: true } : {}),
+            },
+            boundary(0),
+            { type: 'text-start', id: 't1' },
+            { type: 'text-delta', id: 't1', delta: 'Done' },
+            { type: 'text-end', id: 't1' },
+            ...finishEvents,
+          ],
+          submission => submitted.push(submission),
+        );
+        return {
+          ...(await continued.doContinueTurn(continuationOptions)),
+          submitToolApproval,
+        };
+      };
+      const resumed = runPrompt({
+        ...options,
+        mode: 'continue',
+        pendingToolApprovals: pendingApprovals,
+        pendingToolResults: pendingResults,
+        toolApprovalContinuations: [
+          { type: 'tool-approval-response', approvalId: 'bash-1', approved },
+        ],
+        onToolResultSettled: toolCallId => settledResults.push(toolCallId),
+      });
+      const resumedParts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of resumed.result.fullStream)
+        resumedParts.push(part);
+      await resumed.done;
+
+      expect(submitToolApproval).toHaveBeenCalledWith({
+        approvalId: 'bash-1',
+        approved,
+        reason: undefined,
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(settledResults).toEqual(['host-1']);
+      expect(submitted).toHaveLength(2);
+      expect(submitted[1]).toEqual(submitted[0]);
+      if (!fails) {
+        expect(pendingResults[0]!.completedResult!.toolResult!.output).toEqual({
+          type: 'json',
+          value: { tickets: [{ id: 'AI-23503' }] },
+        });
+      }
+      expect(
+        resumedParts.filter(
+          part =>
+            part.type === 'tool-call' || part.type === 'tool-approval-request',
+        ),
+      ).toEqual([]);
+      expect(
+        resumedParts.filter(
+          part =>
+            (part.type === 'tool-result' || part.type === 'tool-error') &&
+            part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(await resumed.result.text).toBe('Done');
+      expect(await resumed.result.finishReason).toBe('stop');
+    },
+  );
+
   test('closes a step whose finish-step was ignored when the turn finishes', async () => {
     const { result, done } = runPrompt({
       harness,
