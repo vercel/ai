@@ -98,5 +98,18 @@ Raw runtime instances need their respective adapters; a custom
 Pass `maxOutputLength` to limit characters retained from each output stream
 (default: 30,000). Cancellation is forwarded to the supplied session.
 
+Pass `timeout` to set a timeout in milliseconds for each command execution:
+
+```ts
+const bash = await createBashTool({ sandbox, timeout: 10_000 });
+```
+
+The value must be an integer from `1` to `2147483647`. There is no tool-level
+timeout by default. Each execution gets a fresh timeout; initialization and
+waiting for the model or approval are excluded. The timeout is combined with
+the caller's abort signal, and the sandbox must honor cancellation. The
+sandbox's result or error is passed through (just-bash returns exit code `124`
+when a running command is cancelled).
+
 See the [Bash Tool documentation](https://ai-sdk.dev/docs/ai-sdk-core/tools#bash-tool)
 for options and file handling.
