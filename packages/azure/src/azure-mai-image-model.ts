@@ -5,6 +5,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -234,12 +236,16 @@ async function fileToBlob(
   return new Blob([data as BlobPart], { type: file.mediaType });
 }
 
-const maiErrorSchema = z.object({
-  error: z.object({
-    code: z.union([z.string(), z.number()]).nullish(),
-    message: z.string(),
-  }),
-});
+const maiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        code: z.union([z.string(), z.number()]).nullish(),
+        message: z.string(),
+      }),
+    }),
+  ),
+);
 
 const maiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: maiErrorSchema,
@@ -247,15 +253,19 @@ const maiFailedResponseHandler = createJsonErrorResponseHandler({
 });
 
 // Only the fields used here, to tolerate API additions.
-const maiImageResponseSchema = z.object({
-  created: z.number().nullish(),
-  size: z.string().nullish(),
-  usage: z
-    .object({
-      num_input_text_tokens: z.number().nullish(),
-      num_input_image_tokens: z.number().nullish(),
-      num_output_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const maiImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      created: z.number().nullish(),
+      size: z.string().nullish(),
+      usage: z
+        .object({
+          num_input_text_tokens: z.number().nullish(),
+          num_input_image_tokens: z.number().nullish(),
+          num_output_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      data: z.array(z.object({ b64_json: z.string() })),
+    }),
+  ),
+);
