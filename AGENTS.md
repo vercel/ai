@@ -277,16 +277,20 @@ These guidelines outline typical artifacts for different task types. Use judgmen
 
 ### Bug Fixes
 
-A bug reproduction should be a single runnable script in
-`examples/ai-functions` (usually `src/reproduction/`), using the issue's own
-snippet where possible. Do not add assertions or a test runner unless requested.
+A bug fix should include an end-to-end reproduction in the pull request body,
+in an "End-to-End Verification" section. If `examples/ai-functions` has no
+end-to-end example for the feature being fixed, add one when it also serves as
+a reproduction. Reference any added or updated example in the pull request's
+"End-to-End Verification" section.
 
 A complete bug fix typically includes:
 
-1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
+1. **End-to-end verification**: Include an end-to-end reproduction in the pull
+   request's "End-to-End Verification" section, referencing any added or
+   updated `examples/ai-functions` example used for the reproduction
 2. **Unit tests**: Add tests that would fail without the fix (regression tests)
 3. **Implementation**: Fix the bug
-4. **Manual verification**: Run the reproduction example to confirm the fix
+4. **Manual verification**: Verify the fixed flow end-to-end
 5. **Changeset**: Describe what was broken and how it's fixed
 
 ### New Features
