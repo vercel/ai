@@ -2,7 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   type Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
-  type SpeechModelV4,
+  type Experimental_StreamingSpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
@@ -12,6 +12,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
+import { MockStreamingSpeechModelV4 } from '../test/mock-streaming-speech-model-v4';
 import { streamSpeech } from './stream-speech';
 
 vi.mock('../version', () => {
@@ -25,7 +26,7 @@ const mp3 = { type: 'audio/mpeg' };
 
 const createStreamResponse = (
   parts: SpeechModelV4StreamPart[],
-): Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>> => ({
+): Awaited<ReturnType<Experimental_StreamingSpeechModelV4['doStream']>> => ({
   stream: convertArrayToReadableStream(parts),
   response: {
     timestamp: testDate,
@@ -59,7 +60,7 @@ describe('experimental_streamSpeech', () => {
     let capturedArgs: SpeechModelV4StreamOptions | undefined;
 
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async args => {
           capturedArgs = args;
           return createStreamResponse(basicParts);
@@ -115,7 +116,7 @@ describe('experimental_streamSpeech', () => {
     let textChunks: string[] = [];
 
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async args => {
           textChunks = await convertReadableStreamToArray(args.text);
           return createStreamResponse(basicParts);
@@ -130,7 +131,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should stream audio bytes through audioStream', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () => createStreamResponse(basicParts),
       }),
       text: 'Hello world',
@@ -145,7 +146,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should expose audio, raw and error parts through fullStream', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -201,7 +202,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should drop empty audio chunks', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -227,7 +228,7 @@ describe('experimental_streamSpeech', () => {
       { type: 'finish' },
     ] satisfies SpeechModelV4StreamPart[];
     const model = () =>
-      new MockSpeechModelV4({
+      new MockStreamingSpeechModelV4({
         doStream: async () => createStreamResponse(parts),
       });
 
@@ -252,7 +253,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should not count metadata-only audio parts as audio', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -274,7 +275,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should resolve result promises', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             {
@@ -320,7 +321,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should reject when the stream finishes without audio', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -337,7 +338,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should reject when the stream ends without a finish part', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -354,7 +355,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should error audioStream on an error part', async () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -375,7 +376,7 @@ describe('experimental_streamSpeech', () => {
     const text = new ReadableStream<string>({ cancel });
 
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () => {
           throw new Error('connect failed');
         },
@@ -392,7 +393,7 @@ describe('experimental_streamSpeech', () => {
     const cancelModelStream = vi.fn();
 
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async args => {
           signal = args.abortSignal;
           return {
@@ -423,7 +424,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should preserve the response body from doStream and response-metadata parts', async () => {
     const fromDoStream = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () => ({
           ...createStreamResponse(basicParts),
           response: { modelId: 'test-model-id', body: { setup: true } },
@@ -434,7 +435,7 @@ describe('experimental_streamSpeech', () => {
     expect((await fromDoStream.responses)[0].body).toEqual({ setup: true });
 
     const fromPart = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -451,7 +452,7 @@ describe('experimental_streamSpeech', () => {
     // A provider that never reacts to the abort signal.
     const hangingModel = () => {
       let signal: AbortSignal | undefined;
-      const model = new MockSpeechModelV4({
+      const model = new MockStreamingSpeechModelV4({
         doStream: args => {
           signal = args.abortSignal;
           return new Promise(() => {});
@@ -489,7 +490,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should allow only one stream owner', () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () => createStreamResponse(basicParts),
       }),
       text: 'Hi',
@@ -503,7 +504,7 @@ describe('experimental_streamSpeech', () => {
 
   it('should not allow stream access after a result promise', () => {
     const result = streamSpeech({
-      model: new MockSpeechModelV4({
+      model: new MockStreamingSpeechModelV4({
         doStream: async () => createStreamResponse(basicParts),
       }),
       text: 'Hi',
