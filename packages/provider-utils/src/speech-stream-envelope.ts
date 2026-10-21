@@ -8,7 +8,7 @@ import { convertUint8ArrayToBase64 } from './uint8-utils';
 
 /**
  * Experimental speech-stream WebSocket envelope (v1): the standard
- * serialization of `SpeechModelV4.doStream` over a WebSocket. Clients (e.g.
+ * serialization of `Experimental_StreamingSpeechModelV4.doStream` over a WebSocket. Clients (e.g.
  * the `@ai-sdk/gateway` provider) encode with this module and servers (e.g.
  * AI Gateway) decode with it, so the two sides cannot drift.
  *
