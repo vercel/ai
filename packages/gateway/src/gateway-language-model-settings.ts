@@ -271,6 +271,8 @@ export type GatewayModelId =
   | 'sakana/fugu-ultra'
   | 'sakana/fugu-ultra-v2'
   | 'sakana/namazu'
+  | 'scaledown/scaledown-extract-1'
+  | 'scaledown/scaledown-summarize-1'
   | 'spacexai/grok-4.1-fast-non-reasoning'
   | 'spacexai/grok-4.1-fast-reasoning'
   | 'spacexai/grok-4.20-multi-agent'
