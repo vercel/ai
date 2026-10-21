@@ -74,8 +74,10 @@ import {
   truncatePiToolOutputTail,
 } from './pi-tool-result';
 import {
+  piAssistantMessageSchema,
   sessionEntriesOf,
   withSessionId,
+  type PiAssistantMessage,
   type PiCompletedToolResult,
   type PiLifecycleData,
   type PiPendingToolBatch,
@@ -435,6 +437,7 @@ interface ToolBatchReplayBarrier {
 }
 
 interface PiToolBatchReplay {
+  readonly assistantMessage: PiAssistantMessage;
   readonly toolResults: Map<string, PiCompletedToolResult>;
   readonly suppressedToolCallIds: Set<string>;
   readonly hostToolResults: Map<string, HostToolSubmission>;
@@ -793,14 +796,14 @@ export async function createPiSession(
     { approved: boolean; reason?: string }
   >();
   /*
-   * The current assistant message's tool batch. Parallel batches only write
-   * their tool results to the journal after every call finished, so results
-   * of calls that already finished are kept here for checkpoints.
+   * The current assistant message's tool batch. A cold continuation cannot
+   * trust the persisted journal, so checkpoints carry both the host-observed
+   * tool calls and every result that finished before the batch parked.
    */
   let currentToolBatch:
     | {
+        readonly assistantMessage: PiAssistantMessage;
         readonly completed: Map<string, PiCompletedToolResult>;
-        readonly journaled: Set<string>;
       }
     | undefined;
   let currentToolBatchSequential = false;
@@ -874,9 +877,12 @@ export async function createPiSession(
               : [],
           )
         : [];
+      const assistantMessage = piAssistantMessageSchema.safeParse(
+        structuredClone(message),
+      );
       currentToolBatch =
-        toolNames.length > 0
-          ? { completed: new Map(), journaled: new Set() }
+        toolNames.length > 0 && assistantMessage.success
+          ? { assistantMessage: assistantMessage.data, completed: new Map() }
           : undefined;
       const agent = piSession?.agent;
       currentToolBatchSequential =
@@ -887,12 +893,6 @@ export async function createPiSession(
               agent.state.tools.find(tool => tool.name === name)
                 ?.executionMode === 'sequential',
           ));
-      return;
-    }
-    if (event.type === 'message_end' && message?.role === 'toolResult') {
-      if (typeof message.toolCallId === 'string') {
-        currentToolBatch?.journaled.add(message.toolCallId);
-      }
       return;
     }
     if (
@@ -940,11 +940,10 @@ export async function createPiSession(
     const awaitingToolCallIds = [...getWaitingToolCallIds()];
     if (batch == null || awaitingToolCallIds.length === 0) return undefined;
     return {
+      assistantMessage: batch.assistantMessage,
       awaitingToolCallIds,
       completedToolResults: [...batch.completed.values()].filter(
-        result =>
-          !batch.journaled.has(result.toolCallId) &&
-          !awaitingToolCallIds.includes(result.toolCallId),
+        result => !awaitingToolCallIds.includes(result.toolCallId),
       ),
       nativeApprovalDecisions: [],
     };
@@ -1060,6 +1059,7 @@ export async function createPiSession(
             emit: continueOpts.emit,
             abortSignal: continueOpts.abortSignal,
             replay: {
+              assistantMessage: batch.assistantMessage,
               toolResults,
               suppressedToolCallIds: new Set(completed.keys()),
               hostToolResults: deliveredHostResults,
@@ -1088,6 +1088,7 @@ export async function createPiSession(
       awaiting,
       deliveredHostResults,
       toCheckpoint: () => ({
+        assistantMessage: batch.assistantMessage,
         awaitingToolCallIds: [...awaiting],
         completedToolResults: [
           ...completed.values(),
@@ -1439,24 +1440,22 @@ export async function createPiSession(
          * The restored journal must be moved back to before the tool batch
          * before the Pi session builds its transcript from it.
          */
-        const restoredJournal =
-          turnOpts.replay != null && piSession == null && seededEntries != null
-            ? getSessionManager()
-            : undefined;
-        const replayBatch =
-          restoredJournal == null
-            ? undefined
-            : takeToolBatchForReplay({ journal: restoredJournal });
+        const replayBatch = (() => {
+          if (turnOpts.replay == null || piSession != null) return undefined;
+          if (seededEntries == null) {
+            throw new Error(
+              'Pi session journal is missing for the parked tool batch.',
+            );
+          }
+          return takeToolBatchForReplay({
+            journal: getSessionManager(),
+            expectedAssistantMessage: turnOpts.replay.assistantMessage,
+          });
+        })();
         const replayToolResults = new Map(turnOpts.replay?.toolResults);
         const replaySuppressed = new Set(
           turnOpts.replay?.suppressedToolCallIds,
         );
-        for (const result of replayBatch?.journaledToolResults ?? []) {
-          if (!replayToolResults.has(result.toolCallId)) {
-            replayToolResults.set(result.toolCallId, result);
-            replaySuppressed.add(result.toolCallId);
-          }
-        }
 
         if (nextModel != null) activeResolvedModel = nextModel;
 

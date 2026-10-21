@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
+import type { PiAssistantMessage } from './pi-lifecycle-state';
 import {
   runToolBatchReplay,
   takeToolBatchForReplay,
   type PiAgent,
-  type PiAssistantMessage,
 } from './pi-tool-batch';
 
 function journalOf(messages: unknown[]) {
@@ -35,7 +35,7 @@ const assistant = {
 };
 
 describe('takeToolBatchForReplay', () => {
-  it('moves the journal before the batch and returns journaled results', () => {
+  it('moves the journal before the batch and returns the expected message', () => {
     const journal = journalOf([
       { role: 'user', content: 'go' },
       assistant,
@@ -48,35 +48,90 @@ describe('takeToolBatchForReplay', () => {
       },
     ]);
 
-    const batch = takeToolBatchForReplay({ journal });
+    const batch = takeToolBatchForReplay({
+      journal,
+      expectedAssistantMessage: assistant as unknown as PiAssistantMessage,
+    });
 
     expect(journal.branch).toHaveBeenCalledWith('entry-0');
-    expect(batch?.assistantMessage).toMatchObject({
+    expect(batch.assistantMessage).toMatchObject({
       content: assistant.content,
       usage: { input: 0, output: 0, cost: { total: 0 } },
     });
     expect(assistant.usage.input).toBe(3);
-    expect(batch?.journaledToolResults).toEqual([
-      {
-        toolCallId: 'a',
-        result: {
-          content: [{ type: 'text', text: 'file' }],
-          details: { path: 'x' },
-        },
-        isError: false,
-      },
-    ]);
+    expect(batch).not.toHaveProperty('journaledToolResults');
   });
 
   it('resets the leaf when the batch message is the first entry', () => {
     const journal = journalOf([assistant]);
-    takeToolBatchForReplay({ journal });
+    takeToolBatchForReplay({
+      journal,
+      expectedAssistantMessage: assistant as unknown as PiAssistantMessage,
+    });
     expect(journal.resetLeaf).toHaveBeenCalledOnce();
   });
 
-  it('returns undefined without a tool batch', () => {
+  it('throws without a tool batch', () => {
     const journal = journalOf([{ role: 'user', content: 'go' }]);
-    expect(takeToolBatchForReplay({ journal })).toBeUndefined();
+    expect(() =>
+      takeToolBatchForReplay({
+        journal,
+        expectedAssistantMessage: assistant as unknown as PiAssistantMessage,
+      }),
+    ).toThrow('Pi session journal is missing the parked tool batch.');
+    expect(journal.branch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: 'an added tool call',
+      content: [
+        ...assistant.content,
+        {
+          type: 'toolCall',
+          id: 'c',
+          name: 'lookupSecret',
+          arguments: { name: 'prod-db-root' },
+        },
+      ],
+    },
+    {
+      name: 'changed arguments for an existing tool call ID',
+      content: [
+        assistant.content[0],
+        {
+          ...assistant.content[1],
+          arguments: { city: 'Paris' },
+        },
+      ],
+    },
+    {
+      name: 'reordered tool calls',
+      content: [assistant.content[1], assistant.content[0]],
+    },
+    {
+      name: 'a missing tool call',
+      content: [assistant.content[0]],
+    },
+    {
+      name: 'a renamed tool call',
+      content: [
+        assistant.content[0],
+        { ...assistant.content[1], name: 'lookupSecret' },
+      ],
+    },
+  ])('throws when the journal has $name', ({ content }) => {
+    const journal = journalOf([
+      { role: 'user', content: 'go' },
+      { ...assistant, content },
+    ]);
+
+    expect(() =>
+      takeToolBatchForReplay({
+        journal,
+        expectedAssistantMessage: assistant as unknown as PiAssistantMessage,
+      }),
+    ).toThrow('Pi session journal does not match the parked tool batch.');
     expect(journal.branch).not.toHaveBeenCalled();
   });
 });
