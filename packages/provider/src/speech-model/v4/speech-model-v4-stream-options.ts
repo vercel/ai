@@ -13,6 +13,13 @@ export type SpeechModelV4StreamOptions = {
    * input transport forward deltas as they arrive; providers that only
    * accept complete text read the stream to completion before synthesis.
    * The end of the stream signals the end of the input text.
+   *
+   * The provider owns the stream once `doStream` is called. It must release
+   * it in every terminal path: cancel it (or its locked reader) when the
+   * abort signal fires, when the consumer cancels the returned stream, when
+   * setup fails before or after the stream is locked, and when the provider
+   * fails. Leaving it unread and uncancelled keeps the caller's text producer
+   * running indefinitely. After a normal finish the stream is fully read.
    */
   text: ReadableStream<string>;
 

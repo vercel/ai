@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   type SpeechModelV4,
@@ -247,6 +248,18 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
   async doStream(
     options: SpeechModelV4StreamOptions,
   ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
+    try {
+      return await this.startStream(options);
+    } catch (error) {
+      // The provider owns the text stream once doStream is called.
+      await options.text.cancel(error).catch(() => {});
+      throw error;
+    }
+  }
+
+  private async startStream(
+    options: SpeechModelV4StreamOptions,
+  ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
     if (!supportsTextToSpeechWebSocket(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `streaming speech with ${this.modelId}`,
@@ -259,6 +272,17 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
       providerOptions: options.providerOptions,
       schema: elevenLabsSpeechModelOptionsSchema,
     });
+    // The WebSocket API rejects locators without a version, unlike HTTP.
+    const unversionedLocator =
+      elevenLabsOptions?.pronunciationDictionaryLocators?.find(
+        locator => !locator.versionId,
+      );
+    if (unversionedLocator != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.elevenlabs.pronunciationDictionaryLocators',
+        message: `Streaming speech requires a versionId for pronunciation dictionary "${unversionedLocator.pronunciationDictionaryId}".`,
+      });
+    }
     const warnings = getStreamWarnings(options, elevenLabsOptions);
     const outputFormat = toElevenLabsOutputFormat(
       options.outputFormat ?? defaultOutputFormat,
@@ -343,7 +367,7 @@ function getStreamInitMessage(
     ...(locators != null && {
       pronunciation_dictionary_locators: locators.map(locator => ({
         pronunciation_dictionary_id: locator.pronunciationDictionaryId,
-        ...(locator.versionId && { version_id: locator.versionId }),
+        version_id: locator.versionId,
       })),
     }),
   };
