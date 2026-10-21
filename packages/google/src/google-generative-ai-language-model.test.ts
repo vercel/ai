@@ -987,8 +987,8 @@ describe('doGenerate', () => {
 
       expect(usage).toEqual({
         inputTokens: {
-          total: 12,
-          noCache: 8,
+          total: 77,
+          noCache: 73,
           cacheRead: 4,
           cacheWrite: undefined,
         },
@@ -6241,8 +6241,8 @@ describe('doStream', () => {
 
     expect(finishEvent?.usage).toEqual({
       inputTokens: {
-        total: 12,
-        noCache: 8,
+        total: 77,
+        noCache: 73,
         cacheRead: 4,
         cacheWrite: undefined,
       },
