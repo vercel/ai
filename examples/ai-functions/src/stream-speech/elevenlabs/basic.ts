@@ -1,17 +1,7 @@
-import {
-  createElevenLabs,
-  type ElevenLabsProviderSettings,
-} from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { experimental_streamSpeech as streamSpeech } from 'ai';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { WebSocket } from 'ws';
 import { run } from '../../lib/run';
-
-// ElevenLabs authenticates the WebSocket with a header, which the native
-// WebSocket in Node.js, browsers, Deno, and Bun cannot send.
-const elevenLabs = createElevenLabs({
-  webSocket: WebSocket as unknown as ElevenLabsProviderSettings['webSocket'],
-});
 
 async function* textDeltas() {
   for (const delta of [

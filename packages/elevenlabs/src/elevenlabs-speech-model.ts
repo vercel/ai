@@ -26,7 +26,6 @@ import {
 import {
   createDialogueProtocol,
   createElevenLabsSpeechStream,
-  createMultiContextProtocol,
   createSingleContextProtocol,
   getElevenLabsAudioFormat,
   type ElevenLabsStreamProtocol,
@@ -94,6 +93,14 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
       providerOptions,
       schema: elevenLabsSpeechModelOptionsSchema,
     });
+    for (const option of ['streaming', 'dialogue'] as const) {
+      if (elevenLabsOptions?.[option] != null) {
+        throw new InvalidArgumentError({
+          argument: `providerOptions.elevenlabs.${option}`,
+          message: `providerOptions.elevenlabs.${option} applies only to streaming speech (experimental_streamSpeech), not generateSpeech.`,
+        });
+      }
+    }
 
     // Create request body
     const requestBody: ElevenLabsSpeechAPITypes = {
@@ -297,14 +304,6 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
         message: `eleven_v3_conversational supports exactly one dialogue voice; received ${dialogue.voices.length}.`,
       });
     }
-    if (dialogue != null && streaming?.contextId != null) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message:
-          'providerOptions.elevenlabs.dialogue cannot be combined with streaming.contextId',
-      });
-    }
-
     // The WebSocket API rejects locators without a version, unlike HTTP.
     const unversionedLocator =
       elevenLabsOptions?.pronunciationDictionaryLocators?.find(
@@ -325,9 +324,7 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
     const path =
       dialogue != null
         ? '/v1/text-to-dialogue/stream-input'
-        : streaming?.contextId != null
-          ? `${voicePath}/multi-stream-input`
-          : `${voicePath}/stream-input`;
+        : `${voicePath}/stream-input`;
     const url = toWebSocketUrl(
       this.config.url({ path, modelId: this.modelId }),
     );
@@ -370,12 +367,17 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
         incremental: this.modelId.startsWith('eleven_v4'),
       });
     } else {
-      const initMessage = getStreamInitMessage(options, elevenLabsOptions);
-      protocol =
-        streaming?.contextId != null
-          ? createMultiContextProtocol(initMessage, streaming.contextId)
-          : createSingleContextProtocol(initMessage);
+      protocol = createSingleContextProtocol(
+        getStreamInitMessage(options, elevenLabsOptions),
+      );
     }
+
+    // The API key goes in the init message (not a header) so native
+    // WebSockets work; it is kept out of the reported request body.
+    const { 'xi-api-key': apiKey, ...headers } = combineHeaders(
+      this.config.headers?.(),
+      options.headers,
+    );
 
     return {
       request: {
@@ -384,8 +386,12 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
       response: { timestamp: currentDate, modelId: this.modelId },
       stream: createElevenLabsSpeechStream({
         abortSignal: options.abortSignal,
+        apiKey,
         audioFormat: getElevenLabsAudioFormat(outputFormat),
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers,
+        // Text-to-Dialogue always times out after 20 s of inactivity.
+        inactivityTimeoutSeconds:
+          dialogue == null ? streaming?.inactivityTimeout : undefined,
         includeRawChunks: options.includeRawChunks,
         protocol,
         text: options.text,

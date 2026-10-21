@@ -39,8 +39,6 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
       streaming: z
         .object({
           autoMode: z.boolean().optional(),
-          // Uses the multi-context WebSocket with this single context id.
-          contextId: z.string().min(1).optional(),
           chunkLengthSchedule: z
             .array(z.number().min(50).max(500))
             .min(1)

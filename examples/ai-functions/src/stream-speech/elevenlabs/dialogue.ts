@@ -1,15 +1,7 @@
-import {
-  createElevenLabs,
-  type ElevenLabsProviderSettings,
-} from '@ai-sdk/elevenlabs';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
 import { experimental_streamSpeech as streamSpeech } from 'ai';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { WebSocket } from 'ws';
 import { run } from '../../lib/run';
-
-const elevenLabs = createElevenLabs({
-  webSocket: WebSocket as unknown as ElevenLabsProviderSettings['webSocket'],
-});
 
 const alice = '21m00Tcm4TlvDq8ikWAM';
 const bob = 'pNInz6obpgDQGcFmaJgB';

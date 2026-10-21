@@ -112,9 +112,9 @@ describe('ElevenLabsSpeechModel.doStream', () => {
     expect(String(socket.url)).toBe(
       'wss://api.elevenlabs.io/v1/text-to-speech/voice-1/stream-input?model_id=eleven_flash_v2_5&output_format=pcm_24000&language_code=en&inactivity_timeout=60&sync_alignment=true&auto_mode=true&apply_text_normalization=off&seed=7',
     );
-    expect(socket.options?.headers).toMatchObject({
-      'xi-api-key': 'test-api-key',
-    });
+    // Authenticated in the init message, so native WebSockets work too.
+    expect(socket.options?.headers).not.toHaveProperty('xi-api-key');
+    expect(JSON.stringify(result.request)).not.toContain('test-api-key');
 
     socket.open();
     await flush();
@@ -125,6 +125,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
         text: ' ',
         voice_settings: { stability: 0.4, similarity_boost: 0.8, speed: 1.1 },
         generation_config: { chunk_length_schedule: [50, 120] },
+        'xi-api-key': 'test-api-key',
       },
       { text: 'Hello ' },
       { text: 'wörld 👋 ' },
@@ -163,6 +164,98 @@ describe('ElevenLabsSpeechModel.doStream', () => {
       { type: 'finish', usage: { inputCharacters: 14 } },
     ]);
     expect(socket.close).toHaveBeenCalledWith(1000);
+  });
+
+  it('should hold partial words until a word boundary and flush the rest at the end', async () => {
+    const result = await createModel().doStream({
+      text: convertArrayToReadableStream([
+        'Hel',
+        'lo wor',
+        'ld, how a',
+        're',
+        ' you',
+      ]),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { text: 'Hello ' },
+      { text: 'world, how ' },
+      { text: 'are ' },
+      { text: 'you' },
+      { text: '' },
+    ]);
+
+    socket.message({ audio: 'AQI=' });
+    socket.message({ isFinal: true });
+    const parts = await convertReadableStreamToArray(result.stream);
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      usage: { inputCharacters: 24 },
+    });
+  });
+
+  it('should not hold text without spaces indefinitely', async () => {
+    await createModel().doStream({
+      text: convertArrayToReadableStream([
+        'こんにちは',
+        '世界。次',
+        'x'.repeat(100),
+      ]),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { text: 'こんにちは世界。' },
+      { text: `次${'x'.repeat(100)}` },
+      { text: '' },
+    ]);
+  });
+
+  it('should send keepalives while the text stream is idle', async () => {
+    vi.useFakeTimers();
+    try {
+      let releaseText: (() => void) | undefined;
+      const text = new ReadableStream<string>({
+        async pull(controller) {
+          controller.enqueue('Thinking... ');
+          await new Promise<void>(resolve => {
+            releaseText = resolve;
+          });
+          controller.close();
+        },
+      });
+      await createModel().doStream({
+        text,
+        providerOptions: {
+          elevenlabs: { streaming: { inactivityTimeout: 20 } },
+        },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(socket.sentMessages().slice(1)).toEqual([
+        { text: 'Thinking... ' },
+      ]);
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(socket.sentMessages().slice(1)).toEqual([
+        { text: 'Thinking... ' },
+        { text: ' ' },
+      ]);
+
+      releaseText?.();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(socket.sentMessages().at(-1)).toEqual({ text: '' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should default the voice and output format', async () => {
@@ -333,50 +426,6 @@ describe('ElevenLabsSpeechModel.doStream', () => {
   );
 });
 
-describe('ElevenLabsSpeechModel.doStream (multi-context)', () => {
-  beforeEach(() => {
-    MockWebSocket.instances = [];
-  });
-
-  it('tags every message with the context id and closes the context', async () => {
-    const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hello ', 'there.']),
-      voice: 'voice-1',
-      providerOptions: { elevenlabs: { streaming: { contextId: 'ctx-1' } } },
-    });
-    const socket = lastSocket();
-    expect(String(socket.url)).toBe(
-      'wss://api.elevenlabs.io/v1/text-to-speech/voice-1/multi-stream-input?model_id=eleven_flash_v2_5&output_format=mp3_44100_128',
-    );
-    socket.open();
-    await flush();
-    await flush();
-    expect(socket.sentMessages()).toEqual([
-      { text: ' ', context_id: 'ctx-1' },
-      { text: 'Hello ', context_id: 'ctx-1' },
-      { text: 'there.', context_id: 'ctx-1' },
-      { context_id: 'ctx-1', flush: true },
-      { context_id: 'ctx-1', close_context: true },
-    ]);
-
-    socket.message({ audio: 'AQI=', contextId: 'other' });
-    socket.message({ audio: 'AwQ=', contextId: 'ctx-1' });
-    socket.message({ isFinal: true, contextId: 'ctx-1' });
-
-    expect(await convertReadableStreamToArray(result.stream)).toEqual([
-      { type: 'stream-start', warnings: [] },
-      {
-        type: 'audio',
-        audio: 'AwQ=',
-        audioFormat: { type: 'audio/mpeg', rate: 44100 },
-        providerMetadata: { elevenlabs: { contextId: 'ctx-1' } },
-      },
-      { type: 'finish', usage: { inputCharacters: 12 } },
-    ]);
-    expect(socket.sentMessages().at(-1)).toEqual({ close_socket: true });
-  });
-});
-
 describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
@@ -405,7 +454,11 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     await flush();
     await flush();
     expect(socket.sentMessages()).toEqual([
-      { voice_settings: { stability: 0.5 }, voices: ['a', 'b'] },
+      {
+        voice_settings: { stability: 0.5 },
+        voices: ['a', 'b'],
+        xi_api_key: 'test-api-key',
+      },
       { inputs: [{ text: 'Hi there. ', voice_id: 'a', new_turn: true }] },
       { inputs: [{ text: 'Hello 👋 ', voice_id: 'b', new_turn: true }] },
       { inputs: [{ text: 'friend.', voice_id: 'b' }] },
@@ -460,7 +513,7 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     await flush();
     await flush();
     expect(socket.sentMessages()).toEqual([
-      { voices: ['a'] },
+      { voices: ['a'], xi_api_key: 'test-api-key' },
       {
         inputs: [
           { text: 'Hello ', voice_id: 'a' },
@@ -502,26 +555,46 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     );
   });
 
-  it('rejects dialogue on non-dialogue models and with a context id', async () => {
+  it('rejects dialogue on non-dialogue models', async () => {
     await expect(
       createModel('eleven_flash_v2_5').doStream({
         text: convertArrayToReadableStream(['Hi']),
         providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
       }),
     ).rejects.toThrow(UnsupportedFunctionalityError);
-    await expect(
-      createModel('eleven_v4').doStream({
-        text: convertArrayToReadableStream(['Hi']),
-        providerOptions: {
-          elevenlabs: {
-            dialogue: { voices: ['a'] },
-            streaming: { contextId: 'c' },
-          },
+  });
+
+  it('sends keep_alive while a buffered v3 script waits for more text', async () => {
+    vi.useFakeTimers();
+    try {
+      let releaseText: (() => void) | undefined;
+      const text = new ReadableStream<string>({
+        async pull(controller) {
+          controller.enqueue('Hello there. ');
+          await new Promise<void>(resolve => {
+            releaseText = resolve;
+          });
+          controller.close();
         },
-      }),
-    ).rejects.toThrow(
-      'providerOptions.elevenlabs.dialogue cannot be combined with streaming.contextId',
-    );
+      });
+      await createModel('eleven_v3').doStream({
+        text,
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(socket.sentMessages().slice(1)).toEqual([{ keep_alive: true }]);
+
+      releaseText?.();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(socket.sentMessages().at(-1)).toEqual({
+        inputs: [{ text: 'Hello there. ', voice_id: 'a' }],
+        close_socket: true,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

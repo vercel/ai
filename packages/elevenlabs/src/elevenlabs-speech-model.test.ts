@@ -34,6 +34,29 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should reject streaming-only options', async () => {
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
+        }),
+      ).rejects.toThrow(
+        'providerOptions.elevenlabs.streaming applies only to streaming speech',
+      );
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should reject dialogue options', async () => {
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+        }),
+      ).rejects.toThrow(
+        'providerOptions.elevenlabs.dialogue applies only to streaming speech',
+      );
+    });
+
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 
