@@ -810,9 +810,9 @@ describe('collectToolApprovals', () => {
       expect(collect([denial, response1])).toEqual([denial]);
     });
 
-    it('should collect different approval IDs for the same tool call separately', () => {
+    it('should collect one response per tool call across approval IDs', () => {
       const response2 = { ...response1, approvalId: 'approval-2' };
-      expect(collect([response1, response2])).toEqual([response1, response2]);
+      expect(collect([response1, response2])).toEqual([response1]);
     });
 
     it('should collect a denial with an existing execution-denied result once', () => {
