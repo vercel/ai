@@ -9,6 +9,9 @@ import {
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   type ParseResult,
   combineHeaders,
@@ -284,7 +287,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
+          ParseResult<InferSchema<typeof groqChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
@@ -518,94 +521,102 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const groqChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({
-          cached_tokens: z.number().nullish(),
-        })
-        .nullish(),
-    })
-    .nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
             content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
-                  index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function'),
                   function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+                    name: z.string(),
+                    arguments: z.string(),
                   }),
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
-      }),
-    ),
-    x_groq: z
-      .object({
-        usage: z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-            total_tokens: z.number().nullish(),
-            prompt_tokens_details: z
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const groqChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      z.object({
+        id: z.string().nullish(),
+        created: z.number().nullish(),
+        model: z.string().nullish(),
+        choices: z.array(
+          z.object({
+            delta: z
               .object({
-                cached_tokens: z.number().nullish(),
+                content: z.string().nullish(),
+                reasoning: z.string().nullish(),
+                tool_calls: z
+                  .array(
+                    z.object({
+                      index: z.number(),
+                      id: z.string().nullish(),
+                      type: z.literal('function').optional(),
+                      function: z.object({
+                        name: z.string().nullish(),
+                        arguments: z.string().nullish(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
+              })
+              .nullish(),
+            finish_reason: z.string().nullable().optional(),
+            index: z.number(),
+          }),
+        ),
+        x_groq: z
+          .object({
+            usage: z
+              .object({
+                prompt_tokens: z.number().nullish(),
+                completion_tokens: z.number().nullish(),
+                total_tokens: z.number().nullish(),
+                prompt_tokens_details: z
+                  .object({
+                    cached_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
               })
               .nullish(),
           })
           .nullish(),
-      })
-      .nullish(),
-  }),
-  groqErrorDataSchema,
-]);
+      }),
+      groqErrorDataSchema,
+    ]),
+  ),
+);
