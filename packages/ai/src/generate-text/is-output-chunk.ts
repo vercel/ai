@@ -25,6 +25,7 @@ const isOutputChunkType = {
   'tool-result': false,
   'tool-error': false,
   'tool-output-denied': false,
+  'tool-output-not-run': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,

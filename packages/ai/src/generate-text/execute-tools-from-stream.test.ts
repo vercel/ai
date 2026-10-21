@@ -341,7 +341,7 @@ describe('executeToolsFromStream', () => {
           },
         ]);
 
-      await convertReadableStreamToArray(
+      const parts = await convertReadableStreamToArray(
         executeToolsFromStream({
           stream: inputStream,
           generateId: mockId({ prefix: 'id' }),
@@ -356,8 +356,54 @@ describe('executeToolsFromStream', () => {
       );
 
       expect(execute).not.toHaveBeenCalled();
+      expect(parts).toContainEqual({
+        type: 'tool-output-not-run',
+        toolCallId: 'call-1',
+        finishReason,
+      });
     },
   );
+
+  it('should not mark client-executed tools as not run', async () => {
+    const tools = {
+      clientTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'clientTool',
+          input: { value: 'test' },
+        },
+        {
+          ...finishChunk,
+          finishReason: 'length',
+          rawFinishReason: 'length',
+        },
+      ]);
+
+    const parts = await convertReadableStreamToArray(
+      executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+      }),
+    );
+
+    expect(parts).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-output-not-run' }),
+    );
+  });
 
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {

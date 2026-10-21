@@ -966,6 +966,13 @@ function renderToolInvocation(
         rightTitle: status,
         content: `${inputText}\n\nReason: ${part.approval.reason ?? 'denied'}`,
       };
+    case 'output-not-run':
+      return {
+        kind: 'tool',
+        title: `Tool Not Run · ${part.title ?? toolName}`,
+        rightTitle: status,
+        content: `${inputText}\n\nFinish reason: ${part.finishReason}`,
+      };
   }
 }
 
@@ -1049,6 +1056,7 @@ function finishesToolExecution(chunk: UIMessageChunk) {
     case 'tool-output-available':
     case 'tool-output-error':
     case 'tool-output-denied':
+    case 'tool-output-not-run':
       return true;
     default:
       return false;
@@ -1070,6 +1078,8 @@ function toolStatus(part: ToolUIPart | DynamicToolUIPart) {
       return 'done';
     case 'output-denied':
       return 'denied';
+    case 'output-not-run':
+      return 'not run';
   }
 }
 

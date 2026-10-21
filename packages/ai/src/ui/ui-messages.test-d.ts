@@ -96,6 +96,27 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
+  it('represents static and dynamic tool calls that the SDK did not run', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'output-not-run';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      finishReason: 'length';
+    };
+    type _Static = AssertAssignable<ToolUIPart<TestTools>, StaticPart>;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      state: 'output-not-run';
+      toolCallId: 'call-2';
+      toolName: 'weather';
+      input: { city: 'Tokyo' };
+      finishReason: 'content-filter';
+    };
+    type _Dynamic = AssertAssignable<DynamicToolUIPart, DynamicPart>;
+  });
+
   it('keeps approval request and response reasons distinct', () => {
     type RequestedPart = {
       type: 'tool-weather';

@@ -194,9 +194,24 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         errorText: string;
         providerExecuted?: boolean;
       }
+    | {
+        state: 'output-not-run';
+        input: TOOLS[NAME]['input'];
+        output?: never;
+        errorText?: never;
+        finishReason: FinishReason;
+        providerExecuted?: boolean;
+      }
   );
 }>;
 ```
+
+`output-not-run` is a terminal state for tool calls that the SDK deliberately
+did not execute because the containing model step ended with an unsafe finish
+reason such as `length`, `content-filter`, `error`, or `other`. The normalized
+finish reason is available as `finishReason`, so a UI can render a message such
+as “Not run (output limit)” for `length`. This state is distinct from
+`output-error`, which means tool execution was attempted and failed.
 
 `approval.descriptor` contains optional opaque metadata supplied as
 `approvalDescriptor` on the approval request stream chunk. It is preserved when

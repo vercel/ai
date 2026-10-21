@@ -27,6 +27,12 @@ For guidance on `runtimeContext`, `toolsContext`, tool `context`, and sensitive
 context filtering, see [Runtime and Tool
 Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
+When a model emits an executable tool call but ends the step with an unsafe
+finish reason, `streamText` does not execute the tool. The full stream emits a
+`tool-output-not-run` part, and `toUIMessageStream()` forwards the tool call ID
+and normalized finish reason so UI messages can render the distinct
+`output-not-run` state.
+
 To see `streamText` in action, check out [these examples](#examples).
 
 For outputs that you only need to consume once, consider

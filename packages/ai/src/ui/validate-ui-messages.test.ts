@@ -804,6 +804,10 @@ describe('validateUIMessages', () => {
           input: { value: 'test' },
           approval: { id: 'output-denied', approved: false },
         },
+        'output-not-run': {
+          input: { value: 'test' },
+          finishReason: 'length',
+        },
       };
       const parts = Object.entries(stateDetails).flatMap(([state, details]) => [
         {
@@ -834,6 +838,29 @@ describe('validateUIMessages', () => {
       });
 
       expect(messages[0].parts).toEqual(parts);
+    });
+
+    it('should reject an output-not-run tool part with an unknown finish reason', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'output-not-run',
+                  input: { value: 'test' },
+                  finishReason: 'max_tokens',
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow(/Invalid enum value|Invalid option/);
     });
 
     it('should validate an assistant message with a dynamic tool part in input-streaming state', async () => {
