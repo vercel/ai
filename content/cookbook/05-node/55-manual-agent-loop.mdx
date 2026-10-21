@@ -232,6 +232,17 @@ for (const toolCall of toolCalls) {
 }
 ```
 
+If you add an approval policy, resuming an approved call requires an extra step
+because this recipe deliberately omits `execute`. Before calling `main()` again,
+execute the approved historical call using its validated original input and
+append its `tool-result` to `messages` together with the approved
+`tool-approval-response`. Use the original `toolCallId` and `toolName` for the
+result. An approval response alone is insufficient: `staticToolCalls` only
+contains newly generated calls, so the manual executor below `streamText`
+cannot supply a missing result for a call from the input history. Do not execute
+pending or denied calls. Alternatively, provide an `execute` function and let
+the SDK handle execution of approved calls.
+
 ### Loop Termination
 
 The loop continues when every client-side tool call has a corresponding result
