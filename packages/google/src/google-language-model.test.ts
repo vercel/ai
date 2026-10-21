@@ -7219,6 +7219,102 @@ describe('doStream', () => {
     ]);
   });
 
+  it.each(['empty', 'partial', 'complete', 'request-error'] as const)(
+    'tracks a %s continuation in stream order under backpressure',
+    async ending => {
+      const firstChunk = {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello' }] },
+            finishReason: 'CONTINUATION',
+            continuationToken: 'token-1',
+          },
+        ],
+        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+      };
+      const continuedChunks =
+        ending === 'empty' || ending === 'request-error'
+          ? []
+          : [
+              {
+                candidates: [
+                  {
+                    content: { parts: [{ text: ', world' }] },
+                    ...(ending === 'complete' ? { finishReason: 'STOP' } : {}),
+                  },
+                ],
+                usageMetadata: {
+                  promptTokenCount: 20,
+                  candidatesTokenCount: 2,
+                },
+              },
+            ];
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [`data: ${JSON.stringify(firstChunk)}\n\n`],
+        },
+        ending === 'request-error'
+          ? {
+              type: 'error',
+              status: 400,
+              body: JSON.stringify({
+                error: { code: 400, message: 'Invalid continuation token' },
+              }),
+            }
+          : {
+              type: 'stream-chunks',
+              chunks: continuedChunks.map(
+                chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+              ),
+            },
+      ];
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      // Leave output unread until the continuation starts. The first response's
+      // CONTINUATION chunk is still buffered ahead of the new response.
+      await vi.waitFor(() => expect(server.calls).toHaveLength(2));
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta),
+      ).toEqual(continuedChunks.length > 0 ? ['Hello', ', world'] : ['Hello']);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'request-error' ? 1 : 0,
+      );
+      expect(
+        parts
+          .filter(part => part.type === 'raw' && part.rawValue != null)
+          .map(part => part.type === 'raw' && part.rawValue),
+      ).toEqual([firstChunk, ...continuedChunks]);
+      const finish = parts.find(part => part.type === 'finish');
+      expect(finish?.finishReason).toEqual(
+        ending === 'complete'
+          ? { unified: 'stop', raw: 'STOP' }
+          : ending === 'request-error'
+            ? { unified: 'length', raw: 'CONTINUATION' }
+            : { unified: 'interrupted', raw: undefined },
+      );
+      expect(finish?.usage.inputTokens.total).toBe(
+        continuedChunks.length > 0 ? 30 : 10,
+      );
+      expect(finish?.usage.outputTokens.total).toBe(
+        continuedChunks.length > 0 ? 7 : 5,
+      );
+      if (ending === 'request-error') {
+        expect(finish?.providerMetadata?.google.continuationToken).toBe(
+          'token-1',
+        );
+      }
+    },
+  );
+
   it('should continue the stream automatically on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
       {
