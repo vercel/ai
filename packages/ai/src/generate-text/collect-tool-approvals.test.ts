@@ -804,9 +804,10 @@ describe('collectToolApprovals', () => {
       },
     );
 
-    it('should collect conflicting decisions separately', () => {
+    it('should keep the first of conflicting decisions', () => {
       const denial = { ...response1, approved: false };
-      expect(collect([response1, denial])).toEqual([response1, denial]);
+      expect(collect([response1, denial])).toEqual([response1]);
+      expect(collect([denial, response1])).toEqual([denial]);
     });
 
     it('should collect different approval IDs for the same tool call separately', () => {

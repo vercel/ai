@@ -88,7 +88,7 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 
   const approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
   const deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
-  const collectedDecisions = new Set<string>();
+  const collectedApprovalIds = new Set<string>();
 
   const approvalResponses = lastMessage.content.filter(
     part => part.type === 'tool-approval-response',
@@ -120,12 +120,13 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       });
     }
 
-    // Ignore replays of a decision that was already collected for this approval.
-    const decisionKey = `${approvalResponse.approved}:${approvalResponse.approvalId}`;
-    if (collectedDecisions.has(decisionKey)) {
+    // Only the first response for an approval is collected. Later responses
+    // (replays or conflicting decisions) would otherwise execute the tool twice
+    // or both execute and deny it.
+    if (collectedApprovalIds.has(approvalResponse.approvalId)) {
       continue;
     }
-    collectedDecisions.add(decisionKey);
+    collectedApprovalIds.add(approvalResponse.approvalId);
 
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,

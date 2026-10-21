@@ -23,9 +23,14 @@ const usage: LanguageModelV4Usage = {
 describe.each(['generateText', 'streamText'] as const)(
   '%s approved tool continuation',
   api => {
-    it.each([true, false])(
-      'should process identical approval responses once when approved is %s',
-      async approved => {
+    it.each([
+      { approved: true, replayApproved: true },
+      { approved: false, replayApproved: false },
+      { approved: true, replayApproved: false },
+      { approved: false, replayApproved: true },
+    ])(
+      'should process only the first of repeated approval responses: %j',
+      async ({ approved, replayApproved }) => {
         const execute = vi.fn(async () => 'saved');
         const approvalResponse = {
           type: 'tool-approval-response' as const,
@@ -52,7 +57,10 @@ describe.each(['generateText', 'streamText'] as const)(
           },
           {
             role: 'tool',
-            content: [approvalResponse, { ...approvalResponse }],
+            content: [
+              approvalResponse,
+              { ...approvalResponse, approved: replayApproved },
+            ],
           },
         ];
         const originalMessages = structuredClone(messages);
