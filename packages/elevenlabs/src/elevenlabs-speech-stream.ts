@@ -397,10 +397,15 @@ export function createElevenLabsSpeechStream({
             return;
           }
 
-          if (event.audio != null) {
+          // Turn boundaries arrive as standalone frames, so they are emitted
+          // as metadata-only (empty) audio parts.
+          if (
+            event.audio != null ||
+            event.providerMetadata?.isFinalAudioForTurn === true
+          ) {
             controller.enqueue({
               type: 'audio',
-              audio: event.audio,
+              audio: event.audio ?? '',
               audioFormat,
               ...(event.providerMetadata != null && {
                 providerMetadata: { elevenlabs: event.providerMetadata },

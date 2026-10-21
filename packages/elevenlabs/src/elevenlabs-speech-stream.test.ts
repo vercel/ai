@@ -439,6 +439,12 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
           },
         },
       },
+      {
+        type: 'audio',
+        audio: '',
+        audioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerMetadata: { elevenlabs: { isFinalAudioForTurn: true } },
+      },
       // markers are not billed: 'Hi there. ' (10) + 'Hello 👋 ' (8) + 'friend.' (7)
       { type: 'finish', usage: { inputCharacters: 25 } },
     ]);
@@ -463,6 +469,19 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
         close_socket: true,
       },
     ]);
+  });
+
+  it('rejects more than one voice for eleven_v3_conversational before connecting', async () => {
+    const cancel = vi.fn();
+    const socketsBefore = MockWebSocket.instances.length;
+    await expect(
+      createModel('eleven_v3_conversational').doStream({
+        text: new ReadableStream<string>({ cancel }),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+    expect(MockWebSocket.instances.length).toBe(socketsBefore);
+    expect(cancel).toHaveBeenCalled();
   });
 
   it('errors on server error frames', async () => {
