@@ -524,7 +524,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
       isOptional: true,
       description:
-        'Callback invoked when an agent step that started fails before it produces a step result, for example when the provider call fails or the model stream ends without output. `onStepEnd` is not called for such a step. The event has `callId`, `provider`, `modelId`, `stepNumber`, and `error`. Not called when the call is aborted or times out. Only available in the constructor.',
+        'Callback invoked when an agent step that started fails before it produces a step result, for example when the provider call fails or the model stream ends without output. `onStepEnd` is not called for such a step. The event contains all properties of the `onStepStart` event of the step that failed, plus `error`. Not called when the call is aborted or times out. Only available in the constructor.',
     },
     {
       name: 'onError',

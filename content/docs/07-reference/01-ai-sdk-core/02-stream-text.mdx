@@ -1738,25 +1738,10 @@ retain the content their contracts require.
           type: 'GenerateTextStepErrorEvent',
           parameters: [
             {
-              name: 'callId',
-              type: 'string',
+              name: '...GenerateTextStepStartEvent',
+              type: 'GenerateTextStepStartEvent',
               description:
-                'Unique identifier for this generation call, used to correlate events.',
-            },
-            {
-              name: 'provider',
-              type: 'string',
-              description: 'The provider identifier.',
-            },
-            {
-              name: 'modelId',
-              type: 'string',
-              description: 'The model identifier.',
-            },
-            {
-              name: 'stepNumber',
-              type: 'number',
-              description: 'Zero-based index of the step that failed.',
+                'All properties of the `onStepStart` event of the step that failed, such as `callId`, `stepNumber`, `steps`, `messages`, `runtimeContext`, and `toolsContext`.',
             },
             {
               name: 'error',
