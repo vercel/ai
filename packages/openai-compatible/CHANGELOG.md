@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.87
+
+### Patch Changes
+
+- 81df039: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 2.0.86
 
 ### Patch Changes

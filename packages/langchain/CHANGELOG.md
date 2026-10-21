@@ -1,5 +1,15 @@
 # @ai-sdk/langchain
 
+## 2.0.320
+
+### Patch Changes
+
+- 26f647b: fix(langchain): avoid `RangeError: Maximum call stack size exceeded` when converting large binary image and file parts
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+  - ai@6.0.312
+
 ## 2.0.319
 
 ### Patch Changes

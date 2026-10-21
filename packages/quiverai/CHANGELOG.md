@@ -1,5 +1,14 @@
 # @ai-sdk/quiverai
 
+## 1.0.36
+
+### Patch Changes
+
+- 1048fc3: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 1.0.35
 
 ### Patch Changes

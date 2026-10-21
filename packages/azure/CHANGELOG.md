@@ -1,5 +1,19 @@
 # @ai-sdk/azure
 
+## 3.0.142
+
+### Patch Changes
+
+- a7e1746: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [69664c4]
+- Updated dependencies [6afa8a8]
+- Updated dependencies [aad3b66]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+  - @ai-sdk/deepseek@2.0.77
+  - @ai-sdk/openai@3.0.131
+
 ## 3.0.141
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/fish-audio
 
+## 2.0.21
+
+### Patch Changes
+
+- 0211320: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 2.0.20
 
 ### Patch Changes

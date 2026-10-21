@@ -1,5 +1,14 @@
 # @ai-sdk/prodia
 
+## 1.0.68
+
+### Patch Changes
+
+- 0c9f866: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 1.0.67
 
 ### Patch Changes

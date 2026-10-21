@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 4.0.62
+
+### Patch Changes
+
+- 1183cc4: Block `.internal` hostnames in download URL validation.
+- d726591: Encode provider-returned identifiers in follow-up request paths with a shared encodePathSegment helper.
+
 ## 4.0.61
 
 ### Patch Changes
