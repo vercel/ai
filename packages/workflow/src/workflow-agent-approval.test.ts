@@ -218,6 +218,58 @@ describe.each<Mode>(['generate', 'stream'])(
       },
     );
 
+    it.each([true, false])(
+      'resumes only the first of repeated approval responses (approved: %s)',
+      async approved => {
+        const execute = vi.fn(async () => 'executed');
+        const agent = new WorkflowAgent<ToolSet>({
+          model: model([approvalCall]),
+          tools: {
+            action: tool({
+              inputSchema: z.object({ value: z.string() }),
+              needsApproval: true,
+              execute,
+            }),
+          },
+        });
+        const issued = await run(mode, agent, prompt);
+        const response = {
+          type: 'tool-approval-response' as const,
+          approvalId: 'approval-call-1',
+          approved,
+        };
+
+        const resumed = await run(mode, agent, [
+          ...prompt,
+          ...issued.messages,
+          {
+            role: 'tool',
+            content: [
+              response,
+              { ...response },
+              { ...response, approved: !approved },
+            ],
+          },
+        ]);
+
+        expect(execute).toHaveBeenCalledTimes(approved ? 1 : 0);
+        if (mode === 'generate')
+          expect(
+            resumed.messages
+              .filter(message => message.role === 'tool')
+              .flatMap(message => message.content)
+              .filter(part => part.type === 'tool-result'),
+          ).toMatchObject([
+            {
+              toolCallId: 'call-1',
+              output: approved
+                ? { type: 'text', value: 'executed' }
+                : { type: 'execution-denied' },
+            },
+          ]);
+      },
+    );
+
     it('resumes approved tools with transformed input without transforming twice', async () => {
       const needsApproval = vi.fn(async () => true);
       const execute = vi.fn(async () => 'executed');
