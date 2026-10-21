@@ -743,6 +743,13 @@ const result = await agent.generate({
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
     },
     {
+      name: 'experimental_steering',
+      type: 'Experimental_Steering',
+      isOptional: true,
+      description:
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isOptional: true,
@@ -857,6 +864,13 @@ for await (const chunk of stream.textStream) {
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
+      name: 'experimental_steering',
+      type: 'Experimental_Steering',
+      isOptional: true,
+      description:
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'options',
