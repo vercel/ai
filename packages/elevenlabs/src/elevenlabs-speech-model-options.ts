@@ -39,6 +39,8 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
       streaming: z
         .object({
           autoMode: z.boolean().optional(),
+          // Uses the multi-context WebSocket with this single context id.
+          contextId: z.string().min(1).optional(),
           chunkLengthSchedule: z
             .array(z.number().min(50).max(500))
             .min(1)
@@ -46,6 +48,15 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
           enableSsmlParsing: z.boolean().optional(),
           inactivityTimeout: z.number().int().min(1).max(180).optional(),
           syncAlignment: z.boolean().optional(),
+        })
+        .optional(),
+      // https://elevenlabs.io/docs/api-reference/text-to-dialogue/ttd-websocket
+      dialogue: z
+        .object({
+          voices: z.array(z.string().min(1)).min(1).max(10),
+          voiceSettings: z
+            .object({ stability: z.number().min(0).max(1).optional() })
+            .optional(),
         })
         .optional(),
     }),

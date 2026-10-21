@@ -287,7 +287,52 @@ the WebSocket and produce warnings.
 | `eleven_turbo_v2`        | <Check size={18} /> |
 
 The `eleven_v3` and `eleven_v4` model families are not served by the
-text-to-speech WebSocket.
+text-to-speech WebSocket; stream them as dialogue (below).
+
+### Multi-context
+
+Set `providerOptions.elevenlabs.streaming.contextId` to use the multi-context
+WebSocket (`multi-stream-input`) with that context id. Each audio part carries
+`providerMetadata.elevenlabs.contextId`; at the end of the text the context is
+flushed and closed.
+
+```ts
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_flash_v2_5'),
+  text: textStream,
+  providerOptions: { elevenlabs: { streaming: { contextId: 'turn-1' } } },
+});
+```
+
+### Streaming dialogue
+
+Set `providerOptions.elevenlabs.dialogue` to stream multi-speaker dialogue over
+the Text-to-Dialogue WebSocket with an `eleven_v3` or `eleven_v4` model. Register
+the voices in `dialogue.voices`, then mark speaker turns inline in the text with
+`[[voice:<voiceId>]]`. Text before the first marker belongs to the first voice.
+Markers can be split across text deltas; they are not spoken and are not counted
+in `usage.inputCharacters`.
+
+```ts
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_v4'),
+  text:
+    `[[voice:${alice}]]Did you hear we can stream dialogue now? ` +
+    `[[voice:${bob}]]Over one socket? That is neat.`,
+  providerOptions: {
+    elevenlabs: {
+      dialogue: { voices: [alice, bob], voiceSettings: { stability: 0.5 } },
+    },
+  },
+});
+```
+
+`eleven_v4` models receive the text incrementally. `eleven_v3` models accept a
+single message per dialogue session, so the provider reads the whole text stream
+before sending it. `eleven_v3_conversational` supports a single voice. Audio parts
+carry `alignment` (camelCase) and `isFinalAudioForTurn` in
+`providerMetadata.elevenlabs` when the server returns them. `ElevenLabsDialogueMarkerParser`
+is exported for servers that need to count dialogue characters the same way.
 
 ## Transcription Models
 

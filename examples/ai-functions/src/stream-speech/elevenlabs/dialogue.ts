@@ -1,0 +1,46 @@
+import {
+  createElevenLabs,
+  type ElevenLabsProviderSettings,
+} from '@ai-sdk/elevenlabs';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { WebSocket } from 'ws';
+import { run } from '../../lib/run';
+
+const elevenLabs = createElevenLabs({
+  webSocket: WebSocket as unknown as ElevenLabsProviderSettings['webSocket'],
+});
+
+const alice = '21m00Tcm4TlvDq8ikWAM';
+const bob = 'pNInz6obpgDQGcFmaJgB';
+
+// Speaker turns are marked inline with [[voice:<id>]]; markers are not spoken
+// or billed. Deltas can split anywhere, including inside a marker.
+async function* script() {
+  const text =
+    `[[voice:${alice}]]Did you hear we can stream a whole dialogue now? ` +
+    `[[voice:${bob}]]Over a single socket, with two voices? That is neat. ` +
+    `[[voice:${alice}]]Three turns, and the audio starts right away.`;
+  for (const word of text.split(/(?<= )/)) {
+    yield word;
+  }
+}
+
+run(async () => {
+  const modelId = process.argv[2] ?? 'eleven_v4';
+  const result = streamSpeech({
+    model: elevenLabs.speech(modelId),
+    text: script(),
+    providerOptions: { elevenlabs: { dialogue: { voices: [alice, bob] } } },
+  });
+
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of result.audioStream) {
+    chunks.push(chunk);
+  }
+
+  await mkdir('output', { recursive: true });
+  await writeFile(`output/dialogue-${Date.now()}.mp3`, Buffer.concat(chunks));
+  console.log('audio chunks:', chunks.length);
+  console.log('usage:', await result.usage);
+});

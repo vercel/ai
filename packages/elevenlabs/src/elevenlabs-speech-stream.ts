@@ -1,5 +1,6 @@
 import type {
   Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
+  JSONObject,
   JSONValue,
   SharedV4AudioFormat,
   SharedV4Warning,
@@ -12,15 +13,7 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import type { ElevenLabsConfig } from './elevenlabs-config';
-
-type ElevenLabsSpeechStreamEvent = {
-  audio?: string | null;
-  isFinal?: boolean | null;
-  alignment?: unknown;
-  normalizedAlignment?: unknown;
-  error?: unknown;
-  message?: unknown;
-};
+import { ElevenLabsDialogueMarkerParser } from './elevenlabs-dialogue-markers';
 
 /**
  * Counts Unicode code points, the unit ElevenLabs bills text-to-speech in.
@@ -65,17 +58,226 @@ export function getElevenLabsAudioFormat(
   }
 }
 
+/** One decoded server message, normalized across the three WebSockets. */
+export type ElevenLabsStreamEvent = {
+  audio?: string;
+  error?: string;
+  isFinal?: boolean;
+  /** Message belongs to another context and is ignored. */
+  ignore?: boolean;
+  providerMetadata?: JSONObject;
+};
+
 /**
- * Streams text-to-speech over the ElevenLabs `stream-input` WebSocket:
- * an init message, one message per text delta, then `{"text":""}` to end
- * the input. The server answers with base64 audio chunks and `isFinal`.
+ * Wire protocol for one ElevenLabs streaming TTS WebSocket. `encodeText`
+ * returns the messages for a text delta and the characters they carry.
+ */
+export type ElevenLabsStreamProtocol = {
+  initMessage: Record<string, unknown>;
+  encodeText(delta: string): {
+    messages: Array<Record<string, unknown>>;
+    characters: number;
+  };
+  endMessages(): {
+    messages: Array<Record<string, unknown>>;
+    characters: number;
+  };
+  decodeEvent(raw: Record<string, unknown>): ElevenLabsStreamEvent;
+  /** Messages to send after the final event (e.g. `close_socket`). */
+  afterFinalMessages?: Array<Record<string, unknown>>;
+};
+
+/** `stream-input`: one implicit context; `{"text":""}` ends the input. */
+export function createSingleContextProtocol(
+  initMessage: Record<string, unknown>,
+): ElevenLabsStreamProtocol {
+  return {
+    initMessage,
+    encodeText: delta => ({
+      messages: [{ text: delta }],
+      characters: countCodePoints(delta),
+    }),
+    endMessages: () => ({ messages: [{ text: '' }], characters: 0 }),
+    decodeEvent: raw => decodeTextToSpeechEvent(raw),
+  };
+}
+
+/**
+ * `multi-stream-input` with a single caller-chosen context: every message
+ * carries `context_id`; the input ends with flush + `close_context`.
+ */
+export function createMultiContextProtocol(
+  initMessage: Record<string, unknown>,
+  contextId: string,
+): ElevenLabsStreamProtocol {
+  return {
+    initMessage: { ...initMessage, context_id: contextId },
+    encodeText: delta => ({
+      messages: [{ text: delta, context_id: contextId }],
+      characters: countCodePoints(delta),
+    }),
+    endMessages: () => ({
+      messages: [
+        { context_id: contextId, flush: true },
+        { context_id: contextId, close_context: true },
+      ],
+      characters: 0,
+    }),
+    decodeEvent: raw => {
+      const eventContextId = raw.contextId ?? raw.context_id;
+      if (eventContextId != null && eventContextId !== contextId) {
+        return { ignore: true };
+      }
+      return decodeTextToSpeechEvent(raw, { contextId });
+    },
+    afterFinalMessages: [{ close_socket: true }],
+  };
+}
+
+/**
+ * Text-to-Dialogue `stream-input`. Speaker turns come from inline
+ * `[[voice:<id>]]` markers (see `ElevenLabsDialogueMarkerParser`). With
+ * `incremental: false` (the v3 family) all inputs go in one final message.
+ */
+export function createDialogueProtocol({
+  initMessage,
+  voices,
+  incremental,
+}: {
+  initMessage: Record<string, unknown>;
+  voices: string[];
+  incremental: boolean;
+}): ElevenLabsStreamProtocol {
+  const parser = new ElevenLabsDialogueMarkerParser(voices);
+  const buffered: Array<Record<string, unknown>> = [];
+
+  const toInputs = (
+    segments: ReturnType<ElevenLabsDialogueMarkerParser['push']>,
+  ) => {
+    let characters = 0;
+    const inputs = segments.map(segment => {
+      characters += countCodePoints(segment.text);
+      return {
+        text: segment.text,
+        voice_id: segment.voiceId,
+        ...(segment.newTurn && { new_turn: true }),
+      };
+    });
+    return { inputs, characters };
+  };
+
+  const emit = (
+    segments: ReturnType<ElevenLabsDialogueMarkerParser['push']>,
+  ) => {
+    const { inputs, characters } = toInputs(segments);
+    if (!incremental) {
+      buffered.push(...inputs);
+      return { messages: [], characters };
+    }
+    return {
+      messages: inputs.length > 0 ? [{ inputs }] : [],
+      characters,
+    };
+  };
+
+  return {
+    initMessage: { ...initMessage, voices },
+    encodeText: delta => emit(parser.push(delta)),
+    endMessages: () => {
+      const tail = emit(parser.flush());
+      if (!incremental) {
+        return {
+          messages: [{ inputs: buffered, close_socket: true }],
+          characters: tail.characters,
+        };
+      }
+      return {
+        messages: [...tail.messages, { close_socket: true }],
+        characters: tail.characters,
+      };
+    },
+    decodeEvent: raw => {
+      const error = getErrorText(raw);
+      if (error != null) return { error };
+      const alignment = camelizeAlignment(raw.alignment);
+      return {
+        ...(typeof raw.audio === 'string' &&
+          raw.audio.length > 0 && { audio: raw.audio }),
+        ...(raw.is_final === true && { isFinal: true }),
+        ...((alignment != null || raw.is_final_audio_for_turn === true) && {
+          providerMetadata: {
+            ...(alignment != null && { alignment }),
+            ...(raw.is_final_audio_for_turn === true && {
+              isFinalAudioForTurn: true,
+            }),
+          },
+        }),
+      };
+    },
+  };
+}
+
+function decodeTextToSpeechEvent(
+  raw: Record<string, unknown>,
+  { contextId }: { contextId?: string } = {},
+): ElevenLabsStreamEvent {
+  const error = getErrorText(raw);
+  if (error != null && typeof raw.audio !== 'string') return { error };
+  const alignment = raw.alignment ?? undefined;
+  const normalizedAlignment = raw.normalizedAlignment ?? undefined;
+  const metadata: JSONObject = {
+    ...(contextId != null && { contextId }),
+    ...(alignment != null && { alignment: alignment as JSONValue }),
+    ...(normalizedAlignment != null && {
+      normalizedAlignment: normalizedAlignment as JSONValue,
+    }),
+  };
+  return {
+    ...(typeof raw.audio === 'string' &&
+      raw.audio.length > 0 && { audio: raw.audio }),
+    ...((raw.isFinal === true || raw.is_final === true) && { isFinal: true }),
+    ...(Object.keys(metadata).length > 0 && { providerMetadata: metadata }),
+  };
+}
+
+function getErrorText(raw: Record<string, unknown>): string | undefined {
+  if (
+    raw.error == null &&
+    (typeof raw.message !== 'string' || raw.isFinal === true)
+  ) {
+    return undefined;
+  }
+  if (typeof raw.message === 'string') return raw.message;
+  if (typeof raw.error === 'string') return raw.error;
+  return JSON.stringify(raw.error);
+}
+
+// Dialogue alignment is snake_case on the wire; expose the TTS (camelCase) shape.
+function camelizeAlignment(value: unknown): JSONObject | undefined {
+  if (value == null || typeof value !== 'object') return undefined;
+  const alignment = value as Record<string, unknown>;
+  return {
+    ...(alignment.chars != null && { chars: alignment.chars as JSONValue }),
+    ...(alignment.char_start_times_ms != null && {
+      charStartTimesMs: alignment.char_start_times_ms as JSONValue,
+    }),
+    ...(alignment.char_durations_ms != null && {
+      charDurationsMs: alignment.char_durations_ms as JSONValue,
+    }),
+  };
+}
+
+/**
+ * Streams text-to-speech over an ElevenLabs WebSocket using `protocol`:
+ * init message, encoded text deltas, end-of-input messages, then audio until
+ * the final event.
  */
 export function createElevenLabsSpeechStream({
   abortSignal,
   audioFormat,
   headers,
   includeRawChunks,
-  initMessage,
+  protocol,
   text,
   url,
   warnings,
@@ -85,7 +287,7 @@ export function createElevenLabsSpeechStream({
   audioFormat: SharedV4AudioFormat;
   headers: Record<string, string | undefined>;
   includeRawChunks: boolean | undefined;
-  initMessage: Record<string, unknown>;
+  protocol: ElevenLabsStreamProtocol;
   text: ReadableStream<string>;
   url: URL;
   warnings: SharedV4Warning[];
@@ -119,12 +321,28 @@ export function createElevenLabsSpeechStream({
       const finish = () => {
         if (finished) return;
         finished = true;
+        for (const message of protocol.afterFinalMessages ?? []) {
+          try {
+            connection?.socket?.send(JSON.stringify(message));
+          } catch {}
+        }
         controller.enqueue({
           type: 'finish',
           usage: { inputCharacters },
         });
         controller.close();
         cleanup(1000);
+      };
+
+      const sendAll = async (
+        socket: WebSocketLike,
+        encoded: ReturnType<ElevenLabsStreamProtocol['encodeText']>,
+      ) => {
+        inputCharacters += encoded.characters;
+        for (const message of encoded.messages) {
+          socket.send(JSON.stringify(message));
+          await waitForWebSocketBufferDrain(socket);
+        }
       };
 
       const sendText = async (socket: WebSocketLike) => {
@@ -136,9 +354,7 @@ export function createElevenLabsSpeechStream({
             if (done || finished) break;
             // An empty text message ends the input, so skip empty deltas.
             if (value.length === 0) continue;
-            inputCharacters += countCodePoints(value);
-            socket.send(JSON.stringify({ text: value }));
-            await waitForWebSocketBufferDrain(socket);
+            await sendAll(socket, protocol.encodeText(value));
           }
         } finally {
           reader.releaseLock();
@@ -147,7 +363,7 @@ export function createElevenLabsSpeechStream({
           }
         }
         if (!finished) {
-          socket.send(JSON.stringify({ text: '' }));
+          await sendAll(socket, protocol.endMessages());
         }
       };
 
@@ -159,54 +375,40 @@ export function createElevenLabsSpeechStream({
         onAbort: finishWithError,
         onOpen: socket => {
           controller.enqueue({ type: 'stream-start', warnings });
-          socket.send(JSON.stringify(initMessage));
+          socket.send(JSON.stringify(protocol.initMessage));
           void sendText(socket).catch(finishWithError);
         },
         onMessageText: async messageText => {
           if (finished) return;
           const parsed = await safeParseJSON({ text: messageText });
           if (!parsed.success) return;
-          const event = parsed.value as ElevenLabsSpeechStreamEvent;
+          const raw = parsed.value as Record<string, unknown>;
 
           if (includeRawChunks) {
-            controller.enqueue({ type: 'raw', rawValue: event });
+            controller.enqueue({ type: 'raw', rawValue: raw });
           }
 
-          if (
-            event.error != null ||
-            (event.audio == null && isErrorMessage(event))
-          ) {
+          const event = protocol.decodeEvent(raw);
+          if (event.ignore) return;
+          if (event.error != null) {
             finishWithError(
-              new Error(
-                `ElevenLabs speech stream error: ${getErrorText(event)}`,
-              ),
+              new Error(`ElevenLabs speech stream error: ${event.error}`),
             );
             return;
           }
 
-          if (typeof event.audio === 'string' && event.audio.length > 0) {
-            const alignment = event.alignment ?? undefined;
-            const normalizedAlignment = event.normalizedAlignment ?? undefined;
+          if (event.audio != null) {
             controller.enqueue({
               type: 'audio',
               audio: event.audio,
               audioFormat,
-              ...((alignment != null || normalizedAlignment != null) && {
-                providerMetadata: {
-                  elevenlabs: {
-                    ...(alignment != null && {
-                      alignment: alignment as JSONValue,
-                    }),
-                    ...(normalizedAlignment != null && {
-                      normalizedAlignment: normalizedAlignment as JSONValue,
-                    }),
-                  },
-                },
+              ...(event.providerMetadata != null && {
+                providerMetadata: { elevenlabs: event.providerMetadata },
               }),
             });
           }
 
-          if (event.isFinal === true) {
+          if (event.isFinal) {
             finish();
           }
         },
@@ -246,14 +448,4 @@ export function createElevenLabsSpeechStream({
       cleanup();
     },
   });
-}
-
-function isErrorMessage(event: ElevenLabsSpeechStreamEvent): boolean {
-  return typeof event.message === 'string' && event.isFinal !== true;
-}
-
-function getErrorText(event: ElevenLabsSpeechStreamEvent): string {
-  if (typeof event.message === 'string') return event.message;
-  if (typeof event.error === 'string') return event.error;
-  return JSON.stringify(event.error ?? event);
 }
