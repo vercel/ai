@@ -9,8 +9,6 @@
     "lint": "ultracite check"
   },
   "dependencies": {
-    "@agentclientprotocol/claude-agent-acp": "0.61.0",
-    "@agentclientprotocol/codex-acp": "1.1.4",
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-acp": "workspace:*",
     "@ai-sdk/harness-claude-code": "workspace:*",
