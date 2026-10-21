@@ -22,5 +22,5 @@ export type {
   MistralRealtimeFactory as Experimental_MistralRealtimeFactory,
   MistralRealtimeSession as Experimental_MistralRealtimeSession,
 } from './realtime/mistral-realtime-factory';
-export type { MistralRealtimeModelOptions as Experimental_MistralRealtimeModelOptions } from './realtime/mistral-realtime-options';
+export type { MistralRealtimeModelOptions as Experimental_MistralRealtimeModelOptions } from './realtime/mistral-realtime-model-options';
 export { VERSION } from './version';

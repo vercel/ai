@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createMistral } from '../mistral-provider';
 import { MistralRealtimeModel } from './mistral-realtime-model';
-import { buildMistralRealtimeSessionConfig } from './mistral-realtime-options';
+import { buildMistralRealtimeSessionConfig } from './mistral-realtime-model-options';
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
 
