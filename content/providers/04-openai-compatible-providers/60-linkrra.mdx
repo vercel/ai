@@ -1,0 +1,157 @@
+---
+title: Linkrra
+description: Use the Linkrra OpenAI compatible API with the AI SDK.
+---
+
+# Linkrra Provider
+
+[Linkrra](https://linkrra.com/) provides an OpenAI-compatible inference API for
+open-weight models. You can use its Chat Completions endpoint with the AI SDK
+through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Sign in on the [Linkrra account page](https://synap.linkrra.com/account),
+create an API key, and set it as a server-side environment variable:
+
+```bash
+export LINKRRA_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a Linkrra provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const linkrra = createOpenAICompatible({
+  name: 'linkrra',
+  apiKey: process.env.LINKRRA_API_KEY,
+  baseURL: 'https://pool.linkrra.com/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a Linkrra model ID to the provider instance:
+
+```ts
+const model = linkrra('qwen3-coder-30b');
+```
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const linkrra = createOpenAICompatible({
+  name: 'linkrra',
+  apiKey: process.env.LINKRRA_API_KEY,
+  baseURL: 'https://pool.linkrra.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: linkrra('qwen3-coder-30b'),
+  prompt: 'Write a one-line JavaScript function that reverses a string.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const linkrra = createOpenAICompatible({
+  name: 'linkrra',
+  apiKey: process.env.LINKRRA_API_KEY,
+  baseURL: 'https://pool.linkrra.com/v1',
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: linkrra('qwen3-coder-30b'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Structured Output
+
+To send JSON Schema structured-output requests, enable
+`supportsStructuredOutputs`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const linkrra = createOpenAICompatible({
+  name: 'linkrra',
+  apiKey: process.env.LINKRRA_API_KEY,
+  baseURL: 'https://pool.linkrra.com/v1',
+  supportsStructuredOutputs: true,
+});
+
+const { output } = await generateText({
+  model: linkrra('qwen3-coder-30b'),
+  output: Output.object({
+    schema: z.object({
+      city: z.string(),
+      country: z.string(),
+    }),
+  }),
+  prompt: 'Which city is the capital of France?',
+});
+
+console.log(output);
+```
+
+## Supported Models and Capabilities
+
+Linkrra exposes the following model IDs through its OpenAI-compatible Chat
+Completions endpoint:
+
+| Model ID             | Model                        | Context window |
+| -------------------- | ---------------------------- | -------------- |
+| `qwen3-coder-30b`    | Qwen3 Coder 30B A3B Instruct | 32,768 tokens  |
+| `gpt-oss-20b`        | gpt-oss-20b                  | 32,768 tokens  |
+| `gemma-4-26b-a4b-it` | Gemma 4 26B A4B Instruct     | 131,072 tokens |
+
+The available models can change. Use the
+[`GET /v1/models?format=openrouter`](https://pool.linkrra.com/v1/models?format=openrouter)
+endpoint for the current model IDs.
+
+This guide covers Linkrra's OpenAI-compatible Chat Completions endpoint, which
+supports:
+
+- text generation and streaming;
+- tool calling (`tools` and `tool_choice`); and
+- structured output with JSON Schema.
+
+## Resources
+
+- [Linkrra API documentation](https://synap.linkrra.com/docs)
+- [Linkrra account and API keys](https://synap.linkrra.com/account)
+- [Linkrra pricing](https://synap.linkrra.com/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
