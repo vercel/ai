@@ -90,6 +90,13 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
       providerOptions,
       schema: elevenLabsSpeechModelOptionsSchema,
     });
+    if (elevenLabsOptions?.streaming != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.elevenlabs.streaming',
+        message:
+          'providerOptions.elevenlabs.streaming applies only to streaming speech (experimental_streamSpeech), not generateSpeech.',
+      });
+    }
 
     // Create request body
     const requestBody: ElevenLabsSpeechAPITypes = {
@@ -317,14 +324,22 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
     }
 
     const initMessage = getStreamInitMessage(options, elevenLabsOptions);
+    // The API key goes in the init message (not a header) so native
+    // WebSockets work; it is kept out of the reported request body.
+    const { 'xi-api-key': apiKey, ...headers } = combineHeaders(
+      this.config.headers?.(),
+      options.headers,
+    );
 
     return {
       request: { body: { url: url.toString(), initMessage } },
       response: { timestamp: currentDate, modelId: this.modelId },
       stream: createElevenLabsSpeechStream({
         abortSignal: options.abortSignal,
+        apiKey,
         audioFormat: getElevenLabsAudioFormat(outputFormat),
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers,
+        inactivityTimeoutSeconds: streaming?.inactivityTimeout,
         includeRawChunks: options.includeRawChunks,
         initMessage,
         text: options.text,
