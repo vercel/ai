@@ -3351,6 +3351,8 @@ class DefaultStreamTextResult<
         }),
       );
     })().catch(async error => {
+      // report the failed step before the call error:
+      await notifyStepError(wrapGatewayError(error));
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
       markPromiseAsHandled(self._initialResponseMessages.promise);
