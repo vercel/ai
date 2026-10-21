@@ -5,11 +5,14 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -595,7 +598,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${baseURL}/v2/query/video_generation/${taskId}`,
+          url: `${baseURL}/v2/query/video_generation/${encodePathSegment(taskId)}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
@@ -693,49 +696,61 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const minimaxCreateVideoResponseSchema = z.object({
-  task_id: z.string().nullish(),
-});
+const minimaxCreateVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      task_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const minimaxVideoStatusResponseSchema = z.object({
-  task: z.object({
-    id: z.string().nullish(),
-    status: z.string().nullish(),
-    content: z
-      .object({
-        url: z.string().nullish(),
-      })
-      .nullish(),
-    resolution: z.string().nullish(),
-    duration: z.number().nullish(),
-    ratio: z.string().nullish(),
-    usage: z
-      .object({
-        total_seconds: z.number().nullish(),
-        input_seconds: z.number().nullish(),
-        output_seconds: z.number().nullish(),
-      })
-      .nullish(),
-    error: z
-      .object({
-        code: z.union([z.string(), z.number()]).nullish(),
-        message: z.string().nullish(),
-      })
-      .nullish(),
-  }),
-});
+const minimaxVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      task: z.object({
+        id: z.string().nullish(),
+        status: z.string().nullish(),
+        content: z
+          .object({
+            url: z.string().nullish(),
+          })
+          .nullish(),
+        resolution: z.string().nullish(),
+        duration: z.number().nullish(),
+        ratio: z.string().nullish(),
+        usage: z
+          .object({
+            total_seconds: z.number().nullish(),
+            input_seconds: z.number().nullish(),
+            output_seconds: z.number().nullish(),
+          })
+          .nullish(),
+        error: z
+          .object({
+            code: z.union([z.string(), z.number()]).nullish(),
+            message: z.string().nullish(),
+          })
+          .nullish(),
+      }),
+    }),
+  ),
+);
 
-const minimaxVideoErrorSchema = z.object({
-  type: z.string().nullish(),
-  error: z
-    .object({
+const minimaxVideoErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
       type: z.string().nullish(),
-      message: z.string().nullish(),
-      http_code: z.union([z.string(), z.number()]).nullish(),
-    })
-    .nullish(),
-  request_id: z.string().nullish(),
-});
+      error: z
+        .object({
+          type: z.string().nullish(),
+          message: z.string().nullish(),
+          http_code: z.union([z.string(), z.number()]).nullish(),
+        })
+        .nullish(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
 const minimaxVideoFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: minimaxVideoErrorSchema,

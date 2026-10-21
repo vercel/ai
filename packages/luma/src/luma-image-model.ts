@@ -11,6 +11,7 @@ import {
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
   lazySchema,
@@ -321,9 +322,7 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(generationId ?? 'image')}`;
   }
 
   private async downloadImage(
@@ -360,23 +359,27 @@ const lumaGenerationResponseSchema = lazySchema(() =>
   ),
 );
 
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
-        .object({
-          expected: z.string(),
-        })
-        .nullish(),
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
 
 /**
  * Provider options schema for Luma image generation.

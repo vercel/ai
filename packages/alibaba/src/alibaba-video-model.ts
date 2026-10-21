@@ -5,6 +5,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   convertUint8ArrayToBase64,
@@ -12,6 +13,7 @@ import {
   createJsonResponseHandler,
   delay,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -130,58 +132,70 @@ interface AlibabaVideoModelConfig {
 }
 
 // DashScope native API error format (different from OpenAI-compatible endpoint)
-const alibabaVideoErrorSchema = z.object({
-  code: z.string().nullish(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.string().nullish(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
 const alibabaVideoFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: alibabaVideoErrorSchema,
   errorToMessage: data => data.message,
 });
 
-const alibabaVideoCreateTaskSchema = z.object({
-  output: z
-    .object({
-      task_status: z.string(),
-      task_id: z.string(),
-    })
-    .nullish(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoCreateTaskSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z
+        .object({
+          task_status: z.string(),
+          task_id: z.string(),
+        })
+        .nullish(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const alibabaVideoTaskStatusSchema = z.object({
-  output: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string(),
-      video_url: z.string().nullish(),
-      submit_time: z.string().nullish(),
-      scheduled_time: z.string().nullish(),
-      end_time: z.string().nullish(),
-      orig_prompt: z.string().nullish(),
-      actual_prompt: z.string().nullish(),
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-  usage: z
-    .object({
-      duration: z.number().nullish(),
-      output_video_duration: z.number().nullish(),
-      // wan3 splits the total: input video counts toward its 30s ceiling.
-      input_video_duration: z.number().nullish(),
-      fps: z.number().nullish(),
-      SR: z.number().nullish(),
-      size: z.string().nullish(),
-      ratio: z.string().nullish(),
-    })
-    .nullish(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoTaskStatusSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z
+        .object({
+          task_id: z.string(),
+          task_status: z.string(),
+          video_url: z.string().nullish(),
+          submit_time: z.string().nullish(),
+          scheduled_time: z.string().nullish(),
+          end_time: z.string().nullish(),
+          orig_prompt: z.string().nullish(),
+          actual_prompt: z.string().nullish(),
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+      usage: z
+        .object({
+          duration: z.number().nullish(),
+          output_video_duration: z.number().nullish(),
+          // wan3 splits the total: input video counts toward its 30s ceiling.
+          input_video_duration: z.number().nullish(),
+          fps: z.number().nullish(),
+          SR: z.number().nullish(),
+          size: z.string().nullish(),
+          ratio: z.string().nullish(),
+        })
+        .nullish(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-type AlibabaVideoTaskStatusResponse = z.infer<
+type AlibabaVideoTaskStatusResponse = InferSchema<
   typeof alibabaVideoTaskStatusSchema
 >;
 
@@ -667,7 +681,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+          url: `${this.config.baseURL}/api/v1/tasks/${encodePathSegment(taskId)}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

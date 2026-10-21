@@ -91,6 +91,15 @@ function createModel({
 
 describe('XaiVideoModel', () => {
   const server = createTestServer({
+    [`${TEST_BASE_URL}/videos/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: doneStatusResponse },
+    },
+    [`${TEST_BASE_URL}/videos/%252E`]: {
+      response: { type: 'json-value', body: doneStatusResponse },
+    },
+    [`${TEST_BASE_URL}/videos/%252E%252E`]: {
+      response: { type: 'json-value', body: doneStatusResponse },
+    },
     [`${TEST_BASE_URL}/videos/generations`]: {
       response: {
         type: 'json-value',
@@ -116,6 +125,24 @@ describe('XaiVideoModel', () => {
       },
     },
   });
+
+  it.each([
+    { taskId: 'abc/../../internal', encodedTaskId: 'abc%2F..%2F..%2Finternal' },
+    { taskId: '.', encodedTaskId: '%252E' },
+    { taskId: '..', encodedTaskId: '%252E%252E' },
+  ])(
+    'encodes $taskId in the polling URL',
+    async ({ taskId, encodedTaskId }) => {
+      server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
+        type: 'json-value',
+        body: { request_id: taskId },
+      };
+      await createModel().doGenerate({ ...defaultOptions });
+      expect(server.calls[1].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/${encodedTaskId}`,
+      );
+    },
+  );
 
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {

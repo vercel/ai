@@ -115,6 +115,15 @@ const videoUrlFile: Experimental_VideoModelV3File = {
 
 describe('MiniMaxVideoModel', () => {
   const server = createTestServer({
+    [`${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
+    [`${TEST_BASE_URL}/v2/query/video_generation/%252E`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
+    [`${TEST_BASE_URL}/v2/query/video_generation/%252E%252E`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
     [CREATE_URL]: {
       response: { type: 'json-value', body: createVideoResponse },
     },
@@ -122,6 +131,24 @@ describe('MiniMaxVideoModel', () => {
       response: { type: 'json-value', body: succeededStatusResponse },
     },
   });
+
+  it.each([
+    { taskId: 'abc/../../internal', encodedTaskId: 'abc%2F..%2F..%2Finternal' },
+    { taskId: '.', encodedTaskId: '%252E' },
+    { taskId: '..', encodedTaskId: '%252E%252E' },
+  ])(
+    'encodes $taskId in the polling URL',
+    async ({ taskId, encodedTaskId }) => {
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: { task_id: taskId },
+      };
+      await createModel().doGenerate({ ...defaultOptions });
+      expect(server.calls[1].requestUrl).toBe(
+        `${TEST_BASE_URL}/v2/query/video_generation/${encodedTaskId}`,
+      );
+    },
+  );
 
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {

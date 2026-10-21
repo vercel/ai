@@ -311,20 +311,30 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const replicatePredictionSchema = z.object({
-  id: z.string(),
-  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
-  output: z.string().nullish(),
-  error: z.string().nullish(),
-  urls: z.object({
-    get: z.string(),
-  }),
-  metrics: z
-    .object({
-      predict_time: z.number().nullish(),
-    })
-    .nullish(),
-});
+const replicatePredictionSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum([
+        'starting',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+      ]),
+      output: z.string().nullish(),
+      error: z.string().nullish(),
+      urls: z.object({
+        get: z.string(),
+      }),
+      metrics: z
+        .object({
+          predict_time: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const replicateVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(

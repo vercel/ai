@@ -30,6 +30,7 @@ import {
   webSearchWireActionSchema,
   webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
+  xaiResponsesResponseSchemaValidator,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
@@ -248,7 +249,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        xaiResponsesResponseSchema,
+        xaiResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -520,7 +521,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiResponsesChunkSchema>>,
           LanguageModelV3StreamPart
         >({
           start(controller) {

@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV3,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -96,14 +98,18 @@ export class VoyageEmbeddingModel implements EmbeddingModelV3 {
   }
 }
 
-const voyageEmbeddingResponseSchema = z.object({
-  data: z.array(
+const voyageEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      embedding: z.array(z.number()),
-      index: z.number(),
+      data: z.array(
+        z.object({
+          embedding: z.array(z.number()),
+          index: z.number(),
+        }),
+      ),
+      usage: z.object({
+        total_tokens: z.number(),
+      }),
     }),
   ),
-  usage: z.object({
-    total_tokens: z.number(),
-  }),
-});
+);

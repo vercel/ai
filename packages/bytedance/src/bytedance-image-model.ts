@@ -4,6 +4,8 @@ import type {
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
@@ -181,19 +183,27 @@ export class ByteDanceImageModel implements ImageModelV3 {
 
 // Minimal schema focused on what the implementation needs. This limits
 // breakages when the API adds fields and keeps parsing efficient.
-const byteDanceImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const byteDanceImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ b64_json: z.string() })),
+    }),
+  ),
+);
 
-const byteDanceErrorSchema = z.object({
-  error: z
-    .object({
-      message: z.string(),
-      code: z.string().nullish(),
-    })
-    .nullish(),
-  message: z.string().nullish(),
-});
+const byteDanceErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z
+        .object({
+          message: z.string(),
+          code: z.string().nullish(),
+        })
+        .nullish(),
+      message: z.string().nullish(),
+    }),
+  ),
+);
 
 const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: byteDanceErrorSchema,

@@ -1,4 +1,6 @@
 import {
+  lazySchema,
+  zodSchema,
   convertBase64ToUint8Array,
   safeParseJSON,
   type FetchFunction,
@@ -6,9 +8,13 @@ import {
 import { z } from 'zod/v4';
 import { createBedrockEventStreamDecoder } from '../bedrock-event-stream-decoder';
 
-const bedrockErrorSchema = z.looseObject({
-  message: z.string().optional(),
-});
+const bedrockErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.looseObject({
+      message: z.string().optional(),
+    }),
+  ),
+);
 
 export function createBedrockAnthropicFetch(
   baseFetch: FetchFunction,

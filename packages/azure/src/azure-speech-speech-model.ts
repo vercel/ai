@@ -4,6 +4,8 @@ import {
   type SpeechModelV3,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   extractResponseHeaders,
@@ -244,9 +246,13 @@ function resolveVoice(
     : { voice };
 }
 
-const errorSchema = z.object({
-  error: z.object({ message: z.string() }),
-});
+const errorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({ message: z.string() }),
+    }),
+  ),
+);
 
 // Azure Speech answers invalid requests (style or output format) with an empty
 // 400 body. Unknown voices or styles reset the connection with an Envoy 502

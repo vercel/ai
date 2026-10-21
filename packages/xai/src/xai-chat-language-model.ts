@@ -11,6 +11,9 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -402,7 +405,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiChatChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiChatChunkSchema>>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -692,39 +695,47 @@ export const xaiChatResponseSchema = z.object({
   error: z.string().nullish(),
 });
 
-const xaiChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const xaiChatChunkSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).optional(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  type: z.literal('function'),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: xaiUsageSchema.nullish(),
+      citations: z.array(z.string().url()).nullish(),
+      service_tier: z.string().nullish(),
     }),
   ),
-  usage: xaiUsageSchema.nullish(),
-  citations: z.array(z.string().url()).nullish(),
-  service_tier: z.string().nullish(),
-});
+);
 
-const xaiStreamErrorSchema = z.object({
-  code: z.string(),
-  error: z.string(),
-});
+const xaiStreamErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.string(),
+      error: z.string(),
+    }),
+  ),
+);

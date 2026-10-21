@@ -34,27 +34,28 @@ export const shellOutputSchema = lazySchema(() =>
   ),
 );
 
-const shellSkillsSchema = z
-  .array(
-    z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('skillReference'),
-        skillId: z.string(),
-        version: z.string().optional(),
-      }),
-      z.object({
-        type: z.literal('inline'),
-        name: z.string(),
-        description: z.string(),
-        source: z.object({
-          type: z.literal('base64'),
-          mediaType: z.literal('application/zip'),
-          data: z.string(),
+const shellSkillsSchema = () =>
+  z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('skillReference'),
+          skillId: z.string(),
+          version: z.string().optional(),
         }),
-      }),
-    ]),
-  )
-  .optional();
+        z.object({
+          type: z.literal('inline'),
+          name: z.string(),
+          description: z.string(),
+          source: z.object({
+            type: z.literal('base64'),
+            mediaType: z.literal('application/zip'),
+            data: z.string(),
+          }),
+        }),
+      ]),
+    )
+    .optional();
 
 export const shellArgsSchema = lazySchema(() =>
   zodSchema(
@@ -83,7 +84,7 @@ export const shellArgsSchema = lazySchema(() =>
                 }),
               ])
               .optional(),
-            skills: shellSkillsSchema,
+            skills: shellSkillsSchema(),
           }),
           z.object({
             type: z.literal('containerReference'),

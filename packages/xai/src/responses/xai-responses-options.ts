@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
@@ -14,38 +19,42 @@ export type XaiResponsesModelId =
 /**
  * @see https://docs.x.ai/docs/api-reference#create-new-response
  */
-export const xaiLanguageModelResponsesOptions = z.object({
-  /**
-   * Constrains how hard a reasoning model thinks before responding.
-   * Possible values are `none` (disables reasoning), `low` (uses fewer reasoning
-   * tokens), `medium`, `high`, and `xhigh` (uses more reasoning tokens). Not all
-   * models support reasoning effort; see xAI's docs for the values each model
-   * accepts. `xhigh` is currently only supported by `grok-4.6`.
-   */
-  reasoningEffort: z
-    .enum(['none', 'low', 'medium', 'high', 'xhigh'])
-    .optional(),
-  logprobs: z.boolean().optional(),
-  topLogprobs: z.number().int().min(0).max(8).optional(),
-  serviceTier: z.enum(['default', 'priority']).optional(),
-  /**
-   * Whether to store the input message(s) and model response for later retrieval.
-   * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,
-   * otherwise the API will return an error.
-   * @default true
-   */
-  store: z.boolean().optional(),
-  /**
-   * The ID of the previous response from the model.
-   */
-  previousResponseId: z.string().optional(),
-  /**
-   * Specify additional output data to include in the model response.
-   * Example values: 'file_search_call.results'.
-   */
-  include: z.array(z.enum(['file_search_call.results'])).nullish(),
-});
+export const xaiLanguageModelResponsesOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Constrains how hard a reasoning model thinks before responding.
+       * Possible values are `none` (disables reasoning), `low` (uses fewer reasoning
+       * tokens), `medium`, `high`, and `xhigh` (uses more reasoning tokens). Not all
+       * models support reasoning effort; see xAI's docs for the values each model
+       * accepts. `xhigh` is currently only supported by `grok-4.6`.
+       */
+      reasoningEffort: z
+        .enum(['none', 'low', 'medium', 'high', 'xhigh'])
+        .optional(),
+      logprobs: z.boolean().optional(),
+      topLogprobs: z.number().int().min(0).max(8).optional(),
+      serviceTier: z.enum(['default', 'priority']).optional(),
+      /**
+       * Whether to store the input message(s) and model response for later retrieval.
+       * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,
+       * otherwise the API will return an error.
+       * @default true
+       */
+      store: z.boolean().optional(),
+      /**
+       * The ID of the previous response from the model.
+       */
+      previousResponseId: z.string().optional(),
+      /**
+       * Specify additional output data to include in the model response.
+       * Example values: 'file_search_call.results'.
+       */
+      include: z.array(z.enum(['file_search_call.results'])).nullish(),
+    }),
+  ),
+);
 
-export type XaiLanguageModelResponsesOptions = z.infer<
+export type XaiLanguageModelResponsesOptions = InferSchema<
   typeof xaiLanguageModelResponsesOptions
 >;

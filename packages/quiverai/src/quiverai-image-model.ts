@@ -6,6 +6,8 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
@@ -305,31 +307,41 @@ function collectWarnings({
 // Limited schemas focused on what is needed for the implementation.
 // This approach limits breakages when the API changes and keeps the
 // response handler efficient.
-const svgUsageSchema = z.object({
-  total_tokens: z.number().int().nonnegative(),
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-});
+const svgUsageSchema = () =>
+  z.object({
+    total_tokens: z.number().int().nonnegative(),
+    input_tokens: z.number().int().nonnegative(),
+    output_tokens: z.number().int().nonnegative(),
+  });
 
-const svgDocumentSchema = z.object({
-  svg: z.string().min(1),
-  mime_type: z.literal('image/svg+xml'),
-});
+const svgDocumentSchema = () =>
+  z.object({
+    svg: z.string().min(1),
+    mime_type: z.literal('image/svg+xml'),
+  });
 
-const svgGenerationResponseSchema = z.object({
-  id: z.string().min(1),
-  created: z.number().int().nonnegative(),
-  data: z.array(svgDocumentSchema).min(1),
-  usage: svgUsageSchema.nullish(),
-  credits: z.number().int().nonnegative().nullish(),
-});
+const svgGenerationResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().min(1),
+      created: z.number().int().nonnegative(),
+      data: z.array(svgDocumentSchema()).min(1),
+      usage: svgUsageSchema().nullish(),
+      credits: z.number().int().nonnegative().nullish(),
+    }),
+  ),
+);
 
-const quiveraiErrorSchema = z.object({
-  status: z.number().int(),
-  code: z.string().min(1),
-  message: z.string().min(1),
-  request_id: z.string().min(1),
-});
+const quiveraiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.number().int(),
+      code: z.string().min(1),
+      message: z.string().min(1),
+      request_id: z.string().min(1),
+    }),
+  ),
+);
 
 export const quiveraiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: quiveraiErrorSchema,
