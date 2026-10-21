@@ -751,4 +751,37 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'webextract',
+    name: 'WebExtract',
+    description:
+      'Read any public URL and get clean Markdown plus fixed-schema JSON: article metadata, product and price (with variant and sale/regular price detail), and tables. Two tools: extractUrl and pageMarkdown. Free tier of 50 calls/day per IP with no key; prepaid API key or x402 pay-per-call in USDC for more. Respects robots.txt; failed fetches are not charged.',
+    packageName: '@webextract/ai-sdk',
+    tags: ['web', 'extraction', 'scraping', 'markdown'],
+    apiKeyEnvName: 'WEBEXTRACT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @webextract/ai-sdk',
+      npm: 'npm install @webextract/ai-sdk',
+      yarn: 'yarn add @webextract/ai-sdk',
+      bun: 'bun add @webextract/ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { extractUrl, pageMarkdown } from '@webextract/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What does https://web-scraping.dev/product/1 cost?',
+  tools: {
+    extractUrl: extractUrl(),
+    pageMarkdown: pageMarkdown(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://webextract.dev/docs/ai-sdk',
+    apiKeyUrl: 'https://webextract.dev/#pricing',
+    websiteUrl: 'https://webextract.dev',
+    npmUrl: 'https://www.npmjs.com/package/@webextract/ai-sdk',
+  },
 ];
