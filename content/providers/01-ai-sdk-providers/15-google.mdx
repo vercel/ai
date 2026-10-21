@@ -2453,6 +2453,73 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
   grounding.
 </Note>
 
+## Video Models
+
+You can create [Veo](https://ai.google.dev/gemini-api/docs/video) video models that call the Gemini API
+using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: google.video('veo-3.1-generate-preview'),
+  prompt: 'A Bedlington Terrier leaping across a beach at sunset',
+  aspectRatio: '16:9',
+  duration: 6,
+});
+```
+
+Available model IDs include `veo-3.1-generate-preview`, `veo-3.1-fast-generate-preview`,
+`veo-3.0-generate-001`, `veo-3.0-fast-generate-001` and `veo-2.0-generate-001`.
+
+<Note>
+  If you use Veo through Google Cloud, see the [Google Vertex
+  provider](/providers/ai-sdk-providers/google-vertex#video-models) instead.
+</Note>
+
+### Provider Options
+
+Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleVideoModelOptions` type.
+
+```ts
+import { google, type GoogleVideoModelOptions } from '@ai-sdk/google';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: google.video('veo-3.1-generate-preview'),
+  prompt: 'A Bedlington Terrier leaping across a beach at sunset',
+  providerOptions: {
+    google: {
+      personGeneration: 'allow_adult',
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies GoogleVideoModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **personGeneration** `'dont_allow'` | `'allow_adult'` | `'allow_all'`
+
+  Whether to allow person generation in the video.
+
+- **negativePrompt** _string_
+
+  What to avoid in the generated video.
+
+- **referenceImages** _array_
+
+  Reference images for style or asset guidance. Each image has either `bytesBase64Encoded` or `gcsUri`.
+
+- **pollIntervalMs** _number_
+
+  How often to check the status of the video generation, in milliseconds.
+
+- **pollTimeoutMs** _number_
+
+  How long to wait for the video generation to finish before giving up, in milliseconds.
+
 ## Speech Models
 
 You can create models that call the [Gemini text-to-speech API](https://ai.google.dev/gemini-api/docs/speech-generation)

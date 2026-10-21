@@ -235,6 +235,71 @@ Fal's platform offers several advanced capabilities:
 
 For more details about Fal's capabilities and features, visit the [Fal AI documentation](https://fal.ai/docs).
 
+## Video Models
+
+You can create video models that call the [Fal AI video APIs](https://fal.ai/models)
+using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+```ts
+import { fal } from '@ai-sdk/fal';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: fal.video('luma-dream-machine/ray-2'),
+  prompt: 'An echidna looking out at the bay at sunrise',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+```
+
+Model IDs are the Fal model paths without the `fal-ai/` prefix (the prefix is also accepted).
+Some examples are `luma-dream-machine/ray-2`, `minimax-video` and `hunyuan-video`.
+You can pass any video model ID from [Fal](https://fal.ai/models).
+
+### Provider Options
+
+Further configuration can be done using Fal provider options. You can validate the provider options using the `FalVideoModelOptions` type.
+
+```ts
+import { fal, type FalVideoModelOptions } from '@ai-sdk/fal';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: fal.video('luma-dream-machine/ray-2'),
+  prompt: 'An echidna looking out at the bay at sunrise',
+  providerOptions: {
+    fal: {
+      resolution: '540p',
+      loop: true,
+    } satisfies FalVideoModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **loop** _boolean_
+
+  Whether the video should loop. Only supported by Luma models.
+
+- **motionStrength** _number_
+
+  Strength of the motion in the video, between 0 and 1.
+
+- **resolution** _string_
+
+  Output resolution, for example `'540p'`, `'720p'` or `'1080p'`. Supported values depend on the model.
+
+- **negativePrompt** _string_
+
+  What to avoid in the generated video.
+
+- **promptOptimizer** _boolean_
+
+  Whether to let the model optimize the prompt.
+
+Other model-specific parameters are passed through to the Fal API.
+
 ## Transcription Models
 
 You can create models that call the [Fal transcription API](https://docs.fal.ai/guides/convert-speech-to-text)
