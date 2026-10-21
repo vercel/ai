@@ -337,7 +337,7 @@ You can create models that call the
 the `.speech()` factory method:
 
 ```ts
-const model = mistral.speech('voxtral-mini-tts-2603');
+const model = mistral.speech('voxtral-mini-tts-3-0');
 ```
 
 Use a preset or saved voice ID with [`generateSpeech`](/docs/reference/ai-sdk-core/generate-speech):
@@ -347,9 +347,9 @@ import { mistral } from '@ai-sdk/mistral';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 
 const result = await generateSpeech({
-  model: mistral.speech('voxtral-mini-tts-2603'),
+  model: mistral.speech('voxtral-mini-tts-3-0'),
   text: 'Hello from the AI SDK!',
-  voice: 'en_paul_neutral',
+  voice: 'gb_jane_neutral',
   outputFormat: 'mp3',
 });
 
@@ -359,7 +359,37 @@ const audio = result.audio.uint8Array;
 The Mistral speech model maps `voice` to Mistral's `voice_id`. It supports
 `mp3`, `wav`, `pcm`, `flac`, and `opus` output formats and defaults to `mp3`.
 The `instructions`, `speed`, and `language` settings are not supported and
-produce warnings when provided.
+produce warnings when provided. To control emotion and pace with Voxtral 3,
+include tags such as `[emotion=happy]` and `[pace=slow]` directly in `text`.
+
+Voxtral 3 supports additional delivery controls through `providerOptions.mistral`:
+
+- **expressiveness** _number_
+
+  A value from 1 to 5 controlling expressiveness. Higher values trade voice
+  similarity and stability for stronger delivery. Omit it to use the service default.
+
+- **phonemeHints** _Record&lt;string, string[]&gt;_
+
+  Map words in the input to lists of IPA phonemes. Mistral validates the supported
+  phoneme inventory. See [custom pronunciation](https://docs.mistral.ai/studio/audio/text-to-speech/custom-pronunciation).
+
+```ts
+import { mistral, type MistralSpeechModelOptions } from '@ai-sdk/mistral';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-3-0'),
+  text: '[emotion=happy] I like tomato soup.',
+  voice: 'gb_jane_neutral',
+  providerOptions: {
+    mistral: {
+      expressiveness: 1.5,
+      phonemeHints: { tomato: ['t', 'ə', 'm', 'ɑ', 't', 'oʊ'] },
+    } satisfies MistralSpeechModelOptions,
+  },
+});
+```
 
 Mistral also supports one-off voice cloning with base64-encoded reference
 audio. Pass it through `providerOptions.mistral.refAudio` and use
@@ -373,7 +403,7 @@ import { experimental_generateSpeech as generateSpeech } from 'ai';
 const referenceAudio = await readFile('./reference.mp3');
 
 const result = await generateSpeech({
-  model: mistral.speech('voxtral-mini-tts-2603'),
+  model: mistral.speech('voxtral-mini-tts-3-0'),
   text: 'Hello from the AI SDK!',
   providerOptions: {
     mistral: {
@@ -397,6 +427,7 @@ is redacted from request metadata and API call errors returned by the provider.
 
 | Model                   | Saved Voices | Reference Audio | Non-Streaming |
 | ----------------------- | ------------ | --------------- | ------------- |
+| `voxtral-mini-tts-3-0`  | <Check />    | <Check />       | <Check />     |
 | `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
 
 ## Embedding Models
