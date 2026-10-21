@@ -35,6 +35,15 @@ const openaiResponsesUsageSchema = () =>
           z.object({
             cached_tokens: z.number().nullish(),
             cache_write_tokens: z.number().nullish(),
+            cache_write_tokens_details: z
+              .intersection(
+                jsonObjectSchema(),
+                z.object({
+                  ttl_30m_tokens: z.number().nullish(),
+                  ttl_12h_tokens: z.number().nullish(),
+                }),
+              )
+              .nullish(),
             orchestration_input_tokens: z.number().nullish(),
             orchestration_input_cached_tokens: z.number().nullish(),
           }),
@@ -231,6 +240,11 @@ export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
   diff: string;
 };
 
+export type OpenAIResponsesPromptCacheBreakpoint = {
+  mode: 'explicit';
+  ttl?: '30m' | '12h';
+};
+
 export type OpenAIResponsesSystemMessage = {
   type?: 'message';
   role: 'system' | 'developer';
@@ -239,7 +253,7 @@ export type OpenAIResponsesSystemMessage = {
     | Array<{
         type: 'input_text';
         text: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }>;
 };
 
@@ -250,33 +264,33 @@ export type OpenAIResponsesUserMessage = {
     | {
         type: 'input_text';
         text: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
     | {
         type: 'input_image';
         image_url: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
     | {
         type: 'input_image';
         file_id: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
     | {
         type: 'input_file';
         file_url: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
     | {
         type: 'input_file';
         filename: string;
         file_data: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
     | {
         type: 'input_file';
         file_id: string;
-        prompt_cache_breakpoint?: { mode: 'explicit' };
+        prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
       }
   >;
 };
@@ -308,33 +322,33 @@ export type OpenAIResponsesFunctionCallOutput = {
         | {
             type: 'input_text';
             text: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
         | {
             type: 'input_image';
             image_url: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
         | {
             type: 'input_image';
             file_id: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
         | {
             type: 'input_file';
             filename: string;
             file_data: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
         | {
             type: 'input_file';
             file_url: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
         | {
             type: 'input_file';
             file_id: string;
-            prompt_cache_breakpoint?: { mode: 'explicit' };
+            prompt_cache_breakpoint?: OpenAIResponsesPromptCacheBreakpoint;
           }
       >;
   caller?: OpenAIResponsesToolCaller;
