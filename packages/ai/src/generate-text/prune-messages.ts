@@ -105,34 +105,80 @@ export function pruneMessages({
         return message;
       }
 
-      const toolCallIdToToolName: Record<string, string> = {};
+      const keepParts = message.content.map(part => {
+        // keep non-tool parts:
+        if (part.type !== 'tool-call' && part.type !== 'tool-result') {
+          return true;
+        }
+
+        // keep parts that are associated with a tool call that needs to be kept:
+        if (
+          (part.type === 'tool-call' || part.type === 'tool-result') &&
+          keptToolCallIds.has(part.toolCallId)
+        ) {
+          return true;
+        }
+
+        // keep parts that are not associated with a tool that should be removed:
+        return (
+          toolCall.tools != null && !toolCall.tools.includes(part.toolName)
+        );
+      });
+
+      // Consecutive reasoning parts can belong to the same provider item.
+      // Remove the whole group when its following content was pruned.
+      if (message.role === 'assistant') {
+        for (
+          let reasoningIndex = 0;
+          reasoningIndex < message.content.length;
+          reasoningIndex++
+        ) {
+          const part = message.content[reasoningIndex];
+          if (part.type !== 'reasoning') {
+            continue;
+          }
+
+          let reasoningEndIndex = reasoningIndex + 1;
+          while (reasoningEndIndex < message.content.length) {
+            const nextPart = message.content[reasoningEndIndex];
+            if (nextPart.type !== 'reasoning') {
+              break;
+            }
+            reasoningEndIndex++;
+          }
+
+          let followingPartIndex = reasoningEndIndex;
+          let hasFollowingPart = false;
+          let hasKeptFollowingPart = false;
+
+          while (followingPartIndex < message.content.length) {
+            const followingPart = message.content[followingPartIndex];
+            if (followingPart.type === 'reasoning') {
+              break;
+            }
+
+            hasFollowingPart = true;
+            hasKeptFollowingPart ||= keepParts[followingPartIndex];
+            followingPartIndex++;
+          }
+
+          if (hasFollowingPart && !hasKeptFollowingPart) {
+            for (
+              let index = reasoningIndex;
+              index < reasoningEndIndex;
+              index++
+            ) {
+              keepParts[index] = false;
+            }
+          }
+
+          reasoningIndex = followingPartIndex - 1;
+        }
+      }
 
       return {
         ...message,
-        content: message.content.filter(part => {
-          // keep non-tool parts:
-          if (part.type !== 'tool-call' && part.type !== 'tool-result') {
-            return true;
-          }
-
-          // track tool calls and approvals:
-          if (part.type === 'tool-call') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
-          }
-
-          // keep parts that are associated with a tool call or approval that needs to be kept:
-          if (
-            (part.type === 'tool-call' || part.type === 'tool-result') &&
-            keptToolCallIds.has(part.toolCallId)
-          ) {
-            return true;
-          }
-
-          // keep parts that are not associated with a tool that should be removed:
-          return (
-            toolCall.tools != null && !toolCall.tools.includes(part.toolName)
-          );
-        }),
+        content: message.content.filter((_, index) => keepParts[index]),
       } as AssistantModelMessage | ToolModelMessage;
     });
   }
