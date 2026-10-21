@@ -189,6 +189,8 @@ export function streamSpeech({
   const pipeAbortController = new AbortController();
   let hasAudio = false;
   let finished = false;
+  // Kept so a no-audio failure reports the provider error that caused it.
+  let lastError: unknown;
 
   // `Transformer.cancel` is supported at runtime but missing from the
   // ambient `Transformer` type, so widen it here.
@@ -236,8 +238,13 @@ export function streamSpeech({
           break;
         }
 
-        case 'raw':
+        case 'raw': {
+          controller.enqueue(value);
+          break;
+        }
+
         case 'error': {
+          lastError = value.error;
           controller.enqueue(value);
           break;
         }
@@ -250,6 +257,7 @@ export function streamSpeech({
           if (!hasAudio) {
             throw new NoSpeechGeneratedError({
               responses: [currentResponseMetadata()],
+              cause: lastError,
             });
           }
 
@@ -266,6 +274,7 @@ export function streamSpeech({
       if (!finished) {
         throw new NoSpeechGeneratedError({
           responses: [currentResponseMetadata()],
+          cause: lastError,
         });
       }
     },
@@ -380,20 +389,50 @@ export function streamSpeech({
     },
     get audioStream() {
       return asAsyncIterableStream(
-        claimStream('audio-stream').pipeThrough(
-          new TransformStream<SpeechStreamPart, Uint8Array>({
-            transform(part, controller) {
-              if (part.type === 'audio' && part.audio.length > 0) {
-                controller.enqueue(part.audio);
-              } else if (part.type === 'error') {
-                controller.error(part.error);
-              }
-            },
-          }),
-        ),
+        createAudioByteStream(claimStream('audio-stream')),
       );
     },
   };
+}
+
+/**
+ * Projects speech parts to audio bytes with a pull-based stream rather than a
+ * second `pipeThrough`, so an early consumer cancel cancels the part stream
+ * directly instead of surfacing an unhandled rejection from a chained pipe.
+ */
+function createAudioByteStream(
+  parts: ReadableStream<SpeechStreamPart>,
+): ReadableStream<Uint8Array> {
+  let reader: ReadableStreamDefaultReader<SpeechStreamPart> | undefined;
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      reader ??= parts.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        if (value.type === 'audio' && value.audio.length > 0) {
+          controller.enqueue(value.audio);
+          return;
+        }
+        if (value.type === 'error') {
+          controller.error(value.error);
+          await reader.cancel(value.error).catch(() => {});
+          return;
+        }
+      }
+    },
+    async cancel(reason) {
+      if (reader != null) {
+        await reader.cancel(reason);
+      } else {
+        await parts.cancel(reason);
+      }
+    },
+  });
 }
 
 function toTextStream(
