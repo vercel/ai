@@ -1,15 +1,13 @@
+import { openai } from '@ai-sdk/openai';
 import { experimental_createWebFetchTool as createWebFetchTool } from '@ai-sdk/tool-web-fetch';
-import { isStepCount, ToolLoopAgent } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const agent = new ToolLoopAgent({
-    model: 'openai/gpt-6-astra',
+  const result = await generateText({
+    model: openai('gpt-6-astra'),
     tools: { webFetch: createWebFetchTool() },
-    stopWhen: isStepCount(10),
-  });
-
-  const result = await agent.generate({
+    stopWhen: isStepCount(5),
     prompt:
       'Read https://ai-sdk.dev/docs/introduction and summarize what the AI SDK is in three bullet points.',
   });
@@ -21,13 +19,16 @@ run(async () => {
       }
 
       const output = toolResult.output;
-      console.log(
-        'webFetch',
-        toolResult.input,
-        output.type === 'document'
-          ? `${output.contentType}, ${output.totalLength} characters`
-          : output,
-      );
+      console.log('webFetch', toolResult.input);
+
+      if (output.type === 'document') {
+        console.log(
+          `${output.contentType}, ${output.totalLength} characters:\n`,
+        );
+        console.log(output.content);
+      } else {
+        console.log(output);
+      }
     }
   }
 
