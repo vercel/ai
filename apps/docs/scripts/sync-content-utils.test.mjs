@@ -56,6 +56,61 @@ hello
   );
 });
 
+test('transformMdx pins AI SDK provider installs for versioned provider docs', () => {
+  const input = `---
+title: Google Generative AI
+---
+
+<Tabs>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/google" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/google" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/google" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/google" dark />
+  </Tab>
+</Tabs>
+
+\`\`\`bash
+pnpm add @ai-sdk/langchain @langchain/core
+\`\`\`
+`;
+
+  const transformed = transformMdx(input, 'v6', 'providers');
+  assert.match(
+    transformed,
+    /pnpm add ai@6 @ai-sdk\/google@ai-v6/,
+  );
+  assert.match(
+    transformed,
+    /npm install ai@6 @ai-sdk\/google@ai-v6/,
+  );
+  assert.match(
+    transformed,
+    /yarn add ai@6 @ai-sdk\/google@ai-v6/,
+  );
+  assert.match(
+    transformed,
+    /bun add ai@6 @ai-sdk\/google@ai-v6/,
+  );
+  assert.match(
+    transformed,
+    /pnpm add ai@6 @ai-sdk\/langchain@ai-v6 @langchain\/core/,
+  );
+});
+
+test('transformMdx leaves current provider installs unchanged', () => {
+  const input = 'pnpm add @ai-sdk/google';
+
+  assert.equal(transformMdx(input, 'v7', 'providers'), input);
+  assert.equal(transformMdx(input, 'v6', 'docs'), input);
+});
+
 test('transformMdx strips stray quotes from fence languages', () => {
   const input = `---
 title: Example
