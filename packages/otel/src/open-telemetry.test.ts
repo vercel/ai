@@ -526,9 +526,11 @@ describe('OpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 0);
       expect({
         agentName: attrs['gen_ai.agent.name'],
+        spanName: tracer.spans[0].name,
       }).toMatchInlineSnapshot(`
         {
           "agentName": "my-agent",
+          "spanName": "invoke_agent my-agent",
         }
       `);
     });
