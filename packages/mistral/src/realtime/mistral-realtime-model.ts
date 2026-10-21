@@ -6,7 +6,7 @@ import {
   type Experimental_RealtimeModelV4TransportOptions as RealtimeModelV4TransportOptions,
 } from '@ai-sdk/provider';
 import type { MistralChatModelId } from '../mistral-chat-language-model-options';
-import { buildMistralRealtimeSessionConfig } from './mistral-realtime-options';
+import { buildMistralRealtimeSessionConfig } from './mistral-realtime-model-options';
 import {
   MistralRealtimeTransport,
   parseMistralRealtimeEvent,

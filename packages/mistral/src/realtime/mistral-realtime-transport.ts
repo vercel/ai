@@ -14,7 +14,7 @@ import type {
   RpcInvocationData,
 } from 'livekit-client';
 import { z } from 'zod/v4';
-import { buildMistralRealtimeSessionConfig } from './mistral-realtime-options';
+import { buildMistralRealtimeSessionConfig } from './mistral-realtime-model-options';
 
 const sessionSchema = z.object({
   id: z.string().min(1),

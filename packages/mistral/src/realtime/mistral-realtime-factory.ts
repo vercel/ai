@@ -14,7 +14,7 @@ import { z } from 'zod/v4';
 import type { MistralChatModelId } from '../mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from '../mistral-error';
 import { MistralRealtimeModel } from './mistral-realtime-model';
-import { buildMistralRealtimeSessionConfig } from './mistral-realtime-options';
+import { buildMistralRealtimeSessionConfig } from './mistral-realtime-model-options';
 
 /** Credentials for one browser voice conversation. */
 export type MistralRealtimeSession = {
