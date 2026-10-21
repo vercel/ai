@@ -8,8 +8,10 @@ test('switching capabilities and source keeps the selected provider supported', 
   assert.equal(resolveProvider('speech', 'provider', 'elevenlabs'), 'elevenlabs');
   assert.equal(resolveProvider('speech', 'gateway', 'elevenlabs'), 'openai');
   assert.deepEqual(providersFor('video', 'provider'), ['grok', 'google']);
-  assert.deepEqual(providersFor('decision', 'gateway'), ['openai', 'perplexity']);
-  assert.equal(resolveProvider('decision', 'gateway', 'anthropic'), 'openai');
+  assert.deepEqual(providersFor('decision', 'gateway'), ['typesafe', 'openai', 'perplexity']);
+  assert.equal(resolveProvider('decision', 'gateway', 'grok'), 'typesafe');
+  assert.equal(resolveProvider('decision', 'gateway', 'anthropic'), 'typesafe');
+  assert.equal(resolveProvider('text', 'gateway', 'typesafe'), 'grok');
   assert.equal(resolveProvider('decision', 'provider', 'anthropic'), 'anthropic');
 });
 
@@ -25,6 +27,9 @@ test('examples use current model factories and stream/tool APIs', () => {
   assert.match(example('DevTools').getCode('openai', 'gateway'), /model: gateway\(/);
   assert.match(example('Decisions').getCode('openai', 'gateway'), /experimental_decide as decide/);
   assert.match(example('Decisions').getCode('openai', 'gateway'), /model: 'openai\/gpt-6-luna-decisions'/);
+  assert.match(example('Decisions').getCode('typesafe', 'gateway'), /model: 'typesafe-ai\/jev'/);
+  assert.match(example('Decisions').getCode('typesafe', 'provider'), /import \{ typeSafeAi \} from '@ai-sdk\/typesafe-ai';/);
+  assert.match(example('Decisions').getCode('typesafe', 'provider'), /typeSafeAi\.decisionModel\('jev-latest'\)/);
   assert.match(example('Decisions').getCode('perplexity', 'provider'), /perplexity\.decisionModel\('pplx-decider-latest'\)/);
   assert.match(example('Decisions').getCode('anthropic', 'custom'), /decisionModels: \{ 'my-model': anthropic\.decisionModel\(/);
   assert.match(example('Decisions').getCode('anthropic', 'custom'), /provider\.decisionModel\('my-model'\)/);

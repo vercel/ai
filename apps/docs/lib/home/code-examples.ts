@@ -11,6 +11,7 @@ export type ModelKind =
 
 export const PROVIDERS = [
   { id: 'grok', label: 'Grok' },
+  { id: 'typesafe', label: 'TypeSafe AI' },
   { id: 'openai', label: 'OpenAI' },
   { id: 'anthropic', label: 'Anthropic' },
   { id: 'google', label: 'Google' },
@@ -32,7 +33,10 @@ export interface CodeExample {
   getCode: (provider: Provider, mode: Mode) => string;
 }
 
-const textModels: Record<Provider, [string, string, string]> = {
+// TypeSafe AI only serves decision models.
+type TextProvider = Exclude<Provider, 'typesafe'>;
+
+const textModels: Record<TextProvider, [string, string, string]> = {
   grok: ['xai', 'grok-4.7', 'spacexai/grok-4.7'],
   openai: ['openai', 'gpt-6-astra', 'openai/gpt-6-astra'],
   anthropic: ['anthropic', 'claude-sonnet-5.5', 'anthropic/claude-sonnet-5.5'],
@@ -55,14 +59,14 @@ const textModels: Record<Provider, [string, string, string]> = {
 };
 
 const providersByKind: Record<ModelKind, Provider[]> = {
-  text: PROVIDERS.filter(provider => provider.id !== 'elevenlabs').map(
-    provider => provider.id,
-  ),
+  text: PROVIDERS.filter(
+    provider => provider.id !== 'elevenlabs' && provider.id !== 'typesafe',
+  ).map(provider => provider.id),
   image: ['grok', 'openai', 'google'],
   speech: ['openai', 'elevenlabs'],
   transcription: ['openai'],
   video: ['grok', 'google'],
-  decision: ['openai', 'anthropic', 'google', 'perplexity'],
+  decision: ['typesafe', 'openai', 'anthropic', 'google', 'perplexity'],
 };
 
 export function providersFor(kind: ModelKind, mode: Mode): Provider[] {
@@ -72,7 +76,7 @@ export function providersFor(kind: ModelKind, mode: Mode): Provider[] {
   // Anthropic and Google decisions are SDK adapters over their language
   // models; the gateway decision catalog only lists native decision models.
   if (kind === 'decision' && mode === 'gateway')
-    return ['openai', 'perplexity'];
+    return ['typesafe', 'openai', 'perplexity'];
   return providersByKind[kind];
 }
 
@@ -121,6 +125,8 @@ function modelConfig(
   if (kind === 'transcription')
     return ['openai', 'whisper-1', 'openai/whisper-1'];
   if (kind === 'decision') {
+    if (provider === 'typesafe')
+      return ['typeSafeAi', 'jev-latest', 'typesafe-ai/jev'];
     if (provider === 'perplexity')
       return [
         'perplexity',
@@ -132,8 +138,11 @@ function modelConfig(
     if (provider === 'google') return ['google', 'gemini-3.5-flash-lite', ''];
     return ['openai', 'gpt-6-luna', 'openai/gpt-6-luna-decisions'];
   }
-  return textModels[provider];
+  return textModels[provider as TextProvider];
 }
+
+// Provider instances whose package name differs from the export name.
+const providerPackages: Record<string, string> = { typeSafeAi: 'typesafe-ai' };
 
 function sample({
   imports,
@@ -165,7 +174,7 @@ function sample({
   let providerImport = '';
 
   if (mode !== 'gateway') {
-    providerImport = `\nimport { ${sdk} } from '@ai-sdk/${sdk}';`;
+    providerImport = `\nimport { ${sdk} } from '@ai-sdk/${providerPackages[sdk] ?? sdk}';`;
     model =
       kind === 'text'
         ? `${sdk}('${modelId}')`
@@ -360,7 +369,7 @@ export const HERO_EXAMPLES = [
 
 const CHAT_QUESTION = 'Explain quantum entanglement in simple terms.';
 
-const CHAT_RESPONSES: Record<Provider, string> = {
+const CHAT_RESPONSES: Record<TextProvider, string> = {
   openai:
     'Quantum entanglement is when two particles become connected so that the state of one instantly influences the state of the other, regardless of the distance separating them.',
   anthropic:
@@ -385,6 +394,9 @@ const CHAT_RESPONSES: Record<Provider, string> = {
 export function getChatPreview(provider: Provider) {
   return [
     { role: 'user' as const, content: CHAT_QUESTION },
-    { role: 'assistant' as const, content: CHAT_RESPONSES[provider] },
+    {
+      role: 'assistant' as const,
+      content: CHAT_RESPONSES[provider as TextProvider],
+    },
   ];
 }
