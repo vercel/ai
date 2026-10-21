@@ -118,6 +118,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
       input: text,
       voice_id: refAudio == null ? voice : undefined,
       ref_audio: refAudio,
+      expressiveness: mistralOptions?.expressiveness,
+      phoneme_hints: mistralOptions?.phonemeHints,
       response_format: responseFormat,
       stream: false,
     };
