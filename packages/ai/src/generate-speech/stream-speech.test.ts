@@ -488,6 +488,77 @@ describe('experimental_streamSpeech', () => {
     });
   });
 
+  it('should keep a preceding error part as the cause of a no-audio failure', async () => {
+    const upstream = new Error('voice not found');
+    const finishing = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: upstream },
+            { type: 'finish' },
+          ]),
+      }),
+      text: 'Hi',
+    });
+    await expect(finishing.usage).rejects.toMatchObject({
+      name: 'AI_NoSpeechGeneratedError',
+      cause: upstream,
+    });
+
+    const ending = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: upstream },
+          ]),
+      }),
+      text: 'Hi',
+    });
+    await expect(ending.usage).rejects.toMatchObject({
+      name: 'AI_NoSpeechGeneratedError',
+      cause: upstream,
+    });
+  });
+
+  it('should cancel the model stream without unhandled rejections when audioStream is cancelled early', async () => {
+    const cancelModelStream = vi.fn();
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const result = streamSpeech({
+        model: new MockStreamingSpeechModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream<SpeechModelV4StreamPart>({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.enqueue({
+                  type: 'audio',
+                  audio: new Uint8Array([1]),
+                  audioFormat: mp3,
+                });
+              },
+              cancel: cancelModelStream,
+            }),
+          }),
+        }),
+        text: 'Hi',
+      });
+
+      for await (const chunk of result.audioStream) {
+        expect(chunk).toEqual(new Uint8Array([1]));
+        break;
+      }
+
+      await vi.waitFor(() => expect(cancelModelStream).toHaveBeenCalled());
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+  });
+
   it('should allow only one stream owner', () => {
     const result = streamSpeech({
       model: new MockStreamingSpeechModelV4({
