@@ -204,6 +204,23 @@ describe('GoogleJSONAccumulator', () => {
       });
     });
 
+    it('should ignore a value-less root path', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      expect(accumulator.processPartialArgs([{ jsonPath: '$' }])).toEqual({
+        currentJSON: {},
+        textDelta: '',
+      });
+      expect(accumulator.processPartialArgs([{ jsonPath: '$[]' }])).toEqual({
+        currentJSON: {},
+        textDelta: '',
+      });
+      expect(accumulator.processPartialArgs([{ jsonPath: '$.$' }])).toEqual({
+        currentJSON: { $: {} },
+        textDelta: '{"$":{}',
+      });
+    });
+
     it('should leave a streamed string in place when a value-less path closes it', () => {
       const accumulator = new GoogleJSONAccumulator();
       accumulator.processPartialArgs([

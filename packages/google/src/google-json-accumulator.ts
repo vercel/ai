@@ -76,6 +76,9 @@ export class GoogleJSONAccumulator {
 
       const resolved = resolvePartialArgValue(arg);
       if (resolved == null) {
+        // `$` and `$[]` are the root. `$.$` is a property named `$`.
+        if (jsonPath === '$') continue;
+
         const leaf = segments[segments.length - 1];
         const isEmptyObject =
           !isEmptyArray &&
