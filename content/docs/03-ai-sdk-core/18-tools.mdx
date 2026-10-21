@@ -237,11 +237,11 @@ followed by the content. Caller cancellation is propagated as an error.
         'Never fetch from these domains or their subdomains. Also applies to redirects.',
     },
     {
-      name: 'requireUrlInContext',
+      name: 'requireUrlInUserMessage',
       type: 'boolean',
       isOptional: true,
       description:
-        'Only fetch URLs that appear in user messages or tool results. URLs in system messages and instructions are not included. Defaults to `false`.',
+        'Only fetch URLs that appear in user messages. URLs in instructions, system messages, assistant messages, and tool results are not included. Defaults to `false`.',
     },
     {
       name: 'maxLength',
@@ -351,5 +351,10 @@ validation. See [Secure URL Fetching](/docs/advanced/secure-url-fetching).
 Fetched content is untrusted and can contain prompt injections. When an agent
 has access to private data, a model could also be instructed to send that data
 to another site, for example in a URL query string. Restrict fetching with
-`allowedDomains`, enable `requireUrlInContext` so only URLs from the
-conversation can be fetched, or require [tool approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval).
+`allowedDomains`, enable `requireUrlInUserMessage` so only URLs from user
+messages can be fetched, or require [tool approval](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval).
+
+`requireUrlInUserMessage` ignores URLs in tool results because the model can
+place arbitrary text there, for example through tool inputs that are reflected
+in outputs. As a result, the model cannot follow links from search results or
+fetched pages in this mode.

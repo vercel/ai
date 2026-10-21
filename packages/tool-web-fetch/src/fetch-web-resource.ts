@@ -32,6 +32,33 @@ export type FetchWebResourceResult =
       statusCode?: number;
     };
 
+// Error messages never include URLs. The model already knows the URL it
+// requested, and repeating model-provided input in results lets the model
+// place arbitrary text into the conversation.
+
+/**
+ * Returns a system error code such as `ENOTFOUND` from a fetch error or its
+ * causes, which explains a network failure without repeating the URL.
+ */
+function getErrorCode(error: unknown): string | undefined {
+  for (
+    let current = error, depth = 0;
+    current != null && depth < 5;
+    current = (current as { cause?: unknown }).cause, depth++
+  ) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]*$/.test(code)) {
+      return code;
+    }
+  }
+  return undefined;
+}
+
+function formatErrorCode(error: unknown): string {
+  const code = getErrorCode(error);
+  return code === undefined ? '' : ` (${code})`;
+}
+
 function hasDownloadErrorCause(error: unknown): boolean {
   for (
     let current = error, depth = 0;
@@ -77,20 +104,21 @@ export async function fetchWebResource({
         errorCode: 'url_not_allowed',
         message:
           redirectCount === 0
-            ? `Fetching ${currentUrl} is not allowed by the domain filter.`
-            : `Redirect to ${currentUrl} is not allowed by the domain filter.`,
+            ? 'The domain of the URL is not allowed.'
+            : 'The URL redirected to a domain that is not allowed.',
       };
     }
 
     try {
       validateDownloadUrl(currentUrl);
-    } catch (error) {
+    } catch {
       return {
         type: 'error',
         errorCode: 'url_not_allowed',
-        message: DownloadError.isInstance(error)
-          ? error.message
-          : `Fetching ${currentUrl} is not allowed.`,
+        message:
+          redirectCount === 0
+            ? 'The URL points to a local, private, or reserved address, which is not allowed.'
+            : 'The URL redirected to a local, private, or reserved address, which is not allowed.',
       };
     }
 
@@ -113,14 +141,15 @@ export async function fetchWebResource({
         return {
           type: 'error',
           errorCode: 'url_not_allowed',
-          message: `Fetching ${currentUrl} is not allowed: it resolves to a private or reserved address.`,
+          message:
+            'The URL resolves to a private or reserved address, which is not allowed.',
         };
       }
 
       return {
         type: 'error',
         errorCode: 'network_error',
-        message: `Failed to fetch ${currentUrl}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `The request failed${formatErrorCode(error)}.`,
       };
     }
 
@@ -128,7 +157,7 @@ export async function fetchWebResource({
       return {
         type: 'error',
         errorCode: 'network_error',
-        message: `Redirect from ${currentUrl} could not be validated and was blocked.`,
+        message: 'A redirect could not be validated and was blocked.',
       };
     }
 
@@ -148,8 +177,8 @@ export async function fetchWebResource({
         errorCode: 'http_error',
         statusCode: response.status,
         message: challenged
-          ? `Fetching ${currentUrl} was blocked by bot protection (HTTP ${response.status}).`
-          : `Fetching ${currentUrl} failed with HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`,
+          ? `The request was blocked by bot protection (HTTP ${response.status}).`
+          : `The request failed with HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}.`,
       };
     }
 
@@ -169,14 +198,14 @@ export async function fetchWebResource({
         return {
           type: 'error',
           errorCode: 'too_large',
-          message: `The response from ${currentUrl} exceeds the maximum size of ${maxBytes} bytes.`,
+          message: `The response exceeds the maximum size of ${maxBytes} bytes.`,
         };
       }
 
       return {
         type: 'error',
         errorCode: 'network_error',
-        message: `Failed to read the response from ${currentUrl}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Reading the response failed${formatErrorCode(error)}.`,
       };
     }
 
@@ -192,6 +221,6 @@ export async function fetchWebResource({
   return {
     type: 'error',
     errorCode: 'too_many_redirects',
-    message: `Fetching ${url} exceeded the maximum of ${MAX_REDIRECTS} redirects.`,
+    message: `The URL exceeded the maximum of ${MAX_REDIRECTS} redirects.`,
   };
 }

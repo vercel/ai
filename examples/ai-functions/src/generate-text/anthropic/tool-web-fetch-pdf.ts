@@ -11,8 +11,8 @@ run(async () => {
         // Anthropic supports PDF tool results, so pass the PDF to the model.
         pdf: 'file',
         allowedDomains: ['arxiv.org'],
-        // Only fetch URLs from the conversation, not URLs the model made up.
-        requireUrlInContext: true,
+        // Only fetch URLs from user messages, not URLs the model made up.
+        requireUrlInUserMessage: true,
       }),
     },
     stopWhen: isStepCount(5),

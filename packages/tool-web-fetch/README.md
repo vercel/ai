@@ -50,26 +50,27 @@ resolved DNS addresses are validated at connect time. On other runtimes, only
 the URL is validated; restrict network egress at the platform level.
 
 Use `allowedDomains` or `blockedDomains` to restrict which sites can be
-fetched. Set `requireUrlInContext` to only fetch URLs that appear in user
-messages or tool results, which prevents the model from fetching URLs it
-constructed itself, for example to exfiltrate data in a query string.
+fetched. Set `requireUrlInUserMessage` to only fetch URLs that appear in user
+messages, which prevents the model from fetching URLs it constructed itself,
+for example to exfiltrate data in a query string. Links found in tool results,
+such as search results or fetched pages, cannot be followed in this mode.
 
 Fetched content is untrusted and can contain prompt injections.
 
 ## Options
 
-| Option                | Default          | Description                                                                                          |
-| --------------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `allowedDomains`      | none             | Only fetch from these domains and their subdomains. Cannot be combined with `blockedDomains`.        |
-| `blockedDomains`      | none             | Never fetch from these domains or their subdomains.                                                  |
-| `requireUrlInContext` | `false`          | Only fetch URLs that appear in user messages or tool results.                                        |
-| `maxLength`           | `50000`          | Maximum characters returned per call.                                                                |
-| `maxBytes`            | 10 MiB           | Maximum response size in bytes.                                                                      |
-| `timeout`             | `30000`          | Timeout in milliseconds for fetching each URL, including redirects.                                  |
-| `pdf`                 | `'text'`         | Convert PDFs to `'text'`, or return them as `'file'` parts for models that support PDF tool results. |
-| `userAgent`           | AI SDK agent     | User-Agent header sent with requests.                                                                |
-| `fetch`               | DNS-pinned fetch | Custom fetch implementation, e.g. for a proxy. It must validate resolved addresses itself.           |
-| `defuddleOptions`     | none             | Options for the HTML content extractor, e.g. `contentSelector` to choose the main content element.   |
+| Option                    | Default          | Description                                                                                          |
+| ------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `allowedDomains`          | none             | Only fetch from these domains and their subdomains. Cannot be combined with `blockedDomains`.        |
+| `blockedDomains`          | none             | Never fetch from these domains or their subdomains.                                                  |
+| `requireUrlInUserMessage` | `false`          | Only fetch URLs that appear in user messages.                                                        |
+| `maxLength`               | `50000`          | Maximum characters returned per call.                                                                |
+| `maxBytes`                | 10 MiB           | Maximum response size in bytes.                                                                      |
+| `timeout`                 | `30000`          | Timeout in milliseconds for fetching each URL, including redirects.                                  |
+| `pdf`                     | `'text'`         | Convert PDFs to `'text'`, or return them as `'file'` parts for models that support PDF tool results. |
+| `userAgent`               | AI SDK agent     | User-Agent header sent with requests.                                                                |
+| `fetch`                   | DNS-pinned fetch | Custom fetch implementation, e.g. for a proxy. It must validate resolved addresses itself.           |
+| `defuddleOptions`         | none             | Options for the HTML content extractor, e.g. `contentSelector` to choose the main content element.   |
 
 See the [Web Fetch Tool documentation](https://ai-sdk.dev/docs/ai-sdk-core/tools#web-fetch-tool)
 for details.

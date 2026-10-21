@@ -127,9 +127,12 @@ function getPlainText(document: Document): string {
     element.remove();
   }
 
+  // Fetched content is untrusted and conversion is synchronous, so these
+  // patterns must run in linear time. A pattern like /\s*\n\s*/ backtracks
+  // quadratically over long whitespace runs without a newline.
   return (document.body?.textContent ?? document.documentElement.textContent)
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\n\s*/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ ?\n[\n ]*/g, '\n')
     .trim();
 }
 
