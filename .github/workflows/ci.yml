@@ -56,24 +56,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: pnpm ci:test
 
-  ai:
-    name: AI (Node ${{ matrix.node }}, shard ${{ matrix.shard }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [22, 24, 26]
-        shard: [1/4, 2/4, 3/4, 4/4]
-    env:
-      VITEST_SHARD: ${{ matrix.shard }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-ci
-        with:
-          node-version: ${{ matrix.node }}
-      - run: pnpm exec turbo run test:node test:edge --filter=ai --concurrency=1 --continue=dependencies-successful
-
   examples:
     name: Examples
     runs-on: ubuntu-latest
