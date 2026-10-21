@@ -12,7 +12,7 @@ const modes = [
 ] as const;
 
 describe('parallelSearch', () => {
-  it('creates a provider-executed Parallel Search tool', () => {
+  it('creates a Parallel Search provider tool', () => {
     expect(
       parallelSearch({
         mode: 'fast',
@@ -29,7 +29,6 @@ describe('parallelSearch', () => {
         maxCharsTotal: 8000,
         fetchPolicy: { timeoutSeconds: 10, disableCacheFallback: true },
       },
-      isProviderExecuted: true,
     });
   });
 
