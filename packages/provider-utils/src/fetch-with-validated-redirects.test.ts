@@ -199,4 +199,43 @@ describe('fetchWithValidatedRedirects', () => {
       redirect: 'follow',
     });
   });
+
+  it.each(['http://localhost:5000', 'https://service.internal'])(
+    'skips validation for hops same-origin with trustedOrigin %s',
+    async trustedOrigin => {
+      // A self-hosted deployment: the configured origin is private, and its
+      // response URLs (and same-origin redirects) point back at it.
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirectResponse(`${trustedOrigin}/final`))
+        .mockResolvedValueOnce(okResponse());
+
+      const response = await fetchWithValidatedRedirects({
+        url: `${trustedOrigin}/predictions/123`,
+        trustedOrigin,
+        fetch: fetchMock,
+      });
+
+      expect(response.ok).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(['http://169.254.169.254/', 'https://other.internal/file'])(
+    'validates hops on other origins even when trustedOrigin is set: %s',
+    async redirectUrl => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirectResponse(redirectUrl));
+
+      await expect(
+        fetchWithValidatedRedirects({
+          url: 'http://localhost:5000/predictions/123',
+          trustedOrigin: 'http://localhost:5000',
+          fetch: fetchMock,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
 });
