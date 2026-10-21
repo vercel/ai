@@ -1,16 +1,29 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
+  toWebSocketUrl,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { elevenLabsSpeechModelOptionsSchema } from './elevenlabs-speech-model-options';
+import {
+  elevenLabsSpeechModelOptionsSchema,
+  type ElevenLabsSpeechModelOptions,
+} from './elevenlabs-speech-model-options';
+import {
+  createElevenLabsSpeechStream,
+  getElevenLabsAudioFormat,
+} from './elevenlabs-speech-stream';
 import type { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
 import type {
   ElevenLabsSpeechModelId,
@@ -21,6 +34,14 @@ interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+}
+
+const defaultVoiceId = '21m00Tcm4TlvDq8ikWAM';
+const defaultOutputFormat = 'mp3_44100_128';
+
+// The stream-input WebSocket does not serve the v3/v4 model families.
+function supportsTextToSpeechWebSocket(modelId: string): boolean {
+  return !modelId.startsWith('eleven_v3') && !modelId.startsWith('eleven_v4');
 }
 
 export class ElevenLabsSpeechModel implements SpeechModelV4 {
@@ -78,23 +99,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
 
     // Map outputFormat to ElevenLabs format (as query param)
     if (outputFormat) {
-      const formatMap: Record<string, string> = {
-        mp3: 'mp3_44100_128',
-        mp3_32: 'mp3_44100_32',
-        mp3_64: 'mp3_44100_64',
-        mp3_96: 'mp3_44100_96',
-        mp3_128: 'mp3_44100_128',
-        mp3_192: 'mp3_44100_192',
-        pcm: 'pcm_44100',
-        pcm_16000: 'pcm_16000',
-        pcm_22050: 'pcm_22050',
-        pcm_24000: 'pcm_24000',
-        pcm_44100: 'pcm_44100',
-        ulaw: 'ulaw_8000',
-      };
-
-      const mappedFormat = formatMap[outputFormat] || outputFormat;
-      queryParams.output_format = mappedFormat;
+      queryParams.output_format = toElevenLabsOutputFormat(outputFormat);
     }
 
     // Add language code if provided
@@ -238,4 +243,157 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
       },
     };
   }
+
+  async doStream(
+    options: SpeechModelV4StreamOptions,
+  ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
+    if (!supportsTextToSpeechWebSocket(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming speech with ${this.modelId}`,
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const elevenLabsOptions = await parseProviderOptions({
+      provider: 'elevenlabs',
+      providerOptions: options.providerOptions,
+      schema: elevenLabsSpeechModelOptionsSchema,
+    });
+    const warnings = getStreamWarnings(options, elevenLabsOptions);
+    const outputFormat = toElevenLabsOutputFormat(
+      options.outputFormat ?? defaultOutputFormat,
+    );
+    const voiceId = options.voice ?? defaultVoiceId;
+
+    const url = toWebSocketUrl(
+      this.config.url({
+        path: `/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream-input`,
+        modelId: this.modelId,
+      }),
+    );
+    const streaming = elevenLabsOptions?.streaming;
+    const queryParams = {
+      model_id: this.modelId,
+      output_format: outputFormat,
+      language_code: options.language ?? elevenLabsOptions?.languageCode,
+      enable_logging: elevenLabsOptions?.enableLogging,
+      inactivity_timeout: streaming?.inactivityTimeout,
+      sync_alignment: streaming?.syncAlignment,
+      auto_mode: streaming?.autoMode,
+      apply_text_normalization: elevenLabsOptions?.applyTextNormalization,
+      seed: elevenLabsOptions?.seed,
+      enable_ssml_parsing: streaming?.enableSsmlParsing,
+    };
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value != null) {
+        url.searchParams.set(key, String(value));
+      }
+    }
+
+    const initMessage = getStreamInitMessage(options, elevenLabsOptions);
+
+    return {
+      request: { body: { url: url.toString(), initMessage } },
+      response: { timestamp: currentDate, modelId: this.modelId },
+      stream: createElevenLabsSpeechStream({
+        abortSignal: options.abortSignal,
+        audioFormat: getElevenLabsAudioFormat(outputFormat),
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        includeRawChunks: options.includeRawChunks,
+        initMessage,
+        text: options.text,
+        url,
+        warnings,
+        webSocket: this.config.webSocket,
+      }),
+    };
+  }
+}
+
+function getStreamInitMessage(
+  options: SpeechModelV4StreamOptions,
+  elevenLabsOptions: ElevenLabsSpeechModelOptions | undefined,
+): Record<string, unknown> {
+  const voiceSettings = elevenLabsOptions?.voiceSettings;
+  const voiceSettingsMessage = {
+    ...(voiceSettings?.stability != null && {
+      stability: voiceSettings.stability,
+    }),
+    ...(voiceSettings?.similarityBoost != null && {
+      similarity_boost: voiceSettings.similarityBoost,
+    }),
+    ...(voiceSettings?.style != null && { style: voiceSettings.style }),
+    ...(voiceSettings?.useSpeakerBoost != null && {
+      use_speaker_boost: voiceSettings.useSpeakerBoost,
+    }),
+    ...(options.speed != null && { speed: options.speed }),
+  };
+  const chunkLengthSchedule = elevenLabsOptions?.streaming?.chunkLengthSchedule;
+  const locators = elevenLabsOptions?.pronunciationDictionaryLocators;
+
+  return {
+    // The protocol requires a single space as the first message text.
+    text: ' ',
+    ...(Object.keys(voiceSettingsMessage).length > 0 && {
+      voice_settings: voiceSettingsMessage,
+    }),
+    ...(chunkLengthSchedule != null && {
+      generation_config: { chunk_length_schedule: chunkLengthSchedule },
+    }),
+    ...(locators != null && {
+      pronunciation_dictionary_locators: locators.map(locator => ({
+        pronunciation_dictionary_id: locator.pronunciationDictionaryId,
+        ...(locator.versionId && { version_id: locator.versionId }),
+      })),
+    }),
+  };
+}
+
+function getStreamWarnings(
+  options: SpeechModelV4StreamOptions,
+  elevenLabsOptions: ElevenLabsSpeechModelOptions | undefined,
+): SharedV4Warning[] {
+  const warnings: SharedV4Warning[] = [];
+  if (options.instructions) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'instructions',
+      details:
+        'ElevenLabs speech models do not support instructions. Instructions parameter was ignored.',
+    });
+  }
+  for (const option of [
+    'applyLanguageTextNormalization',
+    'nextRequestIds',
+    'nextText',
+    'previousRequestIds',
+    'previousText',
+  ] as const) {
+    if (elevenLabsOptions?.[option] != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: `providerOptions.elevenlabs.${option}`,
+        details: `ElevenLabs streaming speech does not support ${option}.`,
+      });
+    }
+  }
+  return warnings;
+}
+
+function toElevenLabsOutputFormat(outputFormat: string): string {
+  const formatMap: Record<string, string> = {
+    mp3: 'mp3_44100_128',
+    mp3_32: 'mp3_44100_32',
+    mp3_64: 'mp3_44100_64',
+    mp3_96: 'mp3_44100_96',
+    mp3_128: 'mp3_44100_128',
+    mp3_192: 'mp3_44100_192',
+    pcm: 'pcm_44100',
+    pcm_16000: 'pcm_16000',
+    pcm_22050: 'pcm_22050',
+    pcm_24000: 'pcm_24000',
+    pcm_44100: 'pcm_44100',
+    ulaw: 'ulaw_8000',
+  };
+  return formatMap[outputFormat] || outputFormat;
 }

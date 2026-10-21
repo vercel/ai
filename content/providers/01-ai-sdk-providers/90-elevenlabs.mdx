@@ -201,16 +201,93 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model                    | Instructions |
-| ------------------------ | ------------ |
-| `eleven_v3`              | <Check />    |
-| `eleven_multilingual_v2` | <Check />    |
-| `eleven_flash_v2_5`      | <Check />    |
-| `eleven_flash_v2`        | <Check />    |
-| `eleven_turbo_v2_5`      | <Check />    |
-| `eleven_turbo_v2`        | <Check />    |
-| `eleven_monolingual_v1`  | <Check />    |
-| `eleven_multilingual_v1` | <Check />    |
+| Model                      | Instructions |
+| -------------------------- | ------------ |
+| `eleven_v4`                | <Check />    |
+| `eleven_v4_turbo`          | <Check />    |
+| `eleven_v3`                | <Check />    |
+| `eleven_v3_conversational` | <Check />    |
+| `eleven_multilingual_v2`   | <Check />    |
+| `eleven_flash_v2_5`        | <Check />    |
+| `eleven_flash_v2`          | <Check />    |
+| `eleven_turbo_v2_5`        | <Check />    |
+| `eleven_turbo_v2`          | <Check />    |
+| `eleven_monolingual_v1`    | <Check />    |
+| `eleven_multilingual_v1`   | <Check />    |
+
+## Streaming Speech Models
+
+<Note type="warning">Streaming speech is an experimental feature.</Note>
+
+`experimental_streamSpeech` uses the ElevenLabs text-to-speech WebSocket
+(`stream-input`). Text deltas are forwarded as they arrive, so you can pipe an
+LLM text stream straight into speech, and audio chunks stream back as they are
+generated.
+
+```ts
+import {
+  createElevenLabs,
+  type ElevenLabsProviderSettings,
+} from '@ai-sdk/elevenlabs';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { WebSocket } from 'ws';
+
+const elevenLabs = createElevenLabs({
+  webSocket: WebSocket as unknown as ElevenLabsProviderSettings['webSocket'],
+});
+
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_flash_v2_5'),
+  text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  outputFormat: 'pcm_24000',
+  providerOptions: {
+    elevenlabs: {
+      streaming: {
+        chunkLengthSchedule: [50, 120, 160],
+        syncAlignment: true,
+      },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'audio') {
+    // part.audio: Uint8Array, part.audioFormat: { type: 'audio/pcm', rate: 24000 }
+  }
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
+The WebSocket authenticates with the `xi-api-key` header. Use a header-capable
+WebSocket implementation, such as `ws`, in runtimes whose native WebSocket
+constructor cannot send headers.
+
+`usage.inputCharacters` is the number of Unicode code points sent for synthesis.
+Audio parts carry ElevenLabs `alignment` and `normalizedAlignment` data in
+`providerMetadata.elevenlabs` when the server returns it.
+
+The `streaming` provider options mirror the WebSocket settings: `autoMode`,
+`chunkLengthSchedule`, `enableSsmlParsing`, `inactivityTimeout` (seconds, up to
+180), and `syncAlignment`. `voiceSettings`, `pronunciationDictionaryLocators`,
+`seed`, `applyTextNormalization`, `languageCode`, and `enableLogging` apply as
+for `generateSpeech`. `previousText`, `nextText`, `previousRequestIds`,
+`nextRequestIds`, and `applyLanguageTextNormalization` are not supported over
+the WebSocket and produce warnings.
+
+### Model Capabilities
+
+| Model                    | Streaming Speech    |
+| ------------------------ | ------------------- |
+| `eleven_multilingual_v2` | <Check size={18} /> |
+| `eleven_flash_v2_5`      | <Check size={18} /> |
+| `eleven_flash_v2`        | <Check size={18} /> |
+| `eleven_turbo_v2_5`      | <Check size={18} /> |
+| `eleven_turbo_v2`        | <Check size={18} /> |
+
+The `eleven_v3` and `eleven_v4` model families are not served by the
+text-to-speech WebSocket.
 
 ## Transcription Models
 
