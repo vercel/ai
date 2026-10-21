@@ -537,7 +537,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     userMessages: turn.experimental_userMessages,
     abortSignal: abortCtl.signal,
   });
-  const skillsOption = toClaudeSkillsOption(start.skills);
+  const skillsOption =
+    start.enabledSkills ?? toClaudeSkillsOption(start.skills);
   const nativeTools = resolveNativeTools(start.builtinToolFiltering);
   const inactiveNativeTools = resolveInactiveNativeTools(
     start.builtinToolFiltering,
@@ -585,6 +586,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
       thinking: start.thinking,
       ...(start.effort !== undefined ? { effort: start.effort } : {}),
+      ...(start.plugins !== undefined ? { plugins: start.plugins } : {}),
+      ...(start.pathToClaudeCodeExecutable !== undefined
+        ? { pathToClaudeCodeExecutable: start.pathToClaudeCodeExecutable }
+        : {}),
       ...(start.responseFormat?.type === 'json' &&
       start.responseFormat.schema != null
         ? {

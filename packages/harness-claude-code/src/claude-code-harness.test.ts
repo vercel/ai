@@ -1169,6 +1169,38 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends plugins, enabled skills and the Claude Code executable to the bridge', async () => {
+    const harness = createClaudeCode({
+      plugins: [{ type: 'local', path: '/opt/plugins/review' }],
+      enabledSkills: ['release-notes'],
+      pathToClaudeCodeExecutable: '/opt/bin/claude-wrapper',
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Review the change.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      plugins: [{ type: 'local', path: '/opt/plugins/review' }],
+      enabledSkills: ['release-notes'],
+      pathToClaudeCodeExecutable: '/opt/bin/claude-wrapper',
+    });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({

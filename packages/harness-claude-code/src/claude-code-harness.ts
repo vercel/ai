@@ -72,6 +72,7 @@ import {
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
+  type StartMessage,
 } from './claude-code-bridge-protocol';
 import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
 import { VERSION } from './version';
@@ -127,6 +128,27 @@ export type ClaudeCodeHarnessSettings = {
    * Unset uses the Claude Agent SDK default.
    */
   readonly effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  /**
+   * Local Claude Code plugin directories to load, as paths inside the sandbox.
+   * Passed to the Claude Agent SDK `plugins` option.
+   */
+  readonly plugins?: ReadonlyArray<{
+    readonly type: 'local';
+    readonly path: string;
+  }>;
+  /**
+   * Skills Claude Code enables, by name. When unset and the agent has skills,
+   * every discovered skill is enabled (`'all'`). A list is an allowlist:
+   * skills it does not name, including bundled skills and skills written into
+   * the work directory, are hidden from the model.
+   */
+  readonly enabledSkills?: 'all' | ReadonlyArray<string>;
+  /**
+   * Path inside the sandbox of the executable that starts Claude Code, for
+   * example a wrapper script. Unset uses the executable the Claude Agent SDK
+   * resolves.
+   */
+  readonly pathToClaudeCodeExecutable?: string;
   /**
    * Override the port the bridge binds inside the sandbox. By default the
    * adapter uses the first port the sandbox declares via `sandbox.ports`.
@@ -1072,6 +1094,7 @@ export function createClaudeCode(
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
+            queryOptions: toClaudeCodeQueryOptions(settings),
             isResume: true,
             continueOnFirstPrompt: false,
             rerunContinue: false,
@@ -1235,6 +1258,7 @@ export function createClaudeCode(
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
+        queryOptions: toClaudeCodeQueryOptions(settings),
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
@@ -1542,6 +1566,37 @@ function formatUnknownError(error: unknown): string {
   return String(error);
 }
 
+type ClaudeCodeQueryOptions = Pick<
+  StartMessage,
+  'plugins' | 'enabledSkills' | 'pathToClaudeCodeExecutable'
+>;
+
+function toClaudeCodeQueryOptions(
+  settings: ClaudeCodeHarnessSettings,
+): ClaudeCodeQueryOptions {
+  return {
+    ...(settings.plugins !== undefined
+      ? {
+          plugins: settings.plugins.map(plugin => ({
+            type: plugin.type,
+            path: plugin.path,
+          })),
+        }
+      : {}),
+    ...(settings.enabledSkills !== undefined
+      ? {
+          enabledSkills:
+            settings.enabledSkills === 'all'
+              ? 'all'
+              : [...settings.enabledSkills],
+        }
+      : {}),
+    ...(settings.pathToClaudeCodeExecutable !== undefined
+      ? { pathToClaudeCodeExecutable: settings.pathToClaudeCodeExecutable }
+      : {}),
+  };
+}
+
 function createSession({
   sessionId,
   channel,
@@ -1553,6 +1608,7 @@ function createSession({
   env,
   thinking,
   effort,
+  queryOptions,
   isResume,
   continueOnFirstPrompt,
   resumeSessionId,
@@ -1580,6 +1636,7 @@ function createSession({
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
+  queryOptions: ClaudeCodeQueryOptions;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
   /**
@@ -1859,6 +1916,7 @@ function createSession({
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
+        ...queryOptions,
         ...(promptOpts.skills.length > 0
           ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
@@ -1930,6 +1988,7 @@ function createSession({
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
+          ...queryOptions,
           ...(continueOpts.skills.length > 0
             ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),

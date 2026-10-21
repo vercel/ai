@@ -116,6 +116,15 @@ Settings:
   `disabled`, or `adaptive`. For enabled or adaptive thinking, `display` can be
   `summarized` or `omitted`. Defaults to
   `{ type: 'adaptive', display: 'summarized' }`.
+- `plugins`: local Claude Code plugin directories to load, as
+  `{ type: 'local', path }` with a path inside the sandbox.
+- `enabledSkills`: skills Claude Code enables, by name, or `'all'`. When unset
+  and the agent has skills, every discovered skill is enabled. A list is an
+  allowlist: skills it does not name, including bundled skills and skills
+  written into the work directory, are hidden from the model.
+- `pathToClaudeCodeExecutable`: path inside the sandbox of the executable that
+  starts Claude Code, for example a wrapper script. Defaults to the executable
+  the Claude Agent SDK resolves.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
 - `reconnect`: reconnect timing after an established bridge WebSocket

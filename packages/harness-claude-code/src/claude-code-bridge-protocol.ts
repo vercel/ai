@@ -41,6 +41,12 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   forwardSubagentText: z.boolean().optional(),
   env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
+  // Claude Agent SDK options the host passes through unchanged.
+  plugins: z
+    .array(z.object({ type: z.literal('local'), path: z.string() }))
+    .optional(),
+  enabledSkills: z.union([z.literal('all'), z.array(z.string())]).optional(),
+  pathToClaudeCodeExecutable: z.string().optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
