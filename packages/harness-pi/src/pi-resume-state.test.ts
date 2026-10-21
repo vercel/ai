@@ -127,6 +127,36 @@ describe('piResumeStateSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('accepts a pending tool batch with its assistant message', () => {
+    const pendingToolBatch = {
+      assistantMessage: {
+        role: 'assistant',
+        content: [
+          { type: 'toolCall', id: 'tool-1', name: 'askUser', arguments: {} },
+        ],
+      },
+      awaitingToolCallIds: ['tool-1'],
+      completedToolResults: [],
+      nativeApprovalDecisions: [],
+    };
+
+    expect(piResumeStateSchema.parse({ pendingToolBatch })).toEqual({
+      pendingToolBatch,
+    });
+  });
+
+  it('rejects a legacy pending tool batch without its assistant message', () => {
+    expect(
+      piResumeStateSchema.safeParse({
+        pendingToolBatch: {
+          awaitingToolCallIds: ['tool-1'],
+          completedToolResults: [],
+          nativeApprovalDecisions: [],
+        },
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('resolvePiPrivateSessionDirectory', () => {

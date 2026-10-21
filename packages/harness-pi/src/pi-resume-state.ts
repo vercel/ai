@@ -26,15 +26,22 @@ const piCompletedToolResultSchema = z.object({
   isError: z.boolean(),
 });
 
+const piAssistantMessageSchema = z.looseObject({
+  role: z.literal('assistant'),
+  content: z.array(z.unknown()),
+});
+
 /**
  * A tool batch that was waiting on host input (tool results, approvals) when
  * its turn was persisted. Pi cannot resume in the middle of a batch, so a cold
- * continuation replays the batch's assistant message through Pi's tool
- * executor: calls in `completedToolResults` (finished but not yet written to
- * the journal) reuse their stored result, calls in `awaitingToolCallIds`
- * receive the host input delivered with the continuation.
+ * continuation replays this host-held assistant message through Pi's tool
+ * executor. Its tool calls must match the restored journal before replay:
+ * calls in `completedToolResults` reuse their stored result, while calls in
+ * `awaitingToolCallIds` receive the host input delivered with the
+ * continuation.
  */
 export const piPendingToolBatchSchema = z.object({
+  assistantMessage: piAssistantMessageSchema,
   awaitingToolCallIds: z.array(z.string()),
   completedToolResults: z.array(piCompletedToolResultSchema),
   nativeApprovalDecisions: z.array(

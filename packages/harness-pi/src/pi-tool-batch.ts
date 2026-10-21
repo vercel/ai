@@ -12,43 +12,40 @@ export type PiAssistantMessage = Awaited<
 >;
 type PiAgentTool = PiAgent['state']['tools'][number];
 type PiSessionEntry = ReturnType<SessionManager['getBranch']>[number];
+type PiReplayToolCall = {
+  id: string;
+  name: string;
+  arguments: unknown;
+};
 
 /**
  * Locate the most recent tool batch on the active journal branch so it can be
  * replayed: Pi's agent loop always starts with a model call and cannot resume
  * inside a tool batch. The journal leaf moves back to the entry before the
- * batch's assistant message; a replay then re-appends that message (via a
- * one-shot stream function) and lets Pi's executor run the batch again, with
- * already-known results short-circuited. The abandoned entries stay in the
- * journal as an inactive branch.
- *
- * Tool results that were already journaled after the assistant message are
- * returned so the replay reuses them instead of executing those calls again.
+ * batch's assistant message; a replay then re-appends the host-held expected
+ * message (via a one-shot stream function) and lets Pi's executor run the
+ * batch again, with already-known results short-circuited. The abandoned
+ * entries stay in the journal as an inactive branch.
  */
-export function takeToolBatchForReplay(input: { journal: SessionManager }):
-  | {
-      assistantMessage: PiAssistantMessage;
-      journaledToolResults: PiCompletedToolResult[];
-    }
-  | undefined {
+export function takeToolBatchForReplay(input: {
+  journal: SessionManager;
+  expectedAssistantMessage: PiAssistantMessage;
+}): {
+  assistantMessage: PiAssistantMessage;
+} {
   const branch = input.journal.getBranch();
   const index = findLastIndex(branch, isAssistantToolBatchEntry);
-  if (index < 0) return undefined;
+  if (index < 0) {
+    throw new Error('Pi session journal is missing the parked tool batch.');
+  }
   const entry = branch[index] as Extract<PiSessionEntry, { type: 'message' }>;
-  const journaledToolResults: PiCompletedToolResult[] = [];
-  for (const later of branch.slice(index + 1)) {
-    if (later.type !== 'message') continue;
-    const message = later.message as unknown as Record<string, unknown>;
-    if (message.role !== 'toolResult') continue;
-    if (typeof message.toolCallId !== 'string') continue;
-    journaledToolResults.push({
-      toolCallId: message.toolCallId,
-      result: {
-        content: Array.isArray(message.content) ? message.content : [],
-        details: message.details,
-      },
-      isError: message.isError === true,
-    });
+  if (
+    !hasSameReplayToolCalls({
+      actual: entry.message,
+      expected: input.expectedAssistantMessage,
+    })
+  ) {
+    throw new Error('Pi session journal does not match the parked tool batch.');
   }
   if (entry.parentId == null) {
     input.journal.resetLeaf();
@@ -60,12 +57,12 @@ export function takeToolBatchForReplay(input: { journal: SessionManager }):
    * The original entry (now on the inactive branch) keeps the real usage.
    */
   const assistantMessage = structuredClone(
-    entry.message,
+    input.expectedAssistantMessage,
   ) as unknown as PiAssistantMessage & { usage?: unknown };
   if (assistantMessage.usage != null) {
     assistantMessage.usage = zeroNumbers(assistantMessage.usage);
   }
-  return { assistantMessage, journaledToolResults };
+  return { assistantMessage };
 }
 
 /**
@@ -160,6 +157,60 @@ function isAssistantToolBatchEntry(entry: PiSessionEntry): boolean {
         typeof block === 'object' &&
         (block as { type?: unknown }).type === 'toolCall',
     )
+  );
+}
+
+function getReplayToolCalls(message: unknown): PiReplayToolCall[] | undefined {
+  if (message == null || typeof message !== 'object') return undefined;
+  const content = (message as { content?: unknown }).content;
+  if (!Array.isArray(content)) return undefined;
+
+  const toolCalls: PiReplayToolCall[] = [];
+  for (const block of content) {
+    if (
+      block == null ||
+      typeof block !== 'object' ||
+      (block as { type?: unknown }).type !== 'toolCall'
+    ) {
+      continue;
+    }
+    const { id, name } = block as { id?: unknown; name?: unknown };
+    if (typeof id !== 'string' || typeof name !== 'string') return undefined;
+    toolCalls.push({
+      id,
+      name,
+      arguments: (block as { arguments?: unknown }).arguments,
+    });
+  }
+  return toolCalls;
+}
+
+function hasSameReplayToolCalls(input: {
+  actual: unknown;
+  expected: unknown;
+}): boolean {
+  const actual = getReplayToolCalls(input.actual);
+  const expected = getReplayToolCalls(input.expected);
+  return (
+    actual != null &&
+    expected != null &&
+    expected.length > 0 &&
+    toCanonicalJson(actual) === toCanonicalJson(expected)
+  );
+}
+
+function toCanonicalJson(value: unknown): string {
+  return JSON.stringify(toCanonicalValue(value));
+}
+
+function toCanonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(toCanonicalValue);
+  if (value == null || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entry]) => entry !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, toCanonicalValue(entry)]),
   );
 }
 
