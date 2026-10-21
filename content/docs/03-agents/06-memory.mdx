@@ -207,6 +207,38 @@ The `bankId` identifies the memory store and is typically a user ID. In multi-us
 
 See the [Hindsight provider documentation](/providers/community-providers/hindsight) for full setup and configuration.
 
+### Recall
+
+[Recall](/providers/community-providers/recall) is a memory service, hosted or self-hosted with Docker, that learns about each user from their conversations and keeps dated facts about them. The [`@recall-memory/ai-sdk`](https://www.npmjs.com/package/@recall-memory/ai-sdk) package gives any model memory through middleware, which adds what Recall knows about the user to each request and stores every turn, and through tools the model can call: `searchMemory`, `askMemory` and `rememberFact`.
+
+```bash
+pnpm add @recall-memory/ai-sdk @recall-memory/sdk
+```
+
+```ts
+import { recallMiddleware, recallTools } from '@recall-memory/ai-sdk';
+import { ToolLoopAgent, wrapLanguageModel } from 'ai';
+
+// Per request: who the user is and which conversation this is.
+const memory = { userId: 'user-123', sessionId: 'chat-1' };
+
+const agent = new ToolLoopAgent({
+  model: wrapLanguageModel({
+    model: yourModel,
+    middleware: recallMiddleware(memory),
+  }),
+  tools: recallTools(memory),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+`userId` identifies the person and `sessionId` the conversation. Create the middleware and tools inside your request handler so each request reads and writes the right user's memory. Recall works with any AI SDK provider.
+
+See the [Recall provider documentation](/providers/community-providers/recall) for full setup and configuration.
+
 ### MongoDB
 
 [`@mongodb-developer/vercel-ai-memory`](https://www.npmjs.com/package/@mongodb-developer/vercel-ai-memory) provides MongoDB Atlas-backed persistent memory with five structured tiers: **Session**, **Semantic**, **Procedural**, **Episodic**, and **Scratchpad**. Retrieval is powered by Atlas Vector Search using any AI SDK embedding model, with automatic index creation and per-type retention policies.
