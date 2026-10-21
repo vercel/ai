@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   type LanguageModelV4Content,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
@@ -1982,7 +1983,54 @@ describe('OpenAIResponsesLanguageModel', () => {
               openai: { promptCacheOptions: { ttl: '24h' } },
             },
           }),
-        ).rejects.toThrow();
+        ).rejects.toThrow(InvalidArgumentError);
+      });
+
+      it('should return empty content for a prewarm response', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_prewarm',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6.1-sol',
+            output: [],
+            usage: {
+              input_tokens: 2048,
+              input_tokens_details: {
+                cached_tokens: 0,
+                cache_write_tokens: 2048,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 0,
+                  ttl_12h_tokens: 2048,
+                },
+              },
+              output_tokens: 0,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 2048,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+          },
+        });
+
+        expect(result.content).toStrictEqual([]);
+        expect(result.warnings).toStrictEqual([]);
+        expect(result.usage.inputTokens).toStrictEqual({
+          total: 2048,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 2048,
+        });
+        expect(result.usage.outputTokens.total).toBe(0);
       });
 
       it('should insert a reasoning effort configuration update before the prompt', async () => {
@@ -7380,6 +7428,62 @@ describe('OpenAIResponsesLanguageModel', () => {
             itemId: 'fc_async',
             async: true,
           },
+        },
+      });
+    });
+
+    it('should finish a prewarm stream with no content', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_prewarm',
+              created_at: 1,
+              model: 'gpt-6.1-sol',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: {
+                input_tokens: 2048,
+                input_tokens_details: {
+                  cached_tokens: 0,
+                  cache_write_tokens: 2048,
+                  cache_write_tokens_details: {
+                    ttl_30m_tokens: 0,
+                    ttl_12h_tokens: 2048,
+                  },
+                },
+                output_tokens: 0,
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6.1-sol').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(
+        events.filter(event =>
+          ['text-start', 'text-delta', 'error'].includes(event.type),
+        ),
+      ).toStrictEqual([]);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: { total: 2048, noCache: 0, cacheWrite: 2048 },
+          outputTokens: { total: 0 },
         },
       });
     });
