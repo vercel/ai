@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type {
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
@@ -5,6 +6,16 @@ import type {
   LanguageModelV3ProviderTool,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
+=======
+import {
+  InvalidArgumentError,
+  type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
+>>>>>>> 0257b47857 (feat(openai): support 12h prompt cache writes and cache prewarming (#23635))
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -313,6 +324,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: {
                 cached_tokens: 234,
                 cache_write_tokens: 45,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 15,
+                  ttl_12h_tokens: 30,
+                },
                 future_input_detail: {
                   tokens: 7,
                 },
@@ -378,6 +393,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input_tokens": 345,
               "input_tokens_details": {
                 "cache_write_tokens": 45,
+                "cache_write_tokens_details": {
+                  "ttl_12h_tokens": 30,
+                  "ttl_30m_tokens": 15,
+                },
                 "cached_tokens": 234,
                 "future_input_detail": {
                   "tokens": 7,
@@ -1706,6 +1725,129 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h promptCacheOptions ttl and prewarm', async () => {
+        const { warnings } = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'implicit',
+                ttl: '12h',
+                prewarm: true,
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6.1-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'implicit',
+            ttl: '12h',
+            prewarm: true,
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h ttl on a prompt cache breakpoint', async () => {
+        await createModel('gpt-6.1-sol').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Stable prefix',
+                  providerOptions: {
+                    openai: {
+                      promptCacheBreakpoint: { mode: 'explicit', ttl: '12h' },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Stable prefix',
+                  prompt_cache_breakpoint: { mode: 'explicit', ttl: '12h' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should reject an unsupported promptCacheOptions ttl', async () => {
+        await expect(
+          createModel('gpt-6.1-sol').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: { promptCacheOptions: { ttl: '24h' } },
+            },
+          }),
+        ).rejects.toThrow(InvalidArgumentError);
+      });
+
+      it('should return empty content for a prewarm response', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_prewarm',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6.1-sol',
+            output: [],
+            usage: {
+              input_tokens: 2048,
+              input_tokens_details: {
+                cached_tokens: 0,
+                cache_write_tokens: 2048,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 0,
+                  ttl_12h_tokens: 2048,
+                },
+              },
+              output_tokens: 0,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 2048,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+          },
+        });
+
+        expect(result.content).toStrictEqual([]);
+        expect(result.warnings).toStrictEqual([]);
+        expect(result.usage.inputTokens).toStrictEqual({
+          total: 2048,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 2048,
+        });
+        expect(result.usage.outputTokens.total).toBe(0);
       });
 
       it('should insert a reasoning effort configuration update before the prompt', async () => {
@@ -6221,6 +6363,62 @@ describe('OpenAIResponsesLanguageModel', () => {
             itemId: 'fc_async',
             async: true,
           },
+        },
+      });
+    });
+
+    it('should finish a prewarm stream with no content', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_prewarm',
+              created_at: 1,
+              model: 'gpt-6.1-sol',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: {
+                input_tokens: 2048,
+                input_tokens_details: {
+                  cached_tokens: 0,
+                  cache_write_tokens: 2048,
+                  cache_write_tokens_details: {
+                    ttl_30m_tokens: 0,
+                    ttl_12h_tokens: 2048,
+                  },
+                },
+                output_tokens: 0,
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6.1-sol').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(
+        events.filter(event =>
+          ['text-start', 'text-delta', 'error'].includes(event.type),
+        ),
+      ).toStrictEqual([]);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: { total: 2048, noCache: 0, cacheWrite: 2048 },
+          outputTokens: { total: 0 },
         },
       });
     });
