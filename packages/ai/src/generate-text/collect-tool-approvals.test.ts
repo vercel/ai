@@ -795,10 +795,14 @@ describe('collectToolApprovals', () => {
       },
     );
 
-    it('should collect responses with a different reason separately', () => {
-      const replay = { ...response1, reason: 'replayed' };
-      expect(collect([response1, replay])).toEqual([response1, replay]);
-    });
+    it.each([{ reason: 'replayed' }, { providerExecuted: false }])(
+      'should ignore a replayed decision with different metadata: %j',
+      difference => {
+        expect(collect([response1, { ...response1, ...difference }])).toEqual([
+          response1,
+        ]);
+      },
+    );
 
     it('should collect conflicting decisions separately', () => {
       const denial = { ...response1, approved: false };

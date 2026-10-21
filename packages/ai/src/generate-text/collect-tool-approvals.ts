@@ -88,7 +88,7 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 
   const approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
   const deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
-  const collectedApprovalResponses = new Map<string, Set<string>>();
+  const collectedDecisions = new Set<string>();
 
   const approvalResponses = lastMessage.content.filter(
     part => part.type === 'tool-approval-response',
@@ -120,23 +120,12 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       });
     }
 
-    // Ignore identical replays without choosing between conflicting decisions
-    // or discarding distinct response metadata.
-    const previousResponses =
-      collectedApprovalResponses.get(approvalResponse.approvalId) ?? new Set();
-    const responseKey = JSON.stringify({
-      approved: approvalResponse.approved,
-      reason: approvalResponse.reason,
-      providerExecuted: approvalResponse.providerExecuted,
-    });
-    if (previousResponses.has(responseKey)) {
+    // Ignore replays of a decision that was already collected for this approval.
+    const decisionKey = `${approvalResponse.approved}:${approvalResponse.approvalId}`;
+    if (collectedDecisions.has(decisionKey)) {
       continue;
     }
-    previousResponses.add(responseKey);
-    collectedApprovalResponses.set(
-      approvalResponse.approvalId,
-      previousResponses,
-    );
+    collectedDecisions.add(decisionKey);
 
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
