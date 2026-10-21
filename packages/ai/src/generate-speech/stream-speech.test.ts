@@ -367,6 +367,72 @@ describe('experimental_streamSpeech', () => {
     await vi.waitFor(() => expect(cancelModelStream).toHaveBeenCalled());
   });
 
+  it('should preserve the response body from doStream and response-metadata parts', async () => {
+    const fromDoStream = streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () => ({
+          ...createStreamResponse(basicParts),
+          response: { modelId: 'test-model-id', body: { setup: true } },
+        }),
+      }),
+      text: 'Hi',
+    });
+    expect((await fromDoStream.responses)[0].body).toEqual({ setup: true });
+
+    const fromPart = streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'response-metadata', body: { final: true } },
+            ...basicParts.slice(1),
+          ]),
+      }),
+      text: 'Hi',
+    });
+    expect((await fromPart.responses)[0].body).toEqual({ final: true });
+  });
+
+  describe('cancellation while doStream is pending', () => {
+    // A provider that never reacts to the abort signal.
+    const hangingModel = () => {
+      let signal: AbortSignal | undefined;
+      const model = new MockSpeechModelV4({
+        doStream: args => {
+          signal = args.abortSignal;
+          return new Promise(() => {});
+        },
+      });
+      return { model, signal: () => signal };
+    };
+
+    it('should reject result promises when fullStream is cancelled', async () => {
+      const { model, signal } = hangingModel();
+      const result = streamSpeech({ model, text: 'Hi' });
+
+      const stream = result.fullStream;
+      const usage = result.usage;
+      await stream.cancel('stop');
+
+      await expect(usage).rejects.toBe('stop');
+      await expect(result.responses).rejects.toBe('stop');
+      expect(signal()?.aborted).toBe(true);
+    });
+
+    it('should reject result promises when audioStream is cancelled', async () => {
+      const { model, signal } = hangingModel();
+      const result = streamSpeech({ model, text: 'Hi' });
+
+      const stream = result.audioStream;
+      const usage = result.usage;
+      await stream.cancel('stop');
+
+      await expect(usage).rejects.toBe('stop');
+      await expect(result.providerMetadata).rejects.toBe('stop');
+      expect(signal()?.aborted).toBe(true);
+    });
+  });
+
   it('should allow only one stream owner', () => {
     const result = streamSpeech({
       model: new MockSpeechModelV4({
