@@ -62,6 +62,7 @@ import {
   type PiRemoteOps,
 } from './pi-remote-ops';
 import { executePiSandboxRead } from './pi-read-operations';
+import { expandPiSkillCommand } from './pi-skill-command';
 import {
   truncatePiToolModelOutput,
   truncatePiToolOutputHead,
@@ -1209,10 +1210,17 @@ export async function createPiSession(
         });
       },
       async submitUserMessage(text) {
-        if (piSession == null) {
+        const session = piSession;
+        if (session == null) {
           throw new Error('Pi has no active runtime session to steer.');
         }
-        await piSession.steer(text);
+        await session.steer(
+          await expandPiSkillCommand({
+            text,
+            skills: resourceLoader.getSkills().skills,
+            sandbox: toolSafeSandboxSession,
+          }),
+        );
       },
       done: input.done,
     };
@@ -1571,7 +1579,13 @@ export async function createPiSession(
             replayingAssistantMessage = false;
           }
         } else {
-          await session.prompt(turnOpts.text, { images: turnOpts.images });
+          const text = await expandPiSkillCommand({
+            text: turnOpts.text,
+            skills: resourceLoader.getSkills().skills,
+            sandbox: toolSafeSandboxSession,
+            abortSignal: turnAbortController.signal,
+          });
+          await session.prompt(text, { images: turnOpts.images });
         }
 
         const terminalError = turnState.lastAssistantError;
