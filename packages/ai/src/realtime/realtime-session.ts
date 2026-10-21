@@ -239,7 +239,7 @@ export abstract class AbstractRealtimeSession {
         if (current())
           this.fail(new Error('Realtime session startup timed out'));
       });
-      const reportedTransportErrors = new WeakSet<Error>();
+      const reportedTransportErrors = attempt.reportedTransportErrors;
       const callbacks = {
         model,
         onEvent: async (event: RealtimeServerEvent) => {
@@ -286,6 +286,19 @@ export abstract class AbstractRealtimeSession {
           const finalizationConfirmed =
             model.capabilities?.finalization === 'session-close' &&
             this.state.session?.finalization === 'confirmed';
+          // Local media can close before remote cleanup settles. The provider's
+          // close promise and its deadline own completion during shutdown.
+          if (api.provider != null && attempt.closing) {
+            if (
+              error != null &&
+              !finalizationConfirmed &&
+              !reportedTransportErrors.has(error)
+            ) {
+              reportedTransportErrors.add(error);
+              void this.reportError(error, attempt);
+            }
+            return;
+          }
           if (error != null && !finalizationConfirmed)
             this.fail(error, undefined, !reportedTransportErrors.has(error));
           else if (!attempt.ready && !finalizationConfirmed)
@@ -449,6 +462,10 @@ export abstract class AbstractRealtimeSession {
     const transport =
       this.providerTransport ?? this.rtc ?? this.pcm ?? this.transport;
     void this.drainAttempt(attempt, transport?.finish());
+    if (error instanceof Error) {
+      if (attempt.reportedTransportErrors.has(error)) return;
+      attempt.reportedTransportErrors.add(error);
+    }
     void this.reportError(error, attempt);
   }
 
@@ -492,7 +509,7 @@ export abstract class AbstractRealtimeSession {
     });
   }
 
-  /** Wait for final usage when the model supports a session-close acknowledgement. */
+  /** Wait for provider cleanup or supported session-close finalization. */
   close(options?: { eventId?: string }): Promise<void> {
     const attempt = this.attempt;
     if (attempt?.closePromise != null) return attempt.closePromise;
@@ -503,6 +520,7 @@ export abstract class AbstractRealtimeSession {
       this.applyState({ ...this.state, status: 'closing' });
       if (this.attempt !== attempt || !attempt.active) return promise;
       this.stopAudioCapture();
+      if (this.attempt !== attempt || !attempt.active) return promise;
       attempt.timer('close', this.options.closeTimeoutMs ?? 15_000, () => {
         if (this.attempt === attempt && attempt.active)
           this.fail(new Error('Realtime provider session cleanup timed out'));
