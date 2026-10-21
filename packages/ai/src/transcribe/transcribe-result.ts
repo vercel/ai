@@ -32,7 +32,9 @@ export interface TranscriptionResult {
   }>;
 
   /**
-   * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English).
+   * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English)
+   * or BCP-47 language tag (e.g., 'en-US' or 'zh-CN') depending on the provider.
+   * Callers matching across regions should check the primary language subtag.
    * May be undefined if the language couldn't be detected.
    */
   readonly language: string | undefined;
