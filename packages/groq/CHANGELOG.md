@@ -1,5 +1,14 @@
 # @ai-sdk/groq
 
+## 2.0.59
+
+### Patch Changes
+
+- 4c2f3f8: Defer chat response and stream schema construction until first use.
+- Updated dependencies [d7b0ffa]
+- Updated dependencies [4146790]
+  - @ai-sdk/provider-utils@3.0.42
+
 ## 2.0.58
 
 ### Patch Changes
