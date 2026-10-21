@@ -19,6 +19,9 @@ export type SpeechModelV4StreamPart =
        *
        * `Uint8Array` chunks contain raw audio bytes. `string` chunks contain
        * base64-encoded raw audio bytes.
+       *
+       * A chunk may be empty when it only carries `providerMetadata` for a
+       * point in the audio, e.g. a provider's end-of-turn marker.
        */
       type: 'audio';
       id?: string;
