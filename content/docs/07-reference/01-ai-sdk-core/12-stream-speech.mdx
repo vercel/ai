@@ -43,7 +43,7 @@ for await (const chunk of result.audioStream) {
       name: 'model',
       type: 'SpeechModelV4',
       description:
-        'The speech model to use. The model must support streaming (`doStream`).',
+        'The speech model to use. The model must implement the experimental streaming speech extension (`Experimental_StreamingSpeechModelV4`).',
     },
     {
       name: 'text',
