@@ -5,6 +5,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import {
   context,
+  SpanKind,
+  SpanStatusCode,
   trace,
   type Attributes,
   type Span,
@@ -18,6 +20,10 @@ import {
 } from '@opentelemetry/sdk-trace-base';
 import { z } from 'zod/v4';
 import {
+  embed,
+  embedMany,
+  experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
   streamObject,
@@ -25,7 +31,11 @@ import {
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
-import { MockLanguageModelV4 } from 'ai/test';
+import {
+  Experimental_DecisionMockModelV4,
+  MockEmbeddingModelV4,
+  MockLanguageModelV4,
+} from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -695,6 +705,7 @@ describe('OpenTelemetry', () => {
           "runtimeAttributes": {
             "gen_ai.client.operation.duration": 1,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.provider.name": "openai",
             "gen_ai.response.finish_reasons": [
               "stop",
             ],
@@ -705,6 +716,23 @@ describe('OpenTelemetry', () => {
           },
         }
       `);
+    });
+
+    it('updates provider attribution when the response provider differs', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          provider: 'anthropic.messages',
+          modelId: 'fallback-model',
+        }),
+      );
+
+      expect(tracer.spans[2].attributes).toMatchObject({
+        'gen_ai.provider.name': 'anthropic',
+        'gen_ai.response.model': 'fallback-model',
+      });
     });
 
     it('omits malformed finish reason arrays on the chat span', () => {
@@ -848,6 +876,248 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it('records provider-executed tool results and observed definitions', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          tools: [{ type: 'provider', name: 'mcp', id: 'openai.mcp' }],
+        }),
+      );
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              output: { answer: 'An AI SDK repository.' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+          ],
+        }),
+      );
+
+      const chatSpan = tracer.spans[2];
+      expect({
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'),
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.tool.definitions'),
+      }).toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "arguments": {
+                    "question": "What is this repository?",
+                  },
+                  "id": "tc1",
+                  "name": "mcp.ask_question",
+                  "type": "tool_call",
+                },
+                {
+                  "id": "tc1",
+                  "response": {
+                    "answer": "An AI SDK repository.",
+                  },
+                  "type": "tool_call_response",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "gen_ai.tool.definitions": [
+            {
+              "id": "openai.mcp",
+              "name": "mcp",
+              "type": "provider",
+            },
+            {
+              "name": "mcp.ask_question",
+              "type": "extension",
+            },
+          ],
+        }
+      `);
+
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"question":"What is this repository?"}",
+            "gen_ai.tool.call.id": "tc1",
+            "gen_ai.tool.name": "mcp.ask_question",
+            "gen_ai.tool.type": "extension",
+          },
+          "name": "execute_tool mcp.ask_question",
+          "runtimeAttributes": {
+            "gen_ai.tool.call.result": "{"answer":"An AI SDK repository."}",
+          },
+        }
+      `);
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      expect(trace.getSpan(mock.mock.calls[3][2])).toBe(chatSpan);
+    });
+
+    it('records only the final provider-executed tool result', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 'running' },
+              providerExecuted: true,
+              preliminary: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 2 },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      expect(tracer.spans[3].attributes['gen_ai.tool.call.result']).toBe(
+        '{"value":2}',
+      );
+    });
+
+    it('records provider-executed tool errors on the observed span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      const error = new Error('provider tool failed');
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'web_search',
+              input: { query: 'AI SDK' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-error' as const,
+              toolCallId: 'tc1',
+              toolName: 'web_search',
+              input: { query: 'AI SDK' },
+              error,
+              providerExecuted: true,
+              dynamic: true,
+            },
+          ],
+        }),
+      );
+
+      const toolSpan = tracer.spans[3];
+      expect(toolSpan.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'provider tool failed',
+      });
+      expect(toolSpan.exceptions).toHaveLength(1);
+      expect(toolSpan.attributes['gen_ai.tool.call.result']).toBeUndefined();
+    });
+
+    it('keeps deferred provider tool calls visible before their result arrives', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      const toolSpan = tracer.spans[3];
+      expect(toolSpan.name).toBe('execute_tool code_execution');
+      expect(toolSpan.ended).toBe(true);
+      expect(toolSpan.attributes['gen_ai.tool.call.result']).toBeUndefined();
+
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 2 },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      expect(
+        tracer.spans.filter(span => span.name.startsWith('execute_tool')),
+      ).toHaveLength(1);
+      expect(
+        parseJsonAttributes(
+          tracer.spans[5].attributes,
+          'gen_ai.output.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "id": "tc1",
+                  "response": {
+                    "value": 2,
+                  },
+                  "type": "tool_call_response",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
+
     it('sets cache token attributes when available', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
@@ -929,6 +1199,27 @@ describe('OpenTelemetry', () => {
           "runtimeAttributes": {},
         }
       `);
+    });
+
+    it('uses extension type for provider-executed tools', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'mcp.ask_question',
+            input: { question: 'What is this repository?' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+        }),
+      );
+
+      expect(
+        getSpanStartAttributes(tracer, tracer.spans[2])['gen_ai.tool.type'],
+      ).toBe('extension');
     });
 
     it('parents chat and execute_tool spans under the same step span', () => {
@@ -1098,7 +1389,7 @@ describe('OpenTelemetry', () => {
   });
 
   describe('onStart (embed)', () => {
-    it('creates an embeddings span', () => {
+    it('creates an embeddings operation span', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.embed',
@@ -1144,6 +1435,274 @@ describe('OpenTelemetry', () => {
       `);
     });
   });
+
+  describe.each([
+    { recordInputs: undefined, recordOutputs: undefined },
+    { recordInputs: false, recordOutputs: undefined },
+    { recordInputs: undefined, recordOutputs: false },
+    { recordInputs: false, recordOutputs: false },
+  ])(
+    'speech and transcription (recordInputs=$recordInputs, recordOutputs=$recordOutputs)',
+    ({ recordInputs, recordOutputs }) => {
+      it.each(['Hello', ''])(
+        'records speech input %j and output metadata',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            voice: 'alloy',
+            outputFormat: 'mp3',
+            instructions: undefined,
+            speed: undefined,
+            language: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            audio: {
+              byteLength: 1234,
+              mediaType: 'audio/mpeg',
+              format: 'mp3',
+            },
+            usage: { characters: 5 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-mini-tts',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.generateSpeech gpt-4o-mini-tts',
+            ended: true,
+            initAttributes: {
+              'gen_ai.operation.name': 'ai.generateSpeech',
+              'gen_ai.provider.name': 'openai',
+              'gen_ai.request.model': 'gpt-4o-mini-tts',
+              'gen_ai.output.type': 'speech',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false ? {} : { 'ai.request.text': text }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false
+                ? {}
+                : {
+                    'ai.response.audio.size': 1234,
+                    'ai.response.audio.media_type': 'audio/mpeg',
+                    'ai.response.audio.format': 'mp3',
+                  }),
+              'gen_ai.usage.characters': 5,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.input.messages']).toBe(
+            recordInputs === false
+              ? undefined
+              : JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: text }] },
+                ]),
+          );
+          expect(attributes['gen_ai.output.messages']).toBeUndefined();
+          expect(attributes['ai.request.text']).toBe(
+            recordInputs === false ? undefined : text,
+          );
+          expect(attributes['ai.response.audio.size']).toBe(
+            recordOutputs === false ? undefined : 1234,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records transcription audio metadata and transcript %j',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            inputAudioFormat: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { seconds: 1 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-transcribe',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.transcribe gpt-4o-transcribe',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false
+                ? {}
+                : {
+                    'ai.request.audio.size': 4321,
+                    'ai.request.audio.media_type': 'audio/mpeg',
+                  }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.seconds': 1,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records streaming transcript %j through isolated callbacks',
+        text => {
+          integration.experimental_onStreamTranscriptionStart!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+            inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+            maxRetries: undefined,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+          integration.experimental_onStreamTranscriptionEnd!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: 2048, mediaType: 'audio/pcm' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { inputTokens: 3 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-realtime-whisper',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.streamTranscribe gpt-realtime-whisper',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': true,
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.media_type': 'audio/pcm' }),
+            },
+            runtimeAttributes: {
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.size': 2048 }),
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.input_tokens': 3,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+    },
+  );
 
   describe('enrichSpan', () => {
     it('adds custom attributes to created spans', () => {
@@ -1440,6 +1999,7 @@ describe('OpenTelemetry', () => {
               "ai.usage.outputTokenDetails.textTokens": 15,
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -1543,6 +2103,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -1828,6 +2389,125 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('embed integration', () => {
+    it('reports usage only on the provider request span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            usage: { tokens: 14 },
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
+    });
+
+    it('reports batched usage only on provider request spans', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          maxEmbeddingsPerCall: 2,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            usage: { tokens: values.length * 14 },
+            warnings: [],
+          }),
+        }),
+        values: ['sunny', 'day', 'beach'],
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 28,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
+    });
+
+    it('omits usage attributes when the provider does not return usage', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const result = await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(result.usage.tokens).toBeNaN();
+      expect(sdkTrace.exporter.getFinishedSpans()).toHaveLength(2);
+
+      for (const span of sdkTrace.exporter.getFinishedSpans()) {
+        expect('gen_ai.usage.input_tokens' in span.attributes).toBe(false);
+      }
+    });
+  });
+
   describe('object generation integrations', () => {
     it('records generateObject instructions on the chat span', async () => {
       const sdkTrace = createSdkTracer();
@@ -2050,6 +2730,76 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('stream errors', () => {
+    it('records and exports streamText spans when the provider stream errors', async () => {
+      const sdkTrace = createSdkTracer();
+      const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(new Error('socket closed'));
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: sdkIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      const rootSpan = getExportedSpan(
+        sdkTrace.exporter,
+        'invoke_agent mock-model-id',
+      );
+      const stepSpan = getExportedSpan(sdkTrace.exporter, 'step 1');
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat mock-model-id');
+
+      for (const span of [rootSpan, stepSpan, chatSpan]) {
+        expect(span.status.code).toBe(SpanStatusCode.ERROR);
+        expect(span.events).toContainEqual(
+          expect.objectContaining({ name: 'exception' }),
+        );
+      }
+
+      expect(stepSpan.parentSpanContext?.spanId).toBe(
+        rootSpan.spanContext().spanId,
+      );
+      expect(chatSpan.parentSpanContext?.spanId).toBe(
+        stepSpan.spanContext().spanId,
+      );
+    });
+  });
+
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for multi-step tool loop', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2187,6 +2937,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2277,6 +3028,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
               ],
@@ -2322,6 +3074,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2351,5 +3104,245 @@ describe('OpenTelemetry', () => {
         }
       }
     });
+  });
+});
+
+describe('OpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends OpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends OpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<OpenTelemetry['experimental_onDecideStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<OpenTelemetry['experimental_onDecideEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
+
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = createMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
+        }),
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new OpenTelemetry({
+            tracer,
+            experimental_decision: true,
+          }),
+        },
+      });
+      const attributes = tracer.spans.map(
+        span => serializeSpan(span, tracer).initAttributes,
+      );
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
+
+  it.each(['current', 'deprecated'] as const)(
+    'creates decision spans through the %s API',
+    async api => {
+      const tracer = createMockTracer();
+      const questions = {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      } as const;
+
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+            response: {
+              id: 'test-response-id',
+              modelId: 'mock-model-resolved',
+            },
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions,
+        telemetry: {
+          integrations: new OpenTelemetry({
+            tracer,
+            ...(api === 'current'
+              ? { experimental_decision: true }
+              : { experimental_evaluation: true }),
+          }),
+        },
+      });
+
+      expect(tracer.spans).toHaveLength(2);
+      expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "decide mock-model-id",
+            "runtimeAttributes": {
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
+              "gen_ai.operation.name": "decide",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "decide mock-model-id",
+            "runtimeAttributes": {
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "mock-model-resolved",
+              "gen_ai.usage.input_tokens": 12,
+              "gen_ai.usage.output_tokens": 2,
+            },
+          },
+        ]
+      `);
+    },
+  );
+
+  it('ends both spans with error status when decision fails', async () => {
+    const tracer = createMockTracer();
+    const error = new Error('decision failed');
+
+    await expect(
+      experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => {
+            throw error;
+          },
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        maxRetries: 0,
+        telemetry: { integrations: new OpenTelemetry({ tracer }) },
+      }),
+    ).rejects.toBe(error);
+
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      expect(span.ended).toBe(true);
+      expect(span.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'decision failed',
+      });
+      expect(span.exceptions).toHaveLength(1);
+    }
   });
 });

@@ -1,33 +1,41 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
-import {
-  createToolApprovalResponseMessages,
-  printFullStreamAndCaptureToolApproval,
-} from '../../lib/harness-tool-approval';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+import type { ToolApprovalRequestOutput } from 'ai';
+import { createCodexACP } from './_create';
+import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
     permissionMode: 'allow-reads',
   });
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const first = await agent.stream({
       session,
       prompt: 'Run `pwd` with Bash and tell me the working directory.',
     });
-    const approval = await printFullStreamAndCaptureToolApproval({
+    let approval: ToolApprovalRequestOutput<any> | undefined;
+    await printFullStream({
       result: first,
+      onToolApproval: toolApproval => {
+        approval ??= toolApproval;
+      },
     });
-    if (approval == null || approval.toolCall.providerExecuted === false) {
+    if (
+      approval == null ||
+      approval.toolCall.toolName !== 'bash' ||
+      approval.toolCall.providerExecuted === false
+    ) {
       throw new Error('Expected a native ACP tool approval request.');
     }
 
@@ -40,6 +48,7 @@ run(async () => {
     });
     await printFullStream({ result: second });
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

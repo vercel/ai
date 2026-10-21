@@ -106,10 +106,16 @@ describe('DevToolsTelemetry', () => {
     }
   });
 
-  it('ignores embed/rerank operations', async () => {
+  it('ignores operations without DevTools step support', async () => {
     const integration = createIntegration();
 
-    for (const operationId of ['ai.embed', 'ai.embedMany', 'ai.rerank']) {
+    for (const operationId of [
+      'ai.embed',
+      'ai.embedMany',
+      'ai.rerank',
+      'ai.generateSpeech',
+      'ai.transcribe',
+    ]) {
       await integration.onStart!({ operationId, callId: 'x' } as any);
     }
 

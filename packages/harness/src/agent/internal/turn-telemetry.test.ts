@@ -1,18 +1,43 @@
 import type { Telemetry } from 'ai';
-import { describe, expect, test } from 'vitest';
-import { createTurnTelemetry } from './turn-telemetry';
+import { createNullLanguageModelUsage, DefaultStepResult } from 'ai/internal';
+import { describe, expect, test, vi } from 'vitest';
+import { createTurnLifecycle } from './turn-telemetry';
 
-const usage = {
-  inputTokens: {
-    total: 1,
-    noCache: 1,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: { total: 1, text: 1, reasoning: undefined },
-};
+function createStep(stepNumber: number) {
+  return new DefaultStepResult<{}, {}>({
+    callId: 'call-1',
+    stepNumber,
+    provider: 'harness:mock',
+    modelId: 'mock-model',
+    runtimeContext: {},
+    toolsContext: {},
+    content: [],
+    finishReason: 'stop',
+    rawFinishReason: 'stop',
+    usage: createNullLanguageModelUsage(),
+    performance: {
+      effectiveOutputTokensPerSecond: 0,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 0,
+      stepTimeMs: 0,
+      responseTimeMs: 0,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
+    warnings: undefined,
+    request: {},
+    response: {
+      id: `response-${stepNumber}`,
+      modelId: 'mock-model',
+      timestamp: new Date(0),
+      messages: [],
+    },
+    providerMetadata: undefined,
+  });
+}
 
-describe('createTurnTelemetry', () => {
+describe('createTurnLifecycle', () => {
   test('includes the current stepNumber on onStepEnd events', async () => {
     const stepStartNumbers: number[] = [];
     const stepEndNumbers: number[] = [];
@@ -24,31 +49,100 @@ describe('createTurnTelemetry', () => {
         stepEndNumbers.push(event.stepNumber);
       },
     } satisfies Telemetry;
-
-    const telemetry = createTurnTelemetry({
+    const lifecycle = createTurnLifecycle({
+      callId: 'call-1',
       telemetry: { integrations: [integration] },
+      callbacks: {},
       harnessId: 'mock',
       modelId: 'mock-model',
       instructions: undefined,
-      promptText: 'go',
-      runtimeContext: undefined,
+      tools: {},
+      toolsContext: {},
+      activeToolNames: [],
+      toolSpecs: [],
+      messages: [{ role: 'user', content: 'go' }],
+      runtimeContext: {},
+      output: undefined,
     });
 
-    await telemetry.start();
-    await telemetry.ensureStepOpen();
-    await telemetry.stepFinish({
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage,
-      content: [{ type: 'text', text: 'done' }],
-    });
-
-    await telemetry.ensureStepOpen();
-    await telemetry.end({
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage,
-    });
+    for (const stepNumber of [0, 1]) {
+      await lifecycle.ensureStepOpen();
+      await lifecycle.stepEnd(createStep(stepNumber));
+    }
 
     expect(stepStartNumbers).toEqual([0, 1]);
     expect(stepEndNumbers).toEqual([0, 1]);
+  });
+
+  test('includes the callId when dispatching errors', async () => {
+    const onError = vi.fn();
+    const lifecycle = createTurnLifecycle({
+      callId: 'call-1',
+      telemetry: { integrations: [{ onError }] },
+      callbacks: {},
+      harnessId: 'mock',
+      modelId: 'mock-model',
+      instructions: undefined,
+      tools: {},
+      toolsContext: {},
+      activeToolNames: [],
+      toolSpecs: [],
+      messages: [{ role: 'user', content: 'go' }],
+      runtimeContext: {},
+      output: undefined,
+    });
+    const error = new Error('bridge exited');
+
+    await lifecycle.error(error);
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith({
+      callId: 'call-1',
+      error,
+    });
+  });
+
+  test('dispatches aborts and settles the lifecycle', async () => {
+    const onAbort = vi.fn();
+    const onError = vi.fn();
+    const onEnd = vi.fn();
+    const lifecycle = createTurnLifecycle({
+      callId: 'call-1',
+      telemetry: { integrations: [{ onAbort, onError, onEnd }] },
+      callbacks: {},
+      harnessId: 'mock',
+      modelId: 'mock-model',
+      instructions: undefined,
+      tools: {},
+      toolsContext: {},
+      activeToolNames: [],
+      toolSpecs: [],
+      messages: [{ role: 'user', content: 'go' }],
+      runtimeContext: {},
+      output: undefined,
+    });
+    const reason = new Error('stopped');
+    const step = createStep(0);
+
+    await lifecycle.ensureStepOpen();
+    await lifecycle.stepEnd(step);
+    await lifecycle.abort(reason);
+    await lifecycle.error(new Error('late error'));
+    await lifecycle.end({
+      steps: [step],
+      usage: createNullLanguageModelUsage(),
+    });
+
+    expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      callId: 'call-1',
+      steps: [
+        expect.objectContaining({
+          callId: 'call-1',
+          stepNumber: 0,
+        }),
+      ],
+      reason,
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
   });
 });

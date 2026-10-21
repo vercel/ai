@@ -59,6 +59,10 @@ function createOrphanFilter(): OrphanFilter {
 
   function shouldDrop(chunk: UIMessageChunk): boolean {
     switch (chunk.type) {
+      case 'reset-step':
+        seenStartedIds.clear();
+        seenStartedToolCallIds.clear();
+        return false;
       case 'text-start':
       case 'reasoning-start':
         seenStartedIds.add(chunk.id);
@@ -109,7 +113,8 @@ export interface ReconnectToStreamOptions {
   abortSignal?: AbortSignal;
   /**
    * Override the `startIndex` for this reconnection.
-   * Negative values read from the end of the stream.
+   * Negative values read from the end when the server's durable stream and
+   * tail-index header use the same UIMessageChunk index space.
    * When omitted, falls back to the constructor's `initialStartIndex`.
    */
   startIndex?: number;
@@ -167,6 +172,7 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
 
   /**
    * Maximum number of consecutive errors allowed during reconnection attempts.
+   * Streams that end without receiving any UI message chunks count as errors.
    * Defaults to 3 if not provided.
    */
   maxConsecutiveErrors?: number;
@@ -174,9 +180,10 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
   /**
    * Default `startIndex` to use when reconnecting to a stream without a known
    * chunk position (i.e. the initial reconnection, not a retry).
-   * Negative values read from the end of the stream (e.g. `-10` fetches the
-   * last 10 chunks), which is useful for resuming a chat UI after a page
-   * refresh without replaying the full conversation.
+   * Negative values read from the end of a durable UIMessageChunk stream (e.g.
+   * `-10` fetches the last 10 chunks), which is useful for resuming a chat UI
+   * after a page refresh without replaying the full conversation. Raw
+   * ModelCallStreamPart streams do not support negative UI chunk indexes.
    *
    * Can be overridden per-call via `ReconnectToStreamOptions.startIndex`.
    *
@@ -485,6 +492,7 @@ export class WorkflowChatTransport<
       useExplicitStartIndex = false;
 
       try {
+        const streamStartIndex = chunkIndex;
         const chunkStream = parseJsonEventStream({
           stream: response.body,
           schema: uiMessageChunkSchema,
@@ -504,7 +512,10 @@ export class WorkflowChatTransport<
             gotFinish = true;
           }
         }
-        // Reset consecutive error count only after successful stream parsing
+        if (chunkIndex === streamStartIndex) {
+          throw new Error('Reconnect stream ended without receiving chunks.');
+        }
+        // Reset consecutive errors only after successful parsing with progress.
         consecutiveErrors = 0;
       } catch (error) {
         console.error('Error in chat GET reconnectToStream', error);

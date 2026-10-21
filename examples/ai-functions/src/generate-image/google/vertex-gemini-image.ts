@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateImage({
-    model: googleVertex.image('gemini-2.5-flash-image'),
+    model: googleVertex.image('gemini-3.1-flash-image-preview'),
     prompt:
       'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
     aspectRatio: '1:1',

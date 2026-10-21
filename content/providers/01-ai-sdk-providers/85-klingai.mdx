@@ -1,17 +1,66 @@
 ---
 title: Kling AI
-description: Learn how to use the Kling AI provider for the AI SDK.
+description: Learn how to use Kling AI with AI Gateway and the direct provider.
 ---
 
 # Kling AI Provider
 
 The [Kling AI](https://klingai.com/) provider contains support for Kling AI's video generation models, including text-to-video, image-to-video, motion control, and multi-shot video generation.
+You can use Kling AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/klingai`.
 
-## Setup
+```ts provider="klingai" model="klingai/kling-v3.0-t2v"
+import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
+import { writeFile } from 'node:fs/promises';
 
-The Kling AI provider is available in the `@ai-sdk/klingai` module. You can install it with
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'A paper boat drifting across a calm lake at sunrise.',
+  duration: 5,
+  aspectRatio: '16:9',
+});
 
-<InstallPackages packages="@ai-sdk/klingai" />
+await writeFile('video.mp4', video.uint8Array);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/klingai`
+
+For direct access to Kling AI, install `ai` and `@ai-sdk/klingai`:
+
+<InstallPackages packages="ai @ai-sdk/klingai" />
+
+Set your Kling AI API key:
+
+```bash
+export KLINGAI_API_KEY=your_api_key_here
+```
+
+Legacy access-key and secret-key authentication is documented in [Provider Instance](#provider-instance).
+
+AI Gateway does not expose every API in `@ai-sdk/klingai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/klingai` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -105,7 +154,7 @@ import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: klingai.video('kling-v2.6-t2v'),
+  model: klingai.video('kling-v3.0-t2v'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -126,7 +175,7 @@ import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: klingai.video('kling-v2.6-i2v'),
+  model: klingai.video('kling-v3.0-i2v'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',
@@ -237,6 +286,29 @@ const { videos } = await generateVideo({
 });
 ```
 
+### Caller-Managed Callbacks
+
+For text-to-video, image-to-video, multi-image-to-video, and motion control,
+use `experimental_startVideo({ model, prompt, webhookUrl })` to register an
+application-owned callback receiver. The SDK forwards `webhookUrl` as
+`callback_url`, taking precedence over `providerOptions.klingai.callback_url`.
+When `webhookUrl` is omitted, a raw `callback_url` is passed through unchanged.
+
+KlingAI sends progress notifications (`task_status: 'submitted'` or
+`'processing'`) as well as terminal notifications (`'succeed'` or `'failed'`).
+Your receiver must filter progress notifications and correlate callbacks with
+the task. Use `experimental_getVideoStatus(model, { operation })` with the
+operation returned by `experimental_startVideo` to check status and retrieve
+the result after a terminal notification.
+
+These models deliberately do not expose `handleWebhookOption` because their
+callback protocol requires a progress-aware receiver. Core
+[`generateVideo({ webhook })`](/docs/reference/ai-sdk-core/generate-video)
+falls back to polling without calling the webhook factory. Plain
+`generateVideo()` also polls. Workflow's existing native webhook capability
+check rejects these direct provider models for webhook-based generation;
+use the explicit start/status flow for caller-managed callbacks.
+
 ### Video Provider Options
 
 The following provider options are available via `providerOptions.klingai`. Options vary by mode — see the
@@ -334,7 +406,9 @@ The following provider options are available via `providerOptions.klingai`. Opti
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
-  reliable operation.
+  reliable operation. Status polls trust the configured Kling AI API origin for
+  the first request and validate every redirect to another origin before
+  following it.
 </Note>
 
 ### Video Model Capabilities

@@ -28,4 +28,16 @@ export type GoogleInteractionsProviderMetadata = {
    * reasoning / tool-call parts and round-tripped on input parts.
    */
   signature?: string;
+
+  /**
+   * ID of an agentic video `processing_call` step. Present on
+   * `google.processing_call` custom parts.
+   */
+  processingId?: string;
+
+  /**
+   * ID of the corresponding agentic video processing call. Present on
+   * `google.processing_result` custom parts.
+   */
+  processingCallId?: string;
 };

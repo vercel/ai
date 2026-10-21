@@ -3,6 +3,12 @@ import type { GeistdocsConfig } from '@vercel/geistdocs/config';
 
 export const title = 'AI SDK';
 
+/**
+ * Label for events sent to the Geistdocs platform (feedback issues and
+ * markdown-request tracking).
+ */
+export const siteId = 'ai-sdk';
+
 // The logo SVG is aria-hidden; the visually hidden text keeps an
 // accessible name on the wordmark link.
 export const Logo = () => (
@@ -24,6 +30,7 @@ export const nav: NonNullable<GeistdocsConfig['nav']> = [
     ],
   },
   { label: 'Providers', href: '/providers' },
+  { label: 'Playground', href: 'https://playground.ai-sdk.dev' },
 ];
 
 export const content: NonNullable<GeistdocsConfig['content']> = [

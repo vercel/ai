@@ -15,9 +15,19 @@ export async function timeSliceStep(
 
   const { deepAgentsHarnessAgent } =
     await import('@/agent/harness/deepagents/basic-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: deepAgentsHarnessAgent,
+    sessionId: state.sessionId,
+    ports: [4000],
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentTimeSlice({
     agent: deepAgentsHarnessAgent,
     state,
+    sandboxSession,
     timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

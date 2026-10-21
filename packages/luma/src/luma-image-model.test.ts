@@ -27,6 +27,32 @@ function createBasicModel({
 }
 
 describe('LumaImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'photon-1',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new LumaImageModel(modelId, {
+          provider: 'luma.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   const server = createTestServer({
     'https://api.example.com/dream-machine/v1/generations/image': {
       response: {
@@ -71,9 +97,70 @@ describe('LumaImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://api.example.com/dream-machine/v1/generations/abc%2F..%2F..%2Finternal':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'abc/../../internal',
+            generation_type: 'image',
+            state: 'completed',
+            created_at: '2024-01-01T00:00:00Z',
+            assets: {
+              image: 'https://api.example.com/image.png',
+            },
+            model: 'test-model',
+            request: {
+              generation_type: 'image',
+              model: 'test-model',
+              prompt: 'A cute baby sea otter',
+            },
+          },
+        },
+      },
   });
 
   describe('doGenerate', () => {
+    it('should encode the generation ID as a single URL path segment', async () => {
+      const model = createBasicModel();
+      const generationId = 'abc/../../internal';
+
+      server.urls[
+        'https://api.example.com/dream-machine/v1/generations/image'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: generationId,
+          generation_type: 'image',
+          state: 'queued',
+          created_at: '2024-01-01T00:00:00Z',
+          model: 'test-model',
+          request: {
+            generation_type: 'image',
+            model: 'test-model',
+            prompt,
+          },
+        },
+      };
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        aspectRatio: '16:9',
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+      });
+
+      expect(server.calls[1].requestUrl).toBe(
+        `https://api.example.com/dream-machine/v1/generations/${encodeURIComponent(
+          generationId,
+        )}`,
+      );
+    });
+
     it('should pass the correct parameters including aspect ratio', async () => {
       const model = createBasicModel();
 

@@ -167,6 +167,7 @@ describe('prepareLanguageModelCallOptions', () => {
         'medium',
         'high',
         'xhigh',
+        'max',
       ] as const) {
         const options = prepareLanguageModelCallOptions({ reasoning: value });
         expect(options.reasoning).toBe(value);

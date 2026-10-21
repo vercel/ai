@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import ACPHarnessChat from '@/components/acp-harness-chat';
 
 export const metadata = {
-  title: 'ACP: Grok Build — Workflow (Timed)',
+  title: 'Grok Build — Workflow (Timed)',
 };
 
 const STORAGE_KEY = 'harness-grok-build-workflow-timed-chat-id';
@@ -13,7 +13,7 @@ export default function GrokBuildWorkflowTimedPage() {
       <ACPHarnessChat
         apiRoute="/api/harness/grok-build/workflow-timed"
         exampleLabel="Workflow (Timed)"
-        harnessLabel="ACP: Grok Build"
+        harnessLabel="Grok Build"
       />
     </ChatIdProvider>
   );

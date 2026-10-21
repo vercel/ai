@@ -9,7 +9,11 @@ type OpenAIRealtimeWireEvent = {
   session?: { id?: string };
   item?: { id?: string } & Record<string, unknown>;
   response?: { id?: string; status?: string };
-  error?: { message?: string; code?: string };
+  error?: {
+    message?: string | null;
+    code?: string | null;
+    event_id?: string | null;
+  } | null;
   item_id: string;
   previous_item_id?: string;
   response_id: string;
@@ -217,6 +221,7 @@ export function parseOpenAIRealtimeServerEvent(
         type: 'error',
         message: event.error?.message ?? event.message ?? 'Unknown error',
         code: event.error?.code ?? event.code,
+        clientEventId: event.error?.event_id ?? undefined,
         raw,
       };
 
@@ -238,12 +243,14 @@ export function serializeOpenAIRealtimeClientEvent(
       return {
         type: 'session.update',
         session: buildOpenAISessionConfig(event.config, modelId),
+        ...(event.eventId != null ? { event_id: event.eventId } : {}),
       };
 
     case 'input-audio-append':
       return {
         type: 'input_audio_buffer.append',
         audio: event.audio,
+        ...(event.eventId != null ? { event_id: event.eventId } : {}),
       };
 
     case 'input-audio-commit':

@@ -46,6 +46,9 @@ function makeSession(): {
     if (args.command === 'pwd') {
       return { exitCode: 0, stdout: '/work\n', stderr: '' };
     }
+    if (args.command === 'printf "%s" "$HOME"') {
+      return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+    }
     return { exitCode: 0, stdout: '', stderr: '' };
   });
   const readTextFile = vi.fn(async () => null);
@@ -91,12 +94,15 @@ describe('prepareSandboxForHarness', () => {
       skippedHarnessIds: [],
     });
     expect(run.mock.calls.map(([args]) => args.command)).toEqual([
-      'pwd',
+      'printf "%s" "$HOME"',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo alpha',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo beta',
+      'pwd',
       'mkdir -p "$WORK_DIR"',
+      'printf "%s" "$HOME"',
+      'mkdir -p "$MARKER_DIR"',
     ]);
     expect(onBootstrap).toHaveBeenCalledWith({
       session,
@@ -146,16 +152,33 @@ describe('prepareSandboxForHarness', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('rejects duplicate harness ids', async () => {
-    const first = makeHarness({ harnessId: 'alpha', recipe: makeRecipe('a') });
-    const second = makeHarness({ harnessId: 'alpha', recipe: makeRecipe('b') });
+  it('deduplicates harnesses by id and uses the last adapter', async () => {
+    const firstRecipe = makeRecipe('alpha');
+    const secondRecipe = {
+      ...makeRecipe('alpha'),
+      commands: [{ command: 'echo second' }],
+    };
+    const first = makeHarness({ harnessId: 'alpha', recipe: firstRecipe });
+    const second = makeHarness({ harnessId: 'alpha', recipe: secondRecipe });
+    const { session, run } = makeSession();
 
-    await expect(
-      prepareSandboxForHarness({
-        session: makeSession().session,
-        harnesses: [first, second],
-      }),
-    ).rejects.toThrow(/duplicate harness id/);
+    const result = await prepareSandboxForHarness({
+      session,
+      harnesses: [first, second],
+    });
+
+    expect(result).toEqual({
+      identity: expect.stringMatching(/^[0-9a-f]{16}$/),
+      recipeIdentities: {
+        alpha: await hashHarnessBootstrap(secondRecipe),
+      },
+      skippedHarnessIds: [],
+    });
+    expect(run.mock.calls.map(([args]) => args.command)).toEqual([
+      'printf "%s" "$HOME"',
+      'mkdir -p "$BOOTSTRAP_DIR"',
+      'echo second',
+    ]);
   });
 
   it('validates caller bootstrap settings', async () => {

@@ -131,7 +131,7 @@ export function createAlibaba(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/alibaba/${VERSION}`,
+      `ai-sdk-alibaba/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: AlibabaChatModelId) =>

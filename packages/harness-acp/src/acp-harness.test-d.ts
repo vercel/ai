@@ -1,4 +1,5 @@
 import { commonTool } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -6,7 +7,26 @@ import { createACP, type ACPHarnessSettings } from './acp-harness';
 import type { ACPToolCall } from './acp-tool-call';
 import type { ACPV1Settings } from './v1';
 
+const modelMapping: ACPV1Settings['modelMapping'] = {
+  type: 'session-config-option',
+  path: 'model',
+};
+
+const source: ACPV1Settings['source'] = {
+  type: 'install-command',
+  command: 'curl https://example.com/install -fsS | bash',
+};
+
 describe('createACP built-in tool inference', () => {
+  test('accepts only image as a non-text content type', () => {
+    expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
+      ReadonlyArray<'image'> | undefined
+    >();
+    expectTypeOf<ReadonlyArray<'text' | 'audio'>>().not.toExtend<
+      NonNullable<ACPV1Settings['nonTextContentTypes']>
+    >();
+  });
+
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
     expectTypeOf<ToolCall>().toExtend<ACPToolCall>();
@@ -16,15 +36,48 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf<
       Extract<
         keyof ACPV1Settings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'reconnect'
+        | 'clientApp'
       >
     >().toEqualTypeOf<never>();
     expectTypeOf<
       Omit<
         ACPHarnessSettings,
-        'builtinTools' | 'port' | 'startupTimeoutMs' | 'clientApp'
+        | 'builtinTools'
+        | 'port'
+        | 'portEndpoint'
+        | 'startupTimeoutMs'
+        | 'reconnect'
+        | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
+  });
+
+  test('requires a model mapping', () => {
+    // @ts-expect-error modelMapping is required for every ACP agent
+    createACP({
+      harnessId: 'missing-model-mapping',
+      source,
+      executable: 'acp-agent',
+    });
+  });
+
+  test('accepts sandbox bridge reconnect settings', () => {
+    const settings: Pick<ACPHarnessSettings, 'reconnect'> = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 
   test('preserves the supplied tool set type', () => {
@@ -34,12 +87,9 @@ describe('createACP built-in tool inference', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-        packageVersion: '1.1.4',
-      },
+      source,
       executable: 'codex-acp',
+      modelMapping,
       builtinTools: { bash },
       clientApp: { name: 'example-app', version: '1.2.3' },
     });
@@ -47,24 +97,34 @@ describe('createACP built-in tool inference', () => {
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
   });
 
-  test('accepts discriminated simple and locked npm sources', () => {
-    createACP({
-      harnessId: 'simple-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-        packageVersion: '1.2.3',
-      },
+  test('adds askUserQuestions only when configured', () => {
+    const withoutQuestions = createACP({
+      harnessId: 'without-questions',
+      source,
       executable: 'acp-agent',
+      modelMapping,
     });
-    createACP({
-      harnessId: 'unpinned-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+    expectTypeOf<
+      keyof typeof withoutQuestions.builtinTools
+    >().toEqualTypeOf<never>();
+
+    const withQuestions = createACP({
+      harnessId: 'with-questions',
+      source,
       executable: 'acp-agent',
+      modelMapping,
+      askUserQuestions: {
+        requestMethod: 'example/ask',
+        fromNativeRequest: () => null,
+        toNativeResponse: () => null,
+      },
     });
+    expectTypeOf<
+      keyof typeof withQuestions.builtinTools
+    >().toEqualTypeOf<'askUserQuestions'>();
+  });
+
+  test('accepts npm-locked and install-command sources', () => {
     createACP({
       harnessId: 'locked-acp',
       source: {
@@ -73,17 +133,26 @@ describe('createACP built-in tool inference', () => {
         pnpmLockYaml: "lockfileVersion: '9.0'\n",
       },
       executable: 'acp-agent',
+      modelMapping,
+    });
+    createACP({
+      harnessId: 'install-command-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      modelMapping,
     });
   });
 
   test('accepts native instruction mappings', () => {
     createACP({
       harnessId: 'claude-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/claude-agent-acp',
-      },
+      source,
       executable: 'claude-agent-acp',
+      modelMapping,
+      skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
         path: ['systemPrompt', 'append'],
@@ -91,16 +160,38 @@ describe('createACP built-in tool inference', () => {
     });
     createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-      },
+      source,
       executable: 'codex-acp',
+      modelMapping,
       instructionMapping: {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
         path: ['developer_instructions'],
       },
+    });
+    createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
+  });
+
+  test('accepts asynchronous credential forwarding', () => {
+    createACP({
+      harnessId: 'credential-forwarding-acp',
+      source,
+      executable: 'acp-agent',
+      modelMapping,
+      credentialForwarding: async ({ credential, environmentVariableName }) =>
+        `${environmentVariableName}:${credential}`,
     });
   });
 });

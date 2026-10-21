@@ -75,6 +75,16 @@ describe('generateObject', () => {
           prompt: 'prompt',
         });
 
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'generateObject',
+              message: 'Use generateText with an output setting instead.',
+            },
+          ],
+        });
+
         expect(result.object).toMatchInlineSnapshot(`
         {
           "content": "Hello, world!",
@@ -210,8 +220,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -231,8 +241,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',

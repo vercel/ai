@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type LanguageModelV4,
   type EmbeddingModelV4,
   type ProviderV4,
@@ -12,19 +13,24 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
+import { DecisionPerplexityModel } from './perplexity-decision-model';
+import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV4 {
+  /** Creates an experimental decision model using the Perplexity Decisions API. */
+  decisionModel(modelId: PerplexityDecisionModelId): DecisionModelV4;
+
   /**
-   * Creates an Perplexity chat model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   (modelId: PerplexityLanguageModelId): LanguageModelV4;
 
   /**
-   * Creates an Perplexity language model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4;
 
@@ -46,7 +52,7 @@ export interface PerplexityProvider extends ProviderV4 {
 
 export interface PerplexityProviderSettings {
   /**
-   * Base URL for the perplexity API calls.
+   * Base URL for Perplexity API calls.
    */
   baseURL?: string;
 
@@ -78,9 +84,10 @@ export function createPerplexity(
           environmentVariableName: 'PERPLEXITY_API_KEY',
           description: 'Perplexity',
         })}`,
+        'X-Pplx-Integration': 'vercel-ai-sdk',
         ...options.headers,
       },
-      `ai-sdk/perplexity/${VERSION}`,
+      `ai-sdk-perplexity/${VERSION}`,
     );
 
   const baseURL = withoutTrailingSlash(
@@ -109,6 +116,13 @@ export function createPerplexity(
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
+  provider.decisionModel = (modelId: PerplexityDecisionModelId) =>
+    new DecisionPerplexityModel(modelId, {
+      provider: 'perplexity.decision',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

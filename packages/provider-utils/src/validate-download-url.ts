@@ -46,11 +46,12 @@ export function validateDownloadUrl(url: string): void {
     });
   }
 
-  // Block localhost and .local domains
+  // Block localhost and domains reserved for local/private use.
   if (
     hostname === 'localhost' ||
     hostname.endsWith('.local') ||
-    hostname.endsWith('.localhost')
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.internal')
   ) {
     throw new DownloadError({
       url,
@@ -78,7 +79,6 @@ export function validateDownloadUrl(url: string): void {
         message: `URL with IP address ${hostname} is not allowed`,
       });
     }
-    return;
   }
 }
 

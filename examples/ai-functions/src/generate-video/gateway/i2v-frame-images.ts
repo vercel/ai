@@ -8,7 +8,7 @@ run(async () => {
     'Generating first-last-frame video via AI Gateway...',
     () =>
       generateVideo({
-        model: gateway.videoModel('klingai/kling-v2.6-i2v'),
+        model: gateway.videoModel('klingai/kling-v3.0-i2v'),
         prompt:
           'The cat walks across the scene and transforms into a dog by the end, in a playful and cartoonish style.',
         frameImages: [

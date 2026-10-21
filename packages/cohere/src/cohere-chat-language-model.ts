@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -31,10 +33,7 @@ import {
 } from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import {
-  convertCohereUsage,
-  type CohereUsageTokens,
-} from './convert-cohere-usage';
+import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
@@ -234,7 +233,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
         unified: mapCohereFinishReason(response.finish_reason),
         raw: response.finish_reason ?? undefined,
       },
-      usage: convertCohereUsage(response.usage.tokens),
+      usage: convertCohereUsage(response.usage),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -267,7 +266,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: CohereUsageTokens | undefined = undefined;
+    let usage: CohereUsage | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -281,7 +280,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof cohereChatChunkSchema>>,
+          ParseResult<InferSchema<typeof cohereChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -438,12 +437,11 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                   unified: mapCohereFinishReason(value.delta.finish_reason),
                   raw: value.delta.finish_reason,
                 };
-                usage = value.delta.usage.tokens;
+                usage = value.delta.usage;
                 return;
               }
 
               default: {
-                return;
               }
             }
           },
@@ -503,175 +501,185 @@ function resolveCohereThinking({
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
 
-const cohereChatResponseSchema = z.object({
-  generation_id: z.string().nullish(),
-  message: z.object({
-    role: z.string(),
-    content: z
-      .array(
-        z.union([
-          z.object({
-            type: z.literal('text'),
-            text: z.string(),
-          }),
-          z.object({
-            type: z.literal('thinking'),
-            thinking: z.string(),
-          }),
-        ]),
-      )
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
+const cohereUsageSchema = () =>
+  z.looseObject({
+    billed_units: z
+      .looseObject({
+        input_tokens: z.number(),
+        output_tokens: z.number(),
+      })
       .nullish(),
-    tool_plan: z.string().nullish(),
-    tool_calls: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.literal('function'),
-          function: z.object({
-            name: z.string(),
-            arguments: z.string(),
-          }),
-        }),
-      )
-      .nullish(),
-    citations: z
-      .array(
-        z.object({
-          start: z.number(),
-          end: z.number(),
-          text: z.string(),
-          sources: z.array(
-            z.object({
-              type: z.string().optional(),
-              id: z.string().optional(),
-              document: z.object({
-                id: z.string().optional(),
+    tokens: z.looseObject({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    }),
+    cached_tokens: z.number().nullish(),
+  });
+
+const cohereChatResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      generation_id: z.string().nullish(),
+      message: z.object({
+        role: z.string(),
+        content: z
+          .array(
+            z.union([
+              z.object({
+                type: z.literal('text'),
                 text: z.string(),
-                title: z.string(),
+              }),
+              z.object({
+                type: z.literal('thinking'),
+                thinking: z.string(),
+              }),
+            ]),
+          )
+          .nullish(),
+        tool_plan: z.string().nullish(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
               }),
             }),
-          ),
-          type: z.string().optional(),
-        }),
-      )
-      .nullish(),
-  }),
-  finish_reason: z.string(),
-  usage: z.object({
-    billed_units: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
+          )
+          .nullish(),
+        citations: z
+          .array(
+            z.object({
+              start: z.number(),
+              end: z.number(),
+              text: z.string(),
+              sources: z.array(
+                z.object({
+                  type: z.string().optional(),
+                  id: z.string().optional(),
+                  document: z.object({
+                    id: z.string().optional(),
+                    text: z.string(),
+                    title: z.string(),
+                  }),
+                }),
+              ),
+              type: z.string().optional(),
+            }),
+          )
+          .nullish(),
+      }),
+      finish_reason: z.string(),
+      usage: cohereUsageSchema(),
     }),
-    tokens: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-  }),
-});
+  ),
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const cohereChatChunkSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('citation-start'),
-  }),
-  z.object({
-    type: z.literal('citation-end'),
-  }),
-  z.object({
-    type: z.literal('content-start'),
-    index: z.number(),
-    delta: z.object({
-      message: z.object({
-        content: z.union([
-          z.object({
-            type: z.literal('text'),
-            text: z.string(),
-          }),
-          z.object({
-            type: z.literal('thinking'),
-            thinking: z.string(),
-          }),
-        ]),
+const cohereChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('citation-start'),
       }),
-    }),
-  }),
-  z.object({
-    type: z.literal('content-delta'),
-    index: z.number(),
-    delta: z.object({
-      message: z.object({
-        content: z.union([
-          z.object({
-            text: z.string(),
-          }),
-          z.object({
-            thinking: z.string(),
-          }),
-        ]),
+      z.object({
+        type: z.literal('citation-end'),
       }),
-    }),
-  }),
-  z.object({
-    type: z.literal('content-end'),
-    index: z.number(),
-  }),
-  z.object({
-    type: z.literal('message-start'),
-    id: z.string().nullish(),
-  }),
-  z.object({
-    type: z.literal('message-end'),
-    delta: z.object({
-      finish_reason: z.string(),
-      usage: z.object({
-        tokens: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
-      }),
-    }),
-  }),
-  // https://docs.cohere.com/v2/docs/streaming#tool-use-stream-events-for-tool-calling
-  z.object({
-    type: z.literal('tool-plan-delta'),
-    delta: z.object({
-      message: z.object({
-        tool_plan: z.string(),
-      }),
-    }),
-  }),
-  z.object({
-    type: z.literal('tool-call-start'),
-    delta: z.object({
-      message: z.object({
-        tool_calls: z.object({
-          id: z.string(),
-          type: z.literal('function'),
-          function: z.object({
-            name: z.string(),
-            arguments: z.string(),
+      z.object({
+        type: z.literal('content-start'),
+        index: z.number(),
+        delta: z.object({
+          message: z.object({
+            content: z.union([
+              z.object({
+                type: z.literal('text'),
+                text: z.string(),
+              }),
+              z.object({
+                type: z.literal('thinking'),
+                thinking: z.string(),
+              }),
+            ]),
           }),
         }),
       }),
-    }),
-  }),
-  // A single tool call's `arguments` stream in chunks and must be accumulated
-  // in a string and so the full tool object info can only be parsed once we see
-  // `tool-call-end`.
-  z.object({
-    type: z.literal('tool-call-delta'),
-    delta: z.object({
-      message: z.object({
-        tool_calls: z.object({
-          function: z.object({
-            arguments: z.string(),
+      z.object({
+        type: z.literal('content-delta'),
+        index: z.number(),
+        delta: z.object({
+          message: z.object({
+            content: z.union([
+              z.object({
+                text: z.string(),
+              }),
+              z.object({
+                thinking: z.string(),
+              }),
+            ]),
           }),
         }),
       }),
-    }),
-  }),
-  z.object({
-    type: z.literal('tool-call-end'),
-  }),
-]);
+      z.object({
+        type: z.literal('content-end'),
+        index: z.number(),
+      }),
+      z.object({
+        type: z.literal('message-start'),
+        id: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('message-end'),
+        delta: z.object({
+          finish_reason: z.string(),
+          usage: cohereUsageSchema(),
+        }),
+      }),
+      // https://docs.cohere.com/v2/docs/streaming#tool-use-stream-events-for-tool-calling
+      z.object({
+        type: z.literal('tool-plan-delta'),
+        delta: z.object({
+          message: z.object({
+            tool_plan: z.string(),
+          }),
+        }),
+      }),
+      z.object({
+        type: z.literal('tool-call-start'),
+        delta: z.object({
+          message: z.object({
+            tool_calls: z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            }),
+          }),
+        }),
+      }),
+      // A single tool call's `arguments` stream in chunks and must be accumulated
+      // in a string and so the full tool object info can only be parsed once we see
+      // `tool-call-end`.
+      z.object({
+        type: z.literal('tool-call-delta'),
+        delta: z.object({
+          message: z.object({
+            tool_calls: z.object({
+              function: z.object({
+                arguments: z.string(),
+              }),
+            }),
+          }),
+        }),
+      }),
+      z.object({
+        type: z.literal('tool-call-end'),
+      }),
+    ]),
+  ),
+);

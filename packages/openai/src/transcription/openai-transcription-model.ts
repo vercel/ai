@@ -136,6 +136,12 @@ const languageMap = {
   welsh: 'cy',
 };
 
+function isLanguageCode(
+  language: string | null | undefined,
+): language is string {
+  return language != null && /^[a-z]{2}$/.test(language);
+}
+
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -180,7 +186,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -194,6 +200,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     if (this.modelId === 'whisper-1') {
       formData.append('response_format', 'verbose_json');
     }
+
+    const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+    const chunkingStrategy =
+      openAIOptions?.chunkingStrategy ??
+      (isDiarizationModel ? 'auto' : undefined);
 
     // Add provider-specific options
     if (openAIOptions) {
@@ -209,7 +220,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
         ...(this.modelId !== 'whisper-1' && {
-          response_format: isGpt4oTranscribeModel ? 'json' : 'verbose_json',
+          response_format:
+            openAIOptions.responseFormat ??
+            (isDiarizationModel
+              ? 'diarized_json'
+              : isGpt4oTranscribeModel
+                ? 'json'
+                : 'verbose_json'),
         }),
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
@@ -226,6 +243,28 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           }
         }
       }
+    } else if (isDiarizationModel) {
+      formData.append('response_format', 'diarized_json');
+    }
+
+    if (chunkingStrategy != null) {
+      formData.append(
+        'chunking_strategy',
+        typeof chunkingStrategy === 'string'
+          ? chunkingStrategy
+          : JSON.stringify({
+              type: chunkingStrategy.type,
+              ...(chunkingStrategy.threshold != null && {
+                threshold: chunkingStrategy.threshold,
+              }),
+              ...(chunkingStrategy.prefixPaddingMs != null && {
+                prefix_padding_ms: chunkingStrategy.prefixPaddingMs,
+              }),
+              ...(chunkingStrategy.silenceDurationMs != null && {
+                silence_duration_ms: chunkingStrategy.silenceDurationMs,
+              }),
+            }),
+      );
     }
 
     return {
@@ -266,9 +305,29 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const language =
-      response.language != null && response.language in languageMap
-        ? languageMap[response.language as keyof typeof languageMap]
-        : undefined;
+      (isLanguageCode(response.language)
+        ? response.language
+        : response.language != null &&
+            Object.prototype.hasOwnProperty.call(languageMap, response.language)
+          ? languageMap[response.language as keyof typeof languageMap]
+          : undefined) ??
+      (response.languages?.length === 1 &&
+      isLanguageCode(response.languages[0].code)
+        ? response.languages[0].code
+        : undefined);
+
+    const diarizedSegments = response.segments?.flatMap(segment =>
+      'speaker' in segment
+        ? [
+            {
+              text: segment.text,
+              startSecond: segment.start,
+              endSecond: segment.end,
+              speaker: segment.speaker,
+            },
+          ]
+        : [],
+    );
 
     return {
       text: response.text,
@@ -287,12 +346,27 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(((diarizedSegments != null && diarizedSegments.length > 0) ||
+        response.languages != null) && {
+        providerMetadata: {
+          openai: {
+            ...(diarizedSegments != null &&
+              diarizedSegments.length > 0 && {
+                segments: diarizedSegments,
+              }),
+            ...(response.languages != null && {
+              languages: response.languages,
+            }),
+          },
+        },
+      }),
     };
   }
 

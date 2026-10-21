@@ -3,7 +3,7 @@ import {
   DownloadError,
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
-  fetchWithValidatedRedirects,
+  fetchUntrustedUrl,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -36,7 +36,7 @@ export const download = async ({
       getRuntimeEnvironmentUserAgent(),
     );
 
-    const response = await fetchWithValidatedRedirects({
+    const response = await fetchUntrustedUrl({
       url: urlText,
       headers,
       abortSignal,

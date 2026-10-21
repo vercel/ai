@@ -92,7 +92,9 @@ export class ProdiaVideoModel implements VideoModelV4 {
       );
       formData.append(
         'input',
-        new Blob([imageData.bytes], { type: imageData.mediaType }),
+        new Blob([imageData.bytes as Uint8Array<ArrayBuffer>], {
+          type: imageData.mediaType,
+        }),
         'input' + getExtension(imageData.mediaType),
       );
 
@@ -205,7 +207,7 @@ function createVideoMultipartResponseHandler() {
         const jsonStr = new TextDecoder().decode(part.body);
         jobResult = await parseJSON({
           text: jsonStr,
-          schema: zodSchema(prodiaJobResultSchema),
+          schema: zodSchema(prodiaJobResultSchema()),
         });
       } else if (contentDisposition.includes('name="output"')) {
         videoBytes = part.body;

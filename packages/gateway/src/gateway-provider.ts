@@ -1,6 +1,9 @@
 import {
+  lazySchema,
+  zodSchema,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   loadOptionalSetting,
   postJsonToApi,
   withoutTrailingSlash,
@@ -30,10 +33,12 @@ import {
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
+import { GatewayBatch } from './gateway-batch';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
+import { GatewayDecisionModel } from './gateway-decision-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel } from './gateway-speech-model';
 import {
@@ -42,6 +47,7 @@ import {
 } from './gateway-transcription-model';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -52,16 +58,18 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV4,
   EmbeddingModelV4,
+  Experimental_BatchV4 as BatchV4,
   ImageModelV4,
   RerankingModelV4,
   SpeechModelV4,
   TranscriptionModelV4,
   Experimental_VideoModelV4,
+  Experimental_DecisionModelV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
+  LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
 
@@ -77,6 +85,9 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates a model for text generation.
    */
   languageModel(modelId: GatewayModelId): LanguageModelV4;
+
+  /** Returns a BatchV4 interface for processing batches with AI Gateway. */
+  experimental_batch(): BatchV4<{ text: GatewayModelId }>;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -148,6 +159,26 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates a model for reranking documents.
    */
   rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for deciding answers to questions against shared state.
+   */
+  decision(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
+
+  /**
+   * Creates a model for deciding answers to questions against shared state.
+   */
+  decisionModel(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(
+    modelId: GatewayDecisionModelId,
+  ): Experimental_DecisionModelV4 & {
+    doEvaluate: Experimental_DecisionModelV4['doDecide'];
+  };
+  /** @deprecated Use `decision` instead. */
+  evaluation(
+    modelId: GatewayDecisionModelId,
+  ): ReturnType<GatewayProvider['evaluationModel']>;
 
   /**
    * Creates a model for text-to-speech generation.
@@ -222,6 +253,12 @@ export interface GatewayTranscriptionFactory {
 }
 
 export interface GatewayProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
    */
@@ -274,10 +311,14 @@ export interface GatewayProviderSettings {
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 /** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
-const gatewayClientSecretResponseSchema = z.object({
-  token: z.string(),
-  expiresAt: z.number().nullish(),
-});
+const gatewayClientSecretResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string(),
+      expiresAt: z.number().nullish(),
+    }),
+  ),
+);
 
 /**
  * Create a remote provider instance.
@@ -309,7 +350,7 @@ export function createGateway(
           : {}),
         ...options.headers,
       },
-      `ai-sdk/gateway/${VERSION}`,
+      `ai-sdk-gateway/${VERSION}`,
     );
 
   const getHeaders = async () => {
@@ -372,7 +413,7 @@ export function createGateway(
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: options.fetch,
       });
@@ -424,6 +465,16 @@ export function createGateway(
       o11yHeaders: createO11yHeaders(),
     });
   };
+
+  const createBatch = () =>
+    new GatewayBatch({
+      provider: 'gateway',
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
 
   const getAvailableModels = async () => {
     const now = options._internal?.currentDate?.().getTime() ?? Date.now();
@@ -521,6 +572,7 @@ export function createGateway(
     });
   };
   provider.languageModel = createLanguageModel;
+  provider.experimental_batch = createBatch;
   const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
@@ -552,6 +604,19 @@ export function createGateway(
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
+  const createDecisionModel = (modelId: GatewayDecisionModelId) => {
+    return new GatewayDecisionModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.decisionModel = createDecisionModel;
+  provider.decision = createDecisionModel;
+  provider.evaluationModel = createDecisionModel;
+  provider.evaluation = createDecisionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',

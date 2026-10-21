@@ -1,17 +1,61 @@
 ---
 title: Black Forest Labs
-description: Learn how to use Black Forest Labs models with the AI SDK.
+description: Learn how to use Black Forest Labs with AI Gateway and the direct provider.
 ---
 
 # Black Forest Labs Provider
 
-[Black Forest Labs](https://bfl.ai/) provides a generative image platform for developers with FLUX-based models. Their platform offers fast, high quality, and in-context image generation and editing with precise and coherent results.
+[Black Forest Labs](https://bfl.ai/) provides a generative media platform for developers with FLUX-based models. Their platform offers fast, high quality, and in-context image generation and editing, plus video generation with FLUX 3.
+You can use Black Forest Labs models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/black-forest-labs`.
 
-## Setup
+```ts provider="bfl" model="bfl/flux-2-pro"
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Black Forest Labs provider is available via the `@ai-sdk/black-forest-labs` module. You can install it with
+const { image } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'A sunlit mountain village in watercolor.',
+});
 
-<InstallPackages packages="@ai-sdk/black-forest-labs" />
+console.log(image.base64);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/black-forest-labs`
+
+For direct access to Black Forest Labs, install `ai` and `@ai-sdk/black-forest-labs`:
+
+<InstallPackages packages="ai @ai-sdk/black-forest-labs" />
+
+Set your Black Forest Labs API credential in the `BFL_API_KEY` environment variable:
+
+```bash
+export BFL_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/black-forest-labs`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/black-forest-labs`
+  provider, including its model factories and settings. Gateway model and
+  feature availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -95,13 +139,132 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 
 | Model                | Description                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `flux-3-image`       | FLUX 3 for text-to-image and editing with up to ten reference images and optional web grounding                            |
+| `flux-3-image-klein` | FLUX 3 Image Klein for fast generation and editing, with open weights and exact output dimensions                          |
+| `flux-2-pro`         | FLUX.2 [pro] for text-to-image and reference-based editing in one endpoint                                                 |
+| `flux-2-max`         | FLUX.2 [max] for the highest prompt adherence and detail in the FLUX.2 family                                              |
+| `flux-2-flex`        | FLUX.2 [flex] exposes `steps` and `guidance` so you can trade speed against quality                                        |
+| `flux-2-klein-9b`    | FLUX.2 [klein] 9B, an open-weight distilled model                                                                          |
+| `flux-2-klein-4b`    | FLUX.2 [klein] 4B, the smallest and cheapest open-weight FLUX.2 model                                                      |
 | `flux-kontext-pro`   | FLUX.1 Kontext [pro] handles both text and reference images as inputs, enabling targeted edits and complex transformations |
 | `flux-kontext-max`   | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                              |
 | `flux-pro-1.1-ultra` | Ultra-fast, ultra high-resolution image creation                                                                           |
 | `flux-pro-1.1`       | Fast, high-quality image generation from text.                                                                             |
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
-Black Forest Labs models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+Unknown image model IDs use the latest supported image API, currently FLUX 3
+Image Klein's request format and options. Known older families (`flux-pro-*`,
+`flux-kontext-*`, `flux-1-*`, and `flux-2-*`) retain the legacy format.
+The original `flux-3-image` retains its distinct grounding and version controls.
+
+FLUX.1 and FLUX.2 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+FLUX 3 accepts only `21:9`, `2:1`, `16:9`, `3:2`, `7:5`, `4:3`, `5:4`,
+`1:1`, `4:5`, `3:4`, `5:7`, `2:3`, `9:16`, `1:2`, and `9:21`.
+Omit `aspectRatio` to use the endpoint's `auto` default. Unsupported ratios
+are omitted with a warning.
+
+FLUX.2 models take reference images on the same `prompt.images` field as the
+Kontext models, so a single model ID covers both text-to-image and editing. See
+[Image Editing](#image-editing) below.
+
+<Note>
+  FLUX.2 generations can take longer than the 60 second default polling timeout,
+  especially with reference images. Raise `pollTimeoutMillis` when a request
+  reports `Black Forest Labs generation timed out.`
+</Note>
+
+### FLUX 3 Image Generation and Editing
+
+The `flux-3-image` and `flux-3-image-klein` models generate images from text and
+edit reference images through their respective endpoints. Pass reference images
+through `prompt.images` and select the output resolution with
+`providerOptions.blackForestLabs.resolution`:
+
+```ts
+import {
+  blackForestLabs,
+  type BlackForestLabsImageModelOptions,
+} from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-3-image'),
+  prompt: 'A watercolor illustration of a coastal village at dawn',
+  aspectRatio: '16:9',
+  providerOptions: {
+    blackForestLabs: {
+      resolution: '2k',
+      grounding: false,
+      version: 'latest',
+      pollTimeoutMillis: 240000,
+    } satisfies BlackForestLabsImageModelOptions,
+  },
+});
+```
+
+For editing, use a prompt such as:
+
+```ts
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-3-image'),
+  prompt: {
+    text: 'Change the sky to sunset while preserving the buildings',
+    images: ['https://example.com/village.png'],
+  },
+});
+```
+
+Both FLUX 3 Image models accept up to ten reference images as URLs or
+base64-encoded data. For `flux-3-image`, each reference image must be at least
+256 × 256 pixels and no larger than 16 megapixels.
+Omitting `aspectRatio` lets the endpoint choose the ratio from the prompt or the
+first reference image. Text-to-image generation defaults to `1k`. Klein edits
+default to the first reference image's size. Web grounding is available only on
+`flux-3-image` and is enabled by default.
+
+The `flux-3-image` model does not accept `seed`, masks, explicit `width`/`height`,
+or the legacy image options such as `outputFormat`, `steps`, and
+`promptUpsampling`. A `size`
+is used only to derive a supported aspect ratio; ratios outside the list above
+are omitted with a warning. Use `resolution` to select the pixel-area
+tier. Unsupported options are omitted with warnings; masks are rejected.
+
+#### FLUX 3 Image Klein
+
+Klein uses the same `resolution`, `aspectRatio`, and `prompt.images` inputs as
+`flux-3-image`. It also accepts `seed`, `outputFormat` (`'jpeg'` or `'png'`),
+and `steps` (1–16, default 16):
+
+```ts
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-3-image-klein'),
+  prompt: {
+    text: 'Change the sky to sunset while preserving the buildings',
+    images: ['https://example.com/village.png'],
+  },
+  aspectRatio: '16:9',
+  seed: 42,
+  providerOptions: {
+    blackForestLabs: {
+      resolution: '2k',
+      outputFormat: 'png',
+      steps: 16,
+      pollTimeoutMillis: 240000,
+    } satisfies BlackForestLabsImageModelOptions,
+  },
+});
+```
+
+To request exact dimensions, pass `size` (for example, `'2048x2048'`) or set both
+`providerOptions.blackForestLabs.width` and `height`. Each dimension must be an
+integer from 64 to 6256, and their product must not exceed 16,822,272 pixels.
+Provider dimensions override `size`; exact dimensions override `resolution` and
+`aspectRatio`. Klein does not accept masks, `grounding`, or `version`.
+
+The provider polls through `Pending`, `Reasoning`, and `Generating` until the
+image is ready. Increase `pollTimeoutMillis` for requests that exceed the default
+60 second polling timeout. It stops on moderation or task failures and downloads the signed
+image URL without sending API credentials.
 
 ### Image Editing
 
@@ -160,6 +323,49 @@ const { images } = await generateImage({
   up to 20MB or 20 megapixels per image.
 </Note>
 
+#### FLUX.2 Editing
+
+FLUX.2 models accept reference images on the same `prompt.images` field, so no
+separate editing model ID is needed:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-2-pro'),
+  prompt: {
+    text: 'Place this logo on a plain ceramic mug.',
+    images: ['https://example.com/logo.png'],
+  },
+  providerOptions: {
+    blackForestLabs: {
+      pollTimeoutMillis: 240000,
+    },
+  },
+});
+```
+
+`flux-2-flex` additionally accepts `steps` and `guidance`, which let you trade
+generation time against quality:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-2-flex'),
+  prompt: 'A detailed macro shot of a dew-covered leaf',
+  providerOptions: {
+    blackForestLabs: {
+      steps: 50,
+      guidance: 4,
+      pollTimeoutMillis: 240000,
+    },
+  },
+});
+```
+
 #### Inpainting
 
 The `flux-pro-1.0-fill` model supports inpainting, which allows you to fill masked regions of an image with new content. Pass the source image via `prompt.images` and a mask image via `prompt.mask`:
@@ -184,16 +390,19 @@ The mask image should be a grayscale image where white areas indicate regions to
 
 Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. The supported parameters depend on the used model ID:
 
-- **width** _number_ - Output width in pixels (256–1920). When set, this overrides any width derived from `size`.
-- **height** _number_ - Output height in pixels (256–1920). When set, this overrides any height derived from `size`.
+- **resolution** _"768sq" | "1k" | "1.5k" | "2k" | "4k"_ - FLUX 3 Image output resolution class. Defaults to `"1k"` for generation; Klein edits default to the first reference image's size. Exact dimensions vary with aspect ratio.
+- **grounding** _boolean_ - `flux-3-image` web and image search grounding. Defaults to `true`; unavailable on Klein.
+- **version** _"latest"_ - `flux-3-image` endpoint version. Only `"latest"` is currently available; unavailable on Klein.
+- **width** _number_ - Output width in pixels (256–1920 for legacy models, 64–6256 for Klein; unsupported on `flux-3-image`). When set, this overrides any width derived from `size`.
+- **height** _number_ - Output height in pixels (256–1920 for legacy models, 64–6256 for Klein; unsupported on `flux-3-image`). When set, this overrides any height derived from `size`.
 - **outputFormat** _string_ - Desired format of the output image (`"jpeg"` or `"png"`).
-- **steps** _number_ - Number of inference steps. Higher values may improve quality but increase generation time.
+- **steps** _number_ - Number of inference steps. Klein accepts 1–16 (default 16). Higher values may improve quality but increase generation time.
 - **guidance** _number_ - Guidance scale for generation. Higher values follow the prompt more closely.
 - **imagePrompt** _string_ - Base64-encoded image to use as additional visual context for generation.
 - **imagePromptStrength** _number_ - Strength of the image prompt influence on generation (0.0 to 1.0).
 - **promptUpsampling** _boolean_ - If true, performs upsampling on the prompt.
 - **raw** _boolean_ - Enable raw mode for more natural, authentic aesthetics.
-- **safetyTolerance** _number_ - Moderation level for inputs and outputs (0 = most strict, 6 = more permissive).
+- **safetyTolerance** _number_ - Moderation level for inputs and outputs (0 = most strict). FLUX 3 Image models accept 0–7 and default to 2; the endpoint and organization determine the approved maximum. Legacy models accept 0–6.
 - **pollIntervalMillis** _number_ - Interval in milliseconds between polling attempts (default 500ms).
 - **pollTimeoutMillis** _number_ - Overall timeout in milliseconds for polling before timing out (default 60s).
 - **webhookUrl** _string_ - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.

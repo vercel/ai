@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -60,6 +62,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -93,7 +96,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input_type: embeddingOptions?.inputType,
         truncation: embeddingOptions?.truncation,
-        output_dimension: embeddingOptions?.outputDimension,
+        output_dimension: embeddingOptions?.outputDimension ?? dimensions,
         output_dtype: embeddingOptions?.outputDtype,
       },
       failedResponseHandler: voyageFailedResponseHandler,
@@ -115,17 +118,21 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
-const voyageEmbeddingResponseSchema = z.object({
-  data: z.array(
+const voyageEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      embedding: z.array(z.number()),
-      index: z.number(),
+      data: z.array(
+        z.object({
+          embedding: z.array(z.number()),
+          index: z.number(),
+        }),
+      ),
+      model: z.string(),
+      usage: z
+        .object({
+          total_tokens: z.number(),
+        })
+        .nullish(),
     }),
   ),
-  model: z.string(),
-  usage: z
-    .object({
-      total_tokens: z.number(),
-    })
-    .nullish(),
-});
+);

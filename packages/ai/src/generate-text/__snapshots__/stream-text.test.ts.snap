@@ -201,12 +201,14 @@ exports[`streamText > result.files > should contain files 1`] = `
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
     "mediaType": "text/plain",
+    "providerMetadata": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
     "mediaType": "image/jpeg",
+    "providerMetadata": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },

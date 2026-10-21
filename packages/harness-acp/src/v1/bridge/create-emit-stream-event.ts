@@ -10,6 +10,7 @@ import type { ACPToolCall } from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 import { createACPStreamTranslator } from './stream-translator';
 import { createHostToolCorrelation } from './host-tool-correlation';
+import type { HostToolCall } from './resolve-host-tool-call';
 
 export function createEmitStreamEvent({
   emit,
@@ -31,7 +32,9 @@ export function createEmitStreamEvent({
   raw: (options: { rawValue: unknown }) => void;
   close: () => void;
   permissionToolCall: (options: { toolCall: ToolCallUpdate }) => void;
-  claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
+  claimHostToolPermission: (options: {
+    toolCall: ToolCallUpdate;
+  }) => HostToolCall | undefined;
   hostToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -51,6 +54,8 @@ export function createEmitStreamEvent({
     order: number;
   }) => void;
   removeHostToolCorrelationInvocation: (options: { token: string }) => void;
+  suppressToolCall: (options: { toolCallId: string }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
   const translator = createACPStreamTranslator({
     emit,
@@ -100,5 +105,9 @@ export function createEmitStreamEvent({
     hostToolResult: translator.hostToolResult,
     registerHostToolCorrelationInvocation: correlation.registerInvocation,
     removeHostToolCorrelationInvocation: correlation.removeInvocation,
+    suppressToolCall: correlation.suppressToolCall,
+    getToolCall: ({ toolCallId }) =>
+      correlation.getToolCall({ toolCallId }) ??
+      translator.getToolCall({ toolCallId }),
   };
 }

@@ -80,7 +80,7 @@ export function createElevenLabs(
         }),
         ...options.headers,
       },
-      `ai-sdk/elevenlabs/${VERSION}`,
+      `ai-sdk-elevenlabs/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
