@@ -2,6 +2,8 @@ import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
+  type Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
+  type Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   type SpeechModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -45,7 +47,7 @@ function supportsTextToSpeechWebSocket(modelId: string): boolean {
   return !modelId.startsWith('eleven_v3') && !modelId.startsWith('eleven_v4');
 }
 
-export class ElevenLabsSpeechModel implements SpeechModelV4 {
+export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -247,7 +249,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
 
   async doStream(
     options: SpeechModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
+  ): Promise<SpeechModelV4StreamResult> {
     try {
       return await this.startStream(options);
     } catch (error) {
@@ -259,7 +261,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
 
   private async startStream(
     options: SpeechModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
+  ): Promise<SpeechModelV4StreamResult> {
     if (!supportsTextToSpeechWebSocket(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `streaming speech with ${this.modelId}`,
