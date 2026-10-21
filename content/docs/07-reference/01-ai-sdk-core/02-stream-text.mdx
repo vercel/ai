@@ -1411,7 +1411,7 @@ retain the content their contracts require.
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description:
                 'The unified finish reason why the generation finished.',
             },
@@ -1746,7 +1746,7 @@ retain the content their contracts require.
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description:
                 'The unified finish reason why the generation finished.',
             },
@@ -2674,7 +2674,7 @@ retain the content their contracts require.
     },
     {
       name: 'finishReason',
-      type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'>",
+      type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'>",
       description:
         'The reason why the generation finished. Automatically consumes the stream.',
     },
@@ -3165,7 +3165,7 @@ retain the content their contracts require.
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {
@@ -3873,7 +3873,7 @@ retain the content their contracts require.
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {
@@ -3911,7 +3911,7 @@ retain the content their contracts require.
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {
