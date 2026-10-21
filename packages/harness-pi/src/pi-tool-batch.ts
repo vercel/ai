@@ -2,14 +2,14 @@ import type {
   AgentSession,
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
-import type { PiCompletedToolResult } from './pi-resume-state';
+import type {
+  PiAssistantMessage,
+  PiCompletedToolResult,
+} from './pi-resume-state';
 
 export type PiAgent = AgentSession['agent'];
 type PiStreamFunction = PiAgent['streamFunction'];
 type PiAssistantMessageStream = Awaited<ReturnType<PiStreamFunction>>;
-export type PiAssistantMessage = Awaited<
-  ReturnType<PiAssistantMessageStream['result']>
->;
 type PiAgentTool = PiAgent['state']['tools'][number];
 type PiSessionEntry = ReturnType<SessionManager['getBranch']>[number];
 type PiReplayToolCall = {

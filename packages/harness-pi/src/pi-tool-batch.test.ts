@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
+import type { PiAssistantMessage } from './pi-resume-state';
 import {
   runToolBatchReplay,
   takeToolBatchForReplay,
   type PiAgent,
-  type PiAssistantMessage,
 } from './pi-tool-batch';
 
 function journalOf(messages: unknown[]) {

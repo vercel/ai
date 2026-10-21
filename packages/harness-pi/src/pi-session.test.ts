@@ -38,6 +38,7 @@ import {
   type PiHarnessExtensionFactory,
   type PiHarnessExtensionSession,
 } from './pi-session';
+import type { PiAssistantMessage } from './pi-resume-state';
 import { truncatePiToolOutputHead } from './pi-tool-result';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
@@ -2646,7 +2647,7 @@ describe('createPiSession', () => {
             { id: 'tool-2', name: 'askUser' },
           ]),
           usage: { input: 5, output: 3, cost: { total: 1 } },
-        },
+        } as unknown as PiAssistantMessage,
         awaitingToolCallIds: ['tool-1', 'tool-2'],
         completedToolResults: [
           {
@@ -3237,7 +3238,7 @@ describe('createPiSession', () => {
           completedToolResults: [],
           nativeApprovalDecisions: [],
         },
-      },
+      } as unknown as HarnessAgentContinueTurnState['data'],
       pendingToolApprovals: [
         {
           approvalId: 'approval-1',
@@ -3590,7 +3591,7 @@ function assistantMessageWithToolCalls(
     name: string;
     arguments?: Record<string, string>;
   }>,
-) {
+): PiAssistantMessage {
   return {
     role: 'assistant' as const,
     content: toolCalls.map(toolCall => ({
@@ -3601,7 +3602,7 @@ function assistantMessageWithToolCalls(
     })),
     stopReason: 'toolUse',
     timestamp: 0,
-  };
+  } as unknown as PiAssistantMessage;
 }
 
 function createSandboxSession(options?: {

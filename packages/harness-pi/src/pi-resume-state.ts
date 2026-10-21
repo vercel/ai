@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import type { AgentSession } from '@earendil-works/pi-coding-agent';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -26,10 +27,34 @@ const piCompletedToolResultSchema = z.object({
   isError: z.boolean(),
 });
 
-const piAssistantMessageSchema = z.looseObject({
+type PiAssistantMessageStream = Awaited<
+  ReturnType<AgentSession['agent']['streamFunction']>
+>;
+
+type PiAgentAssistantMessage = Awaited<
+  ReturnType<PiAssistantMessageStream['result']>
+>;
+
+export interface PiAssistantMessage extends PiAgentAssistantMessage {}
+
+const piAssistantMessageShapeSchema = z.looseObject({
   role: z.literal('assistant'),
   content: z.array(z.unknown()),
 });
+
+/*
+ * The parked assistant message is stored verbatim so it can be replayed into
+ * Pi. Validation only checks the fields this adapter reads directly; the full
+ * Pi message type is asserted at this lifecycle-state boundary so capture,
+ * checkpointing and replay share one type.
+ */
+export const piAssistantMessageSchema = z.custom<PiAssistantMessage>(
+  value => piAssistantMessageShapeSchema.safeParse(value).success,
+  {
+    error:
+      'Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.',
+  },
+);
 
 /**
  * A tool batch that was waiting on host input (tool results, approvals) when

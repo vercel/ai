@@ -69,18 +69,16 @@ import {
 } from './pi-tool-result';
 
 import {
+  piAssistantMessageSchema,
   persistSessionFileToSandbox,
   pullSessionFileFromSandbox,
   resolvePiPrivateSessionDirectory,
   safePiSessionFileName,
+  type PiAssistantMessage,
   type PiCompletedToolResult,
   type PiPendingToolBatch,
 } from './pi-resume-state';
-import {
-  runToolBatchReplay,
-  takeToolBatchForReplay,
-  type PiAssistantMessage,
-} from './pi-tool-batch';
+import { runToolBatchReplay, takeToolBatchForReplay } from './pi-tool-batch';
 import {
   createPiTranslatorState,
   takePiEarlyFinishStep,
@@ -918,14 +916,12 @@ export async function createPiSession(
               : [],
           )
         : [];
+      const assistantMessage = piAssistantMessageSchema.safeParse(
+        structuredClone(message),
+      );
       currentToolBatch =
-        toolNames.length > 0
-          ? {
-              assistantMessage: structuredClone(
-                message,
-              ) as unknown as PiAssistantMessage,
-              completed: new Map(),
-            }
+        toolNames.length > 0 && assistantMessage.success
+          ? { assistantMessage: assistantMessage.data, completed: new Map() }
           : undefined;
       const agent = piSession?.agent;
       currentToolBatchSequential =
@@ -983,8 +979,7 @@ export async function createPiSession(
     const awaitingToolCallIds = [...getWaitingToolCallIds()];
     if (batch == null || awaitingToolCallIds.length === 0) return undefined;
     return {
-      assistantMessage:
-        batch.assistantMessage as unknown as PiPendingToolBatch['assistantMessage'],
+      assistantMessage: batch.assistantMessage,
       awaitingToolCallIds,
       completedToolResults: [...batch.completed.values()].filter(
         result => !awaitingToolCallIds.includes(result.toolCallId),
@@ -1039,8 +1034,6 @@ export async function createPiSession(
     continueOpts: HarnessV1ContinueTurnOptions,
   ): HarnessV1PromptControl {
     replayBarrier?.cancel();
-    const assistantMessage =
-      batch.assistantMessage as unknown as PiAssistantMessage;
 
     for (const decision of batch.nativeApprovalDecisions) {
       nativeApprovalDecisions.set(decision.toolCallId, {
@@ -1092,7 +1085,7 @@ export async function createPiSession(
             emit: continueOpts.emit,
             abortSignal: continueOpts.abortSignal,
             replay: {
-              assistantMessage,
+              assistantMessage: batch.assistantMessage,
               toolResults,
               suppressedToolCallIds: new Set(completed.keys()),
               hostToolResults: deliveredHostResults,

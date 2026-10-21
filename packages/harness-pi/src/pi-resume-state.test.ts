@@ -147,9 +147,34 @@ describe('piResumeStateSchema', () => {
   });
 
   it('rejects a legacy pending tool batch without its assistant message', () => {
+    const result = piResumeStateSchema.safeParse({
+      pendingToolBatch: {
+        awaitingToolCallIds: ['tool-1'],
+        completedToolResults: [],
+        nativeApprovalDecisions: [],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "custom",
+          "message": "Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.",
+          "path": [
+            "pendingToolBatch",
+            "assistantMessage",
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('rejects a pending tool batch with a non-assistant message', () => {
     expect(
       piResumeStateSchema.safeParse({
         pendingToolBatch: {
+          assistantMessage: { role: 'user', content: [] },
           awaitingToolCallIds: ['tool-1'],
           completedToolResults: [],
           nativeApprovalDecisions: [],
