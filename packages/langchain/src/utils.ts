@@ -17,7 +17,10 @@ import {
   type ProviderMetadata,
   type JSONValue,
 } from 'ai';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  secureJsonParse,
+} from '@ai-sdk/provider-utils';
 
 import {
   type LangGraphEventState,
@@ -1887,7 +1890,7 @@ export function processLangGraphEvent(
                       let args: unknown;
                       try {
                         args = functionData?.arguments
-                          ? JSON.parse(functionData.arguments)
+                          ? secureJsonParse(functionData.arguments)
                           : {};
                       } catch {
                         args = {};
