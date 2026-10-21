@@ -1022,13 +1022,12 @@ function getAssistantMessageContent(
         contentIndex++;
         break;
       }
-      case 'custom':
-        if (mode === 'generate') {
-          const { providerMetadata, ...messagePart } = part;
-          content.push({ ...messagePart, providerOptions: providerMetadata });
-          contentIndex++;
-        }
+      case 'custom': {
+        const { providerMetadata, ...messagePart } = part;
+        content.push({ ...messagePart, providerOptions: providerMetadata });
+        contentIndex++;
         break;
+      }
       case 'reasoning-file':
         if (mode !== 'generate') break;
       case 'file':
