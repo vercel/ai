@@ -218,6 +218,60 @@ describe('experimental_streamSpeech', () => {
     ]);
   });
 
+  it('should keep empty audio parts that carry provider metadata in fullStream only', async () => {
+    const marker = { mock: { isFinalAudioForTurn: true } };
+    const parts = [
+      { type: 'stream-start', warnings: [] },
+      { type: 'audio', audio: new Uint8Array([9]), audioFormat: mp3 },
+      { type: 'audio', audio: '', audioFormat: mp3, providerMetadata: marker },
+      { type: 'finish' },
+    ] satisfies SpeechModelV4StreamPart[];
+    const model = () =>
+      new MockSpeechModelV4({
+        doStream: async () => createStreamResponse(parts),
+      });
+
+    const full = await convertAsyncIterableToArray(
+      streamSpeech({ model: model(), text: 'Hi' }).fullStream,
+    );
+    expect(full.filter(part => part.type === 'audio')).toEqual([
+      { type: 'audio', audio: new Uint8Array([9]), audioFormat: mp3 },
+      {
+        type: 'audio',
+        audio: new Uint8Array(),
+        audioFormat: mp3,
+        providerMetadata: marker,
+      },
+    ]);
+    expect(
+      await convertAsyncIterableToArray(
+        streamSpeech({ model: model(), text: 'Hi' }).audioStream,
+      ),
+    ).toEqual([new Uint8Array([9])]);
+  });
+
+  it('should not count metadata-only audio parts as audio', async () => {
+    const result = streamSpeech({
+      model: new MockSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'audio',
+              audio: '',
+              audioFormat: mp3,
+              providerMetadata: { mock: { marker: true } },
+            },
+            { type: 'finish' },
+          ]),
+      }),
+      text: 'Hi',
+    });
+    await expect(result.usage).rejects.toMatchObject({
+      name: 'AI_NoSpeechGeneratedError',
+    });
+  });
+
   it('should resolve result promises', async () => {
     const result = streamSpeech({
       model: new MockSpeechModelV4({
