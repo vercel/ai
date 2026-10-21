@@ -1,5 +1,16 @@
 # @ai-sdk/anthropic
 
+## 4.0.85
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- d39b41d: Defer construction of provider validation schemas until first use to reduce package import time.
+- bc1a2e9: Defer construction of Anthropic provider option schemas until they are first used to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
 ## 4.0.84
 
 ### Patch Changes

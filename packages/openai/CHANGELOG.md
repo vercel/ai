@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.99
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- c787919: Defer construction of provider validation schemas until first use to reduce package import time.
+- 0257b47: feat(openai): support 12h prompt cache writes and cache prewarming
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
 ## 4.0.98
 
 ### Patch Changes

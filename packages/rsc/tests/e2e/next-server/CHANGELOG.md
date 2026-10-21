@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- ai@7.0.148
+- @ai-sdk/rsc@3.0.148
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [66e74dc]
   - ai@7.0.147
   - @ai-sdk/rsc@3.0.147

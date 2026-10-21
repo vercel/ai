@@ -1,5 +1,20 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.121
+
+### Patch Changes
+
+- 4ea04c6: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [d39b41d]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+- Updated dependencies [bc1a2e9]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/anthropic@4.0.85
+  - @ai-sdk/openai@4.0.99
+
 ## 5.0.120
 
 ### Patch Changes

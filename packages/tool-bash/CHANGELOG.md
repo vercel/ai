@@ -1,5 +1,12 @@
 # @ai-sdk/tool-bash
 
+## 1.0.2
+
+### Patch Changes
+
+- e5b95d3: Add an optional per-command `timeout` in milliseconds to the bash tool.
+  - ai@7.0.148
+
 ## 1.0.1
 
 ### Patch Changes
