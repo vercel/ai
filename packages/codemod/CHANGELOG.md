@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.3
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+
 ## 4.0.2
 
 ### Patch Changes

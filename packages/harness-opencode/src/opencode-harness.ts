@@ -4,6 +4,7 @@ import {
   HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
+  isHarnessV1BuiltinToolIncluded,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
@@ -13,7 +14,6 @@ import {
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
@@ -36,6 +36,7 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
+  extractHarnessPromptContent,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
@@ -77,6 +78,7 @@ import {
 import {
   outboundMessageSchema,
   type InboundMessage,
+  type OpenCodeBuiltinToolName,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
 import { VERSION } from './version';
@@ -242,7 +244,14 @@ const OPENCODE_BUILTIN_TOOLS = {
       metadata: optionalStringRecord,
     }),
   }),
-} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+} as const satisfies Record<
+  OpenCodeBuiltinToolName,
+  HarnessV1BuiltinTool<any, any>
+>;
+
+const OPENCODE_BUILTIN_TOOL_NAMES = Object.keys(
+  OPENCODE_BUILTIN_TOOLS,
+) as OpenCodeBuiltinToolName[];
 
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -275,9 +284,11 @@ export function createOpenCode(
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
+      validateBuiltinToolFiltering(startOpts.builtinToolFiltering);
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -672,6 +683,30 @@ export function createOpenCode(
   };
 }
 
+function validateBuiltinToolFiltering(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): void {
+  if (toolFiltering == null) return;
+  const isActive = (toolName: 'write' | 'edit') =>
+    isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering });
+  if (isActive('write') !== isActive('edit')) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+    });
+  }
+}
+
+function resolveInactiveBuiltinToolNames(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): OpenCodeBuiltinToolName[] | undefined {
+  if (toolFiltering == null) return undefined;
+  return OPENCODE_BUILTIN_TOOL_NAMES.filter(
+    toolName => !isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering }),
+  );
+}
+
 function resolveBridgePort({
   sandboxSession,
   override,
@@ -930,7 +965,11 @@ function createSession({
     : undefined;
   let selectedModel: string | undefined;
   let activeTurn = false;
+  let pendingTurnDrain: Promise<void> = Promise.resolve();
+  let abortedTurnDrain: Promise<void> = Promise.resolve();
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
+  const inactiveBuiltinToolNames =
+    resolveInactiveBuiltinToolNames(builtinToolFiltering);
 
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
@@ -940,6 +979,11 @@ function createSession({
     abortSignal?: AbortSignal;
   }): HarnessV1PromptControl => {
     activeTurn = true;
+    let resolveTurnDrain!: () => void;
+    const turnDrain = new Promise<void>(resolve => {
+      resolveTurnDrain = resolve;
+    });
+    pendingTurnDrain = turnDrain;
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -955,7 +999,11 @@ function createSession({
       : undefined;
 
     const unsubs: Array<() => void> = [];
+    let isSettled = false;
+    let isFinished = false;
+    let drainingAfterAbort = false;
     const forward = (event: HarnessV1StreamPart) => {
+      if (isSettled) return;
       try {
         turnOpts.emit(event);
       } catch {}
@@ -977,22 +1025,29 @@ function createSession({
       'compaction',
       'raw',
     ] as const;
-    let isSettled = false;
+    const finishTurn = () => {
+      if (isFinished) return;
+      isFinished = true;
+      activeTurn = false;
+      if (turnOpts.abortSignal) {
+        turnOpts.abortSignal.removeEventListener('abort', onAbort);
+      }
+      for (const u of unsubs) u();
+      resolveTurnDrain();
+    };
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
-      activeTurn = false;
       userMessageSubmitter?.close();
-      for (const u of unsubs) u();
       pendingResolve!();
+      finishTurn();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
-      activeTurn = false;
       userMessageSubmitter?.close(err);
-      for (const u of unsubs) u();
       pendingReject!(err);
+      finishTurn();
     };
 
     for (const type of eventTypes) {
@@ -1004,18 +1059,30 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (drainingAfterAbort) {
+          finishTurn();
+          return;
+        }
         forward(msg);
         settleSuccess();
       }),
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (drainingAfterAbort) {
+          // The bridge emits finish from its finally block after an error.
+          return;
+        }
         forward(msg);
         settleError(msg.error);
       }),
     );
 
     const onClose = (_code?: number, reason?: string) => {
+      if (drainingAfterAbort) {
+        finishTurn();
+        return;
+      }
       if (isSettled) return;
       if (reason === 'suspended') {
         settleSuccess();
@@ -1032,10 +1099,14 @@ function createSession({
       try {
         channel.send({ type: 'abort' });
       } catch {}
-      settleError(
+      const error =
         turnOpts.abortSignal?.reason ??
-          new DOMException('Aborted', 'AbortError'),
-      );
+        new DOMException('Aborted', 'AbortError');
+      isSettled = true;
+      drainingAfterAbort = true;
+      abortedTurnDrain = turnDrain;
+      userMessageSubmitter?.close(error);
+      pendingReject!(error);
     };
     if (turnOpts.abortSignal) {
       if (turnOpts.abortSignal.aborted) {
@@ -1090,7 +1161,7 @@ function createSession({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
-    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId
@@ -1140,13 +1211,14 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
+      await pendingTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(promptOpts);
       const turnModel = promptOpts.model ?? selectedModel;
       if (turnModel) selectedModel = turnModel;
       channel.send({
         type: 'start',
         operation: 'prompt',
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({ prompt: promptOpts.prompt }),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -1162,11 +1234,14 @@ function createSession({
         ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
+      rerunContinue = false;
       return control;
     },
     doContinueTurn: async continueOpts => {
+      await abortedTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(continueOpts);
       if (rerunContinue) {
+        rerunContinue = false;
         const turnModel = continueOpts.model ?? selectedModel;
         if (turnModel) selectedModel = turnModel;
         channel.send({
@@ -1215,6 +1290,7 @@ function createSession({
         provider,
         permissionMode,
         debug,
+        inactiveBuiltinToolNames,
         openCodeConfig,
         mcpServers,
         headers,
@@ -1389,6 +1465,7 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  inactiveBuiltinToolNames,
   openCodeConfig,
   mcpServers,
   headers,
@@ -1400,6 +1477,7 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  inactiveBuiltinToolNames: OpenCodeBuiltinToolName[] | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -1434,25 +1512,9 @@ async function runCompactOperation({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),
   });
   await done;
-}
-
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'opencode',
-        message: `The OpenCode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

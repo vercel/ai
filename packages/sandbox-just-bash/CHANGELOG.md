@@ -1,5 +1,209 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.156
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.155
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.155
+- @ai-sdk/provider-utils@5.0.63
+
+## 1.0.154
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
+## 1.0.145
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.137
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.136
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.135
+
+### Patch Changes
+
+- 8182916: chore(harness): minor code consistency cleanup without functional changes
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.134
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 1.0.133
 
 ### Patch Changes

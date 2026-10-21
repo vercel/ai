@@ -1,17 +1,60 @@
 ---
 title: Gladia
-description: Learn how to use the Gladia provider for the AI SDK.
+description: Learn how to set up the Gladia provider and check AI Gateway availability.
 ---
 
 # Gladia Provider
 
 The [Gladia](https://gladia.io/) provider contains language model support for the Gladia transcription API.
+Gladia models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/gladia` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
 
-## Setup
+```ts
+import { transcribe } from 'ai';
+import { gladia } from '@ai-sdk/gladia';
+import { readFile } from 'node:fs/promises';
 
-The Gladia provider is available in the `@ai-sdk/gladia` module. You can install it with
+const { text } = await transcribe({
+  model: gladia.transcription(),
+  audio: await readFile('audio.mp3'),
+});
 
-<InstallPackages packages="@ai-sdk/gladia" />
+console.log(text);
+```
+
+The example transcribes an `audio.mp3` file from your project.
+
+## Using AI Gateway
+
+The current [AI Gateway model catalog](https://vercel.com/ai-gateway/models) does not list Gladia models. Use `@ai-sdk/gladia` for the APIs on this page. To use other transcription models through Gateway, install `ai` and configure a Gateway API key:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [Gateway documentation](/providers/ai-sdk-providers/ai-gateway) for supported models and APIs.
+
+## Using `@ai-sdk/gladia`
+
+For direct access to Gladia, install `ai` and `@ai-sdk/gladia`:
+
+<InstallPackages packages="ai @ai-sdk/gladia" />
+
+Set your Gladia API credential in the `GLADIA_API_KEY` environment variable:
+
+```bash
+export GLADIA_API_KEY=your_api_key_here
+```
+
+<Note>
+  The following sections document the direct `@ai-sdk/gladia` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -59,7 +102,7 @@ using the `.transcription()` factory method.
 const model = gladia.transcription();
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarization` option will enable summaries for sections of content.
 
 ```ts highlight="7"
 import { transcribe } from 'ai';

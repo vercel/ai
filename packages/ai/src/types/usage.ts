@@ -158,7 +158,7 @@ export function addLanguageModelUsage(
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
-    ...(raw === undefined ? {} : { raw }),
+    ...(raw == null ? {} : { raw }),
   };
 }
 

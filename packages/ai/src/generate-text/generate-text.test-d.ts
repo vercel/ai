@@ -25,6 +25,14 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  it('should accept toolCallConcurrency', async () => {
+    await generateText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({
@@ -604,7 +612,7 @@ describe('generateText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

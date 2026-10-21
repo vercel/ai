@@ -9,11 +9,15 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -39,58 +43,70 @@ interface AlibabaVideoModelConfig {
 }
 
 // DashScope native API error format (different from OpenAI-compatible endpoint)
-const alibabaVideoErrorSchema = z.object({
-  code: z.string().nullish(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.string().nullish(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
 const alibabaVideoFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: alibabaVideoErrorSchema,
   errorToMessage: data => data.message,
 });
 
-const alibabaVideoCreateTaskSchema = z.object({
-  output: z
-    .object({
-      task_status: z.string(),
-      task_id: z.string(),
-    })
-    .nullish(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoCreateTaskSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z
+        .object({
+          task_status: z.string(),
+          task_id: z.string(),
+        })
+        .nullish(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const alibabaVideoTaskStatusSchema = z.object({
-  output: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string(),
-      video_url: z.string().nullish(),
-      submit_time: z.string().nullish(),
-      scheduled_time: z.string().nullish(),
-      end_time: z.string().nullish(),
-      orig_prompt: z.string().nullish(),
-      actual_prompt: z.string().nullish(),
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-  usage: z
-    .object({
-      duration: z.number().nullish(),
-      output_video_duration: z.number().nullish(),
-      // wan3 splits the total: input video counts toward its 30s ceiling.
-      input_video_duration: z.number().nullish(),
-      fps: z.number().nullish(),
-      SR: z.number().nullish(),
-      size: z.string().nullish(),
-      ratio: z.string().nullish(),
-    })
-    .nullish(),
-  request_id: z.string().nullish(),
-});
+const alibabaVideoTaskStatusSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z
+        .object({
+          task_id: z.string(),
+          task_status: z.string(),
+          video_url: z.string().nullish(),
+          submit_time: z.string().nullish(),
+          scheduled_time: z.string().nullish(),
+          end_time: z.string().nullish(),
+          orig_prompt: z.string().nullish(),
+          actual_prompt: z.string().nullish(),
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+      usage: z
+        .object({
+          duration: z.number().nullish(),
+          output_video_duration: z.number().nullish(),
+          // wan3 splits the total: input video counts toward its 30s ceiling.
+          input_video_duration: z.number().nullish(),
+          fps: z.number().nullish(),
+          SR: z.number().nullish(),
+          size: z.string().nullish(),
+          ratio: z.string().nullish(),
+        })
+        .nullish(),
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-type AlibabaVideoTaskStatusResponse = z.infer<
+type AlibabaVideoTaskStatusResponse = InferSchema<
   typeof alibabaVideoTaskStatusSchema
 >;
 
@@ -114,9 +130,17 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
 type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
 
 function detectProtocol(modelId: string): AlibabaVideoProtocol {
-  if (modelId.startsWith('wan3')) return 'wan3';
-  if (modelId.startsWith('wan2.7')) return 'wan27';
-  return 'legacy';
+  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
+  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
+  if (version != null) {
+    const major = Number(version[1]);
+    const minor = Number(version[2] ?? 0);
+    if (major < 2 || (major === 2 && minor < 7)) return 'legacy';
+    if (major === 2) return 'wan27';
+  }
+
+  // Unrecognized IDs inherit the latest all-in-one media protocol.
+  return 'wan3';
 }
 
 // Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.
@@ -654,7 +678,7 @@ export class AlibabaVideoModel implements VideoModelV4 {
     const { taskId } = options.operation as { taskId: string };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+      url: `${this.config.baseURL}/api/v1/tasks/${encodePathSegment(taskId)}`,
       validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),

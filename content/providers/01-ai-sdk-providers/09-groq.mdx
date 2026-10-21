@@ -1,18 +1,64 @@
 ---
 title: Groq
-description: Learn how to use Groq.
+description: Learn how to use Groq with AI Gateway and the direct provider.
 ---
 
 # Groq Provider
 
 The [Groq](https://groq.com/) provider contains language model support for the Groq API.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/groq` to connect directly to Groq.
 
-## Setup
+```ts provider="groq" model="openai/gpt-oss-120b"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Groq provider is available via the `@ai-sdk/groq` module.
-You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/groq" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['groq']`. This sends the request to Groq first, then falls back to other available providers of the same model if Groq is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Groq. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Groq through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/groq`
+
+For direct access to Groq, install `ai` and `@ai-sdk/groq`:
+
+<InstallPackages packages="ai @ai-sdk/groq" />
+
+Set your Groq API credential in the `GROQ_API_KEY` environment variable:
+
+```bash
+export GROQ_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/groq`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/groq` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -318,14 +364,16 @@ Groq provides a browser search tool that offers interactive web browsing capabil
 
 ### Supported Models
 
-Browser search is only available for these specific models:
+Browser search is available on Groq's GPT-OSS models, for example:
 
 - `openai/gpt-oss-20b`
 - `openai/gpt-oss-120b`
 
 <Note type="warning">
-  Browser search will only work with the supported models listed above. Using it
-  with other models will generate a warning and the tool will be ignored.
+  Known model IDs without browser search support (such as the Llama, Qwen, and
+  Kimi models) will generate a warning and the tool will be ignored. Unknown
+  model IDs are forwarded with the tool, and the Groq API decides whether it is
+  supported.
 </Note>
 
 ### Basic Usage
@@ -380,13 +428,13 @@ for await (const delta of result.stream) {
 ### Best Practices
 
 - Use `toolChoice: 'required'` to ensure the browser search is activated
-- Only supported on `openai/gpt-oss-20b` and `openai/gpt-oss-120b` models
+- Use a model that supports browser search, such as `openai/gpt-oss-20b` or `openai/gpt-oss-120b`
 - The tool works automatically - no configuration parameters needed
 - Server-side execution means no additional API keys or setup required
 
 ### Model Validation
 
-The provider automatically validates model compatibility:
+The provider ignores the tool for known model IDs without browser search support:
 
 ```ts
 // ✅ Supported - will work
@@ -400,7 +448,7 @@ const result = await generateText({
   model: groq('llama-3.1-8b-instant'),
   tools: { browser_search: groq.tools.browserSearch({}) },
 });
-// Warning: "Browser search is only supported on models: openai/gpt-oss-20b, openai/gpt-oss-120b"
+// Warning: "Browser search is not supported on model llama-3.1-8b-instant."
 ```
 
 <Note>

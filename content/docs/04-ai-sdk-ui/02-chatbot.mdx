@@ -323,7 +323,8 @@ When the user clicks the "Regenerate" button, the AI provider will regenerate th
 
 ### Throttling UI Updates
 
-By default, the `useChat` hook will trigger a render every time a new chunk is received.
+By default, `useChat` publishes message updates as each chunk is processed.
+React may batch multiple updates into a single render.
 React and Vue applications can throttle reactive message updates with the `throttle` option.
 Stream processing and event callbacks remain immediate, and the latest messages are published before the chat enters a terminal `ready` or `error` status.
 

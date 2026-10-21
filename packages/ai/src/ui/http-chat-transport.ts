@@ -13,10 +13,12 @@ import type { UIMessage } from './ui-messages';
 
 function appendPathToUrl(url: string, path: string): string {
   const queryOrFragmentStart = url.search(/[?#]/);
+  const urlPath =
+    queryOrFragmentStart === -1 ? url : url.slice(0, queryOrFragmentStart);
+  const suffix =
+    queryOrFragmentStart === -1 ? '' : url.slice(queryOrFragmentStart);
 
-  return queryOrFragmentStart === -1
-    ? `${url}${path}`
-    : `${url.slice(0, queryOrFragmentStart)}${path}${url.slice(queryOrFragmentStart)}`;
+  return `${urlPath.endsWith('/') && path.startsWith('/') ? urlPath.slice(0, -1) : urlPath}${path}${suffix}`;
 }
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (

@@ -1,5 +1,179 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [d39b41d]
+- Updated dependencies [bc1a2e9]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/anthropic@4.0.85
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/anthropic@4.0.84
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.73
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [1ccc7fb]
+- Updated dependencies [9667bf2]
+- Updated dependencies [c91c857]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+  - @ai-sdk/anthropic@4.0.79
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
+## 2.0.70
+
+### Patch Changes
+
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/anthropic@4.0.77
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/anthropic@4.0.76
+
+## 2.0.68
+
+### Patch Changes
+
+- 5d42987: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+  - @ai-sdk/anthropic@4.0.75
+
+## 2.0.66
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [b5dfea1]
+- Updated dependencies [686cca9]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/anthropic@4.0.72
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [c35458e]
+  - @ai-sdk/anthropic@4.0.71
+
+## 2.0.62
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/anthropic@4.0.70
+
+## 2.0.61
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 2.0.60
 
 ### Patch Changes

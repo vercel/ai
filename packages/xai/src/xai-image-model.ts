@@ -1,5 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -28,15 +30,18 @@ interface XaiImageModelConfig {
   };
 }
 
+const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
+  'grok-imagine-image',
+  'grok-imagine-image-2.0',
+  'grok-imagine-image-pro',
+]);
+
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'grok-imagine-image' ||
-      this.modelId === 'grok-imagine-image-pro'
-      ? true
-      : undefined;
+    return fileInputModelIds.has(this.modelId) ? true : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -230,18 +235,22 @@ export class XaiImageModel implements ImageModelV4 {
   }
 }
 
-const xaiImageResponseSchema = z.object({
-  data: z.array(
+const xaiImageResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      url: z.string().nullish(),
-      b64_json: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
-      respect_moderation: z.boolean().nullish(),
+      data: z.array(
+        z.object({
+          url: z.string().nullish(),
+          b64_json: z.string().nullish(),
+          revised_prompt: z.string().nullish(),
+          respect_moderation: z.boolean().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertToBase64,
@@ -248,6 +250,7 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       },
       ...(response.usageMetadata != null
         ? {
+            usage: response.usageMetadata as JSONObject,
             providerMetadata: {
               google: { usageMetadata: response.usageMetadata as JSONObject },
             },
@@ -446,7 +449,10 @@ function createVertexLiveTranscriptionStream({
           language,
           durationInSeconds: undefined,
           ...(usageMetadata != null
-            ? { providerMetadata: { google: { usageMetadata } } }
+            ? {
+                usage: usageMetadata,
+                providerMetadata: { google: { usageMetadata } },
+              }
             : {}),
         });
         controller.close();
@@ -670,39 +676,44 @@ function parseOffsetSeconds(
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-const googleVertexGeminiTranscriptionWordSchema = z.object({
-  word: z.string().nullish(),
-  startOffset: z.string().nullish(),
-  endOffset: z.string().nullish(),
-});
+const googleVertexGeminiTranscriptionWordSchema = () =>
+  z.object({
+    word: z.string().nullish(),
+    startOffset: z.string().nullish(),
+    endOffset: z.string().nullish(),
+  });
 
-const googleVertexGeminiTranscriptionResponseSchema = z.object({
-  candidates: z
-    .array(
-      z.object({
-        content: z
-          .object({
-            parts: z
-              .array(
-                z.object({
-                  text: z.string().nullish(),
-                  audioTranscription: z
-                    .object({
+const googleVertexGeminiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      candidates: z
+        .array(
+          z.object({
+            content: z
+              .object({
+                parts: z
+                  .array(
+                    z.object({
                       text: z.string().nullish(),
-                      languageCode: z.string().nullish(),
-                      speakerLabel: z.string().nullish(),
-                      words: z
-                        .array(googleVertexGeminiTranscriptionWordSchema)
+                      audioTranscription: z
+                        .object({
+                          text: z.string().nullish(),
+                          languageCode: z.string().nullish(),
+                          speakerLabel: z.string().nullish(),
+                          words: z
+                            .array(googleVertexGeminiTranscriptionWordSchema())
+                            .nullish(),
+                        })
                         .nullish(),
-                    })
-                    .nullish(),
-                }),
-              )
+                    }),
+                  )
+                  .nullish(),
+              })
               .nullish(),
-          })
-          .nullish(),
-      }),
-    )
-    .nullish(),
-  usageMetadata: z.record(z.string(), z.unknown()).nullish(),
-});
+          }),
+        )
+        .nullish(),
+      usageMetadata: z.record(z.string(), z.unknown()).nullish(),
+    }),
+  ),
+);

@@ -77,7 +77,7 @@ const getCachedResult = (key: string | object) => {
       console.error('Failed to parse cache:', parseResult.error);
       return null;
     }
-    const cache = parseResult.value as Record<string, unknown>;
+    const cache = parseResult.value as Record<string, any>;
 
     const result = cache[cacheKey];
 
@@ -133,6 +133,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
   specificationVersion: 'v4',
   wrapGenerate: async ({ doGenerate, params, model }) => {
     const cacheKey = JSON.stringify({
+      ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'generate',
       model: model.modelId,
@@ -161,6 +162,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
 
   wrapStream: async ({ doStream, params, model }) => {
     const cacheKey = JSON.stringify({
+      ...params,
       prompt: cleanPrompt(params.prompt),
       _function: 'stream',
       model: model.modelId,

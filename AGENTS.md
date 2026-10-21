@@ -42,7 +42,7 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 ### Requirements
 
 - **Node.js**: v22.13+, v24, or v26 (v22.13 recommended for development)
-- **pnpm**: v11+ (`npm install -g pnpm@11`)
+- **pnpm**: v12+ (`npm install -g pnpm@12`)
 
 ### Initial Setup
 
@@ -276,6 +276,10 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 These guidelines outline typical artifacts for different task types. Use judgment to adapt based on scope and context.
 
 ### Bug Fixes
+
+A bug reproduction should be a single runnable script in
+`examples/ai-functions` (usually `src/reproduction/`), using the issue's own
+snippet where possible. Do not add assertions or a test runner unless requested.
 
 A complete bug fix typically includes:
 

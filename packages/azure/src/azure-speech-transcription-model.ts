@@ -1,5 +1,7 @@
 import type { TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -11,7 +13,7 @@ import {
 import { z } from 'zod/v4';
 import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
 import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
-import { isMAITranscribe2 } from './azure-transcription-model-options';
+import { getMAITranscribeModel } from './azure-transcription-model-options';
 
 export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
@@ -31,6 +33,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
     azureOptions: AzureTranscriptionModelSpeechOptions = {},
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const timestamp = new Date();
+    const maiModel = getMAITranscribeModel(this.modelId);
     const formData = new FormData();
     formData.append(
       'audio',
@@ -38,7 +41,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
         [
           typeof options.audio === 'string'
             ? convertBase64ToUint8Array(options.audio)
-            : options.audio,
+            : (options.audio as Uint8Array<ArrayBuffer>),
         ],
         { type: options.mediaType },
       ),
@@ -49,11 +52,11 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
       JSON.stringify({
         enhancedMode: {
           enabled: true,
-          model: isMAITranscribe2(this.modelId)
-            ? 'MAI-Transcribe-2'
-            : this.modelId,
+          model: maiModel?.name ?? this.modelId,
           modelOptions: {
-            timestamps: azureOptions.timestamps ?? 'segment',
+            timestamps:
+              azureOptions.timestamps ??
+              (maiModel?.supportsTimestamps === false ? undefined : 'segment'),
             transcribeStyle: azureOptions.transcribeStyle,
           },
         },
@@ -128,28 +131,32 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const responseSchema = z.object({
-  combinedPhrases: z.array(z.object({ text: z.string() })),
-  durationMilliseconds: z.number().nullish(),
-  phrases: z
-    .array(
-      z.object({
-        text: z.string(),
-        offsetMilliseconds: z.number().nullish(),
-        durationMilliseconds: z.number().nullish(),
-        locale: z.string().nullish(),
-        speaker: z.number().nullish(),
-        confidence: z.number().nullish(),
-        words: z
-          .array(
-            z.object({
-              text: z.string(),
-              offsetMilliseconds: z.number().nullish(),
-              durationMilliseconds: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      combinedPhrases: z.array(z.object({ text: z.string() })),
+      durationMilliseconds: z.number().nullish(),
+      phrases: z
+        .array(
+          z.object({
+            text: z.string(),
+            offsetMilliseconds: z.number().nullish(),
+            durationMilliseconds: z.number().nullish(),
+            locale: z.string().nullish(),
+            speaker: z.number().nullish(),
+            confidence: z.number().nullish(),
+            words: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  offsetMilliseconds: z.number().nullish(),
+                  durationMilliseconds: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

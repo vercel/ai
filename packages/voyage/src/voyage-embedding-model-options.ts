@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type VoyageEmbeddingModelId =
@@ -19,15 +24,19 @@ export type VoyageEmbeddingModelId =
   | 'voyage-2'
   | (string & {});
 
-export const voyageEmbeddingModelOptions = z.object({
-  inputType: z.enum(['query', 'document']).nullable().optional(),
-  truncation: z.boolean().optional(),
-  outputDimension: z.number().optional(),
-  outputDtype: z
-    .enum(['float', 'int8', 'uint8', 'binary', 'ubinary'])
-    .optional(),
-});
+export const voyageEmbeddingModelOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      inputType: z.enum(['query', 'document']).nullable().optional(),
+      truncation: z.boolean().optional(),
+      outputDimension: z.number().optional(),
+      outputDtype: z
+        .enum(['float', 'int8', 'uint8', 'binary', 'ubinary'])
+        .optional(),
+    }),
+  ),
+);
 
-export type VoyageEmbeddingModelOptions = z.infer<
+export type VoyageEmbeddingModelOptions = InferSchema<
   typeof voyageEmbeddingModelOptions
 >;

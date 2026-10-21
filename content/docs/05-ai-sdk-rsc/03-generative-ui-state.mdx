@@ -236,17 +236,18 @@ export default function Page() {
   const handleSubmit = async event => {
     event.preventDefault();
 
-    setMessages([
-      ...messages,
-      { id: Date.now(), role: 'user', display: event.target.message.value },
+    setMessages(currentMessages => [
+      ...currentMessages,
+      {
+        id: Date.now().toString(),
+        role: 'user',
+        display: event.target.message.value,
+      },
     ]);
 
     const response = await sendMessage(event.target.message.value);
 
-    setMessages([
-      ...messages,
-      { id: Date.now(), role: 'assistant', display: response },
-    ]);
+    setMessages(currentMessages => [...currentMessages, response]);
   };
 
   return (

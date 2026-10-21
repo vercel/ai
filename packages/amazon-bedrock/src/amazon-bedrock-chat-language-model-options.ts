@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
@@ -9,6 +14,7 @@ export type AmazonBedrockChatModelId =
   | 'anthropic.claude-instant-v1'
   | 'anthropic.claude-sonnet-5'
   | 'anthropic.claude-sonnet-5-5'
+  | 'anthropic.claude-haiku-5-5'
   | 'anthropic.claude-fable-5'
   | 'anthropic.claude-fable-5-1'
   | 'anthropic.claude-opus-5'
@@ -64,6 +70,7 @@ export type AmazonBedrockChatModelId =
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
   | 'us.anthropic.claude-sonnet-5'
   | 'us.anthropic.claude-sonnet-5-5'
+  | 'us.anthropic.claude-haiku-5-5'
   | 'us.anthropic.claude-fable-5'
   | 'us.anthropic.claude-fable-5-1'
   | 'us.anthropic.claude-opus-5'
@@ -106,22 +113,26 @@ export type AmazonBedrockChatModelSettings = {
  * Bedrock file part provider options for document-specific features.
  * These options apply to individual file parts (documents).
  */
-export const amazonBedrockFilePartProviderOptions = z.object({
-  /**
-   * Citation configuration for this document.
-   * When enabled, this document will generate citations in the response.
-   */
-  citations: z
-    .object({
+export const amazonBedrockFilePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * Enable citations for this document
+       * Citation configuration for this document.
+       * When enabled, this document will generate citations in the response.
        */
-      enabled: z.boolean(),
-    })
-    .optional(),
-});
+      citations: z
+        .object({
+          /**
+           * Enable citations for this document
+           */
+          enabled: z.boolean(),
+        })
+        .optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockFilePartProviderOptions = z.infer<
+export type AmazonBedrockFilePartProviderOptions = InferSchema<
   typeof amazonBedrockFilePartProviderOptions
 >;
 
@@ -129,14 +140,18 @@ export type AmazonBedrockFilePartProviderOptions = z.infer<
  * Amazon Bedrock text part provider options for guardrail content.
  * These options apply to individual text parts.
  */
-export const amazonBedrockTextPartProviderOptions = z.object({
-  guardContent: z.boolean().optional(),
-  guardContentQualifiers: z
-    .array(z.enum(['grounding_source', 'query', 'guard_content']))
-    .optional(),
-});
+export const amazonBedrockTextPartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      guardContent: z.boolean().optional(),
+      guardContentQualifiers: z
+        .array(z.enum(['grounding_source', 'query', 'guard_content']))
+        .optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockTextPartProviderOptions = z.infer<
+export type AmazonBedrockTextPartProviderOptions = InferSchema<
   typeof amazonBedrockTextPartProviderOptions
 >;
 
@@ -144,11 +159,15 @@ export type AmazonBedrockTextPartProviderOptions = z.infer<
  * Amazon Bedrock image part provider options for guardrail content.
  * These options apply to individual image parts.
  */
-export const amazonBedrockImagePartProviderOptions = z.object({
-  guardContent: z.boolean().optional(),
-});
+export const amazonBedrockImagePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      guardContent: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockImagePartProviderOptions = z.infer<
+export type AmazonBedrockImagePartProviderOptions = InferSchema<
   typeof amazonBedrockImagePartProviderOptions
 >;
 
@@ -197,6 +216,15 @@ export const amazonBedrockLanguageModelChatOptions = z.object({
    * - 'flex': Lower-cost tier for flexible latency workloads
    */
   serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
+  /**
+   * Key-value pairs to attach to the request for invocation log filtering and
+   * cost attribution.
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/cost-mgmt-request-metadata.html
+   *
+   * - Maximum 16 entries per request.
+   * - Keys and values: maximum 256 characters each.
+   */
+  requestMetadata: z.record(z.string(), z.string()).optional(),
 });
 
 export type AmazonBedrockLanguageModelChatOptions = z.infer<

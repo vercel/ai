@@ -7,7 +7,7 @@ description: API Reference for generateText.
 
 Generates text and calls tools for a given prompt using a language model.
 
-It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting emails or summarizing web pages) and for agents that use tools.
 
 ```ts
 import { generateText } from 'ai';
@@ -278,7 +278,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -455,10 +455,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'",
       isOptional: true,
       description:
-        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. Provider-specific settings take precedence over corresponding mapped fields. Partial configurations may still use portable reasoning to fill missing fields; summary and display settings can be combined with it. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
     },
     {
       name: 'maxRetries',
@@ -476,10 +476,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each complete step, including model generation, retries, and local tool execution. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -570,6 +570,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of tool calls that the SDK executes concurrently within a step. Set to `1` to execute calls sequentially in model-generated order. Must be a positive integer. By default, all tool calls execute concurrently.',
     },
     {
       name: 'toolApproval',
@@ -1199,9 +1206,9 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> } | undefined',
               description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs (streaming only), chunkMs, toolMs, and per-tool overrides via tools.',
             },
             {
               name: 'headers',
@@ -1251,7 +1258,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
+        'Callback that is called when a step begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -2157,7 +2164,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'content',
               type: 'Array<ContentPart<TOOLS>>',
-              description: 'The content that was generated in all steps.',
+              description:
+                'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text; see Sources and Citations in the generating text guide.',
             },
             {
               name: 'providerMetadata',
@@ -2457,7 +2465,8 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Array<ContentPart<TOOLS>>',
-      description: 'The content that was generated in all steps.',
+      description:
+        'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text; see Sources and Citations in the generating text guide.',
     },
     {
       name: 'text',

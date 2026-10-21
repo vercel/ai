@@ -1516,6 +1516,24 @@ describe('GatewayProvider', () => {
       );
     });
 
+    it('should pass teamIdOrSlug to the credits fetcher via the team header', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+      });
+
+      await provider.getCredits();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls.at(-1)![0];
+      const headers = await (
+        config.headers as () => Promise<Record<string, string>>
+      )();
+      expect(headers).toMatchObject({
+        authorization: 'Bearer vca_test-token',
+        'x-vercel-ai-gateway-team': 'vercel',
+      });
+    });
+
     it('should work with custom baseURL', async () => {
       const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGateway({
