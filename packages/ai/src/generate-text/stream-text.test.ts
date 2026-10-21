@@ -4236,10 +4236,7 @@ describe('streamText', () => {
       expect(onStepEnd).not.toHaveBeenCalled();
       expect(onStepError).toHaveBeenCalledTimes(1);
       expect(onStepError).toHaveBeenCalledWith({
-        callId: onStepStart.mock.calls[0][0].callId,
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-        stepNumber: 0,
+        ...onStepStart.mock.calls[0][0],
         error: expect.objectContaining({
           message:
             'No output generated. The model stream ended without a finish chunk.',
@@ -4310,6 +4307,63 @@ describe('streamText', () => {
       );
     });
 
+    it('should report the error of the failed step instead of an earlier step error', async () => {
+      const onStepError = vi.fn();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream(
+              responseCount++ === 0
+                ? [
+                    { type: 'stream-start', warnings: [] },
+                    { type: 'error', error: new Error('earlier step error') },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "value" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]
+                : [{ type: 'stream-start', warnings: [] }],
+            ),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        onError: () => {},
+        onStepError,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 1,
+          error: expect.objectContaining({
+            name: 'AI_NoOutputGeneratedError',
+          }),
+        }),
+      );
+    });
+
     it('should not call onStepError when the step completes', async () => {
       const onStepError = vi.fn();
 
@@ -4325,9 +4379,11 @@ describe('streamText', () => {
       expect(onStepError).not.toHaveBeenCalled();
     });
 
-    it('should report a provider failure on a continuation step to onStepError and telemetry onError', async () => {
+    it('should report a provider failure on a continuation step to onStepError and end the call once', async () => {
       const onStepError = vi.fn();
+      const telemetryOnStepError = vi.fn();
       const telemetryOnError = vi.fn();
+      const telemetryOnEnd = vi.fn();
       const providerError = new Error('provider failure');
       let responseCount = 0;
 
@@ -4366,7 +4422,15 @@ describe('streamText', () => {
         stopWhen: isStepCount(3),
         onError: () => {},
         onStepError,
-        telemetry: { integrations: [{ onError: telemetryOnError }] },
+        telemetry: {
+          integrations: [
+            {
+              onStepError: telemetryOnStepError,
+              onError: telemetryOnError,
+              onEnd: telemetryOnEnd,
+            },
+          ],
+        },
       });
 
       await result.consumeStream();
@@ -4375,18 +4439,18 @@ describe('streamText', () => {
       expect(onStepError).toHaveBeenCalledWith(
         expect.objectContaining({ stepNumber: 1, error: providerError }),
       );
-      expect(telemetryOnError).toHaveBeenCalledTimes(1);
-      expect(telemetryOnError).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: expect.any(String),
-          error: providerError,
-        }),
+      expect(telemetryOnStepError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
       );
+      expect(telemetryOnError).not.toHaveBeenCalled();
+      expect(telemetryOnEnd).toHaveBeenCalledTimes(1);
     });
 
     it('should report a stream that closes before finish chunk to telemetry onError', async () => {
       const telemetryOnError = vi.fn();
       const telemetryOnStepEnd = vi.fn();
+      const telemetryOnEnd = vi.fn();
 
       const result = streamText({
         model: createTestModel({
@@ -4398,7 +4462,11 @@ describe('streamText', () => {
         onError: () => {},
         telemetry: {
           integrations: [
-            { onError: telemetryOnError, onStepEnd: telemetryOnStepEnd },
+            {
+              onError: telemetryOnError,
+              onStepEnd: telemetryOnStepEnd,
+              onEnd: telemetryOnEnd,
+            },
           ],
         },
       });
@@ -4407,6 +4475,7 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow();
 
       expect(telemetryOnStepEnd).not.toHaveBeenCalled();
+      expect(telemetryOnEnd).not.toHaveBeenCalled();
       expect(telemetryOnError).toHaveBeenCalledTimes(1);
       expect(telemetryOnError).toHaveBeenCalledWith(
         expect.objectContaining({

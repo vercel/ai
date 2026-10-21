@@ -2103,10 +2103,7 @@ describe('ToolLoopAgent', () => {
       expect(onStepEnd).not.toHaveBeenCalled();
       expect(onStepError).toHaveBeenCalledTimes(1);
       expect(onStepError).toHaveBeenCalledWith({
-        callId: onStepStart.mock.calls[0][0].callId,
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-        stepNumber: 0,
+        ...onStepStart.mock.calls[0][0],
         error: providerError,
       });
     });
