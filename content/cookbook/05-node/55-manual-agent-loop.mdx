@@ -94,12 +94,30 @@ async function main() {
       // Handle other tool calls
     }
 
-    messages.push(...responseMessages);
-
+    // Preserve tool-result order when SDK errors and manual results are mixed
+    const toolCallOrder = new Map(
+      clientToolCalls.map((toolCall, index) => [toolCall.toolCallId, index]),
+    );
     const toolResults = responseMessages
       .filter(message => message.role === 'tool')
       .flatMap(message => message.content)
-      .filter(part => part.type === 'tool-result');
+      .filter(part => part.type === 'tool-result')
+      .sort(
+        (a, b) =>
+          (toolCallOrder.get(a.toolCallId) ?? clientToolCalls.length) -
+          (toolCallOrder.get(b.toolCallId) ?? clientToolCalls.length),
+      );
+
+    let toolResultIndex = 0;
+    for (const message of responseMessages) {
+      if (message.role === 'tool') {
+        message.content = message.content.map(part =>
+          part.type === 'tool-result' ? toolResults[toolResultIndex++]! : part,
+        );
+      }
+    }
+
+    messages.push(...responseMessages);
 
     if (
       clientToolCalls.length === 0 ||
@@ -127,11 +145,14 @@ main().catch(console.error);
 
 The example maintains a `messages` array that tracks the entire conversation
 history. Collect the generated messages, append manually executed tool results
-to the same response batch, then add the complete batch to the history:
+to the same response batch, and order the results by their tool calls before
+adding the batch to the history. This keeps generated errors and manual results
+paired with the correct calls, including for providers that omit call IDs.
+The complete example reorders only tool-result parts and preserves other parts:
 
 ```ts
 const responseMessages = await result.responseMessages;
-// Append manually executed tool results to responseMessages before this line.
+// Append manual results and order all results as shown in the complete example.
 messages.push(...responseMessages);
 ```
 
