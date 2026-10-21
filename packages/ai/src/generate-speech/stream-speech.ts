@@ -218,10 +218,12 @@ export function streamSpeech({
             typeof value.audio === 'string'
               ? convertBase64ToUint8Array(value.audio)
               : value.audio;
-          if (audio.length === 0) {
+          // Empty chunks are dropped unless they carry provider metadata
+          // (e.g. an end-of-turn marker); those never count as audio.
+          if (audio.length === 0 && value.providerMetadata == null) {
             break;
           }
-          hasAudio = true;
+          hasAudio ||= audio.length > 0;
           controller.enqueue({
             type: 'audio',
             ...(value.id != null && { id: value.id }),
@@ -381,7 +383,7 @@ export function streamSpeech({
         claimStream('audio-stream').pipeThrough(
           new TransformStream<SpeechStreamPart, Uint8Array>({
             transform(part, controller) {
-              if (part.type === 'audio') {
+              if (part.type === 'audio' && part.audio.length > 0) {
                 controller.enqueue(part.audio);
               } else if (part.type === 'error') {
                 controller.error(part.error);
