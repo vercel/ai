@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createElevenLabs } from './elevenlabs-provider';
+import type { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import {
   countCodePoints,
   getElevenLabsAudioFormat,
@@ -66,7 +67,7 @@ function createModel(modelId = 'eleven_flash_v2_5') {
   return createElevenLabs({
     apiKey: 'test-api-key',
     webSocket: MockWebSocket as unknown as WebSocketConstructor,
-  }).speech(modelId);
+  }).speech(modelId) as ElevenLabsSpeechModel;
 }
 
 function lastSocket(): MockWebSocket {
