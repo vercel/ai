@@ -16,6 +16,15 @@ describe('validateDownloadUrl', () => {
       ).not.toThrow();
     });
 
+    it.each([
+      'https://internal.example.com/file',
+      'https://service.internal.example.com/file',
+      'https://service.notinternal/file',
+      'https://example.com/service.internal',
+    ])('should allow URLs without an .internal hostname suffix: %s', url => {
+      expect(() => validateDownloadUrl(url)).not.toThrow();
+    });
+
     it('should allow public IP addresses', () => {
       expect(() =>
         validateDownloadUrl('https://203.0.113.1/file'),
@@ -84,6 +93,16 @@ describe('validateDownloadUrl', () => {
       expect(() => validateDownloadUrl('http://app.localhost/file')).toThrow(
         DownloadError,
       );
+    });
+
+    it.each([
+      'http://metadata.google.internal/file',
+      'https://service.namespace.internal/file',
+      'https://SERVICE.INTERNAL/file',
+      'https://service.internal./file',
+      'http://service.internal:8080/file',
+    ])('should block .internal hostnames: %s', url => {
+      expect(() => validateDownloadUrl(url)).toThrow(DownloadError);
     });
   });
 
