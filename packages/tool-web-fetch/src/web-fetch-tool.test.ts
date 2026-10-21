@@ -655,6 +655,44 @@ describe('createWebFetchTool', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
     });
 
+    it('matches whole URLs in user messages, not substrings', async () => {
+      const fetch = createFetch(() => new Response('ok'));
+      const webFetch = createWebFetchTool({
+        fetch,
+        requireUrlInUserMessage: true,
+      });
+      const check = (url: string, text: string) =>
+        execute(
+          webFetch,
+          { url },
+          { messages: [{ role: 'user', content: text }] },
+        );
+
+      for (const [url, text] of [
+        ['https://example.com', 'Read https://example.com'],
+        ['https://example.com/', 'Read https://example.com'],
+        ['https://EXAMPLE.com/docs', 'See https://example.com/docs.'],
+        ['https://example.com/docs', '(see https://example.com/docs)'],
+        ['https://example.com/docs#intro', 'Read https://example.com/docs'],
+        ['https://example.com/a?b=1', '<https://example.com/a?b=1>'],
+      ]) {
+        expect(await check(url, text)).toMatchObject({ type: 'document' });
+      }
+
+      for (const [url, text] of [
+        ['https://attacker.com', 'Read https://attacker.com.example.org/docs'],
+        ['https://example.com/a', 'Read https://example.com/abc'],
+        ['https://example.com/docs', 'Read https://example.com/docs/page'],
+        ['https://example.com/?q=1', 'Read https://example.com/?q=12'],
+        ['https://example.com/', 'Visit example.com'],
+      ]) {
+        expect(await check(url, text)).toMatchObject({
+          type: 'error',
+          errorCode: 'url_not_in_user_message',
+        });
+      }
+    });
+
     it('does not authorize a rejected URL through its own error result', async () => {
       const fetch = createFetch(() => new Response('ok'));
       const webFetch = createWebFetchTool({

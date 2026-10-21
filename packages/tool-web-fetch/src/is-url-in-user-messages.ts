@@ -9,6 +9,43 @@ import type { ModelMessage } from 'ai';
  * URL fetchable by first writing it, e.g. a URL that encodes private data in
  * its query string.
  */
+/**
+ * Parses a URL and removes the fragment, which is not sent to the server.
+ * The parser also normalizes it, e.g. `https://Example.com` becomes
+ * `https://example.com/`.
+ */
+function normalizeUrl(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Finds http(s) URLs in text. Punctuation at the end of a match, as in
+ * "see https://example.com/docs.", is also tried without it.
+ */
+function extractUrls(text: string): string[] {
+  const urls: string[] = [];
+
+  for (const [match] of text.matchAll(/https?:\/\/[^\s<>"'`]+/gi)) {
+    urls.push(match);
+
+    let end = match.length;
+    while (end > 0 && '.,;:!?)]}'.includes(match[end - 1])) {
+      end--;
+    }
+    if (end < match.length) {
+      urls.push(match.slice(0, end));
+    }
+  }
+
+  return urls;
+}
+
 export function isUrlInUserMessages({
   url,
   messages,
@@ -34,10 +71,20 @@ export function isUrlInUserMessages({
     }
   }
 
-  const userText = texts.join('\n');
-  const href = new URL(url).href;
+  const requested = normalizeUrl(url);
+  if (requested === undefined) {
+    return false;
+  }
 
-  return [url, href, href.replace(/\/$/, '')].some(candidate =>
-    userText.includes(candidate),
-  );
+  // Compare whole parsed URLs, not substrings: a substring check would let
+  // `https://example.com` match `https://example.com.attacker.org/`.
+  for (const text of texts) {
+    for (const candidate of extractUrls(text)) {
+      if (normalizeUrl(candidate) === requested) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
