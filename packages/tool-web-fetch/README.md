@@ -68,7 +68,6 @@ Fetched content is untrusted and can contain prompt injections.
 | `maxBytes`                | 10 MiB           | Maximum response size in bytes.                                                                      |
 | `timeout`                 | `30000`          | Timeout in milliseconds for fetching each URL, including redirects.                                  |
 | `pdf`                     | `'text'`         | Convert PDFs to `'text'`, or return them as `'file'` parts for models that support PDF tool results. |
-| `userAgent`               | AI SDK agent     | User-Agent header sent with requests.                                                                |
 | `fetch`                   | DNS-pinned fetch | Custom fetch implementation, e.g. for a proxy. It must validate resolved addresses itself.           |
 | `defuddleOptions`         | none             | Options for the HTML content extractor, e.g. `contentSelector` to choose the main content element.   |
 

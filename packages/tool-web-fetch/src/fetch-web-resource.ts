@@ -37,39 +37,36 @@ export type FetchWebResourceResult =
 // place arbitrary text into the conversation.
 
 /**
- * Returns a system error code such as `ENOTFOUND` from a fetch error or its
- * causes, which explains a network failure without repeating the URL.
+ * Returns the error or the first of its causes that matches the predicate.
+ * Fetch implementations wrap the underlying error, e.g. undici throws
+ * `TypeError('fetch failed')` with the system or validation error as `cause`.
  */
-function getErrorCode(error: unknown): string | undefined {
+function findCause(
+  error: unknown,
+  predicate: (cause: unknown) => boolean,
+): unknown {
   for (
     let current = error, depth = 0;
     current != null && depth < 5;
     current = (current as { cause?: unknown }).cause, depth++
   ) {
-    const code = (current as { code?: unknown }).code;
-    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]*$/.test(code)) {
-      return code;
+    if (predicate(current)) {
+      return current;
     }
   }
   return undefined;
 }
 
+/**
+ * Formats a system error code such as `ENOTFOUND`, which explains a network
+ * failure without repeating the URL.
+ */
 function formatErrorCode(error: unknown): string {
-  const code = getErrorCode(error);
-  return code === undefined ? '' : ` (${code})`;
-}
-
-function hasDownloadErrorCause(error: unknown): boolean {
-  for (
-    let current = error, depth = 0;
-    current != null && depth < 5;
-    current = (current as { cause?: unknown }).cause, depth++
-  ) {
-    if (DownloadError.isInstance(current)) {
-      return true;
-    }
-  }
-  return false;
+  const cause = findCause(error, cause => {
+    const code = (cause as { code?: unknown }).code;
+    return typeof code === 'string' && /^[A-Z][A-Z0-9_]*$/.test(code);
+  });
+  return cause === undefined ? '' : ` (${(cause as { code: string }).code})`;
 }
 
 /**
@@ -137,7 +134,7 @@ export async function fetchWebResource({
 
       // The DNS-pinned transport rejects hostnames that resolve to private
       // addresses with a DownloadError cause.
-      if (hasDownloadErrorCause(error)) {
+      if (findCause(error, DownloadError.isInstance) !== undefined) {
         return {
           type: 'error',
           errorCode: 'url_not_allowed',

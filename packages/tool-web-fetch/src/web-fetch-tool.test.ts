@@ -192,19 +192,11 @@ describe('createWebFetchTool', () => {
       });
       const headers = new Headers(fetch.mock.calls[0][1]?.headers);
       expect(headers.get('accept')).toMatch(/^text\/markdown, /);
-      expect(headers.get('user-agent')).toContain('ai-sdk/tool-web-fetch/');
+      // Each product token has a single `/` (RFC 9110).
+      expect(headers.get('user-agent')).toMatch(
+        /^ai-sdk-tool-web-fetch\/[^\s/]+( |$)/,
+      );
       expect(fetch.mock.calls[0][1]?.method).toBeUndefined();
-    });
-
-    it('uses a custom user agent', async () => {
-      const fetch = createFetch(() => new Response('ok'));
-      const webFetch = createWebFetchTool({ fetch, userAgent: 'my-agent/1.0' });
-
-      await execute(webFetch, { url: 'https://example.com/' });
-
-      expect(
-        new Headers(fetch.mock.calls[0][1]?.headers).get('user-agent'),
-      ).toBe('my-agent/1.0');
     });
 
     it('passes defuddle options to the content extractor', async () => {

@@ -277,7 +277,6 @@ function validatePositiveInteger({
  * @param pdf - Whether PDFs are converted to `'text'` (works with every model)
  * or returned as `'file'` parts for models that support PDF tool results.
  * Defaults to `'text'`.
- * @param userAgent - User-Agent header sent with requests.
  * @param fetch - Custom fetch implementation. It must validate resolved
  * addresses at connect time, like the default Node.js transport.
  * @param defuddleOptions - Options for the defuddle content extractor used for
@@ -291,7 +290,6 @@ export function createWebFetchTool({
   maxBytes = 10 * 1024 * 1024,
   timeout = 30_000,
   pdf = 'text',
-  userAgent,
   fetch,
   defuddleOptions,
 }: {
@@ -302,7 +300,6 @@ export function createWebFetchTool({
   maxBytes?: number;
   timeout?: number;
   pdf?: 'text' | 'file';
-  userAgent?: string;
   fetch?: FetchFunction;
   defuddleOptions?: WebFetchDefuddleOptions;
 } = {}): Tool<WebFetchInput, WebFetchOutput, {}> & {
@@ -353,15 +350,11 @@ export function createWebFetchTool({
     blockedDomains: normalizedBlockedDomains,
   });
 
-  const headers = {
-    accept: ACCEPT_HEADER,
-    ...withUserAgentSuffix(
-      userAgent === undefined ? undefined : { 'user-agent': userAgent },
-      ...(userAgent === undefined
-        ? [`ai-sdk/tool-web-fetch/${VERSION}`, getRuntimeEnvironmentUserAgent()]
-        : []),
-    ),
-  };
+  const headers = withUserAgentSuffix(
+    { accept: ACCEPT_HEADER },
+    `ai-sdk-tool-web-fetch/${VERSION}`,
+    getRuntimeEnvironmentUserAgent(),
+  );
 
   const documentCache = createDocumentCache();
 
