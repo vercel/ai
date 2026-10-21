@@ -33,6 +33,45 @@ export function countCodePoints(text: string): number {
   return count;
 }
 
+// Deltas are held back to the last word boundary: the WebSocket expects every
+// text message to end at whitespace, and LLM deltas often split words.
+const WORD_BOUNDARY = /[\s.,!?;:。、！？，；：]/u;
+// Bounds buffering for scripts without spaces (e.g. CJK) or very long words.
+const MAX_HELD_CODE_POINTS = 100;
+
+/**
+ * Splits buffered text at the last word boundary. Returns the text to send
+ * now (possibly empty) and the text to keep buffering.
+ */
+export function takeCompleteWords(buffered: string): {
+  send: string;
+  hold: string;
+} {
+  const codePoints = Array.from(buffered);
+  for (let index = codePoints.length - 1; index >= 0; index--) {
+    if (WORD_BOUNDARY.test(codePoints[index])) {
+      return {
+        send: codePoints.slice(0, index + 1).join(''),
+        hold: codePoints.slice(index + 1).join(''),
+      };
+    }
+  }
+  return codePoints.length >= MAX_HELD_CODE_POINTS
+    ? { send: buffered, hold: '' }
+    : { send: '', hold: buffered };
+}
+
+/**
+ * Milliseconds of send inactivity after which a keepalive is sent, ahead of
+ * the server's inactivity timeout (default 20 s).
+ */
+export function getKeepaliveIntervalMs(
+  inactivityTimeoutSeconds: number | undefined,
+): number {
+  const timeoutMs = (inactivityTimeoutSeconds ?? 20) * 1000;
+  return Math.max(1000, timeoutMs - 5000);
+}
+
 /**
  * Maps an ElevenLabs `output_format` (e.g. `mp3_44100_128`, `pcm_24000`) to
  * the format of the audio chunks it produces.
@@ -67,14 +106,17 @@ export function getElevenLabsAudioFormat(
 
 /**
  * Streams text-to-speech over the ElevenLabs `stream-input` WebSocket:
- * an init message, one message per text delta, then `{"text":""}` to end
- * the input. The server answers with base64 audio chunks and `isFinal`.
+ * an init message carrying the API key, text messages ending at word
+ * boundaries, keepalives while idle, then `{"text":""}` to end the input.
+ * The server answers with base64 audio chunks and `isFinal`.
  */
 export function createElevenLabsSpeechStream({
   abortSignal,
+  apiKey,
   audioFormat,
   headers,
   includeRawChunks,
+  inactivityTimeoutSeconds,
   initMessage,
   text,
   url,
@@ -82,9 +124,12 @@ export function createElevenLabsSpeechStream({
   webSocket,
 }: {
   abortSignal: AbortSignal | undefined;
+  /** Sent in the init message, so native (header-less) WebSockets work. */
+  apiKey: string | undefined;
   audioFormat: SharedV4AudioFormat;
   headers: Record<string, string | undefined>;
   includeRawChunks: boolean | undefined;
+  inactivityTimeoutSeconds: number | undefined;
   initMessage: Record<string, unknown>;
   text: ReadableStream<string>;
   url: URL;
@@ -99,8 +144,26 @@ export function createElevenLabsSpeechStream({
       let textReader: ReadableStreamDefaultReader<string> | undefined;
       let connection: WebSocketConnection | undefined;
       let inputCharacters = 0;
+      let keepaliveTimer: ReturnType<typeof setTimeout> | undefined;
+      const keepaliveIntervalMs = getKeepaliveIntervalMs(
+        inactivityTimeoutSeconds,
+      );
+
+      // Every send restarts the idle clock; a slow text producer (e.g. a
+      // reasoning model) would otherwise hit the server's inactivity timeout.
+      const send = (
+        socket: WebSocketLike,
+        message: Record<string, unknown>,
+      ) => {
+        socket.send(JSON.stringify(message));
+        if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
+        keepaliveTimer = setTimeout(() => {
+          if (!finished) send(socket, { text: ' ' });
+        }, keepaliveIntervalMs);
+      };
 
       cleanup = (closeCode?: number) => {
+        if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
         if (textReader != null) {
           void textReader.cancel().catch(() => {});
         } else {
@@ -127,18 +190,25 @@ export function createElevenLabsSpeechStream({
         cleanup(1000);
       };
 
+      const sendChunk = async (socket: WebSocketLike, chunk: string) => {
+        // An empty text message ends the input, so never send one here.
+        if (chunk.length === 0) return;
+        inputCharacters += countCodePoints(chunk);
+        send(socket, { text: chunk });
+        await waitForWebSocketBufferDrain(socket);
+      };
+
       const sendText = async (socket: WebSocketLike) => {
         const reader = text.getReader();
         textReader = reader;
+        let held = '';
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished) break;
-            // An empty text message ends the input, so skip empty deltas.
-            if (value.length === 0) continue;
-            inputCharacters += countCodePoints(value);
-            socket.send(JSON.stringify({ text: value }));
-            await waitForWebSocketBufferDrain(socket);
+            const { send: complete, hold } = takeCompleteWords(held + value);
+            held = hold;
+            await sendChunk(socket, complete);
           }
         } finally {
           reader.releaseLock();
@@ -147,7 +217,8 @@ export function createElevenLabsSpeechStream({
           }
         }
         if (!finished) {
-          socket.send(JSON.stringify({ text: '' }));
+          await sendChunk(socket, held);
+          send(socket, { text: '' });
         }
       };
 
@@ -159,7 +230,10 @@ export function createElevenLabsSpeechStream({
         onAbort: finishWithError,
         onOpen: socket => {
           controller.enqueue({ type: 'stream-start', warnings });
-          socket.send(JSON.stringify(initMessage));
+          send(socket, {
+            ...initMessage,
+            ...(apiKey != null && { 'xi-api-key': apiKey }),
+          });
           void sendText(socket).catch(finishWithError);
         },
         onMessageText: async messageText => {
@@ -212,18 +286,7 @@ export function createElevenLabsSpeechStream({
         },
         onProcessingError: finishWithError,
         onSocketError: () => {
-          finishWithError(
-            new Error(
-              'ElevenLabs speech stream error.' +
-                (webSocket == null
-                  ? ' Note: the native WebSocket implementation in browsers,' +
-                    ' Node.js, Deno, and Bun cannot send the xi-api-key header' +
-                    ' required by ElevenLabs. Pass a header-capable WebSocket' +
-                    " implementation (e.g. the 'ws' package) via" +
-                    ' createElevenLabs({ webSocket }).'
-                  : ''),
-            ),
-          );
+          finishWithError(new Error('ElevenLabs speech stream error.'));
         },
         onClose: ({ code, reason }) => {
           if (finished) return;
