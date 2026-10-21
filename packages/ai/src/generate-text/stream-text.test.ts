@@ -38,6 +38,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import { Output } from '..';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -1527,6 +1528,167 @@ describe('streamText', () => {
       expect(
         await convertAsyncIterableToArray(result.fullStream),
       ).toMatchSnapshot();
+    });
+
+    describe('tool choice enforcement', () => {
+      it('should surface an error when a required tool choice produces no tool call', async () => {
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'reasoning-start', id: '1' },
+                {
+                  type: 'reasoning-delta',
+                  id: '1',
+                  delta: 'I will not call the tool.',
+                },
+                { type: 'reasoning-end', id: '1' },
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'No tool call.' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: 'required',
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        const error = onError.mock.calls[0][0].error;
+        expect(ToolChoiceViolationError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response did not contain a tool call even though tool choice was required.',
+          toolChoice: { type: 'required' },
+          finishReason: 'stop',
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [
+            { type: 'reasoning', text: 'I will not call the tool.' },
+            { type: 'text', text: 'No tool call.' },
+          ],
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+        await expect(result.usage).resolves.toEqual(
+          asLanguageModelUsage(testUsage),
+        );
+      });
+
+      it('should not execute a different tool instead of the selected tool', async () => {
+        const onError = vi.fn();
+        const executeTool2 = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool2',
+                  input: `{ "value": "value" }`,
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls',
+                    raw: 'tool_calls',
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+            tool2: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeTool2,
+            }),
+          },
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            "Model response did not contain a call to the required tool 'tool1'.",
+          toolChoice: { type: 'tool', toolName: 'tool1' },
+          finishReason: 'tool-calls',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool2',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+        expect(executeTool2).not.toHaveBeenCalled();
+      });
+
+      it('should enforce the tool choice returned by prepareStep', async () => {
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'No tool call.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+            }),
+          },
+          toolChoice: 'auto',
+          prepareStep: async () => ({ toolChoice: 'required' }),
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          toolChoice: { type: 'required' },
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+      });
     });
 
     it('should send tool call deltas', async () => {
