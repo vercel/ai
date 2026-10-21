@@ -1,5 +1,16 @@
 # @ai-sdk/zai
 
+## 3.0.37
+
+### Patch Changes
+
+- 1a054af: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [e619655]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai-compatible@3.0.75
+
 ## 3.0.36
 
 ### Patch Changes

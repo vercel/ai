@@ -1,5 +1,18 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.55
+
+### Patch Changes
+
+- 1f68635: feat(harness-acp): remove implementation layer in favor of unifying as a single bridge `package.json` for concrete harness plus ACP foundation
+- 30f664a: feat(harness-github-copilot): support tools with `toModelOutput()` including images
+- Updated dependencies [b089ce8]
+- Updated dependencies [1f68635]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness-acp@1.0.98
+  - @ai-sdk/harness@1.0.159
+
 ## 1.0.54
 
 ### Patch Changes
