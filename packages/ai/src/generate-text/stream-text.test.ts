@@ -2878,7 +2878,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         streamRetries: 1,
         onError: async ({ error }) => {
-          errors.push(error.message);
+          errors.push((error as Error).message);
           await new Promise(r => setImmediate(r));
         },
       });
@@ -2935,7 +2935,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         streamRetries: 0,
         onError: async ({ error }) => {
-          errors.push(error.message);
+          errors.push((error as Error).message);
           await new Promise(r => setImmediate(r));
           return { retry: true };
         },
