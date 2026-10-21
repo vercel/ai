@@ -1,5 +1,15 @@
 # @ai-sdk/fal
 
+## 1.0.49
+
+### Patch Changes
+
+- b6daeab: Defer validation schema construction until first use to reduce provider import time.
+- 4146790: Encode provider-returned identifiers in follow-up request paths with a shared encodePathSegment helper.
+- Updated dependencies [d7b0ffa]
+- Updated dependencies [4146790]
+  - @ai-sdk/provider-utils@3.0.42
+
 ## 1.0.48
 
 ### Patch Changes

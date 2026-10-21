@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 2.0.105
+
+### Patch Changes
+
+- 36a19fd: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [d7b0ffa]
+- Updated dependencies [4146790]
+  - @ai-sdk/provider-utils@3.0.42
+
 ## 2.0.104
 
 ### Patch Changes

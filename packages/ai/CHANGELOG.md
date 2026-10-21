@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.279
+
+### Patch Changes
+
+- 11b886a: Stop forwarding buffered source stream parts after a transform calls `stopStream()`. This prevents text and errors from appearing after the transform emits its finish events.
+- Updated dependencies [d7b0ffa]
+- Updated dependencies [5a96038]
+- Updated dependencies [fd50c4d]
+- Updated dependencies [4146790]
+  - @ai-sdk/provider-utils@3.0.42
+  - @ai-sdk/gateway@2.0.170
+
 ## 5.0.278
 
 ### Patch Changes

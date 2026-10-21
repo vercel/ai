@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic
 
+## 2.0.110
+
+### Patch Changes
+
+- a7c0108: Defer validation schema construction until first use to reduce provider import time.
+- 58cb8c9: Defer construction of Anthropic provider option schemas until they are first used to reduce package import time.
+- Updated dependencies [d7b0ffa]
+- Updated dependencies [4146790]
+  - @ai-sdk/provider-utils@3.0.42
+
 ## 2.0.109
 
 ### Patch Changes
