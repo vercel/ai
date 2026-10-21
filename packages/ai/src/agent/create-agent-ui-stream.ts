@@ -29,6 +29,7 @@ import {
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { Agent } from './agent';
+import type { Steering } from '../generate-text/steering';
 
 /**
  * UI stream options with separate generation and UI message step callbacks.
@@ -56,6 +57,7 @@ export type AgentUIMessageStreamOptions<
  * @param abortSignal - The abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
+ * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.
@@ -83,6 +85,7 @@ export async function createAgentUIStream<
   abortSignal,
   timeout,
   experimental_sandbox: sandbox,
+  experimental_steering: steering,
   experimental_transform,
   onStepEnd,
   onStepFinish,
@@ -101,6 +104,7 @@ export async function createAgentUIStream<
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
+  experimental_steering?: Steering;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   // TODO `originalMessages` is part of this for bc, omit in v7
@@ -130,6 +134,7 @@ export async function createAgentUIStream<
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    experimental_steering: steering,
     experimental_transform,
     onStepEnd: onStepEnd ?? onStepFinish,
   });

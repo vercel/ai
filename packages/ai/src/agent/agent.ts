@@ -14,6 +14,7 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
+import type { Steering } from '../generate-text/steering';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type {
@@ -156,6 +157,12 @@ export type AgentCallParameters<
      * The sandbox environment that is passed through to tool execution.
      */
     experimental_sandbox?: SandboxSession;
+
+    /**
+     * A steering object created with `experimental_createSteering()`.
+     * Messages sent with it are added to the run at the next step boundary.
+     */
+    experimental_steering?: Steering;
   };
 
 /**
