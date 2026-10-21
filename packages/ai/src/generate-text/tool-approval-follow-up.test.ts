@@ -1,5 +1,5 @@
 import type { LanguageModelV3Usage } from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import { type ModelMessage, tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -23,6 +23,104 @@ const usage: LanguageModelV3Usage = {
 describe.each(['generateText', 'streamText'] as const)(
   '%s approved tool continuation',
   api => {
+    it.each([
+      { approved: true, replayApproved: true },
+      { approved: false, replayApproved: false },
+      { approved: true, replayApproved: false },
+      { approved: false, replayApproved: true },
+    ])(
+      'should process only the first of repeated approval responses: %j',
+      async ({ approved, replayApproved }) => {
+        const execute = vi.fn(async () => 'saved');
+        const approvalResponse = {
+          type: 'tool-approval-response' as const,
+          approvalId: 'approval',
+          approved,
+          reason: 'test-reason',
+        };
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            content: [{ type: 'text', text: 'OK' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+            warnings: [],
+          },
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage,
+              },
+            ]),
+          },
+        });
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call',
+                toolName: 'set_theme',
+                input: {},
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval',
+                toolCallId: 'call',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              approvalResponse,
+              { ...approvalResponse, approved: replayApproved },
+            ],
+          },
+        ];
+        const options = {
+          model,
+          messages,
+          tools: {
+            set_theme: tool({
+              inputSchema: z.object({}),
+              execute,
+              needsApproval: true,
+            }),
+          },
+        };
+
+        if (api === 'generateText') {
+          await generateText(options);
+        } else {
+          const onError = vi.fn();
+          await streamText({ ...options, onError }).consumeStream();
+          expect(onError).not.toHaveBeenCalled();
+        }
+
+        expect(execute).toHaveBeenCalledTimes(approved ? 1 : 0);
+        const calls =
+          api === 'generateText' ? model.doGenerateCalls : model.doStreamCalls;
+        expect(calls).toHaveLength(1);
+        expect(
+          calls[0].prompt
+            .filter(message => message.role === 'tool')
+            .flatMap(message => message.content)
+            .filter(part => part.type === 'tool-result'),
+        ).toMatchObject([
+          {
+            toolCallId: 'call',
+            output: approved
+              ? { type: 'text', value: 'saved' }
+              : { type: 'execution-denied', reason: 'test-reason' },
+          },
+        ]);
+      },
+    );
+
     it.each([
       'unresolved-follow-up',
       'immediate',
