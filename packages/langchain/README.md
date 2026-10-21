@@ -13,6 +13,7 @@ npm install @ai-sdk/langchain @langchain/core
 ## Features
 
 - Convert AI SDK `UIMessage` to LangChain `BaseMessage` format
+- Convert LangChain `BaseMessage` and LangGraph `StateSnapshot` history back to AI SDK `UIMessage` format
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream`
 - `ChatTransport` implementation for LangSmith deployments
 - Full support for text, tool calls, and tool results
@@ -32,6 +33,18 @@ const langchainMessages = await toBaseMessages(uiMessages);
 
 // Use with any LangChain model
 const response = await model.invoke(langchainMessages);
+```
+
+Use `baseMessagesToUIMessages` or `stateSnapshotToUIMessages` to restore persisted LangChain/LangGraph history for AI SDK UI components:
+
+```ts
+import { stateSnapshotToUIMessages } from '@ai-sdk/langchain';
+
+const state = await graph.getState({
+  configurable: { thread_id: threadId },
+});
+
+const initialMessages = stateSnapshotToUIMessages(state);
 ```
 
 ### Streaming from LangGraph
@@ -220,6 +233,28 @@ Converts AI SDK `ModelMessage` objects to LangChain `BaseMessage` objects.
 - `modelMessages`: `ModelMessage[]` - Array of model messages
 
 **Returns:** `BaseMessage[]`
+
+### `baseMessagesToUIMessages(messages)`
+
+Converts LangChain `BaseMessage` objects to AI SDK `UIMessage` objects.
+Matching `ToolMessage` results are attached to the corresponding assistant tool call part by `tool_call_id`.
+
+**Parameters:**
+
+- `messages`: `BaseMessage[]` - Array of LangChain messages
+
+**Returns:** `UIMessage[]`
+
+### `stateSnapshotToUIMessages(snapshot)`
+
+Converts the `messages` channel from a LangGraph `StateSnapshot` to AI SDK `UIMessage` objects.
+Pending human-in-the-loop interrupts are reflected as approval-requested tool parts when present in the snapshot.
+
+**Parameters:**
+
+- `snapshot`: `StateSnapshot` - LangGraph state snapshot returned from `getState`
+
+**Returns:** `UIMessage[]`
 
 ### `toUIMessageStream(stream, options?)`
 
