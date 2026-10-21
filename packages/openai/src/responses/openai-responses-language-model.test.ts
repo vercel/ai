@@ -1,21 +1,11 @@
-<<<<<<< HEAD
-import type {
-  LanguageModelV3Content,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
-=======
 import {
   InvalidArgumentError,
-  type LanguageModelV4Content,
-  type LanguageModelV4FunctionTool,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4ProviderTool,
-  type LanguageModelV4Prompt,
-  type LanguageModelV4StreamPart,
->>>>>>> 0257b47857 (feat(openai): support 12h prompt cache writes and cache prewarming (#23635))
+  type LanguageModelV3Content,
+  type LanguageModelV3FunctionTool,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3ProviderTool,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,

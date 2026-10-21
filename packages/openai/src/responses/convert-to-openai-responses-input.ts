@@ -30,19 +30,6 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-<<<<<<< HEAD
-=======
-import type {
-  OpenAIResponsesCompactionItem,
-  OpenAIResponsesCustomToolCallOutput,
-  OpenAIResponsesFunctionCallOutput,
-  OpenAIResponsesInput,
-  OpenAIResponsesPromptCacheBreakpoint,
-  OpenAIResponsesReasoning,
-  OpenAIResponsesToolCaller,
-  OpenAIResponsesWebSearchCall,
-} from './openai-responses-api';
->>>>>>> 0257b47857 (feat(openai): support 12h prompt cache writes and cache prewarming (#23635))
 import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
@@ -52,6 +39,7 @@ import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
+  OpenAIResponsesPromptCacheBreakpoint,
   OpenAIResponsesReasoning,
   OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
@@ -129,15 +117,8 @@ async function convertFunctionToolResultOutput({
   providerOptionsName,
   warnings,
 }: {
-<<<<<<< HEAD
   output: LanguageModelV3ToolResultOutput;
-  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
-=======
-  output: LanguageModelV4ToolResultOutput;
-  toolName: string;
-  outputSchemaToolNames: Set<string> | undefined;
   promptCacheBreakpoint?: OpenAIResponsesPromptCacheBreakpoint;
->>>>>>> 0257b47857 (feat(openai): support 12h prompt cache writes and cache prewarming (#23635))
   providerOptionsName: string;
   warnings: Array<SharedV3Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
