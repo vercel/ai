@@ -39,6 +39,7 @@ import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
+  OpenAIResponsesPromptCacheBreakpoint,
   OpenAIResponsesReasoning,
   OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
@@ -117,7 +118,7 @@ async function convertFunctionToolResultOutput({
   warnings,
 }: {
   output: LanguageModelV3ToolResultOutput;
-  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
+  promptCacheBreakpoint?: OpenAIResponsesPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV3Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -347,14 +348,12 @@ function collectCompleteParallelToolResultGroups({
   return completeGroups;
 }
 
-type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
-
 function getPromptCacheBreakpoint(
   providerOptions: SharedV3ProviderOptions | undefined,
   providerOptionsName: string,
-): OpenAIPromptCacheBreakpoint | undefined {
+): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
-    | OpenAIPromptCacheBreakpoint
+    | OpenAIResponsesPromptCacheBreakpoint
     | undefined;
 }
 
@@ -366,7 +365,7 @@ function getScalarToolResultPromptCacheBreakpoint({
   output: LanguageModelV3ToolResultOutput;
   toolResultProviderOptions: SharedV3ProviderOptions | undefined;
   providerOptionsName: string;
-}): OpenAIPromptCacheBreakpoint | undefined {
+}): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return output.type === 'content'
     ? undefined
     : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
