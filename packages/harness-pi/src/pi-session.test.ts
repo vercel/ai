@@ -1188,7 +1188,7 @@ describe('createPiSession', () => {
         [
           '<skill name="demo-skill" location="/sandbox/home/.agents/skills/demo-skill/SKILL.md">\nReferences are relative to /sandbox/home/.agents/skills/demo-skill.\n\nSkill instructions content\n</skill>',
         ],
-        [' /skill:missing'],
+        ['/skill:missing'],
       ]);
       finishPrompt();
       await control.done;

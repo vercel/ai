@@ -8,8 +8,10 @@ const SKILL_COMMAND_PREFIX = '/skill:';
  * skill's `filePath` with Node's `readFileSync` in the host process, but
  * harness skills live in the sandbox. This expands the command from the
  * sandbox instead, in the same format Pi uses, so the text that reaches Pi no
- * longer starts with `/skill:`. When the skill is unknown or cannot be read,
- * a leading space keeps Pi from attempting its host read.
+ * longer starts with `/skill:`. When the skill file cannot be read from the
+ * sandbox, a leading space keeps Pi from attempting its host read. Unknown
+ * skills are returned unchanged: Pi looks them up in the same skill list and
+ * passes them through without reading any file.
  */
 export async function expandPiSkillCommand({
   text,
@@ -32,7 +34,7 @@ export async function expandPiSkillCommand({
   const args = spaceIndex === -1 ? '' : text.slice(spaceIndex + 1).trim();
 
   const skill = skills.find(candidate => candidate.name === skillName);
-  if (skill == null) return ` ${text}`;
+  if (skill == null) return text;
 
   let content: string | null | undefined;
   try {

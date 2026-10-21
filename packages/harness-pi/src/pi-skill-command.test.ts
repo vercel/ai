@@ -82,7 +82,7 @@ describe('expandPiSkillCommand', () => {
     `);
   });
 
-  it('escapes an unknown skill command', async () => {
+  it('returns an unknown skill command unchanged', async () => {
     const sandbox = createSandbox();
 
     expect(
@@ -91,7 +91,7 @@ describe('expandPiSkillCommand', () => {
         skills: [skill],
         sandbox,
       }),
-    ).toBe(' /skill:missing do it');
+    ).toBe('/skill:missing do it');
     expect(sandbox.readTextFile).not.toHaveBeenCalled();
   });
 
