@@ -1,0 +1,86 @@
+---
+title: IteraCompute
+description: Use the IteraCompute OpenAI compatible API with the AI SDK.
+---
+
+# IteraCompute Provider
+
+[IteraCompute](https://iteracompute.com) provides access to open models through an
+OpenAI-compatible API. Use its Chat Completions endpoint with the AI SDK through
+the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Follow the [IteraCompute quick start](https://iteracompute.com/docs.html) to create
+an account and API key. Set the key as a server-side environment variable:
+
+```bash
+export ITERACOMPUTE_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create an IteraCompute provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const iteracompute = createOpenAICompatible({
+  name: 'iteracompute',
+  apiKey: process.env.ITERACOMPUTE_API_KEY,
+  baseURL: 'https://api.iteracompute.com/v1',
+  includeUsage: true,
+});
+```
+
+`includeUsage: true` requests token usage in streaming responses.
+
+## Language Models
+
+Pass an IteraCompute model ID to `.chatModel()`, keeping the complete ID including
+its namespace:
+
+```ts
+const model = iteracompute.chatModel('qwen/qwen3.8-27b');
+```
+
+Find current model IDs in the [models endpoint](https://api.iteracompute.com/v1/models).
+See the [model catalog](https://iteracompute.com/models/) for pricing, capabilities,
+and account-specific context limits.
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const iteracompute = createOpenAICompatible({
+  name: 'iteracompute',
+  apiKey: process.env.ITERACOMPUTE_API_KEY,
+  baseURL: 'https://api.iteracompute.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: iteracompute.chatModel('qwen/qwen3.8-27b'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+  maxOutputTokens: 1024,
+});
+
+console.log(text);
+```
+
+For streaming, replace `generateText` with `streamText` and consume `textStream`.
+Some models use reasoning tokens before returning text, so allow enough output
+tokens for both reasoning and the final answer.
+
+Tool calling, image input, and structured outputs vary by model. Consult the
+[IteraCompute API documentation](https://iteracompute.com/docs.html) and the
+[OpenAI Compatible Providers](/providers/openai-compatible-providers) documentation
+before using these features.
