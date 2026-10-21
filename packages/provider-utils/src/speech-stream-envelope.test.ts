@@ -166,10 +166,38 @@ describe('serializeSpeechStreamPart / parseSpeechStreamPart', () => {
     { type: 'audio', audio: 1, audioFormat: { type: 'audio/mpeg' } },
     { type: 'finish', usage: { inputCharacters: '1' } },
     { type: 'stream-start', warnings: [{}] },
+    { type: 'stream-start', warnings: [{ type: 'unsupported' }] },
+    { type: 'stream-start', warnings: [{ type: 'other', message: 1 }] },
+    { type: 'stream-start', warnings: [{ type: 'deprecated', setting: 'x' }] },
     { type: 'response-metadata', timestamp: 'not a date' },
     { type: 'unknown-part' },
   ])('should drop invalid part %j', part => {
     expect(parseSpeechStreamPart(JSON.stringify(part))).toBeUndefined();
+  });
+
+  it('should keep known warnings and drop unknown warning types', () => {
+    expect(
+      parseSpeechStreamPart(
+        JSON.stringify({
+          type: 'stream-start',
+          warnings: [
+            { type: 'unsupported', feature: 'speed', details: 'ignored' },
+            { type: 'compatibility', feature: 'format' },
+            { type: 'deprecated', setting: 'old', message: 'use new' },
+            { type: 'other', message: 'note' },
+            { type: 'future-warning', anything: true },
+          ],
+        }),
+      ),
+    ).toEqual({
+      type: 'stream-start',
+      warnings: [
+        { type: 'unsupported', feature: 'speed', details: 'ignored' },
+        { type: 'compatibility', feature: 'format' },
+        { type: 'deprecated', setting: 'old', message: 'use new' },
+        { type: 'other', message: 'note' },
+      ],
+    });
   });
 
   it('should drop non-serializable payloads', () => {

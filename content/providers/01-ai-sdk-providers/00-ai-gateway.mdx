@@ -476,6 +476,11 @@ WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
 Gateway WebSocket auth is carried in the subprotocols, so no header-capable
 WebSocket implementation is needed.
 
+Streaming speech works only with models that the
+[AI Gateway model catalog](https://vercel.com/ai-gateway/models) lists with
+streaming speech support. The model ID below is illustrative; check the catalog
+for current availability.
+
 ```ts
 import { experimental_streamSpeech as streamSpeech } from 'ai';
 
