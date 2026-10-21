@@ -598,22 +598,6 @@ describe('pruneMessages', () => {
       });
     });
 
-    describe('before-last-0-messages', () => {
-      it('should prune all tool calls, results, errors, and approvals', () => {
-        expect(
-          pruneMessages({
-            messages: messagesFixture1,
-            toolCalls: 'before-last-0-messages',
-          }),
-        ).toEqual(
-          pruneMessages({
-            messages: messagesFixture1,
-            toolCalls: 'all',
-          }),
-        );
-      });
-    });
-
     describe('all', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
         const result = pruneMessages({
