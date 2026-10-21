@@ -8,6 +8,9 @@ test('switching capabilities and source keeps the selected provider supported', 
   assert.equal(resolveProvider('speech', 'provider', 'elevenlabs'), 'elevenlabs');
   assert.equal(resolveProvider('speech', 'gateway', 'elevenlabs'), 'openai');
   assert.deepEqual(providersFor('video', 'provider'), ['grok', 'google']);
+  assert.deepEqual(providersFor('decision', 'gateway'), ['openai', 'perplexity']);
+  assert.equal(resolveProvider('decision', 'gateway', 'anthropic'), 'openai');
+  assert.equal(resolveProvider('decision', 'provider', 'anthropic'), 'anthropic');
 });
 
 test('examples use current model factories and stream/tool APIs', () => {
@@ -20,6 +23,11 @@ test('examples use current model factories and stream/tool APIs', () => {
   assert.match(example('Tool Calling').getCode('openai', 'gateway'), /inputSchema: z\.object/);
   assert.match(example('Error Handling').getCode('openai', 'gateway'), /process\.stdout\.write\(part\.text\)/);
   assert.match(example('DevTools').getCode('openai', 'gateway'), /model: gateway\(/);
+  assert.match(example('Decisions').getCode('openai', 'gateway'), /experimental_decide as decide/);
+  assert.match(example('Decisions').getCode('openai', 'gateway'), /model: 'openai\/gpt-6-luna-decisions'/);
+  assert.match(example('Decisions').getCode('perplexity', 'provider'), /perplexity\.decisionModel\('pplx-decider-latest'\)/);
+  assert.match(example('Decisions').getCode('anthropic', 'custom'), /decisionModels: \{ 'my-model': anthropic\.decisionModel\(/);
+  assert.match(example('Decisions').getCode('anthropic', 'custom'), /provider\.decisionModel\('my-model'\)/);
 });
 
 test('stats combine npm downloads, GitHub stars, and contributor pagination', async () => {

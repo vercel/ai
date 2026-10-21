@@ -1,7 +1,13 @@
 // Adapted from the prior ai-sdk.dev landing page. These are displayed examples;
 // selecting a provider never sends a generation request.
 export type Mode = 'gateway' | 'provider' | 'custom';
-export type ModelKind = 'text' | 'image' | 'speech' | 'transcription' | 'video';
+export type ModelKind =
+  | 'text'
+  | 'image'
+  | 'speech'
+  | 'transcription'
+  | 'video'
+  | 'decision';
 
 export const PROVIDERS = [
   { id: 'grok', label: 'Grok' },
@@ -56,14 +62,18 @@ const providersByKind: Record<ModelKind, Provider[]> = {
   speech: ['openai', 'elevenlabs'],
   transcription: ['openai'],
   video: ['grok', 'google'],
+  decision: ['openai', 'anthropic', 'google', 'perplexity'],
 };
 
 export function providersFor(kind: ModelKind, mode: Mode): Provider[] {
   // ElevenLabs is available directly; the gateway speech catalog does not
   // advertise an ElevenLabs model.
-  return kind === 'speech' && mode === 'gateway'
-    ? ['openai']
-    : providersByKind[kind];
+  if (kind === 'speech' && mode === 'gateway') return ['openai'];
+  // Anthropic and Google decisions are SDK adapters over their language
+  // models; the gateway decision catalog only lists native decision models.
+  if (kind === 'decision' && mode === 'gateway')
+    return ['openai', 'perplexity'];
+  return providersByKind[kind];
 }
 
 export function resolveProvider(
@@ -110,6 +120,18 @@ function modelConfig(
   }
   if (kind === 'transcription')
     return ['openai', 'whisper-1', 'openai/whisper-1'];
+  if (kind === 'decision') {
+    if (provider === 'perplexity')
+      return [
+        'perplexity',
+        'pplx-decider-latest',
+        'perplexity/pplx-decider-v1.2',
+      ];
+    if (provider === 'anthropic')
+      return ['anthropic', 'claude-haiku-4-5-20251001', ''];
+    if (provider === 'google') return ['google', 'gemini-3.5-flash-lite', ''];
+    return ['openai', 'gpt-6-luna', 'openai/gpt-6-luna-decisions'];
+  }
   return textModels[provider];
 }
 
@@ -132,7 +154,12 @@ function sample({
     kind,
     resolveProvider(kind, mode, provider),
   );
-  const method = kind === 'text' ? 'languageModel' : kind;
+  const method =
+    kind === 'text'
+      ? 'languageModel'
+      : kind === 'decision'
+        ? 'decisionModel'
+        : kind;
   let model = `'${gatewayId}'`;
   let setup = '';
   let providerImport = '';
@@ -230,6 +257,29 @@ console.log(image.base64);`,
 console.log(videos[0].base64);`,
   ),
   example(
+    'Decisions',
+    'decide.ts',
+    'decision',
+    'experimental_decide as decide',
+    `const { answers } = await decide({
+  model: __MODEL__,
+  state: 'I was charged twice this month. Please refund me.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Payments and refunds', support: 'Other requests' },
+    },
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for money back?',
+    },
+  },
+});
+
+console.log(answers.team.choice, answers.refund.probability);`,
+  ),
+  example(
     'Tool Calling',
     'tool-calling.ts',
     'text',
@@ -313,6 +363,7 @@ export const HERO_EXAMPLES = [
   CORE_EXAMPLES[1],
   CORE_EXAMPLES[2],
   CORE_EXAMPLES[4],
+  CORE_EXAMPLES[5],
 ];
 
 const CHAT_QUESTION = 'Explain quantum entanglement in simple terms.';
