@@ -483,8 +483,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: PerplexityUsage | undefined;
@@ -828,6 +829,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                     }),
                     raw: rawFinishReason,
                   };
+                } else if (finishReason.unified === 'interrupted') {
+                  // The terminal event arrived without response details.
+                  finishReason = { unified: 'other', raw: undefined };
                 }
                 break;
               }

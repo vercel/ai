@@ -711,8 +711,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let hasFunctionCall = false;
@@ -755,6 +756,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -937,6 +939,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
+              } else if (finishReason.unified === 'interrupted') {
+                // The terminal event arrived, but supplied no recognized reason.
+                finishReason = { unified: 'other', raw: undefined };
               }
 
               return;
@@ -969,6 +974,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (event.type === 'error') {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: createXaiResponsesStreamError({

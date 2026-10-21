@@ -645,6 +645,62 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each(['response.completed', 'response.incomplete'])(
+    'preserves an explicit %s event without response details',
+    async type => {
+      prepareStream([{ type }]);
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'other', raw: undefined },
+        }),
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = readFileSync(
+        'src/__fixtures__/agent-web-search.chunks.txt',
+        'utf8',
+      )
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.type === 'response.output_text.delta',
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls[AGENT_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+          ...(withError ? ['data: {invalid-json}\n\n'] : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   it('parses captured Agent API web search events', async () => {
     const events = readFileSync(
       'src/__fixtures__/agent-web-search.chunks.txt',

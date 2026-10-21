@@ -2676,7 +2676,7 @@ retain the content their contracts require.
       name: 'finishReason',
       type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'>",
       description:
-        'The reason why the generation finished. Automatically consumes the stream.',
+        'The reason why the generation finished. A stream that ends cleanly without its provider completion signal can report "interrupted". Partial output is preserved; interruption alone does not emit an error. OpenAI-compatible retains its existing error behavior. Automatically consumes the stream.',
     },
     {
       name: 'rawFinishReason',

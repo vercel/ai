@@ -1992,6 +1992,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
+    let hasFinishedMessage = false;
+    let hasStreamError = false;
 
     let blockType:
       | 'text'
@@ -2013,6 +2015,69 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const generateId = this.generateId;
 
+    const emitFinish = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+      reason: LanguageModelV4FinishReason,
+    ) => {
+      const anthropicMetadata = {
+        usage: (rawUsage as JSONObject) ?? null,
+        stopSequence,
+        ...(stopDetails != null ? { stopDetails } : {}),
+        ...(inputTransformations != null ? { inputTransformations } : {}),
+        ...(safeguardResults != null ? { safeguardResults } : {}),
+        iterations: usage.iterations
+          ? usage.iterations.map(
+              iter =>
+                ({
+                  type: iter.type,
+                  ...(iter.model != null ? { model: iter.model } : {}),
+                  inputTokens: iter.input_tokens,
+                  outputTokens: iter.output_tokens,
+                  ...(iter.cache_creation_input_tokens
+                    ? {
+                        cacheCreationInputTokens:
+                          iter.cache_creation_input_tokens,
+                      }
+                    : {}),
+                  ...(iter.cache_read_input_tokens
+                    ? {
+                        cacheReadInputTokens: iter.cache_read_input_tokens,
+                      }
+                    : {}),
+                }) satisfies AnthropicUsageIteration,
+            )
+          : null,
+        container,
+        contextManagement,
+      } satisfies AnthropicMessageMetadata;
+
+      const providerMetadata: SharedV4ProviderMetadata = {
+        anthropic: anthropicMetadata,
+      };
+
+      if (usedCustomProviderKey && providerOptionsName !== 'anthropic') {
+        providerMetadata[providerOptionsName] = anthropicMetadata;
+      }
+
+      if (!hasWebSearchResults) {
+        for (const citation of fallbackWebCitations) {
+          const source = createCitationSource(
+            citation,
+            citationDocuments,
+            generateId,
+          );
+          if (source) controller.enqueue(source);
+        }
+      }
+      fallbackWebCitations.length = 0;
+      controller.enqueue({
+        type: 'finish',
+        finishReason: reason,
+        usage: convertAnthropicUsage({ usage, rawUsage }),
+        providerMetadata,
+      });
+    };
+
     const transformedStream = response.pipeThrough(
       new TransformStream<
         ParseResult<InferSchema<typeof anthropicChunkSchema>>,
@@ -2032,6 +2097,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           if (!chunk.success) {
+            hasStreamError = true;
             controller.enqueue({ type: 'error', error: chunk.error });
             return;
           }
@@ -2929,6 +2995,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 hasInvalidMessageSequence = true;
+                hasStreamError = true;
                 controller.enqueue({
                   type: 'error',
                   error: new InvalidResponseDataError({
@@ -2942,6 +3009,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               }
 
               isMessageOpen = true;
+              hasFinishedMessage = false;
+              finishReason = { unified: 'other', raw: undefined };
               activeMessageId = value.message.id;
 
               usage.input_tokens = value.message.usage.input_tokens;
@@ -3120,73 +3189,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               isMessageOpen = false;
               activeMessageId = undefined;
 
-              const anthropicMetadata = {
-                usage: (rawUsage as JSONObject) ?? null,
-                stopSequence,
-                ...(stopDetails != null ? { stopDetails } : {}),
-                ...(inputTransformations != null
-                  ? { inputTransformations }
-                  : {}),
-                ...(safeguardResults != null ? { safeguardResults } : {}),
-                iterations: usage.iterations
-                  ? usage.iterations.map(
-                      iter =>
-                        ({
-                          type: iter.type,
-                          ...(iter.model != null ? { model: iter.model } : {}),
-                          inputTokens: iter.input_tokens,
-                          outputTokens: iter.output_tokens,
-                          ...(iter.cache_creation_input_tokens
-                            ? {
-                                cacheCreationInputTokens:
-                                  iter.cache_creation_input_tokens,
-                              }
-                            : {}),
-                          ...(iter.cache_read_input_tokens
-                            ? {
-                                cacheReadInputTokens:
-                                  iter.cache_read_input_tokens,
-                              }
-                            : {}),
-                        }) satisfies AnthropicUsageIteration,
-                    )
-                  : null,
-                container,
-                contextManagement,
-              } satisfies AnthropicMessageMetadata;
-
-              const providerMetadata: SharedV4ProviderMetadata = {
-                anthropic: anthropicMetadata,
-              };
-
-              if (
-                usedCustomProviderKey &&
-                providerOptionsName !== 'anthropic'
-              ) {
-                providerMetadata[providerOptionsName] = anthropicMetadata;
-              }
-
-              if (!hasWebSearchResults) {
-                for (const citation of fallbackWebCitations) {
-                  const source = createCitationSource(
-                    citation,
-                    citationDocuments,
-                    generateId,
-                  );
-                  if (source) controller.enqueue(source);
-                }
-              }
-              fallbackWebCitations.length = 0;
-              controller.enqueue({
-                type: 'finish',
-                finishReason,
-                usage: convertAnthropicUsage({ usage, rawUsage }),
-                providerMetadata,
-              });
+              hasFinishedMessage = true;
+              emitFinish(controller, finishReason);
               return;
             }
 
             case 'error': {
+              hasStreamError = true;
               controller.enqueue({
                 type: 'error',
                 error: createAnthropicStreamError(value.error),
@@ -3198,6 +3207,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const _exhaustiveCheck: never = value;
               throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
             }
+          }
+        },
+
+        flush(controller) {
+          // Errors keep their existing error path. Only a clean EOF without
+          // message_stop receives an interrupted finish part.
+          if (!hasFinishedMessage && !hasStreamError) {
+            emitFinish(controller, { unified: 'interrupted', raw: undefined });
           }
         },
       }),
