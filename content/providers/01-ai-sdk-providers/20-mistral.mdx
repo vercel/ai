@@ -5,9 +5,8 @@ description: Learn how to use Mistral AI with AI Gateway and the direct provider
 
 # Mistral AI Provider
 
-The [Mistral AI](https://mistral.ai/) provider contains language model,
-embedding model, speech model, and transcription model support for Mistral
-APIs.
+The [Mistral AI](https://mistral.ai/) provider supports language models,
+embeddings, speech, transcription, and realtime voice agents.
 You can use Mistral AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
 
 ```ts provider="mistral" model="mistral/mistral-medium-3.5"
@@ -695,6 +694,125 @@ is redacted from request metadata and API call errors returned by the provider.
 | ----------------------- | ------------ | --------------- | ------------- |
 | `voxtral-mini-tts-3-0`  | <Check />    | <Check />       | <Check />     |
 | `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
+
+## Realtime Voice Agents
+
+`mistral.experimental_realtime()` connects to Mistral's
+[managed voice agents](https://docs.mistral.ai/studio/audio/voice-agents/overview):
+Mistral handles transcription, response generation, speech, and interruptions.
+The provider handles the LiveKit connection internally. Your application uses the
+existing realtime hook to send microphone audio and play the response.
+
+<Note type="warning">Realtime voice agents are experimental.</Note>
+
+Install the provider and React hook:
+
+<InstallPackages packages="ai @ai-sdk/mistral @ai-sdk/react" />
+
+Keep `MISTRAL_API_KEY` on your server. Create a route that starts and closes
+sessions with server-owned configuration:
+
+```ts filename="app/api/mistral-realtime/route.ts"
+import { mistral } from '@ai-sdk/mistral';
+
+export async function POST() {
+  const session = await mistral.experimental_realtime.createSession({
+    model: 'mistral-small-latest',
+    sessionConfig: {
+      instructions: 'You are a helpful voice assistant. Respond briefly.',
+      voice: 'voice_447',
+      providerOptions: {
+        mistral: {
+          stt: { model: 'voxtral-mini-transcribe-realtime-3' },
+          tts: { model: 'voxtral-mini-tts-3' },
+        },
+      },
+    },
+  });
+  return Response.json(session, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
+export async function DELETE(request: Request) {
+  const sessionId = new URL(request.url).searchParams.get('sessionId');
+  if (sessionId == null || sessionId.trim() === '') {
+    return Response.json({ error: 'sessionId is required' }, { status: 400 });
+  }
+  await mistral.experimental_realtime.closeSession({ sessionId });
+  return new Response(null, { status: 204 });
+}
+```
+
+Authenticate both routes and verify session ownership before closing a session
+in production. The browser receives session credentials, never the API key.
+
+Use `api.provider` with the same route in the browser:
+
+```tsx filename="app/mistral-realtime/page.tsx"
+'use client';
+
+import { mistral } from '@ai-sdk/mistral';
+import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
+import { useState } from 'react';
+
+const model = mistral.experimental_realtime('mistral-small-latest');
+
+export default function VoiceChat() {
+  const [error, setError] = useState('');
+  const realtime = useRealtime({
+    model,
+    api: { provider: '/api/mistral-realtime' },
+    onError: error => setError(error.message),
+  });
+
+  return (
+    <>
+      <button onClick={() => realtime.connect()}>Start conversation</button>
+      <button onClick={() => realtime.close()}>Stop</button>
+      <button onClick={() => realtime.resumePlayback()}>Enable audio</button>
+      <p>{realtime.status}</p>
+      {error && <p role="alert">{error}</p>}
+      {realtime.messages.map(message => (
+        <p key={message.id}>
+          <strong>{message.role}: </strong>
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
+        </p>
+      ))}
+    </>
+  );
+}
+```
+
+`connect()` requests microphone permission and starts playback. Use HTTPS or
+localhost. If the browser blocks playback, call `resumePlayback()` from a user
+gesture. Await `close()` to stop the microphone, leave the room, and close the
+server-side session. Transcripts appear in `messages`; `isCapturing`, `isPlaying`,
+and `onError` expose media state and failures.
+
+Configure the session on the server with `instructions`, `voice`, and
+`providerOptions.mistral`. The latter supports `stt`, `tts`, `turn`,
+`welcomeMessage`, `agentId`, and `agentVersion`, and is typed by
+`Experimental_MistralRealtimeModelOptions`. The factory's model ID selects the
+language model; STT and TTS models are separate settings. `voice` takes precedence
+over `tts.voiceId`.
+
+This integration supports microphone conversations, transcripts, capture and
+playback controls, client tools, and session cleanup. Pass tool definitions in
+the server's `sessionConfig.tools` and handle calls with `onToolCall` or
+`addToolOutput`, as described in [Realtime tool calling](/docs/ai-sdk-core/realtime#tool-calling).
+Session updates support instructions, tools, and `providerOptions.mistral.turn`.
+
+Text messages and manual audio-buffer or response commands are unsupported.
+Audio formats are negotiated by LiveKit; omit `inputAudioFormat`,
+`outputAudioFormat`, and normalized `turnDetection`. Configure turn behavior
+through `providerOptions.mistral` instead. `getToken()` and the hook's `api.token`,
+`api.websocket`, and `api.session` paths do not connect to these managed sessions.
+
+The complete microphone-to-speaker example is at
+[`examples/ai-e2e-next/app/mistral-realtime`](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/mistral-realtime).
 
 ## Embedding Models
 

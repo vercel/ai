@@ -23,9 +23,15 @@ import { MistralTranscriptionModel } from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 import { mistralTools } from './tool';
+import {
+  createMistralRealtimeFactory,
+  type MistralRealtimeFactory,
+} from './realtime/mistral-realtime-factory';
 
 export interface MistralProvider extends ProviderV4 {
   tools: typeof mistralTools;
+  /** Creates managed voice agents and their server-side sessions. */
+  experimental_realtime: MistralRealtimeFactory;
   (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
@@ -192,6 +198,11 @@ export function createMistral(
   provider.chat = createChatModel;
   provider.conversation = createConversationModel;
   provider.tools = mistralTools;
+  provider.experimental_realtime = createMistralRealtimeFactory({
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

@@ -43,7 +43,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "livekit-client": "^2.23.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
