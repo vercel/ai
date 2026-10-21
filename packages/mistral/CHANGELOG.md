@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 3.0.75
+
+### Patch Changes
+
+- 640a118: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 3.0.74
 
 ### Patch Changes

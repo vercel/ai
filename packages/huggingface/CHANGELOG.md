@@ -1,5 +1,16 @@
 # @ai-sdk/huggingface
 
+## 1.0.89
+
+### Patch Changes
+
+- 50a2266: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [81df039]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+  - @ai-sdk/openai-compatible@2.0.87
+
 ## 1.0.88
 
 ### Patch Changes

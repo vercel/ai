@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 4.0.220
+
+### Patch Changes
+
+- 85a1df6: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [2223bf2]
+- Updated dependencies [f536aa8]
+- Updated dependencies [81df039]
+- Updated dependencies [e172400]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+  - @ai-sdk/anthropic@3.0.135
+  - @ai-sdk/google@3.0.137
+  - @ai-sdk/openai-compatible@2.0.87
+
 ## 4.0.219
 
 ### Patch Changes

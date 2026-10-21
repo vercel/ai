@@ -1,5 +1,14 @@
 # @ai-sdk/cohere
 
+## 3.0.73
+
+### Patch Changes
+
+- 064714a: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 3.0.72
 
 ### Patch Changes

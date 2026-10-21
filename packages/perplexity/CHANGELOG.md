@@ -1,5 +1,14 @@
 # @ai-sdk/perplexity
 
+## 3.1.8
+
+### Patch Changes
+
+- af9a8e5: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 3.1.7
 
 ### Patch Changes

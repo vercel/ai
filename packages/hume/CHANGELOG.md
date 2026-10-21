@@ -1,5 +1,14 @@
 # @ai-sdk/hume
 
+## 2.0.68
+
+### Patch Changes
+
+- 1e6946b: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 2.0.67
 
 ### Patch Changes

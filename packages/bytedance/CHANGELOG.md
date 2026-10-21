@@ -1,5 +1,15 @@
 # @ai-sdk/bytedance
 
+## 1.0.51
+
+### Patch Changes
+
+- 2d50002: Defer validation schema construction until first use to reduce provider import time.
+- d726591: Encode provider-returned identifiers in follow-up request paths with a shared encodePathSegment helper.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 1.0.50
 
 ### Patch Changes

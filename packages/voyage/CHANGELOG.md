@@ -1,5 +1,14 @@
 # @ai-sdk/voyage
 
+## 1.0.39
+
+### Patch Changes
+
+- 2f58db1: Defer validation schema construction until first use to reduce provider import time.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 1.0.38
 
 ### Patch Changes

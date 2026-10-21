@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 3.0.131
+
+### Patch Changes
+
+- 6afa8a8: Defer validation schema construction until first use to reduce provider import time.
+- aad3b66: feat(openai): support 12h prompt cache writes and cache prewarming
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 3.0.130
 
 ### Patch Changes

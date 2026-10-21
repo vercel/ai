@@ -1,5 +1,15 @@
 # @ai-sdk/klingai
 
+## 3.0.54
+
+### Patch Changes
+
+- 884d97b: Defer validation schema construction until first use to reduce provider import time.
+- d726591: Encode provider-returned identifiers in follow-up request paths with a shared encodePathSegment helper.
+- Updated dependencies [1183cc4]
+- Updated dependencies [d726591]
+  - @ai-sdk/provider-utils@4.0.62
+
 ## 3.0.53
 
 ### Patch Changes
