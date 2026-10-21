@@ -3,12 +3,19 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import userEvent from '@testing-library/user-event';
-import { findByText, screen } from '@testing-library/vue';
+import {
+  cleanup,
+  findByText,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/vue';
 import type { UIMessageChunk } from 'ai';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
-import { describe, it, expect } from 'vitest';
+import { useCompletion } from './use-completion';
+import { afterEach, describe, it, expect } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -16,6 +23,112 @@ function formatChunk(part: UIMessageChunk) {
 
 const server = createTestServer({
   '/api/completion': {},
+});
+
+describe('initial completion', () => {
+  afterEach(cleanup);
+
+  function renderUseCompletion(options: Parameters<typeof useCompletion>[0]) {
+    let result: ReturnType<typeof useCompletion> | undefined;
+
+    render({
+      setup() {
+        result = useCompletion(options);
+        return () => null;
+      },
+    });
+
+    return result!;
+  }
+
+  it('allows the completion to be cleared', async () => {
+    const { completion, setCompletion } = renderUseCompletion({
+      id: 'clear-initial-completion',
+      initialCompletion: 'Previous completion',
+    });
+
+    await waitFor(() => {
+      expect(completion.value).toBe('Previous completion');
+    });
+
+    setCompletion('');
+
+    await waitFor(() => {
+      expect(completion.value).toBe('');
+    });
+  });
+
+  it('preserves a cleared completion when reusing an id', async () => {
+    const first = renderUseCompletion({
+      id: 'reuse-cleared-initial-completion',
+      initialCompletion: 'Previous completion',
+    });
+
+    await waitFor(() => {
+      expect(first.completion.value).toBe('Previous completion');
+    });
+
+    first.setCompletion('');
+
+    await waitFor(() => {
+      expect(first.completion.value).toBe('');
+    });
+
+    const second = renderUseCompletion({
+      id: 'reuse-cleared-initial-completion',
+      initialCompletion: 'Different initial completion',
+    });
+
+    expect(second.completion.value).toBe('');
+  });
+
+  it('shows an empty completion while a request is pending', async () => {
+    let releaseResponse!: () => void;
+    const responseGate = new Promise<void>(resolve => {
+      releaseResponse = resolve;
+    });
+    const { completion, complete } = renderUseCompletion({
+      id: 'clear-initial-completion-on-request',
+      initialCompletion: 'Previous completion',
+      streamProtocol: 'text',
+      fetch: async () => {
+        await responseGate;
+        return new Response('');
+      },
+    });
+
+    await waitFor(() => {
+      expect(completion.value).toBe('Previous completion');
+    });
+
+    const request = complete('New prompt');
+
+    await waitFor(() => {
+      expect(completion.value).toBe('');
+    });
+
+    releaseResponse();
+    await request;
+  });
+
+  it('preserves an empty completion response', async () => {
+    const { completion, complete } = renderUseCompletion({
+      id: 'empty-completion-response',
+      initialCompletion: 'Previous completion',
+      streamProtocol: 'text',
+      fetch: async () => new Response(''),
+    });
+
+    await waitFor(() => {
+      expect(completion.value).toBe('Previous completion');
+    });
+
+    await complete('New prompt');
+
+    await waitFor(() => {
+      expect(completion.value).toBe('');
+    });
+  });
 });
 
 describe('stream data stream', () => {
