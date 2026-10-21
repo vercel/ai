@@ -4,7 +4,6 @@ import {
   safeValidateTypes,
   type ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from '../util/zod';
 import { modelMessageSchema } from './message';
 import type { Instructions, Prompt } from './prompt';
 
@@ -95,18 +94,50 @@ export async function standardizePrompt({
     });
   }
 
-  const validationResult = await safeValidateTypes({
-    value: messages,
-    schema: z.array(modelMessageSchema),
-  });
-
-  if (!validationResult.success) {
+  if (!Array.isArray(messages)) {
     throw new InvalidPromptError({
       prompt,
       message: 'The messages do not match the ModelMessage[] schema.',
-      cause: validationResult.error,
     });
   }
 
+  for (const message of messages) {
+    if (isValidatedMessage(message)) {
+      continue;
+    }
+
+    const validationResult = await safeValidateTypes({
+      value: message,
+      schema: modelMessageSchema,
+    });
+
+    if (!validationResult.success) {
+      throw new InvalidPromptError({
+        prompt,
+        message: 'The messages do not match the ModelMessage[] schema.',
+        cause: validationResult.error,
+      });
+    }
+
+    if (typeof message === 'object' && message !== null) {
+      validatedMessages.add(message);
+    }
+  }
+
   return { messages, instructions };
+}
+
+/**
+ * Message objects that already passed schema validation. The step loop passes
+ * the full accumulated history on every step; re-validating it costs O(history)
+ * synchronous work per step. Assumes messages are not mutated after validation.
+ */
+const validatedMessages = new WeakSet<object>();
+
+function isValidatedMessage(message: unknown): boolean {
+  return (
+    typeof message === 'object' &&
+    message !== null &&
+    validatedMessages.has(message)
+  );
 }
