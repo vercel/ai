@@ -26,6 +26,18 @@ type State =
 // is assumed that the resulting JSON will be processed by a standard
 // JSON parser that will detect any invalid JSON.
 export function fixJson(input: string): string {
+  return repairJson(input).text;
+}
+
+/**
+ * Repairs partial JSON like `fixJson` and also reports whether the input ended
+ * inside an unclosed string, object, or array. Such input can never be valid
+ * JSON, so callers can skip parsing it as-is.
+ */
+export function repairJson(input: string): {
+  text: string;
+  isTruncated: boolean;
+} {
   const stack: State[] = ['ROOT'];
   let lastValidIndex = -1;
   let literalStart: number | null = null;
@@ -385,12 +397,14 @@ export function fixJson(input: string): string {
   }
 
   let result = input.slice(0, lastValidIndex + 1);
+  let isTruncated = false;
 
   for (let i = stack.length - 1; i >= 0; i--) {
     const state = stack[i];
 
     switch (state) {
       case 'INSIDE_STRING': {
+        isTruncated = true;
         result += '"';
         break;
       }
@@ -401,6 +415,7 @@ export function fixJson(input: string): string {
       case 'INSIDE_OBJECT_START':
       case 'INSIDE_OBJECT_BEFORE_VALUE':
       case 'INSIDE_OBJECT_AFTER_VALUE': {
+        isTruncated = true;
         result += '}';
         break;
       }
@@ -408,6 +423,7 @@ export function fixJson(input: string): string {
       case 'INSIDE_ARRAY_START':
       case 'INSIDE_ARRAY_AFTER_COMMA':
       case 'INSIDE_ARRAY_AFTER_VALUE': {
+        isTruncated = true;
         result += ']';
         break;
       }
@@ -426,5 +442,5 @@ export function fixJson(input: string): string {
     }
   }
 
-  return result;
+  return { text: result, isTruncated };
 }
