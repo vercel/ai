@@ -21,7 +21,7 @@ This pattern is useful when you want to:
 ```ts
 import { ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
-import z from 'zod';
+import { z } from 'zod/v4';
 
 const getWeather = async ({ location }: { location: string }) => {
   return `The weather in ${location} is ${Math.floor(Math.random() * 100)} degrees.`;
@@ -65,11 +65,11 @@ async function main() {
     const responseMessages = await result.responseMessages;
     messages.push(...responseMessages);
 
-    const finishReason = await result.finishReason;
+    const toolCalls = (await result.staticToolCalls).filter(
+      toolCall => !toolCall.providerExecuted,
+    );
 
-    if (finishReason === 'tool-calls') {
-      const toolCalls = await result.toolCalls;
-
+    if (toolCalls.length > 0) {
       // Handle all tool call execution here
       for (const toolCall of toolCalls) {
         if (toolCall.toolName === 'getWeather') {
@@ -113,12 +113,16 @@ messages.push(...responseMessages);
 
 ### Tool Execution Control
 
-Tool execution is handled manually in the loop. When the model requests tool calls, you process each one individually:
+Tool execution is handled manually in the loop. Use `staticToolCalls` for the
+tools declared in this example and exclude provider-executed calls so they are
+not executed again. Process each complete client-side call individually:
 
 ```ts
-if (finishReason === 'tool-calls') {
-  const toolCalls = await result.toolCalls;
+const toolCalls = (await result.staticToolCalls).filter(
+  toolCall => !toolCall.providerExecuted,
+);
 
+if (toolCalls.length > 0) {
   for (const toolCall of toolCalls) {
     if (toolCall.toolName === 'getWeather') {
       const toolOutput = await getWeather(toolCall.input);
@@ -141,10 +145,21 @@ if (finishReason === 'tool-calls') {
 
 ### Loop Termination
 
-The loop continues until the model stops requesting tool calls. You can customize this logic to implement your own termination conditions:
+The loop continues while there are complete client-side tool calls to execute.
+Check the calls themselves rather than `finishReason`: a model can return a
+complete call with a finish reason of `stop`. Since this recipe deliberately
+omits `execute`, you decide when to execute those calls and append their results
+before the next generation. The loop stops when there are no such calls, even
+if the final text is empty or the finish reason is `tool-calls`.
+
+You can customize this logic to implement your own termination conditions:
 
 ```ts
-if (finishReason === 'tool-calls') {
+const toolCalls = (await result.staticToolCalls).filter(
+  toolCall => !toolCall.providerExecuted,
+);
+
+if (toolCalls.length > 0) {
   // Continue the loop
 } else {
   // Exit the loop
