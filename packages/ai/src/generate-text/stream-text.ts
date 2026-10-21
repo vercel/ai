@@ -109,6 +109,7 @@ import type {
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -3215,6 +3216,7 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
+                    isToolExecutionAllowedFinishReason(stepFinishReason) &&
                     // Continue only after all client tool calls have been executed or denied,
                     // and if there are client results or pending deferred provider results.
                     clientToolCalls.length ===

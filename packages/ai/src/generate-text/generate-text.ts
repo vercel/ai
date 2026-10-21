@@ -63,6 +63,7 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { convertLanguageModelContent } from './convert-language-model-content';
+import { createToolCallNotExecutedOutput } from './create-tool-call-not-executed-output';
 import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
@@ -1396,6 +1397,25 @@ export async function generateText<
                     result.toolExecutionMs;
                   clientToolOutputs.push(result.output);
                 }
+              } else if (stepExecutionTools != null) {
+                for (const toolCall of clientToolCalls) {
+                  if (
+                    toolCall.invalid ||
+                    blockedToolCallIds.has(toolCall.toolCallId)
+                  ) {
+                    continue;
+                  }
+
+                  const output = createToolCallNotExecutedOutput({
+                    toolCall,
+                    tools: stepExecutionTools as TOOLS,
+                    finishReason: currentModelResponse.finishReason.unified,
+                  });
+
+                  if (output != null) {
+                    clientToolOutputs.push(output);
+                  }
+                }
               }
 
               const stepTimeMs = now() - stepStartTimestampMs;
@@ -1531,6 +1551,9 @@ export async function generateText<
           }
         }
       } while (
+        isToolExecutionAllowedFinishReason(
+          steps[steps.length - 1].finishReason,
+        ) &&
         // Continue only after all client tool calls have been executed or denied,
         // and if there are client results or pending deferred provider results.
         clientToolOutputs.length + deniedToolApprovalResponses.length ===

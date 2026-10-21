@@ -54,6 +54,7 @@ import {
 import {
   NoOutputGeneratedError,
   StreamProviderError,
+  ToolCallNotExecutedError,
   ToolChoiceViolationError,
 } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -550,6 +551,84 @@ describe('streamText', () => {
       expect(capturedContext).toBe('test-telemetry-call-id');
     });
   });
+
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should resolve executable tool calls skipped for the %s finish reason',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+      const doStream = vi.fn(async () => ({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'serverTool',
+            input: '{"value":"test"}',
+          },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-2',
+            toolName: 'clientTool',
+            input: '{"value":"test"}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: finishReason,
+              raw: finishReason,
+            },
+            usage: testUsage,
+          },
+        ]),
+      }));
+
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        tools: {
+          serverTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+          clientTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        stopWhen: isStepCount(2),
+        ...defaultSettings(),
+      });
+
+      const uiMessages = await convertAsyncIterableToArray(
+        readUIMessageStream({ stream: result.toUIMessageStream() }),
+      );
+      const finalMessage = uiMessages.at(-1);
+      const serverToolPart = finalMessage?.parts.find(
+        part => 'toolCallId' in part && part.toolCallId === 'call-1',
+      );
+      const clientToolPart = finalMessage?.parts.find(
+        part => 'toolCallId' in part && part.toolCallId === 'call-2',
+      );
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(doStream).toHaveBeenCalledTimes(1);
+      expect(serverToolPart).toMatchObject({ state: 'output-error' });
+      expect(clientToolPart).toMatchObject({ state: 'input-available' });
+
+      const toolErrors = (await result.content).filter(
+        part => part.type === 'tool-error',
+      );
+      expect(toolErrors).toHaveLength(1);
+      expect(ToolCallNotExecutedError.isInstance(toolErrors[0].error)).toBe(
+        true,
+      );
+      expect(toolErrors[0].error).toMatchObject({
+        toolName: 'serverTool',
+        toolCallId: 'call-1',
+        finishReason,
+      });
+      expect(
+        (await result.response).messages.map(message => message.role),
+      ).toEqual(['assistant', 'tool']);
+    },
+  );
 
   describe('result.textStream', () => {
     it('should send text deltas', async () => {

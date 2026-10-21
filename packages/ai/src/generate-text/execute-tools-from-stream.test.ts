@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
+import { ToolCallNotExecutedError } from '../error/tool-call-not-executed-error';
 import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
 import { executeToolsFromStream } from './execute-tools-from-stream';
@@ -341,7 +342,7 @@ describe('executeToolsFromStream', () => {
           },
         ]);
 
-      await convertReadableStreamToArray(
+      const result = await convertReadableStreamToArray(
         executeToolsFromStream({
           stream: inputStream,
           generateId: mockId({ prefix: 'id' }),
@@ -356,6 +357,30 @@ describe('executeToolsFromStream', () => {
       );
 
       expect(execute).not.toHaveBeenCalled();
+      const toolError = result.find(
+        part => 'type' in part && part.type === 'tool-error',
+      );
+      expect(toolError).toMatchObject({
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { value: 'test' },
+      });
+
+      if (
+        toolError == null ||
+        !('type' in toolError) ||
+        toolError.type !== 'tool-error'
+      ) {
+        expect.unreachable('expected a tool-error output');
+      }
+
+      expect(ToolCallNotExecutedError.isInstance(toolError.error)).toBe(true);
+      expect(toolError.error).toMatchObject({
+        toolName: 'testTool',
+        toolCallId: 'call-1',
+        finishReason,
+      });
     },
   );
 
