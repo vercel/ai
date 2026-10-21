@@ -1,0 +1,199 @@
+---
+title: DashScope
+description: Use Alibaba Cloud DashScope (Bailian) models — Responses API, built-in tools, thinking, and multimodal generation — with the AI SDK.
+---
+
+# DashScope Provider
+
+<Note>
+  `@agentor/dashscope` is a community provider maintained by
+  [Demo Macro](https://github.com/DemoMacro). Compared to the official
+  [`@ai-sdk/alibaba`](/providers/ai-sdk-providers/alibaba), it targets the
+  China-mainland DashScope (Bailian) endpoint and additionally exposes the
+  [Responses API](#responses-api), built-in tools, completions (FIM),
+  reranking, image/video generation, and speech.
+</Note>
+
+[Alibaba Cloud DashScope (Bailian)](https://help.aliyun.com/en/model-studio/)
+provides access to the Qwen model series and a wide range of multimodal
+generation models.
+
+API keys can be obtained from the
+[Bailian Console](https://bailian.console.aliyun.com/).
+
+## Setup
+
+The DashScope provider is available in the `@agentor/dashscope` module. You can
+install it with:
+
+<InstallPackages packages="@agentor/dashscope" />
+
+## Provider Instance
+
+You can import the default provider instance `dashscope` from
+`@agentor/dashscope`:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope('qwen3.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+For custom configuration, use `createDashScope`:
+
+```ts
+import { createDashScope } from '@agentor/dashscope';
+
+const dashscope = createDashScope({
+  apiKey: process.env.DASHSCOPE_API_KEY, // defaults to the DASHSCOPE_API_KEY env var
+  region: 'beijing', // beijing | singapore | us | germany
+});
+```
+
+You can use the following optional settings:
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header. It defaults to the
+  `DASHSCOPE_API_KEY` environment variable.
+
+- **region** _'beijing' | 'singapore' | 'us' | 'germany'_
+
+  Service region. Defaults to `beijing`.
+
+- **workspaceId** _string_
+
+  Required for the `germany` region.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch)
+  implementation.
+
+## Language Models
+
+Chat models call `/chat/completions` and support function calling, streaming,
+reasoning, and vision:
+
+```ts
+const model = dashscope('qwen3.5-flash');
+// or
+const model = dashscope.chatModel('qwen3.5-flash');
+```
+
+DashScope language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Thinking Mode
+
+Enable reasoning with a configurable budget:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: dashscope('qwen3-max'),
+  providerOptions: {
+    dashscope: {
+      enableThinking: true,
+      thinkingBudget: 5000,
+    },
+  },
+  prompt: 'Which is larger, 9.11 or 9.9?',
+});
+```
+
+## Responses API
+
+The `responses` namespace targets the `/responses` endpoint and provides access
+to DashScope's built-in, provider-executed tools:
+
+```ts
+import { dashscope } from '@agentor/dashscope';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  prompt: 'Search the web for the latest news.',
+});
+```
+
+### Built-in Tools
+
+Built-in tools are executed by DashScope and surfaced as `tool-call` and
+`source` stream parts:
+
+```ts
+const { text } = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  tools: [dashscope.responses.tools.webSearch()],
+  prompt: 'What are the latest tech news today?',
+});
+```
+
+The following tools are available under `dashscope.responses.tools`:
+
+- **webSearch** — Web search. Options: `forcedSearch`, `searchStrategy`.
+- **codeInterpreter** — Write and execute code.
+- **webExtractor** — Extract content from web pages (use together with `webSearch`).
+- **fileSearch** — Search within knowledge bases. Requires `{ vectorStoreIds: string[] }`.
+- **webSearchImage** — Text-to-image search.
+- **imageSearch** — Image-to-image search.
+- **mcp** — Model Context Protocol integration. Requires `{ serverProtocol, serverLabel, serverUrl }`.
+
+<Note>
+  Built-in tools are executed provider-side. The provider emits the matching
+  `tool-call` (and, where applicable, `source`) stream parts so they integrate
+  with the AI SDK tool flow and `fullStream`.
+</Note>
+
+### Multi-turn Conversation
+
+Use `previousResponseId` to continue a conversation:
+
+```ts
+const first = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  prompt: 'Tell me about TypeScript.',
+});
+
+const second = await generateText({
+  model: dashscope.responses('qwen3.5-flash'),
+  providerOptions: {
+    dashscope: { previousResponseId: first.response.id },
+  },
+  prompt: 'Follow up question...',
+});
+```
+
+## Other Capabilities
+
+Beyond language models, `@agentor/dashscope` exposes the following model types:
+
+| Capability | Factory | Example model |
+| --- | --- | --- |
+| Completions (FIM) | `dashscope.completionModel()` | `qwen2.5-coder-32b-instruct` |
+| Embedding | `dashscope.embeddingModel()` | `text-embedding-v4` |
+| Reranking | `dashscope.rerankingModel()` | `qwen3-rerank` |
+| Image generation | `dashscope.imageModel()` | `qwen-image-plus` |
+| Video generation | `dashscope.videoModel()` | `wan2.6-t2v` |
+| Speech synthesis | `dashscope.speechModel()` | `cosyvoice-v3-flash` |
+| Transcription | `dashscope.transcriptionModel()` | `qwen3-asr-flash` |
+
+## Learn More
+
+- [Provider documentation](https://github.com/DemoMacro/agentor/tree/main/packages/dashscope)
+- [Available models](https://help.aliyun.com/en/model-studio/models)
