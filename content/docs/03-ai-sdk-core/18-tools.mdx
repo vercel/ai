@@ -206,9 +206,9 @@ const result = await generateText({
 The model calls the tool with `{ url: string, offset?: number }`. The tool
 returns one of the following results:
 
-- `{ type: 'document', url, finalUrl, contentType, title?, content, offset, totalLength, nextOffset?, retrievedAt }`
+- `{ type: 'document', url, finalUrl, contentType, title?, content, offset, totalLength, nextOffset? }`
   for HTML, text, and PDFs converted to text.
-- `{ type: 'file', url, finalUrl, mediaType, data, retrievedAt }` for PDFs when
+- `{ type: 'file', url, finalUrl, mediaType, data }` for PDFs when
   `pdf` is set to `'file'`. `data` is base64-encoded.
 - `{ type: 'error', url, errorCode, message, statusCode? }` when fetching fails.
   Errors are returned so the model can recover, for example by trying another URL.

@@ -61,7 +61,6 @@ const outputSchema = z.discriminatedUnion('type', [
     offset: z.number(),
     totalLength: z.number(),
     nextOffset: z.number().optional(),
-    retrievedAt: z.string(),
   }),
   z.object({
     type: z.literal('file'),
@@ -69,7 +68,6 @@ const outputSchema = z.discriminatedUnion('type', [
     finalUrl: z.string(),
     mediaType: z.string(),
     data: z.string(),
-    retrievedAt: z.string(),
   }),
   z.object({
     type: z.literal('error'),
@@ -459,7 +457,6 @@ export function createWebFetchTool({
       const { finalUrl, body } = result;
       const mediaType = getMediaType(result.contentType);
       const kind = classifyContent({ mediaType, body });
-      const retrievedAt = new Date().toISOString();
 
       if (kind === 'unsupported') {
         return error(
@@ -475,7 +472,6 @@ export function createWebFetchTool({
           finalUrl,
           mediaType: 'application/pdf',
           data: convertUint8ArrayToBase64(body),
-          retrievedAt,
         };
       }
 
@@ -519,7 +515,6 @@ export function createWebFetchTool({
               : mediaType,
         ...(title !== undefined ? { title } : {}),
         content,
-        retrievedAt,
       };
 
       if (content.length > maxLength) {
