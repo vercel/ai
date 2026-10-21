@@ -2,6 +2,7 @@ import type {
   Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
   Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
+  Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   SharedV4ProviderMetadata,
   SharedV4Warning,
   SpeechModelV4,
@@ -41,7 +42,7 @@ import {
 } from './gateway-stream-errors';
 import { getProtocolsFromHeaders } from './gateway-transcription-model';
 
-export class GatewaySpeechModel implements SpeechModelV4 {
+export class GatewaySpeechModel implements StreamingSpeechModelV4 {
   readonly specificationVersion = 'v4' as const;
 
   constructor(

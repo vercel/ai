@@ -19,6 +19,7 @@ import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { VERSION } from '../version';
+import { isStreamingSpeechModel } from './is-streaming-speech-model';
 import type {
   SpeechStreamPart,
   SpeechStreamUsage,
@@ -127,8 +128,7 @@ export function streamSpeech({
     throw new Error('Model could not be resolved');
   }
 
-  const doStream = resolvedModel.doStream?.bind(resolvedModel);
-  if (doStream == null) {
+  if (!isStreamingSpeechModel(resolvedModel)) {
     throw new UnsupportedFunctionalityError({
       functionality: 'streaming speech',
       message:
@@ -287,7 +287,7 @@ export function streamSpeech({
   // Piping (instead of an eager read loop) preserves consumer backpressure
   // and propagates cancellation of the output stream to the model stream.
   void (async () => {
-    const result = await doStream({
+    const result = await resolvedModel.doStream({
       text: textStream,
       voice,
       outputFormat,

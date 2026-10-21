@@ -5,3 +5,4 @@ export type { SpeechModelV4StreamOptions as Experimental_SpeechModelV4StreamOpti
 export type { SpeechModelV4StreamPart as Experimental_SpeechModelV4StreamPart } from './speech-model-v4-stream-part';
 export type { SpeechModelV4StreamResult as Experimental_SpeechModelV4StreamResult } from './speech-model-v4-stream-result';
 export type { SpeechModelV4StreamUsage as Experimental_SpeechModelV4StreamUsage } from './speech-model-v4-stream-usage';
+export type { StreamingSpeechModelV4 as Experimental_StreamingSpeechModelV4 } from './speech-model-v4-streaming';
