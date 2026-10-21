@@ -5,7 +5,7 @@ description: Learn how to use the WaveSpeed provider for the AI SDK.
 
 # WaveSpeed Provider
 
-[@wavespeed/ai-sdk-provider](https://github.com/WaveSpeedAI/ai-sdk-provider) is a community provider that gives you access to the image and video generation models on the live [WaveSpeed](https://wavespeed.ai) catalog — Seedream, Seedance, FLUX, Wan, and hundreds more — through the standard AI SDK interfaces.
+[@wavespeed/ai-sdk-provider](https://github.com/WaveSpeedAI/ai-sdk-provider) is a community provider that gives you access to WaveSpeed's LLMs plus the image and video generation models on the live [WaveSpeed](https://wavespeed.ai) catalog — Seedream, Seedance, FLUX, Wan, and hundreds more — through the standard AI SDK interfaces.
 
 API keys can be obtained from the [WaveSpeed dashboard](https://wavespeed.ai).
 
@@ -43,6 +43,10 @@ You can use the following optional settings to customize the provider instance:
 
   Use a different URL prefix for API calls. Defaults to `https://api.wavespeed.ai`.
 
+- **llmBaseURL** _string_
+
+  Use a different URL prefix for language model calls. Defaults to `https://llm.wavespeed.ai/v1`.
+
 - **pollIntervalMillis** _number_
 
   Interval between status polls. Defaults to `1000`.
@@ -50,6 +54,20 @@ You can use the following optional settings to customize the provider instance:
 - **pollTimeoutMillis** _number_
 
   Maximum time to wait for a prediction. Defaults to `600000` (10 minutes).
+
+## Language Models
+
+You can create WaveSpeed language models by calling the provider instance, or with `.chat()`. Streaming, tool calls and structured output are supported. Model ids are listed in the [WaveSpeed LLM catalog](https://wavespeed.ai/llm).
+
+```ts
+import { wavespeed } from '@wavespeed/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: wavespeed('deepseek/deepseek-v4.1-flash-1017'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
 
 ## Image Models
 
