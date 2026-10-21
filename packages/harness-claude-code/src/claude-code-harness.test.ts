@@ -6,6 +6,7 @@ import {
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod/v4';
