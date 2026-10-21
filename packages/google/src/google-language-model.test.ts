@@ -6274,6 +6274,110 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-empty-tool-containers', () => {
+    it('should keep empty arrays and objects in streamed function call arguments', async () => {
+      const chunk = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
+      const call = (partialArg: Record<string, unknown>, willContinue = true) =>
+        chunk({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [partialArg],
+                      ...(willContinue ? { willContinue: true } : {}),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          chunk({
+            candidates: [
+              {
+                content: {
+                  role: 'model',
+                  parts: [{ functionCall: { name: 't', willContinue: true } }],
+                },
+              },
+            ],
+          }),
+          call({ jsonPath: '$.id', stringValue: 'x' }),
+          call({ jsonPath: '$.emptyArr[]' }),
+          call({ jsonPath: '$.emptyObj' }),
+          call({ jsonPath: '$.emptyStr', stringValue: '' }),
+          call({ jsonPath: '$.nested.tags[]' }),
+          call({ jsonPath: '$.zero', numberValue: 0 }),
+          call({ jsonPath: '$.no', boolValue: false }, false),
+          chunk({
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 20,
+              totalTokenCount: 30,
+            },
+          }),
+        ],
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const input = events
+        .filter(event => event.type === 'tool-input-delta')
+        .map(event => event.delta)
+        .join('');
+
+      expect(input).toBe(
+        '{"id":"x","emptyArr":[],"emptyObj":{},"emptyStr":"","nested":{"tags":[]},"zero":0,"no":false}',
+      );
+      expect(
+        events
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.input),
+      ).toEqual([input]);
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');
