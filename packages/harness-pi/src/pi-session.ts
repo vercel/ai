@@ -77,6 +77,7 @@ import {
   sessionEntriesOf,
   withSessionId,
   type PiCompletedToolResult,
+  type PiLifecycleData,
   type PiPendingToolBatch,
   type PiSessionEntries,
 } from './pi-lifecycle-state';
@@ -349,7 +350,7 @@ export interface CreatePiSessionInput {
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeEntries?: PiSessionEntries;
-  readonly resumePartIds?: ReadonlyArray<string>;
+  readonly resumeLeafId?: string;
   /**
    * Tool batch that was waiting on host input when the resumed state was
    * persisted. The first continuation replays it once its host input arrives.
@@ -552,9 +553,8 @@ export async function createPiSession(
     : undefined;
   const storage = input.settings.sessionStorage;
   let resumeEntries = input.resumeEntries;
-  let savedPartIds = input.resumePartIds ?? [];
   let savedEntryCount = 0;
-  if (input.resumePartIds != null) {
+  if (input.resumeLeafId != null) {
     if (storage == null) {
       throw new HarnessError({
         message:
@@ -564,9 +564,8 @@ export async function createPiSession(
     resumeEntries = await readSessionEntries({
       storage,
       sessionId: input.sessionId,
-      ids: input.resumePartIds,
     });
-    savedEntryCount = resumeEntries.length - 1;
+    savedEntryCount = (resumeEntries?.length ?? 1) - 1;
   }
   const seededEntries =
     resumeEntries && piSessionId != null
@@ -574,21 +573,43 @@ export async function createPiSession(
       : resumeEntries;
   let sessionManager: SessionManager | undefined;
   const getSessionManager = (): SessionManager => {
-    sessionManager ??= SessionManager.inMemory(
-      sessionWorkDir,
-      piSessionId == null ? {} : { id: piSessionId },
-      seededEntries == null ? undefined : structuredClone([...seededEntries]),
-    );
+    if (sessionManager == null) {
+      sessionManager = SessionManager.inMemory(
+        sessionWorkDir,
+        piSessionId == null ? {} : { id: piSessionId },
+        seededEntries == null ? undefined : structuredClone([...seededEntries]),
+      );
+      if (input.resumeLeafId != null) {
+        sessionManager.branch(input.resumeLeafId);
+      }
+    }
     return sessionManager;
   };
-  const snapshotUnsavedEntries = (): PiSessionEntries | undefined => {
+  if (input.resumeLeafId != null) {
+    try {
+      getSessionManager();
+    } catch (error) {
+      throw new HarnessError({
+        message: `The session storage has no entry "${input.resumeLeafId}" for the Pi session "${input.sessionId}".`,
+        cause: error,
+      });
+    }
+  }
+  const snapshotUnsavedEntries = ():
+    | { entries: HarnessV1JSONValue; count: number; leafId?: string }
+    | undefined => {
     const entries =
       sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
     if (entries == null) return undefined;
     const [header, ...rest] = entries;
-    return secureJsonParse(
-      JSON.stringify([header, ...rest.slice(savedEntryCount)]),
-    );
+    const unsaved = rest.slice(savedEntryCount);
+    return {
+      entries: secureJsonParse(JSON.stringify([header, ...unsaved])),
+      count: unsaved.length,
+      ...(storage != null
+        ? { leafId: getSessionManager().getLeafId() ?? undefined }
+        : {}),
+    };
   };
 
   // Pi auth + model registry are global to this Pi session. These live on the
@@ -931,27 +952,24 @@ export async function createPiSession(
 
   async function createLifecycleData(
     pendingToolBatch: PiPendingToolBatch | undefined,
-    entries = snapshotUnsavedEntries(),
+    snapshot = snapshotUnsavedEntries(),
   ): Promise<HarnessV1LifecycleState['data']> {
-    const batch = pendingToolBatch ? { pendingToolBatch } : {};
-    if (storage == null) {
-      return {
-        ...(entries ? { entries } : {}),
-        ...batch,
-      } as HarnessV1LifecycleState['data'];
-    }
-    if (entries != null && entries.length > 1) {
-      const id = await storage.append({
+    if (storage != null && snapshot != null && snapshot.count > 0) {
+      await storage.append({
         sessionId: input.sessionId,
-        data: entries as unknown as HarnessV1JSONValue,
+        data: snapshot.entries,
       });
-      savedPartIds = [...savedPartIds, id];
-      savedEntryCount += entries.length - 1;
+      savedEntryCount += snapshot.count;
     }
-    return {
-      ...(savedPartIds.length > 0 ? { partIds: savedPartIds } : {}),
-      ...batch,
-    } as HarnessV1LifecycleState['data'];
+    const data: PiLifecycleData = {
+      ...(storage == null
+        ? snapshot && {
+            entries: snapshot.entries as unknown as PiSessionEntries,
+          }
+        : snapshot?.leafId && { leafId: snapshot.leafId }),
+      ...(pendingToolBatch && { pendingToolBatch }),
+    };
+    return data as HarnessV1LifecycleState['data'];
   }
 
   function acceptReplayToolResult(args: HostToolSubmission): void {
@@ -1565,7 +1583,7 @@ export async function createPiSession(
      */
     const pendingToolBatch = createPendingToolBatchCheckpoint();
     replayBarrier?.cancel();
-    const entriesBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
+    const snapshotBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
@@ -1573,13 +1591,13 @@ export async function createPiSession(
     await abortingTurn;
     await turnToStop?.done.catch(() => {});
 
-    const data = await createLifecycleData(
-      pendingToolBatch,
-      entriesBeforeAbort,
-    );
-
-    await disposePiSession({ reason: 'quit' });
-    await rm(hostRoot, { recursive: true, force: true });
+    let data: HarnessV1LifecycleState['data'];
+    try {
+      data = await createLifecycleData(pendingToolBatch, snapshotBeforeAbort);
+    } finally {
+      await disposePiSession({ reason: 'quit' });
+      await rm(hostRoot, { recursive: true, force: true });
+    }
 
     return {
       type: 'resume-session',
@@ -1764,7 +1782,7 @@ export async function createPiSession(
        */
       const pendingToolBatch = createPendingToolBatchCheckpoint();
       replayBarrier?.cancel();
-      const entriesBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
+      const snapshotBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
       suspending = true;
       const turnToSuspend = activeTurn;
       const abortingTurn = turnToSuspend?.abort();
@@ -1773,15 +1791,15 @@ export async function createPiSession(
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      const data = await createLifecycleData(
-        pendingToolBatch,
-        entriesBeforeAbort,
-      );
-
-      stopped = true;
-      parkedPiSessions.delete(input.sessionId);
-      await disposePiSession({ reason: 'quit' });
-      await rm(hostRoot, { recursive: true, force: true });
+      let data: HarnessV1LifecycleState['data'];
+      try {
+        data = await createLifecycleData(pendingToolBatch, snapshotBeforeAbort);
+      } finally {
+        stopped = true;
+        parkedPiSessions.delete(input.sessionId);
+        await disposePiSession({ reason: 'quit' });
+        await rm(hostRoot, { recursive: true, force: true });
+      }
 
       return {
         type: 'continue-turn',

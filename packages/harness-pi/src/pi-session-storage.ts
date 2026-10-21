@@ -9,29 +9,31 @@ import {
 } from './pi-lifecycle-state';
 
 /**
- * Caller-provided append-only storage for harness sessions, such as an object
- * store or a log. With a session storage, the lifecycle state holds the ids of
- * the appended parts of a session instead of the session itself, so it stays
- * small however long the session grows. Parts are never changed or deleted;
- * a part whose id no lifecycle state lists, such as one appended by a step
- * that crashed, is never read. The storage moves JSON values; the harness
- * decides what a part holds and checks it when it is read.
+ * Caller-provided append-only log for harness sessions, such as an object
+ * store, a database table or a stream. With a session storage, the harness
+ * appends each lifecycle state's new session entries to the log as one part,
+ * and the lifecycle state holds only a pointer to where the session ends.
+ * Parts are never changed or deleted. A regenerated turn, a retried step or a
+ * second turn resumed from the same state appends a new branch, and the
+ * pointer in each lifecycle state selects its own branch. The storage moves
+ * JSON values; the harness decides what a part holds and checks it when it
+ * is read.
  */
 export interface SessionStorage {
   /**
-   * Appends one part of a session and returns its id.
+   * Appends one part to the log of a session.
    */
   append(options: {
     sessionId: string;
     data: HarnessV1JSONValue;
-  }): PromiseLike<string>;
+  }): PromiseLike<void>;
 
   /**
-   * Reads the parts with the given ids, in the same order.
+   * Reads every part of the log of a session, in the order they were
+   * appended.
    */
   read(options: {
     sessionId: string;
-    ids: ReadonlyArray<string>;
   }): PromiseLike<ReadonlyArray<HarnessV1JSONValue>>;
 }
 
@@ -42,33 +44,22 @@ export interface SessionStorage {
 export async function readSessionEntries({
   storage,
   sessionId,
-  ids,
 }: {
   storage: SessionStorage;
   sessionId: string;
-  ids: ReadonlyArray<string>;
-}): Promise<PiSessionEntries> {
-  const data = await storage.read({ sessionId, ids });
-  if (data.length !== ids.length) {
-    throw new HarnessError({
-      message: `The session storage returned ${data.length} parts for ${ids.length} ids.`,
-    });
-  }
-  const parts = data.map((value, index) => {
-    const result = piSessionEntriesSchema.safeParse(value);
+}): Promise<PiSessionEntries | undefined> {
+  const parts = (await storage.read({ sessionId })).map((value, index) => {
+    const result = piSessionEntriesSchema.safeParse(structuredClone(value));
     if (!result.success) {
       throw new HarnessError({
-        message: `The Pi session part "${ids[index]}" is not a Pi session.`,
+        message: `Part ${index} of the Pi session "${sessionId}" is not a Pi session.`,
         cause: result.error,
       });
     }
-    const part: FileEntry[] = structuredClone([...result.data]);
-    migrateSessionEntries(part);
-    return part as [FileEntry, ...FileEntry[]];
+    migrateSessionEntries(result.data as unknown as FileEntry[]);
+    return result.data;
   });
   const [first, ...rest] = parts;
-  return [
-    ...first!,
-    ...rest.flatMap(([, ...entries]) => entries),
-  ] as PiSessionEntries;
+  if (first == null) return undefined;
+  return [...first, ...rest.flatMap(([, ...entries]) => entries)];
 }

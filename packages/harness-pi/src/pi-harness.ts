@@ -42,10 +42,8 @@ export type PiHarnessSettings = {
    */
   readonly credentials?: PiCredentialStore;
   /**
-   * Caller-provided append-only storage for the Pi session. When set, the
-   * harness appends the entries each lifecycle state adds as one part, and the
-   * lifecycle state holds only the ids of the parts. Without it, the lifecycle
-   * state holds the whole session.
+   * Caller-provided append-only log for the Pi session (see `SessionStorage`).
+   * Without it, the lifecycle state holds the whole session.
    */
   readonly sessionStorage?: SessionStorage;
   /**
@@ -275,12 +273,12 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.partIds
-          ? { resumePartIds: resumeData.partIds }
+        ...(resumeData?.leafId
+          ? { resumeLeafId: resumeData.leafId }
           : resumeData?.entries
             ? { resumeEntries: resumeData.entries }
             : {}),
-        ...((resumeData?.partIds || resumeData?.entries) &&
+        ...((resumeData?.leafId || resumeData?.entries) &&
         resumeData.pendingToolBatch
           ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),

@@ -10,6 +10,7 @@ import {
   createFakePi,
   listen,
   readBody,
+  runPromptTurn,
   toolCallChunks,
   useScriptedPiModel,
   type ModelRequestBody,
@@ -341,14 +342,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
       sessionWorkDir,
     });
     try {
-      const control = await session.doPromptTurn({
-        prompt: 'Hello.',
-        model: 'fake/fake-model',
-        tools: [],
-        skills: [],
-        emit: () => {},
-      });
-      await control.done;
+      await runPromptTurn(session, 'Hello.');
     } finally {
       await session.doDestroy();
     }
