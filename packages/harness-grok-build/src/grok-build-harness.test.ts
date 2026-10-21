@@ -16,7 +16,7 @@ describe('createGrokBuild', () => {
     mocks.createACP.mockClear();
   });
 
-  it('enforces the Grok Build ACP implementation', () => {
+  it('enforces the Grok Build ACP agent', () => {
     createGrokBuild();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;

@@ -6,6 +6,8 @@ import {
   type Experimental_DecisionModelV4Input as DecisionModelV4Input,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   detectMediaType,
@@ -27,54 +29,63 @@ import { openaiDecisionModelOptions } from './openai-decision-model-options';
 
 export type OpenAIDecisionModelId = 'gpt-6-luna' | (string & {});
 
-const probability = z.number().min(0).max(1);
-const responseSchema = z.object({
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      input_tokens_details: z
+const probability = () => z.number().min(0).max(1);
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string().nullish(),
+      usage: z
         .object({
-          cached_tokens: z.number().nullish(),
-          cache_write_tokens: z.number().nullish(),
+          input_tokens: z.number().nullish(),
+          input_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          output_tokens: z.number().nullish(),
+          output_tokens_details: z
+            .object({
+              reasoning_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          total_tokens: z.number().nullish(),
         })
         .nullish(),
-      output_tokens: z.number().nullish(),
-      output_tokens_details: z
-        .object({
-          reasoning_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      total_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  answers: z.array(
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('refusal'), name: z.string().nullable() }),
-      z.object({
-        type: z.literal('predicate'),
-        name: z.string(),
-        probability,
-      }),
-      z.object({
-        type: z.literal('choice'),
-        name: z.string(),
-        choice: z.string(),
-        confidence: probability.nullish(),
-        probabilities: z.array(z.object({ value: z.string(), probability })),
-      }),
-      z.object({
-        type: z.literal('score'),
-        name: z.string(),
-        score: z.number(),
-        confidence: probability.nullish(),
-        probabilities: z.array(
-          z.object({ value: z.number().int().nonnegative(), probability }),
-        ),
-      }),
-    ]),
+      answers: z.array(
+        z.discriminatedUnion('type', [
+          z.object({ type: z.literal('refusal'), name: z.string().nullable() }),
+          z.object({
+            type: z.literal('predicate'),
+            name: z.string(),
+            probability: probability(),
+          }),
+          z.object({
+            type: z.literal('choice'),
+            name: z.string(),
+            choice: z.string(),
+            confidence: probability().nullish(),
+            probabilities: z.array(
+              z.object({ value: z.string(), probability: probability() }),
+            ),
+          }),
+          z.object({
+            type: z.literal('score'),
+            name: z.string(),
+            score: z.number(),
+            confidence: probability().nullish(),
+            probabilities: z.array(
+              z.object({
+                value: z.number().int().nonnegative(),
+                probability: probability(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+    }),
   ),
-});
+);
 
 export class DecisionOpenAIModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';

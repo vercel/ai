@@ -1,5 +1,7 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -160,31 +162,35 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const deepgramTranscriptionResponseSchema = z.object({
-  metadata: z
-    .object({
-      duration: z.number(),
-    })
-    .nullish(),
-  results: z
-    .object({
-      channels: z.array(
-        z.object({
-          detected_language: z.string().nullish(),
-          alternatives: z.array(
+const deepgramTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metadata: z
+        .object({
+          duration: z.number(),
+        })
+        .nullish(),
+      results: z
+        .object({
+          channels: z.array(
             z.object({
-              transcript: z.string(),
-              words: z.array(
+              detected_language: z.string().nullish(),
+              alternatives: z.array(
                 z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
+                  transcript: z.string(),
+                  words: z.array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                    }),
+                  ),
                 }),
               ),
             }),
           ),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        })
+        .nullish(),
+    }),
+  ),
+);

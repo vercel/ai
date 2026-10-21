@@ -1,4 +1,6 @@
 import {
+  lazySchema,
+  zodSchema,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -309,10 +311,14 @@ export interface GatewayProviderSettings {
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 /** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
-const gatewayClientSecretResponseSchema = z.object({
-  token: z.string(),
-  expiresAt: z.number().nullish(),
-});
+const gatewayClientSecretResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string(),
+      expiresAt: z.number().nullish(),
+    }),
+  ),
+);
 
 /**
  * Create a remote provider instance.

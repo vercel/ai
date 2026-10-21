@@ -36,7 +36,7 @@ import { mapMoonshotAIFinishReason } from './map-moonshotai-finish-reason';
 import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
-  moonshotAIErrorSchema,
+  moonshotAIErrorSchemaValidator,
   type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
@@ -141,7 +141,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     this.config = config;
 
     this.failedResponseHandler = createJsonErrorResponseHandler({
-      errorSchema: moonshotAIErrorSchema,
+      errorSchema: moonshotAIErrorSchemaValidator,
       errorToMessage: error => error.error.message,
     });
   }

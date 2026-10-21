@@ -17,7 +17,7 @@ For defining your own tools and configuring tool execution, see
 
 ## Bash Tool
 
-`createBashTool` lets agents run Bash commands to search, analyze, and transform files.
+`experimental_createBashTool` lets agents run Bash commands to search, analyze, and transform files.
 Supply an `Experimental_SandboxSession` to choose where commands run. Use
 `@ai-sdk/sandbox-just-bash` for an in-memory environment,
 `@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
@@ -38,7 +38,7 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { createBashTool } from '@ai-sdk/tool-bash';
+import { experimental_createBashTool as createBashTool } from '@ai-sdk/tool-bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
@@ -72,7 +72,7 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { createBashTool } from '@ai-sdk/tool-bash';
+import { experimental_createBashTool as createBashTool } from '@ai-sdk/tool-bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
@@ -100,19 +100,38 @@ Raw runtime instances need their respective adapters; a custom
 
 ### Options
 
-`createBashTool()` requires an options object:
+`experimental_createBashTool()` requires an options object:
 
 | Option             | Type                          | Description                                                                                                                   |
 | ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `sandbox`          | `Experimental_SandboxSession` | Required session for command execution and file operations.                                                                   |
 | `workingDirectory` | `string`                      | Optional absolute starting directory for each command, created if needed. When omitted, uses the sandbox's default directory. |
 | `maxOutputLength`  | `number`                      | Positive integer limiting characters retained from each output stream before a truncation notice. Defaults to `30000`.        |
+| `timeout`          | `number`                      | Optional timeout per command execution, in milliseconds (integer from `1` to `2147483647`). No tool-level timeout by default. |
 
 The model calls the tool with `{ command: string }` and receives
 `{ stdout, stderr, exitCode }`. Nonzero exit codes are returned so the model can
 inspect failures and recover. AI SDK cancellation is forwarded to the session.
 Output truncation happens after execution and does not limit execution memory or
 duration.
+
+### Command timeout
+
+Set `timeout` to cancel commands that run longer than the configured duration:
+
+```ts
+const bash = await createBashTool({
+  sandbox,
+  timeout: 10_000,
+});
+```
+
+Each command gets a fresh timeout starting when its execution begins. This does
+not include tool initialization or time waiting for model output or approval.
+The timeout is combined with the caller's abort signal; either can cancel the
+command. The sandbox must honor cancellation. Its result or error is passed
+through; for example, just-bash returns exit code `124` when a running command is
+cancelled. SDK and sandbox timeouts still apply when this option is omitted.
 
 ### Files and lifecycle
 
@@ -129,7 +148,7 @@ Tools using the same session share files. Creating a tool does not reset existin
 files or create a new sandbox. Use separate sessions for independent workflows.
 The caller creates, reconnects, and destroys the sandbox.
 
-`createBashTool()` returns the tool directly, ready to use as `tools: { bash }`.
+`experimental_createBashTool()` returns the tool directly, ready to use as `tools: { bash }`.
 Use the supplied sandbox's `readTextFile({ path })` to read generated text files;
 it returns `null` if the file is missing. Relative read paths depend on the
 sandbox adapter; just-bash resolves them against its default directory. With an

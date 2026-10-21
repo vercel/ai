@@ -969,6 +969,39 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('forwards inline image prompt content to the bridge', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const turn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([0, 1, 2]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+
+    expect(channel.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'AAEC' },
+      ],
+    });
+
+    channel.emit('finish', { type: 'finish' });
+    await turn.done;
+    await session.doDestroy();
+  });
+
   it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
