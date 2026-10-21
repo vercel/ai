@@ -11,7 +11,7 @@ import {
   piLifecycleStateSchema,
   piSessionEntriesSchema,
 } from './pi-lifecycle-state';
-import type { SessionStorage } from './pi-session-storage';
+import type { PiSessionStorage } from './pi-session-storage';
 import {
   createFakePi,
   createThrowingSandboxSession,
@@ -22,7 +22,7 @@ import {
 
 const createMemoryStorage = () => {
   const logs = new Map<string, HarnessV1JSONValue[]>();
-  const storage: SessionStorage = {
+  const storage: PiSessionStorage = {
     append: async ({ sessionId, data }) => {
       if (!logs.has(sessionId)) logs.set(sessionId, []);
       logs.get(sessionId)!.push(structuredClone(data));
@@ -41,7 +41,7 @@ describe('Pi with a session storage', () => {
   };
 
   const start = (
-    storage?: SessionStorage,
+    storage?: PiSessionStorage,
     resumeFrom?: HarnessV1ResumeSessionState,
   ) =>
     createFakePi(scripted.url, { sessionStorage: storage }).doStart({
@@ -50,7 +50,7 @@ describe('Pi with a session storage', () => {
     });
 
   const runTurn = async (
-    storage: SessionStorage | undefined,
+    storage: PiSessionStorage | undefined,
     resumeFrom: HarnessV1ResumeSessionState | undefined,
     prompt: string,
   ) => {
@@ -59,7 +59,7 @@ describe('Pi with a session storage', () => {
     return session.doStop();
   };
 
-  const runTurns = async (storage?: SessionStorage) => {
+  const runTurns = async (storage?: PiSessionStorage) => {
     const first = await runTurn(storage, undefined, 'Remember PELICAN.');
     const second = await runTurn(storage, first, 'Also remember HERON.');
     return [first, second];
@@ -73,7 +73,7 @@ describe('Pi with a session storage', () => {
   });
 
   const firstRequestAfter = async (
-    storage: SessionStorage | undefined,
+    storage: PiSessionStorage | undefined,
     resumeFrom: HarnessV1ResumeSessionState,
   ) => {
     const before = scripted.model.requests.length;
@@ -249,7 +249,7 @@ describe('Pi with a session storage', () => {
   });
 
   it('fails to start from a part that is not a Pi session', async () => {
-    const storage: SessionStorage = {
+    const storage: PiSessionStorage = {
       append: async () => {},
       read: async () => [[{ type: 'message' }]],
     };

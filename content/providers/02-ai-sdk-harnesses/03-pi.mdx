@@ -277,9 +277,9 @@ joins its parts and continues from that entry. The storage only moves JSON
 values; the harness checks each part when it reads it.
 
 ```ts
-import { createPi, type SessionStorage } from '@ai-sdk/harness-pi';
+import { createPi, type PiSessionStorage } from '@ai-sdk/harness-pi';
 
-const storage: SessionStorage = {
+const storage: PiSessionStorage = {
   append: async ({ sessionId, data }) => {
     await db.insert(piSessionParts).values({ sessionId, data });
   },

@@ -11,7 +11,7 @@ import {
   piLifecycleStateSchema,
   type PiLifecycleData,
 } from './pi-lifecycle-state';
-import type { SessionStorage } from './pi-session-storage';
+import type { PiSessionStorage } from './pi-session-storage';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -42,10 +42,10 @@ export type PiHarnessSettings = {
    */
   readonly credentials?: PiCredentialStore;
   /**
-   * Caller-provided append-only log for the Pi session (see `SessionStorage`).
+   * Caller-provided append-only log for the Pi session (see `PiSessionStorage`).
    * Without it, the lifecycle state holds the whole session.
    */
-  readonly sessionStorage?: SessionStorage;
+  readonly sessionStorage?: PiSessionStorage;
   /**
    * Whether a suspended turn may reuse its live Pi session in this process.
    * Disable this in stateless or multi-replica applications so every request
