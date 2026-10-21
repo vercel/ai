@@ -62,7 +62,8 @@ export interface ParallelSearchFetchPolicy {
   maxAgeSeconds?: number;
 
   /**
-   * Timeout in seconds for a live fetch when content is not cached (up to 55).
+   * Timeout in seconds for a live fetch when content is not cached.
+   * The gateway caps it to stay within its own tool timeout.
    */
   timeoutSeconds?: number;
 
@@ -75,8 +76,7 @@ export interface ParallelSearchFetchPolicy {
 
 export interface ParallelSearchConfig {
   /**
-   * Search mode. Defaults to `basic`. All modes are billed at the same
-   * per-search rate.
+   * Search mode. Defaults to `basic`.
    */
   mode?: ParallelSearchMode;
 
@@ -283,7 +283,7 @@ const parallelSearchInputSchema = lazySchema(() =>
             .string()
             .optional()
             .describe(
-              'Only include results published after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
+              'Only include results published on or after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
             ),
         })
         .optional()
@@ -322,7 +322,7 @@ const parallelSearchInputSchema = lazySchema(() =>
             .number()
             .optional()
             .describe(
-              'Timeout in seconds for a live fetch when content is not cached (up to 55).',
+              'Timeout in seconds for a live fetch when content is not cached. Capped by the gateway tool timeout.',
             ),
           disable_cache_fallback: z
             .boolean()

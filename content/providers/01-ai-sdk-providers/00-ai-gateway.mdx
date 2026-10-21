@@ -1282,7 +1282,7 @@ The Parallel Search tool supports the following optional configuration options:
 
 - **mode** _'turbo' | 'fast' | 'basic' | 'advanced'_
 
-  Search mode. Defaults to `'basic'`. All modes are billed at the same per-search rate.
+  Search mode. Defaults to `'basic'`. See the [AI Gateway web search docs](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-parallel-search) for pricing.
   - `'turbo'` - Lowest latency, shorter excerpts. Supports English and Japanese only.
   - `'fast'` - Low latency, shorter excerpts.
   - `'basic'` - Balanced latency and excerpt depth (default).
@@ -1317,14 +1317,14 @@ The Parallel Search tool supports the following optional configuration options:
 
   Fetch policy for controlling content freshness:
   - `maxAgeSeconds` - Maximum age of cached content, in seconds, before a live fetch is attempted. Minimum 600; lower values are raised to 600.
-  - `timeoutSeconds` - Timeout for a live fetch, in seconds (up to 55)
+  - `timeoutSeconds` - Timeout for a live fetch, in seconds. The gateway caps it to stay within its own tool timeout.
   - `disableCacheFallback` - Return an error instead of older cached content when a live fetch fails. Defaults to `false`.
 
 - **location** _string_
 
   ISO 3166-1 alpha-2 country code to localize results, such as `'us'`. Invalid codes are ignored with a warning.
 
-Each tool result contains a `search_id`, a `session_id`, and `results`, ordered by decreasing relevance. Each result has a `url`, a `title`, a `publish_date` (both may be `null`), and `excerpts` (an array of markdown strings). The result can also include `warnings`, for example when an invalid `location` is ignored.
+Each tool result contains a `search_id` and `results`, ordered by decreasing relevance, and may include a `session_id`. Each result has a `url`, a `title`, a `publish_date` (both may be `null`), and `excerpts` (an array of markdown strings). The result can also include `warnings`, for example when an invalid `location` is ignored.
 
 The tool works with both `generateText` and `streamText`:
 
