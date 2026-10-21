@@ -215,10 +215,17 @@ export function parseSpeechStreamPart(
   const part = value as SpeechModelV4StreamPart;
 
   switch (part.type) {
-    case 'stream-start':
-      return Array.isArray(part.warnings) && part.warnings.every(isWarning)
-        ? part
-        : undefined;
+    case 'stream-start': {
+      if (!Array.isArray(part.warnings)) {
+        return undefined;
+      }
+      // Unknown warning types are dropped (forward compatibility); a known
+      // type with a malformed shape invalidates the part.
+      const warnings = part.warnings.filter(
+        warning => !isUnknownWarningType(warning),
+      );
+      return warnings.every(isWarning) ? { ...part, warnings } : undefined;
+    }
 
     case 'audio':
       return isString(part.audio) &&
@@ -278,8 +285,36 @@ function isOptional(
   return value === undefined || check(value);
 }
 
+const knownWarningTypes = new Set([
+  'compatibility',
+  'deprecated',
+  'other',
+  'unsupported',
+]);
+
+function isUnknownWarningType(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.type) &&
+    !knownWarningTypes.has(value.type)
+  );
+}
+
 function isWarning(value: unknown): boolean {
-  return isRecord(value) && isString(value.type);
+  if (!isRecord(value)) {
+    return false;
+  }
+  switch (value.type) {
+    case 'compatibility':
+    case 'unsupported':
+      return isString(value.feature) && isOptional(value.details, isString);
+    case 'deprecated':
+      return isString(value.setting) && isString(value.message);
+    case 'other':
+      return isString(value.message);
+    default:
+      return false;
+  }
 }
 
 function isAudioFormat(value: unknown): boolean {

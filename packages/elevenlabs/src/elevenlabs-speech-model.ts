@@ -252,6 +252,18 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
   async doStream(
     options: SpeechModelV4StreamOptions,
   ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
+    try {
+      return await this.startStream(options);
+    } catch (error) {
+      // The provider owns the text stream once doStream is called.
+      await options.text.cancel(error).catch(() => {});
+      throw error;
+    }
+  }
+
+  private async startStream(
+    options: SpeechModelV4StreamOptions,
+  ): Promise<Awaited<ReturnType<NonNullable<SpeechModelV4['doStream']>>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
@@ -273,6 +285,16 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
         message: `The ElevenLabs text-to-speech WebSocket does not serve ${this.modelId}. Set providerOptions.elevenlabs.dialogue to stream it as dialogue.`,
       });
     }
+    if (
+      dialogue != null &&
+      this.modelId === 'eleven_v3_conversational' &&
+      dialogue.voices.length !== 1
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.elevenlabs.dialogue.voices',
+        message: `eleven_v3_conversational supports exactly one dialogue voice; received ${dialogue.voices.length}.`,
+      });
+    }
     if (dialogue != null && streaming?.contextId != null) {
       throw new InvalidArgumentError({
         argument: 'providerOptions',
@@ -281,6 +303,17 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
       });
     }
 
+    // The WebSocket API rejects locators without a version, unlike HTTP.
+    const unversionedLocator =
+      elevenLabsOptions?.pronunciationDictionaryLocators?.find(
+        locator => !locator.versionId,
+      );
+    if (unversionedLocator != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.elevenlabs.pronunciationDictionaryLocators',
+        message: `Streaming speech requires a versionId for pronunciation dictionary "${unversionedLocator.pronunciationDictionaryId}".`,
+      });
+    }
     const warnings = getStreamWarnings(options, elevenLabsOptions);
     const outputFormat = toElevenLabsOutputFormat(
       options.outputFormat ?? defaultOutputFormat,
@@ -374,7 +407,7 @@ function getDialogueInitMessage(
     ...(locators != null && {
       pronunciation_dictionary_locators: locators.map(locator => ({
         pronunciation_dictionary_id: locator.pronunciationDictionaryId,
-        ...(locator.versionId && { version_id: locator.versionId }),
+        version_id: locator.versionId,
       })),
     }),
   };
@@ -413,7 +446,7 @@ function getStreamInitMessage(
     ...(locators != null && {
       pronunciation_dictionary_locators: locators.map(locator => ({
         pronunciation_dictionary_id: locator.pronunciationDictionaryId,
-        ...(locator.versionId && { version_id: locator.versionId }),
+        version_id: locator.versionId,
       })),
     }),
   };

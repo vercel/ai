@@ -1,4 +1,7 @@
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import type { WebSocketConstructor } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -276,6 +279,46 @@ describe('ElevenLabsSpeechModel.doStream', () => {
       'stop',
     );
     expect(socket.close).toHaveBeenCalled();
+  });
+
+  it('should send versioned pronunciation dictionary locators', async () => {
+    await createModel().doStream({
+      text: convertArrayToReadableStream(['Hi']),
+      providerOptions: {
+        elevenlabs: {
+          pronunciationDictionaryLocators: [
+            { pronunciationDictionaryId: 'dict', versionId: 'v1' },
+          ],
+        },
+      },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+
+    expect(socket.sentMessages()[0].pronunciation_dictionary_locators).toEqual([
+      { pronunciation_dictionary_id: 'dict', version_id: 'v1' },
+    ]);
+  });
+
+  it('should reject unversioned pronunciation dictionary locators before connecting', async () => {
+    const cancel = vi.fn();
+    const socketsBefore = MockWebSocket.instances.length;
+
+    await expect(
+      createModel().doStream({
+        text: new ReadableStream<string>({ cancel }),
+        providerOptions: {
+          elevenlabs: {
+            pronunciationDictionaryLocators: [
+              { pronunciationDictionaryId: 'dict' },
+            ],
+          },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+    expect(MockWebSocket.instances.length).toBe(socketsBefore);
+    expect(cancel).toHaveBeenCalled();
   });
 
   it.each(['eleven_v3', 'eleven_v3_conversational', 'eleven_v4'])(

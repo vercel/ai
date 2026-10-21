@@ -208,6 +208,7 @@ export function streamSpeech({
             timestamp: value.timestamp ?? currentResponseMetadata().timestamp,
             modelId: value.modelId ?? currentResponseMetadata().modelId,
             headers: value.headers ?? response?.headers,
+            body: value.body ?? response?.body,
           };
           break;
         }
@@ -268,9 +269,11 @@ export function streamSpeech({
     },
 
     cancel(reason) {
-      pipeAbortController.abort(
-        reason ?? new Error('Speech stream was cancelled.'),
-      );
+      const cancelReason = reason ?? new Error('Speech stream was cancelled.');
+      // Reject now rather than when the provider reacts to the abort, which
+      // may be late while doStream is still pending.
+      rejectPendingPromises(cancelReason);
+      pipeAbortController.abort(cancelReason);
     },
   };
 
@@ -300,6 +303,7 @@ export function streamSpeech({
       timestamp: result.response?.timestamp ?? startedAt,
       modelId: result.response?.modelId ?? resolvedModel.modelId,
       headers: result.response?.headers,
+      body: result.response?.body,
     };
 
     await result.stream.pipeTo(transform.writable, {

@@ -142,7 +142,7 @@ for await (const chunk of result.audioStream) {
     {
       name: 'responses',
       type: 'Promise<Array<SpeechModelResponseMetadata>>',
-      description: 'Response metadata (timestamp, model ID, headers).',
+      description: 'Response metadata (timestamp, model ID, headers, body).',
     },
     {
       name: 'providerMetadata',
@@ -154,8 +154,8 @@ for await (const chunk of result.audioStream) {
 
 <Note>
   The result promises settle as the stream is consumed. If you stop consuming
-  the stream early, the provider connection is closed and pending result
-  promises reject.
+  the stream early, pending result promises reject immediately and the
+  provider is signalled to close its connection.
 </Note>
 
 ## Wire format (experimental)
