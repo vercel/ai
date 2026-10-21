@@ -34,11 +34,17 @@ export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
 export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
 
 /**
- * Lifecycle state `data` of the Pi harness. Without `entries` the session
- * starts fresh.
+ * Lifecycle state `data` of the Pi harness. Without `entries` or `partIds` the
+ * session starts fresh.
  */
 export interface PiLifecycleData {
   readonly entries?: PiSessionEntries;
+  /**
+   * Ids of the parts of the session appended to the `sessionStorage` of
+   * `createPi`, in order. Set instead of `entries` when a session storage is
+   * configured.
+   */
+  readonly partIds?: ReadonlyArray<string>;
   /**
    * A tool batch that was waiting on host input when the turn was persisted.
    * Pi cannot resume in the middle of a batch, so the continuation replays it.
@@ -64,8 +70,14 @@ const sessionEntrySchema = z.custom<SessionEntry>(
   'Pi session entry must be an object with a type.',
 );
 
+export const piSessionEntriesSchema: z.ZodType<PiSessionEntries> = z.tuple(
+  [sessionHeaderSchema],
+  sessionEntrySchema,
+);
+
 export const piLifecycleStateSchema: z.ZodType<PiLifecycleData> = z.object({
-  entries: z.tuple([sessionHeaderSchema], sessionEntrySchema).optional(),
+  entries: piSessionEntriesSchema.optional(),
+  partIds: z.array(z.string()).min(1).optional(),
   pendingToolBatch: piPendingToolBatchSchema.optional(),
 });
 

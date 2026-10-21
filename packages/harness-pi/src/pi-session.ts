@@ -25,12 +25,14 @@ import path from 'node:path';
 import { Type } from 'typebox';
 import {
   HarnessCapabilityUnsupportedError,
+  HarnessError,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnOptions,
   type HarnessV1ContinueTurnState,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1JSONValue,
   type HarnessV1LifecycleState,
   type HarnessV1PermissionMode,
   type HarnessV1ResumeSessionState,
@@ -78,6 +80,7 @@ import {
   type PiPendingToolBatch,
   type PiSessionEntries,
 } from './pi-lifecycle-state';
+import { readSessionEntries, type SessionStorage } from './pi-session-storage';
 import { runToolBatchReplay, takeToolBatchForReplay } from './pi-tool-batch';
 import {
   createPiTranslatorState,
@@ -330,6 +333,7 @@ export interface PiSessionSettings {
   readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   readonly resources?: PiResources;
+  readonly sessionStorage?: SessionStorage;
 }
 
 export interface CreatePiSessionInput {
@@ -345,6 +349,7 @@ export interface CreatePiSessionInput {
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeEntries?: PiSessionEntries;
+  readonly resumePartIds?: ReadonlyArray<string>;
   /**
    * Tool batch that was waiting on host input when the resumed state was
    * persisted. The first continuation replays it once its host input arrives.
@@ -384,7 +389,8 @@ function hasCompatibleReattachSettings(
       current.settings.extensionFactories &&
     parked.settings.fileToolPathPolicy ===
       current.settings.fileToolPathPolicy &&
-    parked.settings.resources === current.settings.resources
+    parked.settings.resources === current.settings.resources &&
+    parked.settings.sessionStorage === current.settings.sessionStorage
   );
 }
 
@@ -544,10 +550,28 @@ export async function createPiSession(
   const piSessionId = PI_SESSION_ID_PATTERN.test(input.sessionId)
     ? input.sessionId
     : undefined;
+  const storage = input.settings.sessionStorage;
+  let resumeEntries = input.resumeEntries;
+  let savedPartIds = input.resumePartIds ?? [];
+  let savedEntryCount = 0;
+  if (input.resumePartIds != null) {
+    if (storage == null) {
+      throw new HarnessError({
+        message:
+          'The Pi lifecycle state was saved through a session storage, but createPi has no sessionStorage to load it from.',
+      });
+    }
+    resumeEntries = await readSessionEntries({
+      storage,
+      sessionId: input.sessionId,
+      ids: input.resumePartIds,
+    });
+    savedEntryCount = resumeEntries.length - 1;
+  }
   const seededEntries =
-    input.resumeEntries && piSessionId != null
-      ? withSessionId(input.resumeEntries, piSessionId)
-      : input.resumeEntries;
+    resumeEntries && piSessionId != null
+      ? withSessionId(resumeEntries, piSessionId)
+      : resumeEntries;
   let sessionManager: SessionManager | undefined;
   const getSessionManager = (): SessionManager => {
     sessionManager ??= SessionManager.inMemory(
@@ -557,12 +581,14 @@ export async function createPiSession(
     );
     return sessionManager;
   };
-  const snapshotSessionEntries = (): PiSessionEntries | undefined => {
+  const snapshotUnsavedEntries = (): PiSessionEntries | undefined => {
     const entries =
       sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
-    return entries == null
-      ? undefined
-      : secureJsonParse(JSON.stringify(entries));
+    if (entries == null) return undefined;
+    const [header, ...rest] = entries;
+    return secureJsonParse(
+      JSON.stringify([header, ...rest.slice(savedEntryCount)]),
+    );
   };
 
   // Pi auth + model registry are global to this Pi session. These live on the
@@ -903,13 +929,28 @@ export async function createPiSession(
     };
   }
 
-  function createLifecycleData(
+  async function createLifecycleData(
     pendingToolBatch: PiPendingToolBatch | undefined,
-    entries = snapshotSessionEntries(),
-  ): HarnessV1LifecycleState['data'] {
+    entries = snapshotUnsavedEntries(),
+  ): Promise<HarnessV1LifecycleState['data']> {
+    const batch = pendingToolBatch ? { pendingToolBatch } : {};
+    if (storage == null) {
+      return {
+        ...(entries ? { entries } : {}),
+        ...batch,
+      } as HarnessV1LifecycleState['data'];
+    }
+    if (entries != null && entries.length > 1) {
+      const id = await storage.append({
+        sessionId: input.sessionId,
+        data: entries as unknown as HarnessV1JSONValue,
+      });
+      savedPartIds = [...savedPartIds, id];
+      savedEntryCount += entries.length - 1;
+    }
     return {
-      ...(entries ? { entries } : {}),
-      ...(pendingToolBatch ? { pendingToolBatch } : {}),
+      ...(savedPartIds.length > 0 ? { partIds: savedPartIds } : {}),
+      ...batch,
     } as HarnessV1LifecycleState['data'];
   }
 
@@ -1524,7 +1565,7 @@ export async function createPiSession(
      */
     const pendingToolBatch = createPendingToolBatchCheckpoint();
     replayBarrier?.cancel();
-    const entriesBeforeAbort = pendingToolBatch && snapshotSessionEntries();
+    const entriesBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
@@ -1532,7 +1573,10 @@ export async function createPiSession(
     await abortingTurn;
     await turnToStop?.done.catch(() => {});
 
-    const data = createLifecycleData(pendingToolBatch, entriesBeforeAbort);
+    const data = await createLifecycleData(
+      pendingToolBatch,
+      entriesBeforeAbort,
+    );
 
     await disposePiSession({ reason: 'quit' });
     await rm(hostRoot, { recursive: true, force: true });
@@ -1677,7 +1721,7 @@ export async function createPiSession(
           type: 'resume-session',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: createLifecycleData(pendingToolBatch),
+          data: await createLifecycleData(pendingToolBatch),
         };
       }
       return doStop();
@@ -1702,7 +1746,7 @@ export async function createPiSession(
           type: 'continue-turn',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: createLifecycleData(pendingToolBatch),
+          data: await createLifecycleData(pendingToolBatch),
         };
       }
       /*
@@ -1720,7 +1764,7 @@ export async function createPiSession(
        */
       const pendingToolBatch = createPendingToolBatchCheckpoint();
       replayBarrier?.cancel();
-      const entriesBeforeAbort = pendingToolBatch && snapshotSessionEntries();
+      const entriesBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
       suspending = true;
       const turnToSuspend = activeTurn;
       const abortingTurn = turnToSuspend?.abort();
@@ -1729,7 +1773,10 @@ export async function createPiSession(
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      const data = createLifecycleData(pendingToolBatch, entriesBeforeAbort);
+      const data = await createLifecycleData(
+        pendingToolBatch,
+        entriesBeforeAbort,
+      );
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);

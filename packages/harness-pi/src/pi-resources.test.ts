@@ -1,15 +1,10 @@
-import type { HarnessV1Session, HarnessV1StreamPart } from '@ai-sdk/harness';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { piLifecycleStateSchema } from './pi-lifecycle-state';
 import {
-  close,
   createFakePi,
-  createScriptedModelServerThenDone,
   createThrowingSandboxSession,
-  listen,
+  runPromptTurn,
+  useScriptedPiModel,
   type ModelRequestBody,
 } from './test-helpers';
 
@@ -26,44 +21,14 @@ const requestText = (body: ModelRequestBody | undefined): string =>
   JSON.stringify(body?.messages);
 
 describe('Pi with a scripted model', () => {
-  const model = createScriptedModelServerThenDone();
-  const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-resources-agent-'));
-  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
-  let modelUrl = '';
-
-  beforeAll(async () => {
-    process.env.PI_CODING_AGENT_DIR = agentDir;
-    modelUrl = await listen(model.server);
-  });
-
-  afterAll(async () => {
-    if (previousAgentDir == null) delete process.env.PI_CODING_AGENT_DIR;
-    else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
-    await close(model.server);
-    rmSync(agentDir, { recursive: true, force: true });
-  });
-
-  const runPromptTurn = async (
-    session: HarnessV1Session,
-    prompt: string,
-  ): Promise<void> => {
-    const parts: HarnessV1StreamPart[] = [];
-    const control = await session.doPromptTurn({
-      prompt,
-      model: 'fake/fake-model',
-      tools: [],
-      skills: [],
-      emit: part => parts.push(part),
-    });
-    await control.done;
-    expect(parts.filter(part => part.type === 'error')).toEqual([]);
-  };
+  const scripted = useScriptedPiModel();
+  const { model } = scripted;
 
   it('lists configured skills in the system prompt', async () => {
     const sessionWorkDir = '/sandbox/work';
     const sandboxSession = createThrowingSandboxSession();
     const firstRequest = model.requests.length;
-    const harness = createFakePi(modelUrl, {
+    const harness = createFakePi(scripted.url, {
       resources: {
         skills: [
           {
@@ -99,7 +64,7 @@ describe('Pi with a scripted model', () => {
       sessionWorkDir: '/sandbox/work',
     };
 
-    const first = await createFakePi(modelUrl).doStart(sessionStart);
+    const first = await createFakePi(scripted.url).doStart(sessionStart);
     await runPromptTurn(first, 'Remember the word PELICAN.');
     const state = await first.doStop();
 
@@ -108,7 +73,7 @@ describe('Pi with a scripted model', () => {
     );
 
     const firstRequest = model.requests.length;
-    const resumed = await createFakePi(modelUrl).doStart({
+    const resumed = await createFakePi(scripted.url).doStart({
       ...sessionStart,
       resumeFrom: state,
     });
@@ -188,7 +153,7 @@ describe('Pi with a scripted model', () => {
     ];
 
     const firstRequest = model.requests.length;
-    const session = await createFakePi(modelUrl).doStart({
+    const session = await createFakePi(scripted.url).doStart({
       sessionId: 'session-heron',
       sandboxSession: createThrowingSandboxSession(),
       sessionWorkDir: '/sandbox/work',

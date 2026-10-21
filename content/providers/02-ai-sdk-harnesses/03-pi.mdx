@@ -265,6 +265,40 @@ entries. Nothing about the session is stored in the sandbox, so restoring a
 session reads no sandbox files. A state recorded before this format restores as
 a fresh session.
 
+## Session Storage
+
+The lifecycle state holds the whole session, including image bytes from tool
+results, so it grows with every turn. To keep it small, pass a `sessionStorage`
+that keeps the session somewhere else, such as an object store, a database
+table or a log. The storage is append-only. The harness appends the entries each
+lifecycle state adds as one part, and the lifecycle state holds only the ids of
+the parts. Restoring a session reads its parts and joins them. The storage only
+moves JSON values; the harness checks each part when it reads it.
+
+```ts
+import { createPi, type SessionStorage } from '@ai-sdk/harness-pi';
+
+const storage: SessionStorage = {
+  append: async ({ sessionId, data }) => {
+    const id = `pi-sessions/${sessionId}/${crypto.randomUUID()}.json`;
+    await bucket.write(id, JSON.stringify(data));
+    return id;
+  },
+  read: async ({ ids }) =>
+    Promise.all(ids.map(async id => JSON.parse(await bucket.read(id)))),
+};
+
+const harness = createPi({ sessionStorage: storage });
+```
+
+Parts are never changed or deleted. A part that no lifecycle state lists, for
+example one appended by a workflow step that crashed before its result was
+recorded, is never read, so retries and two turns resumed from the same state
+cannot overwrite each other. A tool batch waiting on host input stays in the
+lifecycle state. A state recorded without a session storage still restores, and
+its entries become the first part on the next append. A state whose parts are in
+a session storage fails to restore when `createPi` has no `sessionStorage`.
+
 ## Authentication
 
 The `auth` setting selects which credentials Pi reads from the host environment:

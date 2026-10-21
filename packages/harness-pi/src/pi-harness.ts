@@ -11,6 +11,7 @@ import {
   piLifecycleStateSchema,
   type PiLifecycleData,
 } from './pi-lifecycle-state';
+import type { SessionStorage } from './pi-session-storage';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -40,6 +41,13 @@ export type PiHarnessSettings = {
    * this replaces Pi's file-backed auth.json credential storage.
    */
   readonly credentials?: PiCredentialStore;
+  /**
+   * Caller-provided append-only storage for the Pi session. When set, the
+   * harness appends the entries each lifecycle state adds as one part, and the
+   * lifecycle state holds only the ids of the parts. Without it, the lifecycle
+   * state holds the whole session.
+   */
+  readonly sessionStorage?: SessionStorage;
   /**
    * Whether a suspended turn may reuse its live Pi session in this process.
    * Disable this in stateless or multi-replica applications so every request
@@ -257,6 +265,9 @@ export function createPi(
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
           ...(settings.resources ? { resources: settings.resources } : {}),
+          ...(settings.sessionStorage
+            ? { sessionStorage: settings.sessionStorage }
+            : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
@@ -264,13 +275,14 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.entries
-          ? {
-              resumeEntries: resumeData.entries,
-              ...(resumeData.pendingToolBatch
-                ? { resumePendingToolBatch: resumeData.pendingToolBatch }
-                : {}),
-            }
+        ...(resumeData?.partIds
+          ? { resumePartIds: resumeData.partIds }
+          : resumeData?.entries
+            ? { resumeEntries: resumeData.entries }
+            : {}),
+        ...((resumeData?.partIds || resumeData?.entries) &&
+        resumeData.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
