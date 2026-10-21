@@ -265,19 +265,11 @@ console.log(videos[0].base64);`,
   model: __MODEL__,
   state: 'I was charged twice this month. Please refund me.',
   questions: {
-    team: {
-      type: 'choice',
-      instructions: 'Which team should handle this?',
-      criteria: { billing: 'Payments and refunds', support: 'Other requests' },
-    },
-    refund: {
-      type: 'boolean',
-      instructions: 'Is the customer asking for money back?',
-    },
+    refund: { type: 'boolean', instructions: 'Wants a refund?' },
   },
 });
 
-console.log(answers.team.choice, answers.refund.probability);`,
+console.log(answers.refund.probability);`,
   ),
   example(
     'Tool Calling',

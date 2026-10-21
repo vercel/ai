@@ -5,12 +5,8 @@ import { useEffect, useState } from 'react';
 
 const STATE = 'I was charged twice this month. Please refund me.';
 
-// Matches the `decide.ts` example. Choice probabilities are provider-specific,
-// so only the Boolean probability (returned by every provider) is shown.
-const ANSWERS = [
-  { id: 'team', type: 'choice', value: 'billing' },
-  { id: 'refund', type: 'boolean', value: 'P(true) 0.97' },
-];
+// Matches the `decide.ts` example.
+const ANSWERS = [{ id: 'refund', type: 'boolean', value: 'P(true) 0.97' }];
 
 export function DecisionPreview({ animationKey }: { animationKey: number }) {
   const [visibleCount, setVisibleCount] = useState(0);
