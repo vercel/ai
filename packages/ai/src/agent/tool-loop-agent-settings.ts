@@ -261,7 +261,11 @@ export type ToolLoopAgentSettings<
      * Callback that is called when a step that started fails before it
      * produces a step result. `onStepEnd` is not called for such a step.
      */
-    onStepError?: GenerateTextOnStepErrorCallback;
+    onStepError?: GenerateTextOnStepErrorCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
 
     /**
      * Callback that is called when an error occurs. For `stream()` it receives

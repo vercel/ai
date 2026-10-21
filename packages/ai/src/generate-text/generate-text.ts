@@ -76,6 +76,7 @@ import type {
   GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
+  GenerateTextStepStartEvent,
 } from './generate-text-events';
 import { DefaultGenerateTextResult } from './default-generate-text-result';
 import type { GenerateTextResult } from './generate-text-result';
@@ -534,7 +535,11 @@ export async function generateText<
      * Callback that is called when a step that started fails before it
      * produces a step result. `onStepEnd` is not called for such a step.
      */
-    onStepError?: GenerateTextOnStepErrorCallback;
+    onStepError?: GenerateTextOnStepErrorCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
 
     /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.
@@ -730,7 +735,11 @@ export async function generateText<
     // the step that has started but not ended, reported to onStepError when
     // the call fails before the step produces a result:
     let openStep:
-      | { provider: string; modelId: string; stepNumber: number }
+      | GenerateTextStepStartEvent<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>,
+          NoInfer<OUTPUT>
+        >
       | undefined;
 
     try {
@@ -1011,38 +1020,36 @@ export async function generateText<
                 stepSettings: prepareStepResult,
               });
 
+              const stepStartEvent = {
+                callId,
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                stepNumber,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                tools,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+                toolOrder: stepToolOrder,
+                steps: [...steps],
+                providerOptions: stepProviderOptions,
+                output,
+                runtimeContext,
+                promptMessages,
+                stepTools,
+                stepToolChoice,
+                toolsContext,
+              };
+
               await notify({
-                event: {
-                  callId,
-                  provider: stepModel.provider,
-                  modelId: stepModel.modelId,
-                  stepNumber,
-                  instructions: stepInstructions,
-                  messages: stepMessages,
-                  tools,
-                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                  activeTools: prepareStepResult?.activeTools ?? activeTools,
-                  toolOrder: stepToolOrder,
-                  steps: [...steps],
-                  providerOptions: stepProviderOptions,
-                  output,
-                  runtimeContext,
-                  promptMessages,
-                  stepTools,
-                  stepToolChoice,
-                  toolsContext,
-                },
+                event: stepStartEvent,
                 callbacks: [
                   resolvedOnStepStart,
                   telemetryDispatcher.onStepStart,
                 ],
               });
 
-              openStep = {
-                provider: stepModel.provider,
-                modelId: stepModel.modelId,
-                stepNumber,
-              };
+              openStep = stepStartEvent;
 
               const languageModelCallContext = {
                 provider: stepModel.provider,
@@ -1661,8 +1668,8 @@ export async function generateText<
     } catch (error) {
       if (openStep != null && !mergedAbortSignal?.aborted) {
         await notify({
-          event: { callId, ...openStep, error: wrapGatewayError(error) },
-          callbacks: onStepError,
+          event: { ...openStep, error: wrapGatewayError(error) },
+          callbacks: [onStepError, telemetryDispatcher.onStepError],
         });
       }
       await telemetryDispatcher.onError?.({ callId, error });

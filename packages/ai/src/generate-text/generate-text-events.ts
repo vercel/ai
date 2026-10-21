@@ -395,21 +395,14 @@ export type GenerateTextOnStepFinishCallback<
 /**
  * Event passed to the `onStepError` callback.
  *
- * Identifies the step that started but failed before it produced a step result.
+ * Contains the step start event of the step that failed before it produced
+ * a step result, along with the error.
  */
-export type GenerateTextStepErrorEvent = {
-  /** Unique identifier for this generation call, used to correlate events. */
-  readonly callId: string;
-
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-
-  /** Zero-based index of the step that failed. */
-  readonly stepNumber: number;
-
+export type GenerateTextStepErrorEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
   /** The error that ended the step. */
   readonly error: unknown;
 };
@@ -424,8 +417,11 @@ export type GenerateTextStepErrorEvent = {
  *
  * @param event - The step that failed and the error.
  */
-export type GenerateTextOnStepErrorCallback =
-  Callback<GenerateTextStepErrorEvent>;
+export type GenerateTextOnStepErrorCallback<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output,
+> = Callback<GenerateTextStepErrorEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `onEnd` option.

@@ -22,6 +22,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
 } from '../generate-text/generate-text-events';
 import type {
@@ -110,6 +111,7 @@ export interface TelemetryDispatcher {
   onStepEnd?: Callback<GenerateTextStepEndEvent>;
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
+  onStepError?: Callback<GenerateTextStepErrorEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
@@ -201,6 +203,13 @@ export interface Telemetry {
    * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when a step that started fails before it produces a step result.
+   * The generation can still continue or end normally after it, so use this
+   * to close step-level spans and `onError` for unrecoverable errors.
+   */
+  onStepError?: Callback<InferTelemetryEvent<GenerateTextStepErrorEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.
