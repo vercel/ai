@@ -1585,6 +1585,7 @@ export async function createPiSession(
             sandbox: toolSafeSandboxSession,
             abortSignal: turnAbortController.signal,
           });
+          turnAbortController.signal.throwIfAborted();
           await session.prompt(text, { images: turnOpts.images });
         }
 

@@ -1142,6 +1142,66 @@ describe('createPiSession', () => {
     }
   });
 
+  it('does not prompt when the turn is aborted during the skill read', async () => {
+    const prompt = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const sandboxSession = createSandboxSession();
+    const readSkillStarted = createDeferred<void>();
+    const readSkillResult = createDeferred<string>();
+    const readTextFile = vi.mocked(sandboxSession.readTextFile);
+    const readTextFileDefault = readTextFile.getMockImplementation()!;
+    readTextFile.mockImplementation(async options => {
+      if (options.path.endsWith('/demo-skill/SKILL.md')) {
+        readSkillStarted.resolve();
+        return readSkillResult.promise;
+      }
+      return readTextFileDefault(options);
+    });
+    const session = await createPiSession({
+      sessionId: 'session-skill-command-abort',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const abortController = new AbortController();
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: '/skill:demo-skill do it',
+        tools: [],
+        emit: vi.fn(),
+        abortSignal: abortController.signal,
+      });
+      await readSkillStarted.promise;
+      abortController.abort();
+      readSkillResult.resolve('Skill instructions content');
+      await control.done;
+
+      expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('expands a skill command from the sandbox before steering', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
