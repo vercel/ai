@@ -74,6 +74,6 @@
     "url": "https://github.com/vercel/ai/issues"
   },
   "dependencies": {
-    "run": "^2.0.0"
+    "run": "^2.1.8"
   }
 }

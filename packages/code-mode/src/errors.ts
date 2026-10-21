@@ -36,6 +36,21 @@ export class CodeModeTimeoutError extends CodeModeError {
 }
 
 /**
+ * Raised when sandboxed code exceeds its CPU time limit.
+ *
+ * Time spent waiting on tools does not count toward this limit.
+ */
+export class CodeModeCpuTimeoutError extends CodeModeError {
+  constructor(cpuTimeoutMs: number) {
+    super(
+      `Code mode execution exceeded its CPU time limit of ${cpuTimeoutMs}ms.`,
+      'CODE_MODE_CPU_TIMEOUT',
+      { cpuTimeoutMs },
+    );
+  }
+}
+
+/**
  * Raised when the outer AI SDK abort signal aborts a code-mode invocation.
  */
 export class CodeModeAbortedError extends CodeModeError {
