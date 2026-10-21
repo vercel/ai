@@ -496,6 +496,36 @@ for await (const chunk of result.audioStream) {
 console.log(await result.usage); // { inputCharacters: ... }
 ```
 
+### Streaming Speech in the Browser
+
+To stream speech from browser code without exposing your Gateway credential,
+mint a short-lived client secret on your server with
+`gateway.experimental_speech.getToken()` and pass the token to the browser.
+The token is bound to the streaming speech surface and the requested model.
+
+```ts
+// Server
+import { gateway } from '@ai-sdk/gateway';
+
+const { token } = await gateway.experimental_speech.getToken({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  expiresAfterSeconds: 60,
+});
+```
+
+```ts
+// Browser
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const gateway = createGateway({ apiKey: token });
+
+const result = streamSpeech({
+  model: gateway.speech('elevenlabs/eleven-flash-v2.5'),
+  text: textStream,
+});
+```
+
 ## Realtime Models
 
 <Note type="warning">

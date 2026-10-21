@@ -40,7 +40,7 @@ import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
 import { GatewayDecisionModel } from './gateway-decision-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
-import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewaySpeechModel, toGatewaySpeechUrl } from './gateway-speech-model';
 import {
   GatewayTranscriptionModel,
   toGatewayTranscriptionUrl,
@@ -66,6 +66,7 @@ import type {
   TranscriptionModelV4,
   Experimental_VideoModelV4,
   Experimental_DecisionModelV4,
+  Experimental_StreamingSpeechModelV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
@@ -217,6 +218,14 @@ export interface GatewayProvider extends ProviderV4 {
   experimental_transcription: GatewayTranscriptionFactory;
 
   /**
+   * Experimental streaming-speech entry point. Callable like
+   * `speech(modelId)`, plus `getToken` for minting a short-lived client
+   * secret (`vcst_`) a browser can use to open the streaming speech
+   * WebSocket without holding the Gateway credential.
+   */
+  experimental_speech: GatewaySpeechFactory;
+
+  /**
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
@@ -250,6 +259,36 @@ export interface GatewayTranscriptionFactory {
   getToken(
     options: GatewayTranscriptionFactoryGetTokenOptions,
   ): Promise<GatewayTranscriptionFactoryGetTokenResult>;
+}
+
+export type GatewaySpeechFactoryGetTokenOptions = {
+  model: GatewaySpeechModelId;
+  /** Token lifetime in seconds. Gateway default is 60s (max 300s). */
+  expiresAfterSeconds?: number;
+};
+
+export type GatewaySpeechFactoryGetTokenResult = {
+  /** The minted `vcst_` client secret. */
+  token: string;
+  /** WebSocket URL of the streaming speech surface for this model. */
+  url: string;
+  /** Token expiry, epoch seconds. */
+  expiresAt?: number;
+};
+
+/**
+ * Streaming-speech factory: callable like `speech(modelId)`, plus a
+ * server-side `getToken` that mints a speech-bound short-lived client secret
+ * (`vcst_`). The browser connects with
+ * `createGateway({ apiKey: token }).speech(modelId)`; the token rides the
+ * same auth subprotocol an API key does, without exposing the credential.
+ */
+export interface GatewaySpeechFactory {
+  (modelId: GatewaySpeechModelId): Experimental_StreamingSpeechModelV4;
+
+  getToken(
+    options: GatewaySpeechFactoryGetTokenOptions,
+  ): Promise<GatewaySpeechFactoryGetTokenResult>;
 }
 
 export interface GatewayProviderSettings {
@@ -391,7 +430,7 @@ export function createGateway(
   const mintClientSecret = async (params: {
     modelId: string;
     expiresAfterSeconds?: number;
-    routeKind?: 'transcription';
+    routeKind?: 'speech' | 'transcription';
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayClientSecretServerEnvironment();
     const auth = await getRealtimeAuthToken();
@@ -629,6 +668,30 @@ export function createGateway(
   };
   provider.speechModel = createSpeechModel;
   provider.speech = createSpeechModel;
+  // Callable like `speech(modelId)`; `getToken` mints a speech-bound client
+  // secret (server-side only) the browser uses to connect via
+  // `createGateway({ apiKey: token }).speech(modelId)`.
+  provider.experimental_speech = Object.assign(
+    (modelId: GatewaySpeechModelId) => createSpeechModel(modelId),
+    {
+      getToken: async (
+        tokenOptions: GatewaySpeechFactoryGetTokenOptions,
+      ): Promise<GatewaySpeechFactoryGetTokenResult> => {
+        const secret = await mintClientSecret({
+          modelId: tokenOptions.model,
+          routeKind: 'speech',
+          ...(tokenOptions.expiresAfterSeconds != null && {
+            expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+          }),
+        });
+        return {
+          token: secret.token,
+          url: toGatewaySpeechUrl(baseURL, tokenOptions.model),
+          ...(secret.expiresAt != null && { expiresAt: secret.expiresAt }),
+        };
+      },
+    },
+  ) as GatewaySpeechFactory;
   const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
     return new GatewayTranscriptionModel(modelId, {
       provider: 'gateway',
@@ -729,7 +792,7 @@ export async function getGatewayAuthToken(
 function assertGatewayClientSecretServerEnvironment(): void {
   if (typeof globalThis.window !== 'undefined') {
     throw new Error(
-      'AI Gateway client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken() or gateway.experimental_transcription.getToken() from your server and pass the returned token to the client.',
+      'AI Gateway client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken(), gateway.experimental_transcription.getToken(), or gateway.experimental_speech.getToken() from your server and pass the returned token to the client.',
     );
   }
 }
