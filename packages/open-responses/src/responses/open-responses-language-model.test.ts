@@ -1748,6 +1748,54 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['throw', 'reject'] as const)(
+      'preserves extension item decoding errors when the stream ends (%s)',
+      async failure => {
+        const error = new Error('Extension item decoding failed');
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = () => {
+          if (failure === 'reject') {
+            return Promise.reject(error);
+          }
+          throw error;
+        };
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: 0,
+              output_index: 0,
+              item: {
+                id: 'search-1',
+                type: 'acme:document_search_receipt',
+                status: 'completed',
+                call_id: 'call-1',
+                name: 'documentSearch',
+              },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('test-model', [
+          extension,
+        ]).doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([
+          { type: 'error', error },
+        ]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: { unified: 'error', raw: undefined },
+          }),
+        ]);
+      },
+    );
+
     it('preserves extension errors when the stream ends', async () => {
       const error = new Error('Extension failed');
       const extension = createDocumentSearchExtension({

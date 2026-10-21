@@ -863,6 +863,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                   hasToolCalls ||= part.type === 'tool-call';
                 }
               } catch (error) {
+                finishReason = { unified: 'error', raw: undefined };
                 controller.enqueue({ type: 'error', error });
               }
             }
