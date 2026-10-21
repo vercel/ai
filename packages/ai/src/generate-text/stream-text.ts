@@ -21,6 +21,7 @@ import {
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
+  type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
@@ -133,6 +134,11 @@ import {
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
+import {
+  startSteeringRun,
+  type Steering,
+  type SteeringNotDeliveredReason,
+} from './steering';
 import {
   isStepCount,
   isStopConditionMet,
@@ -348,6 +354,7 @@ type StreamTextOptions<
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
+ * @param experimental_steering - A steering object that adds user messages to the generation at the next step boundary.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
@@ -447,6 +454,7 @@ function streamTextInternal<
   headers,
   stopWhen = isStepCount(1),
   experimental_sandbox: sandbox,
+  experimental_steering: steering,
   output,
   toolApproval,
   experimental_toolCallers,
@@ -539,6 +547,13 @@ function streamTextInternal<
      * The sandbox environment that is passed through to tool execution.
      */
     experimental_sandbox?: SandboxSession;
+
+    /**
+     * A steering object created with `experimental_createSteering()`.
+     * Messages sent with it are added to the generation at the next step
+     * boundary.
+     */
+    experimental_steering?: Steering;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -916,6 +931,7 @@ function streamTextInternal<
     messages,
     allowSystemInMessages,
     experimental_sandbox: sandbox,
+    steering,
     tools,
     toolsContext,
     runtimeContext,
@@ -1316,6 +1332,7 @@ class DefaultStreamTextResult<
     messages,
     allowSystemInMessages,
     experimental_sandbox: sandbox,
+    steering,
     tools,
     toolChoice,
     transforms,
@@ -1374,6 +1391,7 @@ class DefaultStreamTextResult<
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
     experimental_sandbox: SandboxSession | undefined;
+    steering: Steering | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1479,6 +1497,8 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    const steeringRun = startSteeringRun(steering);
+    let currentStepSteeringMessages: Array<UserModelMessage> = [];
     let isAborted = false;
     let currentStepModel = model;
 
@@ -1757,6 +1777,7 @@ class DefaultStreamTextResult<
                 messages: cloneModelMessages(stepResponseMessages),
               },
               providerMetadata: part.providerMetadata,
+              steeringMessages: currentStepSteeringMessages,
             });
 
           await notify({
@@ -1789,6 +1810,13 @@ class DefaultStreamTextResult<
       },
 
       async flush(controller) {
+        // steering messages that are still waiting cannot be delivered anymore:
+        steeringRun?.end(
+          recordedSteps.length === 0 || recordedNoOutputError != null
+            ? 'error'
+            : 'finished',
+        );
+
         try {
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
@@ -1954,6 +1982,7 @@ class DefaultStreamTextResult<
         async function abort() {
           isAborted = true;
           removeAbortListener();
+          steeringRun?.end('aborted');
 
           await notify({
             event: {
@@ -1997,6 +2026,7 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            steeringRun?.end('error');
             await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
@@ -2005,6 +2035,7 @@ class DefaultStreamTextResult<
 
       cancel(reason) {
         removeAbortListener();
+        steeringRun?.end('aborted');
         return reader.cancel(reason);
       },
     });
@@ -2430,9 +2461,15 @@ class DefaultStreamTextResult<
             ...initialResponseMessages,
             ...responseMessagesFromPreviousSteps,
           ];
-          const stepInputMessages = stepMessagesForNextStep ?? [
-            ...initialMessages,
-            ...initialResponseMessages,
+          const steeringMessages = steeringRun?.takeMessages(currentStep) ?? [];
+          currentStepSteeringMessages = steeringMessages;
+
+          const stepInputMessages = [
+            ...(stepMessagesForNextStep ?? [
+              ...initialMessages,
+              ...initialResponseMessages,
+            ]),
+            ...steeringMessages,
           ];
 
           const prepareStepResult = await prepareStep?.({
@@ -3214,21 +3251,51 @@ class DefaultStreamTextResult<
                   // Clear this step's timeouts before the next step is started.
                   cleanupStepTimeouts();
 
-                  if (
-                    stepFinishReason !== 'interrupted' &&
-                    // Continue only after all client tool calls have been executed or denied,
-                    // and if there are client results or pending deferred provider results.
-                    clientToolCalls.length ===
+                  // why waiting steering messages are not delivered when
+                  // the stream ends:
+                  let steeringEndReason: SteeringNotDeliveredReason =
+                    'finished';
+
+                  const shouldStartNextStep = async () => {
+                    if (stepFinishReason === 'interrupted') {
+                      return false;
+                    }
+
+                    // Continue only after all client tool calls have been executed or denied:
+                    if (
+                      clientToolCalls.length !==
                       clientToolOutputs.length +
-                        deniedToolApprovalResponses.length &&
-                    (clientToolCalls.length > 0 ||
-                      pendingDeferredToolCalls.size > 0) &&
+                        deniedToolApprovalResponses.length
+                    ) {
+                      steeringEndReason = 'waiting-for-tool-results';
+                      return false;
+                    }
+
+                    // Continue if there are client results, pending deferred
+                    // provider results, or steering messages:
+                    if (
+                      clientToolCalls.length === 0 &&
+                      pendingDeferredToolCalls.size === 0 &&
+                      !steeringRun?.hasPendingMessages()
+                    ) {
+                      return false;
+                    }
+
                     // continue until a stop condition is met:
-                    !(await isStopConditionMet({
-                      stopConditions,
-                      steps: recordedSteps,
-                    }))
-                  ) {
+                    if (
+                      await isStopConditionMet({
+                        stopConditions,
+                        steps: recordedSteps,
+                      })
+                    ) {
+                      steeringEndReason = 'stop-condition';
+                      return false;
+                    }
+
+                    return true;
+                  };
+
+                  if (await shouldStartNextStep()) {
                     try {
                       await runInStreamTextTracingChannelContext(() =>
                         streamStep({
@@ -3237,6 +3304,8 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
+                      steeringRun?.end('error');
+
                       enqueueStepPart(controller, {
                         type: 'error',
                         error,
@@ -3245,6 +3314,8 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
+                    steeringRun?.end(steeringEndReason);
+
                     enqueueStepPart(controller, {
                       type: 'finish',
                       finishReason: stepFinishReason,
@@ -3278,6 +3349,7 @@ class DefaultStreamTextResult<
         }),
       );
     })().catch(async error => {
+      steeringRun?.end(abortSignal?.aborted ? 'aborted' : 'error');
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
       markPromiseAsHandled(self._initialResponseMessages.promise);

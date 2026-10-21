@@ -49,6 +49,12 @@ export type {
   StepResultPerformance,
 } from './step-result';
 export {
+  createSteering as experimental_createSteering,
+  type Steering as Experimental_Steering,
+  type SteeringNotDeliveredReason as Experimental_SteeringNotDeliveredReason,
+  type SteeringOutcome as Experimental_SteeringOutcome,
+} from './steering';
+export {
   hasToolCall,
   isLoopFinished,
   isStepCount,

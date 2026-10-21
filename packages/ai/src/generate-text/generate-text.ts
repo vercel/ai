@@ -96,6 +96,12 @@ import {
   type StepResultPerformance,
 } from './step-result';
 import {
+  startSteeringRun,
+  type Steering,
+  type SteeringNotDeliveredReason,
+  type SteeringRun,
+} from './steering';
+import {
   isStepCount,
   isStopConditionMet,
   type StopCondition,
@@ -208,6 +214,7 @@ export type GenerateTextInclude = {
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
+ * @param experimental_steering - A steering object that adds user messages to the generation at the next step boundary.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  * @param onStart - Callback invoked when generation begins, before any LLM calls.
@@ -251,6 +258,7 @@ export async function generateText<
   headers,
   stopWhen = isStepCount(1),
   experimental_sandbox: sandbox,
+  experimental_steering: steering,
   output,
   toolApproval,
   experimental_toolCallers,
@@ -337,6 +345,13 @@ export async function generateText<
      * The sandbox environment that is passed through to tool execution.
      */
     experimental_sandbox?: SandboxSession;
+
+    /**
+     * A steering object created with `experimental_createSteering()`.
+     * Messages sent with it are added to the generation at the next step
+     * boundary.
+     */
+    experimental_steering?: Steering;
 
     /**
      * Runtime context. Treat runtime context as immutable.
@@ -718,7 +733,11 @@ export async function generateText<
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
 
+    let steeringRun: SteeringRun | undefined;
+
     try {
+      steeringRun = startSteeringRun(steering);
+
       const initialMessages = initialPrompt.messages;
       const initialResponseMessages: Array<ResponseMessage> = [];
 
@@ -880,6 +899,42 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
+      // why waiting steering messages are not delivered when the loop ends:
+      let steeringEndReason: SteeringNotDeliveredReason = 'finished';
+
+      const shouldStartNextStep = async () => {
+        if (steps[steps.length - 1].finishReason === 'interrupted') {
+          return false;
+        }
+
+        // Continue only after all client tool calls have been executed or denied:
+        if (
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+          clientToolCalls.length
+        ) {
+          steeringEndReason = 'waiting-for-tool-results';
+          return false;
+        }
+
+        // Continue if there are client results, pending deferred provider
+        // results, or steering messages:
+        if (
+          clientToolCalls.length === 0 &&
+          pendingDeferredToolCalls.size === 0 &&
+          !steeringRun?.hasPendingMessages()
+        ) {
+          return false;
+        }
+
+        // continue until a stop condition is met:
+        if (await isStopConditionMet({ stopConditions, steps })) {
+          steeringEndReason = 'stop-condition';
+          return false;
+        }
+
+        return true;
+      };
+
       do {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
@@ -892,6 +947,11 @@ export async function generateText<
           timeoutMs: stepTimeoutMs,
         });
         const stepNumber = steps.length;
+
+        const steeringMessages = steeringRun?.takeMessages(stepNumber) ?? [];
+        if (steeringMessages.length > 0) {
+          messagesForNextStep = [...messagesForNextStep, ...steeringMessages];
+        }
 
         try {
           await runInTracingChannelSpan({
@@ -1506,6 +1566,7 @@ export async function generateText<
                   request: stepRequest,
                   response: stepResponse,
                   toolsContext,
+                  steeringMessages,
                 });
 
               logWarnings({
@@ -1531,16 +1592,9 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        steps[steps.length - 1].finishReason !== 'interrupted' &&
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+      } while (await shouldStartNextStep());
+
+      steeringRun?.end(steeringEndReason);
 
       const lastStep = steps[steps.length - 1];
 
@@ -1638,6 +1692,7 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      steeringRun?.end(mergedAbortSignal?.aborted ? 'aborted' : 'error');
       await telemetryDispatcher.onError?.({ callId, error });
       throw wrapGatewayError(error);
     }
