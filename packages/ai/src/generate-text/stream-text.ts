@@ -2765,7 +2765,7 @@ class DefaultStreamTextResult<
                   callbackStreamRetryCount++;
                 }
 
-                await languageModelStreamReader.cancel(error);
+                await languageModelStreamReader.cancel(error).catch(() => {});
                 bufferedAttemptParts = [];
                 closeOpenAttemptParts();
 

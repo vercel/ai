@@ -2833,6 +2833,121 @@ describe('streamText', () => {
       expect(await result.finishReason).toBe('stop');
     });
 
+    it('should retry when stream errors after error part and onError is async', async () => {
+      let doStreamCalls = 0;
+      const errors: string[] = [];
+
+      function erroringStream(error: Error) {
+        let sent = false;
+        return new ReadableStream<LanguageModelV4StreamPart>(
+          {
+            pull(controller) {
+              if (!sent) {
+                sent = true;
+                controller.enqueue({ type: 'error', error });
+                return;
+              }
+              controller.error(error);
+            },
+          },
+          { highWaterMark: 0 },
+        );
+      }
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            doStreamCalls += 1;
+            if (doStreamCalls === 1) {
+              return { stream: erroringStream(new Error('provider error 1')) };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'recovered' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError: async ({ error }) => {
+          errors.push(error.message);
+          await new Promise(r => setImmediate(r));
+        },
+      });
+
+      expect(await convertAsyncIterableToArray(result.textStream)).toEqual([
+        'recovered',
+      ]);
+      expect(doStreamCalls).toBe(2);
+      expect(errors).toEqual(['provider error 1']);
+    });
+
+    it('should retry when stream errors after error part and callback requests retry asynchronously', async () => {
+      let doStreamCalls = 0;
+      const errors: string[] = [];
+
+      function erroringStream(error: Error) {
+        let sent = false;
+        return new ReadableStream<LanguageModelV4StreamPart>(
+          {
+            pull(controller) {
+              if (!sent) {
+                sent = true;
+                controller.enqueue({ type: 'error', error });
+                return;
+              }
+              controller.error(error);
+            },
+          },
+          { highWaterMark: 0 },
+        );
+      }
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            doStreamCalls += 1;
+            if (doStreamCalls === 1) {
+              return { stream: erroringStream(new Error('provider error 1')) };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '2' },
+                { type: 'text-delta', id: '2', delta: 'recovered' },
+                { type: 'text-end', id: '2' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        streamRetries: 0,
+        onError: async ({ error }) => {
+          errors.push(error.message);
+          await new Promise(r => setImmediate(r));
+          return { retry: true };
+        },
+      });
+
+      expect(await convertAsyncIterableToArray(result.textStream)).toEqual([
+        'recovered',
+      ]);
+      expect(doStreamCalls).toBe(2);
+      expect(errors).toEqual(['provider error 1']);
+    });
+
     it('should exclude failed-attempt text from structured output state', async () => {
       let callCount = 0;
 
