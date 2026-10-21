@@ -1,3 +1,4 @@
+import { citationSchema } from '../types/citation';
 import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -22,6 +23,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
@@ -43,11 +45,11 @@ function isEmptyObject(value: unknown): value is Record<string, never> {
 function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   const { type, ...part } = toolPart;
 
-  return {
+  return markToolPartAsUnavailable({
     ...part,
     type: 'dynamic-tool',
     toolName: type.slice(5),
-  } as DynamicToolUIPart;
+  } as DynamicToolUIPart);
 }
 
 function getToolPartInputSchemaInput(
@@ -94,6 +96,7 @@ const uiMessagesSchema = lazySchema(() => {
                 z.object({
                   type: z.literal('text'),
                   text: z.string(),
+                  citations: z.array(citationSchema).optional(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
@@ -148,6 +151,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -155,6 +159,7 @@ const uiMessagesSchema = lazySchema(() => {
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
                   rawInput: z.string().optional(),
+                  inputEncoding: z.enum(['json', 'text']).optional(),
                   providerExecuted: z.boolean().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   output: z.never().optional(),
@@ -163,6 +168,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -177,6 +183,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -191,6 +198,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -205,6 +213,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -221,6 +230,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -237,6 +247,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -259,6 +270,7 @@ const uiMessagesSchema = lazySchema(() => {
                   callProviderMetadata: providerMetadataSchema.optional(),
                   input: z.unknown().optional(),
                   rawInput: z.string().optional(),
+                  inputEncoding: z.enum(['json', 'text']).optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),

@@ -1,5 +1,182 @@
 # @ai-sdk/openai
 
+## 4.0.99
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- c787919: Defer construction of provider validation schemas until first use to reduce package import time.
+- 0257b47: feat(openai): support 12h prompt cache writes and cache prewarming
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.98
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 8b728ec: fix(openai): preserve detected language codes in transcription responses
+- 3cb1dae: fix(openai): forward shell_call timeout_ms and max_output_length to the shell tool and round-trip max_output_length
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.97
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.96
+
+### Patch Changes
+
+- 2be133e: chore(openai): deprecate 'webSearchPreview()' tool
+- fa98094: feat(openai): support ordered 'additional_tools' from tool results
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.95
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.93
+
+### Patch Changes
+
+- 216e2c9: fix(openai): send assistant text with content instead of an item reference when its reasoning was removed
+
+  With reasoning models and `store: true`, pruning reasoning (e.g. `pruneMessages({ reasoning: 'all' })`) caused follow-up requests to fail with "Item 'msg\_...' of type 'message' was provided without its required 'reasoning' item". Assistant text parts are now only sent as item references when they are preceded by reasoning in the same assistant message.
+
+## 4.0.92
+
+### Patch Changes
+
+- 6aedb07: fix(openai): replay web search results when response storage is disabled
+- e57803c: Expose complete retrieved web-search URLs and file-search documents as sources, and normalize inline references separately as citations on text parts and text-end events. Preserve citation-derived sources when retrieval data is unavailable, including web-search-preview and Azure responses. Keep raw annotations, citation titles, and text locations available. Deduplicate file-search passages by file ID.
+- 1f7e5ad: fix(openai): JSON-encode custom tool input deltas for progressive UI updates
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.91
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- 72e9d38: feat(openai): send image detail in decisions
+- fb933f9: Report failed and incomplete web searches as tool errors instead of successful tool results in OpenAI Responses API calls and batch results.
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.90
+
+### Patch Changes
+
+- 6c59fb1: fix(openai): preserve sampling parameters for GPT-6 Sol and Luna when reasoning is disabled, accounting for reasoning effort updates in Responses requests
+
+## 4.0.89
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.88
+
+### Patch Changes
+
+- 32ff7ad: Preserve tool errors in OpenAI Chat Completions and Responses by wrapping their payloads in an `error` object. Send Google tool errors and denied executions under `functionResponse.response.error`.
+
+## 4.0.87
+
+### Patch Changes
+
+- bccc1b7: fix(openai): avoid duplicate references for stored messages with multiple text parts
+
+## 4.0.86
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.85
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 99bdcd2: Replace the OpenAI structured-output wrapper for `decide` with the native Decisions API. Only `gpt-6-luna` is currently supported by this endpoint; other Responses models no longer work with `openai.decisionModel()` or its deprecated `evaluationModel()` alias.
+
+  Responses API options, such as `reasoningEffort`, are no longer applied and produce unsupported-option warnings. The Decisions API supports `providerOptions.openai.safetyIdentifier`. Native token usage and confidence values are preserved, and per-question refusals fail the decision call.
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.84
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 5b8e63b: feat(openai): warn when reasoningSummary is used with chat models
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 4.0.83
 
 ### Patch Changes

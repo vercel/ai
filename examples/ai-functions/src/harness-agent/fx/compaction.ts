@@ -14,7 +14,6 @@ run(async () => {
   const agent = new HarnessAgent({ harness: fx });
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
   });

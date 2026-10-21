@@ -1,0 +1,38 @@
+{
+  "model": "pplx-decider-latest",
+  "answers": {
+    "defect": {
+      "type": "noul",
+      "noul": 0.9424522889347015
+    },
+    "sentiment": {
+      "type": "choice",
+      "choice": "mixed",
+      "confidence": 0.9255246944002182,
+      "probabilities": {
+        "positive": 0.020649883775315993,
+        "mixed": 0.9503497962668123,
+        "negative": 0.02900031995787183
+      }
+    },
+    "severity": {
+      "type": "score",
+      "score": 1.7838686319784252,
+      "confidence": 0.7838686319784252,
+      "legend": {
+        "0": "Cosmetic",
+        "1": "Inconvenient",
+        "2": "Product unusable"
+      },
+      "probabilities": {
+        "0": 0.008423954913615923,
+        "1": 0.199283458194343,
+        "2": 0.7922925868920411
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 367,
+    "output_tokens": 3
+  }
+}

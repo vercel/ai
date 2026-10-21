@@ -1,5 +1,181 @@
 # @ai-sdk/llamaindex
 
+## 3.0.148
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 3.0.147
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 3.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 3.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 3.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
+## 3.0.143
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+
+## 3.0.142
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - ai@7.0.142
+
+## 3.0.141
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 3.0.140
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 3.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+
+## 3.0.137
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 3.0.136
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 3.0.135
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+
+## 3.0.134
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 3.0.133
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+
+## 3.0.132
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 3.0.131
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+
+## 3.0.129
+
+### Patch Changes
+
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+
 ## 3.0.127
 
 ### Patch Changes

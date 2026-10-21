@@ -1,4 +1,7 @@
-import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { StartMessage } from '../codex-bridge-protocol';
@@ -157,6 +160,7 @@ export function createCodexAppServerRuntime(): {
             dynamicTools: active.dynamicTools,
             emit: active.options.emit,
             requestToolResult: active.options.turn.requestToolResult,
+            stepTracker: active.options.stepTracker,
           }).catch(error => {
             active.fail(error);
             throw error;
@@ -436,7 +440,17 @@ export function createTurnParams({
   return {
     threadId,
     ...(disableEnvironments ? { environments: [] } : {}),
-    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    input:
+      typeof start.prompt === 'string'
+        ? [{ type: 'text', text: start.prompt, text_elements: [] }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text', text: part.text, text_elements: [] }
+              : {
+                  type: 'image',
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          ),
     approvalPolicy: 'never',
     sandboxPolicy: {
       type: 'externalSandbox',
@@ -526,11 +540,13 @@ export async function handleAppServerRequest({
   dynamicTools,
   emit,
   requestToolResult,
+  stepTracker,
 }: {
   request: CodexAppServerRequest;
   dynamicTools: ReturnType<typeof createDynamicTools>;
   emit: Emit;
   requestToolResult: BridgeTurn['requestToolResult'];
+  stepTracker: CodexStepTracker;
 }): Promise<unknown> {
   if (request.method !== 'item/tool/call') {
     throw new Error(
@@ -558,7 +574,11 @@ export async function handleAppServerRequest({
     input: JSON.stringify(params.arguments ?? {}),
     providerExecuted: false,
   });
-  const result = await requestToolResult(params.callId);
+  const callId = params.callId;
+  stepTracker.awaitHostInput({ itemId: callId });
+  const result = await requestToolResult(callId).finally(() =>
+    stepTracker.resolveHostInput({ itemId: callId }),
+  );
   emit({
     type: 'tool-result',
     toolCallId: params.callId,
@@ -566,6 +586,22 @@ export async function handleAppServerRequest({
     result: result.output ?? null,
     isError: result.isError === true,
   });
+  if (result.toolResult != null) {
+    const converted = convertHarnessToolModelOutput({
+      output: result.toolResult.output,
+    });
+    return {
+      contentItems: converted.content.map(part =>
+        part.type === 'text'
+          ? { type: 'inputText', text: part.text }
+          : {
+              type: 'inputImage',
+              imageUrl: `data:${part.mediaType};base64,${part.data}`,
+            },
+      ),
+      success: result.isError !== true && !converted.isError,
+    };
+  }
   return {
     contentItems: [
       { type: 'inputText', text: serializeToolOutput(result.output) },

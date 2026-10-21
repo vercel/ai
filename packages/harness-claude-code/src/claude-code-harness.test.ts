@@ -1,10 +1,14 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -173,7 +177,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       if (path.endsWith('/bridge/pnpm-workspace.yaml'))
-        return "allowBuilds:\n  '@anthropic-ai/claude-code@2.1.213': true\n";
+        return "allowBuilds:\n  '@anthropic-ai/claude-code': true\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -361,6 +365,7 @@ describe('createClaudeCode adapter', () => {
       'TaskStop',
       'TaskOutput',
       'Monitor',
+      'ListAgents',
       'ListMcpResources',
       'ListMcpResourcesTool',
       'ReadMcpResource',
@@ -397,6 +402,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListAgents.toolUseKind).toBe('readonly');
     expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
       'readonly',
     );
@@ -405,6 +411,27 @@ describe('createClaudeCode adapter', () => {
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
     expect(harness.builtinTools.WebFetch).toBeDefined();
+
+    const listAgentsInputSchema = harness.builtinTools.ListAgents
+      .inputSchema as z.ZodType;
+    expect(listAgentsInputSchema.parse({})).toEqual({});
+    expect(
+      listAgentsInputSchema.parse({ channel: 'reviewers', q: 'available' }),
+    ).toEqual({ channel: 'reviewers', q: 'available' });
+    expect(() =>
+      listAgentsInputSchema.parse({ channel: 'a'.repeat(257) }),
+    ).toThrow();
+    expect(() => listAgentsInputSchema.parse({ unsupported: true })).toThrow();
+  });
+
+  it('allows callers to disable native agent discovery', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness: createClaudeCode(),
+          inactiveTools: ['ListAgents'],
+        }),
+    ).not.toThrow();
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
@@ -1435,6 +1462,123 @@ describe('createClaudeCode adapter', () => {
     );
   });
 
+  describe('user message content', () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+    async function promptTurn(prompt: HarnessV1Prompt) {
+      const session = await createClaudeCode().doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      try {
+        const control = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt,
+          emit: () => {},
+        });
+        void Promise.resolve(control.done).catch(() => {});
+      } finally {
+        await session.doDestroy();
+      }
+    }
+
+    it('sends a text-only user message as a string prompt', async () => {
+      await promptTurn({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'First' },
+          { type: 'text', text: 'Second' },
+        ],
+      });
+
+      expect(lastStart().prompt).toBe('First\n\nSecond');
+    });
+
+    it('sends inline images as image blocks', async () => {
+      await promptTurn({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in these images?' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL(`data:image/png;base64,${png}`) },
+          },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: convertBase64ToUint8Array(png) },
+          },
+          { type: 'file', mediaType: 'image/png', data: png },
+          { type: 'image', image: png },
+        ],
+      });
+
+      expect(lastStart().prompt).toEqual([
+        { type: 'text', text: 'What is in these images?' },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+      ]);
+    });
+
+    it.each([
+      {
+        name: 'remote image URLs',
+        part: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'url', url: new URL('https://example.com/a.png') },
+        },
+      },
+      {
+        name: 'provider references',
+        part: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'reference', reference: { anthropic: 'file_1' } },
+        },
+      },
+      {
+        name: 'non-image files',
+        part: {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: { type: 'data', data: png },
+        },
+      },
+      {
+        name: 'data URLs that are not base64 encoded',
+        part: {
+          type: 'file',
+          mediaType: 'image/svg+xml',
+          data: new URL('data:image/svg+xml,%3Csvg%3E%3C/svg%3E'),
+        },
+      },
+      {
+        name: 'images whose media type cannot be detected',
+        part: {
+          type: 'file',
+          mediaType: 'image',
+          data: { type: 'data', data: 'aGVsbG8=' },
+        },
+      },
+    ] as const)('rejects $name', async ({ part }) => {
+      await expect(
+        promptTurn({ role: 'user', content: [part] }),
+      ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
+      expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(0);
+    });
+  });
+
   describe('bridge WebSocket startup', () => {
     let now: number;
 
@@ -1688,9 +1832,7 @@ describe('createClaudeCode adapter', () => {
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
       expect(commands[1]).toBe('./node_modules/.bin/claude --version');
-      expect(workspace?.content).toContain(
-        "'@anthropic-ai/claude-code@2.1.213': true",
-      );
+      expect(workspace?.content).toContain("'@anthropic-ai/claude-code': true");
     });
 
     it('caches the recipe across calls', async () => {

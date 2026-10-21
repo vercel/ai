@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -238,12 +240,6 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
-
     // reasoning content (Alibaba uses 'reasoning_content' field):
     const reasoning = choice.message.reasoning_content;
     if (reasoning != null && reasoning.length > 0) {
@@ -251,6 +247,12 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
     }
 
     // tool calls:
@@ -311,7 +313,8 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: z.infer<typeof alibabaUsageSchema> | undefined = undefined;
+    let usage: z.infer<ReturnType<typeof alibabaUsageSchema>> | undefined =
+      undefined;
 
     let isFirstChunk = true;
     let activeText = false;
@@ -322,7 +325,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
+          ParseResult<InferSchema<typeof alibabaChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -524,83 +527,92 @@ function resolveAlibabaThinking({
  * Reference for schemas below:
  * https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
  */
-const alibabaUsageSchema = z.looseObject({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .looseObject({
-      cached_tokens: z.number().nullish(),
-      cache_creation_input_tokens: z.number().nullish(),
-      cache_type: z.string().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .looseObject({
-      reasoning_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const alibabaUsageSchema = () =>
+  z.looseObject({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    prompt_tokens_details: z
+      .looseObject({
+        cached_tokens: z.number().nullish(),
+        cache_creation_input_tokens: z.number().nullish(),
+        cache_type: z.string().nullish(),
+      })
+      .nullish(),
+    completion_tokens_details: z
+      .looseObject({
+        reasoning_tokens: z.number().nullish(),
+      })
+      .nullish(),
+  });
 
-const alibabaChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  type: z.literal('function'),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(),
     }),
   ),
-  usage: alibabaUsageSchema.nullish(),
-});
+);
 
-const alibabaChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatChunkSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number().nullish(), // Index for accumulating tool calls
-              id: z.string().nullish(),
-              type: z.literal('function').nullish(),
-              function: z
-                .object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
-                })
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(), // Index for accumulating tool calls
+                  id: z.string().nullish(),
+                  type: z.literal('function').nullish(),
+                  function: z
+                    .object({
+                      name: z.string().nullish(),
+                      arguments: z.string().nullish(),
+                    })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(), // Usage only appears in final chunk
     }),
   ),
-  usage: alibabaUsageSchema.nullish(), // Usage only appears in final chunk
-});
+);

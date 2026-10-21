@@ -17,6 +17,7 @@ import {
   createBinaryStreamResponseHandler,
   createJsonResponseHandler,
   deleteFromApi,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -43,17 +44,6 @@ interface XaiFilesConfig {
 }
 
 type XaiFilesResponse = InferSchema<typeof xaiFilesResponseSchema>;
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
-}
 
 export class XaiFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
@@ -152,7 +142,7 @@ export class XaiFiles implements FilesV4 {
     } else {
       const fileBytes = convertInlineFileDataToUint8Array(data);
 
-      const blob = new Blob([fileBytes], {
+      const blob = new Blob([fileBytes as Uint8Array<ArrayBuffer>], {
         type: mediaType,
       });
 
