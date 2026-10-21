@@ -2,4 +2,4 @@
 '@ai-sdk/minimax': patch
 ---
 
-Add the official MiniMax-M3 and MiniMax-M2.7 model IDs.
+Expose the canonical MiniMax-M3.1-Flash and MiniMax-M3 model IDs while preserving existing aliases.
