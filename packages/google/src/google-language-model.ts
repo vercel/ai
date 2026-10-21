@@ -922,12 +922,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         });
         groundingMetadataPerRequest.push(requestGroundingMetadata);
         requestGroundingMetadata = null;
+        // The new response needs its own completion signal.
+        finishReason = { unified: 'interrupted', raw: undefined };
         return value;
       },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
@@ -1018,6 +1021,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }

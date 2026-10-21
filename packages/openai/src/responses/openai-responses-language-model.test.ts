@@ -7233,6 +7233,74 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      [undefined, undefined, 'interrupted'],
+      ['response.completed', undefined, 'stop'],
+      ['response.incomplete', 'max_output_tokens', 'length'],
+      ['response.incomplete', 'unknown_reason', 'other'],
+    ] as const)(
+      'maps a stream ending with %s (%s) to %s',
+      async (type, reason, unified) => {
+        const events = [
+          {
+            type: 'response.created',
+            response: {
+              id: 'r1',
+              created_at: 1,
+              model: 'gpt-4o',
+              status: 'in_progress',
+            },
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg1',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          },
+          {
+            type: 'response.output_text.delta',
+            item_id: 'msg1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Partial answer',
+          },
+          ...(type == null
+            ? []
+            : [
+                {
+                  type,
+                  response: {
+                    incomplete_details: reason == null ? null : { reason },
+                  },
+                },
+              ]),
+        ];
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await createModel('gpt-4o').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({ finishReason: { unified, raw: reason } }),
+        ]);
+      },
+    );
+
     it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
       const text = '🧪 café — 東京 café';
       const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';

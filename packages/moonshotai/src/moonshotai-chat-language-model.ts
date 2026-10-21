@@ -587,8 +587,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;

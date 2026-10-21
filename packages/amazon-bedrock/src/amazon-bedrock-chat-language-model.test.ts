@@ -741,6 +741,48 @@ describe('request URL', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/amazon-bedrock-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.contentBlockDelta?.delta?.text != null,
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls[streamUrl].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `${JSON.stringify(event)}\n`),
+          ...(withError
+            ? [
+                `${JSON.stringify({ modelStreamErrorException: { message: 'Stream failed' } })}\n`,
+              ]
+            : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   beforeEach(() => {
     mockOptions = {
       success: true,

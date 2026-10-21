@@ -352,8 +352,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: MistralUsage | undefined = undefined;
@@ -385,6 +386,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }

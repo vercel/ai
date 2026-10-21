@@ -6846,7 +6846,7 @@ describe('doStream', () => {
       );
 
       expect(finishEvent?.finishReason).toEqual({
-        unified: 'other',
+        unified: 'interrupted',
         raw: undefined,
       });
     },
@@ -7151,6 +7151,73 @@ describe('doStream', () => {
       expect(finish?.usage.outputTokens.total).toBe(33_306);
     },
   );
+
+  it.each([
+    [undefined, 'interrupted'],
+    ['STOP', 'stop'],
+    ['MAX_TOKENS', 'length'],
+    ['SAFETY', 'content-filter'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finishReason %j to %s',
+    async (raw, unified) => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: 'Partial answer' }] },
+                index: 0,
+                finishReason: raw,
+              },
+            ],
+          })}\n\n`,
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({ finishReason: { unified, raw } }),
+      ]);
+    },
+  );
+
+  it('reports interruption when an automatically continued stream ends without a finish reason', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Hello' }] }, finishReason: 'CONTINUATION', continuationToken: 'token-1' }] })}\n\n`,
+        ],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: ', partial' }] } }] })}\n\n`,
+        ],
+      },
+    ];
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await convertReadableStreamToArray(stream);
+    expect(server.calls).toHaveLength(2);
+    expect(
+      parts.filter(part => part.type === 'text-delta').map(part => part.delta),
+    ).toEqual(['Hello', ', partial']);
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    expect(parts.filter(part => part.type === 'finish')).toEqual([
+      expect.objectContaining({
+        finishReason: { unified: 'interrupted', raw: undefined },
+      }),
+    ]);
+  });
 
   it('should continue the stream automatically on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
