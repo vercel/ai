@@ -36,6 +36,7 @@ import {
   convertToBase64,
   type InferSchema,
   type ResponseHandler,
+  encodePathSegments,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getModelPath } from './get-model-path';
@@ -415,7 +416,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<BatchV4CancelResult> {
     await postJsonToApi({
-      url: `${this.batchConfig.baseURL}/${options.batchId}:cancel`,
+      url: `${this.batchConfig.baseURL}/${encodePathSegments(options.batchId)}:cancel`,
       headers: await this.getHeaders(options.headers),
       body: {},
       failedResponseHandler: googleFailedResponseHandler,
@@ -533,7 +534,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     options: BatchV4OperationOptions,
   ): Promise<GoogleBatchOperation> {
     const { value: operation } = await getFromApi({
-      url: `${this.batchConfig.baseURL}/${options.batchId}`,
+      url: `${this.batchConfig.baseURL}/${encodePathSegments(options.batchId)}`,
       headers: await this.getHeaders(options.headers),
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
