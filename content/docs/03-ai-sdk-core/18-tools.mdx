@@ -180,8 +180,6 @@ The same session provides other file operations.
 ## Web Fetch Tool
 
 `experimental_createWebFetchTool` lets agents read web pages and documents by URL.
-Unlike provider-executed web fetch tools, it runs in your application, so it works
-the same with every model that supports function calling.
 
 ### Installation
 
@@ -202,19 +200,6 @@ const result = await generateText({
   prompt: 'Summarize https://ai-sdk.dev/docs/introduction.',
 });
 ```
-
-The model calls the tool with `{ url: string, offset?: number }`. The tool
-returns one of the following results:
-
-- `{ type: 'document', url, finalUrl, contentType, title?, content, offset, totalLength, nextOffset? }`
-  for HTML, text, and PDFs converted to text.
-- `{ type: 'file', url, finalUrl, mediaType, data }` for PDFs when
-  `pdf` is set to `'file'`. `data` is base64-encoded.
-- `{ type: 'error', url, errorCode, message, statusCode? }` when fetching fails.
-  Errors are returned so the model can recover, for example by trying another URL.
-
-The model receives documents as text with the URL, title, and content type,
-followed by the content. Caller cancellation is propagated as an error.
 
 ### Options
 
@@ -286,6 +271,21 @@ followed by the content. Caller cancellation is propagated as an error.
     },
   ]}
 />
+
+The model calls the tool with `{ url: string, offset?: number }` and receives
+one of the following results:
+
+- `{ type: 'document', url, finalUrl, contentType, title?, content, offset, totalLength, nextOffset? }`
+  for HTML, text, and PDFs converted to text.
+- `{ type: 'file', url, finalUrl, mediaType, data }` for PDFs when `pdf` is set
+  to `'file'`. `data` is base64-encoded.
+- `{ type: 'error', url, errorCode, message, statusCode? }` when fetching fails.
+
+Errors are returned so the model can recover, for example by trying another URL.
+The model receives documents as text with the URL, title, and content type,
+followed by the content. AI SDK cancellation aborts the request.
+
+`experimental_createWebFetchTool()` returns the tool directly, ready to use as `tools: { webFetch }`.
 
 ### Content handling
 
