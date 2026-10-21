@@ -662,7 +662,6 @@ describe('createApiKeyFetchFunction', () => {
       headers: {
         'content-type': 'application/json',
         Authorization: 'Bearer test-api-key-override',
-        authorization: 'Bearer old-token',
         'user-agent': 'ai-sdk-amazon-bedrock/0.0.0-test testenv',
       },
     });
