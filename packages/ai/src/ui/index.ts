@@ -3,6 +3,7 @@ export {
   AbstractChat,
   type ChatAddToolApproveResponseFunction,
   type ChatAddToolOutputFunction,
+  type ChatFinishOutcome,
   type ChatInit,
   type ChatOnDataCallback,
   type ChatOnErrorCallback,

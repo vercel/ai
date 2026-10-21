@@ -47,6 +47,7 @@ export function toUIMessageStream<
     if (
       !hasFatalFailure &&
       outcome.status !== 'completed' &&
+      outcome.status !== 'truncated' &&
       outcome.status !== 'aborted' &&
       newOutcome.status !== 'unknown' &&
       (outcome.status === 'unknown' || newOutcome.status !== 'failed')
@@ -155,7 +156,10 @@ export function toUIMessageStream<
           }
 
           if (part.type === 'finish') {
-            setSourceOutcome({ status: 'completed' });
+            setSourceOutcome({
+              status:
+                part.finishReason === 'length' ? 'truncated' : 'completed',
+            });
           } else if (part.type === 'abort') {
             setSourceOutcome({ status: 'aborted' });
           } else if (part.type === 'error') {

@@ -355,7 +355,7 @@ Stream processing and event callbacks remain immediate, and the latest messages 
 
 `useChat` provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle:
 
-- `onFinish`: Called when the assistant response is completed. The event includes the response message, all messages, and flags for abort, disconnect, and errors.
+- `onFinish`: Called when the assistant response ends. The event includes the response message, all messages, flags for abort, disconnect, and errors, and an `outcome`. When the model reaches its output-token limit, `outcome.status` is `truncated`.
 - `onError`: Called when an error occurs during the fetch request.
 - `onData`: Called whenever a data part is received.
 
@@ -367,7 +367,18 @@ import { UIMessage } from 'ai';
 const {
   /* ... */
 } = useChat({
-  onFinish: ({ message, messages, isAbort, isDisconnect, isError }) => {
+  onFinish: ({
+    message,
+    messages,
+    isAbort,
+    isDisconnect,
+    isError,
+    outcome,
+  }) => {
+    if (outcome.status === 'truncated') {
+      // show a notice that the response was cut off by the output-token limit
+    }
+
     // use information to e.g. update other UI states
   },
   onError: error => {
@@ -378,6 +389,10 @@ const {
   },
 });
 ```
+
+The chat `status` returns to `ready` after a truncated response because the chat
+can accept another message. Use the `onFinish` outcome to distinguish truncation
+from a complete response.
 
 It's worth noting that you can abort the processing by throwing an error in the `onData` callback. This will trigger the `onError` callback and stop the message from being appended to the chat UI. This can be useful for handling unexpected responses from the AI provider.
 

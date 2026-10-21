@@ -869,6 +869,9 @@ describe('createUIMessageStream', () => {
       declaredCompleted: await observe(({ writer }) => {
         writer.setOutcome({ status: 'completed' });
       }),
+      declaredTruncated: await observe(({ writer }) => {
+        writer.setOutcome({ status: 'truncated' });
+      }),
       declaredCompletedBeforeFailed: await observe(({ writer }) => {
         writer.setOutcome({ status: 'completed' });
         writer.setOutcome({ status: 'failed', error: new Error('ignored') });
@@ -939,6 +942,13 @@ describe('createUIMessageStream', () => {
           "isAborted": false,
           "onEndCalls": 1,
           "status": "failed",
+        },
+        "declaredTruncated": {
+          "chunkTypes": [],
+          "errorMessage": undefined,
+          "isAborted": false,
+          "onEndCalls": 1,
+          "status": "truncated",
         },
         "errorChunk": {
           "chunkTypes": [

@@ -316,6 +316,12 @@ Allows you to easily create a conversational user interface for your chatbot app
               description: `True if errors during streaming caused the response to stop early.`,
             },
             {
+              name: 'outcome',
+              type: 'ChatFinishOutcome',
+              description:
+                "The outcome of the assistant response. The status is 'truncated' when generation stopped because the output-token limit was reached. Other statuses are 'completed', 'failed', and 'aborted'.",
+            },
+            {
               name: 'finishReason',
               type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               isOptional: true,
