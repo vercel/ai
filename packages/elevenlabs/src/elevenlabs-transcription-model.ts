@@ -151,7 +151,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
           endSecond: word.end ?? 0,
         })) ?? [],
       language: response.language_code,
-      durationInSeconds: response.words?.at(-1)?.end ?? undefined,
+      durationInSeconds:
+        response.audio_duration_secs ??
+        response.words?.at(-1)?.end ??
+        undefined,
       warnings,
       response: {
         timestamp: currentDate,
@@ -166,6 +169,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
 const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      audio_duration_secs: z.number().nullish(),
       language_code: z.string(),
       language_probability: z.number(),
       text: z.string(),
