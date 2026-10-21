@@ -35,6 +35,36 @@ describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
 
+    describe('duration', () => {
+      const words = [{ text: 'Hello', type: 'word', start: 0, end: 2.06 }];
+
+      it.each([
+        ['includes trailing silence', 4.24, words, 4.24],
+        ['does not require word timestamps', 4.24, null, 4.24],
+        ['preserves a reported zero', 0, words, 0],
+        ['falls back when audio duration is absent', undefined, words, 2.06],
+        ['falls back when audio duration is null', null, words, 2.06],
+      ])('%s', async (_name, audioDuration, words, expectedDuration) => {
+        server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+          type: 'json-value',
+          body: {
+            audio_duration_secs: audioDuration,
+            language_code: 'en',
+            language_probability: 1,
+            text: 'Hello',
+            words,
+          },
+        };
+
+        const result = await model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        });
+
+        expect(result.durationInSeconds).toBe(expectedDuration);
+      });
+    });
+
     it('should pass the model', async () => {
       await model.doGenerate({
         audio: audioData,
