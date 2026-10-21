@@ -492,6 +492,41 @@ describe('HuggingFaceResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([false, true])(
+      'handles a truncated stream (with error: %s)',
+      async withError => {
+        server.urls['https://router.huggingface.co/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({ type: 'response.created', response: { id: 'r1', created_at: 1, model: 'test-model', status: 'in_progress' } })}\n\n`,
+            `data: ${JSON.stringify({ type: 'response.output_text.delta', item_id: 'msg1', output_index: 0, content_index: 0, delta: 'Partial answer', sequence_number: 1 })}\n\n`,
+            ...(withError ? ['data: {invalid-json}\n\n'] : []),
+          ],
+        };
+        const { stream } = await createModel('test-model').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError ? 'error' : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     it('should stream text deltas', async () => {
       server.urls['https://router.huggingface.co/v1/responses'].response = {
         type: 'stream-chunks',

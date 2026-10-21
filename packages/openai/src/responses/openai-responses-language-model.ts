@@ -1599,8 +1599,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIResponsesUsage | undefined = undefined;

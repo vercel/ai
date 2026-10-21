@@ -33,11 +33,13 @@ import {
   zodSchema,
   type FetchFunction,
   type InferSchema,
-  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { continueGoogleStream } from './continue-google-stream';
+import {
+  continueGoogleStream,
+  type GoogleStreamPart,
+} from './continue-google-stream';
 import {
   addGoogleUsageMetadata,
   convertGoogleUsage,
@@ -926,8 +928,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
@@ -1005,7 +1008,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<ChunkSchema>,
+          GoogleStreamPart<ChunkSchema>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -1013,11 +1016,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           transform(chunk, controller) {
+            if ('type' in chunk) {
+              // Reset in stream order, after the prior response's buffered
+              // CONTINUATION chunk, rather than when the request starts.
+              finishReason = { unified: 'interrupted', raw: undefined };
+              return;
+            }
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
