@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Avoid duplicate local tool execution and SDK-generated denial results when the final tool message contains repeated approval responses with identical supported fields.
+fix(ai): process only the first approval response per tool call, so repeated or conflicting responses in the final tool message no longer execute a tool twice or both execute and deny it
