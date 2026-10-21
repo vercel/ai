@@ -6,11 +6,21 @@
     "RUNNER_ARCH"
   ],
   "tasks": {
-    "ci:checks": {
+    "validate": {
       "dependsOn": [
         "build",
         "type-check",
-        "test"
+        "check-bundle-size"
+      ]
+    },
+    "//#validate": {
+      "dependsOn": [
+        "//#check",
+        "//#validate:docs",
+        "//#konsistent:check",
+        "//#konsistent:validate",
+        "//#test:bundlers",
+        "ai-sdk-docs#test:site"
       ]
     },
     "//#check": {},

@@ -24,11 +24,12 @@ and checks in dependency order and reuses cached results. Package tests run on
 Node 22, 24, and 26, including the full `ai` suite. Test cache keys include the Node
 version and worker limit.
 
-Repository checks (`pnpm ci:check`) covers types, lint, formatting, Konsistent, docs,
-and bundles. Each Node version runs the same package tests (`pnpm ci:test`). Other
-jobs build and type-check examples, run RSC and DevTools browser tests, and test
-MCP on Windows. Branch protection should require these jobs individually; the
-load-time benchmark is advisory. The docs site is built and deployed by Vercel.
+Build and validate (`pnpm ci:validate`) builds packages and examples and checks
+types, lint, formatting, Konsistent, docs, and bundles. Each Node version runs the
+same package tests (`pnpm ci:test`). Run both locally with `pnpm run ci`. Browser
+tests (`pnpm ci:browser`) and MCP Windows tests have separate jobs. Require these
+jobs individually; the load-time benchmark is advisory. The docs site is built
+and deployed by Vercel.
 
 ## Providers
 

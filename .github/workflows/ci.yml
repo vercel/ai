@@ -22,8 +22,8 @@ env:
         'local:rw,remote:rw' || 'local:rw' }}
 
 jobs:
-  checks:
-    name: Repository checks
+  validate:
+    name: Build and validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -31,7 +31,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-ci
-      - run: pnpm ci:check
+      # Compiler caches speed up a changed example; Turbo skips unchanged builds.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            examples/*/.next/cache
+            examples/*/.angular/cache
+          key: ${{ runner.os }}-examples-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-examples-${{ hashFiles('pnpm-lock.yaml') }}-
+      - run: pnpm ci:validate
       - name: Upload bundle diagnostics
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -40,7 +49,7 @@ jobs:
           path: packages/ai/dist-bundle-check/*.json
 
   packages:
-    name: Packages (Node ${{ matrix.node }})
+    name: Package tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -55,24 +64,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm ci:test
-
-  examples:
-    name: Examples
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-ci
-      # Compiler caches speed up a changed example; Turbo skips unchanged builds.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            examples/*/.next/cache
-            examples/*/.angular/cache
-          key: ${{ runner.os }}-examples-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-examples-${{ hashFiles('pnpm-lock.yaml') }}-
-      - run: pnpm ci:examples
 
   browsers:
     name: Browser tests
