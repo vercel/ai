@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 4.0.31
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+
+## 4.0.30
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+
 ## 4.0.29
 
 ### Patch Changes

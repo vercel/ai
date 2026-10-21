@@ -69,7 +69,10 @@ import {
   convertAnthropicUsage,
   type AnthropicUsage,
 } from './convert-anthropic-usage';
-import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
+import {
+  convertToAnthropicPrompt,
+  type AnthropicMediaPartConverter,
+} from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
@@ -251,6 +254,8 @@ export type AnthropicLanguageModelConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
+  /** Custom media conversion for compatible providers; undefined uses the default. */
+  convertMediaPart?: AnthropicMediaPartConverter;
   transformRequestBody?: (
     args: Record<string, any>,
     betas: Set<string>,
@@ -265,6 +270,12 @@ export type AnthropicLanguageModelConfig = {
   generateId?: () => string;
   supportsNativeStructuredOutput?: boolean;
   supportsStrictTools?: boolean;
+  /** Maximum temperature for compatible providers. Defaults to 1. */
+  maxTemperature?: number;
+  /** Preserve temperature and topP with thinking for compatible providers. */
+  supportsTemperatureAndTopPWithThinking?: boolean;
+  /** Cache option namespace for compatible providers. Defaults to anthropic. */
+  cacheControlProviderOptionsName?: string;
 };
 
 export class AnthropicLanguageModel implements LanguageModelV4 {
@@ -350,18 +361,24 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    if (temperature != null && temperature > 1) {
+    const maxTemperature = config.maxTemperature ?? 1;
+    const temperatureProvider =
+      config.maxTemperature == null
+        ? 'anthropic'
+        : getProviderOptionsName(config.provider);
+
+    if (temperature != null && temperature > maxTemperature) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} exceeds anthropic maximum of 1.0. clamped to 1.0`,
+        details: `${temperature} exceeds ${temperatureProvider} maximum of ${maxTemperature.toFixed(1)}. clamped to ${maxTemperature.toFixed(1)}`,
       });
-      temperature = 1;
+      temperature = maxTemperature;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} is below anthropic minimum of 0. clamped to 0`,
+        details: `${temperature} is below ${temperatureProvider} minimum of 0. clamped to 0`,
       });
       temperature = 0;
     }
@@ -530,7 +547,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     }
 
     // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
+    const cacheControlValidator = new CacheControlValidator(
+      config.cacheControlProviderOptionsName,
+    );
 
     const toolNameMapping = createToolNameMapping({
       tools,
@@ -570,6 +589,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       cacheControlValidator,
       toolNameMapping,
       toolsetNames,
+      convertMediaPart: config.convertMediaPart,
     });
 
     /*
@@ -921,7 +941,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         thinkingBudget = 1024;
       }
 
-      if (baseArgs.temperature != null) {
+      if (
+        baseArgs.temperature != null &&
+        !config.supportsTemperatureAndTopPWithThinking
+      ) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported',
@@ -939,7 +962,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         });
       }
 
-      if (topP != null) {
+      if (topP != null && !config.supportsTemperatureAndTopPWithThinking) {
         baseArgs.top_p = undefined;
         warnings.push({
           type: 'unsupported',

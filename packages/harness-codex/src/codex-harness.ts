@@ -11,7 +11,6 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1MintBridgeTokenCallback,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
@@ -32,6 +31,7 @@ import {
   createBridgeStartupError,
   experimental_createBridgeUserMessageSubmitter,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
@@ -1028,7 +1028,9 @@ function createSession({
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({
+          prompt: promptOpts.prompt,
+        }),
         tools,
         ...(promptOpts.responseFormat == null
           ? {}
@@ -1371,27 +1373,4 @@ function fingerprintCodexTurnConfiguration({
     },
   );
   return `v2:${createHash('sha256').update(canonical).digest('hex')}`;
-}
-
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards to
- * Codex. The adapter does not yet map file and image parts into app-server
- * turn input, so throw rather than silently dropping them and producing a
- * truncated prompt.
- */
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'codex',
-        message: `The codex harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

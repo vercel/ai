@@ -1,5 +1,47 @@
 # @ai-sdk/azure
 
+## 4.0.107
+
+### Patch Changes
+
+- 7b4ad47: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [df6fe35]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai@4.0.99
+  - @ai-sdk/deepseek@3.0.70
+
+## 4.0.106
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [8b728ec]
+- Updated dependencies [3cb1dae]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/openai@4.0.98
+  - @ai-sdk/deepseek@3.0.69
+
+## 4.0.105
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/deepseek@3.0.68
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.104
 
 ### Patch Changes

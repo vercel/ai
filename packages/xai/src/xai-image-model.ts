@@ -1,5 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -233,18 +235,22 @@ export class XaiImageModel implements ImageModelV4 {
   }
 }
 
-const xaiImageResponseSchema = z.object({
-  data: z.array(
+const xaiImageResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      url: z.string().nullish(),
-      b64_json: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
-      respect_moderation: z.boolean().nullish(),
+      data: z.array(
+        z.object({
+          url: z.string().nullish(),
+          b64_json: z.string().nullish(),
+          revised_prompt: z.string().nullish(),
+          respect_moderation: z.boolean().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

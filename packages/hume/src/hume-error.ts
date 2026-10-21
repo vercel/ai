@@ -1,14 +1,23 @@
 import { z } from 'zod/v4';
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 
-export const humeErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.number(),
-  }),
-});
+export const humeErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        code: z.number(),
+      }),
+    }),
+  ),
+);
 
-export type HumeErrorData = z.infer<typeof humeErrorDataSchema>;
+export type HumeErrorData = InferSchema<typeof humeErrorDataSchema>;
 
 export const humeFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: humeErrorDataSchema,

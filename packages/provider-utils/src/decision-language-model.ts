@@ -62,6 +62,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     abortSignal,
     headers,
     providerOptions,
@@ -148,7 +150,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       ]),
     );
     const result = await this.model.doGenerate({
-      reasoning: 'none',
+      reasoning: reasoning ?? 'none',
+      maxOutputTokens,
       prompt: [
         {
           role: 'system',

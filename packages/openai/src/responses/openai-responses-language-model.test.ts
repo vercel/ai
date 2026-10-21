@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   InvalidResponseDataError,
   type LanguageModelV4Content,
   type LanguageModelV4FunctionTool,
@@ -348,6 +349,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: {
                 cached_tokens: 234,
                 cache_write_tokens: 45,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 15,
+                  ttl_12h_tokens: 30,
+                },
                 future_input_detail: {
                   tokens: 7,
                 },
@@ -413,6 +418,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input_tokens": 345,
               "input_tokens_details": {
                 "cache_write_tokens": 45,
+                "cache_write_tokens_details": {
+                  "ttl_12h_tokens": 30,
+                  "ttl_30m_tokens": 15,
+                },
                 "cached_tokens": 234,
                 "future_input_detail": {
                   "tokens": 7,
@@ -1900,6 +1909,129 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h promptCacheOptions ttl and prewarm', async () => {
+        const { warnings } = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'implicit',
+                ttl: '12h',
+                prewarm: true,
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6.1-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'implicit',
+            ttl: '12h',
+            prewarm: true,
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h ttl on a prompt cache breakpoint', async () => {
+        await createModel('gpt-6.1-sol').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Stable prefix',
+                  providerOptions: {
+                    openai: {
+                      promptCacheBreakpoint: { mode: 'explicit', ttl: '12h' },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Stable prefix',
+                  prompt_cache_breakpoint: { mode: 'explicit', ttl: '12h' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should reject an unsupported promptCacheOptions ttl', async () => {
+        await expect(
+          createModel('gpt-6.1-sol').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: { promptCacheOptions: { ttl: '24h' } },
+            },
+          }),
+        ).rejects.toThrow(InvalidArgumentError);
+      });
+
+      it('should return empty content for a prewarm response', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_prewarm',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6.1-sol',
+            output: [],
+            usage: {
+              input_tokens: 2048,
+              input_tokens_details: {
+                cached_tokens: 0,
+                cache_write_tokens: 2048,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 0,
+                  ttl_12h_tokens: 2048,
+                },
+              },
+              output_tokens: 0,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 2048,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+          },
+        });
+
+        expect(result.content).toStrictEqual([]);
+        expect(result.warnings).toStrictEqual([]);
+        expect(result.usage.inputTokens).toStrictEqual({
+          total: 2048,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 2048,
+        });
+        expect(result.usage.outputTokens.total).toBe(0);
       });
 
       it('should insert a reasoning effort configuration update before the prompt', async () => {
@@ -4276,6 +4408,196 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should include shell tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with execution controls', () => {
+      function prepareShellCallResponse(
+        action: Record<string, unknown>,
+        shellCallOutput?: Record<string, unknown>,
+      ) {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_shell_controls',
+            object: 'response',
+            created_at: 1764712894,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-5.1',
+            output: [
+              {
+                id: 'sh_1',
+                type: 'shell_call',
+                status: 'completed',
+                call_id: 'call_1',
+                action,
+              },
+              ...(shellCallOutput ? [shellCallOutput] : []),
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: 'none', summary: null },
+            store: true,
+            temperature: 1,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'shell' }],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 10,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 5,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 15,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+      }
+
+      it('should forward timeout_ms and max_output_length to the tool call input', async () => {
+        prepareShellCallResponse({
+          commands: ['echo hi'],
+          timeout_ms: 1000,
+          max_output_length: 10000,
+        });
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"timeoutMs":1000,"maxOutputLength":10000}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should omit null timeout_ms and max_output_length from the tool call input', async () => {
+        prepareShellCallResponse({
+          commands: ['echo hi'],
+          timeout_ms: null,
+          max_output_length: null,
+        });
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should forward max_output_length from a provider-executed shell_call_output to the tool result', async () => {
+        prepareShellCallResponse(
+          { commands: ['echo hi'], timeout_ms: null, max_output_length: 10000 },
+          {
+            id: 'sho_1',
+            type: 'shell_call_output',
+            status: 'completed',
+            call_id: 'call_1',
+            max_output_length: 10000,
+            output: [
+              {
+                stdout: 'hi',
+                stderr: '',
+                outcome: { type: 'exit', exit_code: 0 },
+              },
+            ],
+          },
+        );
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: { environment: { type: 'containerAuto' } },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"maxOutputLength":10000}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "maxOutputLength": 10000,
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "hi",
+                  },
+                ],
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
     });
 
@@ -7149,6 +7471,62 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    it('should finish a prewarm stream with no content', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_prewarm',
+              created_at: 1,
+              model: 'gpt-6.1-sol',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: {
+                input_tokens: 2048,
+                input_tokens_details: {
+                  cached_tokens: 0,
+                  cache_write_tokens: 2048,
+                  cache_write_tokens_details: {
+                    ttl_30m_tokens: 0,
+                    ttl_12h_tokens: 2048,
+                  },
+                },
+                output_tokens: 0,
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6.1-sol').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(
+        events.filter(event =>
+          ['text-start', 'text-delta', 'error'].includes(event.type),
+        ),
+      ).toStrictEqual([]);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: { total: 2048, noCache: 0, cacheWrite: 2048 },
+          outputTokens: { total: 0 },
+        },
+      });
+    });
+
     it('should signal schema-invalid known events and finish with error', async () => {
       const functionCall = {
         id: 'fc_1',
@@ -9355,6 +9733,224 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with execution controls', () => {
+      function prepareShellCallChunks(
+        action: Record<string, unknown>,
+        shellCallOutput?: Record<string, unknown>,
+      ) {
+        const shellCall = {
+          id: 'sh_1',
+          type: 'shell_call',
+          status: 'completed',
+          call_id: 'call_1',
+          action,
+        };
+        const output = [
+          shellCall,
+          ...(shellCallOutput ? [shellCallOutput] : []),
+        ];
+        const items = output.map(
+          (item, index) =>
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: index + 1,
+              output_index: index,
+              item,
+            })}\n\n`,
+        );
+
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.created',
+              sequence_number: 0,
+              response: {
+                id: 'resp_shell_controls',
+                object: 'response',
+                created_at: 1764713372,
+                status: 'in_progress',
+                model: 'gpt-5.1',
+                output: [],
+              },
+            })}\n\n`,
+            ...items,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              sequence_number: output.length + 1,
+              response: {
+                id: 'resp_shell_controls',
+                object: 'response',
+                created_at: 1764713372,
+                status: 'completed',
+                model: 'gpt-5.1',
+                output,
+                usage: {
+                  input_tokens: 10,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 5,
+                  output_tokens_details: { reasoning_tokens: 0 },
+                  total_tokens: 15,
+                },
+              },
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+      }
+
+      it('should forward timeout_ms and max_output_length to the streamed tool call input', async () => {
+        prepareShellCallChunks({
+          commands: ['echo hi'],
+          timeout_ms: 1000,
+          max_output_length: 10000,
+        });
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-call'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"timeoutMs":1000,"maxOutputLength":10000}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should omit null timeout_ms and max_output_length from the streamed tool call input', async () => {
+        prepareShellCallChunks({
+          commands: ['echo hi'],
+          timeout_ms: null,
+          max_output_length: null,
+        });
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-call'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should forward max_output_length from a streamed provider-executed shell_call_output to the tool result', async () => {
+        prepareShellCallChunks(
+          { commands: ['echo hi'], timeout_ms: null, max_output_length: 10000 },
+          {
+            id: 'sho_1',
+            type: 'shell_call_output',
+            status: 'completed',
+            call_id: 'call_1',
+            max_output_length: 10000,
+            output: [
+              {
+                stdout: 'hi',
+                stderr: '',
+                outcome: { type: 'exit', exit_code: 0 },
+              },
+            ],
+          },
+        );
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: { environment: { type: 'containerAuto' } },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(
+          parts.filter(
+            part => part.type === 'tool-call' || part.type === 'tool-result',
+          ),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"maxOutputLength":10000}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "maxOutputLength": 10000,
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "hi",
+                  },
+                ],
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+          ]
+        `);
       });
     });
 

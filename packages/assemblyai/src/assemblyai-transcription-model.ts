@@ -4,6 +4,8 @@ import type {
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   extractResponseHeaders,
@@ -449,14 +451,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const assemblyaiUploadResponseSchema = z.object({
-  upload_url: z.string(),
-});
+const assemblyaiUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      upload_url: z.string(),
+    }),
+  ),
+);
 
-const assemblyaiSubmitResponseSchema = z.object({
-  id: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'error']),
-});
+const assemblyaiSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum(['queued', 'processing', 'completed', 'error']),
+    }),
+  ),
+);
 
 const assemblyaiWordSchema = z.object({
   start: z.number(),

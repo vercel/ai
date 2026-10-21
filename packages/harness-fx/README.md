@@ -39,6 +39,6 @@ try {
 
 No fx executable or bridge is installed inside the sandbox, and no exposed sandbox port is required. Model requests run on the host.
 
-fx uses Vercel AI Gateway. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to authenticate, or pass an isolated authentication environment with `createFx({ auth: { AI_GATEWAY_API_KEY: token } })`.
+fx uses Vercel AI Gateway when `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available. Otherwise it discovers subscription credentials in this order: fx Codex, fx Grok, native Codex, then native Grok. Use `createFx({ auth: 'direct' })` to prefer subscriptions while retaining Gateway fallback, or `auth: 'ai-gateway'` to use Gateway only.
 
 See the [fx harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/fx) for settings, tools, and limitations.

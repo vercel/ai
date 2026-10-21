@@ -8,6 +8,7 @@ import {
 import type { HarnessV1PromptTurnOptions } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
 import type { FxPrompt, FxToolResult } from './fx-runtime';
+import type { FxProvider } from './fx-subscription';
 
 const stateFileNameSchema = z
   .string()
@@ -24,6 +25,7 @@ export type FxModelRecord = {
   status: number;
   complete: boolean;
   emittedParts: number;
+  emittedOutput?: { text: number; reasoning: number; finished?: boolean };
   attempt: number;
 };
 
@@ -51,14 +53,16 @@ export type FxTurnState = {
 
 export type FxStoredState = {
   version: 1;
-  sdkVersion: '0.0.13';
+  sdkVersion: '0.0.13' | '0.0.14';
+  provider?: FxProvider;
   checkpoint?: string;
   turn?: FxTurnState;
 };
 
 const storedStateSchema = z.object({
   version: z.literal(1),
-  sdkVersion: z.literal('0.0.13'),
+  sdkVersion: z.enum(['0.0.13', '0.0.14']),
+  provider: z.enum(['gateway', 'codex', 'grok']).optional(),
   checkpoint: z.string().optional(),
   turn: z
     .object({
@@ -73,6 +77,13 @@ const storedStateSchema = z.object({
           status: z.number(),
           complete: z.boolean(),
           emittedParts: z.number().int().nonnegative(),
+          emittedOutput: z
+            .object({
+              text: z.number().int().nonnegative(),
+              reasoning: z.number().int().nonnegative(),
+              finished: z.boolean().optional(),
+            })
+            .optional(),
           attempt: z.number().int().nonnegative(),
         }),
       ),

@@ -1,5 +1,31 @@
 # @ai-sdk/topaz
 
+## 3.0.12
+
+### Patch Changes
+
+- 12c58fb: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 3.0.9
 
 ### Patch Changes

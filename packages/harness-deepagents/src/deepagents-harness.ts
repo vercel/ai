@@ -11,7 +11,6 @@ import {
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
@@ -28,6 +27,7 @@ import {
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   resolveSandboxHomeDir,
@@ -822,7 +822,7 @@ function createSession({
 
       channel.send({
         type: 'start',
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({ prompt: promptOpts.prompt }),
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
           : {}),
@@ -980,22 +980,4 @@ async function teardown({
     } catch {}
     channel.close();
   }
-}
-
-// Reduce the prompt to plain user text; non-text parts are unsupported.
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'deepagents',
-        message: `The deepagents harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

@@ -3,6 +3,7 @@ import {
   type AgentSession,
   type ExtensionAPI,
   type ExtensionFactory,
+  type PromptOptions,
   type ProviderConfig,
   type ToolDefinition,
   ModelRuntime,
@@ -79,6 +80,7 @@ const piMock = vi.hoisted(() => {
       readonly snapshot: Array<ExtensionFactory>;
     }>,
     extensionHandlers,
+    modelCatalog: [] as unknown[],
     resourceLoaderReloadCount: 0,
     resourceLoaderOptions: [] as ResourceLoaderOptions[],
     registerProvider: vi.fn(),
@@ -141,7 +143,8 @@ vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
     ModelRegistry: class {
       private readonly providerConfigs = new Map<string, ProviderConfig>();
 
-      getAll = vi.fn(() => []);
+      getAll = vi.fn(() => piMock.modelCatalog);
+      hasConfiguredAuth = vi.fn(() => true);
       getRegisteredProviderConfig = vi.fn((provider: string) =>
         this.providerConfigs.get(provider),
       );
@@ -178,6 +181,7 @@ describe('createPiSession', () => {
     piMock.appendSystemPrompts = [];
     piMock.extensionFactoryInputs = [];
     piMock.extensionHandlers.clear();
+    piMock.modelCatalog = [];
     piMock.resourceLoaderReloadCount = 0;
     piMock.resourceLoaderOptions = [];
     piMock.registerProvider.mockClear();
@@ -260,6 +264,101 @@ describe('createPiSession', () => {
           "Harness 'pi' has no model 'openai/not-a-real-model' in its catalog.",
       });
       expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects image input when the selected model does not support images', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    piMock.modelCatalog = [
+      {
+        id: 'text-only-model',
+        name: 'Text-only model',
+        provider: 'myprovider',
+        api: 'openai-completions',
+        reasoning: false,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 128_000,
+        maxTokens: 16_384,
+      },
+    ];
+    const session = await createPiSession({
+      sessionId: 'session-image-input-text-only-model',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              {
+                type: 'image',
+                image: new Uint8Array([1, 2, 3]),
+                mediaType: 'image/png',
+              },
+            ],
+          },
+          model: 'myprovider/text-only-model',
+          emit: vi.fn(),
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+        message:
+          "Harness 'pi' model 'text-only-model' does not support image input.",
+      });
+      expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('passes inline images to the Pi session', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const session = await createPiSession({
+      sessionId: 'session-image-input',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this image.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(prompt).toHaveBeenCalledWith('Describe this image.', {
+        images: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }],
+      });
     } finally {
       await session.doDestroy();
     }
@@ -1839,7 +1938,7 @@ describe('createPiSession', () => {
       await control.done;
 
       expect(piMock.createAgentSession).toHaveBeenCalledOnce();
-      expect(prompt).toHaveBeenCalledWith('continue');
+      expect(prompt).toHaveBeenCalledWith('continue', { images: [] });
     } finally {
       await session.doDestroy();
     }
@@ -1883,7 +1982,7 @@ describe('createPiSession', () => {
     await control.done;
 
     expect(piMock.appendSystemPrompts.at(-1)).toEqual(['Use turbo build.']);
-    expect(prompt).toHaveBeenCalledWith('do the thing');
+    expect(prompt).toHaveBeenCalledWith('do the thing', { images: [] });
     expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledOnce();
   });
 
@@ -2810,7 +2909,7 @@ describe('createPiSession', () => {
     await control.done;
 
     expect(prompt).toHaveBeenCalledTimes(1);
-    expect(prompt).toHaveBeenCalledWith('');
+    expect(prompt).toHaveBeenCalledWith('', { images: [] });
     expect(journal.appendMessage).not.toHaveBeenCalled();
   });
 
@@ -3191,7 +3290,7 @@ function createFakePiSession({
       subscriber(event);
     }
   };
-  const prompt = vi.fn(async (text: string) => {
+  const prompt = vi.fn(async (text: string, _options?: PromptOptions) => {
     if (promptImplementation) return promptImplementation(text, emitEvent);
     for (const event of promptEvents) emitEvent(event);
   });

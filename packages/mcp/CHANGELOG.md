@@ -1,5 +1,33 @@
 # @ai-sdk/mcp
 
+## 2.0.81
+
+### Patch Changes
+
+- 060d419: fix(mcp): wait for the `server/discover` response over Streamable HTTP instead of falling back to `initialize` after 1 s. A modern-only server that answered discovery slowly, for example on a cold start, was downgraded to the legacy handshake and rejected it. stdio and custom transports keep the 1 s probe timeout.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 2.0.80
+
+### Patch Changes
+
+- 2b8185e: fix(mcp): bind OAuth client credentials to their authorization server, including when the selected server is approved by `validateAuthorizationServerURL`
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 2.0.79
+
+### Patch Changes
+
+- fce9210: fix(mcp): support shell option in stdio transport and extract response body in SSE transport errors
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 2.0.78
 
 ### Patch Changes

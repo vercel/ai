@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { pruneMemorySaver } from './persistent-memory-saver';
 import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
 
 const originalPath = process.env.PATH;
@@ -36,10 +37,13 @@ type ChatAnthropicOptions = {
 const state = vi.hoisted(() => ({
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
+  prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  prompt: undefined as unknown,
+  streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
     | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
@@ -52,7 +56,8 @@ vi.mock('deepagents', () => ({
   createDeepAgent: (options: DeepAgentOptions) => {
     state.createDeepAgentOptions.push(options);
     return {
-      streamEvents: async function* () {
+      streamEvents: async function* (input: unknown) {
+        state.streamInputs.push(input);
         if (state.hostToolResponse !== undefined) {
           const hostTool = options.tools?.find(tool => tool.name === 'weather');
           if (!hostTool)
@@ -87,7 +92,7 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   }) => {
     await onStart(
       {
-        prompt: 'What is the capital of France?',
+        prompt: state.prompt,
         instructions: 'Answer every question in German.',
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
@@ -121,6 +126,21 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
     );
   },
 }));
+
+vi.mock('./persistent-memory-saver', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown> & {
+    pruneMemorySaver: typeof pruneMemorySaver;
+  };
+  return {
+    ...actual,
+    pruneMemorySaver: (args: Parameters<typeof pruneMemorySaver>[0]) => {
+      state.prunedAfterEventTypes.push(
+        state.emitted.at(-1)?.type as string | undefined,
+      );
+      actual.pruneMemorySaver(args);
+    },
+  };
+});
 
 vi.mock('@langchain/anthropic', () => ({
   ChatAnthropic: class {
@@ -157,7 +177,10 @@ vi.mock('@langchain/core/tools', () => ({
 
 vi.mock('@langchain/langgraph', () => ({
   Command: class {},
-  MemorySaver: class {},
+  MemorySaver: class {
+    storage = Object.create(null);
+    writes = Object.create(null);
+  },
 }));
 
 vi.mock('@langchain/mcp-adapters', () => ({
@@ -179,8 +202,11 @@ describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     restorePath();
     state.createDeepAgentOptions = [];
+    state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.prompt = 'What is the capital of France?';
+    state.streamInputs = [];
     state.hostToolResponse = undefined;
     state.hostToolOutput = undefined;
     state.receivedToolCallId = undefined;
@@ -224,6 +250,13 @@ describe('Deep Agents bridge instructions', () => {
     expect(process.env.PATH).toBe(
       [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
     );
+  });
+
+  it('prunes checkpoint history after the turn has emitted its finish event', async () => {
+    await import('./index');
+
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+    expect(state.prunedAfterEventTypes).toEqual(['finish']);
   });
 
   it('appends instructions to the native system prompt', async () => {
@@ -408,6 +441,29 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
       [expect.objectContaining({ result: { status: 'ready' } })],
     );
+  });
+
+  it('passes user text and inline images as LangChain content blocks', async () => {
+    state.prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    await import('./index');
+
+    expect(state.streamInputs).toEqual([
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              { type: 'image', mimeType: 'image/png', data: 'AQID' },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

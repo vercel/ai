@@ -1,5 +1,31 @@
 # @ai-sdk/moonshotai
 
+## 3.0.74
+
+### Patch Changes
+
+- 4eff71b: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 3.0.71
 
 ### Patch Changes

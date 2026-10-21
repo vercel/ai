@@ -1,3 +1,161 @@
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.14.0
+        version: 12.14.0
+
+packages:
+
+  '@pnpm/exe.android-arm64@12.14.0':
+    resolution: {integrity: sha512-+iSh7x21C3A2hqc+Z0ZmbKTcn6YNlzrXM142PsnQH/dLj0DYxFzoBvc6XAnL/yfQ5nnH2ebBiRj/zVxr61fZbQ==}
+    cpu: [arm64]
+    os: [android]
+
+  '@pnpm/exe.android-x64@12.14.0':
+    resolution: {integrity: sha512-qT+0LqEr2wBVaxcG2T8cX/R8SSRz2Rvpp8nRR4fh8tnGUZRch87gFmsHUAoSQh7w6j1h0qTjrA384j4xi8frvw==}
+    cpu: [x64]
+    os: [android]
+
+  '@pnpm/exe.darwin-arm64@12.14.0':
+    resolution: {integrity: sha512-tnrdUB8ecJoehuKKqi1YHCBVl61xtJ9XVGcx5EviC6fWO4DeGI8GtXrjvJxDBM3nuVjJeWistgsUp/N142x4sw==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@pnpm/exe.darwin-x64@12.14.0':
+    resolution: {integrity: sha512-vlBfGkruqQRsEHTW43cPwpYd7QlbIJ//cvpAdb3bVXkI8SgTPoXhCnc05m+ZNiPrrEkBsX/t7KHw9aXpkzPm3Q==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@pnpm/exe.freebsd-x64@12.14.0':
+    resolution: {integrity: sha512-Qg5rxBrGYl6Tfso+EyygPf84fY1Fzy55E/0or+iuYKtnf0vc0MlHJfVIlT7pBukMRntQHRik7hUi0Z4s7AlJsw==}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@pnpm/exe.linux-arm64-musl@12.14.0':
+    resolution: {integrity: sha512-DRIe4yQkXBGA/PhVJdzlbnllxBdAtnMMvTVLLcGpsK5FvJz9kxD2Hyxtn68ovmNkVX06f6p45cQwfm3wx2jn1A==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@pnpm/exe.linux-arm64@12.14.0':
+    resolution: {integrity: sha512-7joGShZ44Nk3WpNU+60JoOPjCXlgxhJAq11S2UiVtwCUDgTer1yTPPfxGW8pxaD6046actYLIYDbZNlubHWs0A==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-ppc64@12.14.0':
+    resolution: {integrity: sha512-gSoryn7ySdXd//gjgf3MvvA8ZerJayaSbuMZMtAWq4vb2/wlVEgpl0Kvqt54y58TRj533Qjq2txKgnxd4JyoAQ==}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-riscv64@12.14.0':
+    resolution: {integrity: sha512-EMjew1H9WqQ7pL+tYqCPwiuB+0PeCiJRV7fyWeuFw0wwYUajFBjcaPO3IGAVu9sdmJDU+e+HYv/Zey6aKae0Vw==}
+    cpu: [riscv64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-s390x@12.14.0':
+    resolution: {integrity: sha512-shYOj/SFoXD35fHe0pWr2JofwSXulC0BnEIXLj2QokDi0EF//AfKsui35yKIkTEl+s2VJybc3PO4iJNhKIj5Qw==}
+    cpu: [s390x]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.linux-x64-musl@12.14.0':
+    resolution: {integrity: sha512-btZiZ2Ot0llKK1ndSfA5i3IRX7/S0VrmzseNH/BJ4c+Cady+S81H6vvU1zByggHMyqQhC8OgxO5PiIY7D9bH0Q==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@pnpm/exe.linux-x64@12.14.0':
+    resolution: {integrity: sha512-F6K8e/jWxiuEYJaQtRRUG9ynBSTEHa+t7Lf86MKuOO5UA7WVVMbi+oB8nY6iKW++ncWS2yG6T9faXZGxqNsfoQ==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@pnpm/exe.win32-arm64@12.14.0':
+    resolution: {integrity: sha512-DOjlkVB6TtTKeAAe0hNZXn5S7YqESmo1Z6SGbR4BZNQ4isRg31XVHjX2RFTbY8gnZq68IwzyLmPqlEjMmYxofg==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@pnpm/exe.win32-x64@12.14.0':
+    resolution: {integrity: sha512-/LSX6mew/sLf08XqcjemuklNKf1K/Ftpgj4//hK/HKzI2dKbmxDB27a/2OaQ5a0O3/3OFzlssXDziZsi+yVBwQ==}
+    cpu: [x64]
+    os: [win32]
+
+  pnpm@12.14.0:
+    resolution: {integrity: sha512-wYum2HmT09Fky16JSPMrLAbuhUSH4GzY2GeBNC+z5btGNDZwNHEehoArqpw3vqkGzhkprQjXCITJfYAd8TOJpg==}
+    engines: {node: '>=18.*'}
+    hasBin: true
+
+snapshots:
+
+  '@pnpm/exe.android-arm64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.android-x64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.darwin-arm64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.darwin-x64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.freebsd-x64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-arm64-musl@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-arm64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-ppc64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-riscv64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-s390x@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-x64-musl@12.14.0':
+    optional: true
+
+  '@pnpm/exe.linux-x64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.win32-arm64@12.14.0':
+    optional: true
+
+  '@pnpm/exe.win32-x64@12.14.0':
+    optional: true
+
+  pnpm@12.14.0:
+    optionalDependencies:
+      '@pnpm/exe.android-arm64': 12.14.0
+      '@pnpm/exe.android-x64': 12.14.0
+      '@pnpm/exe.darwin-arm64': 12.14.0
+      '@pnpm/exe.darwin-x64': 12.14.0
+      '@pnpm/exe.freebsd-x64': 12.14.0
+      '@pnpm/exe.linux-arm64': 12.14.0
+      '@pnpm/exe.linux-arm64-musl': 12.14.0
+      '@pnpm/exe.linux-ppc64': 12.14.0
+      '@pnpm/exe.linux-riscv64': 12.14.0
+      '@pnpm/exe.linux-s390x': 12.14.0
+      '@pnpm/exe.linux-x64': 12.14.0
+      '@pnpm/exe.linux-x64-musl': 12.14.0
+      '@pnpm/exe.win32-arm64': 12.14.0
+      '@pnpm/exe.win32-x64': 12.14.0
+
+---
 lockfileVersion: '9.0'
 
 settings:
@@ -516,6 +674,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/tool-bash':
+        specifier: workspace:*
+        version: link:../../packages/tool-bash
       '@ai-sdk/topaz':
         specifier: workspace:*
         version: link:../../packages/topaz
@@ -763,12 +924,6 @@ importers:
 
   examples/harness-e2e-next:
     dependencies:
-      '@agentclientprotocol/claude-agent-acp':
-        specifier: 0.61.0
-        version: 0.61.0(@anthropic-ai/sdk@0.129.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))
-      '@agentclientprotocol/codex-acp':
-        specifier: 1.1.4
-        version: 1.1.4
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../../packages/harness
@@ -1880,6 +2035,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
@@ -1914,6 +2072,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -1957,6 +2118,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -1988,6 +2152,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       jsdom:
         specifier: ^24.1.3
         version: 24.1.3(supports-color@10.2.2)
@@ -2022,6 +2189,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2056,6 +2226,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2084,6 +2257,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2118,6 +2294,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -2152,6 +2331,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2180,6 +2362,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2208,6 +2393,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2236,6 +2424,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2264,6 +2455,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2286,6 +2480,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -2332,6 +2529,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -2369,6 +2569,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2397,6 +2600,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2428,6 +2634,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2456,6 +2665,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2508,6 +2720,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vitejs/plugin-react':
         specifier: ^4.7.0
         version: 4.7.0(supports-color@10.2.2)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
@@ -2581,6 +2796,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2609,6 +2827,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2640,6 +2861,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2668,6 +2892,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2699,6 +2926,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2730,6 +2960,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2758,6 +2991,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2786,6 +3022,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2826,6 +3065,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2854,6 +3096,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2891,6 +3136,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2931,6 +3179,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -2971,6 +3222,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3005,6 +3259,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3042,6 +3299,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3073,6 +3333,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3116,6 +3379,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vscode/ripgrep':
         specifier: 1.18.0
         version: 1.18.0
@@ -3153,8 +3419,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       libfx:
-        specifier: 0.0.13
-        version: 0.0.13
+        specifier: 0.0.14
+        version: 0.0.14
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -3162,6 +3428,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3202,6 +3471,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3233,6 +3505,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@xai-official/grok':
         specifier: 1.0.49
         version: 1.0.49
@@ -3276,6 +3551,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vscode/ripgrep':
         specifier: 1.18.0
         version: 1.18.0
@@ -3313,6 +3591,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3341,6 +3622,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.8.3)
@@ -3372,6 +3656,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3400,6 +3687,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3428,6 +3718,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3440,13 +3733,13 @@ importers:
 
   packages/langchain:
     dependencies:
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
       ai:
         specifier: workspace:*
         version: link:../ai
     devDependencies:
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
       '@langchain/core':
         specifier: ^1.1.46
         version: 1.1.46(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.21.3)(zod@4.6.5))(ws@8.21.3)
@@ -3459,6 +3752,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3478,6 +3774,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3503,6 +3802,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3540,6 +3842,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3574,6 +3879,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3602,6 +3910,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3630,6 +3941,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3658,6 +3972,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3686,6 +4003,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3714,6 +4034,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3748,6 +4071,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3776,6 +4102,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3807,6 +4136,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -3835,6 +4167,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3860,6 +4195,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -3891,6 +4229,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       msw:
         specifier: 2.7.0
         version: 2.7.0(@types/node@22.19.19)(typescript@6.0.3)
@@ -3925,6 +4266,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -3983,6 +4327,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vitejs/plugin-react':
         specifier: ^4.7.0
         version: 4.7.0(supports-color@10.2.2)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
@@ -4026,6 +4373,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4054,6 +4404,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4100,6 +4453,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vitejs/plugin-react':
         specifier: 4.3.3
         version: 4.3.3(supports-color@10.2.2)(vite@5.4.21(@types/node@22.19.19)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0))
@@ -4164,6 +4520,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4189,6 +4548,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4263,6 +4625,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4291,6 +4656,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4300,6 +4668,37 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
+  packages/tool-bash:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@ai-sdk/sandbox-just-bash':
+        specifier: workspace:*
+        version: link:../sandbox-just-bash
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../sandbox-vercel
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   packages/topaz:
     dependencies:
@@ -4319,6 +4718,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.8.3)
@@ -4344,6 +4746,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4378,6 +4783,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4403,6 +4811,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4431,6 +4842,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4474,6 +4888,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@vitejs/plugin-vue':
         specifier: 5.2.0
         version: 5.2.0(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vue@3.5.41(typescript@6.0.3))
@@ -4526,6 +4943,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       '@workflow/vitest':
         specifier: 5.0.2
         version: 5.0.2(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vitest@4.1.11(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@6.0.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(ws@8.21.3)
@@ -4557,6 +4977,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -4588,6 +5011,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4616,6 +5042,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
@@ -4697,29 +5126,12 @@ importers:
 
   tools/tsconfig: {}
 
+  tools/tsdown-config: {}
+
 packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
-
-  '@agentclientprotocol/claude-agent-acp@0.61.0':
-    resolution: {integrity: sha512-2L+arbrnyJLFZCg5rvjJC1KiPdD1pqMKBrbOF1tQ3D9ogM6I5BsqahZv7gDn9zu5XKBV9vRhsLjOqYiVtYB7OQ==}
-    engines: {node: '>=22'}
-    hasBin: true
-
-  '@agentclientprotocol/codex-acp@1.1.4':
-    resolution: {integrity: sha512-DzusIpGwlQwMWuHgJhU8FWMsyQvzjenB93IEzQATkdbNulo5Rd9GKOz8+B+/C9iWWxmyXgtgmjzaL+iRFyDryQ==}
-    hasBin: true
-
-  '@agentclientprotocol/sdk@1.3.0':
-    resolution: {integrity: sha512-i3h/efaeuMUFAO1HSfo97QZQnnvMd7wWBYtBsdL6UMZg3a78sk3Ffya5Xu7C7tYsXomXoDXJBAzQF2PcFKAhIQ==}
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-
-  '@agentclientprotocol/sdk@1.5.0':
-    resolution: {integrity: sha512-524jwbB2iYWA+kWWyv9fhKbhU89dH/lu9u5EXwVNmfYzopV8BujCDxByBDZhxRUkB7RWIJzISCnwivdDk+bdVg==}
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
 
   '@agentclientprotocol/sdk@1.7.0':
     resolution: {integrity: sha512-ZORuxsuEnLjRly7t6Ad7zAsWitjWsyprswyPUHz/yycPb+tTm3DGa8XheaHhRXqX8LS9snuxaYavXSRA50TlHw==}
@@ -5172,19 +5584,9 @@ packages:
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.217':
-    resolution: {integrity: sha512-dl119zmL1Ssyd8Fx0xfVMpss2scrGCZwf+rhZwl2lHa2dYuXVluLgqi4DUIWDj3rRYdrAvaMpjCAv6a5w07ddw==}
-    cpu: [arm64]
-    os: [darwin]
-
   '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.290':
     resolution: {integrity: sha512-Xy1MPSSgCAzbCzT+3w+5+jHo9OIQf90QROyO8UcZNIOyaJ0qKQNRji0SztulGfo3uQsfj07t+qJcvXU+8gWcTw==}
     cpu: [arm64]
-    os: [darwin]
-
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.217':
-    resolution: {integrity: sha512-IeKL1HN8fEcRQ4uw5d02by1ThpjhRtOgfHcCTBQ2KS4JfEIHvc1VGWt6Exb2a7VHhT8uRcfjPk9urbmYayZmaw==}
-    cpu: [x64]
     os: [darwin]
 
   '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.290':
@@ -5192,23 +5594,11 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.217':
-    resolution: {integrity: sha512-Bb4AJxqrVPouM4sYIdvX3/AO5womhe70u3Euv+6B5J2OoqcRaWarVvYevX3KRruC5TvlV2Josw14dsL5qVNL+A==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
   '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.290':
     resolution: {integrity: sha512-3sIYs6vhwBoJsiCQBb+3lXIcIeGq8aDOhiyYtSQwOhvMTwAjwuZN6mHjZGeSnGH3hn4CAXi3n3NEK49SSoFilg==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.217':
-    resolution: {integrity: sha512-KtrnfEwUSCdq2cc4Pgysl+U66vqw3h7u04N5/OLHmYZ4AZYy8JcqdOaSJZ27iL2bgbAxyKwu5/9YmEk9A4IswA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
 
   '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.290':
     resolution: {integrity: sha512-HR3HuBSzYtyhh6AbILvWofuqrnn91bzgEovwDfS+pS99Dp4OpvaAopCEXpirc99dcSJ11Dj1OkEBq7r/4aR2xw==}
@@ -5216,23 +5606,11 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.217':
-    resolution: {integrity: sha512-qhugNZd77vAoPMIGM8vFHlbwTltFyI1POmfyl0ZJSpc6v7RE9+5+nqL2aGbGSDsDQkEHrJasXURxIeTMn9ut2w==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.290':
     resolution: {integrity: sha512-JRmW03yRKHKZ41T+e4eYzY3lA0pbaJG4PF1GO1cG09Pu8MBPsuWhZZMtP/fsIJ+4vv5dFhdaPmdBPhWgHSMqyw==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.217':
-    resolution: {integrity: sha512-JsAQyfl4n0PR4LX0h1SxMo0raERGb8B8dvbaoNQRRSpb9A2vvcwPEjyKu0eRKHRhTvspvuD6TfNxzxrmnouX9A==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
 
   '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.290':
     resolution: {integrity: sha512-q9YflZoDtz/vK9vo28KvnUPvZWqPpXVD8j8RCHepi6zAiOxxJV/3s2URtA3ZQKYSo4zThJ48yrZJnGm8mkGWyA==}
@@ -5240,33 +5618,15 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.217':
-    resolution: {integrity: sha512-LuaQ+PXZvIToAR81JoiGa6Me9HDma2WH2oiYlAWh43IWaXHyOqgaI1aqSM0BjDhy2UiYWTvGzAopnqPnk+jSBw==}
-    cpu: [arm64]
-    os: [win32]
-
   '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.290':
     resolution: {integrity: sha512-oLHI6y0uEkGK31KNEBqNyZGbXqbEFNyWopg/5iB1hW//aQ6OBtuawGiORzTnFAqYUxIU/oHgKx5w6ZMVgrKMnQ==}
     cpu: [arm64]
-    os: [win32]
-
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.217':
-    resolution: {integrity: sha512-4r/T+ze/S/CLZ58tP4Mw52XPmsc/LOrCOd8jZOqM13FCPWdCMU2osWmszEIKGVMRG2cGsaLVDYcks5cWFqjCjw==}
-    cpu: [x64]
     os: [win32]
 
   '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.290':
     resolution: {integrity: sha512-mXgdB/OaZRAlt4E+cculWgEgmn5wAspzHO63ZfaSOVSuGJVDLBLBnwRDKkjI0cWCwAc17cetmu3TdNap/f0hxA==}
     cpu: [x64]
     os: [win32]
-
-  '@anthropic-ai/claude-agent-sdk@0.3.217':
-    resolution: {integrity: sha512-juszT3itL8R6OQ6nb/8IZE34UjKps8Jf7N8vjCXLx+vbJc+k3EojZOs93tJwT5iTRvfV1a0N53zJbKn/iJpKrQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@anthropic-ai/sdk': '>=0.93.0'
-      '@modelcontextprotocol/sdk': ^1.29.0
-      zod: ^4.0.0
 
   '@anthropic-ai/claude-agent-sdk@0.3.290':
     resolution: {integrity: sha512-Rf2zz1kU3nyK9UCWhlZGYrCUi+0FuNmZFmzflZFKJKajuU+fsQrNht+jeUb2jyTszF/yMGobHhe3HfY4gB41Xg==}
@@ -9338,47 +9698,6 @@ packages:
   '@open-policy-agent/ucast-prisma@0.1.6':
     resolution: {integrity: sha512-4bnz9aZzQQyfoo6OrXCWA8IH6Kp6pB34e4A2vGv2B0S/dbfFVN8TzmUn+WTJg7Eyr/NiF2EPFShiFgBwbUhhrA==}
 
-  '@openai/codex@0.144.5':
-    resolution: {integrity: sha512-jjB+K+OMv572mKhS+2QuLxWXDJNdpwbPenf+V+8bdq7wg4Scqt3cn6WEekD8wPqDVZqck0HSX17K9rD9kbDJQA==}
-    engines: {node: '>=16'}
-    hasBin: true
-
-  '@openai/codex@0.144.5-darwin-arm64':
-    resolution: {integrity: sha512-zcT6NfBCqLFt+BReNSETTZW6v6PdbH0dzNtm9j7l7mDGqwPbKZDGJdnpkBao2389I0ZacyIKgSZoI0vez1d4Dw==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@openai/codex@0.144.5-darwin-x64':
-    resolution: {integrity: sha512-//Mo0m1MwaoT6psu5xsmofXpKx4/0irIkeq10xJvk59+886EG355ibjA+ZmlRcKhE3bLjsKD7p81nTbAdRL/bw==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@openai/codex@0.144.5-linux-arm64':
-    resolution: {integrity: sha512-zAHggxVwR2TBxKmybXY7ZMiB0G8DMonY2YPdwNNjwXcf+LOIqNGgswwNCDMbP/HEe6r8j+R9ZX/yYoo8f+n/RQ==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@openai/codex@0.144.5-linux-x64':
-    resolution: {integrity: sha512-FalLJlBQGFdK8Gc3kj9sa/ekNdgkHhUawLaKkvy5CtB18JaP2YxtTP/Pe1pD2iBiq8mMUliRnafpF6AdBdQMbg==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [linux]
-
-  '@openai/codex@0.144.5-win32-arm64':
-    resolution: {integrity: sha512-0Pj7iqjEOEvPQPO3kFfCy9vGX4BTu76ChFFZHr2eNNIfVc3FOENAv/X98u4L+iIUtDOK9DbqmfUudW3DPapshg==}
-    engines: {node: '>=16'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@openai/codex@0.144.5-win32-x64':
-    resolution: {integrity: sha512-DnsSTlnnzleTxvLwIGnBitKInscxn2I7qASqosS8Fv+qysBygd+ZiBn/SQsRCgQ28PAlsNzmd3Gf3ZTecolAmg==}
-    engines: {node: '>=16'}
-    cpu: [x64]
-    os: [win32]
-
   '@openai/codex@0.160.1':
     resolution: {integrity: sha512-f1yrJhwgimKQI1kYQlxdPJcFwkNZxZrbz7Hf89EAcnLqkQ7TiESzr2FgSZn13Ga5RuHjlVUfurzwq10wk9zw2g==}
     engines: {node: '>=16'}
@@ -10198,18 +10517,21 @@ packages:
   '@opentelemetry/sdk-trace-node@2.11.0':
     resolution: {integrity: sha512-CuvCMJmZxswhNLlM2LfuLOW3h3fZujA4hsG4B+Sz4dX2zvaXO8Ng74cnDHWD64gLszTlhiG3c0iNUjj4g+0/sA==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.7.1':
     resolution: {integrity: sha512-pCpQxU68lV+I9s9svqMyVu5iHdDDUnqUpSxqwyCU8A9ejEsSnMPCbearwsUO4yk08ZJzAIUCFuReMdVQvHrdvg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
   '@opentelemetry/sdk-trace-node@2.8.0':
     resolution: {integrity: sha512-nZt9OGufioAc3AfoLTqA9bsAeaMJAictYDdI2VcNQ+PmT+3rfKjAZDZvgPfd8VPX0O5Bw1hdQF6kDK8VSpZiWg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -16749,10 +17071,6 @@ packages:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
 
-  diff@9.0.0:
-    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
-    engines: {node: '>=0.3.1'}
-
   dify-ai-provider@1.1.1:
     resolution: {integrity: sha512-a32UiyP6AjElbic6Aao7opBCCM+5RwD34TP5YczE70UW/UvwucRAK76UMDVMAM6gqhc3FvaBeSu3NcK+NAUg4g==}
 
@@ -19122,8 +19440,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libfx@0.0.13:
-    resolution: {integrity: sha512-Tyc+3soT61Ij9LeTnSTyX3efEx+XNwQ58k1V5X52jmixii+ITqCPi9X4uQHOqfk05tGqr0x1y1hAVGAbjG8v6Q==}
+  libfx@0.0.14:
+    resolution: {integrity: sha512-8wIEkRlKuQnbueyt6NBwi4xEiEnoRpwvAocKolzzmyz/r14s4gXiE3XivGk4QJpNnMMGHAJRKlH0WhW//q7B5Q==}
     engines: {node: '>=20'}
 
   license-webpack-plugin@4.0.2:
@@ -20881,7 +21199,7 @@ packages:
   phase@0.5.4:
     resolution: {integrity: sha512-3nCOrMZ/dW1q0nLCbVZBcGW/60TEApcoBPCT7s8SsQ2I0/rHLeSMkxlPhaGfW/yEKgkLkCfmd+YGss65ZwR77Q==}
     engines: {node: 24.x}
-    deprecated: phase is now the scan tool; the runtime library moved to @usephase/core and @usephase/react
+    deprecated: 'phase is now the scan tool; the runtime library moved to @usephase/core and @usephase/react. Run: npx @usephase/codemod@latest migrate-phase-to-usephase .'
     peerDependencies:
       react: '>=18'
     peerDependenciesMeta:
@@ -24039,10 +24357,6 @@ packages:
   voca@1.4.1:
     resolution: {integrity: sha512-NJC/BzESaHT1p4B5k4JykxedeltmNbau4cummStd4RjFojgq/kLew5TzYge9N2geeWyI2w8T30wUET5v+F7ZHA==}
 
-  vscode-jsonrpc@9.0.1:
-    resolution: {integrity: sha512-rfuA6T75H6m5EkbhtEPzre9pT0HPcDI2MMy4+nPFIBks5J8JBAUHD4tRYSgaBOijIEC7SRkC1kKyXTLqbmh9jw==}
-    engines: {node: '>=14.0.0'}
-
   vue-bundle-renderer@2.3.2:
     resolution: {integrity: sha512-BtazFw0lm3N/ZE4+tre2g8G+c5wolfizu+e5jxZAcao0gcy5KJei9Yopl1svDato2poeFldVLfmLMk57Sg8rLg==}
 
@@ -24540,32 +24854,6 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.4': {}
-
-  '@agentclientprotocol/claude-agent-acp@0.61.0(@anthropic-ai/sdk@0.129.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))':
-    dependencies:
-      '@agentclientprotocol/sdk': 1.3.0(zod@4.4.3)
-      '@anthropic-ai/claude-agent-sdk': 0.3.217(@anthropic-ai/sdk@0.129.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))(zod@4.4.3)
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - '@anthropic-ai/sdk'
-      - '@modelcontextprotocol/sdk'
-
-  '@agentclientprotocol/codex-acp@1.1.4':
-    dependencies:
-      '@agentclientprotocol/sdk': 1.5.0(zod@4.4.3)
-      '@openai/codex': 0.144.5
-      diff: 9.0.0
-      open: 11.0.0
-      vscode-jsonrpc: 9.0.1
-      zod: 4.4.3
-
-  '@agentclientprotocol/sdk@1.3.0(zod@4.4.3)':
-    dependencies:
-      zod: 4.4.3
-
-  '@agentclientprotocol/sdk@1.5.0(zod@4.4.3)':
-    dependencies:
-      zod: 4.4.3
 
   '@agentclientprotocol/sdk@1.7.0(zod@3.25.76)':
     dependencies:
@@ -25179,68 +25467,29 @@ snapshots:
       package-manager-detector: 1.6.0
       tinyexec: 1.0.2
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.217':
-    optional: true
-
   '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.290':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.217':
     optional: true
 
   '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.290':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.217':
-    optional: true
-
   '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.290':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.217':
     optional: true
 
   '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.290':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.217':
-    optional: true
-
   '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.290':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.217':
     optional: true
 
   '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.290':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.217':
-    optional: true
-
   '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.290':
-    optional: true
-
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.217':
     optional: true
 
   '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.290':
     optional: true
-
-  '@anthropic-ai/claude-agent-sdk@0.3.217(@anthropic-ai/sdk@0.129.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))(zod@4.4.3)':
-    dependencies:
-      '@anthropic-ai/sdk': 0.129.0(zod@3.25.76)
-      '@modelcontextprotocol/sdk': 1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76)
-      zod: 4.4.3
-    optionalDependencies:
-      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.217
 
   '@anthropic-ai/claude-agent-sdk@0.3.290(@anthropic-ai/sdk@0.129.0(zod@3.25.76))(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
@@ -31186,33 +31435,6 @@ snapshots:
     dependencies:
       '@ucast/core': 1.10.2
       lodash.merge: 4.6.2
-
-  '@openai/codex@0.144.5':
-    optionalDependencies:
-      '@openai/codex-darwin-arm64': '@openai/codex@0.144.5-darwin-arm64'
-      '@openai/codex-darwin-x64': '@openai/codex@0.144.5-darwin-x64'
-      '@openai/codex-linux-arm64': '@openai/codex@0.144.5-linux-arm64'
-      '@openai/codex-linux-x64': '@openai/codex@0.144.5-linux-x64'
-      '@openai/codex-win32-arm64': '@openai/codex@0.144.5-win32-arm64'
-      '@openai/codex-win32-x64': '@openai/codex@0.144.5-win32-x64'
-
-  '@openai/codex@0.144.5-darwin-arm64':
-    optional: true
-
-  '@openai/codex@0.144.5-darwin-x64':
-    optional: true
-
-  '@openai/codex@0.144.5-linux-arm64':
-    optional: true
-
-  '@openai/codex@0.144.5-linux-x64':
-    optional: true
-
-  '@openai/codex@0.144.5-win32-arm64':
-    optional: true
-
-  '@openai/codex@0.144.5-win32-x64':
-    optional: true
 
   '@openai/codex@0.160.1':
     optionalDependencies:
@@ -40563,8 +40785,6 @@ snapshots:
 
   diff@8.0.4: {}
 
-  diff@9.0.0: {}
-
   dify-ai-provider@1.1.1:
     dependencies:
       '@ai-sdk/provider': 2.0.5
@@ -43901,7 +44121,7 @@ snapshots:
       type-check: 0.4.0
     optional: true
 
-  libfx@0.0.13: {}
+  libfx@0.0.14: {}
 
   license-webpack-plugin@4.0.2(webpack@5.105.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)(uglify-js@3.19.3)):
     dependencies:
@@ -50673,8 +50893,6 @@ snapshots:
       - msw
 
   voca@1.4.1: {}
-
-  vscode-jsonrpc@9.0.1: {}
 
   vue-bundle-renderer@2.3.2:
     dependencies:

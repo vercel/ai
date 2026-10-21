@@ -351,6 +351,9 @@ Pi supports built-in tool approval requests when `permissionMode` is
 Pi does not support structured output. Supplying `output` to `HarnessAgent`
 causes the turn to throw `HarnessCapabilityUnsupportedError`.
 
+Pi does not support user messages with text parts after image parts; all text
+must appear before the first image.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

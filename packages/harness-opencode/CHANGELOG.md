@@ -1,5 +1,47 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.160
+
+### Patch Changes
+
+- f2c2a20: feat(harness-opencode): add support for image input
+  - @ai-sdk/harness@1.0.158
+
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 1.0.156
 
 ### Patch Changes

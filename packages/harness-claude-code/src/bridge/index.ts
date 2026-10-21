@@ -843,7 +843,7 @@ function createQueryInput({
   userMessages,
   abortSignal,
 }: {
-  initialUserMessage: string;
+  initialUserMessage: StartMessage['prompt'];
   userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
@@ -882,14 +882,28 @@ function createQueryInput({
   }
 
   const toUserMessage = (options: {
-    text: string;
+    content: StartMessage['prompt'];
     messageId: string;
     priority?: 'next';
   }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text: options.text }],
+      content:
+        typeof options.content === 'string'
+          ? [{ type: 'text', text: options.content }]
+          : options.content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: part.mediaType,
+                      data: part.data,
+                    },
+                  },
+            ),
     },
     parent_tool_use_id: null,
     uuid: options.messageId,
@@ -963,7 +977,7 @@ function createQueryInput({
               sentInitial = true;
               return {
                 value: toUserMessage({
-                  text: initialUserMessage,
+                  content: initialUserMessage,
                   messageId: initialMessageId,
                 }),
                 done: false,
@@ -983,7 +997,7 @@ function createQueryInput({
             sentMessageIds.add(nextMessage.value.messageId);
             return {
               value: toUserMessage({
-                text: nextMessage.value.text,
+                content: nextMessage.value.text,
                 messageId: nextMessage.value.messageId,
                 priority: 'next',
               }),

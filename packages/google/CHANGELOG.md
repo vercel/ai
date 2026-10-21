@@ -1,5 +1,33 @@
 # @ai-sdk/google
 
+## 4.0.102
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- 754407e: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.100
+
+### Patch Changes
+
+- d08bb66: Preserve grounding metadata from each automatically continued Google response in `groundingMetadataPerRequest`. Previously, a later response without grounding could leave earlier Search queries absent from the final provider metadata even though their sources were returned. The new array preserves request order and includes `null` for requests without grounding.
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.99
 
 ### Patch Changes

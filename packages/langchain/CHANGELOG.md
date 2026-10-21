@@ -1,5 +1,47 @@
 # @ai-sdk/langchain
 
+## 3.0.148
+
+### Patch Changes
+
+- 7550632: fix(langchain): avoid `RangeError: Maximum call stack size exceeded` when converting large binary image and file parts
+- 5046699: Harden LangChain tool argument JSON parsing against prototype pollution while preserving the fallback for invalid arguments.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 3.0.147
+
+### Patch Changes
+
+- a9e0b2a: Fix stale `ai/react` import in the README
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 3.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 3.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 3.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
 ## 3.0.143
 
 ### Patch Changes
