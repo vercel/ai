@@ -1201,7 +1201,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (!isAbort && !isError) {
+    if (
+      !isAbort &&
+      !isError &&
+      activeResponse?.state.finishReason !== 'interrupted'
+    ) {
       await this.runAutomaticRequest(() =>
         this.makeRequest({
           trigger: 'submit-message',

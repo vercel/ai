@@ -1,6 +1,9 @@
 import { APICallError } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { mockId } from '@ai-sdk/provider-utils/test';
+import {
+  convertArrayToReadableStream,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
   TestResponseController,
@@ -3325,6 +3328,45 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it('should preserve interrupted output without an error or automatic follow-up', async () => {
+      const sendMessages = vi.fn(async () =>
+        convertArrayToReadableStream<UIMessageChunk>([
+          { type: 'start', messageId: 'assistant-1' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Partial answer' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish', finishReason: 'interrupted' },
+        ]),
+      );
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+      const sendAutomaticallyWhen = vi.fn(
+        () => sendMessages.mock.calls.length < 2,
+      );
+      const chat = new TestChat({
+        transport: { sendMessages, reconnectToStream: async () => null },
+        onError,
+        onFinish,
+        sendAutomaticallyWhen,
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+
+      expect(sendMessages).toHaveBeenCalledOnce();
+      expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'interrupted',
+          isAbort: false,
+          isDisconnect: false,
+          isError: false,
+        }),
+      );
+      expect(chat.status).toBe('ready');
+      expect(getMessageText(chat.lastMessage)).toBe('Partial answer');
+    });
+
     it('should reject addToolOutput when the async predicate rejects', async () => {
       const chat = new TestChat({
         id: '123',

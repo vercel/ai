@@ -645,6 +645,7 @@ export async function* modelCallIterator({
         finishReason === 'length' ||
         finishReason === 'content-filter' ||
         finishReason === 'error' ||
+        finishReason === 'interrupted' ||
         finishReason === 'other' ||
         finishReason === 'unknown' ||
         !finishReason
