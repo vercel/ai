@@ -12,7 +12,8 @@ export type SpeechStreamPart =
   | {
       /**
        * Audio chunk in generation order. Chunks are not necessarily
-       * standalone files; concatenate them to reconstruct the audio.
+       * standalone files; concatenate them to reconstruct the audio. A chunk
+       * is empty only when it carries `providerMetadata` (e.g. a turn marker).
        */
       type: 'audio';
       id?: string;
