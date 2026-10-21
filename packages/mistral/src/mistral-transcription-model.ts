@@ -17,9 +17,11 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { streamMistralTranscription } from './mistral-transcription-stream';
 import {
   mistralTranscriptionModelOptions,
   type MistralTranscriptionModelId,
@@ -30,6 +32,7 @@ type MistralTranscriptionModelConfig = {
   baseURL: string;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
+  webSocket?: WebSocketConstructor;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -72,6 +75,20 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       providerOptions,
       schema: mistralTranscriptionModelOptions,
     });
+
+    for (const option of [
+      'targetStreamingDelayMs',
+      'speakerReferences',
+      'turnDetection',
+    ] as const) {
+      if (mistralOptions?.[option] != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.mistral.${option}`,
+          details: 'This option is only supported for realtime transcription.',
+        });
+      }
+    }
 
     // Restrict only known legacy models so future and custom models can combine
     // a pinned language with timestamps without an SDK update.
@@ -130,6 +147,19 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
     }
 
     return { formData, warnings };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ) {
+    return streamMistralTranscription({
+      ...options,
+      modelId: this.modelId,
+      baseURL: this.config.baseURL,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
+      webSocket: this.config.webSocket,
+      currentDate: this.config._internal?.currentDate?.() ?? new Date(),
+    });
   }
 
   async doGenerate(

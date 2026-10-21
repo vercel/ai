@@ -11,6 +11,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import { MistralConversationLanguageModel } from './mistral-conversation-language-model';
@@ -110,6 +111,12 @@ export interface MistralProviderSettings {
    */
   fetch?: FetchFunction;
 
+  /**
+   * WebSocket implementation for realtime transcription. Use a header-capable
+   * implementation such as `ws` to send Mistral's Authorization header.
+   */
+  webSocket?: WebSocketConstructor;
+
   generateId?: () => string;
 }
 
@@ -175,6 +182,7 @@ export function createMistral(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: MistralChatModelId) {
