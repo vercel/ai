@@ -19,13 +19,14 @@ import {
  * JSON values; the harness decides what a part holds and checks it when it
  * is read.
  */
-export interface SessionStorage {
+export interface PiSessionStorage {
   /**
    * Appends one part to the log of a session.
    */
   append(options: {
     sessionId: string;
     data: HarnessV1JSONValue;
+    abortSignal?: AbortSignal;
   }): PromiseLike<void>;
 
   /**
@@ -34,6 +35,7 @@ export interface SessionStorage {
    */
   read(options: {
     sessionId: string;
+    abortSignal?: AbortSignal;
   }): PromiseLike<ReadonlyArray<HarnessV1JSONValue>>;
 }
 
@@ -44,11 +46,14 @@ export interface SessionStorage {
 export async function readSessionEntries({
   storage,
   sessionId,
+  abortSignal,
 }: {
-  storage: SessionStorage;
+  storage: PiSessionStorage;
   sessionId: string;
+  abortSignal?: AbortSignal;
 }): Promise<PiSessionEntries | undefined> {
-  const parts = (await storage.read({ sessionId })).map((value, index) => {
+  const values = await storage.read({ sessionId, abortSignal });
+  const parts = values.map((value, index) => {
     const result = piSessionEntriesSchema.safeParse(structuredClone(value));
     if (!result.success) {
       throw new HarnessError({

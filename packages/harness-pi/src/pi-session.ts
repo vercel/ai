@@ -83,7 +83,10 @@ import {
   type PiPendingToolBatch,
   type PiSessionEntries,
 } from './pi-lifecycle-state';
-import { readSessionEntries, type SessionStorage } from './pi-session-storage';
+import {
+  readSessionEntries,
+  type PiSessionStorage,
+} from './pi-session-storage';
 import { runToolBatchReplay, takeToolBatchForReplay } from './pi-tool-batch';
 import {
   createPiTranslatorState,
@@ -336,7 +339,7 @@ export interface PiSessionSettings {
   readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   readonly resources?: PiResources;
-  readonly sessionStorage?: SessionStorage;
+  readonly sessionStorage?: PiSessionStorage;
 }
 
 export interface CreatePiSessionInput {
@@ -567,6 +570,7 @@ export async function createPiSession(
     resumeEntries = await readSessionEntries({
       storage,
       sessionId: input.sessionId,
+      abortSignal: input.abortSignal,
     });
     savedEntryCount = (resumeEntries?.length ?? 1) - 1;
   }

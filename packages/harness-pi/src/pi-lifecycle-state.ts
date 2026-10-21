@@ -73,25 +73,6 @@ const piPendingToolBatchSchema = z.object({
 export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
 export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
 
-/**
- * Lifecycle state `data` of the Pi harness. Without `entries` or `leafId` the
- * session starts fresh.
- */
-export interface PiLifecycleData {
-  readonly entries?: PiSessionEntries;
-  /**
-   * Id of the Pi entry the session ends at, when the session is in the
-   * `sessionStorage` of `createPi` (see `SessionStorage`). Set instead of
-   * `entries`.
-   */
-  readonly leafId?: string;
-  /**
-   * A tool batch that was waiting on host input when the turn was persisted.
-   * Pi cannot resume in the middle of a batch, so the continuation replays it.
-   */
-  readonly pendingToolBatch?: PiPendingToolBatch;
-}
-
 const sessionHeaderSchema = z.custom<SessionHeader>(
   value =>
     isRecord(value) &&
@@ -115,14 +96,14 @@ export const piSessionEntriesSchema: z.ZodType<PiSessionEntries> = z.tuple(
   sessionEntrySchema,
 );
 
-/*
- * A pending tool batch is only replayed against a session restored from
- * `entries` or `leafId`. A state without either starts a fresh session and
- * ignores the batch, so a batch recorded by an earlier version, which has no
- * `assistantMessage`, is dropped there instead of failing validation.
- */
-export const piLifecycleStateSchema: z.ZodType<PiLifecycleData> = z.preprocess(
+export const piLifecycleStateSchema = z.preprocess(
   value => {
+    /*
+     * A pending tool batch is only replayed against a session restored from
+     * `entries` or `leafId`. A state without either starts a fresh session and
+     * ignores the batch, so a batch recorded by an earlier version, which has
+     * no `assistantMessage`, is dropped here instead of failing validation.
+     */
     if (!isRecord(value) || value.entries != null || value.leafId != null) {
       return value;
     }
@@ -135,6 +116,8 @@ export const piLifecycleStateSchema: z.ZodType<PiLifecycleData> = z.preprocess(
     pendingToolBatch: piPendingToolBatchSchema.optional(),
   }),
 );
+
+export type PiLifecycleData = z.infer<typeof piLifecycleStateSchema>;
 
 export function sessionEntriesOf(
   manager: Pick<SessionManager, 'getHeader' | 'getEntries'>,
