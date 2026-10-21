@@ -13,7 +13,9 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import {
+  InvalidToolInputError,
   tool,
+  TypeValidationError,
   type Experimental_LanguageModelStreamPart,
   type ModelMessage,
   type StepResult,
@@ -383,6 +385,48 @@ describe('modelCallIterator', () => {
     expect(options.error.toolInput).toBe('{"path":"etc/hosts"}');
   });
 
+  it('passes the schema failure to repairToolCall as a TypeValidationError cause', async () => {
+    const repairToolCall = vi.fn(async (_options: any) => null);
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    await modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z
+              .string()
+              .refine(value => value.startsWith('/'), 'path must be absolute'),
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      repairToolCall,
+    }).next();
+
+    const { error } = repairToolCall.mock.calls[0][0];
+    expect(InvalidToolInputError.isInstance(error)).toBe(true);
+    // matches the cause parseToolCall passes to repairToolCall in streamText
+    expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+    expect(error.cause).toMatchObject({
+      value: { path: 'etc/hosts' },
+      message: expect.stringContaining('path must be absolute'),
+    });
+    expect(error.message).toContain('path must be absolute');
+  });
+
   it('does not repair a tool call a second time after the model step repaired it', async () => {
     const repairToolCall = vi.fn(async ({ toolCall }) => toolCall);
     vi.mocked(doStreamStep).mockResolvedValue(
@@ -457,6 +501,89 @@ describe('modelCallIterator', () => {
     await iterator.next();
 
     expect(onInputAvailable).not.toHaveBeenCalled();
+  });
+
+  it('does not write provider-executed tool calls after the model step', async () => {
+    const write = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'provider-call',
+            toolName: 'webSearch',
+            input: {},
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'local-call',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        webSearch: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'test.web_search',
+          args: {},
+          inputSchema: z.object({}),
+        },
+        search: tool({ inputSchema: z.object({ query: z.string() }) }),
+      } as ToolSet,
+      model: vi.fn() as any,
+      writable: new WritableStream({ write }),
+    });
+
+    await iterator.next();
+
+    // the model step already streamed the provider-executed call in place
+    expect(write.mock.calls.map(([part]) => part.toolCallId)).toEqual([
+      'local-call',
+    ]);
+  });
+
+  it('does not run the deferred tool-call writer when no tool call was deferred', async () => {
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'plain-call',
+            toolName: 'plain',
+            input: { query: 'docs' },
+          },
+        ],
+      }),
+    );
+    const writable = createMockWritable();
+    const getWriter = vi.spyOn(writable, 'getWriter');
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({ inputSchema: z.object({ query: z.string() }) }),
+        plain: tool({
+          inputSchema: jsonSchema<{ query: string }>({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      writable,
+    });
+
+    await iterator.next();
+
+    expect(getWriter).not.toHaveBeenCalled();
   });
 
   it('validates and normalizes tool context before input callbacks', async () => {

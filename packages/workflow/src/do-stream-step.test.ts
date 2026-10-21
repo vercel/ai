@@ -790,4 +790,69 @@ describe('doStreamStep', () => {
     // other tools keep streaming their call and error from the step
     expect(forTool('call-2')).toEqual(['tool-call', 'tool-error']);
   });
+
+  it('streams provider-executed tool calls of self-validating tools in place', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'provider-call',
+            toolName: 'file_search',
+            input: '{}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'provider-call',
+            toolName: 'file_search',
+            result: { results: [] },
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 0, text: 0, reasoning: undefined },
+            },
+          },
+        ]),
+      }),
+    });
+    const writtenParts: Array<{ type: string; toolCallId?: string }> = [];
+
+    await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      {
+        file_search: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'openai.file_search',
+          args: {},
+          inputSchema: { type: 'object' as const, properties: {} },
+          hasOwnValidator: true,
+        },
+      },
+    );
+
+    // the tool-call must precede its provider tool result, otherwise UI
+    // stream consumers cannot find the tool invocation for the result
+    expect(
+      writtenParts
+        .filter(part => part.toolCallId === 'provider-call')
+        .map(part => part.type),
+    ).toEqual(['tool-call', 'tool-result']);
+  });
 });

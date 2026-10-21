@@ -85,7 +85,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'Record<string, Tool>',
       isOptional: true,
       description:
-        'A set of tools the agent can call. Keys are tool names. Tools are serialized to JSON Schema across workflow step boundaries and validated with Ajv at runtime.',
+        'A set of tools the agent can call. Keys are tool names. Tools are serialized to JSON Schema across workflow step boundaries. Tool inputs are validated and normalized with the original input schema (e.g. Zod defaults, transforms, and refinements), matching `streamText`. Plain JSON schemas without a custom `validate` function are validated against the JSON Schema.',
     },
     {
       name: 'toolChoice',
