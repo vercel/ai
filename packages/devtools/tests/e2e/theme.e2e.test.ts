@@ -51,6 +51,16 @@ const selectedRun = {
       started_at: '2026-07-22T08:00:00.000Z',
       duration_ms: 1200,
       input: JSON.stringify({
+        tools: [
+          {
+            name: 'lookupWeather',
+            description: 'Looks up the weather for a city.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+            },
+          },
+        ],
         prompt: [
           {
             role: 'user',
@@ -332,6 +342,23 @@ test('selected-run content and timeline metadata meet contrast targets', async (
     })
     .click();
 
+  const availableToolsButton = page.getByRole('button', {
+    name: /available tool/,
+  });
+  const usageButton = page.getByRole('button', {
+    name: 'Usage',
+    exact: true,
+  });
+  for (const control of [availableToolsButton, usageButton]) {
+    await expect(control).toBeVisible();
+    await expect(control).toHaveCSS('border-top-width', '1px');
+    expect(
+      await control.evaluate(
+        element => getComputedStyle(element).backgroundColor,
+      ),
+    ).not.toBe('rgba(0, 0, 0, 0)');
+  }
+
   const toolCall = page.getByText('lookupWeather({ city: "Portland" })', {
     exact: true,
   });
@@ -346,6 +373,23 @@ test('selected-run content and timeline metadata meet contrast targets', async (
 
   await page.getByRole('button', { name: 'Timeline' }).click();
 
+  const gridline = page.locator('[data-slot="timeline-gridline"]').first();
+  await expect(gridline).toBeAttached();
+  expect(await borderContrastRatio(gridline)).toBeGreaterThanOrEqual(3);
+
+  const tooltipTrigger = page.locator('[data-slot="tooltip-trigger"]').last();
+  await tooltipTrigger.hover();
+  const tooltip = page.getByRole('tooltip').last();
+  await expect(tooltip).toBeVisible();
+  const tooltipSurface = await page.locator('html').evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.getPropertyValue('--background').trim(),
+      popover: style.getPropertyValue('--popover').trim(),
+    };
+  });
+  expect(tooltipSurface.popover).not.toBe(tooltipSurface.background);
+
   const timeLabel = page.getByText('240ms', { exact: true });
   const tokenCount = page.getByText('42→17', { exact: true });
   await assertTextContrast([timeLabel, tokenCount]);
@@ -353,6 +397,7 @@ test('selected-run content and timeline metadata meet contrast targets', async (
   await page.getByRole('button', { name: 'Use light theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await assertTextContrast([timeLabel, tokenCount]);
+  expect(await borderContrastRatio(gridline)).toBeGreaterThanOrEqual(3);
 
   await page.getByRole('button', { name: 'Timeline' }).click();
   await assertTextContrast([selectedRunMessage, toolCall, toolResult, error]);
@@ -438,9 +483,13 @@ async function focusRingContrastRatio(locator: Locator): Promise<number> {
   return locator.evaluate(browserContrastRatio, 'focus-ring');
 }
 
+async function borderContrastRatio(locator: Locator): Promise<number> {
+  return locator.evaluate(browserContrastRatio, 'border');
+}
+
 function browserContrastRatio(
   element: Element,
-  mode: 'text' | 'focus-ring',
+  mode: 'text' | 'focus-ring' | 'border',
 ): number {
   type Color = {
     red: number;
@@ -550,6 +599,14 @@ function browserContrastRatio(
       background,
     );
     return contrastRatio(foreground, background);
+  }
+
+  if (mode === 'border') {
+    const border = composite(
+      parseColor(getComputedStyle(element).borderLeftColor),
+      background,
+    );
+    return contrastRatio(border, background);
   }
 
   const shadow = getComputedStyle(element).boxShadow;
