@@ -3,6 +3,12 @@ import { generateSpeech } from './generate-speech';
 import { logWarnings } from '../logger/log-warnings';
 
 export { generateSpeech } from './generate-speech';
+export { streamSpeech as experimental_streamSpeech } from './stream-speech';
+export type {
+  SpeechStreamPart as Experimental_SpeechStreamPart,
+  SpeechStreamUsage as Experimental_SpeechStreamUsage,
+  StreamSpeechResult as Experimental_StreamSpeechResult,
+} from './stream-speech-result';
 export type { SpeechResult } from './generate-speech-result';
 export type { GeneratedAudioFile } from './generated-audio-file';
 export type {

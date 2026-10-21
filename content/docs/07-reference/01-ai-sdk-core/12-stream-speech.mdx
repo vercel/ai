@@ -1,0 +1,159 @@
+---
+title: experimental_streamSpeech
+description: API Reference for experimental_streamSpeech.
+---
+
+# `experimental_streamSpeech()`
+
+<Note type="warning">
+  `experimental_streamSpeech` is an experimental feature.
+</Note>
+
+Streams speech audio from text, or from a stream of text deltas, using a speech
+model with streaming support.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
+
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_flash_v2_5'),
+  text: 'Hello, world!',
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_streamSpeech as streamSpeech } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'SpeechModelV4',
+      description:
+        'The speech model to use. The model must support streaming (`doStream`).',
+    },
+    {
+      name: 'text',
+      type: 'string | AsyncIterable<string> | ReadableStream<string>',
+      description:
+        'The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`). The end of the stream ends the input.',
+    },
+    {
+      name: 'voice',
+      type: 'string',
+      isOptional: true,
+      description: 'The voice to use for speech generation.',
+    },
+    {
+      name: 'outputFormat',
+      type: 'string',
+      isOptional: true,
+      description:
+        'The output audio format. Supported values are provider-specific.',
+    },
+    {
+      name: 'instructions',
+      type: 'string',
+      isOptional: true,
+      description: 'Instructions for the speech generation.',
+    },
+    {
+      name: 'speed',
+      type: 'number',
+      isOptional: true,
+      description: 'The speed of the speech generation.',
+    },
+    {
+      name: 'language',
+      type: 'string',
+      isOptional: true,
+      description:
+        'The language for speech generation (ISO 639-1 code), or "auto". Provider support varies.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'Record<string, JSONObject>',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP/WebSocket headers, if supported by the provider.',
+    },
+    {
+      name: 'includeRawChunks',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'When true, the provider includes raw provider chunks in `fullStream` as `raw` parts.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'audioStream',
+      type: 'AsyncIterableStream<Uint8Array>',
+      description:
+        'Audio bytes in generation order. Shares one live stream with `fullStream`: only one of them can be accessed, once, before any result promise. Errors when the provider streams an `error` part.',
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterableStream<SpeechStreamPart>',
+      description:
+        'A single-consumer live stream of `audio` (with `audio: Uint8Array` and `audioFormat`), `raw`, and `error` parts.',
+    },
+    {
+      name: 'usage',
+      type: 'Promise<{ inputCharacters?: number; inputTokens?: number; outputTokens?: number }>',
+      description: 'Usage information for the call, if known.',
+    },
+    {
+      name: 'warnings',
+      type: 'Promise<Warning[]>',
+      description:
+        'Warnings for the call, e.g. unsupported settings. Resolves when the provider emits the stream start.',
+    },
+    {
+      name: 'responses',
+      type: 'Promise<Array<SpeechModelResponseMetadata>>',
+      description: 'Response metadata (timestamp, model ID, headers).',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'Promise<Record<string, JSONObject>>',
+      description: 'Additional provider-specific metadata.',
+    },
+  ]}
+/>
+
+<Note>
+  The result promises settle as the stream is consumed. If you stop consuming
+  the stream early, the provider connection is closed and pending result
+  promises reject.
+</Note>
