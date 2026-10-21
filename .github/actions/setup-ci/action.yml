@@ -5,6 +5,14 @@ inputs:
     description: Node.js version for this runner
     default: '22'
     required: false
+  packages:
+    description: Workspace selectors to install, one per line; empty installs the full workspace
+    default: ''
+    required: false
+  save-cache:
+    description: Save the dependency store on main pushes; PRs only restore it
+    default: 'true'
+    required: false
 runs:
   using: composite
   steps:
@@ -12,7 +20,23 @@ runs:
       with:
         runtime: node@${{ inputs.node-version }}
         cache: true
+        save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.save-cache == 'true' }}
+        install: ${{ inputs.packages == '' }}
         require-lockfile: true
+    - name: Install selected workspaces
+      if: inputs.packages != ''
+      shell: bash
+      env:
+        INSTALL_PACKAGES: ${{ inputs.packages }}
+      run: |
+        # Root tools and workspace dependencies are needed by the Turbo commands.
+        filters=(--filter=ai-repo...)
+        while IFS= read -r selector; do
+          if [[ -n "$selector" ]]; then
+            filters+=("--filter=$selector")
+          fi
+        done <<< "$INSTALL_PACKAGES"
+        pnpm install --frozen-lockfile --no-runtime "${filters[@]}"
     - if: env.TURBO_CACHE == 'local:rw,remote:rw'
       uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
       with:

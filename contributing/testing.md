@@ -24,6 +24,9 @@ and checks in dependency order and reuses cached results. Package tests run on
 Node 22, 24, and 26, including the full `ai` suite. Test cache keys include the Node
 version and worker limit.
 
+Jobs install their workspace dependencies and root tools. PRs restore pnpm stores;
+main pushes refresh them. Turbo caches task results on both.
+
 Build and validate (`pnpm ci:validate`) builds packages and examples and checks
 types, lint, formatting, Konsistent, docs, and bundles. Each Node version runs the
 same package tests (`pnpm ci:test`). Run both locally with `pnpm run ci`. Browser

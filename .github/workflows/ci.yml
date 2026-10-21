@@ -63,6 +63,11 @@ jobs:
       - uses: ./.github/actions/setup-ci
         with:
           node-version: ${{ matrix.node }}
+          packages: |
+            ./packages/*...
+            ai-sdk-integration-tests...
+          # Build and validate writes the Node 22 store; keep one writer per runtime.
+          save-cache: ${{ matrix.node != 22 }}
       - run: pnpm ci:test
 
   browsers:
@@ -78,7 +83,16 @@ jobs:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install fast cache compression
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends zstd
       - uses: ./.github/actions/setup-ci
+        with:
+          packages: |
+            @ai-sdk/rsc...
+            @ai-sdk/devtools...
+            ai-core-e2e-next-server...
       - name: Verify browser image version
         run: node -e "if (process.env.PLAYWRIGHT_IMAGE !== 'mcr.microsoft.com/playwright:v' + require('@playwright/test/package.json').version + '-noble') process.exit(1)"
       - run: pnpm ci:browser
@@ -101,6 +115,7 @@ jobs:
       - uses: ./.github/actions/setup-ci
         with:
           node-version: '24'
+          packages: '@ai-sdk/mcp...'
       # pnpm's Node.js runtime excludes npm/npx, which the Windows spawn test uses.
       - name: Install npm and npx
         run: pnpm add --global npm@11.19.0
@@ -115,4 +130,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-ci
+        with:
+          packages: |
+            ai...
+            @ai-sdk/openai...
+            @ai-sdk/openai-compatible...
+            @ai-sdk/anthropic...
+            @ai-sdk/google...
+          save-cache: false
       - run: pnpm exec turbo run benchmark:load-time --concurrency=1

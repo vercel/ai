@@ -9,10 +9,11 @@ const limits = {
   '@ai-sdk/anthropic': 75,
   '@ai-sdk/google': 70,
 };
-const cwd = fileURLToPath(new URL('../../examples/ai-functions', import.meta.url));
 let failed = false;
 // Measure serially: concurrent benchmarks distort each other's import times.
 for (const [name, limit] of Object.entries(limits)) {
+  const directory = name === 'ai' ? 'ai' : name.slice('@ai-sdk/'.length);
+  const cwd = fileURLToPath(new URL(`../../packages/${directory}`, import.meta.url));
   const times = [];
   for (let iteration = 0; iteration < 50; iteration++) {
     const result = spawnSync(process.execPath, ['--input-type=module', '--eval', `
