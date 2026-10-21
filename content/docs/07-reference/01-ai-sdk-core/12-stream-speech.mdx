@@ -157,3 +157,14 @@ for await (const chunk of result.audioStream) {
   the stream early, the provider connection is closed and pending result
   promises reject.
 </Note>
+
+## Wire format (experimental)
+
+Streaming speech over WebSocket is serialized with the experimental
+speech-stream envelope defined in `@ai-sdk/provider-utils`
+(`experimental_parseSpeechStreamClientFrame`,
+`experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`):
+the client sends one `speech-stream.start` TEXT frame, input text as
+`speech-stream.text-delta` TEXT frames, and a `speech-stream.text-done` TEXT
+frame; each server TEXT frame is one JSON-serialized speech stream part with
+base64 audio. AI Gateway implements the server side of this envelope.

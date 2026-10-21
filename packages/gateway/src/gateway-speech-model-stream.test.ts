@@ -1,0 +1,280 @@
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GatewayAuthenticationError, GatewayRateLimitError } from './errors';
+import type { GatewayConfig } from './gateway-config';
+import {
+  GatewaySpeechModel,
+  splitTextDelta,
+  toGatewaySpeechUrl,
+} from './gateway-speech-model';
+
+class MockWebSocket {
+  static instances: MockWebSocket[] = [];
+
+  readyState = 0;
+  bufferedAmount = 0;
+  send = vi.fn();
+  close = vi.fn(() => {
+    this.readyState = 3;
+  });
+  onopen: ((event: unknown) => void) | null = null;
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: ((event: unknown) => void) | null = null;
+  onclose: ((event: unknown) => void) | null = null;
+
+  constructor(
+    public url: string | URL,
+    public protocols?: string | string[],
+    public options?: { headers?: Record<string, string | undefined> },
+  ) {
+    MockWebSocket.instances.push(this);
+  }
+
+  open() {
+    this.readyState = 1;
+    this.onopen?.({});
+  }
+
+  message(value: unknown) {
+    this.onmessage?.({ data: JSON.stringify(value) });
+  }
+
+  remoteClose(code = 1011) {
+    this.readyState = 3;
+    this.onclose?.({ code });
+  }
+
+  sentFrames() {
+    return this.send.mock.calls.map(([data]) => JSON.parse(String(data)));
+  }
+}
+
+const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+const createStreamingTestModel = (
+  config: Partial<
+    GatewayConfig & {
+      headers?: () => Record<string, string>;
+      _internal?: { currentDate?: () => Date };
+    }
+  > = {},
+) =>
+  new GatewaySpeechModel('elevenlabs/eleven-flash-v2.5', {
+    provider: 'gateway',
+    baseURL: 'https://api.test.com',
+    headers: () => ({
+      Authorization: 'Bearer test-token',
+      'ai-gateway-auth-method': 'api-key',
+    }),
+    fetch: globalThis.fetch,
+    o11yHeaders: {},
+    webSocket: MockWebSocket,
+    ...config,
+  });
+
+function lastSocket(): MockWebSocket {
+  const socket = MockWebSocket.instances.at(-1);
+  if (socket == null) {
+    throw new Error('no socket');
+  }
+  return socket;
+}
+
+describe('GatewaySpeechModel.doStream', () => {
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+  });
+
+  it('should speak the speech-stream envelope over the gateway WebSocket', async () => {
+    const result = await createStreamingTestModel({
+      _internal: { currentDate: () => new Date(2024, 0, 1) },
+    }).doStream({
+      text: convertArrayToReadableStream(['Hello ', 'world']),
+      voice: 'voice-1',
+      outputFormat: 'mp3_44100_128',
+      speed: 1.1,
+      language: 'en',
+      providerOptions: { elevenlabs: { seed: 7 } },
+    });
+
+    const socket = lastSocket();
+    expect(String(socket.url)).toBe(
+      'wss://api.test.com/speech-model?ai-model-id=elevenlabs%2Feleven-flash-v2.5',
+    );
+    expect(socket.protocols).toEqual([
+      'ai-gateway-speech.v1',
+      'ai-gateway-auth.test-token',
+    ]);
+    expect(result.request?.body).toEqual({
+      type: 'speech-stream.start',
+      voice: 'voice-1',
+      outputFormat: 'mp3_44100_128',
+      speed: 1.1,
+      language: 'en',
+      providerOptions: { elevenlabs: { seed: 7 } },
+    });
+    expect(result.response).toEqual({
+      timestamp: new Date(2024, 0, 1),
+      modelId: 'elevenlabs/eleven-flash-v2.5',
+    });
+
+    socket.open();
+    await flush();
+    await flush();
+
+    expect(socket.sentFrames()).toEqual([
+      {
+        type: 'speech-stream.start',
+        voice: 'voice-1',
+        outputFormat: 'mp3_44100_128',
+        speed: 1.1,
+        language: 'en',
+        providerOptions: { elevenlabs: { seed: 7 } },
+      },
+      { type: 'speech-stream.text-delta', delta: 'Hello ' },
+      { type: 'speech-stream.text-delta', delta: 'world' },
+      { type: 'speech-stream.text-done' },
+    ]);
+
+    socket.message({ type: 'stream-start', warnings: [] });
+    socket.message({
+      type: 'audio',
+      audio: 'AQI=',
+      audioFormat: { type: 'audio/mpeg', rate: 44100 },
+    });
+    socket.message({ type: 'unknown-part' });
+    socket.message({
+      type: 'finish',
+      usage: { inputCharacters: 11 },
+      providerMetadata: { gateway: { cost: '0.00044' } },
+    });
+
+    expect(await convertReadableStreamToArray(result.stream)).toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'audio',
+        audio: 'AQI=',
+        audioFormat: { type: 'audio/mpeg', rate: 44100 },
+      },
+      {
+        type: 'finish',
+        usage: { inputCharacters: 11 },
+        providerMetadata: { gateway: { cost: '0.00044' } },
+      },
+    ]);
+    expect(socket.close).toHaveBeenCalledWith(1000);
+  });
+
+  it('should include the team subprotocol when a team header is set', async () => {
+    await createStreamingTestModel({
+      headers: () => ({
+        Authorization: 'Bearer test-token',
+        'x-vercel-ai-gateway-team': 'my-team',
+      }),
+    }).doStream({ text: convertArrayToReadableStream(['Hi']) });
+
+    expect(lastSocket().protocols).toEqual([
+      'ai-gateway-speech.v1',
+      'ai-gateway-auth.test-token',
+      'ai-gateway-team.bXktdGVhbQ',
+    ]);
+  });
+
+  it('should surface a typed gateway error from a server error part', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream(['Hi']),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.message({
+      type: 'error',
+      error: { message: 'Rate limited', type: 'rate_limit_exceeded' },
+    });
+    socket.remoteClose(1008);
+
+    const reader = result.stream.getReader();
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'error' },
+    });
+    await expect(reader.read()).rejects.toSatisfy(error =>
+      GatewayRateLimitError.isInstance(error),
+    );
+  });
+
+  it('should error when the socket closes before a finish part', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream(['Hi']),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.remoteClose();
+
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'AI Gateway speech stream closed before a finish part was received',
+    );
+  });
+
+  it('should map an authentication error part', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream(['Hi']),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.message({
+      type: 'error',
+      error: { message: 'Invalid API key', type: 'authentication_error' },
+    });
+    socket.remoteClose(1008);
+
+    const parts: unknown[] = [];
+    await expect(
+      (async () => {
+        for await (const part of result.stream) parts.push(part);
+      })(),
+    ).rejects.toSatisfy(error => GatewayAuthenticationError.isInstance(error));
+  });
+
+  it('should close the socket and cancel the text on stream cancel', async () => {
+    const cancelText = vi.fn();
+    const result = await createStreamingTestModel().doStream({
+      text: new ReadableStream<string>({ cancel: cancelText }),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+
+    await result.stream.cancel();
+
+    expect(socket.close).toHaveBeenCalled();
+    await vi.waitFor(() => expect(cancelText).toHaveBeenCalled());
+  });
+});
+
+describe('toGatewaySpeechUrl', () => {
+  it('should upgrade http(s) and carry the model id in the query', () => {
+    expect(toGatewaySpeechUrl('http://localhost:3000/v4/ai', 'a/b')).toBe(
+      'ws://localhost:3000/v4/ai/speech-model?ai-model-id=a%2Fb',
+    );
+  });
+});
+
+describe('splitTextDelta', () => {
+  it('should return short deltas unchanged', () => {
+    expect(splitTextDelta('Hello')).toEqual(['Hello']);
+    expect(splitTextDelta('')).toEqual([]);
+  });
+
+  it('should not split a surrogate pair at a piece boundary', () => {
+    const delta = `${'a'.repeat(16 * 1024 - 1)}👋b`;
+    const pieces = splitTextDelta(delta);
+    expect(pieces.join('')).toBe(delta);
+    expect(pieces[0].endsWith('a')).toBe(true);
+    expect(pieces[1].startsWith('👋')).toBe(true);
+  });
+});

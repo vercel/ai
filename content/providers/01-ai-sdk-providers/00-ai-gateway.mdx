@@ -464,6 +464,33 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Streaming Speech Models
+
+<Note type="warning">
+  Streaming speech is experimental and the API may change in patch releases.
+</Note>
+
+Speech models that support streaming can be used with
+`experimental_streamSpeech`. The gateway provider connects to AI Gateway over a
+WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
+Gateway WebSocket auth is carried in the subprotocols, so no header-capable
+WebSocket implementation is needed.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
 ## Realtime Models
 
 <Note type="warning">

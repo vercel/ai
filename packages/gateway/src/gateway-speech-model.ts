@@ -1,4 +1,7 @@
 import type {
+  Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
+  Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
+  Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
   SharedV4ProviderMetadata,
   SharedV4Warning,
   SpeechModelV4,
@@ -7,17 +10,36 @@ import {
   lazySchema,
   zodSchema,
   combineHeaders,
+  connectToWebSocket,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
+  experimental_parseSpeechStreamPart as parseSpeechStreamPart,
   postJsonToApi,
   resolve,
+  EXPERIMENTAL_SPEECH_STREAM_START_FRAME_TYPE as SPEECH_STREAM_START_FRAME_TYPE,
+  EXPERIMENTAL_SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE as SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
+  EXPERIMENTAL_SPEECH_STREAM_TEXT_DONE_FRAME_TYPE as SPEECH_STREAM_TEXT_DONE_FRAME_TYPE,
+  waitForWebSocketBufferDrain,
+  type Experimental_SpeechStreamStartFrame,
   type Resolvable,
+  type WebSocketConnection,
+  type WebSocketConstructor,
+  type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import {
+  GATEWAY_SPEECH_SUBPROTOCOL,
+  getGatewaySpeechProtocols,
+} from './gateway-realtime-auth';
+import {
+  createErrorFromServerErrorPart,
+  errorControllerWithGatewayError,
+} from './gateway-stream-errors';
+import { getProtocolsFromHeaders } from './gateway-transcription-model';
 
 export class GatewaySpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4' as const;
@@ -27,6 +49,9 @@ export class GatewaySpeechModel implements SpeechModelV4 {
     private readonly config: GatewayConfig & {
       provider: string;
       o11yHeaders: Resolvable<Record<string, string>>;
+      _internal?: {
+        currentDate?: () => Date;
+      };
     },
   ) {}
 
@@ -104,6 +129,59 @@ export class GatewaySpeechModel implements SpeechModelV4 {
     }
   }
 
+  async doStream(
+    options: SpeechModelV4StreamOptions,
+  ): Promise<SpeechModelV4StreamResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const headers = combineHeaders(
+      await resolve(this.config.headers ?? {}),
+      options.headers ?? {},
+      this.getModelConfigHeaders(),
+      await resolve(this.config.o11yHeaders),
+    );
+    const authMethod = await parseAuthMethod(headers);
+
+    // First frame after the WebSocket opens, per the speech-stream envelope.
+    // Optional keys are omitted so the frame stays minimal.
+    const startFrame: Experimental_SpeechStreamStartFrame = {
+      type: SPEECH_STREAM_START_FRAME_TYPE,
+      ...(options.voice != null && { voice: options.voice }),
+      ...(options.outputFormat != null && {
+        outputFormat: options.outputFormat,
+      }),
+      ...(options.instructions != null && {
+        instructions: options.instructions,
+      }),
+      ...(options.speed != null && { speed: options.speed }),
+      ...(options.language != null && { language: options.language }),
+      ...(options.providerOptions != null && {
+        providerOptions: options.providerOptions,
+      }),
+      ...(options.includeRawChunks != null && {
+        includeRawChunks: options.includeRawChunks,
+      }),
+    };
+
+    return {
+      stream: createGatewaySpeechStream({
+        webSocket: this.config.webSocket,
+        url: toGatewaySpeechUrl(this.config.baseURL, this.modelId),
+        protocols: getProtocolsFromHeaders(headers, {
+          marker: GATEWAY_SPEECH_SUBPROTOCOL,
+          getProtocols: getGatewaySpeechProtocols,
+        }),
+        headers,
+        startFrame,
+        text: options.text,
+        abortSignal: options.abortSignal,
+        authMethod,
+      }),
+      request: { body: startFrame },
+      response: { timestamp: currentDate, modelId: this.modelId },
+    };
+  }
+
   private getUrl() {
     return `${this.config.baseURL}/speech-model`;
   }
@@ -114,6 +192,196 @@ export class GatewaySpeechModel implements SpeechModelV4 {
       'ai-model-id': this.modelId,
     };
   }
+}
+
+/**
+ * Gateway streaming speech WebSocket URL: HTTP(S) base upgraded to WS(S),
+ * model id in `?ai-model-id=` (browser `WebSocket` cannot set headers).
+ */
+export function toGatewaySpeechUrl(baseURL: string, modelId: string): string {
+  const url = new URL(`${baseURL.replace(/^http/, 'ws')}/speech-model`);
+  url.searchParams.set('ai-model-id', modelId);
+  return url.toString();
+}
+
+/** Text-delta frames stay well under server frame-size limits (envelope rule 7). */
+const MAX_TEXT_DELTA_CODE_UNITS = 16 * 1024;
+
+/**
+ * Splits a long text delta into pieces of at most `MAX_TEXT_DELTA_CODE_UNITS`
+ * UTF-16 code units without separating a surrogate pair.
+ */
+export function splitTextDelta(delta: string): string[] {
+  const pieces: string[] = [];
+  let offset = 0;
+  while (offset < delta.length) {
+    let end = Math.min(offset + MAX_TEXT_DELTA_CODE_UNITS, delta.length);
+    const lastCodeUnit = delta.charCodeAt(end - 1);
+    if (
+      end < delta.length &&
+      lastCodeUnit >= 0xd800 &&
+      lastCodeUnit <= 0xdbff
+    ) {
+      end--;
+    }
+    pieces.push(delta.slice(offset, end));
+    offset = end;
+  }
+  return pieces;
+}
+
+function createGatewaySpeechStream({
+  webSocket,
+  url,
+  protocols,
+  headers,
+  startFrame,
+  text,
+  abortSignal,
+  authMethod,
+}: {
+  webSocket: WebSocketConstructor | undefined;
+  url: string;
+  protocols: string[];
+  headers: Record<string, string | undefined>;
+  startFrame: Experimental_SpeechStreamStartFrame;
+  text: ReadableStream<string>;
+  abortSignal: AbortSignal | undefined;
+  authMethod: 'api-key' | 'oidc' | undefined;
+}): ReadableStream<SpeechModelV4StreamPart> {
+  let finished = false;
+  let cleanup: (closeCode?: number) => void = () => {};
+
+  return new ReadableStream<SpeechModelV4StreamPart>({
+    start: controller => {
+      let textReader: ReadableStreamDefaultReader<string> | undefined;
+      let hasServerErrorPart = false;
+      let lastServerError: unknown;
+      let textStopped = false;
+      let connection: WebSocketConnection | undefined;
+
+      const cancelText = () => {
+        if (textReader != null) {
+          void textReader.cancel().catch(() => {});
+          textReader = undefined;
+        } else {
+          void text.cancel().catch(() => {});
+        }
+      };
+
+      cleanup = (closeCode?: number) => {
+        cancelText();
+        connection?.close(closeCode);
+      };
+
+      const finishWithError = (error: unknown) => {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        void errorControllerWithGatewayError(controller, error, authMethod);
+      };
+
+      const sendText = async (socket: WebSocketLike) => {
+        const reader = text.getReader();
+        textReader = reader;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done || finished || textStopped) break;
+            for (const delta of splitTextDelta(value)) {
+              if (finished || textStopped) break;
+              socket.send(
+                JSON.stringify({
+                  type: SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
+                  delta,
+                }),
+              );
+              await waitForWebSocketBufferDrain(socket);
+            }
+          }
+        } finally {
+          reader.releaseLock();
+          if (textReader === reader) {
+            textReader = undefined;
+          }
+        }
+        if (!finished && !textStopped) {
+          socket.send(
+            JSON.stringify({ type: SPEECH_STREAM_TEXT_DONE_FRAME_TYPE }),
+          );
+        }
+      };
+
+      connection = connectToWebSocket({
+        url,
+        protocols,
+        headers,
+        webSocket,
+        abortSignal,
+        onAbort: reason => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          controller.error(reason);
+        },
+        onProcessingError: finishWithError,
+        onOpen: socket => {
+          socket.send(JSON.stringify(startFrame));
+          void sendText(socket).catch(finishWithError);
+        },
+        onMessageText: messageText => {
+          if (finished) return;
+          const part = parseSpeechStreamPart(messageText);
+          if (part == null) return;
+          if (part.type === 'finish') {
+            finished = true;
+            controller.enqueue(part);
+            controller.close();
+            cleanup(1000);
+            return;
+          }
+
+          if (part.type === 'error') {
+            // Error parts are terminal (envelope rule 5): stop sending text
+            // and surface the server's message when the socket closes.
+            hasServerErrorPart = true;
+            lastServerError = part.error;
+            textStopped = true;
+            cancelText();
+          }
+
+          controller.enqueue(part);
+        },
+        onSocketError: () => {
+          finishWithError(
+            new Error('Connection error on AI Gateway speech stream'),
+          );
+        },
+        onClose: () => {
+          if (hasServerErrorPart) {
+            if (finished) return;
+            void createErrorFromServerErrorPart(
+              lastServerError,
+              authMethod,
+              'speech',
+            ).then(finishWithError);
+            return;
+          }
+          finishWithError(
+            new Error(
+              'AI Gateway speech stream closed before a finish part was received',
+            ),
+          );
+        },
+      });
+    },
+
+    cancel: () => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+    },
+  });
 }
 
 const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());

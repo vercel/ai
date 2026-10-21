@@ -288,10 +288,10 @@ export interface GatewayProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Custom WebSocket implementation used for streaming transcription. This is
-   * useful for testing or for runtimes without a global WebSocket. A
-   * header-capable implementation is not required — Gateway WebSocket auth is
-   * carried in the subprotocols.
+   * Custom WebSocket implementation used for streaming transcription and
+   * streaming speech. This is useful for testing or for runtimes without a
+   * global WebSocket. A header-capable implementation is not required —
+   * Gateway WebSocket auth is carried in the subprotocols.
    */
   webSocket?: WebSocketConstructor;
 
@@ -624,6 +624,7 @@ export function createGateway(
       headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: createO11yHeaders(),
+      webSocket: options.webSocket,
     });
   };
   provider.speechModel = createSpeechModel;
