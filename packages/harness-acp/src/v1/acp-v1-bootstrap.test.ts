@@ -177,7 +177,7 @@ describe('createACPBootstrap', () => {
           join(installationHome, 'install-working-directory.txt'),
           'utf8',
         ),
-      ).resolves.toBe(`${bootstrapDirectory}\n`);
+      ).resolves.toBe(`${installationHome}\n`);
       await expect(
         fsPromises.access(join(ambientHome, '.local', 'bin', 'acp-agent')),
       ).rejects.toMatchObject({ code: 'ENOENT' });

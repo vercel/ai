@@ -128,7 +128,7 @@ export HOME="$ACP_BOOTSTRAP_DIR/home"
 export PATH="$HOME/.local/bin:$PATH"
 
 mkdir -p "$HOME/.local/bin"
-cd "$ACP_BOOTSTRAP_DIR"
+cd "$HOME"
 
 ${command}
 `;

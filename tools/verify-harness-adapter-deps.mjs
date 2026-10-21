@@ -22,6 +22,8 @@ const acpBridgeManifestPath = 'packages/harness-acp/src/v1/bridge/package.json';
 const acpNpmLockedBridgeManifestPaths = [
   'packages/harness-github-copilot/src/bridge/package.json',
   'packages/harness-grok-build/src/bridge/package.json',
+  'examples/ai-functions/src/lib/codex-acp-bridge/package.json',
+  'examples/harness-e2e-next/agent/harness/acp-codex/bridge/package.json',
 ];
 
 const adapterConfigs = [
