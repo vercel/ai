@@ -14,7 +14,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-6-astra',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -48,7 +48,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-4.1',
     maxOutputTokens: 512,
     tools: {
       weather: tool({
@@ -107,7 +107,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-4.1',
     maxOutputTokens: 512,
     tools: {
       weather: tool({

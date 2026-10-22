@@ -4,16 +4,23 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { realpathSync } from 'node:fs';
+import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
-import type { StartMessage } from '../opencode-bridge-protocol';
+import type {
+  OpenCodeBuiltinToolName,
+  StartMessage,
+} from '../opencode-bridge-protocol';
 
 import {
   createOpencodeClient,
   createOpencodeServer,
 } from '@opencode-ai/sdk/v2';
+import {
+  createOpenCodeHostInputTracker,
+  type OpenCodeHostInputTracker,
+} from './opencode-host-input-tracker';
 import {
   createTranslationState,
   emitOpenCodeStreamStart,
@@ -29,7 +36,7 @@ import {
 } from './opencode-context-fallback';
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
-import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodePath } from './opencode-path';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
@@ -52,6 +59,7 @@ import {
   toOpenCodeQuestionResponse,
   type OpenCodeQuestionRequest,
 } from './question-tool';
+import { toOpenCodePromptParts } from './opencode-prompt';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -64,6 +72,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   openCodeConfig?: Record<string, unknown>;
+  inactiveBuiltinToolNames?: StartMessage['inactiveBuiltinToolNames'];
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -98,9 +107,23 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   subtask: 'agent',
 };
 
-const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
-  read: 'view',
-  write: 'write',
+type OpenCodePermissionName =
+  | 'question'
+  | 'read'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'list'
+  | 'webfetch'
+  | 'skill'
+  | 'todowrite'
+  | 'task';
+
+const BUILTIN_TOOL_PERMISSION = {
+  askUserQuestions: 'question',
+  read: 'read',
+  write: 'edit',
   edit: 'edit',
   bash: 'bash',
   glob: 'glob',
@@ -109,8 +132,8 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   webfetch: 'webfetch',
   skill: 'skill',
   todowrite: 'todowrite',
-  agent: 'agent',
-};
+  agent: 'task',
+} as const satisfies Record<OpenCodeBuiltinToolName, OpenCodePermissionName>;
 
 const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   read: 'readonly',
@@ -137,7 +160,13 @@ const runtime: RuntimeState = {
   toolNames: new Set(),
   mcpToolPrefixes: new Set(),
 };
-prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
+/*
+ * The tool relay outlives a single turn, so it reports host tool waits to the
+ * tracker of the turn that is currently running.
+ */
+let currentHostInputTracker: OpenCodeHostInputTracker | undefined;
+let currentTurn: BridgeTurn | undefined;
+configureOpenCodePath({ bootstrapDir, env: procEnv });
 
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
@@ -148,10 +177,11 @@ await runBridge<StartMessage>({
 });
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
+  currentTurn = turn;
   const emit: Emit = msg => turn.emit(msg as BridgeEvent);
   let totalUsage: HarnessUsage | undefined;
   try {
-    await ensureRuntime({ start, turn, emit });
+    await ensureRuntime({ start });
     const client = runtime.client!;
     if (start.skillsChanged) {
       await client.instance.dispose({ directory: workdir });
@@ -199,16 +229,16 @@ async function switchSessionModel({
 
 async function ensureRuntime({
   start,
-  turn,
-  emit,
 }: {
   start: StartMessage;
-  turn: BridgeTurn;
-  emit: Emit;
 }): Promise<void> {
   if (
     runtime.client &&
-    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig) &&
+    isDeepStrictEqual(
+      runtime.inactiveBuiltinToolNames,
+      start.inactiveBuiltinToolNames,
+    )
   ) {
     return;
   }
@@ -220,10 +250,12 @@ async function ensureRuntime({
       runtime.toolNames = new Set(start.tools.map(tool => tool.name));
       runtime.relay = await startToolRelay({
         tools: start.tools,
-        emit,
-        requestToolResult: turn.requestToolResult,
       });
     }
+    const toolSchemasPath =
+      runtime.relay && start.tools
+        ? writeHostToolSchemas(start.tools)
+        : undefined;
 
     const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
     const server = await createOpencodeServer({
@@ -233,6 +265,7 @@ async function ensureRuntime({
       config: buildOpenCodeConfig({
         start,
         relayPort: runtime.relay?.port,
+        toolSchemasPath,
       }) as never,
     });
     runtime.server = server;
@@ -253,6 +286,9 @@ async function ensureRuntime({
         .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
     );
     runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+    runtime.inactiveBuiltinToolNames = structuredClone(
+      start.inactiveBuiltinToolNames,
+    );
   } catch (error) {
     closeRuntime();
     throw error;
@@ -266,6 +302,7 @@ function closeRuntime(): void {
   runtime.client = undefined;
   runtime.relay = undefined;
   runtime.openCodeConfig = undefined;
+  runtime.inactiveBuiltinToolNames = undefined;
   runtime.toolNames = new Set();
   runtime.mcpToolPrefixes = new Set();
 }
@@ -273,9 +310,11 @@ function closeRuntime(): void {
 function buildOpenCodeConfig({
   start,
   relayPort,
+  toolSchemasPath,
 }: {
   start: StartMessage;
   relayPort: number | undefined;
+  toolSchemasPath: string | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
     ...withoutAgentPolicyOverrides(start.openCodeConfig),
@@ -297,40 +336,47 @@ function buildOpenCodeConfig({
   };
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
-  const inactiveToolNames = resolveInactiveBuiltinToolNames(start);
   const permission = config.permission as Record<string, unknown>;
-  for (const toolName of inactiveToolNames) {
-    const permissionName = toPermissionToolName(
-      PUBLIC_TO_NATIVE[toolName] ?? toolName,
-    );
-    if (permissionName === 'ls') {
-      permission.list = 'ask';
-    } else {
-      permission[permissionName] = 'ask';
-    }
+  for (const toolName of start.inactiveBuiltinToolNames ?? []) {
+    permission[BUILTIN_TOOL_PERMISSION[toolName]] = 'deny';
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  const mcp = { ...(start.mcpServers ?? {}) };
-  if (relayPort && start.tools && start.tools.length > 0) {
+  const mcp = { ...start.mcpServers };
+  if (relayPort && toolSchemasPath) {
     mcp['harness-tools'] = {
       type: 'local',
       enabled: true,
       command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
       environment: {
-        TOOL_SCHEMAS: JSON.stringify(
-          start.tools.map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-        ),
+        TOOL_SCHEMAS_PATH: toolSchemasPath,
         TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
       },
     };
   }
   if (Object.keys(mcp).length > 0) config.mcp = mcp;
   return config;
+}
+
+function writeHostToolSchemas(
+  tools: NonNullable<StartMessage['tools']>,
+): string {
+  mkdirSync(bridgeStateDir, { recursive: true });
+  const toolSchemasPath = path.resolve(
+    bridgeStateDir,
+    'host-tool-schemas.json',
+  );
+  writeFileSync(
+    toolSchemasPath,
+    JSON.stringify(
+      tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    ),
+  );
+  return toolSchemasPath;
 }
 
 function withoutAgentPolicyOverrides(
@@ -464,8 +510,6 @@ function buildProviderConfig(
       },
     };
   }
-
-  return undefined;
 }
 
 function parseOpenAIQueryParams(): Record<string, unknown> {
@@ -508,12 +552,12 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
-  prompt: promptText,
+  prompt,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
-  prompt?: string;
+  prompt: StartMessage['prompt'];
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
   const submitPrompt = session.promptAsync ?? session.prompt;
@@ -530,8 +574,18 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts: [{ type: 'text', text: promptText ?? start.prompt }],
+    parts: toOpenCodePromptParts(prompt),
   });
+}
+
+async function legacySessionAbort({
+  client,
+  sessionId,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+}): Promise<{ error?: unknown; data?: unknown }> {
+  return (client as any).session.abort({ sessionID: sessionId });
 }
 
 async function legacySessionSummarize({
@@ -570,7 +624,6 @@ function readSessionId(data: unknown): string | undefined {
   const record = data as { id?: unknown; data?: { id?: unknown } };
   if (typeof record.id === 'string') return record.id;
   if (typeof record.data?.id === 'string') return record.data.id;
-  return undefined;
 }
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
@@ -659,7 +712,26 @@ async function runPrompt({
   emit: Emit;
 }): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
-  const turnSettled = createDeferred<'event' | 'stream-ended'>();
+  const turnSettled = createDeferred<'aborted' | 'event' | 'stream-ended'>();
+  const promptRequestSettled = createDeferred<void>();
+  let abortSessionPromise: Promise<void> | undefined;
+  const abortSession = () => {
+    eventsAbort.abort();
+    turn.experimental_userMessages.close();
+    turnSettled.resolve('aborted');
+    abortSessionPromise ??= (async () => {
+      await promptRequestSettled.promise;
+      const aborted = await legacySessionAbort({ client, sessionId });
+      if (aborted.error) {
+        throw new Error(
+          `OpenCode session abort failed: ${formatError(aborted.error)}`,
+        );
+      }
+    })();
+    void abortSessionPromise.catch(() => {});
+  };
+  turn.abortSignal.addEventListener('abort', abortSession, { once: true });
+  if (turn.abortSignal.aborted) abortSession();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
@@ -667,6 +739,8 @@ async function runPrompt({
   let terminalError: string | undefined;
   let submittingUserMessage = false;
   const state = createTranslationState();
+  const hostInputTracker = createOpenCodeHostInputTracker({ emit });
+  currentHostInputTracker = hostInputTracker;
   const initialSessionTokens = await readSessionTokens({
     client,
     sessionId,
@@ -681,14 +755,16 @@ async function runPrompt({
     client,
     sessionId,
     permissionMode: start.permissionMode,
-    builtinToolFiltering: start.builtinToolFiltering,
+    inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
     state,
+    hostInputTracker,
     emit: msg => {
       if (msg.type === 'text-delta' || msg.type === 'reasoning-delta') {
         sawContent = true;
       }
       if (msg.type === 'finish-step') {
+        hostInputTracker.observeFinishStep();
         sawFinishStep = true;
         stepUsage = addUsage({
           left: stepUsage,
@@ -803,22 +879,48 @@ async function runPrompt({
       }
     }
   })();
-  const prompted = await legacySessionPrompt({
-    client,
-    sessionId,
-    start,
-  });
-  if (prompted.error) {
-    eventsAbort.abort();
-    turn.experimental_userMessages.close(
-      new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
-    );
-    throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+  if (!turn.abortSignal.aborted) {
+    let prompted: { error?: unknown; data?: unknown };
+    try {
+      prompted = await legacySessionPrompt({
+        client,
+        sessionId,
+        start,
+        prompt: start.prompt,
+      });
+    } catch (error) {
+      promptRequestSettled.resolve(undefined);
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(error);
+      throw error;
+    }
+    promptRequestSettled.resolve(undefined);
+    if (prompted.error) {
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(
+        new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+      );
+      throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+    }
+  } else {
+    promptRequestSettled.resolve(undefined);
   }
   const settlement = await turnSettled.promise;
+  turn.abortSignal.removeEventListener('abort', abortSession);
   eventsAbort.abort();
   await eventLoop.catch(() => {});
   await userMessageLoop.catch(() => {});
+  if (settlement === 'aborted') {
+    try {
+      await abortSessionPromise;
+    } catch (error) {
+      closeRuntime();
+      throw error;
+    }
+    return undefined;
+  }
   if (settlement === 'stream-ended') {
     throw new Error('OpenCode event stream ended before the turn settled.');
   }
@@ -884,7 +986,7 @@ async function runCompaction({
     client,
     sessionId,
     permissionMode: start.permissionMode,
-    builtinToolFiltering: start.builtinToolFiltering,
+    inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
     state: createTranslationState(),
     emit: msg => {
@@ -948,9 +1050,10 @@ async function consumeEvents({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   state,
+  hostInputTracker,
   emit,
   signal,
   onSubscribed,
@@ -959,9 +1062,10 @@ async function consumeEvents({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   state: TranslationState;
+  hostInputTracker?: OpenCodeHostInputTracker;
   emit: Emit;
   signal: AbortSignal;
   onSubscribed?: () => void;
@@ -996,6 +1100,7 @@ async function consumeEvents({
     getHostToolName,
     authorizeHostToolCall: input => authorizeHostToolCall({ ...input, state }),
     onSubagentSession: registerSubagentSession(sessionId),
+    onToolCallStatus: input => hostInputTracker?.observeToolCall(input),
     isMcpToolName: toolName =>
       [...runtime.mcpToolPrefixes].some(prefix => toolName.startsWith(prefix)),
     stripWorkDir,
@@ -1068,55 +1173,140 @@ async function consumeEvents({
     }
     processEvent(event);
   };
-  for await (const rawEvent of stream) {
-    if (signal.aborted || turn.abortSignal.aborted) break;
+  /*
+   * Permission requests and questions are answered without blocking the event
+   * loop, so every request of a step reaches the host before it pauses. A
+   * failed handler still ends the event loop with its error.
+   */
+  let rejectHandlerFailure!: (error: unknown) => void;
+  const handlerFailure = new Promise<never>((_, reject) => {
+    rejectHandlerFailure = reject;
+  });
+  handlerFailure.catch(() => {});
+  const runHandler = (handler: Promise<void>) => {
+    handler.catch(error => rejectHandlerFailure(error));
+  };
+  const hostInputWait = ({
+    toolCallId,
+    isDescendant,
+    settlesToolCall,
+  }: {
+    toolCallId: string;
+    isDescendant: boolean;
+    settlesToolCall: boolean;
+  }): HostInputWait | undefined => {
+    if (hostInputTracker == null) return undefined;
+    if (isDescendant) {
+      const id = toolCallId;
+      return {
+        markWaiting: () =>
+          hostInputTracker.markGroupWaiting({ group: 'subagent', id }),
+        clearWaiting: () =>
+          hostInputTracker.clearGroupWaiting({ group: 'subagent', id }),
+      };
+    }
+    return {
+      markWaiting: () => hostInputTracker.markWaiting({ toolCallId }),
+      clearWaiting: () =>
+        hostInputTracker.clearWaiting({
+          toolCallId,
+          settled: settlesToolCall,
+        }),
+    };
+  };
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    for (;;) {
+      const next = await Promise.race([iterator.next(), handlerFailure]);
+      if (next.done) break;
+      if (consumeEvent(next.value)) break;
+    }
+  } finally {
+    void iterator.return?.();
+  }
+
+  function consumeEvent(rawEvent: unknown): boolean {
+    if (signal.aborted || turn.abortSignal.aborted) return true;
     const event = unwrapOpenCodeEvent(rawEvent);
     const eventSessionId = event ? getOpenCodeEventSessionId(event) : undefined;
-    if (!event) continue;
+    if (!event) return false;
     const scopedSessionId =
       !eventSessionId || eventSessionId === sessionId
         ? sessionId
         : taskSessionIds.has(eventSessionId)
           ? eventSessionId
           : undefined;
-    if (!scopedSessionId) continue;
+    if (!scopedSessionId) return false;
     const isDescendant = scopedSessionId !== sessionId;
+    const waitFor = ({
+      toolCallId,
+      settlesToolCall,
+    }: {
+      toolCallId: string;
+      settlesToolCall: boolean;
+    }) =>
+      hostInputWait({
+        toolCallId: isDescendant
+          ? `${scopedSessionId}:${toolCallId}`
+          : toolCallId,
+        isDescendant,
+        settlesToolCall,
+      });
     if (event.type === 'question.asked') {
-      await handleQuestion({
-        client,
-        turn,
-        emit,
-        event,
-      });
+      runHandler(
+        handleQuestion({
+          client,
+          turn,
+          emit,
+          event,
+          waitFor,
+        }),
+      );
     } else if (event.type === 'permission.v2.asked') {
-      await handlePermissionV2({
-        client,
-        sessionId: scopedSessionId,
-        permissionMode,
-        builtinToolFiltering,
-        turn,
-        emit,
-        event,
-      });
+      runHandler(
+        handlePermissionV2({
+          client,
+          sessionId: scopedSessionId,
+          permissionMode,
+          inactiveBuiltinToolNames,
+          turn,
+          emit,
+          event,
+          waitFor,
+        }),
+      );
     } else if (event.type === 'permission.asked') {
-      await handlePermission({
-        client,
-        sessionId: scopedSessionId,
-        permissionMode,
-        builtinToolFiltering,
-        turn,
-        emit,
-        event,
-      });
+      runHandler(
+        handlePermission({
+          client,
+          sessionId: scopedSessionId,
+          permissionMode,
+          inactiveBuiltinToolNames,
+          turn,
+          emit,
+          event,
+          waitFor,
+        }),
+      );
     } else if (isDescendant) {
       processDescendantEvent(scopedSessionId, event);
     } else {
       emitStreamEvent(event);
     }
-    if (isDescendant) continue;
-    if (onEvent?.(event)) break;
+    if (isDescendant) return false;
+    return onEvent?.(event) === true;
   }
 }
+
+type HostInputWait = {
+  markWaiting(): void;
+  clearWaiting(): void;
+};
+
+type WaitForHostInput = (input: {
+  toolCallId: string;
+  settlesToolCall: boolean;
+}) => HostInputWait | undefined;
 
 function getSubagentStepId(event: OpenCodeEvent | undefined) {
   if (event?.type === 'message.part.updated') {
@@ -1133,11 +1323,13 @@ async function handleQuestion({
   turn,
   emit,
   event,
+  waitFor,
 }: {
   client: OpenCodeClient;
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
+  waitFor?: WaitForHostInput;
 }): Promise<void> {
   const nativeRequest = event.properties as OpenCodeQuestionRequest | undefined;
   if (
@@ -1165,17 +1357,21 @@ async function handleQuestion({
   });
 
   const questionKey = openCodeQuestionKey(nativeRequest);
-  const result = await turn.requestToolResult({
-    toolCallId,
-    matches: candidate => {
-      const continuedRequest = candidate.toolResult?.providerOptions?.opencode
-        ?.nativeRequest as OpenCodeQuestionRequest | undefined;
-      return (
-        continuedRequest != null &&
-        openCodeQuestionKey(continuedRequest) === questionKey
-      );
-    },
-  });
+  const wait = waitFor?.({ toolCallId, settlesToolCall: true });
+  wait?.markWaiting();
+  const result = await turn
+    .requestToolResult({
+      toolCallId,
+      matches: candidate => {
+        const continuedRequest = candidate.toolResult?.providerOptions?.opencode
+          ?.nativeRequest as OpenCodeQuestionRequest | undefined;
+        return (
+          continuedRequest != null &&
+          openCodeQuestionKey(continuedRequest) === questionKey
+        );
+      },
+    })
+    .finally(() => wait?.clearWaiting());
   const nativeResponse = toOpenCodeQuestionResponse({
     nativeRequest,
     output: result.output as Parameters<
@@ -1209,18 +1405,20 @@ async function handlePermissionV2({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
   event,
+  waitFor,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
+  waitFor?: WaitForHostInput;
 }): Promise<void> {
   const props = event.properties ?? {};
   const requestID = String(props.id ?? '');
@@ -1233,9 +1431,10 @@ async function handlePermissionV2({
     requestID,
     toolCallId: String(props.source?.callID ?? requestID),
     permissionMode,
-    builtinToolFiltering,
+    inactiveBuiltinToolNames,
     turn,
     emit,
+    waitFor,
   });
   await client.v2.session.permission.reply({
     sessionID: sessionId,
@@ -1249,18 +1448,20 @@ async function handlePermission({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
   event,
+  waitFor,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   emit: Emit;
   event: OpenCodeEvent;
+  waitFor?: WaitForHostInput;
 }): Promise<void> {
   const props = event.properties ?? {};
   const requestID = String(props.id ?? '');
@@ -1272,9 +1473,10 @@ async function handlePermission({
     requestID,
     toolCallId: String(tool?.callID ?? requestID),
     permissionMode,
-    builtinToolFiltering,
+    inactiveBuiltinToolNames,
     turn,
     emit,
+    waitFor,
   });
   await client.permission.reply({
     requestID,
@@ -1291,29 +1493,36 @@ async function selectPermissionReply({
   requestID,
   toolCallId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
+  waitFor,
 }: {
   action: string;
   resources: string[];
   requestID: string;
   toolCallId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   emit: Emit;
+  waitFor?: WaitForHostInput;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
+  const requestApproval = async () => {
+    const wait = waitFor?.({ toolCallId, settlesToolCall: false });
+    wait?.markWaiting();
+    return turn
+      .requestToolApproval(requestID)
+      .finally(() => wait?.clearWaiting());
+  };
   const toolName = toPermissionToolName(action);
-  if (
-    isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
-  ) {
+  if (isBuiltinToolInactive({ toolName, inactiveBuiltinToolNames })) {
     emit({
       type: 'tool-approval-request',
       approvalId: requestID,
       toolCallId,
     });
-    const decision = await turn.requestToolApproval(requestID);
+    const decision = await requestApproval();
     return decision.approved
       ? { reply: 'once' }
       : {
@@ -1339,7 +1548,7 @@ async function selectPermissionReply({
     approvalId: requestID,
     toolCallId,
   });
-  const decision = await turn.requestToolApproval(requestID);
+  const decision = await requestApproval();
   return decision.approved
     ? { reply: 'once' }
     : {
@@ -1364,26 +1573,15 @@ function toPermissionToolName(action: string): string {
   return toWireToolName(normalized);
 }
 
-function resolveInactiveBuiltinToolNames(
-  start: StartMessage,
-): ReadonlyArray<string> {
-  const toolFiltering = start.builtinToolFiltering;
-  if (toolFiltering == null) return [];
-  return toolFiltering.mode === 'allow'
-    ? Object.keys(PUBLIC_TO_NATIVE).filter(
-        name => !toolFiltering.toolNames.includes(name),
-      )
-    : toolFiltering.toolNames;
-}
-
 function isBuiltinToolInactive(input: {
   toolName: string;
-  toolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
 }): boolean {
-  if (input.toolFiltering == null) return false;
-  return input.toolFiltering.mode === 'allow'
-    ? !input.toolFiltering.toolNames.includes(input.toolName)
-    : input.toolFiltering.toolNames.includes(input.toolName);
+  return (
+    input.inactiveBuiltinToolNames?.some(
+      toolName => toolName === input.toolName,
+    ) ?? false
+  );
 }
 
 function isExternalPath(resource: string): boolean {
@@ -1454,7 +1652,6 @@ function getHostToolName(
   ) {
     return rawToolName.slice('harness-tools_'.length);
   }
-  return undefined;
 }
 
 function authorizeHostToolCall({
@@ -1593,7 +1790,6 @@ function latestLegacyAssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function latestV2AssistantMessage(
@@ -1623,7 +1819,6 @@ function latestV2AssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function emitAssistantContentPart(part: unknown, emit: Emit): void {
@@ -1648,16 +1843,32 @@ function emitAssistantContentPart(part: unknown, emit: Emit): void {
 
 async function startToolRelay({
   tools,
-  emit,
-  requestToolResult,
 }: {
   tools: ReadonlyArray<{ name: string }>;
-  emit: Emit;
-  requestToolResult: (
-    toolCallId: string,
-  ) => Promise<{ output: unknown; isError?: boolean }>;
 }): Promise<ToolRelay> {
-  return startAuthorizedToolRelay({ tools, emit, requestToolResult });
+  return startAuthorizedToolRelay({
+    tools,
+    emit: message => {
+      currentTurn?.emit(message as BridgeEvent);
+    },
+    requestToolResult: toolCallId => {
+      if (!currentTurn) throw new Error('No active turn in OpenCode bridge');
+      return currentTurn.requestToolResult(toolCallId);
+    },
+    onWaitingChange: ({ requestId, waiting }) => {
+      if (waiting) {
+        currentHostInputTracker?.markGroupWaiting({
+          group: 'host-tool',
+          id: requestId,
+        });
+      } else {
+        currentHostInputTracker?.clearGroupWaiting({
+          group: 'host-tool',
+          id: requestId,
+        });
+      }
+    },
+  });
 }
 
 function createDeferred<T>(): {

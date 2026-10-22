@@ -24,6 +24,8 @@ export function getOpenAILanguageModelCapabilities(
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
+  const isGpt6SolOrLuna = modelId === 'gpt-6-sol' || modelId === 'gpt-6-luna';
+
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
     (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
@@ -43,12 +45,14 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
 
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
-  // GPT-5.1 and later model families support temperature, topP, logProbs when reasoningEffort is none.
+  // GPT-5.1 through GPT-5.x and GPT-6 Sol/Luna support temperature,
+  // topP, and logProbs when reasoningEffort is none.
   const supportsNonReasoningParameters =
-    !isGpt6OrLaterModel &&
-    gptVersion != null &&
-    (gptVersion.major > 5 ||
-      (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1));
+    isGpt6SolOrLuna ||
+    (!isGpt6OrLaterModel &&
+      gptVersion != null &&
+      (gptVersion.major > 5 ||
+        (gptVersion.major === 5 && (gptVersion.minor ?? 0) >= 1)));
 
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
 
@@ -57,9 +61,11 @@ export function getOpenAILanguageModelCapabilities(
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
     supportsAsyncToolCalling: isGpt6OrLaterModel,
-    supportedReasoningEfforts: isGpt6OrLaterModel
-      ? ['low', 'medium', 'high', 'xhigh', 'max']
-      : undefined,
+    supportedReasoningEfforts: isGpt6SolOrLuna
+      ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+      : isGpt6OrLaterModel
+        ? ['low', 'medium', 'high', 'xhigh', 'max']
+        : undefined,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

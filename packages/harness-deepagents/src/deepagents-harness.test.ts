@@ -108,7 +108,6 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -208,7 +207,7 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
-  it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
+  it('ships bridge dependencies and installs them in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
@@ -219,11 +218,15 @@ describe('createDeepAgents', () => {
       '.harness-bootstrap/deepagents/package.json',
       '.harness-bootstrap/deepagents/pnpm-lock.yaml',
     ]);
-    const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain(
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    const packageManifest = bootstrap.files.find(file =>
+      file.path.endsWith('/package.json'),
     );
-    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
+    expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
+    const commands = bootstrap.commands.map(c => c.command);
+    expect(commands).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    ]);
+    expect(commands.join('\n')).not.toContain('github.com');
   });
 
   it('caches the bootstrap across calls', async () => {
@@ -256,14 +259,14 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-deepagents/0.0.0-test',
+      'ai-sdk-harness-deepagents/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(
-      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
     expect(spawns.at(0)).toContain(
-      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
     const control = await session.doPromptTurn({
       model: 'agent-model',
@@ -276,6 +279,45 @@ describe('createDeepAgents', () => {
     expect(sentMessages.at(-1)).toMatchObject({
       type: 'start',
       model: 'agent-model',
+    });
+
+    await session.doDestroy();
+  });
+
+  it('passes inline images through the bridge prompt', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([1, 2, 3]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      prompt: [
+        { type: 'text', text: 'Describe this image.' },
+        { type: 'image', mediaType: 'image/png', data: 'AQID' },
+      ],
     });
 
     await session.doDestroy();
@@ -402,6 +444,54 @@ describe('createDeepAgents', () => {
     );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
 
+    await session.doDestroy();
+  });
+
+  it('adds a Gateway placeholder when resuming Anthropic authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            ANTHROPIC_API_KEY: 'saved-anthropic-placeholder',
+          },
+        },
+      },
+    } as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawnEnvs[0]?.ANTHROPIC_API_KEY).toBe('saved-anthropic-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'saved-anthropic-placeholder' },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'current-gateway-secret' } },
+      },
+    ]);
     await session.doDestroy();
   });
 

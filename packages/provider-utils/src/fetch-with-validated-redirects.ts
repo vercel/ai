@@ -83,6 +83,9 @@ export async function fetchWithValidatedEndpoint({
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
  * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * Credentials and custom headers are preserved on the first hop for backwards
+ * compatibility. The caller must ensure that the initial URL may receive them.
+ * Use `fetchUntrustedUrl` for URLs that require first-hop credential isolation.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)

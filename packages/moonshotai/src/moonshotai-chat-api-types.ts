@@ -84,89 +84,106 @@ export interface MoonshotAIToolMessage {
 // needs. This limits breakages when the API changes and increases efficiency.
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
-const tokenUsageSchema = z
-  .looseObject({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    cached_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .looseObject({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .looseObject({
-        reasoning_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
+const tokenUsageSchema = () =>
+  z
+    .looseObject({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+      cached_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .looseObject({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      completion_tokens_details: z
+        .looseObject({
+          reasoning_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish();
 
-export type MoonshotAIChatTokenUsage = z.infer<typeof tokenUsageSchema>;
+export type MoonshotAIChatTokenUsage = z.infer<
+  ReturnType<typeof tokenUsageSchema>
+>;
 
-export const moonshotAIErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-    code: z.string().nullish(),
-  }),
-});
-
-export type MoonshotAIErrorData = z.infer<typeof moonshotAIErrorSchema>;
-
-const moonshotAIChatLogprobSchema = z.object({
-  token: z.string(),
-  logprob: z.number(),
-  bytes: z.array(z.number()).nullable(),
-  top_logprobs: z.array(
-    z.object({
-      token: z.string(),
-      logprob: z.number(),
-      bytes: z.array(z.number()).nullable(),
+export const moonshotAIErrorSchema = () =>
+  z.object({
+    error: z.object({
+      message: z.string(),
+      type: z.string().nullish(),
+      code: z.string().nullish(),
     }),
-  ),
-});
+  });
+export const moonshotAIErrorSchemaValidator = lazySchema(() =>
+  zodSchema(moonshotAIErrorSchema()),
+);
 
-const moonshotAIChatLogprobsSchema = z
-  .object({
-    content: z.array(moonshotAIChatLogprobSchema).nullish(),
-  })
-  .nullish();
+export type MoonshotAIErrorData = z.infer<
+  ReturnType<typeof moonshotAIErrorSchema>
+>;
 
-export type MoonshotAIChatLogprob = z.infer<typeof moonshotAIChatLogprobSchema>;
-
-export const moonshotAIChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  object: z.literal('chat.completion').nullish(),
-  choices: z.array(
-    z.object({
-      index: z.number().nullish(),
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function').nullish(),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
+const moonshotAIChatLogprobSchema = () =>
+  z.object({
+    token: z.string(),
+    logprob: z.number(),
+    bytes: z.array(z.number()).nullable(),
+    top_logprobs: z.array(
+      z.object({
+        token: z.string(),
+        logprob: z.number(),
+        bytes: z.array(z.number()).nullable(),
       }),
-      logprobs: moonshotAIChatLogprobsSchema,
-      finish_reason: z.string().nullish(),
+    ),
+  });
+
+const moonshotAIChatLogprobsSchema = () =>
+  z
+    .object({
+      content: z.array(moonshotAIChatLogprobSchema()).nullish(),
+    })
+    .nullish();
+
+export type MoonshotAIChatLogprob = z.infer<
+  ReturnType<typeof moonshotAIChatLogprobSchema>
+>;
+
+export const moonshotAIChatResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      object: z.literal('chat.completion').nullish(),
+      choices: z.array(
+        z.object({
+          index: z.number().nullish(),
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string().nullish(),
+                  type: z.literal('function').nullish(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          logprobs: moonshotAIChatLogprobsSchema(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: tokenUsageSchema(),
     }),
   ),
-  usage: tokenUsageSchema,
-});
+);
 
 export const moonshotAIChatChunkSchema = lazySchema(() =>
   zodSchema(
@@ -199,14 +216,14 @@ export const moonshotAIChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
-            logprobs: moonshotAIChatLogprobsSchema,
+            logprobs: moonshotAIChatLogprobsSchema(),
             finish_reason: z.string().nullish(),
-            usage: tokenUsageSchema,
+            usage: tokenUsageSchema(),
           }),
         ),
-        usage: tokenUsageSchema,
+        usage: tokenUsageSchema(),
       }),
-      moonshotAIErrorSchema,
+      moonshotAIErrorSchema(),
     ]),
   ),
 );

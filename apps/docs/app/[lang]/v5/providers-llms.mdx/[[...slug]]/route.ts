@@ -1,10 +1,12 @@
 import { createDocsMarkdownRoute } from '@vercel/geistdocs/routes/llms';
 import { providersV5Source } from '@/lib/geistdocs/source';
+import { resolveModelPlaceholders } from '@/lib/geistdocs/model-placeholders';
 import { prefixVersionedMarkdownLinks } from '@/lib/geistdocs/version-markdown';
 
 const markdownRoute = createDocsMarkdownRoute({
   source: providersV5Source,
-  transform: markdown => prefixVersionedMarkdownLinks(markdown, '/v5'),
+  transform: markdown =>
+    prefixVersionedMarkdownLinks(resolveModelPlaceholders(markdown), '/v5'),
 });
 
 export const GET = markdownRoute.GET;

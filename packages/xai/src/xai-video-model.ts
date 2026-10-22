@@ -9,10 +9,14 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   extractResponseHeaders,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -37,17 +41,6 @@ interface XaiVideoModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
-}
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
 }
 
 const RESOLUTION_MAP: Record<string, string> = {
@@ -87,6 +80,9 @@ const isVideoFile = (file: VideoModelV4File): boolean =>
 const isImageReference = (file: VideoModelV4File): boolean =>
   file.mediaType == null || getTopLevelMediaType(file.mediaType) === 'image';
 
+const isAudioReference = (file: VideoModelV4File): boolean =>
+  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'audio';
+
 function fileToXaiUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
@@ -101,8 +97,8 @@ function fileToXaiUrl(file: VideoModelV4File): string {
 
 // Resolves the reference images for R2V generation. First-class
 // `inputReferences` win over the legacy `referenceImageUrls` provider option.
-// Non-image references (video or audio) are not supported for
-// reference-to-video and are skipped with a warning.
+// Video references are not supported for reference-to-video and are skipped
+// with a warning. Audio references are handled separately below.
 function resolveReferences(
   options: XaiVideoCallOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
@@ -112,16 +108,18 @@ function resolveReferences(
     const imageFiles: VideoModelV4File[] = [];
 
     for (const reference of options.inputReferences) {
+      if (isAudioReference(reference)) {
+        continue;
+      }
+
       if (!isImageReference(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
-          details: isVideoFile(reference)
-            ? 'xAI reference-to-video accepts image references only. The ' +
-              'video reference was ignored. Use providerOptions.xai.mode ' +
-              '"extend-video" to continue from a video.'
-            : 'xAI reference-to-video accepts image references only. The ' +
-              'non-image reference was ignored.',
+          details:
+            'xAI reference-to-video does not accept video references. The ' +
+            'video reference was ignored. Use providerOptions.xai.mode ' +
+            '"extend-video" to continue from a video.',
         });
         continue;
       }
@@ -140,13 +138,25 @@ function resolveReferences(
   ) {
     return xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
+}
 
-  return undefined;
+function resolveReferenceAudios(
+  options: XaiVideoCallOptions,
+): Array<{ url: string }> | undefined {
+  const audioReferences = options.inputReferences?.filter(isAudioReference);
+
+  return audioReferences != null && audioReferences.length > 0
+    ? audioReferences.map(reference => ({ url: fileToXaiUrl(reference) }))
+    : undefined;
 }
 
 // True when at least one reference would survive as an image.
 function hasImageInputReference(options: XaiVideoCallOptions): boolean {
   return options.inputReferences?.some(isImageReference) ?? false;
+}
+
+function hasAudioInputReference(options: XaiVideoCallOptions): boolean {
+  return options.inputReferences?.some(isAudioReference) ?? false;
 }
 
 function resolveVideoMode(
@@ -161,25 +171,19 @@ function resolveVideoMode(
     return 'edit-video';
   }
 
-  // frameImages (first/last frame) take precedence over reference images, so
-  // only auto-select reference-to-video when no frame images are provided.
-  const hasFrameImages =
-    options.frameImages != null && options.frameImages.length > 0;
   const hasLegacyReferenceUrls =
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0;
 
-  // Reference-to-video needs at least one image reference. An audio-only (or
-  // video-only) `inputReferences` array must not flip a text- or
-  // image-to-video request into R2V.
+  // xAI supports image references, audio references, or both. Video-only
+  // references must not flip a standard generation request into R2V.
   if (
-    !hasFrameImages &&
-    (hasImageInputReference(options) || hasLegacyReferenceUrls)
+    hasImageInputReference(options) ||
+    hasAudioInputReference(options) ||
+    hasLegacyReferenceUrls
   ) {
     return 'reference-to-video';
   }
-
-  return undefined;
 }
 
 export class XaiVideoModel implements VideoModelV4 {
@@ -327,6 +331,54 @@ export class XaiVideoModel implements VideoModelV4 {
       }
     }
 
+    if (options.generateAudio != null && !isEdit && !isExtension) {
+      body.generate_audio = options.generateAudio;
+    } else if (options.generateAudio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'generateAudio',
+        details: `xAI ${isEdit ? 'video editing' : 'video extension'} does not support generateAudio.`,
+      });
+    }
+
+    if (xaiOptions?.storageOptions != null) {
+      const { filename, expiresAfter, publicUrl } = xaiOptions.storageOptions;
+      body.storage_options = {
+        filename,
+        ...(expiresAfter != null ? { expires_after: expiresAfter } : {}),
+        ...(publicUrl != null
+          ? {
+              public_url:
+                typeof publicUrl === 'boolean'
+                  ? publicUrl
+                  : {
+                      ...(publicUrl.expiresAfter != null
+                        ? { expires_after: publicUrl.expiresAfter }
+                        : {}),
+                    },
+            }
+          : {}),
+      };
+    }
+
+    if (xaiOptions?.keyframes != null && xaiOptions.keyframes.length > 0) {
+      if (this.modelId !== 'grok-imagine-video-1.5' || isEdit || isExtension) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'keyframes',
+          details:
+            this.modelId !== 'grok-imagine-video-1.5'
+              ? 'xAI only supports keyframes with "grok-imagine-video-1.5".'
+              : `xAI ${isEdit ? 'video editing' : 'video extension'} does not support keyframes.`,
+        });
+      } else {
+        body.keyframes = xaiOptions.keyframes.map(keyframe => ({
+          image: { url: keyframe.imageUrl },
+          timestamp_s: keyframe.timestampSeconds,
+        }));
+      }
+    }
+
     // Video editing: pass source video URL (nested object)
     if (isEdit) {
       body.video = { url: xaiOptions!.videoUrl };
@@ -356,29 +408,36 @@ export class XaiVideoModel implements VideoModelV4 {
       }
     }
 
-    // xAI has no first-last-frame interpolation; warn and ignore last_frame.
+    // Only grok-imagine-video-1.5 supports a pinned last frame.
     const lastFrameImage = getLastFrameImage(options);
     if (lastFrameImage != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'frameImages',
-        details: isVideoFile(lastFrameImage)
-          ? 'xAI does not accept a video as a start/frame image. The video ' +
-            'last frame was ignored. Use providerOptions.xai.mode ' +
-            '"extend-video" to continue from a video instead.'
-          : 'xAI video models do not support last_frame. Use ' +
-            'providerOptions.xai.mode "extend-video" to continue from a ' +
-            "video's last frame. The last frame image was ignored.",
-      });
+      if (
+        this.modelId !== 'grok-imagine-video-1.5' ||
+        isEdit ||
+        isExtension ||
+        isVideoFile(lastFrameImage)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frameImages',
+          details:
+            this.modelId !== 'grok-imagine-video-1.5'
+              ? 'xAI only supports last_frame with "grok-imagine-video-1.5". The last frame was ignored.'
+              : 'xAI only accepts an image last_frame for video generation. The last frame was ignored.',
+        });
+      } else {
+        body.last_frame = { url: fileToXaiUrl(lastFrameImage) };
+      }
     }
 
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
       const referenceImages = resolveReferences(options, xaiOptions, warnings);
+      const referenceAudios = resolveReferenceAudios(options);
 
       if (referenceImages != null) {
         body.reference_images = referenceImages;
-      } else {
+      } else if (referenceAudios == null) {
         // Explicit R2V with no usable image references would silently send
         // a plain generations request; tell the user it is no longer R2V.
         warnings.push({
@@ -391,10 +450,23 @@ export class XaiVideoModel implements VideoModelV4 {
       }
 
       const referenceVoiceIds = xaiOptions?.referenceVoiceIds;
-      if (referenceVoiceIds != null && referenceVoiceIds.length > 0) {
-        body.reference_audios = referenceVoiceIds.map(voiceId => ({
-          voice_id: voiceId,
-        }));
+      const referenceVoices = referenceVoiceIds?.map(voiceId => ({
+        voice_id: voiceId,
+      }));
+      const referenceAudioInputs = [
+        ...(referenceAudios ?? []),
+        ...(referenceVoices ?? []),
+      ];
+      if (referenceAudioInputs.length > 0) {
+        if (referenceAudioInputs.length > 3) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'inputReferences',
+            details:
+              'xAI reference-to-video supports at most 3 audio references. Only the first 3 were used.',
+          });
+        }
+        body.reference_audios = referenceAudioInputs.slice(0, 3);
       }
 
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
@@ -434,11 +506,12 @@ export class XaiVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'inputReferences',
-        details: hasImageInputReference(options)
-          ? 'xAI only supports inputReferences for reference-to-video ' +
-            'generation. The reference images were ignored.'
-          : 'xAI reference-to-video requires at least one image reference. ' +
-            'The references were ignored.',
+        details:
+          hasImageInputReference(options) || hasAudioInputReference(options)
+            ? 'xAI only supports inputReferences for reference-to-video ' +
+              'generation. The references were ignored.'
+            : 'xAI reference-to-video requires at least one image or audio reference. ' +
+              'The references were ignored.',
       });
     }
 
@@ -472,6 +545,8 @@ export class XaiVideoModel implements VideoModelV4 {
             'videoUrl',
             'referenceImageUrls',
             'referenceVoiceIds',
+            'keyframes',
+            'storageOptions',
             'user',
           ].includes(key)
         ) {
@@ -592,8 +667,10 @@ export class XaiVideoModel implements VideoModelV4 {
       statusResponse.status === 'done' ||
       (statusResponse.status == null && statusResponse.video?.url)
     ) {
+      const video = statusResponse.video;
+
       // Terminal outcomes, so they are reported the same way as an upstream `failed`
-      if (statusResponse.video?.respect_moderation === false) {
+      if (video?.respect_moderation === false) {
         return {
           status: 'error' as const,
           error:
@@ -606,7 +683,10 @@ export class XaiVideoModel implements VideoModelV4 {
         };
       }
 
-      if (!statusResponse.video?.url) {
+      const videoUrl =
+        video?.url ?? video?.file_output?.public_url ?? undefined;
+
+      if (!videoUrl) {
         return {
           status: 'error' as const,
           error: 'Video generation completed but no video URL was returned.',
@@ -620,13 +700,7 @@ export class XaiVideoModel implements VideoModelV4 {
 
       return {
         status: 'completed',
-        videos: [
-          {
-            type: 'url',
-            url: statusResponse.video.url,
-            mediaType: 'video/mp4',
-          },
-        ],
+        videos: [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }],
         warnings: [],
         response: {
           timestamp: currentDate,
@@ -636,15 +710,45 @@ export class XaiVideoModel implements VideoModelV4 {
         providerMetadata: {
           xai: {
             requestId,
-            videoUrl: statusResponse.video.url,
-            ...(statusResponse.video.duration != null
-              ? { duration: statusResponse.video.duration }
-              : {}),
+            videoUrl,
+            ...(video?.duration != null ? { duration: video.duration } : {}),
             ...(statusResponse.usage?.cost_in_usd_ticks != null
               ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
               : {}),
             ...(statusResponse.progress != null
               ? { progress: statusResponse.progress }
+              : {}),
+            ...(video?.file_output != null
+              ? {
+                  fileOutput: {
+                    fileId: video.file_output.file_id,
+                    filename: video.file_output.filename,
+                    ...(video.file_output.expires_at != null
+                      ? {
+                          expiresAt: video.file_output.expires_at,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url != null
+                      ? {
+                          publicUrl: video.file_output.public_url,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url_error != null
+                      ? {
+                          publicUrlError: video.file_output.public_url_error,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url_expires_at != null
+                      ? {
+                          publicUrlExpiresAt:
+                            video.file_output.public_url_expires_at,
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(video?.storage_error != null
+              ? { storageError: video.storage_error }
               : {}),
           },
         },
@@ -663,33 +767,52 @@ export class XaiVideoModel implements VideoModelV4 {
   }
 }
 
-const xaiCreateVideoResponseSchema = z.object({
-  request_id: z.string().nullish(),
-});
+const xaiCreateVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const xaiVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  video: z
-    .object({
-      url: z.string(),
-      duration: z.number().nullish(),
-      respect_moderation: z.boolean().nullish(),
-    })
-    .nullish(),
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-  progress: z.number().nullish(),
-  error: z
-    .object({
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-});
+const xaiVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      video: z
+        .object({
+          url: z.string().nullish(),
+          duration: z.number().nullish(),
+          respect_moderation: z.boolean().nullish(),
+          file_output: z
+            .object({
+              file_id: z.string(),
+              filename: z.string(),
+              expires_at: z.number().nullish(),
+              public_url: z.string().nullish(),
+              public_url_error: z.string().nullish(),
+              public_url_expires_at: z.number().nullish(),
+            })
+            .nullish(),
+          storage_error: z.string().nullish(),
+        })
+        .nullish(),
+      model: z.string().nullish(),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
+      progress: z.number().nullish(),
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
   xaiVideoStatusResponseSchema,
@@ -748,7 +871,7 @@ async function readPendingBody({
 }
 
 const xaiVideoStatusResponseHandler: ResponseHandler<
-  z.infer<typeof xaiVideoStatusResponseSchema>
+  InferSchema<typeof xaiVideoStatusResponseSchema>
 > = async options => {
   // xAI answers 202 while a generation is still running, sometimes with an
   // empty body. Read it rather than cancelling: `body.cancel()` never settles

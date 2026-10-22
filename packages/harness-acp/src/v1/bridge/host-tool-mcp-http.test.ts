@@ -7,15 +7,101 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 
 const cleanups: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  const pending = cleanups.splice(0, cleanups.length).reverse();
+  const pending = cleanups.splice(0).reverse();
   for (const cleanup of pending) await cleanup();
 });
 
 describe('host tool MCP HTTP transport', () => {
+  it('returns empty MCP content for undeclared image-only output without a placeholder', async () => {
+    const relay = await startHostToolRelay({
+      tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+      serverName: 'ai-sdk-harness-tools',
+      mcpTransport: 'http',
+    });
+    cleanups.push(() => relay.close());
+    const turn = createTurn({
+      requestToolResult: async () => ({
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output: {
+            type: 'content',
+            value: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'AQID' },
+              },
+            ],
+          },
+        },
+      }),
+    });
+    relay.bindTurn({ turn });
+    const client = await connect({ relay });
+    expect(
+      await client.callTool({ name: 'inspect', arguments: {} }),
+    ).toMatchObject({ content: [] });
+    expect(turn.emitWarning).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])(
+    'converts mixed model output over HTTP with image support %s',
+    async supportsImages => {
+      const relay = await startHostToolRelay({
+        tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+        serverName: 'ai-sdk-harness-tools',
+        mcpTransport: 'http',
+        nonTextContentTypes: supportsImages ? ['image'] : [],
+      });
+      cleanups.push(() => relay.close());
+      const turn = createTurn({
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call',
+            toolName: 'inspect',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'marker' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'aW1hZ2U=' },
+                },
+              ],
+            },
+          },
+        }),
+      });
+      relay.bindTurn({ turn });
+      const client = await connect({ relay });
+      expect(
+        await client.callTool({ name: 'inspect', arguments: {} }),
+      ).toMatchObject({
+        content: [
+          { type: 'text', text: 'marker' },
+          ...(supportsImages
+            ? [{ type: 'image', mimeType: 'image/png', data: 'aW1hZ2U=' }]
+            : []),
+        ],
+      });
+      expect(turn.emitWarning).toHaveBeenCalledTimes(supportsImages ? 0 : 1);
+      expect(turn.emitToolResult).toHaveBeenCalledWith(
+        expect.objectContaining({ output: { status: 'ready' } }),
+      );
+    },
+  );
+
   it('exposes an MCP endpoint alongside the relay endpoint', async () => {
     const relay = await createRelay({
       tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
@@ -102,6 +188,59 @@ describe('host tool MCP HTTP transport', () => {
       input: { city: 'Paris' },
       order: 1,
     });
+  });
+
+  it('requires an ACP tool call for the HTTP MCP transport as well', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+      ttlMs: 20,
+    });
+    cleanups.push(async () => authorization.close());
+    let notifyAuthorizationRequest: (() => void) | undefined;
+    const turn = createTurn({
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest?.();
+        return pending;
+      },
+      requestToolResult: vi.fn(async () => ({ output: { celsius: 12 } })),
+    });
+    relay.bindTurn({ turn });
+    const client = await connect({ relay });
+
+    await expect(
+      client.callTool({ name: 'weather', arguments: { city: 'Paris' } }),
+    ).rejects.toThrow(/Unauthorized host tool relay request/);
+    expect(turn.emitToolCall).not.toHaveBeenCalled();
+    expect(turn.requestToolResult).not.toHaveBeenCalled();
+
+    const authorizationRequested = new Promise<void>(resolve => {
+      notifyAuthorizationRequest = resolve;
+    });
+    const authorizedCall = client.callTool({
+      name: 'weather',
+      arguments: { city: 'Paris' },
+    });
+    await authorizationRequested;
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'model-call',
+        title: 'Weather',
+        name: 'mcp__ai-sdk-harness-tools__weather',
+        rawInput: { city: 'Paris' },
+        status: 'in_progress',
+      },
+    });
+    await expect(authorizedCall).resolves.toMatchObject({
+      content: [{ type: 'text', text: '{"celsius":12}' }],
+    });
+    expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+    expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
   });
 
   it('notifies the connected session when the catalog changes', async () => {
@@ -254,12 +393,14 @@ async function connect({ relay }: { relay: HostToolRelay }): Promise<Client> {
 }
 
 function createTurn({
+  waitForToolCallAuthorization = async () => true,
   emitToolCall = vi.fn(),
   emitToolResult = vi.fn(),
   registerCorrelationInvocation = vi.fn(),
   removeCorrelationInvocation = vi.fn(),
   requestToolResult,
 }: {
+  waitForToolCallAuthorization?: HostToolRelayTurn['waitForToolCallAuthorization'];
   emitToolCall?: HostToolRelayTurn['emitToolCall'];
   emitToolResult?: HostToolRelayTurn['emitToolResult'];
   registerCorrelationInvocation?: HostToolRelayTurn['registerCorrelationInvocation'];
@@ -267,6 +408,8 @@ function createTurn({
   requestToolResult: HostToolRelayTurn['requestToolResult'];
 }): HostToolRelayTurn {
   return {
+    waitForToolCallAuthorization,
+    emitWarning: vi.fn(),
     emitToolCall,
     emitToolResult,
     registerCorrelationInvocation,

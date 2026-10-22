@@ -4,6 +4,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -47,6 +50,30 @@ export class ReplicateImageModel implements ImageModelV4 {
   get maxImagesPerCall(): number {
     // Flux-2 models support up to 8 input images
     return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-2-pro' ||
+      this.modelId === 'black-forest-labs/flux-2-dev' ||
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return this.supportsFileInputs === true ? false : undefined;
   }
 
   get provider(): string {
@@ -315,13 +342,25 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
-  output: z.union([z.array(z.string()), z.string()]).nullish(),
-  error: z.string().nullish(),
-  urls: z.object({
-    get: z.string(),
-  }),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum([
+        'starting',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+      ]),
+      output: z.union([z.array(z.string()), z.string()]).nullish(),
+      error: z.string().nullish(),
+      urls: z.object({
+        get: z.string(),
+      }),
+    }),
+  ),
+);
 
-type ReplicateImagePrediction = z.infer<typeof replicateImageResponseSchema>;
+type ReplicateImagePrediction = InferSchema<
+  typeof replicateImageResponseSchema
+>;

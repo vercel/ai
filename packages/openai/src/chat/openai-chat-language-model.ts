@@ -52,6 +52,8 @@ import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -146,6 +148,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
+    // reasoningSummary is a Responses API option that the chat options schema strips,
+    // so check the raw provider options to avoid silently ignoring it:
+    if (providerOptions?.openai?.reasoningSummary != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      });
+    }
+
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
@@ -171,7 +184,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: this.config.requestModelId ?? this.modelId,
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
@@ -248,7 +261,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
-      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         resolvedReasoningEffort !== 'none' ||
@@ -393,7 +406,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
@@ -416,7 +429,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     const content: Array<LanguageModelV4Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }
@@ -490,7 +506,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/chat/completions',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -516,8 +532,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;

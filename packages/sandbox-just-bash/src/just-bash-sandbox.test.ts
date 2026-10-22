@@ -1,77 +1,138 @@
-import { Sandbox } from 'just-bash';
-import { shellQuote } from '@ai-sdk/harness/utils';
-import { describe, expect, it } from 'vitest';
-import { createJustBashSandbox } from './just-bash-sandbox';
+import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
+import { defineCommand, Sandbox } from 'just-bash';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createJustBashNetworkSandboxSession,
+  createJustBashNetworkSandboxSessionFromNativeSandbox,
+  createJustBashSandboxSessionFromNativeSandbox,
+  resumeJustBashNetworkSandboxSession,
+} from './just-bash-sandbox';
 
-describe('JustBashSandboxProvider', () => {
-  it('seeds realpath and resolves chained symlinks', async () => {
-    const session = await createJustBashSandbox({
-      cwd: '/work',
-    }).createSession();
-
-    try {
-      await session.run({
-        command: [
-          'mkdir -p /work/target/docs',
-          "printf 'content\\n' > /work/target/docs/read.txt",
-          'ln -s target /work/intermediate',
-          'ln -s intermediate/docs /work/linked-docs',
-        ].join(' && '),
-      });
-
-      await expect(
-        session.run({ command: 'realpath /work/linked-docs/read.txt' }),
-      ).resolves.toMatchObject({
-        exitCode: 0,
-        stdout: '/work/target/docs/read.txt\n',
-      });
-    } finally {
-      await session.destroy();
-    }
+describe('new just-bash sandbox sessions', () => {
+  it('prepares every new sandbox after installing realpath', async () => {
+    const prepare = vi.fn(async ({ session }) => {
+      expect((await session.run({ command: 'realpath /tmp' })).exitCode).toBe(
+        0,
+      );
+    });
+    const template = { identity: 'tools', prepare };
+    const first = await createJustBashNetworkSandboxSession({ template });
+    const second = await createJustBashNetworkSandboxSession({ template });
+    expect(prepare).toHaveBeenCalledTimes(2);
+    await first.destroy();
+    await second.destroy();
   });
 
-  it('bootstraps caller-provided sandboxes without replacing realpath', async () => {
-    const sandbox = await Sandbox.create({ cwd: '/work' });
-    await sandbox.writeFiles({
-      '/usr/bin/realpath': "#!/usr/bin/env bash\nprintf 'custom\\n'\n",
+  it('adapts native sessions synchronously and delegates lifecycle calls', async () => {
+    const sandbox = await Sandbox.create();
+    const stop = vi.spyOn(sandbox, 'stop');
+    expect(
+      'stop' in createJustBashSandboxSessionFromNativeSandbox(sandbox),
+    ).toBe(false);
+    const adapted =
+      createJustBashNetworkSandboxSessionFromNativeSandbox(sandbox);
+    await adapted.stop();
+    await adapted.destroy();
+    expect(stop).toHaveBeenCalledTimes(2);
+  });
+
+  it('installs realpath on first use of a native basic or network adaptation', async () => {
+    const sandbox = await Sandbox.create();
+    const exec = vi.spyOn(sandbox.bashEnvInstance, 'exec');
+    const registerCommand = vi.spyOn(
+      sandbox.bashEnvInstance,
+      'registerCommand',
+    );
+    const basic = createJustBashSandboxSessionFromNativeSandbox(sandbox);
+    const network =
+      createJustBashNetworkSandboxSessionFromNativeSandbox(sandbox);
+
+    expect(exec).not.toHaveBeenCalled();
+    expect(registerCommand).not.toHaveBeenCalled();
+    expect(await basic.run({ command: 'realpath /tmp' })).toMatchObject({
+      exitCode: 0,
+      stdout: '/tmp\n',
     });
-    await sandbox.bashEnvInstance.fs.chmod('/usr/bin/realpath', 0o755);
+    expect(
+      await network.restricted().run({ command: 'realpath /tmp' }),
+    ).toMatchObject({ exitCode: 0, stdout: '/tmp\n' });
+    expect(
+      exec.mock.calls.filter(([command]) => command === 'type realpath'),
+    ).toHaveLength(1);
+    expect(registerCommand).toHaveBeenCalledTimes(1);
+  });
 
-    const session = await createJustBashSandbox({ sandbox }).createSession();
-
-    try {
-      await expect(
-        session.run({ command: 'realpath /tmp' }),
-      ).resolves.toMatchObject({
+  it('does not replace a native realpath command', async () => {
+    const sandbox = await Sandbox.create();
+    sandbox.bashEnvInstance.registerCommand(
+      defineCommand('realpath', async () => ({
         exitCode: 0,
         stdout: 'custom\n',
+        stderr: '',
+      })),
+    );
+    const registerCommand = vi.spyOn(
+      sandbox.bashEnvInstance,
+      'registerCommand',
+    );
+    const adapted =
+      createJustBashNetworkSandboxSessionFromNativeSandbox(sandbox);
+
+    expect(await adapted.run({ command: 'realpath /tmp' })).toMatchObject({
+      exitCode: 0,
+      stdout: 'custom\n',
+    });
+    expect(registerCommand).not.toHaveBeenCalled();
+  });
+
+  it('rejects a supplied native sandbox in the async creator', async () => {
+    await expect(
+      createJustBashNetworkSandboxSession({
+        sandbox: await Sandbox.create(),
+      } as never),
+    ).rejects.toThrow('FromNativeSandbox');
+  });
+
+  it('accepts a custom ID as an in-process label without native lookup', async () => {
+    const create = vi.spyOn(Sandbox, 'create');
+    try {
+      const first = await createJustBashNetworkSandboxSession({
+        sandboxId: 'local-session',
       });
+      const second = await createJustBashNetworkSandboxSession({
+        sandboxId: 'local-session',
+      });
+      expect(first.id).toBe('local-session');
+      expect(second.id).toBe('local-session');
+      expect(first).not.toBe(second);
+      expect(create).toHaveBeenCalledWith({});
+      const unnamed = await createJustBashNetworkSandboxSession();
+      expect(unnamed.id).not.toBe('local-session');
+      await first.destroy();
+      await second.destroy();
+      await unnamed.destroy();
     } finally {
-      await session.destroy();
+      create.mockRestore();
     }
   });
 
-  it('preserves trailing newlines in symlink targets', async () => {
-    const session = await createJustBashSandbox({
-      cwd: '/work',
-    }).createSession();
-
+  it('reports that reattaching by ID is unsupported', async () => {
+    const create = vi.spyOn(Sandbox, 'create');
     try {
-      const target = '/work/target\nfile';
-      await session.writeTextFile({ path: target, content: 'content\n' });
-      const setup = await session.run({
-        command: `ln -s ${shellQuote('target\nfile')} ${shellQuote('/work/link')}`,
-      });
-      expect(setup.exitCode).toBe(0);
-
       await expect(
-        session.run({ command: 'realpath /work/link' }),
-      ).resolves.toMatchObject({
-        exitCode: 0,
-        stdout: `${target}\n`,
-      });
+        resumeJustBashNetworkSandboxSession({ sandboxId: 'local-session' }),
+      ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+      expect(create).not.toHaveBeenCalled();
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        resumeJustBashNetworkSandboxSession({
+          sandboxId: 'local-session',
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toMatchObject({ name: 'AbortError' });
     } finally {
-      await session.destroy();
+      create.mockRestore();
     }
   });
 });

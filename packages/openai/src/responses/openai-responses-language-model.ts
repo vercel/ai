@@ -1,13 +1,14 @@
 import {
   APICallError,
+  UnsupportedFunctionalityError,
   type JSONValue,
   type LanguageModelV4,
-  type LanguageModelV4Prompt,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
   type LanguageModelV4ProviderTool,
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
@@ -30,6 +31,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   prepareOpenAIConfigForWorkflowDeserialize,
   type OpenAIConfig,
@@ -50,15 +52,15 @@ import type { fileSearchOutputSchema } from '../tool/file-search';
 import type { imageGenerationOutputSchema } from '../tool/image-generation';
 import type { localShellInputSchema } from '../tool/local-shell';
 import type { mcpOutputSchema } from '../tool/mcp';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-import type {
-  programmaticToolCallingInputSchema,
-  programmaticToolCallingOutputSchema,
-} from '../tool/programmatic-tool-calling';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -69,23 +71,27 @@ import {
   expandParallelToolCall,
   isUndeclaredParallelToolCall,
 } from './expand-parallel-tool-call';
+import {
+  mapOpenAIResponsesAnnotationSource,
+  mapOpenAIResponsesCitations,
+} from './map-openai-responses-annotation';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
-import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
+  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
   type OpenAIResponsesChunk,
+  type OpenAIResponsesComputerAction,
   type OpenAIResponsesIncludeOptions,
   type OpenAIResponsesIncludeValue,
   type OpenAIResponsesLogprobs,
   type OpenAIResponsesWebSearchAction,
-  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
-  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
-  type OpenAIResponsesComputerAction,
 } from './openai-responses-api';
 import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -93,7 +99,6 @@ import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
-  ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
   ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -208,6 +213,34 @@ export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
   'image/*': [/^https?:\/\/.*$/],
   'application/pdf': [/^https?:\/\/.*$/],
 };
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAILanguageModelResponsesOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (
+    options?.reasoningMode === 'pro' ||
+    options?.contextManagement != null ||
+    options?.truncation === 'auto'
+  ) {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation';
+  }
+
+  return undefined;
+}
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -382,6 +415,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -392,11 +431,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
+        configurationUpdateUnsupportedReason,
         explicitMessageItemType: config.explicitMessageItemType,
         fileIdPrefixes: config.fileIdPrefixes,
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
+        isReasoningModel,
         hasConversation: openaiOptions?.conversation != null,
         hasPreviousResponseId: openaiOptions?.previousResponseId != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -414,27 +455,68 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     warnings.push(...inputWarnings);
 
-    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
-    const configurationUpdateIsSupported =
-      reasoningEffortUpdate == null ||
-      (modelCapabilities.supportsConfigurationUpdate &&
-        openaiOptions?.reasoningMode !== 'pro' &&
-        openaiOptions?.contextManagement == null &&
-        openaiOptions?.truncation !== 'auto');
+    // The schema accepts update efforts supported by any supported model. Check
+    // whether this specific model supports the requested effort.
+    const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
+      effort != null &&
+      modelCapabilities.supportedReasoningEfforts?.includes(effort) === false
+        ? `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`
+        : undefined;
 
-    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+    // Reject configuration updates whose effort value is unsupported by the selected model.
+    for (const item of input) {
+      if (item.type === 'configuration_update') {
+        const unsupportedReason = getUpdateEffortUnsupportedReason(
+          item.reasoning.effort,
+        );
+        if (unsupportedReason != null) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'Message-level reasoningEffortUpdate',
+            message: unsupportedReason,
+          });
+        }
+      }
+    }
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const requestUpdateUnsupportedReason =
+      configurationUpdateUnsupportedReason ??
+      getUpdateEffortUnsupportedReason(reasoningEffortUpdate);
+    if (
+      reasoningEffortUpdate != null &&
+      requestUpdateUnsupportedReason != null
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningEffortUpdate',
-        details: !modelCapabilities.supportsConfigurationUpdate
-          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
-          : 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+        details: requestUpdateUnsupportedReason,
       });
     } else if (reasoningEffortUpdate != null) {
-      input.unshift({
-        type: 'configuration_update',
-        reasoning: { effort: reasoningEffortUpdate },
-      });
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
     }
 
     // A compaction trigger is a request control, not conversation history.
@@ -516,7 +598,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: modelId,
+      model: config.requestModelId ?? modelId,
       input,
       temperature,
       top_p: topP,
@@ -607,11 +689,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
-      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      // Input updates change the effort used to validate sampling parameters.
+      let effectiveReasoningEffort = resolvedReasoningEffort;
+      for (const item of input) {
+        if (item.type === 'configuration_update') {
+          effectiveReasoningEffort = item.reasoning.effort;
+        }
+      }
+
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         !(
-          resolvedReasoningEffort === 'none' &&
+          effectiveReasoningEffort === 'none' &&
           modelCapabilities.supportsNonReasoningParameters
         )
       ) {
@@ -764,7 +854,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
@@ -819,6 +909,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       options.tools?.filter(
         (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
       ) ?? [];
+    const hasWebSearchActionSources = response.output.some(
+      part =>
+        part.type === 'web_search_call' &&
+        part.action?.type === 'search' &&
+        part.action.sources?.some(source => source.type === 'url'),
+    );
+
+    const hasFileSearchResults = response.output.some(
+      part =>
+        part.type === 'file_search_call' && (part.results?.length ?? 0) > 0,
+    );
+    const retrievedFileIds = new Set<string>();
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -943,6 +1045,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             input: JSON.stringify({
               action: {
                 commands: part.action.commands,
+                timeoutMs: part.action.timeout_ms ?? undefined,
+                maxOutputLength: part.action.max_output_length ?? undefined,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             ...(isShellProviderExecuted && { providerExecuted: true }),
@@ -962,6 +1066,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolCallId: part.call_id,
             toolName: toolNameMapping.toCustomToolName('shell'),
             result: {
+              ...(part.max_output_length != null && {
+                maxOutputLength: part.max_output_length,
+              }),
               output: part.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -998,78 +1105,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'text',
               text: contentPart.text,
+              ...(contentPart.annotations.some(
+                annotation => annotation.type !== 'file_path',
+              ) && {
+                citations: mapOpenAIResponsesCitations(
+                  contentPart.annotations,
+                  providerOptionsName,
+                ),
+              }),
               providerMetadata: {
                 [providerOptionsName]: providerMetadata,
               },
             });
 
             for (const annotation of contentPart.annotations) {
-              if (annotation.type === 'url_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.config.generateId?.() ?? generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
-                });
-              } else if (annotation.type === 'file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'container_file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      containerId: annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'file_path') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: annotation.file_id,
-                  filename: annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+              // Use citation-derived sources only when retrieval data is unavailable.
+              if (
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
+              ) {
+                continue;
               }
+              content.push(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  this.config.generateId?.() ?? generateId(),
+                ),
+              );
             }
           }
 
@@ -1197,8 +1261,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            result: mapWebSearchOutput(part.action),
+            ...(part.status === 'failed' || part.status === 'incomplete'
+              ? { isError: true, result: { status: part.status } }
+              : { result: mapWebSearchOutput(part.action) }),
           });
+
+          if (part.action?.type === 'search') {
+            for (const source of part.action.sources ?? []) {
+              if (source.type === 'url') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: source.url,
+                });
+              }
+            }
+          }
 
           break;
         }
@@ -1336,6 +1415,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 })) ?? null,
             } satisfies InferSchema<typeof fileSearchOutputSchema>,
           });
+          for (const result of part.results ?? []) {
+            if (retrievedFileIds.has(result.file_id)) {
+              continue;
+            }
+            retrievedFileIds.add(result.file_id);
+            content.push({
+              type: 'source',
+              sourceType: 'document',
+              id: this.config.generateId?.() ?? generateId(),
+              mediaType: 'text/plain',
+              title: result.filename,
+              filename: result.filename,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  type: 'file_search',
+                  fileId: result.file_id,
+                },
+              },
+            });
+          }
           break;
         }
 
@@ -1453,7 +1552,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1500,8 +1599,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIResponsesUsage | undefined = undefined;
@@ -1529,12 +1629,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     > = {};
 
     // set annotations in 'text-end' part providerMetadata.
-    const ongoingAnnotations: Array<
+    let ongoingAnnotations: Array<
       Extract<
         OpenAIResponsesChunk,
         { type: 'response.output_text.annotation.added' }
       >['annotation']
     > = [];
+    let hasWebSearchActionSources = false;
+    let hasFileSearchResults = false;
+    const retrievedFileIds = new Set<string>();
+    const fallbackAnnotations: typeof ongoingAnnotations = [];
 
     // track the phase of the current message being streamed
     let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
@@ -1641,6 +1745,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName,
+                  inputEncoding: 'text',
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1806,7 +1911,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 activeOutputItemIds[value.output_index] = value.item.id;
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations = [];
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
@@ -1853,6 +1958,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'text-end',
                   id: itemId,
+                  ...(ongoingAnnotations.some(
+                    annotation => annotation.type !== 'file_path',
+                  ) && {
+                    citations: mapOpenAIResponsesCitations(
+                      ongoingAnnotations,
+                      providerOptionsName,
+                    ),
+                  }),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId,
@@ -2062,8 +2175,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  result: mapWebSearchOutput(value.item.action),
+                  ...(value.item.status === 'failed' ||
+                  value.item.status === 'incomplete'
+                    ? { isError: true, result: { status: value.item.status } }
+                    : { result: mapWebSearchOutput(value.item.action) }),
                 });
+
+                if (value.item.action?.type === 'search') {
+                  for (const source of value.item.action.sources ?? []) {
+                    if (source.type === 'url') {
+                      hasWebSearchActionSources = true;
+                      controller.enqueue({
+                        type: 'source',
+                        sourceType: 'url',
+                        id: self.config.generateId?.() ?? generateId(),
+                        url: source.url,
+                      });
+                    }
+                  }
+                }
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2136,6 +2266,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       })) ?? null,
                   } satisfies InferSchema<typeof fileSearchOutputSchema>,
                 });
+                for (const result of value.item.results ?? []) {
+                  hasFileSearchResults = true;
+                  if (retrievedFileIds.has(result.file_id)) {
+                    continue;
+                  }
+                  retrievedFileIds.add(result.file_id);
+                  controller.enqueue({
+                    type: 'source',
+                    sourceType: 'document',
+                    id: self.config.generateId?.() ?? generateId(),
+                    mediaType: 'text/plain',
+                    title: result.filename,
+                    filename: result.filename,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        type: 'file_search',
+                        fileId: result.file_id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2385,6 +2536,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   input: JSON.stringify({
                     action: {
                       commands: value.item.action.commands,
+                      timeoutMs: value.item.action.timeout_ms ?? undefined,
+                      maxOutputLength:
+                        value.item.action.max_output_length ?? undefined,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   ...(isShellProviderExecuted && {
@@ -2400,6 +2554,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolCallId: value.item.call_id,
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   result: {
+                    ...(value.item.max_output_length != null && {
+                      maxOutputLength: value.item.max_output_length,
+                    }),
                     output: value.item.output.map(
                       (item: {
                         stdout: string;
@@ -2752,71 +2909,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
-              if (value.annotation.type === 'url_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                });
-              } else if (value.annotation.type === 'file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'container_file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      containerId: value.annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'file_path') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: value.annotation.file_id,
-                  filename: value.annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+              if (
+                value.annotation.type === 'url_citation' ||
+                value.annotation.type === 'file_citation'
+              ) {
+                // Retrieval events may arrive after the annotation. Decide the
+                // compatibility fallback once the complete source set is known.
+                fallbackAnnotations.push(value.annotation);
+              } else {
+                controller.enqueue(
+                  mapOpenAIResponsesAnnotationSource(
+                    value.annotation,
+                    providerOptionsName,
+                    self.config.generateId?.() ?? generateId(),
+                  ),
+                );
               }
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
@@ -2829,6 +2936,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            for (const annotation of fallbackAnnotations) {
+              if (
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
+              ) {
+                continue;
+              }
+              controller.enqueue(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  self.config.generateId?.() ?? generateId(),
+                ),
+              );
+            }
+
             for (const toolCall of Object.values(ongoingToolCalls)) {
               if (!toolCall?.suppressInputStreaming) {
                 continue;

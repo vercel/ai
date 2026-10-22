@@ -141,7 +141,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
   });
@@ -187,7 +187,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -230,7 +230,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -270,7 +270,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -280,6 +280,15 @@ describe('xAIProvider', () => {
       provider.transcription();
 
       expect(XaiTranscriptionModelMock).toHaveBeenCalledOnce();
+    });
+
+    it('should pass the transcription model id to the constructor', () => {
+      const provider = createXai();
+
+      provider.transcription('grok-voice-transcribe-2.0');
+
+      const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('grok-voice-transcribe-2.0');
     });
   });
 });

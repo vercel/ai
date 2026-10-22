@@ -14,8 +14,10 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  type OpenResponsesBareExtension,
   createOpenResponsesExtensionRegistry,
   type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from '../open-responses-extension';
 import type { OpenResponsesLanguageModelOptions } from './open-responses-language-model-options';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
@@ -37,7 +39,7 @@ describe('OpenResponsesLanguageModel', () => {
 
   function createModel(
     modelId: string = 'gemma-7b-it',
-    extensions?: readonly OpenResponsesExtension[],
+    extensions?: readonly OpenResponsesExtensionRegistration[],
   ) {
     return new OpenResponsesLanguageModel(modelId, {
       provider: 'lmstudio',
@@ -53,7 +55,7 @@ describe('OpenResponsesLanguageModel', () => {
     providerExecuted,
   }: {
     providerExecuted: boolean;
-  }): OpenResponsesExtension {
+  }): Exclude<OpenResponsesExtension, { allowBareTypes: true }> {
     return {
       id: 'acme.document_search',
       toolType: 'acme:document_search',
@@ -160,6 +162,41 @@ describe('OpenResponsesLanguageModel', () => {
     };
   }
 
+  function createBareDocumentSearchExtension(): OpenResponsesBareExtension {
+    return {
+      ...createDocumentSearchExtension({ providerExecuted: true }),
+      toolType: undefined,
+      itemTypes: undefined,
+      eventTypes: undefined,
+      allowBareTypes: true,
+      bareToolType: 'web_search',
+      bareItemTypes: [
+        'web_search_call',
+        'custom_tool_call',
+        'custom_tool_call_output',
+      ],
+      bareEventTypes: ['response.custom_tool_call_input.delta'],
+      encodeInputItem: ({ part }) =>
+        part.type === 'tool-call'
+          ? {
+              type: 'custom_tool_call',
+              id: `call_item_${part.toolCallId}`,
+              status: 'completed',
+              call_id: part.toolCallId,
+              name: part.toolName,
+              input: part.input as never,
+            }
+          : {
+              type: 'custom_tool_call_output',
+              id: `result_item_${part.toolCallId}`,
+              status: 'completed',
+              call_id: part.toolCallId,
+              name: part.toolName,
+              output: part.output as never,
+            },
+    };
+  }
+
   it('should reject workflow serialization when extension codecs are registered', () => {
     const model = createModel('gemma-7b-it', [
       createDocumentSearchExtension({ providerExecuted: true }),
@@ -181,7 +218,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     function prepareOutputResponse(output: Array<Record<string, unknown>>) {
@@ -622,6 +658,67 @@ describe('OpenResponsesLanguageModel', () => {
         ]);
       });
 
+      it('should decode and losslessly replay an explicitly registered bare item', async () => {
+        const receipt = {
+          id: 'search_1',
+          type: 'web_search_call',
+          status: 'completed',
+          call_id: 'call_1',
+          name: 'documentSearch',
+          query: { text: 'climate' },
+          result: { documents: ['doc_1'] },
+          opaque_receipt: { trace_id: 'trace_1' },
+        };
+        prepareOutputResponse([
+          {
+            id: 'unknown_1',
+            type: 'unregistered_call',
+            status: 'completed',
+          },
+          receipt,
+        ]);
+
+        const model = createModel('gemma-7b-it', [
+          createBareDocumentSearchExtension(),
+        ]);
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'documentSearch',
+          input: '{"text":"climate"}',
+          providerExecuted: true,
+          providerMetadata: {
+            lmstudio: {
+              openResponsesExtension: {
+                id: 'acme.document_search',
+                itemId: 'search_1',
+              },
+            },
+          },
+        });
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'open-responses.extension-replay',
+                  providerOptions: first.content[0].providerMetadata,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          receipt,
+        ]);
+      });
+
       it('should replay a source-only extension item through response history', async () => {
         const sourceItem = {
           id: 'source_1',
@@ -701,6 +798,72 @@ describe('OpenResponsesLanguageModel', () => {
         ]);
       });
 
+      it('should encode bare extension history when original wire metadata is unavailable', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel('gemma-7b-it', [
+          createBareDocumentSearchExtension(),
+        ]).doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_client',
+                  toolName: 'documentSearch',
+                  input: { text: 'weather' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_client',
+                  toolName: 'documentSearch',
+                  output: {
+                    type: 'json',
+                    value: { documents: ['forecast'] },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'acme.document_search',
+              name: 'documentSearch',
+              args: {},
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toEqual([
+          {
+            type: 'custom_tool_call',
+            id: 'call_item_call_client',
+            status: 'completed',
+            call_id: 'call_client',
+            name: 'documentSearch',
+            input: { text: 'weather' },
+          },
+          {
+            type: 'custom_tool_call_output',
+            id: 'result_item_call_client',
+            status: 'completed',
+            call_id: 'call_client',
+            name: 'documentSearch',
+            output: {
+              type: 'json',
+              value: { documents: ['forecast'] },
+            },
+          },
+        ]);
+      });
+
       it('should encode client-executed extension calls and results without original wire metadata', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
 
@@ -765,6 +928,25 @@ describe('OpenResponsesLanguageModel', () => {
             },
           },
         ]);
+      });
+    });
+
+    it('should send schema-less JSON as a JSON object format', async () => {
+      prepareJsonFixtureResponse('lmstudio-basic.1');
+
+      await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        text: {
+          format: {
+            type: 'json_object',
+          },
+        },
       });
     });
 
@@ -929,6 +1111,39 @@ describe('OpenResponsesLanguageModel', () => {
         ]);
       });
 
+      it('should encode explicitly registered bare provider tools and tool choices', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        const result = await createModel('gemma-7b-it', [
+          createBareDocumentSearchExtension(),
+        ]).doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'acme.document_search',
+              name: 'documentSearch',
+              args: { index: 'docs' },
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'documentSearch' },
+        });
+
+        const requestBody = await server.calls.at(-1)!.requestBodyJson;
+        expect(requestBody.tools).toEqual([
+          {
+            type: 'web_search',
+            name: 'documentSearch',
+            index: 'docs',
+          },
+        ]);
+        expect(requestBody.tool_choice).toEqual({
+          type: 'web_search',
+          name: 'documentSearch',
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
       it('should warn and omit a registered provider tool and its selected choice when it cannot be encoded', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
         const extension = createDocumentSearchExtension({
@@ -1036,6 +1251,17 @@ describe('OpenResponsesLanguageModel', () => {
 
         expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
           { effort: 'xhigh' },
+        );
+      });
+
+      it('should pass max directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'max' },
         );
       });
 
@@ -1522,6 +1748,124 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['throw', 'reject'] as const)(
+      'preserves extension item decoding errors when the stream ends (%s)',
+      async failure => {
+        const error = new Error('Extension item decoding failed');
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = () => {
+          if (failure === 'reject') {
+            return Promise.reject(error);
+          }
+          throw error;
+        };
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: 0,
+              output_index: 0,
+              item: {
+                id: 'search-1',
+                type: 'acme:document_search_receipt',
+                status: 'completed',
+                call_id: 'call-1',
+                name: 'documentSearch',
+              },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('test-model', [
+          extension,
+        ]).doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([
+          { type: 'error', error },
+        ]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: { unified: 'error', raw: undefined },
+          }),
+        ]);
+      },
+    );
+
+    it('preserves extension errors when the stream ends', async () => {
+      const error = new Error('Extension failed');
+      const extension = createDocumentSearchExtension({
+        providerExecuted: true,
+      });
+      extension.decodeEvent = () => {
+        throw error;
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'acme:document_search_input', sequence_number: 0, call_id: 'call-1', name: 'documentSearch', delta: '{}' })}\n\n`,
+        ],
+      };
+      const { stream } = await createModel('test-model', [extension]).doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({ type: 'error', error });
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      );
+    });
+
+    it.each([false, true])(
+      'handles a truncated stream (with error: %s)',
+      async withError => {
+        const events = fs
+          .readFileSync(
+            'src/responses/__fixtures__/lmstudio-basic.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        const firstText = events.findIndex(
+          event => event.type === 'response.output_text.delta',
+        );
+        expect(firstText).toBeGreaterThanOrEqual(0);
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events
+              .slice(0, firstText + 1)
+              .map(event => `data: ${JSON.stringify(event)}\n\n`),
+            ...(withError ? ['data: {invalid-json}\n\n'] : []),
+          ],
+        };
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError ? 'error' : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(
@@ -1596,6 +1940,143 @@ describe('OpenResponsesLanguageModel', () => {
           },
         },
       ]);
+    });
+
+    it.each([
+      {
+        source: 'the custom tool input done event',
+        doneInput: '<svg />',
+        completedItemInput: '',
+      },
+      {
+        source: 'the completed custom tool item',
+        doneInput: undefined,
+        completedItemInput: '<svg />',
+      },
+    ])(
+      'should use complete custom tool input from $source when deltas are omitted',
+      async ({ doneInput, completedItemInput }) => {
+        const chunks = [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'ct_1',
+              type: 'custom_tool_call',
+              status: 'in_progress',
+              call_id: 'call_1',
+              name: 'write_svg',
+              input: '',
+            },
+          })}\n\n`,
+        ];
+
+        if (doneInput != null) {
+          chunks.push(
+            `data: ${JSON.stringify({
+              type: 'response.custom_tool_call_input.done',
+              sequence_number: 1,
+              item_id: 'ct_1',
+              output_index: 0,
+              input: doneInput,
+            })}\n\n`,
+          );
+        }
+
+        chunks.push(
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              id: 'ct_1',
+              type: 'custom_tool_call',
+              status: 'completed',
+              call_id: 'call_1',
+              name: 'write_svg',
+              input: completedItemInput,
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        );
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks,
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(
+          parts.filter(part => part.type === 'tool-input-delta'),
+        ).toStrictEqual([]);
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'write_svg',
+          input: '"<svg />"',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'ct_1',
+            },
+          },
+        });
+      },
+    );
+
+    it('should use complete function arguments from the completed item when argument events are omitted', async () => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'in_progress',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 1,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'completed',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '{"path":"icon.svg"}',
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'write_svg',
+        input: '{"path":"icon.svg"}',
+        providerMetadata: {
+          lmstudio: {
+            itemId: 'fc_1',
+          },
+        },
+      });
     });
 
     it.each([
@@ -1756,6 +2237,95 @@ describe('OpenResponsesLanguageModel', () => {
         toolCallId: 'call_stream_1',
         toolName: 'documentSearch',
         result: { documents: ['doc_1'] },
+        providerMetadata: {
+          lmstudio: {
+            openResponsesExtension: {
+              id: 'acme.document_search',
+              itemId: 'search_stream_1',
+            },
+          },
+        },
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls' },
+      });
+    });
+
+    it('should decode explicitly registered bare extension events and completed items', async () => {
+      const receipt = {
+        id: 'search_stream_1',
+        type: 'web_search_call',
+        status: 'completed',
+        call_id: 'call_stream_1',
+        name: 'documentSearch',
+        query: { text: 'streamed query' },
+        result: { documents: ['doc_1'] },
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.unregistered.delta',
+            sequence_number: 0,
+            call_id: 'ignored_call',
+            name: 'ignoredTool',
+            delta: 'ignored',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.custom_tool_call_input.delta',
+            sequence_number: 1,
+            call_id: 'call_stream_1',
+            name: 'documentSearch',
+            delta: '{"text":"streamed query"}',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 2,
+            output_index: 0,
+            item: receipt,
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            sequence_number: 3,
+            response: {
+              id: 'response_stream_1',
+              object: 'response',
+              created_at: 0,
+              status: 'completed',
+              model: 'test-model',
+              output: [receipt],
+              usage: {
+                input_tokens: 1,
+                output_tokens: 1,
+                total_tokens: 2,
+              },
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel('gemma-7b-it', [
+        createBareDocumentSearchExtension(),
+      ]).doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts.filter(part => part.type === 'tool-input-delta')).toEqual([
+        {
+          type: 'tool-input-delta',
+          id: 'call_stream_1',
+          delta: '{"text":"streamed query"}',
+        },
+      ]);
+      expect(parts).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_stream_1',
+        toolName: 'documentSearch',
+        input: '{"text":"streamed query"}',
+        providerExecuted: true,
         providerMetadata: {
           lmstudio: {
             openResponsesExtension: {

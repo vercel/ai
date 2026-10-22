@@ -9,7 +9,7 @@ import { withSpinner } from '../../lib/spinner';
 run(async () => {
   const { videos, warnings } = await withSpinner('Generating video...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: xai.video('grok-imagine-video-1.5'),
       prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
       aspectRatio: '16:9',
       duration: 5,

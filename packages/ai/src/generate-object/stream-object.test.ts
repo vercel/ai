@@ -108,6 +108,16 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'streamObject',
+              message: 'Use streamText with an output setting instead.',
+            },
+          ],
+        });
+
         expect(await convertAsyncIterableToArray(result.partialObjectStream))
           .toMatchInlineSnapshot(`
           [
@@ -2070,8 +2080,8 @@ describe('streamObject', () => {
       // Consume the stream to completion
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -2092,8 +2102,8 @@ describe('streamObject', () => {
       // Consume the stream to completion
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',

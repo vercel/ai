@@ -25,7 +25,6 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
@@ -37,7 +36,7 @@ import {
   webSearchWireActionSchema,
   webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
-  xaiResponsesResponseSchema,
+  xaiResponsesResponseSchemaValidator,
   type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
 import {
@@ -211,10 +210,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
 
-    if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
-    }
-
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
@@ -301,6 +296,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             medium: 'medium',
             high: 'high',
             xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -318,6 +314,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      top_k: topK,
+      min_p: options.minP,
       seed,
       ...(responseFormat?.type === 'json' && {
         text: {
@@ -333,15 +331,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((resolvedReasoningEffort != null ||
-        options.reasoningSummary != null) && {
+      ...(resolvedReasoningEffort != null && {
         reasoning: {
-          ...(resolvedReasoningEffort != null && {
-            effort: resolvedReasoningEffort,
-          }),
-          ...(options.reasoningSummary != null && {
-            summary: options.reasoningSummary,
-          }),
+          effort: resolvedReasoningEffort,
         },
       }),
       ...(options.store === false && {
@@ -353,8 +345,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.maxTurns != null && {
+        max_turns: options.maxTurns,
+      }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
+      ...(options.promptCacheKey != null && {
+        prompt_cache_key: options.promptCacheKey,
+      }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
       ...(options.serviceTier != null && {
         service_tier: options.serviceTier,
+      }),
+      ...(options.user != null && {
+        user: options.user,
       }),
     };
 
@@ -409,7 +416,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        xaiResponsesResponseSchema,
+        xaiResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -644,7 +651,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
+        response.service_tier != null ||
+        response.prompt_cache_key != null ||
+        response.safety_identifier != null) && {
         providerMetadata: {
           xai: {
             ...(response.usage?.cost_in_usd_ticks != null && {
@@ -652,6 +661,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }),
             ...(response.service_tier != null && {
               serviceTier: response.service_tier,
+            }),
+            ...(response.prompt_cache_key != null && {
+              promptCacheKey: response.prompt_cache_key,
+            }),
+            ...(response.safety_identifier != null && {
+              safetyIdentifier: response.safety_identifier,
             }),
           },
         },
@@ -696,14 +711,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let promptCacheKey: string | undefined = undefined;
+    let safetyIdentifier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -725,7 +743,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiResponsesChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -738,6 +756,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -899,6 +918,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               serviceTier = response.service_tier ?? undefined;
+              promptCacheKey = response.prompt_cache_key ?? undefined;
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -918,6 +939,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
+              } else if (finishReason.unified === 'interrupted') {
+                // The terminal event arrived, but supplied no recognized reason.
+                finishReason = { unified: 'other', raw: undefined };
               }
 
               return;
@@ -950,6 +974,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (event.type === 'error') {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: createXaiResponsesStreamError({
@@ -1371,11 +1396,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...((costInUsdTicks != null || serviceTier != null) && {
+              ...((costInUsdTicks != null ||
+                serviceTier != null ||
+                promptCacheKey != null ||
+                safetyIdentifier != null) && {
                 providerMetadata: {
                   xai: {
                     ...(costInUsdTicks != null && { costInUsdTicks }),
                     ...(serviceTier != null && { serviceTier }),
+                    ...(promptCacheKey != null && { promptCacheKey }),
+                    ...(safetyIdentifier != null && { safetyIdentifier }),
                   },
                 },
               }),

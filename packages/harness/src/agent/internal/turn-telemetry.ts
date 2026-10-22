@@ -4,7 +4,7 @@ import type {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { createTelemetryDispatcher } from 'ai/internal';
+import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import type {
   ContentPart,
   GenerateTextOnEndCallback,
@@ -42,7 +42,7 @@ export type HarnessAgentLifecycleCallbacks<
   onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
 };
 
-type Dispatcher = ReturnType<typeof createTelemetryDispatcher>;
+type Dispatcher = ReturnType<typeof createRestrictedTelemetryDispatcher>;
 
 export interface TurnLifecycle<
   TOOLS extends ToolSet,
@@ -71,6 +71,7 @@ export interface TurnLifecycle<
     toolCallId: string;
     execute: () => PromiseLike<T>;
   }): Promise<T>;
+  abort(reason?: unknown): Promise<void>;
   error(error: unknown): Promise<void>;
 }
 
@@ -107,7 +108,11 @@ export function createTurnLifecycle<
   const telemetry =
     options.telemetry == null
       ? ({} as Dispatcher)
-      : createTelemetryDispatcher({ telemetry: options.telemetry });
+      : createRestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+          telemetry: options.telemetry,
+          includeRuntimeContext: options.telemetry.includeRuntimeContext,
+          includeToolsContext: options.telemetry.includeToolsContext,
+        });
   const provider = `harness:${options.harnessId}`;
   let modelId = options.modelId ?? '';
   let started = false;
@@ -354,11 +359,22 @@ export function createTurnLifecycle<
       });
     },
 
+    async abort(reason) {
+      if (ended) return;
+      if (!started) await start();
+      ended = true;
+      await telemetry.onAbort?.({
+        callId: options.callId,
+        steps: [...completedSteps],
+        ...(reason !== undefined ? { reason } : {}),
+      });
+    },
+
     async error(error) {
       if (ended) return;
       if (!started) await start();
       ended = true;
-      await telemetry.onError?.(error);
+      await telemetry.onError?.({ callId: options.callId, error });
     },
   };
 }

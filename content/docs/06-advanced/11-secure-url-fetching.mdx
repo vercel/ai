@@ -28,8 +28,8 @@ When the SDK fetches a URL taken from a provider response, it:
 
 - **Rejects private, loopback, and link-local targets** — IPv4 (`10/8`,
   `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, CGNAT, multicast, …) and the
-  equivalent IPv6 ranges, plus `localhost` and `.local`. Non-`http(s)` schemes
-  are rejected too.
+  equivalent IPv6 ranges, plus `localhost`, `.local`, `.localhost`, and
+  `.internal` hostnames. Non-`http(s)` schemes are rejected too.
 - **Re-validates every redirect hop** — a URL that passes but then redirects to
   an internal address is blocked; the redirect is never followed blindly.
 - **Validates DNS at connection time on Node.js** — every resolved address is
@@ -44,6 +44,45 @@ When the SDK fetches a URL taken from a provider response, it:
   drops all of them except the user-agent.
 
 A blocked URL surfaces as a `DownloadError`.
+
+## Fetching untrusted URLs directly
+
+For custom integrations using `@ai-sdk/provider-utils`, use `fetchUntrustedUrl`
+when the URL comes from a response or other untrusted input. It validates URLs
+and redirects and withholds credentials and unknown custom headers on the first
+request unless the URL matches a configured origin:
+
+```ts
+import { fetchUntrustedUrl } from '@ai-sdk/provider-utils';
+
+const response = await fetchUntrustedUrl({
+  url: result.downloadUrl,
+  headers: {
+    authorization: `Bearer ${apiKey}`,
+    accept: 'image/*',
+  },
+  credentialedOrigin: providerBaseURL,
+});
+```
+
+Here, `Authorization` is sent only when the initial URL has the same origin as
+`providerBaseURL`. Otherwise, only allowlisted metadata such as `Accept`,
+`Range`, and `User-Agent` is sent. A cross-origin redirect drops all caller
+headers except `User-Agent`, and credentials are never reattached on later hops.
+
+`credentialedOrigin` must come from your configuration, never from the response
+URL. It does not disable URL validation. For a configured private endpoint, pass
+`trustedOrigin` as well; if `credentialedOrigin` is omitted, `fetchUntrustedUrl`
+uses `trustedOrigin` as the origin allowed to receive credentials. Extra protocol
+metadata can be allowed with `untrustedFirstHopHeaders: ['x-protocol-version']`.
+Only list headers that are safe to disclose to any destination; use a configured
+origin for credentials.
+
+The existing `fetchWithValidatedRedirects` helper preserves its first-request
+behavior: it sanitizes risky headers but still forwards authentication and
+custom headers. Switch to `fetchUntrustedUrl` to opt into first-request
+credential isolation. Existing calls to `getFromApi` also retain their behavior;
+pass `credentialedOrigin` when fetching response-supplied URLs with credentials.
 
 ## Self-hosted and local endpoints
 

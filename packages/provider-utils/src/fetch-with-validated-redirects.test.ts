@@ -70,6 +70,30 @@ describe('fetchWithValidatedEndpoint', () => {
 });
 
 describe('fetchWithValidatedRedirects', () => {
+  it.each([undefined, 'https://example.com', 'https://provider.example.com'])(
+    'preserves legacy first-hop credentials and custom headers with trustedOrigin %s',
+    async trustedOrigin => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+      await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        trustedOrigin,
+        headers: {
+          authorization: 'Bearer secret',
+          'x-jfrog-art-api': 'vendor-secret',
+          'x-custom-metadata': 'custom-value',
+        },
+        fetch: fetchMock,
+      });
+
+      expect(Object.fromEntries(fetchMock.mock.calls[0][1].headers)).toEqual({
+        authorization: 'Bearer secret',
+        'x-jfrog-art-api': 'vendor-secret',
+        'x-custom-metadata': 'custom-value',
+      });
+    },
+  );
+
   it('validates the initial URL before requesting it', async () => {
     const fetchMock = vi.fn();
 
@@ -345,38 +369,44 @@ describe('fetchWithValidatedRedirects', () => {
     expect(secondHop.get('authorization')).toBeNull();
   });
 
-  it('skips validation for hops same-origin with trustedOrigin', async () => {
-    // A self-hosted deployment: the configured origin is private, and its
-    // response URLs (and same-origin redirects) point back at it.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(redirectResponse('http://localhost:5000/final'))
-      .mockResolvedValueOnce(okResponse());
+  it.each(['http://localhost:5000', 'https://service.internal'])(
+    'skips validation for hops same-origin with trustedOrigin %s',
+    async trustedOrigin => {
+      // A self-hosted deployment: the configured origin is private, and its
+      // response URLs (and same-origin redirects) point back at it.
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirectResponse(`${trustedOrigin}/final`))
+        .mockResolvedValueOnce(okResponse());
 
-    const response = await fetchWithValidatedRedirects({
-      url: 'http://localhost:5000/predictions/123',
-      trustedOrigin: 'http://localhost:5000',
-      fetch: fetchMock,
-    });
-
-    expect(response.ok).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('validates hops on other origins even when trustedOrigin is set', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(redirectResponse('http://169.254.169.254/'));
-
-    await expect(
-      fetchWithValidatedRedirects({
-        url: 'http://localhost:5000/predictions/123',
-        trustedOrigin: 'http://localhost:5000',
+      const response = await fetchWithValidatedRedirects({
+        url: `${trustedOrigin}/predictions/123`,
+        trustedOrigin,
         fetch: fetchMock,
-      }),
-    ).rejects.toThrow(DownloadError);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
+      });
+
+      expect(response.ok).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(['http://169.254.169.254/', 'https://other.internal/file'])(
+    'validates hops on other origins even when trustedOrigin is set: %s',
+    async redirectUrl => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirectResponse(redirectUrl));
+
+      await expect(
+        fetchWithValidatedRedirects({
+          url: 'http://localhost:5000/predictions/123',
+          trustedOrigin: 'http://localhost:5000',
+          fetch: fetchMock,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('uses the injected fetch instead of the global one', async () => {
     globalThis.fetch = vi.fn();

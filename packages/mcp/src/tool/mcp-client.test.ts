@@ -87,6 +87,7 @@ class ProtocolDiscoveryTransport implements MCPTransport {
     private readonly discoveryBehavior:
       | 'modern'
       | 'legacy'
+      | 'silent'
       | 'unsupported' = 'modern',
     private readonly includeToolListResultType = true,
   ) {}
@@ -109,6 +110,10 @@ class ProtocolDiscoveryTransport implements MCPTransport {
     }
 
     if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'silent') {
+        return;
+      }
+
       if (this.discoveryBehavior === 'legacy') {
         this.onmessage?.({
           jsonrpc: '2.0',
@@ -404,7 +409,6 @@ class HangingToolCallTransport implements MCPTransport {
     if (message.method === 'tools/call') {
       // Intentionally never respond. This exercises aborting an in-flight
       // request after it has been sent to a slow or hung MCP server.
-      return;
     }
   }
 }
@@ -718,17 +722,56 @@ describe('MCPClient', () => {
     expect(tool).toHaveProperty('inputSchema');
     expect(tool).toHaveProperty('execute');
 
-    // Verify the execute function works
-    const result = await tool.execute(
-      { foo: 'bar' },
-      { messages: [], toolCallId: '1', context: {} },
-    );
+    // Verify the execute function works without AI SDK execution options
+    const result = await tool.execute({ foo: 'bar' });
     expect(result).toEqual({
       content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
       structuredContent,
       isError: false,
     });
   });
+
+  it.each(['automatic', 'explicit'] as const)(
+    'preserves prototype-named tools with %s schemas',
+    async schemaMode => {
+      const names = ['__proto__', 'constructor', 'toString'];
+      client = await createMCPClient({
+        transport: new MockMCPTransport({
+          overrideTools: names.map(name => ({
+            name,
+            inputSchema: { type: 'object' },
+          })),
+          toolCallResults: Object.fromEntries(
+            names.map(name => [
+              name,
+              { content: [{ type: 'text', text: name }] },
+            ]),
+          ),
+        }),
+      });
+      const tools =
+        schemaMode === 'automatic'
+          ? await client.tools()
+          : await client.tools({
+              schemas: Object.fromEntries(
+                names.map(name => [name, { inputSchema: z.object({}) }]),
+              ),
+            });
+
+      expect(Object.getPrototypeOf(tools)).toBeNull();
+      expect(Object.keys(tools)).toEqual(names);
+      for (const name of names) {
+        expect(Object.prototype.hasOwnProperty.call(tools, name)).toBe(true);
+        const result = await tools[name].execute(
+          {},
+          { messages: [], toolCallId: '1', context: {} },
+        );
+        expect(result).toMatchObject({
+          content: [{ type: 'text', text: name }],
+        });
+      }
+    },
+  );
 
   it('should allow caching workflow with listTools() and toolsFromDefinitions()', async () => {
     client = await createMCPClient({
@@ -3291,6 +3334,23 @@ describe('MCPClient', () => {
           ? toolListRequest.params?._meta
           : undefined,
       ).toBeUndefined();
+    });
+
+    it('should fall back to legacy initialization when discovery gets no response', async () => {
+      vi.useFakeTimers();
+      const transport = new ProtocolDiscoveryTransport('silent');
+
+      [client] = await Promise.all([
+        createMCPClient({ transport }),
+        vi.advanceTimersByTimeAsync(1000),
+      ]);
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover', 'initialize', 'notifications/initialized']);
     });
 
     it('should not fall back for a recognized modern protocol error', async () => {

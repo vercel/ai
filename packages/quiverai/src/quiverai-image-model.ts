@@ -6,10 +6,11 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -23,6 +24,7 @@ import {
   quiveraiImageModelOptionsSchema,
   type QuiverAIImageModelOptions,
 } from './quiverai-image-model-options';
+import { quiveraiFailedResponseHandler } from './quiverai-error';
 import {
   validateQuiverAIImageUrl,
   validateQuiverAIReferenceBase64,
@@ -45,6 +47,20 @@ interface QuiverAIImageModelConfig {
 export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
+
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'arrow-1' ||
+      this.modelId === 'arrow-1.1' ||
+      this.modelId === 'arrow-1.1-max' ||
+      this.modelId === 'arrow-2' ||
+      this.modelId === 'arrow-2-telos'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -1001,36 +1017,29 @@ function collectWarnings({
 // Limited schemas focused on what is needed for the implementation.
 // This approach limits breakages when the API changes and keeps the
 // response handler efficient.
-const svgUsageSchema = z.object({
-  total_tokens: z.number().int().nonnegative(),
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-});
+const svgUsageSchema = () =>
+  z.object({
+    total_tokens: z.number().int().nonnegative(),
+    input_tokens: z.number().int().nonnegative(),
+    output_tokens: z.number().int().nonnegative(),
+  });
 
-const svgDocumentSchema = z.object({
-  svg: z.string().min(1),
-  mime_type: z.literal('image/svg+xml'),
-  loop_period_ms: z.number().int().nonnegative().nullish(),
-  opening_animation_ms: z.number().int().nonnegative().nullish(),
-});
+const svgDocumentSchema = () =>
+  z.object({
+    svg: z.string().min(1),
+    mime_type: z.literal('image/svg+xml'),
+    loop_period_ms: z.number().int().nonnegative().nullish(),
+    opening_animation_ms: z.number().int().nonnegative().nullish(),
+  });
 
-const svgGenerationResponseSchema = z.object({
-  id: z.string().min(1),
-  created: z.number().int().nonnegative(),
-  data: z.array(svgDocumentSchema).min(1),
-  usage: svgUsageSchema.nullish(),
-  credits: z.number().int().nonnegative().nullish(),
-});
-
-const quiveraiErrorSchema = z.object({
-  status: z.number().int(),
-  code: z.string().min(1),
-  message: z.string().min(1),
-  request_id: z.string().min(1),
-});
-
-export const quiveraiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: quiveraiErrorSchema,
-  errorToMessage: error => error.message,
-  isRetryable: response => response.status === 429 || response.status >= 500,
-});
+const svgGenerationResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().min(1),
+      created: z.number().int().nonnegative(),
+      data: z.array(svgDocumentSchema()).min(1),
+      usage: svgUsageSchema().nullish(),
+      credits: z.number().int().nonnegative().nullish(),
+    }),
+  ),
+);

@@ -263,6 +263,26 @@ describe('Anthropic batch', () => {
     expect(new Set(betas).size).toBe(betas.length);
   });
 
+  it.each(['batch-beta', [123], null])(
+    'rejects invalid batch-level betas %j before making an API request',
+    async anthropicBeta => {
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(
+        model.doStartBatch({
+          requests: [{ id: 'request-1', ...request('Hello') }],
+          providerOptions: { anthropic: { anthropicBeta } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
   it('rejects per-request betas before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
@@ -504,6 +524,54 @@ describe('Anthropic batch', () => {
         },
       ],
     });
+  });
+
+  it('starts an on-demand compaction batch request with the inferred beta header', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'compact-conversation',
+          ...request('Summarize this conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                compaction: {
+                  type: 'summarize',
+                  instructions: 'Preserve decisions and open questions.',
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        },
+      ],
+    });
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          custom_id: 'compact-conversation',
+          params: {
+            compaction: {
+              type: 'summarize',
+              instructions: 'Preserve decisions and open questions.',
+            },
+          },
+        },
+      ],
+    });
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta']
+        .split(',')
+        .map(beta => beta.trim()),
+    ).toContain('compact-2026-09-04');
   });
 
   it.each([
@@ -812,6 +880,39 @@ describe('Anthropic batch', () => {
     });
   });
 
+  it.each([16, 4096])(
+    'applies the factory maxLineBytes setting of %s',
+    async maxLineBytes => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'france',
+            result: { type: 'succeeded', message: messageResultBody('Paris') },
+          }) + '\n',
+        ],
+      };
+      const batch = createAnthropic({
+        apiKey: 'test-api-key',
+        batchResultDownloads: { maxLineBytes },
+      }).experimental_batch();
+      const stream = await batch.doGetBatchResults({ batchId: 'msgbatch_123' });
+      const results = convertReadableStreamToArray(stream);
+      if (maxLineBytes === 16) {
+        await expect(results).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+          url: urls.results,
+        });
+      } else {
+        await expect(results).resolves.toHaveLength(1);
+      }
+    },
+  );
+
   it('incrementally maps all Anthropic JSONL result variants', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -993,6 +1094,67 @@ describe('Anthropic batch', () => {
     expect(result.result.providerMetadata).toEqual({
       anthropic: expect.objectContaining({ safeguardResults }),
     });
+  });
+
+  it('preserves signed compaction blocks in batch results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'compaction',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+              stop_reason: 'compaction',
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'compaction',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation.',
+              providerMetadata: {
+                anthropic: {
+                  type: 'compaction',
+                  signature: 'compaction-signature',
+                },
+              },
+            },
+          ],
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        },
+      },
+    ]);
   });
 
   it('preserves client and provider-executed tool content', async () => {
@@ -1255,6 +1417,31 @@ describe('Anthropic batch', () => {
             {
               type: 'text',
               text: 'Paris is sunny.',
+              citations: [
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_page',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_char',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'url',
+                    url: 'https://example.com/weather',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+              ],
               providerMetadata: {
                 anthropic: {
                   citations: [
@@ -1291,14 +1478,14 @@ describe('Anthropic batch', () => {
               type: 'source',
               sourceType: 'url',
               id: 'citation-source',
-              url: 'https://example.com/weather',
-              title: 'Paris weather',
               providerMetadata: {
                 anthropic: {
                   citedText: 'Paris is sunny.',
                   encryptedIndex: 'encrypted-index',
                 },
               },
+              url: 'https://example.com/weather',
+              title: 'Paris weather',
             },
           ],
         },
@@ -1931,6 +2118,118 @@ describe('Anthropic batch', () => {
               inputTokens: { total: 13 },
               outputTokens: { total: 3 },
             },
+          },
+        },
+      ]);
+    });
+
+    it('omits empty and null compaction blocks from successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'compaction',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  { type: 'compaction', content: '' },
+                  { type: 'compaction', content: null },
+                  { type: 'compaction', content: 'Summary' },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'compaction',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: 'Summary',
+                providerMetadata: { anthropic: { type: 'compaction' } },
+              },
+              { type: 'text', text: 'Done' },
+            ],
+          },
+        },
+      ]);
+    });
+
+    it('preserves fallback blocks in successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'fallback',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'fallback',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'custom',
+                kind: 'anthropic.fallback',
+                providerMetadata: {
+                  anthropic: {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                },
+              },
+              { type: 'text', text: 'Done' },
+            ],
           },
         },
       ]);

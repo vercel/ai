@@ -51,6 +51,63 @@ function createEmitter({
 }
 
 describe('createEmitStreamEvent', () => {
+  it('keeps MCP arguments separate from observation metadata', () => {
+    const { emitted, emitStreamEvent } = createEmitter({
+      mcpToolNames: new Set(['fixture_read']),
+    });
+    const part = {
+      type: 'tool',
+      callID: 'native-call',
+      tool: 'fixture_read',
+      metadata: { providerItemId: 'observe-1', path: 'wrong-path' },
+      state: {
+        status: 'running',
+        metadata: { billing: 'observation', exact: false },
+        input: { path: 'a.ts', exact: true },
+      },
+      provider: { metadata: { openai: { itemId: 'provider-item' } } },
+    };
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: { part },
+    });
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          ...part,
+          state: {
+            ...part.state,
+            status: 'completed',
+            output: 'native result',
+          },
+        },
+      },
+    });
+
+    expect(emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'native-call',
+        toolName: 'fixture_read',
+        input: '{"path":"a.ts","exact":true}',
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: part.provider.metadata,
+      },
+    ]);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'native-call',
+        toolName: 'fixture_read',
+        result: 'native result',
+        dynamic: true,
+      },
+    ]);
+  });
+
   it.each([true, false])(
     'reports legacy compaction without streaming its summary as answer text (auto=%s)',
     auto => {
@@ -329,7 +386,7 @@ describe('createEmitStreamEvent', () => {
         ],
         "emitted": [
           {
-            "input": "{\"file\":\"README.md\"}",
+            "input": "{"file":"README.md"}",
             "nativeName": "view",
             "providerExecuted": true,
             "toolCallId": "tool-1",
@@ -369,7 +426,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryName\":\"next.js\"}",
+          "input": "{"libraryName":"next.js"}",
           "providerExecuted": true,
           "toolCallId": "tool-1",
           "toolName": "context7_resolve-library-id",
@@ -410,7 +467,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"file\":\"README.md\"}",
+          "input": "{"file":"README.md"}",
           "nativeName": "view",
           "providerExecuted": true,
           "toolCallId": "tool-legacy",

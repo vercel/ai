@@ -47,7 +47,9 @@ export function pruneMessages({
 
       return {
         ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
+        content: message.content.filter(
+          part => part.type !== 'reasoning' && part.type !== 'reasoning-file',
+        ),
       };
     });
   }
@@ -80,7 +82,7 @@ export function pruneMessages({
     const keptToolCallIds: Set<string> = new Set();
     const keptApprovalIds: Set<string> = new Set();
 
-    if (keepLastMessagesCount != null) {
+    if (keepLastMessagesCount != null && keepLastMessagesCount !== 0) {
       for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&
@@ -161,42 +163,101 @@ export function pruneMessages({
         return message;
       }
 
+      const keepParts = message.content.map(part => {
+        // keep non-tool parts:
+        if (
+          part.type !== 'tool-call' &&
+          part.type !== 'tool-result' &&
+          part.type !== 'tool-approval-request' &&
+          part.type !== 'tool-approval-response'
+        ) {
+          return true;
+        }
+
+        // keep parts that are associated with a tool call or approval that needs to be kept:
+        if (
+          ((part.type === 'tool-call' || part.type === 'tool-result') &&
+            keptToolCallIds.has(part.toolCallId)) ||
+          ((part.type === 'tool-approval-request' ||
+            part.type === 'tool-approval-response') &&
+            keptApprovalIds.has(part.approvalId))
+        ) {
+          return true;
+        }
+
+        // keep parts that are not associated with a tool that should be removed:
+        const partToolName =
+          part.type === 'tool-call' || part.type === 'tool-result'
+            ? part.toolName
+            : approvalIdToToolName.get(part.approvalId);
+
+        return (
+          toolCall.tools != null &&
+          partToolName != null &&
+          !toolCall.tools.includes(partToolName)
+        );
+      });
+
+      // Consecutive reasoning parts can belong to the same provider item.
+      // Remove the whole group when its following content was pruned.
+      if (message.role === 'assistant') {
+        for (
+          let reasoningIndex = 0;
+          reasoningIndex < message.content.length;
+          reasoningIndex++
+        ) {
+          const part = message.content[reasoningIndex];
+          if (part.type !== 'reasoning' && part.type !== 'reasoning-file') {
+            continue;
+          }
+
+          let reasoningEndIndex = reasoningIndex + 1;
+          while (reasoningEndIndex < message.content.length) {
+            const nextPart = message.content[reasoningEndIndex];
+            if (
+              nextPart.type !== 'reasoning' &&
+              nextPart.type !== 'reasoning-file'
+            ) {
+              break;
+            }
+            reasoningEndIndex++;
+          }
+
+          let followingPartIndex = reasoningEndIndex;
+          let hasFollowingPart = false;
+          let hasKeptFollowingPart = false;
+
+          while (followingPartIndex < message.content.length) {
+            const followingPart = message.content[followingPartIndex];
+            if (
+              followingPart.type === 'reasoning' ||
+              followingPart.type === 'reasoning-file'
+            ) {
+              break;
+            }
+
+            hasFollowingPart = true;
+            hasKeptFollowingPart ||= keepParts[followingPartIndex];
+            followingPartIndex++;
+          }
+
+          if (hasFollowingPart && !hasKeptFollowingPart) {
+            for (
+              let index = reasoningIndex;
+              index < reasoningEndIndex;
+              index++
+            ) {
+              keepParts[index] = false;
+            }
+          }
+
+          reasoningIndex = followingPartIndex - 1;
+        }
+      }
+
       return {
         ...message,
-        content: message.content.filter(part => {
-          // keep non-tool parts:
-          if (
-            part.type !== 'tool-call' &&
-            part.type !== 'tool-result' &&
-            part.type !== 'tool-approval-request' &&
-            part.type !== 'tool-approval-response'
-          ) {
-            return true;
-          }
-
-          // keep parts that are associated with a tool call or approval that needs to be kept:
-          if (
-            ((part.type === 'tool-call' || part.type === 'tool-result') &&
-              keptToolCallIds.has(part.toolCallId)) ||
-            ((part.type === 'tool-approval-request' ||
-              part.type === 'tool-approval-response') &&
-              keptApprovalIds.has(part.approvalId))
-          ) {
-            return true;
-          }
-
-          // keep parts that are not associated with a tool that should be removed:
-          const partToolName =
-            part.type === 'tool-call' || part.type === 'tool-result'
-              ? part.toolName
-              : approvalIdToToolName.get(part.approvalId);
-
-          return (
-            toolCall.tools != null &&
-            partToolName != null &&
-            !toolCall.tools.includes(partToolName)
-          );
-        }),
+        content: message.content.filter((_, index) => keepParts[index]),
       } as AssistantModelMessage | ToolModelMessage;
     });
   }

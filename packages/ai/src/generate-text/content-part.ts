@@ -1,5 +1,6 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
+import type { Citation } from '../types/citation';
 import type { Source } from '../types/language-model';
 import type { GeneratedFile } from './generated-file';
 import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
@@ -10,7 +11,12 @@ import type { TypedToolError } from './tool-error';
 import type { TypedToolResult } from './tool-result';
 
 export type ContentPart<TOOLS extends ToolSet> =
-  | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'text';
+      text: string;
+      citations?: Array<Citation>;
+      providerMetadata?: ProviderMetadata;
+    }
   | {
       type: 'custom';
       kind: `${string}.${string}`;

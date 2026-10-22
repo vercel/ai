@@ -31,6 +31,15 @@ explicit `validateUrl`.
 > If the host, or anything beyond a path segment, comes from a response body,
 > or an authenticated poll must validate redirects → `validateUrl: true`.
 
+## Identifiers in URL paths
+
+Use `encodePathSegment` from `@ai-sdk/provider-utils` when inserting a raw
+identifier into a URL path. It encodes separators, query and fragment markers,
+and standalone `.` / `..` segments that URL parsers would otherwise normalize.
+Pass unencoded values. For resource names with intentional slashes, encode each
+segment separately with `resourceName.split('/').map(encodePathSegment).join('/')`;
+the provider must still validate the resource name's expected structure.
+
 ## Self-hosted deployments: `trustedOrigin`
 
 A response URL often points back at the developer-configured endpoint itself
@@ -74,6 +83,46 @@ await getFromApi({
 });
 ```
 
+## Direct fetch helpers
+
+Use `fetchUntrustedUrl` from `@ai-sdk/provider-utils` for direct fetches of
+response-supplied or otherwise untrusted URLs. It shares URL validation, DNS
+pinning, and redirect handling with `fetchWithValidatedRedirects`, but adds
+first-hop credential isolation. Without a matching `credentialedOrigin` or,
+when that option is omitted, a matching `trustedOrigin`, it sends only an
+allowlist of non-credential request metadata such as content negotiation, range,
+idempotency, tracing, request-id, and user-agent headers. Unknown headers are
+withheld because arbitrary provider credential names cannot be identified
+safely.
+
+Set `credentialedOrigin` to a developer-configured endpoint when credentials
+are needed. It takes precedence over `trustedOrigin`, which also exempts matching
+hops from URL validation for self-hosted deployments. Never derive either origin
+from response data. Sanitization still strips proxy, cloud-metadata, and cookie
+headers, and a cross-origin redirect retains only `User-Agent`.
+
+`fetchWithValidatedRedirects` retains its existing behavior for compatibility:
+it sanitizes caller headers but forwards credentials and arbitrary custom
+headers on the first hop. `trustedOrigin` in that helper controls URL validation,
+not credential forwarding. Its callers remain responsible for deciding whether
+the initial URL may receive those headers. Switching to `fetchUntrustedUrl` is
+an explicit opt-in; existing calls are not automatically protected on the first
+hop. `getFromApi` also retains its existing optional `credentialedOrigin` policy,
+so provider call sites must continue passing the configured origin when sending
+credentials to response-supplied URLs.
+
+If a direct caller needs to send additional protocol metadata to an untrusted
+first hop, list only those sanitized header names in
+`untrustedFirstHopHeaders`. Do not use this option for credentials:
+
+```ts
+await fetchUntrustedUrl({
+  url: discoveryUrl,
+  headers: { 'x-protocol-version': protocolVersion },
+  untrustedFirstHopHeaders: ['x-protocol-version'],
+});
+```
+
 ## DNS validation and deployment hardening
 
 On Node.js, the default validated download fetch resolves all DNS records
@@ -94,3 +143,10 @@ validation. Other server runtimes should restrict network egress
 because the Node DNS and socket hooks are unavailable there. The user-facing
 explanation lives in:
 [Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).
+
+## Settings inserted into generated hostnames
+
+Before inserting a resource name, region, or location into a provider hostname,
+validate it with `isValidHostnamePart` from `@ai-sdk/provider-utils`. It accepts one
+ASCII DNS label (1–63 letters, digits, or hyphens, with no leading or trailing
+hyphen). Throw `InvalidArgumentError` with the setting name when validation fails.

@@ -1,5 +1,7 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -116,6 +118,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
       input: text,
       voice_id: refAudio == null ? voice : undefined,
       ref_audio: refAudio,
+      expressiveness: mistralOptions?.expressiveness,
+      phoneme_hints: mistralOptions?.phonemeHints,
       response_format: responseFormat,
       stream: false,
     };
@@ -174,6 +178,10 @@ export class MistralSpeechModel implements SpeechModelV4 {
   }
 }
 
-const mistralSpeechResponseSchema = z.object({
-  audio_data: z.string(),
-});
+const mistralSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_data: z.string(),
+    }),
+  ),
+);

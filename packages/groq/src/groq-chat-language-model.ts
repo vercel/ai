@@ -1,29 +1,34 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   StreamingToolCallTracker,
   combineHeaders,
+  convertJsonResponseToolStream,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createProviderStreamError,
   generateId,
   isCustomReasoning,
+  lazySchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  zodSchema,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -149,6 +154,26 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       schema: groqLanguageModelChatOptions,
     });
 
+    // Groq rejects JSON response formatting together with function tools.
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
     const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
 
@@ -159,7 +184,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredOutputs
+      !structuredOutputs &&
+      jsonResponseTool == null
     ) {
       warnings.push({
         type: 'unsupported',
@@ -173,7 +199,19 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
+    } = prepareTools({
+      tools:
+        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
+      toolChoice:
+        jsonResponseTool == null
+          ? toolChoice
+          : toolChoice?.type === 'tool'
+            ? toolChoice
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseTool.name }
+              : { type: 'required' },
+      modelId: this.modelId,
+    });
 
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
@@ -196,6 +234,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
             medium: 'medium',
             high: 'high',
             xhigh: 'high',
+            max: 'high',
           },
           warnings,
         });
@@ -209,7 +248,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // model specific settings:
         user: groqOptions?.user,
-        parallel_tool_calls: groqOptions?.parallelToolCalls,
+        parallel_tool_calls:
+          jsonResponseTool != null ? false : groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -222,7 +262,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // response format:
         response_format:
-          responseFormat?.type === 'json'
+          jsonResponseTool == null && responseFormat?.type === 'json'
             ? structuredOutputs && responseFormat.schema != null
               ? {
                   type: 'json_schema',
@@ -249,13 +289,15 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseToolName: jsonResponseTool?.name,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = JSON.stringify(args);
 
@@ -279,13 +321,14 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV4Content> = [];
-
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
     }
+
+    const content: Array<LanguageModelV4Content> = [];
 
     // reasoning:
     const reasoning = choice.message.reasoning;
@@ -296,22 +339,38 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       });
     }
 
+    // text content:
+    const text = choice.message.content;
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
+    }
+
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
-        content.push({
-          type: 'tool-call',
-          toolCallId: toolCall.id || generateId(),
-          toolName: toolCall.function.name,
-          input: toolCall.function.arguments!,
-        });
+        if (toolCall.function.name === jsonResponseToolName) {
+          content.push({ type: 'text', text: toolCall.function.arguments });
+        } else {
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.id || generateId(),
+            toolName: toolCall.function.name,
+            input: toolCall.function.arguments!,
+          });
+        }
       }
     }
 
     return {
       content,
       finishReason: {
-        unified: mapGroqFinishReason(choice.finish_reason),
+        unified:
+          jsonResponseToolName != null &&
+          content.some(part => part.type === 'text') &&
+          !content.some(part => part.type === 'tool-call') &&
+          choice.finish_reason === 'tool_calls'
+            ? 'stop'
+            : mapGroqFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertGroqUsage(response.usage),
@@ -328,7 +387,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
@@ -348,8 +408,9 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage:
@@ -374,11 +435,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV4ProviderMetadata | undefined;
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
+          ParseResult<InferSchema<typeof groqChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -504,7 +564,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
           flush(controller) {
             if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: 'reasoning-0',
+              });
             }
 
             if (isActiveText) {
@@ -517,7 +580,6 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGroqUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),
@@ -525,109 +587,126 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       request: { body: JSON.stringify(body) },
       response: { headers: responseHeaders },
     };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
+    };
   }
 }
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const groqChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({
-          cached_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      completion_tokens_details: z
-        .object({
-          reasoning_tokens: z.number().nullish(),
-        })
-        .nullish(),
-    })
-    .nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
             content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
-                  index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function'),
                   function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+                    name: z.string(),
+                    arguments: z.string(),
                   }),
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
-      }),
-    ),
-    x_groq: z
-      .object({
-        usage: z
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          completion_tokens_details: z
+            .object({
+              reasoning_tokens: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const groqChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      z.object({
+        id: z.string().nullish(),
+        created: z.number().nullish(),
+        model: z.string().nullish(),
+        choices: z.array(
+          z.object({
+            delta: z
+              .object({
+                content: z.string().nullish(),
+                reasoning: z.string().nullish(),
+                tool_calls: z
+                  .array(
+                    z.object({
+                      index: z.number(),
+                      id: z.string().nullish(),
+                      type: z.literal('function').optional(),
+                      function: z.object({
+                        name: z.string().nullish(),
+                        arguments: z.string().nullish(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
+              })
+              .nullish(),
+            finish_reason: z.string().nullable().optional(),
+            index: z.number(),
+          }),
+        ),
+        x_groq: z
           .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-            total_tokens: z.number().nullish(),
-            prompt_tokens_details: z
+            usage: z
               .object({
-                cached_tokens: z.number().nullish(),
-              })
-              .nullish(),
-            completion_tokens_details: z
-              .object({
-                reasoning_tokens: z.number().nullish(),
+                prompt_tokens: z.number().nullish(),
+                completion_tokens: z.number().nullish(),
+                total_tokens: z.number().nullish(),
+                prompt_tokens_details: z
+                  .object({
+                    cached_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
+                completion_tokens_details: z
+                  .object({
+                    reasoning_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
               })
               .nullish(),
           })
           .nullish(),
-      })
-      .nullish(),
-  }),
-  groqErrorDataSchema,
-]);
+      }),
+      groqErrorDataSchema,
+    ]),
+  ),
+);

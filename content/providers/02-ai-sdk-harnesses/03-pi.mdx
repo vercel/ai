@@ -32,17 +32,18 @@ import { pi, createPi } from '@ai-sdk/harness-pi';
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { pi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: pi,
   model: 'anthropic/claude-sonnet-4.6',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -61,6 +62,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -83,17 +85,76 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `cacheRetention`: default prompt cache retention for model requests (`none`,
+  `short`, or `long`). For Anthropic models, `long` uses the 1-hour cache
+  instead of the 5-minute default.
 - `credentials`: application-owned Pi credential storage. This replaces the
   file-backed `auth.json` store and supports persistent database-backed
   credentials.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
-- `mcpServers`: MCP server definitions keyed by server name.
+- `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read or
+  write, and roots they must refuse. See [File Tool Paths](#file-tool-paths).
+- `mcpServers`: MCP servers keyed by server name, served by Pi's native MCP
+  support. Each entry is Pi's MCP server configuration, either stdio
+  (`command`, `args`, `env`, `cwd`) or streamable HTTP (`url`, `headers`).
+  Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by
+  `_`. `exposure` defaults to `direct`, which declares a server's tools to the
+  model; with `deferred`, the model finds them through Pi's `tool_search` tool
+  first. Pi's `codemode` exposure is not supported. An entry that uses it, or
+  that Pi rejects, fails session start. Pi truncates text results over 20 KB
+  and writes the full text to the host temp directory. The harness has no
+  sign-in flow, so an HTTP server that requires authentication must carry an
+  `Authorization` header or `auth.provider`.
+- `mcpSettings`: deprecated. Pi's native MCP has no tool prefix or output
+  guard settings, so a `toolPrefix` other than `mcp`, or `outputGuard: false`,
+  fails session start.
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
+
+## File Tool Paths
+
+By default, Pi's native file tools (`read`, `write`, `edit`, `ls`, `find`, and
+`grep`) are limited to the session workspace, and the read-only tools can also
+read the harness skill directory. Use `fileToolPathPolicy` to change what they
+can reach:
+
+```ts
+const harness = createPi({
+  fileToolPathPolicy: {
+    readableRoots: ['/home/vercel-sandbox'],
+    writableRoots: ['/tmp', '/mnt/artifacts'],
+    deniedRoots: ['/home/vercel-sandbox/.credentials'],
+  },
+});
+```
+
+- `readableRoots`: absolute sandbox directories that `read`, `ls`, `find`, and
+  `grep` can reach in addition to the defaults. They do not become writable.
+- `writableRoots`: absolute sandbox directories that `write` and `edit` can
+  reach in addition to the workspace. Writable roots are also readable.
+- `deniedRoots`: absolute sandbox directories that every native file tool
+  refuses, even inside the workspace or a readable root. Both requested paths
+  and denied roots are resolved in the sandbox, so symlinks pointing to or from
+  a denied root are refused. Configured roots are resolved again for each file
+  operation; canonical denied roots captured at session startup remain denied.
+  `find` and `grep` prune exact denied paths without following directory symlinks,
+  and `ls` hides directly denied entries. Other directories with the same name
+  remain accessible.
+
+Every configured root must be an absolute sandbox path. Denied roots take
+precedence over the workspace, harness skill directory, and allowed roots.
+Writes outside the workspace do not emit workspace `file-change` events.
+
+When the setting is present, a leading `~` in a tool path expands to the
+sandbox home directory.
+
+The policy applies to Pi's native file tools only. The `bash` tool is not
+restricted by it, so do not treat `deniedRoots` as a security boundary for
+commands the agent runs.
 
 ## Inline Extensions
 
@@ -111,6 +172,31 @@ const harness = createPi({
   ],
 });
 ```
+
+Each factory also receives the harness session it runs in as a second argument:
+
+- `sandboxSession`: the session's sandbox, restricted to the operations harness
+  tools may use.
+- `sessionWorkDir`: the sandbox directory the session works in.
+- `instructions()`: the instructions of the current turn. Instructions arrive
+  with each turn, so call it while a turn runs, not when the factory runs.
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    (pi, session) => {
+      pi.on('agent_start', async () => {
+        const { stdout } = await session.sandboxSession.run({
+          command: `git -C ${session.sessionWorkDir} status --short`,
+        });
+        console.log(session.instructions(), stdout);
+      });
+    },
+  ],
+});
+```
+
+Factories that take only the Pi API keep working unchanged.
 
 Routine resource refreshes between turns reuse the active extension runtime and
 do not reinitialize factories. If the underlying Pi session is rebuilt, the
@@ -232,13 +318,13 @@ const harness = createPi({
 
 ## Sandbox
 
-Pi needs a `HarnessV1SandboxProvider`, but it does not require exposed ports.
-You can use a network sandbox adapter like `@ai-sdk/sandbox-vercel`, or a
-local emulation like `@ai-sdk/sandbox-just-bash`:
+Pi needs a sandbox session but does not require exposed ports. You can create a
+Vercel network session or a local just-bash session:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -264,6 +350,9 @@ Pi supports built-in tool approval requests when `permissionMode` is
 
 Pi does not support structured output. Supplying `output` to `HarnessAgent`
 causes the turn to throw `HarnessCapabilityUnsupportedError`.
+
+Pi does not support user messages with text parts after image parts; all text
+must appear before the first image.
 
 ## Related
 

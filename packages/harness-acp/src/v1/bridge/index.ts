@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -20,6 +20,7 @@ import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
@@ -37,6 +38,7 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
@@ -56,13 +58,6 @@ import {
   type ACPSessionRestorationMethod,
 } from './session-lifecycle';
 
-type ImplementationDescriptor = {
-  readonly executablePath: string;
-  readonly privateHome: boolean;
-  readonly args: ReadonlyArray<string>;
-  readonly envKeys: ReadonlyArray<string>;
-};
-
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
 
@@ -72,16 +67,9 @@ const bridgeStateDir = requireArg({
   value: args.bridgeStateDir,
   name: '--bridge-state-dir',
 });
-const implementationDir = requireArg({
-  value: args.implementationDir,
-  name: '--implementation-dir',
-});
 const bridgeType = requireArg({
   value: args.bridgeType,
   name: '--bridge-type',
-});
-const implementation = await readImplementationDescriptor({
-  path: `${implementationDir}/implementation.json`,
 });
 const bridgeConfiguration = await readACPBridgeEnvironment({ env: processEnv });
 
@@ -93,6 +81,7 @@ let recoveredSessionUpdates:
   | ReturnType<typeof createACPRecoveredSessionUpdates>
   | undefined;
 let recoveredSessionId: string | undefined;
+let sessionSupportsImagePrompts = false;
 let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
@@ -147,6 +136,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       start,
       turn,
     }));
+    if (
+      !sessionSupportsImagePrompts &&
+      start.prompt.some(part => part.type === 'image')
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: 'The ACP agent does not advertise support for image prompts.',
+      });
+    }
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -236,9 +234,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   void cancellationFailure.catch(() => {});
   let cancellationRequested = false;
   let cancellationFailureError: Error | undefined;
+  const hostToolAuthorization = createHostToolRelayAuthorization({
+    serverName: HOST_TOOL_MCP_SERVER_NAME,
+    toolNames: (start.tools ?? []).map(tool => tool.name),
+  });
   const cancel = async () => {
     if (cancellationRequested) return;
     cancellationRequested = true;
+    hostToolAuthorization.close();
     activePermissionController?.cancelAll();
     try {
       if (connection == null) {
@@ -296,11 +299,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hasPermissionModeMapping: start.permissionModeMapping != null,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
+    onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,
   });
   activePermissionController = permissionController;
   const relayTurn: HostToolRelayTurn = {
+    waitForToolCallAuthorization:
+      hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
+    emitWarning: turn.emitWarning,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
     registerCorrelationInvocation:
       emitStreamEvent.registerHostToolCorrelationInvocation,
@@ -366,6 +373,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
+        hostToolAuthorization.observeUpdate({ update: message.update });
         for (const rawValue of captured?.precedingRawValues ?? []) {
           emitStreamEvent.raw({ rawValue });
         }
@@ -381,6 +389,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       if (emitStreamEvent.message({ message })) return;
     }
   } finally {
+    hostToolAuthorization.close();
     if (activeQuestionRequest?.turn === turn) {
       activeQuestionRequest = undefined;
     }
@@ -455,14 +464,13 @@ async function ensureSession({
     environment: {
       ...createChildEnvironment({
         launchEnv,
-        implementationDir,
-        privateHome: implementation.privateHome,
+        home: bridgeConfiguration.agent.home,
       }),
     },
   });
   child = spawn(
-    `${implementationDir}/${implementation.executablePath}`,
-    [...implementation.args],
+    bridgeConfiguration.agent.command,
+    [...bridgeConfiguration.agent.args],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,
@@ -543,6 +551,12 @@ async function ensureSession({
         active.emitStreamEvent.suppressToolCall({
           toolCallId: nativeToolCallId ?? classification.toolCallId,
         });
+        active.turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: unknownUsage(),
+          harnessMetadata: { acp: { inferredStep: true } },
+        });
         try {
           const nativeResult = await active.turn.requestToolResult(
             classification.toolCallId,
@@ -580,6 +594,10 @@ async function ensureSession({
     requested: acp.PROTOCOL_VERSION,
     initialization,
   });
+  sessionSupportsImagePrompts = isACPImagePromptSupported({
+    initialization,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
+  });
 
   if (authentication != null) {
     await authenticate({
@@ -602,6 +620,7 @@ async function ensureSession({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     mcpTransport,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   const mcpServers: acp.McpServer[] = [
@@ -815,12 +834,10 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
-  implementationDir,
-  privateHome,
+  home,
 }: {
   launchEnv: Readonly<Record<string, string>>;
-  implementationDir: string;
-  privateHome: boolean;
+  home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -839,9 +856,8 @@ function createChildEnvironment({
     ),
     ...launchEnv,
   };
-  if (!privateHome) return environment;
+  if (home == null) return environment;
 
-  const home = `${implementationDir}/home`;
   const inheritedPath = environment.PATH;
   return {
     ...environment,
@@ -934,44 +950,14 @@ function promptActiveSession({
   return response;
 }
 
-async function readImplementationDescriptor({
-  path,
-}: {
-  path: string;
-}): Promise<ImplementationDescriptor> {
-  const text = await readFile(path, 'utf8');
-  const value = await new Response(text, {
-    headers: { 'content-type': 'application/json' },
-  }).json();
-  if (
-    !isRecord(value) ||
-    typeof value.executablePath !== 'string' ||
-    typeof value.privateHome !== 'boolean' ||
-    !Array.isArray(value.args) ||
-    !value.args.every(item => typeof item === 'string') ||
-    !Array.isArray(value.envKeys) ||
-    !value.envKeys.every(item => typeof item === 'string')
-  ) {
-    throw new Error('Invalid ACP implementation descriptor.');
-  }
-  return {
-    executablePath: value.executablePath,
-    privateHome: value.privateHome,
-    args: value.args as string[],
-    envKeys: value.envKeys as string[],
-  };
-}
-
 function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
-  implementationDir?: string;
   bridgeType?: string;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
-    implementationDir?: string;
     bridgeType?: string;
   } = {};
   for (let index = 0; index < args.length; index++) {
@@ -980,8 +966,6 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     if (args[index] === '--workdir') result.workDir = value;
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
-    else if (args[index] === '--implementation-dir')
-      result.implementationDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
   }
   return result;

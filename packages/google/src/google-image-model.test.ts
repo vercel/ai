@@ -27,6 +27,7 @@ function prepareJsonResponse({
     candidatesTokenCount: 100,
     totalTokenCount: 110,
   },
+  finishReason = 'STOP',
   headers,
   groundingMetadata,
 }: {
@@ -36,6 +37,7 @@ function prepareJsonResponse({
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  finishReason?: string;
   headers?: Record<string, string>;
   groundingMetadata?: Record<string, unknown>;
 } = {}) {
@@ -54,7 +56,7 @@ function prepareJsonResponse({
             })),
             role: 'model',
           },
-          finishReason: 'STOP',
+          finishReason,
           ...(groundingMetadata != null ? { groundingMetadata } : {}),
         },
       ],
@@ -64,6 +66,66 @@ function prepareJsonResponse({
 }
 
 describe('GoogleImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'gemini-2.5-flash-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3-pro-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3.1-flash-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-nano-banana-2.1',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-2.5-pro',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-3-pro-preview',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'legacy-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new GoogleImageModel(
+          modelId,
+          {},
+          {
+            provider: 'google.generative-ai',
+            baseURL: 'https://api.example.com/v1beta',
+          },
+        );
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('maxImagesPerCall', () => {
     it('should default to a supported per-call limit', () => {
       expect(model.maxImagesPerCall).toBe(1);
@@ -134,6 +196,7 @@ describe('GoogleImageModel', () => {
         {
           "google": {
             "finishMessage": null,
+            "finishReason": "STOP",
             "groundingMetadata": null,
             "images": [
               {},
@@ -191,6 +254,29 @@ describe('GoogleImageModel', () => {
           serviceTier: 'standard',
         },
         serviceTier: 'standard',
+      });
+    });
+
+    it('should expose the candidate finish reason in provider metadata', async () => {
+      prepareJsonResponse({
+        images: [],
+        finishReason: 'IMAGE_SAFETY',
+      });
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.google).toMatchObject({
+        finishReason: 'IMAGE_SAFETY',
+        images: [],
       });
     });
 
@@ -396,6 +482,7 @@ describe('GoogleImageModel', () => {
       expect(result.providerMetadata?.google).toMatchInlineSnapshot(`
         {
           "finishMessage": null,
+          "finishReason": "STOP",
           "groundingMetadata": {
             "groundingChunks": [
               {

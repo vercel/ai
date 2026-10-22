@@ -1,6 +1,6 @@
 # AI SDK - fx Harness
 
-The **[@ai-sdk/harness-fx](https://www.npmjs.com/package/@ai-sdk/harness-fx)** package adapts [fx](https://fx.sh) to the AI SDK harness abstraction through the Agent Client Protocol (ACP).
+The **[@ai-sdk/harness-fx](https://www.npmjs.com/package/@ai-sdk/harness-fx)** package adapts [fx](https://fx.sh) to the AI SDK harness abstraction using [libfx](https://www.npmjs.com/package/libfx). The runtime runs on the host, while built-in filesystem and shell tools operate exclusively on the sandbox.
 
 ## Setup
 
@@ -13,17 +13,17 @@ npm install @ai-sdk/harness @ai-sdk/harness-fx @ai-sdk/sandbox-vercel
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { fx } from '@ai-sdk/harness-fx';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: fx,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -33,11 +33,12 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter uses `@ai-sdk/harness-acp`, which installs the latest fx release inside the sandbox with the canonical fx installer. The sandbox must provide network access and at least one exposed TCP port.
+No fx executable or bridge is installed inside the sandbox, and no exposed sandbox port is required. Model requests run on the host.
 
-fx uses Vercel AI Gateway. Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` to authenticate, or pass an isolated authentication environment with `createFx({ auth: { AI_GATEWAY_API_KEY: token } })`.
+fx uses Vercel AI Gateway when `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available. Otherwise it discovers subscription credentials in this order: fx Codex, fx Grok, native Codex, then native Grok. Use `createFx({ auth: 'direct' })` to prefer subscriptions while retaining Gateway fallback, or `auth: 'ai-gateway'` to use Gateway only.
 
 See the [fx harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/fx) for settings, tools, and limitations.

@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
 import { VERSION } from './version';
 import { resolveCursorSubscriptionEnvironment } from './cursor-subscription';
 
-const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
+const CURSOR_CLIENT_APP = `ai-sdk-harness-cursor/${VERSION}`;
 
 export type CursorAuthenticationMode = ACPAuthenticationMode;
 
@@ -64,7 +64,7 @@ export type CursorHarnessSettings = {
 
 /*
  * Tool variants, display titles, ACP kinds, and raw input projections were
- * captured from the official Cursor CLI 2026.08.11-e8db854 ACP implementation.
+ * captured from the official Cursor CLI 2026.08.11-e8db854 ACP agent.
  * `mcpToolCall` is dynamic and `truncatedToolCall` is a transport sentinel, so
  * neither is exposed as a built-in.
  */
@@ -356,6 +356,7 @@ export function createCursor(
   }
 
   return createACP({
+    nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveCursorSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,

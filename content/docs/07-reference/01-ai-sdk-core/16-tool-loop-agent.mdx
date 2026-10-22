@@ -105,6 +105,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of tool calls that the SDK executes concurrently within an agent step. Set to `1` to execute calls sequentially in model-generated order. Must be a positive integer. By default, all tool calls execute concurrently.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
@@ -172,7 +179,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier (e.g., "gpt-4o").',
+              description:
+                'The specific model identifier (e.g., "gpt-6-astra").',
             },
             {
               name: 'instructions',
@@ -305,7 +313,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Each step represents a single LLM invocation. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when a step begins, before the provider is called. Each step includes a model generation and any associated local tool execution; provider retries remain within the same step. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -319,7 +327,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier (e.g., "gpt-4o").',
+              description:
+                'The specific model identifier (e.g., "gpt-6-astra").',
             },
             {
               name: 'instructions',
@@ -724,7 +733,7 @@ const result = await agent.generate({
       type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs and chunkMs have no effect on generate(); they are streaming-only and are enforced by stream(). Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. stepMs limits each complete step, including model generation, retries, and local tool execution. firstChunkMs and chunkMs have no effect on generate(); they are streaming-only and are enforced by stream(). Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
@@ -752,7 +761,7 @@ const result = await agent.generate({
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
+        'Callback that is called when a step begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
       name: 'onToolExecutionStart',
@@ -840,7 +849,7 @@ for await (const chunk of stream.textStream) {
       type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs limits gaps between later content-bearing output chunks. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, and/or chunkMs properties. stepMs limits each complete step, including model generation, retries, and local tool execution. firstChunkMs limits the wait for the first content-bearing output in each model-call step. chunkMs starts with the first meaningful model output and limits gaps between subsequent meaningful model output chunks. Both output timers stop when the model response finishes and start fresh for each retry or later model call; they exclude retry backoff and local tool execution. Tool results, including preliminary results, do not reset them. Provider-executed tools remain within the model response. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_sandbox',
@@ -875,7 +884,7 @@ for await (const chunk of stream.textStream) {
       type: 'GenerateTextOnStepStartCallback',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
+        'Callback that is called when a step begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first).',
     },
     {
       name: 'onToolExecutionStart',

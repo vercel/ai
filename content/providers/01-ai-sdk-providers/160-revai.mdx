@@ -1,17 +1,60 @@
 ---
 title: Rev.ai
-description: Learn how to use the Rev.ai provider for the AI SDK.
+description: Learn how to set up the Rev.ai provider and check AI Gateway availability.
 ---
 
 # Rev.ai Provider
 
 The [Rev.ai](https://www.rev.ai/) provider contains language model support for the Rev.ai transcription API.
+Rev.ai models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/revai` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
 
-## Setup
+```ts
+import { transcribe } from 'ai';
+import { revai } from '@ai-sdk/revai';
+import { readFile } from 'node:fs/promises';
 
-The Rev.ai provider is available in the `@ai-sdk/revai` module. You can install it with
+const { text } = await transcribe({
+  model: revai.transcription('machine'),
+  audio: await readFile('audio.mp3'),
+});
 
-<InstallPackages packages="@ai-sdk/revai" />
+console.log(text);
+```
+
+The example transcribes an `audio.mp3` file from your project.
+
+## Using AI Gateway
+
+The current [AI Gateway model catalog](https://vercel.com/ai-gateway/models) does not list Rev.ai models. Use `@ai-sdk/revai` for the APIs on this page. To use other transcription models through Gateway, install `ai` and configure a Gateway API key:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [Gateway documentation](/providers/ai-sdk-providers/ai-gateway) for supported models and APIs.
+
+## Using `@ai-sdk/revai`
+
+For direct access to Rev.ai, install `ai` and `@ai-sdk/revai`:
+
+<InstallPackages packages="ai @ai-sdk/revai" />
+
+Set your Rev.ai API credential in the `REVAI_API_KEY` environment variable:
+
+```bash
+export REVAI_API_KEY=your_api_key_here
+```
+
+<Note>
+  The following sections document the direct `@ai-sdk/revai` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -182,7 +225,7 @@ The following provider options are available:
 
 - **language** _string_
 
-  Language of the audio content, provided as an ISO 639-1 language code. Default is "en".
+  Language of the audio content, provided as an ISO 639-1 language code, with some exceptions such as region-qualified codes (for example "en-us"). Default is "en".
 
 - **forced_alignment** _boolean_
 

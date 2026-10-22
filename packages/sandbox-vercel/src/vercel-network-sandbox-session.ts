@@ -14,11 +14,11 @@ const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 
 /**
  * `HarnessV1NetworkSandboxSession` backed by a `@vercel/sandbox` `Sandbox`. The
- * provider's `create()` returns one of these. It extends
- * {@link VercelSandboxSession} with the infra surface (ports, lifecycle,
- * network policy). It owns the sandbox's lifecycle only when the provider
- * created it; when the provider was given an existing sandbox, `stop()` and
- * `destroy()` are no-ops (caller retains ownership).
+ * native adaptation and sandbox creation functions return one of these. It
+ * extends {@link VercelSandboxSession} with ports, lifecycle, and network
+ * policy. Explicit `stop()` and `destroy()` calls delegate to the native
+ * sandbox unless the session was wrapped through the compatibility provider's
+ * existing-sandbox path, where those calls are intentionally no-ops.
  */
 export class VercelNetworkSandboxSession
   extends VercelSandboxSession

@@ -187,6 +187,61 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+  });
+
   it('should reject a response without choices', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
@@ -758,6 +813,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should warn that reasoningSummary is not supported by the chat API', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o3');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningSummary: 'detailed' },
+      },
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -850,7 +927,7 @@ describe('doGenerate', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -1661,6 +1738,23 @@ describe('doGenerate', () => {
 
       expect(result.warnings).toStrictEqual([]);
     });
+
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('openai-text');
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
 
     it.each(['none', 'minimal'] as const)(
       'should omit unsupported GPT-6 reasoning effort %s',
@@ -2523,6 +2617,58 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    [null, 'interrupted'],
+    ['stop', 'stop'],
+    ['length', 'length'],
+    ['tool_calls', 'tool-calls'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finish_reason %j to %s',
+    async (raw, unified) => {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chat-1',
+            object: 'chat.completion.chunk',
+            created: 1,
+            model: 'gpt-4o',
+            choices: [
+              {
+                index: 0,
+                delta: { content: 'Partial answer' },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+          ...(raw === undefined
+            ? []
+            : [
+                `data: ${JSON.stringify({
+                  choices: [{ index: 0, delta: {}, finish_reason: raw }],
+                })}\n\n`,
+                'data: [DONE]\n\n',
+              ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Partial answer',
+      });
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: { unified, raw: raw ?? undefined },
+        }),
+      ]);
+    },
+  );
+
   it('should stream text after Azure content filter chunks', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',

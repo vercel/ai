@@ -4,20 +4,25 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import type {
-  ExtensionFactory,
-  ProviderConfig,
-} from '@earendil-works/pi-coding-agent';
+import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import {
+  createPiSession,
+  type PiCacheRetention,
+  type PiHarnessExtensionFactory,
+  type PiMcpServerConfig,
+  type PiMcpSettings,
+  type PiThinkingLevel,
+} from './pi-session';
+import type { PiFileToolPathPolicy } from './pi-paths';
 import { VERSION } from './version';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+const PI_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -51,6 +56,12 @@ export type PiHarnessSettings = {
    */
   readonly thinkingLevel?: PiThinkingLevel;
   /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
+  /**
    * Directory holding Pi's global agent config (auth.json, models.json,
    * settings.json). When omitted, native subscription auth is discovered from
    * Pi's default agent directory while model and general settings remain
@@ -58,25 +69,63 @@ export type PiHarnessSettings = {
    */
   readonly agentDir?: string;
   /**
-   * MCP server definitions keyed by server name. Each definition uses the
-   * underlying runtime's native MCP server configuration format.
+   * MCP servers keyed by server name. Each value is a `PiMcpServerConfig`,
+   * Pi's native MCP server configuration (stdio or streamable HTTP). Tools
+   * are named `mcp__<server>__<tool>`, with
+   * `-` in either name replaced by `_`.
+   *
+   * `exposure` defaults to `direct`, which declares the server's tools to the
+   * model. `deferred` tools stay undeclared until Pi's `tool_search` tool
+   * finds them; the model then calls them by name.
+   *
+   * The harness has no sign-in flow, so an HTTP server must carry an
+   * `Authorization` header or `auth.provider`; with the header, OAuth never
+   * runs. No `mcp.json` is read and nothing is written under Pi's agent
+   * directory.
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * @deprecated Pi's native MCP serves `mcpServers` and has no adapter
+   * settings. It always names tools `mcp__<server>__<tool>` and always
+   * truncates results over 20 KB, writing the full text to a file in the host
+   * temp directory. `toolPrefix` other than `'mcp'` and `outputGuard: false`
+   * fail session start.
+   */
+  readonly mcpSettings?: PiMcpSettings;
+  /**
    * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Each factory receives the Pi extension API and the harness session it
+   * runs in: the restricted sandbox session, the session work directory and
+   * a getter for the current turn's instructions. Plain Pi `ExtensionFactory`
+   * functions that take only the API keep working.
    *
    * Filesystem-discovered user and project extensions remain disabled.
    */
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
+  /**
+   * Absolute sandbox paths that widen or narrow what Pi's native file tools
+   * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
+   * outside the session workspace. `writableRoots` also permits writes and
+   * edits outside the workspace and grants read access. `deniedRoots` are
+   * refused by every native file tool and take precedence, including through
+   * symlinks. Configured roots are resolved for each operation; canonical
+   * denied roots captured at session startup remain denied. The `bash` tool
+   * is not restricted.
+   */
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };
 
 const PI_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
-    description: 'Read file contents.',
+    description:
+      'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
     inputSchema: z.object({
       file_path: z.string(),
+      offset: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
     }),
   }),
   write: commonTool('write', {
@@ -157,9 +206,7 @@ export function createPi(
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as
-        | { sessionFileName?: string }
-        | undefined;
+      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -176,10 +223,25 @@ export function createPi(
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
-          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
+            : {}),
+          ...(settings.mcpServers
+            ? {
+                mcpServers: settings.mcpServers as Readonly<
+                  Record<string, PiMcpServerConfig>
+                >,
+              }
+            : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
           ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
+            : {}),
+          ...(settings.fileToolPathPolicy
+            ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
@@ -190,6 +252,9 @@ export function createPi(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
+          : {}),
+        ...(resumeData?.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }

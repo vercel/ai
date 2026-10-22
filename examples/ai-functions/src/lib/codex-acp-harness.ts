@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   createACP,
   type ACPAuthenticationMode,
@@ -31,9 +32,15 @@ const webSearchActionSchema = z.discriminatedUnion('type', [
 const CODEX_ACP_EXECUTABLE = 'codex-acp';
 
 const CODEX_ACP_SOURCE = {
-  type: 'npm-simple',
-  packageName: '@agentclientprotocol/codex-acp',
-  packageVersion: '1.1.4',
+  type: 'npm-locked',
+  packageJson: readFileSync(
+    new URL('./codex-acp-bridge/package.json', import.meta.url),
+    'utf8',
+  ),
+  pnpmLockYaml: readFileSync(
+    new URL('./codex-acp-bridge/pnpm-lock.yaml', import.meta.url),
+    'utf8',
+  ),
 } as const satisfies ACPSource;
 
 const CODEX_ACP_BUILTIN_TOOLS = {
@@ -102,6 +109,7 @@ export function createCodexACP({
   });
 
   return createACP({
+    nonTextContentTypes: ['image'],
     harnessId: 'codex-acp',
     auth,
     mcpServers,

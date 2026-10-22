@@ -14,6 +14,8 @@ export { OpenAIRealtimeModel as Experimental_OpenAIRealtimeModel } from './realt
 export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
 export type {
   OpenAILanguageModelResponsesOptions,
+  OpenAIResponsesSystemMessageOptions,
+  OpenAIResponsesToolResultOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-language-model-options';
@@ -59,3 +61,5 @@ export type {
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
 export { VERSION } from './version';
+export type { OpenAIDecisionModelId } from './openai-decision-model';
+export type { OpenAIDecisionModelOptions } from './openai-decision-model-options';

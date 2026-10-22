@@ -1,6 +1,12 @@
 import { createProxy } from '@vercel/geistdocs/proxy';
+import {
+  type NextFetchEvent,
+  type NextRequest,
+  NextResponse,
+} from 'next/server';
 import { config as geistdocsConfig } from '@/lib/geistdocs/config';
 import { trackMdRequest } from '@/lib/geistdocs/md-tracking';
+import { playgroundTransitionResponse } from '@/lib/playground-urls';
 
 const proxy = createProxy({
   config: geistdocsConfig,
@@ -46,8 +52,14 @@ const proxy = createProxy({
 
 export const config = {
   matcher: [
-    '/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|icon.svg|images(?:/|$)|sitemap.xml|robots.txt).*)',
+    '/api/:path*',
+    '/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|icon.svg|images(?:/|$)|sitemap.xml|robots.txt|[.]well-known/atproto-did).*)',
   ],
 };
 
-export default proxy;
+export default function siteProxy(request: NextRequest, event: NextFetchEvent) {
+  const transition = playgroundTransitionResponse(request);
+  if (transition) return transition;
+  if (request.nextUrl.pathname.startsWith('/api/')) return NextResponse.next();
+  return proxy(request, event);
+}

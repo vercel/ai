@@ -49,7 +49,7 @@ Telemetry is enabled automatically once an integration is registered — no per-
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'What cities are in the United States?',
 });
 ```
@@ -61,7 +61,7 @@ import { streamText } from 'ai';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'Hello!',
   telemetry: {
     integrations: [DevToolsTelemetry()],
@@ -159,7 +159,7 @@ Telemetry is enabled automatically, but AI SDK 7 excludes raw request and respon
 
 ```ts highlight="4-7"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'Hello!',
   include: {
     requestBody: true,

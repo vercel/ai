@@ -243,6 +243,26 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should omit strict without warning when strict is false and strict tools are unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsStrictTools: false,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([]);
+    });
+
     it('should include strict but not beta when supportsStructuredOutput is false but supportsStrictTools is true', async () => {
       const result = await prepareTools({
         tools: [
@@ -1475,7 +1495,7 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
-  it('should handle tool choice "none"', async () => {
+  it('should preserve tools with tool choice "none"', async () => {
     const result = await prepareTools({
       tools: [
         {
@@ -1489,8 +1509,15 @@ describe('prepareTools', () => {
       supportsStructuredOutput: true,
       supportsStrictTools: true,
     });
-    expect(result.tools).toBeUndefined();
-    expect(result.toolChoice).toBeUndefined();
+    expect(result.tools).toEqual([
+      {
+        cache_control: undefined,
+        name: 'testFunction',
+        description: 'Test',
+        input_schema: {},
+      },
+    ]);
+    expect(result.toolChoice).toEqual({ type: 'none' });
   });
 
   it('should handle tool choice "tool"', async () => {
@@ -2011,5 +2038,170 @@ describe('anthropicChunkSchema - shared batch content variants', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe('computer_toolset_20260801', () => {
+  it('should prepare the toolset without a name or beta header', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.computer_toolset_20260801',
+          name: 'computer',
+          args: {},
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "toolChoice": undefined,
+        "toolWarnings": [],
+        "tools": [
+          {
+            "cache_control": undefined,
+            "type": "computer_toolset_20260801",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should map member configs to snake_case', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.computer_toolset_20260801',
+          name: 'computer',
+          args: {
+            configs: {
+              zoom: { enabled: false },
+              wait: { enabled: true, deferLoading: true },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result.tools).toMatchInlineSnapshot(`
+      [
+        {
+          "cache_control": undefined,
+          "configs": {
+            "wait": {
+              "defer_loading": true,
+              "enabled": true,
+            },
+            "zoom": {
+              "enabled": false,
+            },
+          },
+          "type": "computer_toolset_20260801",
+        },
+      ]
+    `);
+  });
+});
+
+describe('rejectsForcedToolUse', () => {
+  const tools = [
+    {
+      type: 'function' as const,
+      name: 'testFunction',
+      description: 'Test',
+      inputSchema: {},
+    },
+    {
+      type: 'function' as const,
+      name: 'otherFunction',
+      description: 'Other',
+      inputSchema: {},
+    },
+  ];
+
+  it('should fall back to auto for tool choice "required"', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'required' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+    });
+
+    expect(result.toolChoice).toEqual({ type: 'auto' });
+    expect(result.tools).toHaveLength(2);
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should only send the selected tool with auto for tool choice "tool"', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'tool', toolName: 'otherFunction' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+    });
+
+    expect(result.toolChoice).toEqual({ type: 'auto' });
+    expect(
+      result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+    ).toEqual(['otherFunction']);
+    expect(result.toolWarnings).toHaveLength(1);
+  });
+
+  it('should preserve disableParallelToolUse in the auto fallback', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'required' },
+      disableParallelToolUse: true,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+    });
+
+    expect(result.toolChoice).toEqual({
+      type: 'auto',
+      disable_parallel_tool_use: true,
+    });
+  });
+
+  it('should not affect auto and none tool choices', async () => {
+    const auto = await prepareTools({
+      tools,
+      toolChoice: { type: 'auto' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+    });
+    expect(auto.toolChoice).toEqual({ type: 'auto' });
+    expect(auto.toolWarnings).toEqual([]);
+
+    const none = await prepareTools({
+      tools,
+      toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+    });
+    expect(none.tools).toHaveLength(2);
+    expect(none.toolChoice).toEqual({ type: 'none' });
+    expect(none.toolWarnings).toEqual([]);
   });
 });

@@ -23,7 +23,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
-  const llm = new OpenAI({ model: 'gpt-4o' });
+  const llm = new OpenAI({ model: 'gpt-6-astra' });
   const chatEngine = new SimpleChatEngine({ llm });
 
   const stream = await chatEngine.chat({

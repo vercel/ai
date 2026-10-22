@@ -65,6 +65,54 @@ function prepareSseFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'file references (%s)',
+  method => {
+    it('should resolve file IDs using the provider name even with camelCase options', async () => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        prepareChunksFixtureResponse('xai-text');
+      }
+
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'test-provider': 'file-pdf-123',
+                    testProvider: 'file-wrong-provider',
+                  },
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        providerOptions: { testProvider: { user: 'test-user' } },
+      });
+
+      if ('stream' in result) {
+        await convertReadableStreamToArray(result.stream);
+      }
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'file', file: { file_id: 'file-pdf-123' } }],
+          },
+        ],
+      });
+    });
+  },
+);
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -400,12 +448,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+        {
+          "text": "Hello, World!",
+          "type": "text",
         },
       ]
     `);
@@ -552,6 +600,60 @@ describe('doGenerate', () => {
             {
               type: 'video_url',
               video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should pass multi-part tool content when supported', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const multiPartProvider = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      supportsMultiPartToolContent: true,
+    });
+
+    await multiPartProvider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: [
+            { type: 'text', text: 'image result' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,iVBORw0KGgo=',
+              },
             },
           ],
         },
@@ -1404,6 +1506,19 @@ describe('doGenerate', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'medium',
+      );
+    });
+
+    it('should pass top-level max reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
       );
     });
 
@@ -2788,6 +2903,49 @@ describe('doStream', () => {
       },
     ]);
     expect(parts.at(-1)?.type).toBe('finish');
+  });
+
+  it('should keep id-less tool calls distinct when the index is reused', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p0\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"write_file","arguments":"{\\"path\\":\\"p1\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p2\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'read_file', input: '{"path":"p0"}' },
+      { toolName: 'write_file', input: '{"path":"p1"}' },
+      { toolName: 'read_file', input: '{"path":"p2"}' },
+    ]);
+    expect(
+      toolCalls.every(toolCall => toolCall.toolCallId.trim().length > 0),
+    ).toBe(true);
+    expect(new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size).toBe(
+      3,
+    );
   });
 
   it('should error when streamed tool call never receives a function.name', async () => {
@@ -4384,6 +4542,7 @@ describe('transformRequestBody', () => {
         model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
+      [],
     );
 
     // Verify transformed body was sent
@@ -4422,6 +4581,7 @@ describe('transformRequestBody', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
+      [],
     );
 
     // Verify transformed body was sent

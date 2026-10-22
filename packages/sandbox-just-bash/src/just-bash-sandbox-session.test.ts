@@ -162,6 +162,17 @@ describe('JustBashSandboxSession', () => {
   });
 
   describe('spawn', () => {
+    it('installs realpath before starting the first process', async () => {
+      const proc = await sandbox.spawn({ command: 'realpath /work' });
+      const [stdout, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        proc.wait(),
+      ]);
+
+      expect(stdout).toBe('/work\n');
+      expect(exitCode).toBe(0);
+    });
+
     it('streams stdout and stderr and resolves wait() with exit code', async () => {
       const proc = await sandbox.spawn({
         command: 'echo out && echo err >&2',

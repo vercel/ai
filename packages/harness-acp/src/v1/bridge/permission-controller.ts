@@ -5,6 +5,7 @@ import type {
   RequestPermissionResponse,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
+import type { HostToolCall } from './resolve-host-tool-call';
 
 type PendingPermission = {
   cancel(): void;
@@ -19,13 +20,20 @@ export function createACPPermissionController({
   hasPermissionModeMapping,
   emitToolCall,
   claimHostToolPermission,
+  onHostToolPermissionAllowed,
 }: {
   turn: BridgeTurn;
   sessionId: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
-  claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
+  claimHostToolPermission: (options: {
+    toolCall: ToolCallUpdate;
+  }) => HostToolCall | undefined;
+  onHostToolPermissionAllowed?: (options: {
+    toolCallId: string;
+    call: HostToolCall;
+  }) => void;
 }): {
   requestPermission(
     request: RequestPermissionRequest,
@@ -62,7 +70,12 @@ export function createACPPermissionController({
         });
         return cancelled();
       }
-      if (claimHostToolPermission({ toolCall: request.toolCall })) {
+      const call = claimHostToolPermission({ toolCall: request.toolCall });
+      if (call != null) {
+        onHostToolPermissionAllowed?.({
+          toolCallId: request.toolCall.toolCallId,
+          call,
+        });
         return {
           outcome: {
             outcome: 'selected',
@@ -99,6 +112,12 @@ export function createACPPermissionController({
         type: 'tool-approval-request',
         approvalId,
         toolCallId: request.toolCall.toolCallId,
+      });
+      turn.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: unknownUsage(),
+        harnessMetadata: { acp: { inferredStep: true } },
       });
 
       try {
@@ -149,4 +168,20 @@ function shouldAutoApprove({
 
 function cancelled(): RequestPermissionResponse {
   return { outcome: { outcome: 'cancelled' } };
+}
+
+function unknownUsage() {
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+  };
 }
