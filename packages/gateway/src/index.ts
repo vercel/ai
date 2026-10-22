@@ -59,6 +59,7 @@ export type {
 export {
   GatewayError,
   GatewayAuthenticationError,
+  GatewayBillingError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,
   GatewayInvalidRequestError,
@@ -68,7 +69,11 @@ export {
   GatewayInternalServerError,
   GatewayResponseError,
 } from './errors';
-export type { GatewayErrorResponse } from './errors';
+export type {
+  GatewayBillingErrorType,
+  GatewayCredentialStatus,
+  GatewayErrorResponse,
+} from './errors';
 export { VERSION } from './version';
 
 /** @deprecated Use `GatewayDecisionModelId` instead. */
