@@ -13,10 +13,14 @@ export class NoSpeechGeneratedError extends AISDKError {
 
   readonly responses: Array<SpeechModelResponseMetadata>;
 
-  constructor(options: { responses: Array<SpeechModelResponseMetadata> }) {
+  constructor(options: {
+    responses: Array<SpeechModelResponseMetadata>;
+    cause?: unknown;
+  }) {
     super({
       name,
       message: 'No speech audio generated.',
+      ...(options.cause !== undefined && { cause: options.cause }),
     });
 
     this.responses = options.responses;

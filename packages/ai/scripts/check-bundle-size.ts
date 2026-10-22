@@ -3,7 +3,8 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
-const LIMIT = 570 * 1024;
+// experimental_streamSpeech adds ~2 KiB.
+const LIMIT = 573 * 1024;
 
 interface BundleResult {
   size: number;
