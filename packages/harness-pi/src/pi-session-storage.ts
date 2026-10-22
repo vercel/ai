@@ -18,6 +18,11 @@ interface PiSessionStorageEntry {
    * session.
    */
   parentEntryId?: string;
+  /**
+   * Pi session version the entry was written under. The harness migrates
+   * entries written under an older version when it reads them.
+   */
+  version: number;
   data: HarnessV1JSONValue;
 }
 
@@ -57,19 +62,22 @@ export interface PiSessionStorage {
   /**
    * Reads the entries of the log of a session that lead to `leafId`: the
    * entry whose `entryId` is `leafId`, its parent entry, and so on back to the
-   * first entry, in the order they were appended. Returning every entry of
-   * the log, including other branches, is also valid.
+   * first entry, in the order they were appended, each with the `version` and
+   * `data` it was appended with. Returning every entry of the log, including
+   * other branches, is also valid.
    */
   read(options: {
     sessionId: string;
     leafId: string;
     abortSignal?: AbortSignal;
-  }): PromiseLike<ReadonlyArray<HarnessV1JSONValue>>;
+  }): PromiseLike<
+    ReadonlyArray<Pick<PiSessionStorageEntry, 'version' | 'data'>>
+  >;
 }
 
-const storedEntrySchema = z.object({
+const storedEntrySchema = z.looseObject({
   version: z.number(),
-  entry: sessionEntrySchema,
+  data: sessionEntrySchema,
 });
 
 export async function appendSessionEntries({
@@ -86,7 +94,8 @@ export async function appendSessionEntries({
   const stored = entries.map(entry => ({
     entryId: entry.id,
     parentEntryId: entry.parentId ?? undefined,
-    data: { version, entry } as unknown as HarnessV1JSONValue,
+    version,
+    data: entry as unknown as HarnessV1JSONValue,
   }));
   if (storage.appendMany != null) {
     await storage.appendMany({ sessionId, entries: stored });
@@ -117,7 +126,7 @@ export async function readSessionEntries({
         cause: result.error,
       });
     }
-    const { version, entry } = result.data;
+    const { version, data: entry } = result.data;
     if (version < CURRENT_SESSION_VERSION) {
       migrateEntryFromVersion(version, entry);
     }

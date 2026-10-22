@@ -24,15 +24,16 @@ import {
 type StoredEntry = {
   entryId: string;
   parentEntryId?: string;
+  version: number;
   data: HarnessV1JSONValue;
 };
 
 const pathTo = (log: Map<string, StoredEntry>, leafId: string) => {
-  const path: HarnessV1JSONValue[] = [];
+  const path: StoredEntry[] = [];
   for (let id: string | undefined = leafId; id != null; ) {
     const entry = log.get(id);
     if (entry == null) break;
-    path.push(entry.data);
+    path.push(entry);
     id = entry.parentEntryId;
   }
   return path.reverse();
@@ -52,9 +53,9 @@ const createMemoryStorage = ({ readAll = false, batch = false } = {}) => {
     }
   };
   const storage: PiSessionStorage = {
-    append: async ({ sessionId, entryId, parentEntryId, data }) => {
+    append: async ({ sessionId, entryId, parentEntryId, version, data }) => {
       calls.append++;
-      add(sessionId, { entryId, parentEntryId, data });
+      add(sessionId, { entryId, parentEntryId, version, data });
     },
     ...(batch && {
       appendMany: async ({ sessionId, entries }) => {
@@ -64,7 +65,7 @@ const createMemoryStorage = ({ readAll = false, batch = false } = {}) => {
     }),
     read: async ({ sessionId, leafId }) =>
       readAll
-        ? [...getLog(sessionId).values()].map(entry => entry.data)
+        ? [...getLog(sessionId).values()]
         : pathTo(getLog(sessionId), leafId),
   };
   const entriesOf = (sessionId: string) => [...getLog(sessionId).values()];
@@ -137,13 +138,11 @@ describe('Pi with a session storage', () => {
     expect(second.data).toEqual({ leafId: expect.any(String) });
     const log = entriesOf('session-pelican');
     expect(calls.append).toBe(log.length);
-    for (const { entryId, parentEntryId, data } of log) {
-      expect(data).toEqual({
-        version: CURRENT_SESSION_VERSION,
-        entry: expect.objectContaining({
-          id: entryId,
-          parentId: parentEntryId ?? null,
-        }),
+    for (const { entryId, parentEntryId, version, data } of log) {
+      expect(version).toBe(CURRENT_SESSION_VERSION);
+      expect(data).toMatchObject({
+        id: entryId,
+        parentId: parentEntryId ?? null,
       });
     }
     expect(log[0].parentEntryId).toBeUndefined();
@@ -291,9 +290,12 @@ describe('Pi with a session storage', () => {
       inline.data,
     ).entries!;
     expect(stopped.data).toEqual({ leafId: entries.at(-1)!.id });
-    expect(entriesOf('session-pelican').map(entry => entry.data)).toEqual(
-      entries.map(entry => ({ version: header.version, entry })),
-    );
+    expect(
+      entriesOf('session-pelican').map(({ version, data }) => ({
+        version,
+        data,
+      })),
+    ).toEqual(entries.map(data => ({ version: header.version, data })));
   });
 
   it('fails to start from a log without a session storage', async () => {
@@ -317,7 +319,9 @@ describe('Pi with a session storage', () => {
   it('fails to start from an entry that is not a Pi session entry', async () => {
     const storage: PiSessionStorage = {
       append: async () => {},
-      read: async () => [{ version: CURRENT_SESSION_VERSION }],
+      read: async () => [
+        { version: CURRENT_SESSION_VERSION, data: { type: 'session' } },
+      ],
     };
 
     await expect(start(storage, resumeAt('any'))).rejects.toThrow(
@@ -331,7 +335,7 @@ describe('Pi with a session storage', () => {
       read: async () => [
         {
           version: 2,
-          entry: {
+          data: {
             type: 'message',
             id: 'a1b2c3d4',
             parentId: null,
