@@ -3,6 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
+// experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
 const LIMIT = 576 * 1024;
 
 interface BundleResult {
