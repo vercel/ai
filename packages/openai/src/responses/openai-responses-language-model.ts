@@ -49,6 +49,7 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import type {
   ResponsesToolCallProviderMetadata,
   ResponsesUsageProviderMetadata,
@@ -911,6 +912,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => (isErrorChunk(chunk) ? chunk : undefined),
+      isOutputChunk: isResponseOutputChunk,
+      url: this.config.url({
+        path: '/responses',
+        modelId: this.modelId,
+      }),
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
     const self = this;
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
@@ -963,7 +976,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     let responsesUsage: ResponsesUsageProviderMetadata | undefined;
 
     return {
-      stream: response.pipeThrough(
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
           LanguageModelV2StreamPart
@@ -1486,6 +1499,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               }
             } else if (isErrorChunk(value)) {
+              finishReason = 'error';
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -1598,6 +1612,14 @@ function isErrorChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
+}
+
+function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
+  return !(
+    chunk.type === 'response.created' ||
+    chunk.type === 'error' ||
+    chunk.type === 'unknown_chunk'
+  );
 }
 
 function mapWebSearchOutput(
