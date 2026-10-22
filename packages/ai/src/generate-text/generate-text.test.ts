@@ -8713,6 +8713,70 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+      it('should parse only the last final_answer message when the reply has phase metadata', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: `{ "value": "commentary" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'msg_0', phase: 'commentary' },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: `{ "value": "answer" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'msg_1', phase: 'final_answer' },
+                  },
+                },
+              ],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'answer' });
+      });
+
+      it('should parse only the last final_answer message when the reply has several final_answer messages', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: `{ "value": "first" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'msg_0', phase: 'final_answer' },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: `{ "value": "last" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'msg_1', phase: 'final_answer' },
+                  },
+                },
+              ],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'last' });
+      });
+
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV4CallOptions;
 

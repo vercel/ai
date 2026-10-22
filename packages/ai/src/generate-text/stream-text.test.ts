@@ -2872,6 +2872,61 @@ describe('streamText', () => {
       expect((await result.finalStep).text).toBe('{"x":"ok"}');
     });
 
+    it('should parse only the last final_answer message when the reply has phase metadata', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-start',
+                id: 'msg_0',
+                providerMetadata: {
+                  openai: { itemId: 'msg_0', phase: 'commentary' },
+                },
+              },
+              {
+                type: 'text-delta',
+                id: 'msg_0',
+                delta: '{"x":"commentary"}',
+              },
+              { type: 'text-end', id: 'msg_0' },
+              {
+                type: 'text-start',
+                id: 'msg_1',
+                providerMetadata: {
+                  openai: { itemId: 'msg_1', phase: 'final_answer' },
+                },
+              },
+              {
+                type: 'text-delta',
+                id: 'msg_1',
+                delta: '{"x":"answer"}',
+              },
+              { type: 'text-end', id: 'msg_1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        output: Output.object({
+          schema: z.object({ x: z.string() }),
+        }),
+      });
+
+      await result.consumeStream();
+
+      expect(await result.output).toEqual({ x: 'answer' });
+      // the full reply text stays unchanged; only the structured output
+      // parse is restricted to the final answer message
+      expect((await result.finalStep).text).toBe(
+        '{"x":"commentary"}{"x":"answer"}',
+      );
+    });
+
     it('should preserve attempt isolation when a transform reconstructs recovered parts', async () => {
       let callCount = 0;
 

@@ -130,6 +130,7 @@ import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import {
   DefaultStepResult,
+  getOutputParseText,
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
@@ -3635,7 +3636,7 @@ class DefaultStreamTextResult<
   ): Promise<InferCompleteOutput<OUTPUT>> {
     const output = this.outputSpecification ?? text();
     return output.parseCompleteOutput(
-      { text: step.text },
+      { text: getOutputParseText(step) },
       {
         response: step.response,
         usage: step.usage,

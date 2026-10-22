@@ -92,6 +92,7 @@ import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import {
   DefaultStepResult,
+  getOutputParseText,
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
@@ -1620,7 +1621,7 @@ export async function generateText<
       ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: lastStep.text },
+          { text: getOutputParseText(lastStep) },
           {
             response: lastStep.response,
             usage: lastStep.usage,
