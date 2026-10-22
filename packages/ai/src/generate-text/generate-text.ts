@@ -939,7 +939,7 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
               const {
-                executionTools: stepExecutionTools,
+                executionTools,
                 modelTools: stepModelTools,
                 toolCallerMessages,
               } = prepareToolsForToolCallers({
@@ -969,6 +969,8 @@ export async function generateText<
               const stepToolChoice = prepareToolChoice({
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
+              const stepExecutionTools =
+                stepToolChoice.type === 'none' ? undefined : executionTools;
 
               const stepMessages = appendToolCallerMessages({
                 messages: prepareStepResult?.messages ?? stepInputMessages,
@@ -1097,8 +1099,16 @@ export async function generateText<
                     parseToolCall({
                       toolCall,
                       tools: stepModelTools as TOOLS,
-                      repairToolCall,
-                      refineToolInput,
+                      // tool calls are rejected with tool choice none,
+                      // so user callbacks must not process them:
+                      repairToolCall:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : repairToolCall,
+                      refineToolInput:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
                       abortSignal: mergedAbortSignal,
@@ -1171,19 +1181,19 @@ export async function generateText<
               });
 
               const enforcedToolChoice =
-                stepToolChoice.type === 'required' ||
-                stepToolChoice.type === 'tool'
-                  ? stepToolChoice
-                  : undefined;
+                stepToolChoice.type === 'auto' ? undefined : stepToolChoice;
 
               if (
-                currentModelResponse.finishReason.unified !== 'interrupted' &&
                 enforcedToolChoice != null &&
-                !stepToolCalls.some(
-                  toolCall =>
-                    enforcedToolChoice.type === 'required' ||
-                    toolCall.toolName === enforcedToolChoice.toolName,
-                )
+                (enforcedToolChoice.type === 'none'
+                  ? stepToolCalls.length > 0
+                  : currentModelResponse.finishReason.unified !==
+                      'interrupted' &&
+                    !stepToolCalls.some(
+                      toolCall =>
+                        enforcedToolChoice.type === 'required' ||
+                        toolCall.toolName === enforcedToolChoice.toolName,
+                    ))
               ) {
                 throw new ToolChoiceViolationError({
                   toolChoice: enforcedToolChoice,
