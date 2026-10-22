@@ -2205,6 +2205,47 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+    it.each([
+      ['an abort', { abort: true }],
+      ['a timeout', { timeout: { totalMs: 10 } }],
+    ] as const)(
+      'should not call onError for %s in generate()',
+      async (_, setup) => {
+        const onError = vi.fn();
+        const abortController = new AbortController();
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) => {
+              if ('abort' in setup) {
+                abortController.abort();
+              }
+              return new Promise((_, reject) => {
+                if (abortSignal?.aborted) {
+                  reject(abortSignal.reason);
+                }
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              });
+            },
+          }),
+          maxRetries: 0,
+          onError,
+        });
+
+        await expect(
+          agent.generate({
+            prompt: 'Hello, world!',
+            ...('abort' in setup
+              ? { abortSignal: abortController.signal }
+              : { timeout: setup.timeout }),
+          }),
+        ).rejects.toThrow();
+
+        expect(onError).not.toHaveBeenCalled();
+      },
+    );
+
     it('should keep the default stream error logging when no onError is set', async () => {
       const consoleError = vi
         .spyOn(console, 'error')

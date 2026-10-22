@@ -228,7 +228,7 @@ export type GenerateTextInclude = {
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
- * @param onStepError - Callback that is called when a step that started fails before it produces a step result. Not called when the call is aborted or times out.
+ * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -1666,7 +1666,8 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
-      if (openStep != null && !mergedAbortSignal?.aborted) {
+      // generateText has no onAbort, so aborts and timeouts also end the step here:
+      if (openStep != null) {
         await notify({
           event: { ...openStep, error: wrapGatewayError(error) },
           callbacks: [onStepError, telemetryDispatcher.onStepError],

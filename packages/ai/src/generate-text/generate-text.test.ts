@@ -3867,8 +3867,9 @@ describe('generateText', () => {
       expect(onStepError).not.toHaveBeenCalled();
     });
 
-    it('should not be called when the call is aborted', async () => {
+    it('should be called with the abort error when the call is aborted', async () => {
       const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
       const abortController = new AbortController();
 
       await expect(
@@ -3882,12 +3883,52 @@ describe('generateText', () => {
           prompt: 'test-input',
           maxRetries: 0,
           abortSignal: abortController.signal,
+          onStepEnd,
           onStepError,
         }),
       ).rejects.toThrow();
 
-      expect(onStepError).not.toHaveBeenCalled();
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toMatchObject({
+        name: 'AbortError',
+      });
     });
+
+    it.each([
+      ['total', { totalMs: 10 }],
+      ['step', { stepMs: 10 }],
+    ] as const)(
+      'should be called with the timeout error when the %s timeout is reached',
+      async (_, timeout) => {
+        const onStepError = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) =>
+              new Promise((_, reject) => {
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              }),
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          timeout,
+          onStepError,
+        });
+        const rejection = expect(result).rejects.toThrow();
+
+        await vi.advanceTimersByTimeAsync(10);
+        await rejection;
+
+        expect(onStepError).toHaveBeenCalledTimes(1);
+        expect(onStepError.mock.calls[0][0]).toMatchObject({
+          stepNumber: 0,
+          error: { name: 'TimeoutError' },
+        });
+      },
+    );
   });
 
   describe('options.onStepEnd stepNumber', () => {

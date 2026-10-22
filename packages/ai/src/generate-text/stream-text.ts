@@ -368,7 +368,7 @@ type StreamTextOptions<
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
- * @param onStepError - Callback that is called when a step that started fails before it produces a step result. Not called when the stream is aborted or times out.
+ * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk still ends the step with `onStepEnd`, and an abort or timeout ends it with `onAbort`.
  * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.

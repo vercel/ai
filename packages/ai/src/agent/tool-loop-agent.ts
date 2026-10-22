@@ -1,4 +1,5 @@
 import {
+  isAbortError,
   validateTypes,
   withUserAgentSuffix,
   type Context,
@@ -258,8 +259,11 @@ export class ToolLoopAgent<
         headers: this.agentHeaders(preparedCall),
       } as unknown as Parameters<typeof generate>[0]);
     } catch (error) {
-      // generateText has no onError option, so report the error before it is thrown:
-      await notify({ event: { error }, callbacks: this.settings.onError });
+      // generateText has no onError option, so report the error before it is
+      // thrown. Aborts and timeouts are not reported, like in streamText:
+      if (!isAbortError(error)) {
+        await notify({ event: { error }, callbacks: this.settings.onError });
+      }
       throw error;
     }
   }

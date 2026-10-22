@@ -270,7 +270,7 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when an error occurs. For `stream()` it receives
      * the errors of the stream, for `generate()` it receives the error before
-     * it is thrown.
+     * it is thrown. Aborts and timeouts are not reported.
      */
     onError?: StreamTextOnErrorCallback;
 

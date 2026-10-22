@@ -410,10 +410,15 @@ export type GenerateTextStepErrorEvent<
 /**
  * Callback that is set using the `onStepError` option.
  *
- * Called when a step that started fails before it produces a step result,
- * for example when the provider call throws or the model stream ends without
- * output. `onStepEnd` is not called for such a step. Not called when the call
- * is aborted or times out.
+ * Called when a step that started fails before it produces a step result:
+ * when the provider call throws or rejects, or when the model stream ends
+ * without output. `onStepEnd` is not called for such a step. A provider
+ * `error` chunk does not fail the step, it still ends with `onStepEnd` and
+ * `finishReason: 'error'`.
+ *
+ * In `generateText`, an abort or timeout also ends the step here, with the
+ * abort or timeout error. In `streamText`, an abort or timeout ends the step
+ * with `onAbort` instead.
  *
  * @param event - The step that failed and the error.
  */
