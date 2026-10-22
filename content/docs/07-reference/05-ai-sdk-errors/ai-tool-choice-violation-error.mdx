@@ -1,0 +1,33 @@
+---
+title: AI_ToolChoiceViolationError
+description: Learn how to handle AI_ToolChoiceViolationError
+---
+
+# AI_ToolChoiceViolationError
+
+This error occurs when a `generateText` or `streamText` response does not
+satisfy an enforced tool choice. It is thrown when `toolChoice` is set to
+`'none'` but the response contains a tool call. With `streamText`, the error is
+emitted in the stream. Tool calls returned while `'none'` is selected are not
+executed.
+
+## Properties
+
+- `toolChoice`: The effective tool choice that the response did not satisfy
+- `finishReason`: The reason why the model finished generating the response
+- `provider`: The provider that returned the response
+- `modelId`: The model that returned the response
+- `content`: The content returned by the model
+- `message`: The error message
+
+## Checking for this Error
+
+You can check if an error is an instance of `AI_ToolChoiceViolationError` using:
+
+```typescript
+import { ToolChoiceViolationError } from 'ai';
+
+if (ToolChoiceViolationError.isInstance(error)) {
+  // Handle the error
+}
+```

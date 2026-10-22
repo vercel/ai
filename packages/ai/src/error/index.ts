@@ -24,6 +24,7 @@ export { NoOutputSpecifiedError } from './no-output-specified-error';
 export { NoSpeechGeneratedError } from './no-speech-generated-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
+export { ToolChoiceViolationError } from './tool-choice-violation-error';
 export { UnsupportedModelVersionError } from './unsupported-model-version-error';
 
 export { InvalidDataContentError } from '../prompt/invalid-data-content-error';

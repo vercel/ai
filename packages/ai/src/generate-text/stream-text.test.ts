@@ -1653,6 +1653,242 @@ describe('streamText', () => {
     });
   });
 
+  describe('tool choice none', () => {
+    it.each([
+      { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'tool-calls',
+      },
+      {
+        toolChoice: 'auto',
+        stepToolChoice: 'none',
+        finishReason: 'tool-calls',
+      },
+    ] as const)(
+      'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+      async ({ toolChoice, stepToolChoice, finishReason }) => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputStart = vi.fn();
+        const onInputDelta = vi.fn();
+        const onInputAvailable = vi.fn();
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV2({
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+                { type: 'tool-input-delta', id: 'call-1', delta: '{}' },
+                { type: 'tool-input-end', id: 'call-1' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+                {
+                  type: 'finish',
+                  finishReason,
+                  usage: testUsage,
+                },
+              ]),
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputStart,
+              onInputDelta,
+              onInputAvailable,
+            }),
+          },
+          toolChoice,
+          prepareStep:
+            stepToolChoice == null
+              ? undefined
+              : () => ({ toolChoice: stepToolChoice }),
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(onError).toHaveBeenCalledOnce();
+        expect(onError.mock.calls[0][0].error).toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response contained a tool call even though tool choice was none.',
+          toolChoice: { type: 'none' },
+          finishReason,
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [expect.objectContaining({ type: 'tool-call' })],
+        });
+        await expect(result.finishReason).resolves.toBe('error');
+        await expect(result.usage).resolves.toEqual(testUsage);
+        expect(execute).not.toHaveBeenCalled();
+        expect(onInputStart).not.toHaveBeenCalled();
+        expect(onInputDelta).not.toHaveBeenCalled();
+        expect(onInputAvailable).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should withhold tool parts with none and not repair tool calls', async () => {
+      const repairToolCall = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+              { type: 'tool-input-delta', id: 'call-1', delta: 'invalid' },
+              { type: 'tool-input-end', id: 'call-1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: 'invalid json',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool2',
+                input: '{"value":"x"}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-3',
+                toolName: 'web_search',
+                input: '{}',
+                providerExecuted: true,
+                dynamic: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-3',
+                toolName: 'web_search',
+                result: { ok: true },
+                dynamic: true,
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          },
+        }),
+        tools: {
+          // client-side tools without execute:
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+          tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        toolChoice: 'none',
+        experimental_repairToolCall: repairToolCall,
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      const fullStreamTypes = (
+        await convertAsyncIterableToArray(result.fullStream)
+      ).map(part => part.type);
+      const uiStreamTypes = (
+        await convertAsyncIterableToArray(result.toUIMessageStream())
+      ).map(part => part.type);
+
+      expect(fullStreamTypes).toContain('error');
+      expect(fullStreamTypes.filter(type => type.startsWith('tool-'))).toEqual(
+        [],
+      );
+      expect(uiStreamTypes).toContain('error');
+      expect(uiStreamTypes.filter(type => type.startsWith('tool-'))).toEqual(
+        [],
+      );
+      expect(repairToolCall).not.toHaveBeenCalled();
+    });
+
+    it('should allow text responses with none and preserve tool definitions', async () => {
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async ({ tools, toolChoice }) => {
+            expect(tools).toEqual([
+              expect.objectContaining({ type: 'function', name: 'tool1' }),
+            ]);
+            expect(toolChoice).toEqual({ type: 'none' });
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'No tool call.' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice: 'none',
+        prompt: 'test-input',
+        onError,
+      });
+
+      await expect(result.text).resolves.toBe('No tool call.');
+      await expect(result.finishReason).resolves.toBe('stop');
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should allow prepareStep to replace none with auto', async () => {
+      const execute = vi.fn(async () => 'tool-result');
+      const onInputAvailable = vi.fn();
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{}',
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute,
+            onInputAvailable,
+          }),
+        },
+        toolChoice: 'none',
+        prepareStep: () => ({ toolChoice: 'auto' }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(execute).toHaveBeenCalledOnce();
+      expect(onInputAvailable).toHaveBeenCalledOnce();
+      expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
   describe('errors', () => {
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
