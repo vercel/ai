@@ -4,4 +4,4 @@
 "@ai-sdk/devtools": patch
 ---
 
-add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError to ToolLoopAgent
+add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
