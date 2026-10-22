@@ -822,6 +822,9 @@ It supports the following settings:
 When `toolChoice` is `'none'`, the SDK prevents local tool execution even if the
 model returns a tool call. Such responses produce a
 [`ToolChoiceViolationError`](/docs/reference/ai-sdk-errors/ai-tool-choice-violation-error).
+With `streamText`, tool parts are withheld from the stream, so client-side tools
+are not invoked either. Tool call repair and input refinement are skipped for
+rejected tool calls.
 
 ```ts highlight="19"
 import { z } from 'zod';

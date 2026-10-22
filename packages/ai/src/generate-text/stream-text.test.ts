@@ -1890,6 +1890,83 @@ describe('streamText', () => {
         },
       );
 
+      it('should withhold tool parts with none and not repair or refine tool calls', async () => {
+        const repairToolCall = vi.fn();
+        const refineToolInput = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+                { type: 'tool-input-delta', id: 'call-1', delta: 'invalid' },
+                { type: 'tool-input-end', id: 'call-1' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: 'invalid json',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-2',
+                  toolName: 'tool2',
+                  input: '{"value":"x"}',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-3',
+                  toolName: 'web_search',
+                  input: '{}',
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-3',
+                  toolName: 'web_search',
+                  result: { ok: true },
+                  dynamic: true,
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            },
+          }),
+          tools: {
+            // client-side tools without execute:
+            tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+            tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+          },
+          toolChoice: 'none',
+          repairToolCall,
+          experimental_refineToolInput: { tool2: refineToolInput },
+          prompt: 'test-input',
+          onError: () => {},
+        });
+
+        const fullStreamTypes = (
+          await convertAsyncIterableToArray(result.fullStream)
+        ).map(part => part.type);
+        const uiStreamTypes = (
+          await convertAsyncIterableToArray(result.toUIMessageStream())
+        ).map(part => part.type);
+
+        expect(fullStreamTypes).toContain('error');
+        expect(
+          fullStreamTypes.filter(type => type.startsWith('tool-')),
+        ).toEqual([]);
+        expect(uiStreamTypes).toContain('error');
+        expect(uiStreamTypes.filter(type => type.startsWith('tool-'))).toEqual(
+          [],
+        );
+        expect(repairToolCall).not.toHaveBeenCalled();
+        expect(refineToolInput).not.toHaveBeenCalled();
+      });
+
       it('should allow prepareStep to replace none with auto', async () => {
         const execute = vi.fn(async () => 'tool-result');
         const onInputAvailable = vi.fn();

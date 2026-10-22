@@ -2033,6 +2033,49 @@ describe('generateText', () => {
       },
     );
 
+    it('should not repair or refine tool calls with none', async () => {
+      const repairToolCall = vi.fn();
+      const refineToolInput = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: 'invalid json',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool2',
+                input: '{"value":"x"}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
+        }),
+        tools: {
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+          tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        toolChoice: 'none',
+        repairToolCall,
+        experimental_refineToolInput: { tool2: refineToolInput },
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      });
+      expect(repairToolCall).not.toHaveBeenCalled();
+      expect(refineToolInput).not.toHaveBeenCalled();
+    });
+
     it('should allow text responses with none and preserve tool definitions', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({

@@ -448,6 +448,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
 
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair or refine them.
+  const withholdToolParts = toolChoice.type === 'none';
+
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
@@ -465,6 +471,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         previousOutputChunkTimestampMs = outputChunkTimestampMs;
+      }
+
+      if (
+        withholdToolParts &&
+        (chunk.type === 'tool-input-start' ||
+          chunk.type === 'tool-input-delta' ||
+          chunk.type === 'tool-input-end')
+      ) {
+        return;
       }
 
       switch (chunk.type) {
@@ -709,16 +724,21 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
-              repairToolCall,
-              refineToolInput,
+              repairToolCall: withholdToolParts ? undefined : repairToolCall,
+              refineToolInput: withholdToolParts ? undefined : refineToolInput,
               instructions,
               messages,
               abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
             if (collectContent) modelCallContent.push(toolCall);
+
+            if (withholdToolParts) {
+              break;
+            }
+
+            controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
               if (!toolCall.providerExecuted) {
@@ -746,6 +766,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'tool-approval-request': {
           if (collectContent) rawModelCallContent.push(chunk);
+
+          if (withholdToolParts) {
+            break;
+          }
 
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
@@ -809,7 +833,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                   : {}),
               } as TypedToolResult<TOOLS>);
 
-          controller.enqueue(toolResultPart);
+          if (!withholdToolParts) controller.enqueue(toolResultPart);
           if (collectContent) modelCallContent.push(toolResultPart);
 
           break;

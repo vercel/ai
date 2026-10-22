@@ -1099,8 +1099,16 @@ export async function generateText<
                     parseToolCall({
                       toolCall,
                       tools: stepModelTools as TOOLS,
-                      repairToolCall,
-                      refineToolInput,
+                      // tool calls are rejected with tool choice none,
+                      // so user callbacks must not process them:
+                      repairToolCall:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : repairToolCall,
+                      refineToolInput:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
                       abortSignal: mergedAbortSignal,
