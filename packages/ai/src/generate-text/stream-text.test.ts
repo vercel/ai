@@ -2927,6 +2927,53 @@ describe('streamText', () => {
       );
     });
 
+    it('should keep all phase-tagged messages in the output when the output spec is text', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'text-start',
+                id: 'msg_0',
+                providerMetadata: {
+                  openai: { itemId: 'msg_0', phase: 'commentary' },
+                },
+              },
+              {
+                type: 'text-delta',
+                id: 'msg_0',
+                delta: 'note ',
+              },
+              { type: 'text-end', id: 'msg_0' },
+              {
+                type: 'text-start',
+                id: 'msg_1',
+                providerMetadata: {
+                  openai: { itemId: 'msg_1', phase: 'final_answer' },
+                },
+              },
+              {
+                type: 'text-delta',
+                id: 'msg_1',
+                delta: 'answer',
+              },
+              { type: 'text-end', id: 'msg_1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await result.consumeStream();
+
+      expect(await result.output).toBe('note answer');
+    });
+
     it('should preserve attempt isolation when a transform reconstructs recovered parts', async () => {
       let callCount = 0;
 

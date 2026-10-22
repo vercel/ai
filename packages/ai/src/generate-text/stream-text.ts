@@ -3636,7 +3636,7 @@ class DefaultStreamTextResult<
   ): Promise<InferCompleteOutput<OUTPUT>> {
     const output = this.outputSpecification ?? text();
     return output.parseCompleteOutput(
-      { text: getOutputParseText(step) },
+      { text: getOutputParseText(step, output.name) },
       {
         response: step.response,
         usage: step.usage,

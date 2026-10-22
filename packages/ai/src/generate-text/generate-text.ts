@@ -1621,7 +1621,7 @@ export async function generateText<
       ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: getOutputParseText(lastStep) },
+          { text: getOutputParseText(lastStep, outputSpecification.name) },
           {
             response: lastStep.response,
             usage: lastStep.usage,

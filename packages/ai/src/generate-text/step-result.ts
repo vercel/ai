@@ -427,11 +427,18 @@ export class DefaultStepResult<
  * so when parts carry `phase` metadata only the text of the last
  * `final_answer` message is parsed. Usage metadata and the step content
  * are left untouched.
+ *
+ * The `text` output spec returns the full step text, since dropping
+ * phase-tagged messages would change what plain-text output contains.
  */
 export function getOutputParseText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
->(step: StepResult<TOOLS, RUNTIME_CONTEXT>): string {
+>(step: StepResult<TOOLS, RUNTIME_CONTEXT>, outputName: string): string {
+  if (outputName === 'text') {
+    return step.text;
+  }
+
   const textParts = step.content.filter(part => part.type === 'text');
 
   let finalAnswerItemId: unknown;

@@ -8777,6 +8777,36 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'last' });
       });
 
+      it('should keep all phase-tagged messages in the output when the output spec is text', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: 'note ',
+                  providerMetadata: {
+                    openai: { itemId: 'msg_0', phase: 'commentary' },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'answer',
+                  providerMetadata: {
+                    openai: { itemId: 'msg_1', phase: 'final_answer' },
+                  },
+                },
+              ],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.text(),
+        });
+
+        expect(result.output).toBe('note answer');
+      });
+
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions: LanguageModelV4CallOptions;
 
