@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 const encoder = new TextEncoder();
@@ -12,6 +13,15 @@ export function canonicalJSON(value: unknown): string {
     return JSON.stringify(value);
   }
   if (typeof value !== 'object') {
+    if (
+      typeof value === 'number' &&
+      (Number.isNaN(value) || !Number.isFinite(value))
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'value',
+        message: 'Cannot serialize NaN or Infinity to canonical JSON',
+      });
+    }
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
