@@ -67,7 +67,7 @@ const { textStream } = streamText({
 
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
-  text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
+  text: textStream, // a string, or a stream of strings and/or text parts
   voice: '21m00Tcm4TlvDq8ikWAM',
   outputFormat: { type: 'audio/mpeg' },
 });
@@ -89,8 +89,8 @@ that support several voices per stream. Single-voice providers reject a part who
 `voice` differs from the call's `voice`.
 
 `error` parts from the provider are not fatal: `fullStream` includes them,
-`audioStream` skips them, and both are reported through `onError` (which defaults
-to `console.error`).
+`audioStream` skips them, and each one is also passed to `onError` (which
+defaults to `console.error`).
 
 Use `fullStream` instead of `audioStream` when you need per-chunk metadata:
 each `audio` part carries the chunk `audioFormat` (e.g.

@@ -12,6 +12,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { StreamProviderError } from '../error/stream-provider-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -131,7 +132,8 @@ export function streamSpeech({
 
   /**
    * Called for each error part the provider reports. Error parts are not
-   * fatal: `fullStream` includes them and `audioStream` skips them.
+   * fatal: `fullStream` includes them and `audioStream` skips them. The
+   * callback is not awaited, and errors it throws are ignored.
    * Defaults to logging the error with `console.error`.
    */
   onError?: (event: { error: unknown }) => void | PromiseLike<void>;
@@ -156,7 +158,7 @@ export function streamSpeech({
         (typeof model === 'string'
           ? ' String model IDs resolve through the global provider (AI Gateway by default).' +
             ' If that provider does not support streaming speech, pass a provider model' +
-            " instance instead (e.g. elevenlabs.speech('eleven_flash_v2_5'))" +
+            " instance instead (e.g. elevenLabs.speech('eleven_flash_v2_5'))" +
             ' or upgrade @ai-sdk/gateway to a version with streaming speech support.'
           : ''),
     });
@@ -326,6 +328,23 @@ export function streamSpeech({
     SpeechStreamPart
   >(transformer);
 
+  // A user abort settles the result and errors the output immediately, even
+  // while doStream is pending or the provider ignores the signal.
+  if (abortSignal != null) {
+    const onAbort = () => {
+      const reason = abortSignal.reason;
+      rejectPendingPromises(reason);
+      pipeAbortController.abort(reason);
+      // Rejects when the pipe already holds the writable; the pipe aborts it.
+      transform.writable.abort(reason).catch(() => {});
+    };
+    if (abortSignal.aborted) {
+      onAbort();
+    } else {
+      abortSignal.addEventListener('abort', onAbort, { once: true });
+    }
+  }
+
   // Piping (instead of an eager read loop) preserves consumer backpressure
   // and propagates cancellation of the output stream to the model stream.
   void (async () => {
@@ -479,6 +498,18 @@ function toTextStream(
         controller.enqueue({ type: 'text', text });
         controller.close();
       },
+    });
+  }
+  if (
+    !(text instanceof ReadableStream) &&
+    typeof (text as Partial<AsyncIterable<unknown>>)?.[Symbol.asyncIterator] !==
+      'function'
+  ) {
+    throw new InvalidArgumentError({
+      parameter: 'text',
+      value: text,
+      message:
+        'Expected a string, an AsyncIterable, or a ReadableStream of strings or text parts.',
     });
   }
   const source =
