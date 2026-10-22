@@ -139,6 +139,74 @@ const { text } = await generateText({
 Baseten language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+## Decision Models
+
+Use `baseten.decisionModel()` with `experimental_decide` to call Baseten's native
+[System One API](https://docs.baseten.co/reference/inference-api/system-one).
+This API is experimental and may change in patch releases.
+
+```ts
+import { baseten } from '@ai-sdk/baseten';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: baseten.decisionModel('decision-models/baseten-mammoth-27b-latest'),
+  state: 'I was charged twice. Please refund the duplicate charge.',
+  questions: {
+    route: {
+      type: 'choice',
+      instructions: 'Which team should handle this request?',
+      criteria: {
+        billing: 'Payments, charges, and refunds',
+        support: 'Technical troubleshooting',
+      },
+    },
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is the request?',
+      criteria: [
+        'Routine request',
+        'Needs attention today',
+        'Immediate emergency',
+      ],
+    },
+  },
+});
+
+console.log(result.answers);
+```
+
+The supported model IDs are `decision-models/baseten-elephant-9b-latest` and
+`decision-models/baseten-mammoth-27b-latest`. These are Baseten Model API slugs;
+Gateway uses different model IDs. Decision models use the configured `baseURL`
+(default: `https://inference.baseten.co/v1`) and `BASETEN_API_KEY`.
+The `modelURL` setting applies to dedicated chat and embedding models.
+
+Decision models accept text, JSON state, and up to four PNG, JPEG, or WebP images.
+Choice questions support 1–255 options, score questions support 1–10 levels, and
+each request supports at most 512 options across all questions. Boolean questions
+count as two options. Instructions and criteria can contain structured JSON;
+instructions may be omitted when criteria define the question.
+
+The provider preserves full-precision probabilities and fractional scores.
+Boolean answers expose the probability of `true` as `probability`.
+`result.providerMetadata.baseten` contains per-question `confidence` values and
+score `legend` values when returned by Baseten.
+
+Set `providerOptions.baseten.maxLen` to a positive integer to limit the complete
+input prompt for each question, including state, criteria, formatting, and image
+tokens. This maps to Baseten's `max_len` field and does not increase the model's
+context limit. `maxOutputTokens` and `reasoning` are unsupported and produce
+warnings.
+
+See [Decisions](/docs/ai-sdk-core/decisions) for the shared API and
+[Baseten's decision model documentation](https://docs.baseten.co/inference/model-apis/decision-models)
+for model limits.
+
 ## Dedicated Models
 
 Baseten supports dedicated model URLs for both chat and embedding models. You have to specify a `modelURL` when creating the provider:
