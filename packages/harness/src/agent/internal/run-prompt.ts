@@ -525,18 +525,26 @@ export function runPrompt<
         const { toolCallId, ...completedResult } = submission;
         const rawToolCall = rawToolCallsByToolCallId.get(toolCallId);
         const toolCall = toolCallsByToolCallId.get(toolCallId);
-        if (rawToolCall == null || toolCall == null) continue;
-        onPendingToolResult({
-          toolCallId,
-          toolName: rawToolCall.toolName,
-          input: rawToolCall.input,
-          ...(rawToolCall.providerMetadata !== undefined
-            ? { providerOptions: rawToolCall.providerMetadata }
-            : {}),
-          completedResult,
-        });
+        const pendingResult =
+          pendingResultsByToolCallId.get(toolCallId) ??
+          (rawToolCall == null
+            ? undefined
+            : {
+                toolCallId,
+                toolName: rawToolCall.toolName,
+                input: rawToolCall.input,
+                ...(rawToolCall.providerMetadata !== undefined
+                  ? { providerOptions: rawToolCall.providerMetadata }
+                  : {}),
+              });
+        if (pendingResult == null) continue;
+        onPendingToolResult({ ...pendingResult, completedResult });
         const toolOutput = toolExecutions.get(toolCallId)?.toolOutput;
-        if (toolOutput != null && !settledHostToolCallIds.has(toolCallId)) {
+        if (
+          toolCall != null &&
+          toolOutput != null &&
+          !settledHostToolCallIds.has(toolCallId)
+        ) {
           enqueueHostToolOutcome({
             toolCall,
             outcome:
@@ -758,7 +766,6 @@ export function runPrompt<
         toolCallId: pendingResult.toolCallId,
         ...submission,
       });
-      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
     };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
@@ -967,6 +974,7 @@ export function runPrompt<
         if (value.type === 'tool-result') {
           hostToolCallIdsAwaitingEcho.delete(value.toolCallId);
           submittedHostToolResults.delete(value.toolCallId);
+          pendingResultsByToolCallId.delete(value.toolCallId);
         }
 
         if (pendingStopBoundary != null) {

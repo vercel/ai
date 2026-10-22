@@ -4439,13 +4439,17 @@ describe('runPrompt host input pauses', () => {
   });
 
   test.each([
-    { approved: true, fails: false },
-    { approved: false, fails: false },
-    { approved: true, fails: true },
-    { approved: false, fails: true },
+    { approved: true, fails: false, replay: false },
+    { approved: false, fails: false, replay: false },
+    { approved: true, fails: true, replay: false },
+    { approved: false, fails: true, replay: false },
+    { approved: true, fails: false, replay: true },
+    { approved: false, fails: false, replay: true },
+    { approved: true, fails: true, replay: true },
+    { approved: false, fails: true, replay: true },
   ])(
-    'pauses for a built-in approval without a host result echo (approved: $approved, fails: $fails)',
-    async ({ approved, fails }) => {
+    'pauses for repeated built-in approvals without a host result echo (approved: $approved, fails: $fails, replay: $replay)',
+    async ({ approved, fails, replay }) => {
       const pendingApprovals: HarnessV1PendingToolApproval[] = [];
       const pendingResults: HarnessV1PendingToolResult[] = [];
       const submitted: SubmittedResult[] = [];
@@ -4484,6 +4488,7 @@ describe('runPrompt host input pauses', () => {
         toolName: 'listProjectTickets',
         input: '{}',
         providerExecuted: false,
+        providerMetadata: { test: { source: 'original-call' } },
       };
       const approvalRequest: HarnessV1StreamPart = {
         type: 'tool-approval-request',
@@ -4536,6 +4541,7 @@ describe('runPrompt host input pauses', () => {
       expect(pendingResults).toEqual([
         expect.objectContaining({
           toolCallId: 'host-1',
+          providerOptions: { test: { source: 'original-call' } },
           completedResult: expect.objectContaining({
             output: submitted[0]!.output,
           }),
@@ -4561,16 +4567,59 @@ describe('runPrompt host input pauses', () => {
       ]);
 
       const settledResults: string[] = [];
+      const nextApprovals: HarnessV1PendingToolApproval[] = [];
+      const nextResults: HarnessV1PendingToolResult[] = [];
       const submitToolApproval = vi.fn(async () => {});
+      session.doContinueTurn = async continuationOptions => ({
+        ...(await fakeSession(
+          [
+            ...(replay ? [hostCall] : []),
+            { ...bashCall, toolCallId: 'bash-2' },
+            { ...approvalRequest, approvalId: 'bash-2', toolCallId: 'bash-2' },
+            boundary(3),
+          ],
+          submission => submitted.push(submission),
+        ).doContinueTurn(continuationOptions)),
+        submitToolApproval,
+      });
+      const pausedAgain = runPrompt({
+        ...options,
+        mode: 'continue',
+        pendingToolApprovals: pendingApprovals,
+        pendingToolResults: pendingResults,
+        toolApprovalContinuations: [
+          { type: 'tool-approval-response', approvalId: 'bash-1', approved },
+        ],
+        onPendingToolApproval: approval => nextApprovals.push(approval),
+        onPendingToolResult: pendingResult => nextResults.push(pendingResult),
+        onToolResultSettled: toolCallId => settledResults.push(toolCallId),
+      });
+      const pausedAgainParts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of pausedAgain.result.fullStream)
+        pausedAgainParts.push(part);
+      await pausedAgain.done;
+
+      expect(nextResults).toEqual(pendingResults);
+      expect(nextApprovals).toEqual([
+        expect.objectContaining({ approvalId: 'bash-2', kind: 'builtin' }),
+      ]);
+      expect(
+        pausedAgainParts.filter(
+          part => 'toolCallId' in part && part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(submitted).toHaveLength(2);
+
       session.doContinueTurn = async continuationOptions => {
         const continued = fakeSession(
           [
-            bashCall,
+            { ...bashCall, toolCallId: 'bash-2' },
             hostCall,
-            approvalRequest,
+            { ...approvalRequest, approvalId: 'bash-2', toolCallId: 'bash-2' },
             {
               type: 'tool-result',
-              toolCallId: 'bash-1',
+              toolCallId: 'bash-2',
               toolName: 'bash',
               result: approved ? WORK_DIR : 'Denied',
             },
@@ -4581,6 +4630,14 @@ describe('runPrompt host input pauses', () => {
               result: submitted[0]!.output as string,
               ...(fails ? { isError: true } : {}),
             },
+            {
+              type: 'tool-result',
+              toolCallId: 'host-1',
+              toolName: 'listProjectTickets',
+              result: submitted[0]!.output as string,
+              ...(fails ? { isError: true } : {}),
+            },
+            hostCall,
             boundary(0),
             { type: 'text-start', id: 't1' },
             { type: 'text-delta', id: 't1', delta: 'Done' },
@@ -4597,10 +4654,10 @@ describe('runPrompt host input pauses', () => {
       const resumed = runPrompt({
         ...options,
         mode: 'continue',
-        pendingToolApprovals: pendingApprovals,
-        pendingToolResults: pendingResults,
+        pendingToolApprovals: nextApprovals,
+        pendingToolResults: nextResults,
         toolApprovalContinuations: [
-          { type: 'tool-approval-response', approvalId: 'bash-1', approved },
+          { type: 'tool-approval-response', approvalId: 'bash-2', approved },
         ],
         onToolResultSettled: toolCallId => settledResults.push(toolCallId),
       });
@@ -4615,9 +4672,13 @@ describe('runPrompt host input pauses', () => {
         reason: undefined,
       });
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(settledResults).toEqual(['host-1']);
-      expect(submitted).toHaveLength(2);
-      expect(submitted[1]).toEqual(submitted[0]);
+      expect(submitToolApproval).toHaveBeenCalledWith({
+        approvalId: 'bash-2',
+        approved,
+        reason: undefined,
+      });
+      expect(settledResults).toEqual(['host-1', 'host-1']);
+      expect(submitted).toEqual([submitted[0], submitted[0], submitted[0]]);
       if (!fails) {
         expect(pendingResults[0]!.completedResult!.toolResult!.output).toEqual({
           type: 'json',

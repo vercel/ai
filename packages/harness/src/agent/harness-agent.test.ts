@@ -4569,10 +4569,11 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('continues a built-in approval pause with an unechoed host tool result', async () => {
+  test('retains an unechoed host result across repeated approval pauses and session resume', async () => {
     const tickets = [{ id: 'AI-23503' }];
     const execute = vi.fn(async () => tickets);
     let finishPrompt!: () => void;
+    let continuationCount = 0;
     const { harness, toolResults, toolApprovals } = mockHarness({
       builtinTools: {
         bash: tool({ inputSchema: z.object({ command: z.string() }) }),
@@ -4610,21 +4611,46 @@ describe('HarnessAgent', () => {
           usage: zeroUsage(),
         },
       ],
-      continueScript: () => [
-        {
-          type: 'tool-result',
-          toolCallId: 'bash-1',
-          toolName: 'bash',
-          result: '/work',
-        },
-        {
+      continueScript: () => {
+        continuationCount++;
+        const hostCall: HarnessV1StreamPart = {
+          type: 'tool-call',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          providerExecuted: false,
+        };
+        if (continuationCount === 1) {
+          return [
+            hostCall,
+            {
+              type: 'tool-call',
+              toolCallId: 'bash-2',
+              toolName: 'bash',
+              nativeName: 'Bash',
+              input: '{"command":"git status"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'bash-2',
+              toolCallId: 'bash-2',
+            },
+            {
+              type: 'finish-step',
+              finishReason: { unified: 'tool-calls', raw: 'host-input' },
+              usage: zeroUsage(),
+            },
+          ];
+        }
+        const hostResult: HarnessV1StreamPart = {
           type: 'tool-result',
           toolCallId: 'host-1',
           toolName: 'listProjectTickets',
           result: tickets,
-        },
-        ...finishEvents(),
-      ],
+        };
+        return [hostCall, hostResult, hostResult, hostCall, ...finishEvents()];
+      },
     });
     const agent = new HarnessAgent({
       harness,
@@ -4634,9 +4660,8 @@ describe('HarnessAgent', () => {
       },
       toolApproval: { listProjectTickets: 'approved' },
     });
-    const session = await agent.createSession({
-      sandboxSession: makeSandboxSession(),
-    });
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
     try {
       const first = await agent.stream({
         session,
@@ -4683,10 +4708,61 @@ describe('HarnessAgent', () => {
         { approvalId: 'bash-1', approved: true, reason: undefined },
       ]);
       expect(execute).toHaveBeenCalledTimes(1);
-      expect(session.hasUnfinishedTurn()).toBe(false);
+      expect(session.hasUnfinishedTurn()).toBe(true);
+      expect(toolResults).toEqual([
+        { toolCallId: 'host-1', output: tickets },
+        { toolCallId: 'host-1', output: tickets },
+      ]);
       expect((await continued.steps).flatMap(step => step.toolResults)).toEqual(
         [],
       );
+
+      const resumeFrom = await session.detach();
+      expect(resumeFrom.continueFrom?.pendingToolResults).toEqual([
+        {
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          completedResult: { output: tickets },
+        },
+      ]);
+      session = await agent.createSession({
+        sandboxSession,
+        resumeFrom: structuredClone(resumeFrom),
+      });
+      const completed = await agent.stream({
+        session,
+        messages: [
+          ...(await continued.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'bash-2',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      const completedParts = [];
+      for await (const part of completed.fullStream) completedParts.push(part);
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(toolResults).toHaveLength(3);
+      expect(toolResults[2]).toEqual(toolResults[0]);
+      expect(toolApprovals).toEqual([
+        { approvalId: 'bash-1', approved: true, reason: undefined },
+        { approvalId: 'bash-2', approved: true, reason: undefined },
+      ]);
+      expect(session.hasUnfinishedTurn()).toBe(false);
+      expect(
+        completedParts.filter(
+          part => 'toolCallId' in part && part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(await completed.finishReason).toBe('tool-calls');
     } finally {
       finishPrompt();
       await session.destroy();
