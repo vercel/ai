@@ -99,6 +99,7 @@ export class ToolLoopAgent<
       | 'onStepEnd'
       | 'onStepFinish'
       | 'onError'
+      | 'onAbort'
       | 'onEnd'
       | 'onFinish'
     > &
@@ -126,6 +127,7 @@ export class ToolLoopAgent<
       onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
       onError: _settingsOnError,
+      onAbort: _settingsOnAbort,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
@@ -260,8 +262,9 @@ export class ToolLoopAgent<
       } as unknown as Parameters<typeof generate>[0]);
     } catch (error) {
       // generateText has no onError option, so report the error before it is
-      // thrown. Aborts and timeouts are not reported, like in streamText:
-      if (!isAbortError(error)) {
+      // thrown. Aborts (with any reason) and timeouts are not reported, like in
+      // streamText:
+      if (!isAbortOrTimeout(error) && !abortSignal?.aborted) {
         await notify({ event: { error }, callbacks: this.settings.onError });
       }
       throw error;
@@ -325,6 +328,7 @@ export class ToolLoopAgent<
         onStepEnd ?? onStepFinish,
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+      onAbort: this.settings.onAbort,
     };
 
     return await stream({
@@ -339,4 +343,20 @@ export class ToolLoopAgent<
       } as unknown as Parameters<typeof stream>[0]),
     });
   }
+}
+
+// providers can wrap the abort or timeout error, e.g. as the cause of an API
+// call error:
+function isAbortOrTimeout(error: unknown): boolean {
+  let current = error;
+
+  for (let depth = 0; current != null && depth < 5; depth++) {
+    if (isAbortError(current)) {
+      return true;
+    }
+
+    current = (current as { cause?: unknown }).cause;
+  }
+
+  return false;
 }

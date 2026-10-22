@@ -416,8 +416,9 @@ export type GenerateTextStepErrorEvent<
  * `error` chunk does not fail the step, it still ends with `onStepEnd` and
  * `finishReason: 'error'`.
  *
- * In `generateText`, an abort or timeout also ends the step here, with the
- * abort or timeout error. In `streamText`, an abort or timeout ends the step
+ * In `generateText`, an abort or timeout also ends the step here. The error
+ * is the abort or timeout error, or a provider error that has it as its
+ * `cause`. In `streamText`, an abort or timeout ends the step
  * with `onAbort` instead.
  *
  * @param event - The step that failed and the error.

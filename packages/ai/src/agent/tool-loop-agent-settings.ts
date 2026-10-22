@@ -27,6 +27,7 @@ import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
 import type {
   StreamTextInclude,
+  StreamTextOnAbortCallback,
   StreamTextOnErrorCallback,
 } from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
@@ -273,6 +274,16 @@ export type ToolLoopAgentSettings<
      * it is thrown. Aborts and timeouts are not reported.
      */
     onError?: StreamTextOnErrorCallback;
+
+    /**
+     * Callback that is called when `stream()` is aborted or times out.
+     * `generate()` does not call it: an aborted or timed out `generate()` call
+     * rejects, and its step ends with `onStepError`.
+     */
+    onAbort?: StreamTextOnAbortCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
 
     /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.

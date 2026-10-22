@@ -2141,6 +2141,92 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onAbort', () => {
+    const hangingModel = (abortController?: AbortController) =>
+      new MockLanguageModelV4({
+        doStream: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+        doGenerate: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+      });
+
+    it('should call onAbort when stream() is aborted', async () => {
+      const onAbort = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+      expect(onAbort.mock.calls[0][0]).toMatchObject({ steps: [] });
+    });
+
+    it('should call onAbort when stream() times out', async () => {
+      const onAbort = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onAbort when generate() is aborted', async () => {
+      const onAbort = vi.fn();
+      const onStepError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+        onStepError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow();
+
+      expect(onAbort).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('onError', () => {
     it('should call onError when a stream step fails', async () => {
       const onError = vi.fn();
@@ -2245,6 +2331,51 @@ describe('ToolLoopAgent', () => {
         expect(onError).not.toHaveBeenCalled();
       },
     );
+
+    it('should not call onError when a provider wraps a timeout error', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('timed out', 'TimeoutError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toThrow(
+        'Gateway request failed',
+      );
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when generate() is aborted with a custom reason', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            abortController.abort(new Error('user left'));
+            throw abortController.signal.reason;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow('user left');
+
+      expect(onError).not.toHaveBeenCalled();
+    });
 
     it('should keep the default stream error logging when no onError is set', async () => {
       const consoleError = vi
