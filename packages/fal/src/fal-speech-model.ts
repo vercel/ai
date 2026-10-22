@@ -1,5 +1,7 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -101,15 +103,17 @@ export class FalSpeechModel implements SpeechModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
+    const requestUrl = this.config.url({
+      path: `https://fal.run/${this.modelId}`,
+      modelId: this.modelId,
+    });
+
     const {
       value: json,
       responseHeaders,
       rawValue,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: `https://fal.run/${this.modelId}`,
-        modelId: this.modelId,
-      }),
+      url: requestUrl,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
@@ -123,6 +127,9 @@ export class FalSpeechModel implements SpeechModelV4 {
     const audioUrl = json.audio.url;
     const { value: audio } = await getFromApi({
       url: audioUrl,
+      // audioUrl comes from the provider response body; validate it.
+      validateUrl: true,
+      trustedOrigin: requestUrl,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal: options.abortSignal,
@@ -145,8 +152,12 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 }
 
-const falSpeechResponseSchema = z.object({
-  audio: z.object({ url: z.string() }),
-  duration_ms: z.number().optional(),
-  request_id: z.string().optional(),
-});
+const falSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio: z.object({ url: z.string() }),
+      duration_ms: z.number().optional(),
+      request_id: z.string().optional(),
+    }),
+  ),
+);

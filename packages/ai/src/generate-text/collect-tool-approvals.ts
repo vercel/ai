@@ -2,17 +2,18 @@ import type {
   ModelMessage,
   ToolApprovalRequest,
   ToolApprovalResponse,
+  ToolResultPart,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import type { TypedToolCall } from './tool-call';
-import type { TypedToolResult } from './tool-result';
 
 export type CollectedToolApprovals<TOOLS extends ToolSet> = {
   approvalRequest: ToolApprovalRequest;
   approvalResponse: ToolApprovalResponse;
   toolCall: TypedToolCall<TOOLS>;
+  existingToolResult?: ToolResultPart;
 };
 
 /**
@@ -49,12 +50,15 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     string,
     TypedToolCall<TOOLS>
   > = Object.create(null);
+  const toolCallOrder: Record<string, number> = Object.create(null);
+  let nextToolCallIndex = 0;
   for (const message of messages) {
     if (message.role === 'assistant' && typeof message.content !== 'string') {
       const content = message.content;
       for (const part of content) {
         if (part.type === 'tool-call') {
           toolCallsByToolCallId[part.toolCallId] = part as TypedToolCall<TOOLS>;
+          toolCallOrder[part.toolCallId] = nextToolCallIndex++;
         }
       }
     }
@@ -75,17 +79,16 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
   }
 
   // gather tool results from the last tool message
-  const toolResults: Record<string, TypedToolResult<TOOLS>> = Object.create(
-    null,
-  );
+  const toolResults: Record<string, ToolResultPart> = Object.create(null);
   for (const part of lastMessage.content) {
     if (part.type === 'tool-result') {
-      toolResults[part.toolCallId] = part as TypedToolResult<TOOLS>;
+      toolResults[part.toolCallId] = part;
     }
   }
 
   const approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
   const deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
+  const collectedToolCallIds = new Set<string>();
 
   const approvalResponses = lastMessage.content.filter(
     part => part.type === 'tool-approval-response',
@@ -100,7 +103,12 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       });
     }
 
-    if (toolResults[approvalRequest.toolCallId] != null) {
+    const existingToolResult = toolResults[approvalRequest.toolCallId];
+    if (
+      existingToolResult != null &&
+      (approvalResponse.approved ||
+        existingToolResult.output.type !== 'execution-denied')
+    ) {
       continue;
     }
 
@@ -112,10 +120,20 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       });
     }
 
+    // Only the first response for a tool call is collected. Later responses
+    // (replays, conflicting decisions, or responses to another approval of the
+    // same call) would otherwise execute the tool twice or both execute and
+    // deny it.
+    if (collectedToolCallIds.has(toolCall.toolCallId)) {
+      continue;
+    }
+    collectedToolCallIds.add(toolCall.toolCallId);
+
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
       approvalResponse,
       toolCall,
+      ...(existingToolResult != null ? { existingToolResult } : {}),
     };
 
     if (approvalResponse.approved) {
@@ -124,6 +142,14 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       deniedToolApprovals.push(approval);
     }
   }
+
+  // Approval responses can arrive in a different order than the model's calls.
+  // Restore model order before either generation API schedules their execution.
+  approvedToolApprovals.sort(
+    (a, b) =>
+      toolCallOrder[a.toolCall.toolCallId] -
+      toolCallOrder[b.toolCall.toolCallId],
+  );
 
   return { approvedToolApprovals, deniedToolApprovals };
 }

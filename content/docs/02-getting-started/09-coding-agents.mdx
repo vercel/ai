@@ -74,7 +74,7 @@ Once an integration is registered, [telemetry](/docs/ai-sdk-core/telemetry) is e
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'What cities are in the United States?',
 });
 ```
@@ -84,7 +84,7 @@ const result = await generateText({
 Start the DevTools viewer in a separate terminal:
 
 ```bash
-npx @ai-sdk/devtools
+npx @ai-sdk/devtools@latest
 ```
 
 Open [http://localhost:4983](http://localhost:4983) to inspect your AI SDK interactions in real time.

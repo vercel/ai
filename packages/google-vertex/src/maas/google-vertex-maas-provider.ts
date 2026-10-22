@@ -1,8 +1,10 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
   type OpenAICompatibleProvider,
 } from '@ai-sdk/openai-compatible';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
@@ -10,6 +12,19 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
+
+const maxOutputTokensByModel: Record<string, number | undefined> = {
+  'meta/llama-4-maverick-17b-128e-instruct-maas': 8192,
+  'meta/llama-4-scout-17b-16e-instruct-maas': 8192,
+};
+
+function transformGoogleVertexMaasRequestBody(args: Record<string, any>) {
+  const maxOutputTokens = maxOutputTokensByModel[args.model];
+
+  return maxOutputTokens != null && args.max_tokens === undefined
+    ? { ...args, max_tokens: maxOutputTokens }
+    : args;
+}
 
 export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
   GoogleVertexMaasModelId,
@@ -61,11 +76,21 @@ export function createGoogleVertexMaas(
   options: GoogleVertexMaasProviderSettings = {},
 ): GoogleVertexMaasProvider {
   // Lazy-load settings to support loading from environment variables at runtime
-  const loadLocation = () =>
-    loadOptionalSetting({
-      settingValue: options.location,
-      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-    });
+  const loadLocation = () => {
+    const location =
+      loadOptionalSetting({
+        settingValue: options.location,
+        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+      }) ?? 'global';
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   const loadProject = () =>
     loadSetting({
@@ -87,7 +112,7 @@ export function createGoogleVertexMaas(
 
   const constructBaseURL = () => {
     const projectId = loadProject();
-    const location = loadLocation() ?? 'global';
+    const location = loadLocation();
 
     return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
@@ -101,6 +126,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);

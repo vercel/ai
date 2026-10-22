@@ -36,7 +36,7 @@ type BaseToolExecutionStartFields = {
  * validated `toolContext` type.
  */
 type StaticToolExecutionStartEvent<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: BaseToolExecutionStartFields & {
+  [NAME in keyof TOOLS]-?: BaseToolExecutionStartFields & {
     readonly toolCall: Extract<StaticToolCall<TOOLS>, { toolName: NAME }>;
     readonly toolContext: ToolContextFor<TOOLS[NAME]>;
   };
@@ -93,7 +93,7 @@ type BaseToolExecutionEndFields = {
  * corresponding validated `toolContext`, and the tool execution result.
  */
 type StaticToolExecutionEndEvent<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: BaseToolExecutionEndFields & {
+  [NAME in keyof TOOLS]-?: BaseToolExecutionEndFields & {
     readonly toolCall: Extract<StaticToolCall<TOOLS>, { toolName: NAME }>;
     readonly toolContext: ToolContextFor<TOOLS[NAME]>;
     readonly toolOutput: ToolOutput<TOOLS>;

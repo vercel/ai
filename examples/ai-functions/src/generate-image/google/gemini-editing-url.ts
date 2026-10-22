@@ -6,7 +6,7 @@ import { presentImages } from '../../lib/present-image';
 
 run(async () => {
   const editResult = await generateImage({
-    model: google.image('gemini-2.5-flash-image'),
+    model: google.image('gemini-3.1-flash-image-preview'),
     prompt: {
       text: 'Add a small wizard hat to this cat. Keep everything else the same.',
       images: [

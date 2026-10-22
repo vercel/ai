@@ -5,12 +5,14 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
   lazySchema,
@@ -43,6 +45,16 @@ export class LumaImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 1;
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
+
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'photon-1' || this.modelId === 'photon-flash-1'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -181,6 +193,7 @@ export class LumaImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
+        validateUrl: false,
         headers,
         abortSignal,
         fetch: this.config.fetch,
@@ -334,9 +347,9 @@ export class LumaImageModel implements ImageModelV4 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(
+      generationId ?? 'image',
+    )}`;
   }
 
   private async downloadImage(
@@ -345,6 +358,9 @@ export class LumaImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by Luma.
       abortSignal,
@@ -373,23 +389,27 @@ const lumaGenerationResponseSchema = lazySchema(() =>
   ),
 );
 
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
-        .object({
-          expected: z.string(),
-        })
-        .nullish(),
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
 
 /**
  * Provider options schema for Luma image generation.

@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { shellQuote } from '@ai-sdk/harness/utils';
+import type { AgentSession } from '@earendil-works/pi-coding-agent';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -20,20 +21,106 @@ const piSessionFileNameSchema = z
     'Pi sessionFileName must be a safe .jsonl or .json basename.',
   );
 
+const piCompletedToolResultSchema = z.object({
+  toolCallId: z.string(),
+  result: z.looseObject({ content: z.array(z.unknown()).optional() }),
+  isError: z.boolean(),
+});
+
+type PiAssistantMessageStream = Awaited<
+  ReturnType<AgentSession['agent']['streamFunction']>
+>;
+
+type PiAgentAssistantMessage = Awaited<
+  ReturnType<PiAssistantMessageStream['result']>
+>;
+
+export interface PiAssistantMessage extends PiAgentAssistantMessage {}
+
+const piAssistantMessageShapeSchema = z.looseObject({
+  role: z.literal('assistant'),
+  content: z.array(z.unknown()),
+});
+
+/*
+ * The parked assistant message is stored verbatim so it can be replayed into
+ * Pi. Validation only checks the fields this adapter reads directly; the full
+ * Pi message type is asserted at this lifecycle-state boundary so capture,
+ * checkpointing and replay share one type.
+ */
+export const piAssistantMessageSchema = z.custom<PiAssistantMessage>(
+  value => piAssistantMessageShapeSchema.safeParse(value).success,
+  {
+    error:
+      'Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.',
+  },
+);
+
+/**
+ * A tool batch that was waiting on host input (tool results, approvals) when
+ * its turn was persisted. Pi cannot resume in the middle of a batch, so a cold
+ * continuation replays this host-held assistant message through Pi's tool
+ * executor. Its tool calls must match the restored journal before replay:
+ * calls in `completedToolResults` reuse their stored result, while calls in
+ * `awaitingToolCallIds` receive the host input delivered with the
+ * continuation.
+ */
+export const piPendingToolBatchSchema = z.object({
+  assistantMessage: piAssistantMessageSchema,
+  awaitingToolCallIds: z.array(z.string()),
+  completedToolResults: z.array(piCompletedToolResultSchema),
+  nativeApprovalDecisions: z.array(
+    z.object({
+      toolCallId: z.string(),
+      approved: z.boolean(),
+      reason: z.string().optional(),
+    }),
+  ),
+});
+
+export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
+export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
+
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
  * by Pi's resumable lifecycle methods. Carries the basename
  * (including extension) of the Pi session file. The actual session bytes live
- * in the sandbox under `${sessionWorkDir}/.pi-sessions/<sessionFileName>` so
- * they survive cross-process resume via the sandbox snapshot.
+ * in a private, session-scoped directory under sandbox HOME so they survive
+ * cross-process resume without appearing in the agent workspace.
  */
 export const piResumeStateSchema = z.looseObject({
   sessionFileName: piSessionFileNameSchema.optional(),
+  pendingToolBatch: piPendingToolBatchSchema.optional(),
 });
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
 
-const PI_SESSIONS_DIR = '.pi-sessions';
+export function resolvePiPrivateSessionDirectory(input: {
+  readonly sandboxHomeDir: string;
+  readonly sessionWorkDir: string;
+  readonly sessionId: string;
+}): string {
+  const sessionKey = createHash('sha256').update(input.sessionId).digest('hex');
+  const privateSessionDir = path.posix.join(
+    input.sandboxHomeDir,
+    '.ai-sdk',
+    'harness-pi',
+    sessionKey,
+  );
+  const relativePath = path.posix.relative(
+    input.sessionWorkDir,
+    privateSessionDir,
+  );
+  if (
+    relativePath === '' ||
+    (!relativePath.startsWith('../') && !path.posix.isAbsolute(relativePath))
+  ) {
+    throw new Error(
+      `Pi private session directory ${JSON.stringify(privateSessionDir)} must be outside sessionWorkDir ${JSON.stringify(input.sessionWorkDir)}.`,
+    );
+  }
+  return privateSessionDir;
+}
 
 function resolveContainedHostPath(input: {
   readonly baseDir: string;
@@ -56,10 +143,10 @@ function resolveContainedHostPath(input: {
 }
 
 function resolveContainedSandboxPath(input: {
-  readonly sessionWorkDir: string;
+  readonly privateSessionDir: string;
   readonly sessionFileName: string;
 }): string {
-  const sessionDir = path.posix.resolve(input.sessionWorkDir, PI_SESSIONS_DIR);
+  const sessionDir = path.posix.resolve(input.privateSessionDir);
   const filePath = path.posix.resolve(
     sessionDir,
     safePiSessionFileName(input.sessionFileName),
@@ -76,13 +163,13 @@ function resolveContainedSandboxPath(input: {
 }
 
 /**
- * Copy the Pi session file from the host's local mirror to a stable location
- * inside the sandbox workspace. Called during resumable lifecycle methods so
- * the session survives a sandbox snapshot or a process handoff.
+ * Copy the Pi session file from the host's local mirror to private sandbox
+ * state. Called during resumable lifecycle methods so the session survives a
+ * sandbox snapshot or a process handoff.
  */
 export async function persistSessionFileToSandbox(args: {
   readonly sandbox: Experimental_SandboxSession;
-  readonly sessionWorkDir: string;
+  readonly privateSessionDir: string;
   readonly hostSessionDir: string;
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
@@ -93,13 +180,8 @@ export async function persistSessionFileToSandbox(args: {
   });
   const content = await readFile(hostPath);
   const remotePath = resolveContainedSandboxPath({
-    sessionWorkDir: args.sessionWorkDir,
+    privateSessionDir: args.privateSessionDir,
     sessionFileName: args.sessionFileName,
-  });
-  // Ensure the parent dir exists in the sandbox before writing.
-  await args.sandbox.run({
-    command: `mkdir -p ${shellQuote(path.posix.dirname(remotePath))}`,
-    ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
   await args.sandbox.writeBinaryFile({
     path: remotePath,
@@ -116,20 +198,20 @@ export async function persistSessionFileToSandbox(args: {
  */
 export async function pullSessionFileFromSandbox(args: {
   readonly sandbox: Experimental_SandboxSession;
-  readonly sessionWorkDir: string;
+  readonly privateSessionDir: string;
   readonly hostSessionDir: string;
   readonly sessionFileName: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<string | undefined> {
   const remotePath = resolveContainedSandboxPath({
-    sessionWorkDir: args.sessionWorkDir,
+    privateSessionDir: args.privateSessionDir,
     sessionFileName: args.sessionFileName,
   });
   const bytes = await args.sandbox.readBinaryFile({
     path: remotePath,
     ...(args.abortSignal ? { abortSignal: args.abortSignal } : {}),
   });
-  if (!bytes) return undefined;
+  if (bytes == null) return undefined;
   await mkdir(args.hostSessionDir, { recursive: true });
   const hostPath = resolveContainedHostPath({
     baseDir: args.hostSessionDir,

@@ -1,5 +1,7 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -61,27 +63,28 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
-      diarize: true,
     };
 
     // Add provider-specific options
     if (deepgramOptions) {
       body.detect_entities = deepgramOptions.detectEntities ?? undefined;
       body.detect_language = deepgramOptions.detectLanguage ?? undefined;
+      body.diarize = deepgramOptions.diarize ?? undefined;
       body.filler_words = deepgramOptions.fillerWords ?? undefined;
+      body.intents = deepgramOptions.intents ?? undefined;
+      body.keyterm = deepgramOptions.keyterm ?? undefined;
       body.language = deepgramOptions.language ?? undefined;
+      body.paragraphs = deepgramOptions.paragraphs ?? undefined;
       body.punctuate = deepgramOptions.punctuate ?? undefined;
       body.redact = deepgramOptions.redact ?? undefined;
+      body.replace = deepgramOptions.replace ?? undefined;
       body.search = deepgramOptions.search ?? undefined;
+      body.sentiment = deepgramOptions.sentiment ?? undefined;
       body.smart_format = deepgramOptions.smartFormat ?? undefined;
       body.summarize = deepgramOptions.summarize ?? undefined;
       body.topics = deepgramOptions.topics ?? undefined;
       body.utterances = deepgramOptions.utterances ?? undefined;
       body.utt_split = deepgramOptions.uttSplit ?? undefined;
-
-      if (typeof deepgramOptions.diarize === 'boolean') {
-        body.diarize = deepgramOptions.diarize;
-      }
     }
 
     // Convert body to URL query parameters
@@ -131,6 +134,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+    const durationInSeconds = response.metadata?.duration ?? undefined;
 
     return {
       text:
@@ -143,7 +147,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         })) ?? [],
       language:
         response.results?.channels.at(0)?.detected_language ?? undefined,
-      durationInSeconds: response.metadata?.duration ?? undefined,
+      durationInSeconds,
+      ...(durationInSeconds != null
+        ? { usage: { seconds: durationInSeconds } }
+        : {}),
       warnings,
       response: {
         timestamp: currentDate,
@@ -155,31 +162,35 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const deepgramTranscriptionResponseSchema = z.object({
-  metadata: z
-    .object({
-      duration: z.number(),
-    })
-    .nullish(),
-  results: z
-    .object({
-      channels: z.array(
-        z.object({
-          detected_language: z.string().nullish(),
-          alternatives: z.array(
+const deepgramTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metadata: z
+        .object({
+          duration: z.number(),
+        })
+        .nullish(),
+      results: z
+        .object({
+          channels: z.array(
             z.object({
-              transcript: z.string(),
-              words: z.array(
+              detected_language: z.string().nullish(),
+              alternatives: z.array(
                 z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
+                  transcript: z.string(),
+                  words: z.array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                    }),
+                  ),
                 }),
               ),
             }),
           ),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        })
+        .nullish(),
+    }),
+  ),
+);

@@ -34,6 +34,37 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should warn about and ignore streaming-only options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.streaming',
+        }),
+      );
+      expect(server.calls[0].requestUrlSearchParams.get('auto_mode')).toBe(
+        null,
+      );
+    });
+
+    it('should warn about and ignore dialogue options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.dialogue',
+        }),
+      );
+    });
+
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 
@@ -172,7 +203,7 @@ describe('ElevenLabsSpeechModel', () => {
       });
 
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/elevenlabs/0.0.0-test`,
+        `ai-sdk-elevenlabs/0.0.0-test`,
       );
     });
   });

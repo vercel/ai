@@ -2,8 +2,10 @@ import {
   UnsupportedFunctionalityError,
   type Experimental_TranscriptionModelV4StreamPart,
   type JSONObject,
+  type SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
+  createIdGenerator,
   DelayedPromise,
   withUserAgentSuffix,
   type ProviderOptions,
@@ -11,21 +13,34 @@ import {
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveTranscriptionModel } from '../model/resolve-model';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { asAsyncIterableStream } from '../util/async-iterable-stream';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
+import { notify } from '../util/notify';
 import { VERSION } from '../version';
 import type {
   StreamTranscriptionResult,
   TranscriptionStreamPart,
 } from './stream-transcribe-result';
+import type {
+  StreamTranscriptionEndEvent,
+  StreamTranscriptionStartEvent,
+} from './transcription-events';
 
 type TranscriptSegment = {
   text: string;
   startSecond: number;
   endSecond: number;
 };
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
  * Streams transcripts using a transcription model.
@@ -36,6 +51,7 @@ type TranscriptSegment = {
  * @param providerOptions - Additional provider-specific options.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP/WebSocket headers to send when supported by the provider.
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the streaming transcript and final transcript metadata.
  */
@@ -47,7 +63,11 @@ export function streamTranscribe({
   abortSignal,
   headers,
   includeRawChunks,
-  _internal: { currentDate = () => new Date() } = {},
+  telemetry,
+  _internal: {
+    currentDate = () => new Date(),
+    generateCallId = originalGenerateCallId,
+  } = {},
 }: {
   /**
    * The transcription model to use.
@@ -62,17 +82,7 @@ export function streamTranscribe({
   /**
    * The input audio format for the raw audio chunks.
    */
-  inputAudioFormat: {
-    /**
-     * Audio format type, e.g. `audio/pcm`, `audio/pcmu`, or `audio/pcma`.
-     */
-    type: string;
-
-    /**
-     * Sample rate in Hz. Only applicable for formats that require a rate.
-     */
-    rate?: number;
-  };
+  inputAudioFormat: SharedV4AudioFormat;
 
   /**
    * Additional provider-specific options.
@@ -95,10 +105,16 @@ export function streamTranscribe({
   includeRawChunks?: boolean;
 
   /**
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
    * Internal test hooks.
    */
   _internal?: {
     currentDate?: () => Date;
+    generateCallId?: () => string;
   };
 }): StreamTranscriptionResult {
   const resolvedModel = resolveTranscriptionModel(model);
@@ -113,9 +129,10 @@ export function streamTranscribe({
       message:
         `The ${resolvedModel.provider} model "${resolvedModel.modelId}" does not support streaming transcription.` +
         (typeof model === 'string'
-          ? ' String model IDs resolve through the global provider (AI Gateway by default),' +
-            ' which does not support streaming transcription yet.' +
-            " Pass a provider model instance instead, e.g. openai.transcription('gpt-realtime-whisper')."
+          ? ' String model IDs resolve through the global provider (AI Gateway by default).' +
+            ' If that provider does not support streaming transcription, pass a provider model' +
+            " instance instead (e.g. openai.transcription('gpt-realtime-whisper'))" +
+            ' or upgrade @ai-sdk/gateway to a version with streaming transcription support.'
           : ''),
     });
   }
@@ -124,6 +141,34 @@ export function streamTranscribe({
     headers ?? {},
     `ai/${VERSION}`,
   );
+
+  const callId = generateCallId();
+  const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
+  let audioByteLength = 0;
+  const countedAudio =
+    telemetryDispatcher.experimental_onStreamTranscriptionEnd != null
+      ? createByteCountingStream(audio, byteLength => {
+          audioByteLength += byteLength;
+        })
+      : audio;
+  const startEvent: StreamTranscriptionStartEvent = {
+    callId,
+    operationId: 'ai.streamTranscribe',
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    audio: {
+      byteLength: undefined,
+      mediaType: inputAudioFormat.type,
+    },
+    inputAudioFormat,
+    maxRetries: undefined,
+    headers,
+    providerOptions,
+  };
 
   const textPromise = new DelayedPromise<string>();
   const segmentsPromise = new DelayedPromise<Array<TranscriptSegment>>();
@@ -136,6 +181,8 @@ export function streamTranscribe({
   const providerMetadataPromise = new DelayedPromise<
     Record<string, JSONObject>
   >();
+  let warnings: Array<Warning> = [];
+  let telemetrySettled = false;
 
   const rejectPendingPromises = (error: unknown) => {
     for (const promise of [
@@ -158,10 +205,11 @@ export function streamTranscribe({
   const currentResponseMetadata = () =>
     response ?? { timestamp: startedAt, modelId: resolvedModel.modelId };
 
-  const resolveWarnings = (warnings: Array<Warning>) => {
-    warningsPromise.resolve(warnings);
+  const resolveWarnings = (resolvedWarnings: Array<Warning>) => {
+    warnings = resolvedWarnings;
+    warningsPromise.resolve(resolvedWarnings);
     logWarnings({
-      warnings,
+      warnings: resolvedWarnings,
       provider: resolvedModel.provider,
       model: resolvedModel.modelId,
     });
@@ -179,7 +227,7 @@ export function streamTranscribe({
     Experimental_TranscriptionModelV4StreamPart,
     TranscriptionStreamPart
   > & { cancel?: (reason?: unknown) => void } = {
-    transform(value, controller) {
+    async transform(value, controller) {
       switch (value.type) {
         case 'stream-start': {
           resolveWarnings(value.warnings);
@@ -221,6 +269,37 @@ export function streamTranscribe({
           durationInSecondsPromise.resolve(value.durationInSeconds);
           responsesPromise.resolve([currentResponseMetadata()]);
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
+
+          telemetrySettled = true;
+          if (
+            telemetryDispatcher.experimental_onStreamTranscriptionEnd != null
+          ) {
+            const endEvent: StreamTranscriptionEndEvent = {
+              callId,
+              operationId: 'ai.streamTranscribe',
+              provider: resolvedModel.provider,
+              modelId: resolvedModel.modelId,
+              audio: {
+                byteLength: audioByteLength,
+                mediaType: inputAudioFormat.type,
+              },
+              text: value.text,
+              segments: value.segments,
+              language: value.language,
+              durationInSeconds: value.durationInSeconds,
+              usage: value.usage,
+              warnings,
+              providerMetadata: value.providerMetadata,
+              response: currentResponseMetadata(),
+            };
+
+            await notify({
+              event: endEvent,
+              callbacks: [
+                telemetryDispatcher.experimental_onStreamTranscriptionEnd,
+              ],
+            });
+          }
           break;
         }
       }
@@ -248,62 +327,173 @@ export function streamTranscribe({
 
   // Piping (instead of an eager read loop) preserves consumer backpressure
   // and propagates cancellation of `fullStream` to the model stream.
-  void (async () => {
-    const result = await doStream({
-      audio,
-      inputAudioFormat,
-      providerOptions,
-      abortSignal,
-      headers: headersWithUserAgent,
-      includeRawChunks,
-    });
+  void runInTracingChannelSpan({
+    type: 'streamTranscribe',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [
+          telemetryDispatcher.experimental_onStreamTranscriptionStart,
+        ],
+      });
 
-    response = {
-      timestamp: result.response?.timestamp ?? startedAt,
-      modelId: result.response?.modelId ?? resolvedModel.modelId,
-      headers: result.response?.headers,
-    };
+      const result = await doStream({
+        audio: countedAudio,
+        inputAudioFormat,
+        providerOptions,
+        // merged so cancelling fullStream also aborts a still-pending doStream
+        abortSignal: mergeAbortSignals(abortSignal, pipeAbortController.signal),
+        headers: headersWithUserAgent,
+        includeRawChunks,
+      });
 
-    await result.stream.pipeTo(transform.writable, {
-      signal: pipeAbortController.signal,
-    });
-  })().catch(error => {
+      response = {
+        timestamp: result.response?.timestamp ?? startedAt,
+        modelId: result.response?.modelId ?? resolvedModel.modelId,
+        headers: result.response?.headers,
+      };
+
+      await result.stream.pipeTo(transform.writable, {
+        signal: pipeAbortController.signal,
+      });
+    },
+  }).catch(async error => {
     const reason =
       error ?? new Error('Transcription stream was cancelled or errored.');
     rejectPendingPromises(reason);
+    if (!telemetrySettled) {
+      telemetrySettled = true;
+      await telemetryDispatcher.onError?.({ callId, error: reason });
+    }
+    // When `doStream` rejects before the model stream exists (e.g. auth or
+    // header resolution failure), nothing has taken ownership of `countedAudio`
+    // yet, so cancel it directly. When the model did take a reader, the cancel
+    // rejects and the model's cleanup owns it.
+    countedAudio.cancel(reason).catch(() => {});
     transform.writable.abort(reason).catch(() => {
       // the writable is already errored when the model stream failed mid-pipe
     });
   });
 
+  // Transcription streams can be unbounded (live microphone + raw chunks), so
+  // unlike streamText we cannot retain an unread tee branch for replay. The
+  // output stream has one owner: either fullStream, or the first result promise
+  // getter which claims and drains it internally.
+  let streamOwner: 'unclaimed' | 'full-stream' | 'result-promises' =
+    'unclaimed';
+
+  function consumeStream() {
+    if (streamOwner === 'full-stream' || streamOwner === 'result-promises') {
+      return;
+    }
+    streamOwner = 'result-promises';
+    const reader = transform.readable.getReader();
+    void (async () => {
+      while (!(await reader.read()).done) {
+        // drain; results surface via the promises
+      }
+    })().catch(() => {
+      // stream errors reject the promises via the pipe handler above
+    });
+  }
+
+  function getFullStream() {
+    if (streamOwner !== 'unclaimed') {
+      throw new Error(
+        streamOwner === 'full-stream'
+          ? 'fullStream can only be accessed once.'
+          : 'fullStream cannot be accessed after a result promise.',
+      );
+    }
+    streamOwner = 'full-stream';
+    // Direct ownership preserves backpressure and cancellation: cancelling
+    // this stream reaches Transformer.cancel and aborts the model pipe.
+    return asAsyncIterableStream(transform.readable);
+  }
+
   return {
     get text() {
+      consumeStream();
       return textPromise.promise;
     },
     get segments() {
+      consumeStream();
       return segmentsPromise.promise;
     },
     get language() {
+      consumeStream();
       return languagePromise.promise;
     },
     get durationInSeconds() {
+      consumeStream();
       return durationInSecondsPromise.promise;
     },
     get warnings() {
+      consumeStream();
       return warningsPromise.promise;
     },
     get responses() {
+      consumeStream();
       return responsesPromise.promise;
     },
     get providerMetadata() {
+      consumeStream();
       return providerMetadataPromise.promise;
     },
-    // `transform.readable` is fresh and exclusively owned here, so attach the
-    // async iterator in place rather than piping through another transform.
-    // The extra transform (as `createAsyncIterableStream` would add) chains two
-    // transforms fed by the active model pipe below and surfaces a spurious
-    // unhandled `undefined` rejection when the consumer cancels early on
-    // Node.js 26.
-    fullStream: asAsyncIterableStream(transform.readable),
+    get fullStream() {
+      return getFullStream();
+    },
   };
+}
+
+function createByteCountingStream(
+  audio: ReadableStream<Uint8Array | string>,
+  onChunk: (byteLength: number) => void,
+): ReadableStream<Uint8Array | string> {
+  let audioReader: ReadableStreamDefaultReader<Uint8Array | string> | undefined;
+
+  return new ReadableStream<Uint8Array | string>({
+    async pull(controller) {
+      audioReader ??= audio.getReader();
+      const { done, value } = await audioReader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      onChunk(
+        typeof value === 'string'
+          ? getBase64ByteLength(value)
+          : value.byteLength,
+      );
+      controller.enqueue(value);
+    },
+    async cancel(reason) {
+      if (audioReader != null) {
+        await audioReader.cancel(reason);
+      } else {
+        await audio.cancel(reason);
+      }
+    },
+  });
+}
+
+function getBase64ByteLength(value: string): number {
+  let characterCount = 0;
+  let lastCharacter = '';
+  let secondLastCharacter = '';
+
+  for (const character of value) {
+    if (/\s/.test(character)) {
+      continue;
+    }
+    characterCount++;
+    secondLastCharacter = lastCharacter;
+    lastCharacter = character;
+  }
+
+  const padding =
+    lastCharacter === '=' ? (secondLastCharacter === '=' ? 2 : 1) : 0;
+  return Math.floor((characterCount * 3) / 4) - padding;
 }

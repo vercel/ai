@@ -51,5 +51,5 @@ export type Provider = {
    *
    * @throws {NoSuchModelError} If no such model exists.
    */
-  rerankingModel(modelId: string): RerankingModel;
+  rerankingModel?(modelId: string): RerankingModel;
 };

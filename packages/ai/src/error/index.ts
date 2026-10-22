@@ -1,7 +1,11 @@
+import { Experimental_DecisionUnsupportedQuestionTypeError } from '@ai-sdk/provider';
+
 export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
+  Experimental_DecisionRefusalError,
+  Experimental_DecisionUnsupportedQuestionTypeError,
   InvalidPromptError,
   InvalidResponseDataError,
   JSONParseError,
@@ -27,9 +31,12 @@ export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
 export { NoSpeechGeneratedError } from './no-speech-generated-error';
 export { NoTranscriptGeneratedError } from './no-transcript-generated-error';
+export { NoTranslationGeneratedError } from './no-translation-generated-error';
 export { NoVideoGeneratedError } from './no-video-generated-error';
 export { NoSuchToolError } from './no-such-tool-error';
+export { StreamProviderError } from './stream-provider-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
+export { ToolChoiceViolationError } from './tool-choice-violation-error';
 export { UnsupportedModelVersionError } from './unsupported-model-version-error';
 export { UIMessageStreamError } from './ui-message-stream-error';
 export { InvalidDataContentError } from '../prompt/invalid-data-content-error';
@@ -37,3 +44,10 @@ export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';
 export { MessageConversionError } from '../prompt/message-conversion-error';
 export { DownloadError } from '@ai-sdk/provider-utils';
 export { RetryError } from '../util/retry-error';
+
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export const Experimental_EvaluationUnsupportedQuestionTypeError =
+  Experimental_DecisionUnsupportedQuestionTypeError;
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export type Experimental_EvaluationUnsupportedQuestionTypeError =
+  Experimental_DecisionUnsupportedQuestionTypeError;

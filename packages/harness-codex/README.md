@@ -1,6 +1,6 @@
 # AI SDK - Codex Harness
 
-`HarnessV1` adapter backed by [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk), which drives the `codex` CLI. The adapter ships a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
+`HarnessV1` adapter backed by the [Codex CLI](https://www.npmjs.com/package/@openai/codex). The adapter runs Codex app-server inside a sandbox and communicates with it over JSON-RPC. A bridge process connects app-server to the host over a WebSocket on a sandbox-proxied loopback port.
 
 ## Setup
 
@@ -8,24 +8,24 @@
 npm i @ai-sdk/harness-codex @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```
 
-The bridge installs `@openai/codex-sdk` (and the `codex` CLI it depends on) inside the sandbox the first time the session starts.
+The bridge installs the Codex CLI inside the sandbox the first time the session starts.
 
 ## Usage
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
 const agent = new HarnessAgent({
-  harness: createCodex(),
-  id: 'demo',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
+  harness: createCodex({
+    codexConfig: {
+      model_verbosity: 'low',
+    },
   }),
+  id: 'demo',
   tools: {
     deploy: tool({
       description: 'Deploy a service.',
@@ -39,6 +39,11 @@ const agent = new HarnessAgent({
 });
 ```
 
+`codexConfig` accepts additional native Codex configuration. Values pass
+through as provided, so use the snake_case keys from Codex's `config.toml`
+reference. The adapter's managed values take precedence over conflicting
+entries.
+
 > Codex does not auto-discover a skills directory the way the `claude` CLI
 > does, so when you supply `skills: [...]` on the factory the adapter
 > injects every skill inline into the user prompt on each turn. Use fewer,
@@ -51,13 +56,14 @@ const agent = new HarnessAgent({
       { name: 'haiku-mode', description: 'Answer in haikus.', content: '...' },
     ],
   }),
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -67,7 +73,9 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.createSession()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.
+The adapter needs a sandbox session with an exposed port. The caller ends the
+harness session and sandbox separately.

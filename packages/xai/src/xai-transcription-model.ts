@@ -5,26 +5,31 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
-  getWebSocketConstructor,
+  connectToWebSocket,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-  readWebSocketMessageText,
   safeParseJSON,
   serializeModelOptions,
   toWebSocketUrl,
+  waitForWebSocketBufferDrain,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   type FetchFunction,
+  type WebSocketConnection,
   type WebSocketConstructor,
+  type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import {
   xaiTranscriptionModelOptionsSchema,
+  type XaiTranscriptionModelId,
   type XaiTranscriptionModelOptions,
 } from './xai-transcription-model-options';
 
@@ -62,7 +67,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: '';
+    modelId: XaiTranscriptionModelId;
     config: XaiTranscriptionModelConfig;
   }) {
     return new XaiTranscriptionModel(options.modelId, options.config);
@@ -73,7 +78,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   constructor(
-    readonly modelId: '',
+    readonly modelId: XaiTranscriptionModelId,
     private readonly config: XaiTranscriptionModelConfig,
   ) {}
 
@@ -90,36 +95,15 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
     });
 
     const formData = new FormData();
-    const transcriptionOptions = {
+    appendXaiSttParams(formData, {
+      ...getXaiSttParams(this.modelId, xaiOptions),
       audio_format: xaiOptions?.audioFormat,
-      sample_rate: xaiOptions?.sampleRate,
-      language: xaiOptions?.language,
       format: xaiOptions?.format,
-      multichannel: xaiOptions?.multichannel,
-      channels: xaiOptions?.channels,
-      diarize: xaiOptions?.diarize,
-      filler_words: xaiOptions?.fillerWords,
-    };
-
-    for (const [key, value] of Object.entries(transcriptionOptions)) {
-      if (value != null) {
-        formData.append(key, String(value));
-      }
-    }
-
-    if (xaiOptions?.keyterm != null) {
-      const keyterms = Array.isArray(xaiOptions.keyterm)
-        ? xaiOptions.keyterm
-        : [xaiOptions.keyterm];
-
-      for (const keyterm of keyterms) {
-        formData.append('keyterm', keyterm);
-      }
-    }
+    });
 
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
     const fileExtension = mediaTypeToExtension(mediaType);
 
@@ -172,6 +156,13 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words?.some(word => word.speaker != null) && {
+        providerMetadata: {
+          xai: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 
@@ -206,20 +197,21 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
 
     if (
       xaiOptions?.audioFormat == null &&
-      !isKnownInputAudioFormat(options.inputAudioFormat.type)
+      !inputAudioFormatEncodings.has(options.inputAudioFormat.type)
     ) {
       warnings.push({
         type: 'other',
         message:
           `Unrecognized inputAudioFormat.type "${options.inputAudioFormat.type}"; ` +
           `falling back to raw PCM encoding. ` +
-          `Use audio/pcm, audio/pcmu, or audio/pcma, ` +
+          `Use ${[...inputAudioFormatEncodings.keys()].join(', ')}, ` +
           `or set providerOptions.xai.audioFormat explicitly.`,
       });
     }
 
     const url = buildXaiStreamingTranscriptionUrl({
       baseURL: this.config.baseURL ?? 'https://api.x.ai/v1',
+      modelId: this.modelId,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: xaiOptions,
     });
@@ -273,20 +265,26 @@ function createXaiStreamingTranscriptionStream({
 
   return new ReadableStream({
     start: controller => {
-      const WebSocketConstructor = getWebSocketConstructor(webSocket);
-      const ws = new WebSocketConstructor(url, undefined, { headers });
       const doneTexts = new Map<number, string>();
+      // per-channel finalized utterances + latest revisable text, used to
+      // reconstruct the finish text (xAI's `transcript.done` has empty text):
+      const finalizedTexts = new Map<number, string[]>();
+      const pendingTexts = new Map<number, string>();
       let doneDuration: number | undefined;
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
+      let connection: WebSocketConnection | undefined;
 
       cleanup = (closeCode?: number) => {
-        abortSignal?.removeEventListener('abort', abort);
-        void audioReader?.cancel().catch(() => {});
-        try {
-          ws.close(closeCode);
-        } catch {}
+        if (audioReader != null) {
+          void audioReader.cancel().catch(() => {});
+        } else {
+          // pre-open failure or abort: cancel the caller's audio stream so an
+          // upstream producer piping into it does not hang:
+          void audio.cancel().catch(() => {});
+        }
+        connection?.close(closeCode);
       };
 
       const finishWithError = (error: unknown) => {
@@ -314,117 +312,138 @@ function createXaiStreamingTranscriptionStream({
         cleanup(1000);
       };
 
-      const abort = () => {
-        finishWithError(abortSignal?.reason ?? new Error('Aborted'));
-      };
-      if (abortSignal?.aborted) {
-        abort();
-        return;
-      }
-      abortSignal?.addEventListener('abort', abort, { once: true });
-
-      const sendAudio = async () => {
+      const sendAudio = async (socket: WebSocketLike) => {
         audioReader = audio.getReader();
         try {
           while (true) {
             const { done, value } = await audioReader.read();
             if (done || finished) break;
-            ws.send(
+            socket.send(
               value instanceof Uint8Array
                 ? value
                 : convertBase64ToUint8Array(value),
             );
+            // backpressure: pause reads while the socket buffer is full
+            await waitForWebSocketBufferDrain(socket);
           }
         } finally {
           audioReader.releaseLock();
+          // unlocked again: cleanup must cancel `audio`, not the reader
+          audioReader = undefined;
         }
         if (!finished) {
-          ws.send(JSON.stringify({ type: 'audio.done' }));
+          socket.send(JSON.stringify({ type: 'audio.done' }));
         }
       };
 
-      ws.onmessage = event => {
-        void readWebSocketMessageText(event.data)
-          .then(async text => {
-            const parsed = await safeParseJSON({ text });
-            if (!parsed.success) return;
-            const raw = parsed.value as XaiStreamingTranscriptionEvent;
+      connection = connectToWebSocket({
+        url,
+        headers,
+        webSocket,
+        abortSignal,
+        onAbort: finishWithError,
+        onProcessingError: finishWithError,
+        onMessageText: async text => {
+          const parsed = await safeParseJSON({ text });
+          if (!parsed.success) return;
+          const raw = parsed.value as XaiStreamingTranscriptionEvent;
 
-            if (includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: raw });
-            }
+          if (includeRawChunks) {
+            controller.enqueue({ type: 'raw', rawValue: raw });
+          }
 
-            switch (raw.type) {
-              case 'transcript.created': {
-                controller.enqueue({ type: 'stream-start', warnings });
-                void sendAudio().catch(finishWithError);
+          switch (raw.type) {
+            case 'transcript.created': {
+              controller.enqueue({ type: 'stream-start', warnings });
+              const socket = connection?.socket;
+              if (socket == null) {
+                finishWithError(new Error('WebSocket is not connected.'));
                 break;
               }
+              void sendAudio(socket).catch(finishWithError);
+              break;
+            }
 
-              case 'transcript.partial': {
-                const id = channelId(raw.channel_index);
+            case 'transcript.partial': {
+              const id = channelId(raw.channel_index);
+              const channelIndex = raw.channel_index ?? 0;
+              // only `speech_final` completes an utterance; `is_final`
+              // fragments are re-sent/revised later, so they stay partials:
+              if (raw.is_final && raw.speech_final) {
                 const timing = timingFromXaiEvent(raw);
-                if (raw.is_final) {
-                  controller.enqueue({
-                    type: 'transcript-final',
-                    id,
-                    text: raw.text ?? '',
-                    ...timing,
-                    channelIndex: raw.channel_index,
-                  });
-                } else {
-                  controller.enqueue({
-                    type: 'transcript-partial',
-                    id,
-                    text: raw.text ?? '',
-                    startSecond: raw.start,
-                    durationInSeconds: raw.duration,
-                    channelIndex: raw.channel_index,
-                  });
+                if (raw.text) {
+                  finalizedTexts.set(channelIndex, [
+                    ...(finalizedTexts.get(channelIndex) ?? []),
+                    raw.text,
+                  ]);
                 }
-                break;
+                pendingTexts.delete(channelIndex);
+                controller.enqueue({
+                  type: 'transcript-final',
+                  id,
+                  text: raw.text ?? '',
+                  ...timing,
+                  channelIndex: raw.channel_index,
+                });
+              } else {
+                pendingTexts.set(channelIndex, raw.text ?? '');
+                controller.enqueue({
+                  type: 'transcript-partial',
+                  id,
+                  text: raw.text ?? '',
+                  startSecond: raw.start,
+                  durationInSeconds: raw.duration,
+                  channelIndex: raw.channel_index,
+                });
               }
-
-              case 'transcript.done': {
-                const channelIndex = raw.channel_index ?? 0;
-                doneTexts.set(channelIndex, raw.text ?? '');
-                doneDuration = raw.duration ?? doneDuration;
-                maybeFinish();
-                break;
-              }
-
-              case 'error': {
-                // xAI STT errors are terminal: surface the server message
-                // instead of letting the socket close mask it.
-                finishWithError(new Error(raw.message ?? 'xAI STT error'));
-                break;
-              }
+              break;
             }
-          })
-          .catch(finishWithError);
-      };
 
-      ws.onerror = () => {
-        finishWithError(
-          new Error(
-            'xAI streaming transcription error.' +
-              (webSocket == null
-                ? ' Note: the native WebSocket implementation in browsers,' +
-                  ' Node.js, Deno, and Bun cannot send the Authorization' +
-                  ' header required by xAI. Pass a header-capable WebSocket' +
-                  " implementation (e.g. the 'ws' package) via" +
-                  ' createXai({ webSocket }).'
-                : ''),
-          ),
-        );
-      };
+            case 'transcript.done': {
+              const channelIndex = raw.channel_index ?? 0;
+              // `transcript.done` text is empty; fall back to the
+              // accumulated utterances plus any trailing unfinalized text:
+              const accumulated = [
+                ...(finalizedTexts.get(channelIndex) ?? []),
+                ...(pendingTexts.get(channelIndex)
+                  ? [pendingTexts.get(channelIndex) as string]
+                  : []),
+              ].join(' ');
+              doneTexts.set(channelIndex, raw.text || accumulated);
+              doneDuration = raw.duration ?? doneDuration;
+              maybeFinish();
+              break;
+            }
 
-      ws.onclose = () => {
-        if (finished) return;
-        finished = true;
-        cleanup();
-        controller.close();
-      };
+            case 'error': {
+              // xAI STT errors are terminal: surface the server message
+              // instead of letting the socket close mask it.
+              finishWithError(new Error(raw.message ?? 'xAI STT error'));
+              break;
+            }
+          }
+        },
+        onSocketError: () => {
+          finishWithError(
+            new Error(
+              'xAI streaming transcription error.' +
+                (webSocket == null
+                  ? ' Note: the native WebSocket implementation in browsers,' +
+                    ' Node.js, Deno, and Bun cannot send the Authorization' +
+                    ' header required by xAI. Pass a header-capable WebSocket' +
+                    " implementation (e.g. the 'ws' package) via" +
+                    ' createXai({ webSocket }).'
+                  : ''),
+            ),
+          );
+        },
+        onClose: () => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          controller.close();
+        },
+      });
     },
 
     cancel: () => {
@@ -437,84 +456,76 @@ function createXaiStreamingTranscriptionStream({
 
 function buildXaiStreamingTranscriptionUrl({
   baseURL,
+  modelId,
   inputAudioFormat,
   providerOptions,
 }: {
   baseURL: string;
+  modelId: XaiTranscriptionModelId;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: XaiTranscriptionModelOptions | undefined;
 }) {
   const url = toWebSocketUrl(`${baseURL}/stt`);
+  const params = getXaiSttParams(modelId, providerOptions);
 
-  appendSearchParam(
-    url,
-    'sample_rate',
-    providerOptions?.sampleRate ?? inputAudioFormat.rate,
-  );
-  appendSearchParam(
-    url,
-    'encoding',
-    providerOptions?.audioFormat ??
-      encodingFromInputAudioFormat(inputAudioFormat.type),
-  );
-  appendSearchParam(url, 'language', providerOptions?.language);
-  appendSearchParam(url, 'diarize', providerOptions?.diarize);
-  appendSearchParam(url, 'filler_words', providerOptions?.fillerWords);
-  appendSearchParam(url, 'multichannel', providerOptions?.multichannel);
-  appendSearchParam(url, 'channels', providerOptions?.channels);
-  appendSearchParam(
-    url,
-    'interim_results',
-    providerOptions?.streaming?.interimResults,
-  );
-  appendSearchParam(
-    url,
-    'endpointing',
-    providerOptions?.streaming?.endpointing,
-  );
-  appendSearchParam(url, 'smart_turn', providerOptions?.streaming?.smartTurn);
-  appendSearchParam(
-    url,
-    'smart_turn_timeout',
-    providerOptions?.streaming?.smartTurnTimeout,
-  );
-
-  if (providerOptions?.keyterm != null) {
-    const keyterms = Array.isArray(providerOptions.keyterm)
-      ? providerOptions.keyterm
-      : [providerOptions.keyterm];
-    for (const keyterm of keyterms) {
-      url.searchParams.append('keyterm', keyterm);
-    }
-  }
+  appendXaiSttParams(url.searchParams, {
+    ...params,
+    sample_rate: params.sample_rate ?? inputAudioFormat.rate,
+    encoding:
+      providerOptions?.audioFormat ??
+      inputAudioFormatEncodings.get(inputAudioFormat.type) ??
+      'pcm',
+    interim_results: providerOptions?.streaming?.interimResults,
+    endpointing: providerOptions?.streaming?.endpointing,
+    smart_turn: providerOptions?.streaming?.smartTurn,
+    smart_turn_timeout: providerOptions?.streaming?.smartTurnTimeout,
+  });
 
   return url;
 }
 
-function appendSearchParam(
-  url: URL,
-  key: string,
-  value: string | number | boolean | null | undefined,
+function getXaiSttParams(
+  modelId: XaiTranscriptionModelId,
+  options: XaiTranscriptionModelOptions | undefined,
 ) {
-  if (value != null) {
-    url.searchParams.set(key, String(value));
+  return {
+    model: modelId || undefined,
+    sample_rate: options?.sampleRate,
+    language: options?.language,
+    multichannel: options?.multichannel,
+    channels: options?.channels,
+    diarize: options?.diarize,
+    filler_words: options?.fillerWords,
+    vad_threshold: options?.vadThreshold,
+    keyterm: options?.keyterm,
+  };
+}
+
+function appendXaiSttParams(
+  target: { append(name: string, value: string): void },
+  params: Record<
+    string,
+    string | number | boolean | string[] | null | undefined
+  >,
+) {
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item != null) {
+        target.append(key, String(item));
+      }
+    }
   }
 }
 
-function isKnownInputAudioFormat(type: string): boolean {
-  return type === 'audio/pcm' || type === 'audio/pcmu' || type === 'audio/pcma';
-}
-
-function encodingFromInputAudioFormat(type: string): 'pcm' | 'mulaw' | 'alaw' {
-  switch (type) {
-    case 'audio/pcmu':
-      return 'mulaw';
-    case 'audio/pcma':
-      return 'alaw';
-    default:
-      return 'pcm';
-  }
-}
+const inputAudioFormatEncodings = new Map<
+  string,
+  NonNullable<XaiTranscriptionModelOptions['audioFormat']>
+>([
+  ['audio/pcm', 'pcm'],
+  ['audio/pcmu', 'mulaw'],
+  ['audio/pcma', 'alaw'],
+  ['audio/opus', 'opus'],
+]);
 
 function channelId(channelIndex: number | undefined): string | undefined {
   return channelIndex == null ? undefined : `channel-${channelIndex}`;
@@ -529,17 +540,22 @@ function timingFromXaiEvent(event: XaiStreamingTranscriptionEvent) {
   };
 }
 
-const xaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const xaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            speaker: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

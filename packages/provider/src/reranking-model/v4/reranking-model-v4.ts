@@ -2,7 +2,7 @@ import type { RerankingModelV4CallOptions } from './reranking-model-v4-call-opti
 import type { RerankingModelV4Result } from './reranking-model-v4-result';
 
 /**
- * Specification for a reranking model that implements the reranking model interface version 3.
+ * Specification for a reranking model that implements the reranking model interface version 4.
  */
 export type RerankingModelV4 = {
   /**

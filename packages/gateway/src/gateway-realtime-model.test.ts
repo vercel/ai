@@ -205,12 +205,16 @@ describe('gateway.experimental_realtime', () => {
         'https://ai-gateway.vercel.sh/v1/realtime/client-secrets',
       );
 
-      // The request body forwarded the model and the TTL.
+      // The request body forwarded the model and the TTL. `routeKind` is
+      // omitted for realtime mints (the gateway default) so older gateway
+      // deployments keep accepting them.
       const init = fetch.mock.calls[0]?.[1] as RequestInit;
-      expect(JSON.parse(init.body as string)).toMatchObject({
+      const sentBody = JSON.parse(init.body as string);
+      expect(sentBody).toMatchObject({
         model: 'openai/gpt-realtime',
         expiresIn: 120,
       });
+      expect('routeKind' in sentBody).toBe(false);
       // Authenticated with the long-lived key.
       const sentHeaders = new Headers(init.headers);
       expect(sentHeaders.get('authorization')).toBe('Bearer vck_test-token');
@@ -249,14 +253,14 @@ describe('gateway.experimental_realtime', () => {
         teamIdOrSlug: 'my-team',
       });
       const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
-      const config = model.getWebSocketConfig({
+      const config = model.getWebSocketConfig?.({
         token: 'vcst_test-secret',
         url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       });
 
-      expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
-        'my-team',
-      );
+      expect(
+        getGatewayRealtimeTeamIdOrSlug(config?.protocols?.join(', ')),
+      ).toBe('my-team');
     },
   );
 
@@ -268,7 +272,7 @@ describe('gateway.experimental_realtime', () => {
       const model = gateway.experimental_realtime('openai/gpt-realtime');
       expect(model.specificationVersion).toBe('v4');
       expect(
-        model.getWebSocketConfig({ token: 'vcst_x', url: 'wss://x/y' }).url,
+        model.getWebSocketConfig?.({ token: 'vcst_x', url: 'wss://x/y' }).url,
       ).toBe('wss://x/y');
     });
   });

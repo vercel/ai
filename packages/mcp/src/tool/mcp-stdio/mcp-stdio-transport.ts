@@ -11,9 +11,11 @@ export interface StdioConfig {
   env?: Record<string, string>;
   stderr?: IOType | Stream | number;
   cwd?: string;
+  shell?: boolean | string;
 }
 
 export class StdioMCPTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();

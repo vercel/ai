@@ -10,6 +10,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 const generateId = () => crypto.randomUUID();
 
@@ -39,7 +40,7 @@ const registerSignalHandlers = () => {
         const durationMs = Date.now() - data.startTime;
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify(data.collectedOutput),
+          output: serializeForDevTools(data.collectedOutput),
           usage: null,
           error: 'Request aborted',
           raw_request:
@@ -143,7 +144,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -167,7 +168,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
 
         await updateStepResult(stepId, {
           duration_ms: durationMs,
-          output: JSON.stringify({
+          output: serializeForDevTools({
             content: result.content,
             finishReason: result.finishReason,
             response: result.response,
@@ -217,7 +218,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
         // @ts-expect-error broken type
         provider: model.config?.provider,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: params.prompt,
           tools: params.tools,
           toolChoice: params.toolChoice,
@@ -243,6 +244,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
           textParts: Array<{ id: string; text: string }>;
           reasoningParts: Array<{ id: string; text: string }>;
           toolCalls: LanguageModelV4StreamPart[];
+          content?: LanguageModelV4StreamPart[];
           finishReason?: LanguageModelV4FinishReason;
           usage?: LanguageModelV4Usage;
         } = {
@@ -319,6 +321,11 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
               case 'tool-call':
                 collectedOutput.toolCalls.push(chunk);
                 break;
+              case 'file':
+              case 'reasoning-file':
+              case 'tool-result':
+                (collectedOutput.content ??= []).push(chunk);
+                break;
               case 'finish':
                 collectedOutput.finishReason = chunk.finishReason;
                 collectedOutput.usage = chunk.usage;
@@ -335,7 +342,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
                 ? JSON.stringify(collectedOutput.usage)
                 : null,
@@ -354,7 +361,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
             const durationMs = Date.now() - startTime;
             await updateStepResult(stepId, {
               duration_ms: durationMs,
-              output: JSON.stringify(collectedOutput),
+              output: serializeForDevTools(collectedOutput),
               usage: collectedOutput.usage
                 ? JSON.stringify(collectedOutput.usage)
                 : null,

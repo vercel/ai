@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo, useState } from 'react';
 
 type SandboxToolPart = {
@@ -22,7 +22,6 @@ export default function SandboxPage() {
       new WorkflowChatTransport({
         api: '/api/sandbox-chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50,
         onChatSendMessage: response => {
           setWorkflowRunId(
             response.headers.get('x-workflow-run-id') ?? undefined,

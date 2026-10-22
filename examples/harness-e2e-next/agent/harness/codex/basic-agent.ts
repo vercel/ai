@@ -4,15 +4,12 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const codexHarnessAgent = new HarnessAgent({
   harness: codex,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
+  tools: { getUserName: getUserNameTool },
   // Observability wired in code (dev/testing app) — see the claude-code basic
   // agent for the rationale. Trace tree + diagnostics print to the `pnpm dev`
   // terminal; the file reporter writes a per-agent `events.jsonl`.

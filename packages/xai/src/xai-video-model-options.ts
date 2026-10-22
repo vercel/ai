@@ -1,20 +1,56 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const nonEmptyStringSchema = z.string().min(1);
-const resolutionSchema = z.enum(['480p', '720p']);
-const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
+const nonEmptyStringSchema = () => z.string().min(1);
+const resolutionSchema = () => z.enum(['480p', '720p', '1080p']);
+const modeSchema = () =>
+  z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 
-export type XaiVideoMode = z.infer<typeof modeSchema>;
-type XaiVideoResolution = z.infer<typeof resolutionSchema>;
+export type XaiVideoMode = z.infer<ReturnType<typeof modeSchema>>;
+type XaiVideoResolution = z.infer<ReturnType<typeof resolutionSchema>>;
+
+const keyframeSchema = () =>
+  z.object({
+    imageUrl: nonEmptyStringSchema(),
+    timestampSeconds: z.number().positive(),
+  });
+
+const storageOptionsSchema = () =>
+  z.object({
+    filename: nonEmptyStringSchema(),
+    expiresAfter: z.number().int().positive().max(2_592_000).optional(),
+    publicUrl: z
+      .union([
+        z.boolean(),
+        z.object({
+          expiresAfter: z.number().int().min(3_600).max(2_592_000).optional(),
+        }),
+      ])
+      .optional(),
+  });
+
+export type XaiVideoKeyframe = z.infer<ReturnType<typeof keyframeSchema>>;
+export type XaiVideoStorageOptions = z.infer<
+  ReturnType<typeof storageOptionsSchema>
+>;
 
 interface XaiVideoSharedOptions {
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   resolution?: XaiVideoResolution | null;
+  /** Store the generated video in the xAI Files API. */
+  storageOptions?: XaiVideoStorageOptions;
 }
 
-interface XaiVideoEditModeOptions extends XaiVideoSharedOptions {
+interface XaiVideoUserOptions {
+  /**
+   * A unique identifier representing the end user, for abuse monitoring.
+   */
+  user?: string;
+}
+
+interface XaiVideoEditModeOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Select edit-video mode explicitly for best autocomplete and narrowing.
    */
@@ -32,22 +68,31 @@ interface XaiVideoExtendModeOptions extends XaiVideoSharedOptions {
   videoUrl: string;
 }
 
-interface XaiVideoReferenceToVideoOptions extends XaiVideoSharedOptions {
+interface XaiVideoReferenceToVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Select reference-to-video mode explicitly for best autocomplete and narrowing.
    */
   mode: 'reference-to-video';
   /** Reference image URLs (1-7) for R2V generation. */
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
-interface XaiVideoGenerationOptions extends XaiVideoSharedOptions {
+interface XaiVideoGenerationOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   mode?: undefined;
   videoUrl?: undefined;
   referenceImageUrls?: undefined;
+  /** Mid-video image anchors (up to 4). */
+  keyframes?: XaiVideoKeyframe[];
 }
 
-interface XaiLegacyEditVideoOptions extends XaiVideoSharedOptions {
+interface XaiLegacyEditVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Legacy backward-compatible shape: omitting `mode` while providing
    * `videoUrl` behaves like edit-video.
@@ -56,13 +101,18 @@ interface XaiLegacyEditVideoOptions extends XaiVideoSharedOptions {
   videoUrl: string;
 }
 
-interface XaiLegacyReferenceToVideoOptions extends XaiVideoSharedOptions {
+interface XaiLegacyReferenceToVideoOptions
+  extends XaiVideoSharedOptions, XaiVideoUserOptions {
   /**
    * Legacy backward-compatible shape: omitting `mode` while providing
    * `referenceImageUrls` behaves like reference-to-video.
    */
   mode?: undefined;
   referenceImageUrls: string[];
+  /**
+   * Preset voice ids (up to 3) that give the subject a voice.
+   */
+  referenceVoiceIds?: string[];
 }
 
 /**
@@ -88,56 +138,32 @@ export type XaiVideoModelOptions =
   | XaiLegacyReferenceToVideoOptions;
 
 // ── Runtime schemas ───────────────────────────────────────────────────
-const baseFields = {
+const baseFields = () => ({
   pollIntervalMs: z.number().positive().nullish(),
   pollTimeoutMs: z.number().positive().nullish(),
-  resolution: resolutionSchema.nullish(),
-};
-
-const editVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('edit-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
+  resolution: resolutionSchema().nullish(),
 });
 
-const extendVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('extend-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-});
+const runtimeSchema = () =>
+  z.looseObject({
+    mode: modeSchema().optional(),
+    videoUrl: nonEmptyStringSchema().optional(),
+    referenceImageUrls: z
+      .array(nonEmptyStringSchema())
+      .min(1)
+      .max(7)
+      .optional(),
+    referenceVoiceIds: z.array(nonEmptyStringSchema()).max(3).optional(),
+    keyframes: z.array(keyframeSchema()).max(4).optional(),
+    storageOptions: storageOptionsSchema().optional(),
+    user: z.string().optional(),
+    ...baseFields(),
+  });
 
-const referenceToVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('reference-to-video'),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
-  videoUrl: z.undefined().optional(),
-});
-
-const autoDetectSchema = z.object({
-  ...baseFields,
-  mode: z.undefined().optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-});
-
-export const xaiVideoModelOptions = z.union([
-  editVideoSchema,
-  extendVideoSchema,
-  referenceToVideoSchema,
-  autoDetectSchema,
-]);
-
-const runtimeSchema = z.looseObject({
-  mode: modeSchema.optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-  ...baseFields,
-});
-
-export type XaiParsedVideoModelOptions = z.infer<typeof runtimeSchema>;
+export type XaiParsedVideoModelOptions = z.infer<
+  ReturnType<typeof runtimeSchema>
+>;
 
 export const xaiVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(runtimeSchema),
+  zodSchema(runtimeSchema()),
 );

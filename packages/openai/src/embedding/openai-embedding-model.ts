@@ -5,6 +5,7 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -23,6 +24,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL] = 300_000;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
@@ -52,6 +54,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -89,7 +92,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: openaiOptions.dimensions,
+        dimensions: openaiOptions.dimensions ?? dimensions,
         user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,

@@ -7,10 +7,10 @@ import {
   persistSessionFileToSandbox,
   piResumeStateSchema,
   pullSessionFileFromSandbox,
+  resolvePiPrivateSessionDirectory,
   safePiSessionFileName,
 } from './pi-resume-state';
 
-type RunCalls = Array<{ command: string }>;
 type ReadCalls = string[];
 type WriteCalls = Array<{ path: string; content: Uint8Array }>;
 
@@ -23,18 +23,13 @@ function makeSandbox(
   readonly run: ReturnType<typeof vi.fn>;
   readonly readBinaryFile: ReturnType<typeof vi.fn>;
   readonly writeBinaryFile: ReturnType<typeof vi.fn>;
-  readonly runCalls: RunCalls;
   readonly readCalls: ReadCalls;
   readonly writeCalls: WriteCalls;
 } {
-  const runCalls: RunCalls = [];
   const readCalls: ReadCalls = [];
   const writeCalls: WriteCalls = [];
 
-  const run = vi.fn(async ({ command }: { command: string }) => {
-    runCalls.push({ command });
-    return { exitCode: 0, stdout: '', stderr: '' };
-  });
+  const run = vi.fn();
   const readBinaryFile = vi.fn(async ({ path }: { path: string }) => {
     readCalls.push(path);
     return input.readBinary?.(path);
@@ -62,7 +57,6 @@ function makeSandbox(
     run,
     readBinaryFile,
     writeBinaryFile,
-    runCalls,
     readCalls,
     writeCalls,
   };
@@ -133,6 +127,92 @@ describe('piResumeStateSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('accepts a pending tool batch with its assistant message', () => {
+    const pendingToolBatch = {
+      assistantMessage: {
+        role: 'assistant',
+        content: [
+          { type: 'toolCall', id: 'tool-1', name: 'askUser', arguments: {} },
+        ],
+      },
+      awaitingToolCallIds: ['tool-1'],
+      completedToolResults: [],
+      nativeApprovalDecisions: [],
+    };
+
+    expect(piResumeStateSchema.parse({ pendingToolBatch })).toEqual({
+      pendingToolBatch,
+    });
+  });
+
+  it('rejects a legacy pending tool batch without its assistant message', () => {
+    const result = piResumeStateSchema.safeParse({
+      pendingToolBatch: {
+        awaitingToolCallIds: ['tool-1'],
+        completedToolResults: [],
+        nativeApprovalDecisions: [],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "custom",
+          "message": "Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.",
+          "path": [
+            "pendingToolBatch",
+            "assistantMessage",
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('rejects a pending tool batch with a non-assistant message', () => {
+    expect(
+      piResumeStateSchema.safeParse({
+        pendingToolBatch: {
+          assistantMessage: { role: 'user', content: [] },
+          awaitingToolCallIds: ['tool-1'],
+          completedToolResults: [],
+          nativeApprovalDecisions: [],
+        },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('resolvePiPrivateSessionDirectory', () => {
+  it('creates a stable private directory outside the session workspace', () => {
+    const privateSessionDir = resolvePiPrivateSessionDirectory({
+      sandboxHomeDir: '/sandbox/home',
+      sessionWorkDir: '/sandbox/work/pi-s1',
+      sessionId: '../unsafe/session-id',
+    });
+
+    expect(privateSessionDir).toMatch(
+      /^\/sandbox\/home\/\.ai-sdk\/harness-pi\/[a-f0-9]{64}$/,
+    );
+    expect(privateSessionDir).toBe(
+      resolvePiPrivateSessionDirectory({
+        sandboxHomeDir: '/sandbox/home',
+        sessionWorkDir: '/sandbox/work/pi-s1',
+        sessionId: '../unsafe/session-id',
+      }),
+    );
+  });
+
+  it('rejects a private directory inside the session workspace', () => {
+    expect(() =>
+      resolvePiPrivateSessionDirectory({
+        sandboxHomeDir: '/sandbox/work/pi-s1',
+        sessionWorkDir: '/sandbox/work/pi-s1',
+        sessionId: 'session-1',
+      }),
+    ).toThrow(/must be outside sessionWorkDir/);
+  });
 });
 
 describe('pullSessionFileFromSandbox', () => {
@@ -140,14 +220,15 @@ describe('pullSessionFileFromSandbox', () => {
     const bytes = new TextEncoder().encode('session data');
     const sandbox = makeSandbox({
       readBinary: requestedPath =>
-        requestedPath === '/sandbox/work/.pi-sessions/session.jsonl'
+        requestedPath ===
+        '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl'
           ? bytes
           : undefined,
     });
 
     const hostPath = await pullSessionFileFromSandbox({
       sandbox: sandbox.sandbox,
-      sessionWorkDir: '/sandbox/work',
+      privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
@@ -155,7 +236,7 @@ describe('pullSessionFileFromSandbox', () => {
     expect(hostPath).toBe(path.join(hostSessionDir, 'session.jsonl'));
     expect(readFileSync(hostPath!, 'utf8')).toBe('session data');
     expect(sandbox.readCalls).toEqual([
-      '/sandbox/work/.pi-sessions/session.jsonl',
+      '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl',
     ]);
   });
 
@@ -165,7 +246,7 @@ describe('pullSessionFileFromSandbox', () => {
     await expect(
       pullSessionFileFromSandbox({
         sandbox: sandbox.sandbox,
-        sessionWorkDir: '/sandbox/work',
+        privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
         hostSessionDir,
         sessionFileName: '../session.jsonl',
       }),
@@ -182,42 +263,34 @@ describe('persistSessionFileToSandbox', () => {
 
     await persistSessionFileToSandbox({
       sandbox: sandbox.sandbox,
-      sessionWorkDir: '/sandbox/work',
+      privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
 
-    expect(sandbox.runCalls).toEqual([
-      { command: "mkdir -p '/sandbox/work/.pi-sessions'" },
-    ]);
     expect(sandbox.writeCalls[0]?.path).toBe(
-      '/sandbox/work/.pi-sessions/session.jsonl',
+      '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl',
     );
     expect(Buffer.from(sandbox.writeCalls[0]!.content).toString('utf8')).toBe(
       'session data',
     );
   });
 
-  it('quotes the sandbox session directory in shell commands', async () => {
+  it('does not place session state in the agent workspace', async () => {
     const sandbox = makeSandbox();
     writeFileSync(path.join(hostSessionDir, 'session.jsonl'), 'session data');
 
     await persistSessionFileToSandbox({
       sandbox: sandbox.sandbox,
-      sessionWorkDir: '/vercel/sandbox/pi-s1; env > /tmp/leak #',
+      privateSessionDir: '/home/vercel-sandbox/.ai-sdk/harness-pi/session-key',
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
 
-    expect(sandbox.runCalls).toEqual([
-      {
-        command:
-          "mkdir -p '/vercel/sandbox/pi-s1; env > /tmp/leak #/.pi-sessions'",
-      },
-    ]);
     expect(sandbox.writeCalls[0]?.path).toBe(
-      '/vercel/sandbox/pi-s1; env > /tmp/leak #/.pi-sessions/session.jsonl',
+      '/home/vercel-sandbox/.ai-sdk/harness-pi/session-key/session.jsonl',
     );
+    expect(sandbox.writeCalls[0]?.path).not.toContain('/vercel/sandbox/pi-s1');
     expect(Buffer.from(sandbox.writeCalls[0]!.content).toString('utf8')).toBe(
       'session data',
     );
@@ -229,13 +302,12 @@ describe('persistSessionFileToSandbox', () => {
     await expect(
       persistSessionFileToSandbox({
         sandbox: sandbox.sandbox,
-        sessionWorkDir: '/sandbox/work',
+        privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
         hostSessionDir,
         sessionFileName: '../session.jsonl',
       }),
     ).rejects.toThrow('Invalid Pi session file name');
 
-    expect(sandbox.run).not.toHaveBeenCalled();
     expect(sandbox.writeBinaryFile).not.toHaveBeenCalled();
   });
 });

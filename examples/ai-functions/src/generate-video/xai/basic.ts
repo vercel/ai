@@ -6,15 +6,16 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating xAI video with grok-imagine-video...',
+    'Generating xAI video with grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
         aspectRatio: '16:9',
         duration: 5,
         providerOptions: {
           xai: {
+            user: 'example-user-123',
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies XaiVideoModelOptions,
         },

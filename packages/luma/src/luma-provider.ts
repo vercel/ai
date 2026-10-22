@@ -65,7 +65,7 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
         })}`,
         ...options.headers,
       },
-      `ai-sdk/luma/${VERSION}`,
+      `ai-sdk-luma/${VERSION}`,
     );
 
   const createImageModel = (modelId: LumaImageModelId) =>

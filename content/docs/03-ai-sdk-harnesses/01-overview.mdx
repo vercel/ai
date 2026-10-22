@@ -9,8 +9,9 @@ The AI SDK harness abstraction lets you run established agent harnesses through 
 single AI SDK surface. A harness is a complete agent runtime, such as Claude
 Code, Codex, or Pi. It owns capabilities that are larger than a model call:
 workspace access, built-in coding tools, native session state, compaction,
-permission flows, and runtime-specific configuration. Additionally, all AI SDK
-agent harnesses operate in a sandbox, keeping the host environment safe.
+permission flows, and runtime-specific configuration. Harness adapters can run
+the runtime in a sandbox, but their execution environments differ by adapter;
+review the adapter's runtime location and security guidance before use.
 
 The AI SDK harness abstraction is separate from the provider/model abstraction.
 Providers expose models to AI SDK Core functions such as `generateText` and

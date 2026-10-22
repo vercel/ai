@@ -79,11 +79,20 @@ export async function readResponseWithSizeLimit({
         });
       }
 
-      chunks.push(value);
+      // A small chunk can keep a much larger backing buffer alive. Copy such
+      // views before retaining them. Unlike Uint8Array, Node Buffer's slice()
+      // returns another view, so use the Uint8Array constructor to copy.
+      chunks.push(
+        value.byteLength < value.buffer.byteLength
+          ? new Uint8Array(value)
+          : value,
+      );
     }
   } finally {
     try {
       await reader.cancel();
+    } catch {
+      // Ignore cancel errors so the original rejection is preserved.
     } finally {
       reader.releaseLock();
     }

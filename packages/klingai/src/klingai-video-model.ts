@@ -1,22 +1,28 @@
 import {
   AISDKError,
   NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type Experimental_VideoModelV4File,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4File as VideoModelV4File,
+  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
+  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
+  type FetchFunction,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
   postJsonToApi,
-  resolve,
-  type FetchFunction,
   type Resolvable,
+  resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { klingaiFailedResponseHandler } from './klingai-error';
@@ -28,7 +34,7 @@ import type { KlingAIVideoModelId } from './klingai-video-settings';
 
 type KlingAIVideoMode = 't2v' | 'i2v' | 'mi2v' | 'motion-control';
 
-function fileToImageString(file: Experimental_VideoModelV4File): string {
+function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
   }
@@ -41,13 +47,13 @@ function fileToImageString(file: Experimental_VideoModelV4File): string {
  * KlingAI does not support video reference inputs. This detects whether a file
  * is a video so it can be guarded against and excluded.
  */
-const isVideoFile = (file: Experimental_VideoModelV4File): boolean =>
+const isVideoFile = (file: VideoModelV4File): boolean =>
   file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'video';
 
 function getReferenceImages(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: VideoModelV4CallOptions,
   warnings: SharedV4Warning[],
-): Array<Experimental_VideoModelV4File> | undefined {
+): Array<VideoModelV4File> | undefined {
   if (options.frameImages != null && options.frameImages.length > 0) {
     return undefined;
   }
@@ -74,16 +80,16 @@ function getReferenceImages(
 }
 
 function getFirstFrameImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-): Experimental_VideoModelV4File | undefined {
+  options: VideoModelV4CallOptions,
+): VideoModelV4File | undefined {
   return options.frameImages?.find(frame => frame.frameType === 'first_frame')
     ?.image;
 }
 
 function resolveStartImage(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: VideoModelV4CallOptions,
   warnings: SharedV4Warning[],
-): Experimental_VideoModelV4File | undefined {
+): VideoModelV4File | undefined {
   const startImage = getFirstFrameImage(options) ?? options.image;
 
   if (startImage != null && isVideoFile(startImage)) {
@@ -100,7 +106,7 @@ function resolveStartImage(
 }
 
 function resolveImageTail(
-  options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  options: VideoModelV4CallOptions,
   klingaiOptions: KlingAIVideoModelOptions | undefined,
   warnings: SharedV4Warning[],
 ): string | undefined {
@@ -201,7 +207,7 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV4 {
+export class KlingAIVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -214,9 +220,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
     private readonly config: KlingAIVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+  ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
@@ -258,7 +264,116 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
-    // Warn about universally unsupported standard options
+    // Progress notifications require a protocol-aware receiver, so omit handleWebhookOption.
+    // Forward webhookUrl for a caller-owned receiver that filters progress notifications.
+    if (options.webhookUrl != null) {
+      body.callback_url = options.webhookUrl;
+    }
+
+    this.addUniversalWarnings(options, warnings);
+
+    const endpointPath = modeEndpointMap[effectiveMode];
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}${endpointPath}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body,
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiCreateTaskSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskId = createResponse.data?.task_id;
+    if (!taskId) {
+      throw new AISDKError({
+        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
+        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
+      });
+    }
+
+    return {
+      operation: { taskId, endpointPath },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+  ): Promise<VideoModelV4OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId, endpointPath } = options.operation as {
+      taskId: string;
+      endpointPath: string;
+    };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}${endpointPath}/${encodePathSegment(taskId)}`,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiTaskStatusSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskStatus = statusResponse.data?.task_status;
+
+    if (taskStatus === 'succeed') {
+      return {
+        status: 'completed',
+        ...this.buildCompletedResult(
+          statusResponse,
+          taskId,
+          responseHeaders,
+          [],
+          currentDate,
+        ),
+      };
+    }
+
+    if (taskStatus === 'failed') {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  private addUniversalWarnings(
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    warnings: SharedV4Warning[],
+  ): void {
     if (options.resolution) {
       warnings.push({
         type: 'unsupported',
@@ -293,84 +408,15 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
           'Only 1 video will be generated.',
       });
     }
+  }
 
-    const endpointPath = modeEndpointMap[effectiveMode];
-
-    // Step 1: Create the task
-    const { value: createResponse, responseHeaders: createHeaders } =
-      await postJsonToApi({
-        url: `${this.config.baseURL}${endpointPath}`,
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-          options.headers,
-        ),
-        body,
-        successfulResponseHandler: createJsonResponseHandler(
-          klingaiCreateTaskSchema,
-        ),
-        failedResponseHandler: klingaiFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
-
-    const taskId = createResponse.data?.task_id;
-    if (!taskId) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
-        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
-      });
-    }
-
-    // Step 2: Poll for task completion
-    const pollIntervalMs = klingaiOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = klingaiOptions?.pollTimeoutMs ?? 600000; // 10 minutes
-    const startTime = Date.now();
-    let finalResponse: KlingAITaskResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined = createHeaders;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}${endpointPath}/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            klingaiTaskStatusSchema,
-          ),
-          failedResponseHandler: klingaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.data?.task_status;
-
-      if (taskStatus === 'succeed') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'failed') {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_FAILED',
-          message: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
-        });
-      }
-
-      // Continue polling for 'submitted' and 'processing' statuses
-    }
-
+  private buildCompletedResult(
+    finalResponse: KlingAITaskResponse,
+    taskId: string,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV4Warning[],
+    currentDate: Date,
+  ) {
     if (!finalResponse?.data?.task_result?.videos?.length) {
       throw new AISDKError({
         name: 'KLINGAI_VIDEO_GENERATION_ERROR',
@@ -427,7 +473,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   }
 
   private buildT2VBody(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
@@ -514,7 +560,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   }
 
   private buildI2VBody(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
@@ -622,9 +668,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   }
 
   private buildMultiImageBody(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+    options: VideoModelV4CallOptions,
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    referenceImages: Array<Experimental_VideoModelV4File>,
+    referenceImages: Array<VideoModelV4File>,
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const body: Record<string, unknown> = {
@@ -688,7 +734,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
@@ -774,64 +820,72 @@ export class KlingAIVideoModel implements Experimental_VideoModelV4 {
 }
 
 // Response schema for task creation (POST)
-const klingaiCreateTaskSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string().nullish(),
-      task_info: z
+const klingaiCreateTaskSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
+          task_id: z.string(),
+          task_status: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
         })
         .nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
 // Response schema for task status query (GET)
-const klingaiTaskStatusSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string(),
-      task_status_msg: z.string().nullish(),
-      task_info: z
+const klingaiTaskStatusSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
-        })
-        .nullish(),
-      watermark_info: z
-        .object({
-          enabled: z.boolean().nullish(),
-        })
-        .nullish(),
-      final_unit_deduction: z.string().nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-      task_result: z
-        .object({
-          videos: z
-            .array(
-              z.object({
-                id: z.string().nullish(),
-                url: z.string().nullish(),
-                watermark_url: z.string().nullish(),
-                duration: z.string().nullish(),
-              }),
-            )
+          task_id: z.string(),
+          task_status: z.string(),
+          task_status_msg: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          watermark_info: z
+            .object({
+              enabled: z.boolean().nullish(),
+            })
+            .nullish(),
+          final_unit_deduction: z.string().nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
+          task_result: z
+            .object({
+              videos: z
+                .array(
+                  z.object({
+                    id: z.string().nullish(),
+                    url: z.string().nullish(),
+                    watermark_url: z.string().nullish(),
+                    duration: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
             .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
-type KlingAITaskResponse = z.infer<typeof klingaiTaskStatusSchema>;
+type KlingAITaskResponse = InferSchema<typeof klingaiTaskStatusSchema>;

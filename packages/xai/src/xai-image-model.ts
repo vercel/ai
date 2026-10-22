@@ -1,5 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -28,9 +30,23 @@ interface XaiImageModelConfig {
   };
 }
 
+const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
+  'grok-imagine-image',
+  'grok-imagine-image-2.0',
+  'grok-imagine-image-pro',
+]);
+
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
+
+  get supportsFileInputs(): boolean | undefined {
+    return fileInputModelIds.has(this.modelId) ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -162,6 +178,12 @@ export class XaiImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.data.some(image => image.respect_moderation === false)) {
+      throw new Error(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    }
+
     const hasAllBase64 = response.data.every(image => image.b64_json != null);
 
     const images = hasAllBase64
@@ -201,6 +223,9 @@ export class XaiImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -210,17 +235,22 @@ export class XaiImageModel implements ImageModelV4 {
   }
 }
 
-const xaiImageResponseSchema = z.object({
-  data: z.array(
+const xaiImageResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      url: z.string().nullish(),
-      b64_json: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
+      data: z.array(
+        z.object({
+          url: z.string().nullish(),
+          b64_json: z.string().nullish(),
+          revised_prompt: z.string().nullish(),
+          respect_moderation: z.boolean().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

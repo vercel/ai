@@ -3,6 +3,7 @@ import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   postFormDataToApi,
   resolve,
@@ -47,7 +48,8 @@ export class AnthropicSkills implements SkillsV4 {
     headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${skillId}/versions/${version}`,
+      url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
+      validateUrl: false,
       headers,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -77,7 +79,11 @@ export class AnthropicSkills implements SkillsV4 {
 
     for (const file of params.files) {
       const content = convertInlineFileDataToUint8Array(file.data);
-      formData.append('files[]', new Blob([content]), file.path);
+      formData.append(
+        'files[]',
+        new Blob([content as Uint8Array<ArrayBuffer>]),
+        file.path,
+      );
     }
 
     const headers = await this.getHeaders();

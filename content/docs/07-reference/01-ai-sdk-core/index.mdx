@@ -54,6 +54,31 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/generate-video',
     },
     {
+      title: 'experimental_startBatch()',
+      description: 'Start an asynchronous text-generation batch.',
+      href: '/docs/reference/ai-sdk-core/start-batch',
+    },
+    {
+      title: 'experimental_getBatchStatus()',
+      description: 'Retrieve the status of an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-status',
+    },
+    {
+      title: 'experimental_getBatchResults()',
+      description: 'Retrieve terminal results from an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-results',
+    },
+    {
+      title: 'experimental_cancelBatch()',
+      description: 'Request cancellation of an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/cancel-batch',
+    },
+    {
+      title: 'experimental_listBatches()',
+      description: 'List asynchronous batches and their latest statuses.',
+      href: '/docs/reference/ai-sdk-core/list-batches',
+    },
+    {
       title: 'transcribe()',
       description: 'Generate a transcript from an audio file.',
       href: '/docs/reference/ai-sdk-core/transcribe',
@@ -64,9 +89,19 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/stream-transcribe',
     },
     {
+      title: 'experimental_streamTranslate()',
+      description: 'Stream a speech-to-speech translation from live raw audio.',
+      href: '/docs/reference/ai-sdk-core/stream-translate',
+    },
+    {
       title: 'generateSpeech()',
       description: 'Generate speech audio from text.',
       href: '/docs/reference/ai-sdk-core/generate-speech',
+    },
+    {
+      title: 'experimental_streamSpeech()',
+      description: 'Stream speech audio from text or a text stream.',
+      href: '/docs/reference/ai-sdk-core/stream-speech',
     },
     {
       title: 'uploadFile()',
@@ -85,6 +120,12 @@ It also contains the following helper functions:
 
 <IndexCards
   cards={[
+    {
+      title: 'toolSearch()',
+      description:
+        'Search deferred tools and load their definitions on demand.',
+      href: '/docs/reference/ai-sdk-core/tool-search',
+    },
     {
       title: 'tool()',
       description: 'Type inference helper function for tools.',
@@ -112,9 +153,10 @@ It also contains the following helper functions:
       href: '/docs/reference/ai-sdk-core/create-mcp-client',
     },
     {
-      title: 'validateJSONRPCMessage()',
-      description: 'Validates unknown values as MCP JSON-RPC messages.',
-      href: '/docs/reference/ai-sdk-core/validate-json-rpc-message',
+      title: 'MCP Events',
+      description:
+        'Experimental event methods, webhook delivery, and subscription types.',
+      href: '/docs/reference/ai-sdk-core/mcp-events',
     },
     {
       title: 'MCP Apps',
@@ -200,6 +242,11 @@ It also contains the following helper functions:
       title: 'defaultSettingsMiddleware()',
       description: 'Applies default settings to a language model.',
       href: '/docs/reference/ai-sdk-core/default-settings-middleware',
+    },
+    {
+      title: 'defaultInstructionsMiddleware()',
+      description: 'Applies default instructions to a language model.',
+      href: '/docs/reference/ai-sdk-core/default-instructions-middleware',
     },
     {
       title: 'smoothStream()',

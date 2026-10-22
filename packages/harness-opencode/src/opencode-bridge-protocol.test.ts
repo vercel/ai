@@ -41,12 +41,35 @@ describe('OpenCode bridge protocol', () => {
     `);
   });
 
+  it('accepts text and image prompt content', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        operation: 'prompt',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+      }),
+    ).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    });
+  });
+
   it('accepts shared bridge commands', () => {
     expect(inboundMessageSchema.parse({ type: 'abort' })).toEqual({
       type: 'abort',
     });
-    expect(inboundMessageSchema.parse({ type: 'interrupt' })).toEqual({
-      type: 'interrupt',
+    expect(inboundMessageSchema.parse({ type: 'stop' })).toEqual({
+      type: 'stop',
+    });
+    expect(inboundMessageSchema.parse({ type: 'destroy' })).toEqual({
+      type: 'destroy',
     });
     expect(
       inboundMessageSchema.parse({
@@ -58,15 +81,6 @@ describe('OpenCode bridge protocol', () => {
       type: 'tool-result',
       toolCallId: 'tool-1',
       output: { ok: true },
-    });
-  });
-
-  it('accepts interrupt acknowledgements', () => {
-    expect(
-      outboundMessageSchema.parse({ type: 'bridge-interrupted', ok: true }),
-    ).toEqual({
-      type: 'bridge-interrupted',
-      ok: true,
     });
   });
 });

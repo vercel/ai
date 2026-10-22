@@ -167,7 +167,7 @@ const stream = await graph.stream(
 Use `LangSmithDeploymentTransport` with the AI SDK `useChat` hook to connect directly to a LangGraph deployment from the browser:
 
 ```tsx
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
 import { useMemo } from 'react';
 
@@ -221,14 +221,16 @@ Converts AI SDK `ModelMessage` objects to LangChain `BaseMessage` objects.
 
 **Returns:** `BaseMessage[]`
 
-### `toUIMessageStream(stream, callbacks?)`
+### `toUIMessageStream(stream, options?)`
 
 Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 **Parameters:**
 
 - `stream`: `AsyncIterable | ReadableStream` - A stream from LangChain `model.stream()`, LangGraph `graph.stream()`, or `streamEvents()`
-- `callbacks?`: `StreamCallbacks<TState>` - Optional lifecycle callbacks:
+- `options?`: `ToUIMessageStreamOptions<TState>` - Optional lifecycle controls and callbacks:
+  - `sendStart` - Whether to emit the outer `start` chunk (defaults to `true`)
+  - `sendFinish` - Whether to emit the outer `finish` chunk (defaults to `true`)
   - `onStart()` - Called when stream initializes
   - `onToken(token)` - Called for each token
   - `onText(text)` - Called for each text chunk
@@ -238,6 +240,33 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
   - `onAbort()` - Called when stream is aborted
 
 **Returns:** `ReadableStream<UIMessageChunk>`
+
+When composing the adapter output into a stream that owns the message
+lifecycle, set `sendStart` and `sendFinish` to `false`:
+
+```ts
+const stream = createUIMessageStream({
+  async execute({ writer }) {
+    writer.write({ type: 'start' });
+
+    const reader = toUIMessageStream(langchainStream, {
+      sendStart: false,
+      sendFinish: false,
+    }).getReader();
+
+    while (true) {
+      const { done, value: chunk } = await reader.read();
+      if (done) break;
+      writer.write(chunk);
+    }
+
+    writer.write({ type: 'finish' });
+  },
+});
+```
+
+Only the outer lifecycle chunks are omitted. Text, reasoning, tool, data, and
+step chunks are still emitted.
 
 **Supported stream types:**
 

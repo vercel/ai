@@ -9,7 +9,7 @@ run(async () => {
     'Generating KlingAI image-to-video with start and end frames...',
     () =>
       generateVideo({
-        model: klingai.video('kling-v2.6-i2v'),
+        model: klingai.video('kling-v3.0-i2v'),
         prompt: {
           image:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',

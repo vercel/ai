@@ -12,7 +12,7 @@ often producing more accurate relevance scores.
 ## Reranking Documents
 
 The AI SDK provides the [`rerank`](/docs/reference/ai-sdk-core/rerank) function to rerank documents based on their relevance to a query.
-You can use it with reranking models, e.g. `cohere.reranking('rerank-v3.5')` or `bedrock.reranking('cohere.rerank-v3-5:0')`.
+You can use it with reranking models, e.g. `cohere.reranking('rerank-v4.0-pro')` or `bedrock.reranking('cohere.rerank-v3-5:0')`.
 
 ```tsx
 import { rerank } from 'ai';
@@ -25,7 +25,7 @@ const documents = [
 ];
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents,
   query: 'talk about rain',
   topN: 2, // Return top 2 most relevant documents
@@ -60,7 +60,7 @@ const documents = [
 ];
 
 const { ranking, rerankedDocuments } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents,
   query: 'Which pricing did we get from Oracle?',
   topN: 1,
@@ -79,7 +79,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking, rerankedDocuments, originalDocuments } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
 });
@@ -101,12 +101,12 @@ Each item in the `ranking` array contains:
 
 Use `topN` to limit the number of results returned. This is useful for retrieving only the most relevant documents:
 
-```ts highlight={"7"}
+```ts highlight={"8"}
 import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['doc1', 'doc2', 'doc3', 'doc4', 'doc5'],
   query: 'relevant information',
   topN: 3, // Return only top 3 most relevant documents
@@ -122,7 +122,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
   providerOptions: {
@@ -139,12 +139,12 @@ The `rerank` function accepts an optional `maxRetries` parameter of type `number
 that you can use to set the maximum number of retries for the reranking process.
 It defaults to `2` retries (3 attempts in total). You can set it to `0` to disable retries.
 
-```ts highlight={"7"}
+```ts highlight={"8"}
 import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
   maxRetries: 0, // Disable retries
@@ -157,12 +157,12 @@ The `rerank` function accepts an optional `abortSignal` parameter of
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the reranking process or set a timeout.
 
-```ts highlight={"7"}
+```ts highlight={"8"}
 import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
   abortSignal: AbortSignal.timeout(5000), // Abort after 5 seconds
@@ -174,12 +174,12 @@ const { ranking } = await rerank({
 The `rerank` function accepts an optional `headers` parameter of type `Record<string, string>`
 that you can use to add custom headers to the reranking request.
 
-```ts highlight={"7"}
+```ts highlight={"8"}
 import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
   headers: { 'X-Custom-Header': 'custom-value' },
@@ -195,7 +195,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
 const { ranking, response } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
 });
@@ -209,6 +209,8 @@ Several providers offer reranking models:
 
 | Provider                                                                      | Model                                 |
 | ----------------------------------------------------------------------------- | ------------------------------------- |
+| [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)                 | `rerank-v4.0-pro`                     |
+| [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)                 | `rerank-v4.0-fast`                    |
 | [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)                 | `rerank-v3.5`                         |
 | [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)                 | `rerank-english-v3.0`                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)                 | `rerank-multilingual-v3.0`            |

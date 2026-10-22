@@ -1,4 +1,6 @@
+import { resolve } from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { resolveKlingAIAuthToken } from './klingai-auth';
 import { createKlingAI } from './klingai-provider';
 import { KlingAIVideoModel } from './klingai-video-model';
 
@@ -7,7 +9,7 @@ vi.mock('./klingai-video-model', () => ({
 }));
 
 vi.mock('./klingai-auth', () => ({
-  generateKlingAIAuthToken: vi.fn().mockResolvedValue('mock-jwt-token'),
+  resolveKlingAIAuthToken: vi.fn().mockResolvedValue('mock-token'),
 }));
 
 describe('createKlingAI', () => {
@@ -80,6 +82,50 @@ describe('createKlingAI', () => {
           headers: expect.any(Function),
         }),
       );
+    });
+  });
+
+  describe('authentication', () => {
+    const getResolvedHeaders = async (
+      settings: Parameters<typeof createKlingAI>[0],
+    ) => {
+      const provider = createKlingAI(settings);
+      provider.video('kling-v2.6-motion-control');
+
+      const { headers } = vi.mocked(KlingAIVideoModel).mock.calls[0][1];
+
+      return resolve(headers ?? {});
+    };
+
+    it('should send the resolved token as a bearer token', async () => {
+      const headers = await getResolvedHeaders({ apiKey: 'test-api-key' });
+
+      expect(vi.mocked(resolveKlingAIAuthToken)).toHaveBeenCalledWith({
+        apiKey: 'test-api-key',
+        accessKey: undefined,
+        secretKey: undefined,
+      });
+      expect(headers.authorization).toBe('Bearer mock-token');
+    });
+
+    it('should forward legacy credentials to the token resolver', async () => {
+      await getResolvedHeaders({ accessKey: 'test-ak', secretKey: 'test-sk' });
+
+      expect(vi.mocked(resolveKlingAIAuthToken)).toHaveBeenCalledWith({
+        apiKey: undefined,
+        accessKey: 'test-ak',
+        secretKey: 'test-sk',
+      });
+    });
+
+    it('should merge custom headers', async () => {
+      const headers = await getResolvedHeaders({
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'custom-value' },
+      });
+
+      expect(headers['custom-header']).toBe('custom-value');
+      expect(headers.authorization).toBe('Bearer mock-token');
     });
   });
 
