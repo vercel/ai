@@ -219,7 +219,12 @@ function mcpToModelOutput({
 }): ToolResultOutput {
   const result = output as CallToolResult;
 
-  if (!('content' in result) || !Array.isArray(result.content)) {
+  if (
+    typeof result !== 'object' ||
+    result === null ||
+    !('content' in result) ||
+    !Array.isArray(result.content)
+  ) {
     return { type: 'json', value: result as JSONValue };
   }
 

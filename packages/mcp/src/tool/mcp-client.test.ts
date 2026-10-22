@@ -1147,6 +1147,39 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should fallback to JSON for non-object outputs via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-scalar',
+              description: 'Returns scalar result',
+              inputSchema: { type: 'object' },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-scalar'];
+
+    expect(tool.toModelOutput).toBeDefined();
+    for (const output of [7, 'plain', null, true]) {
+      expect(
+        (tool.toModelOutput as Function)({
+          toolCallId: '1',
+          input: {},
+          output,
+        }),
+      ).toEqual({ type: 'json', value: output });
+    }
+  });
+
   it('should expose _meta field from MCP tool definition', async () => {
     createMockTransport.mockImplementation(
       () =>
