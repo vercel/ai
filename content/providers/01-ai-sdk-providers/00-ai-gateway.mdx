@@ -486,7 +486,7 @@ import { experimental_streamSpeech as streamSpeech } from 'ai';
 
 const result = streamSpeech({
   model: 'elevenlabs/eleven-flash-v2.5',
-  text: textStream, // a string, or a stream of strings and/or text parts
+  text: textStream, // a string, or an array or stream of strings and/or text parts
   outputFormat: { type: 'audio/pcm', rate: 24000 },
 });
 
