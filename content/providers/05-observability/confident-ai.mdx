@@ -212,10 +212,6 @@ const { text } = await generateText({
 });
 ```
 
-Logging prompts allows you to monitor what prompts are running in production and which ones are performing best overtime:
-
-![Prompt Observability on Confident AI](https://confident-docs.s3.us-east-1.amazonaws.com/llm-tracing:prompt-logging.png)
-
 <Note>
   Make sure to **`pull` the prompt** before passing it to
   `configureAiSdkTracing`. Without pulling first, the prompt version will not be
