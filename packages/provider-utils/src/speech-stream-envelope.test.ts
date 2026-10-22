@@ -31,7 +31,7 @@ describe('parseSpeechStreamClientFrame', () => {
     const frame = {
       type: 'speech-stream.start',
       voice: 'v1',
-      outputFormat: 'pcm_24000',
+      outputFormat: { type: 'audio/pcm', rate: 24000 },
       instructions: 'calm',
       speed: 1.1,
       language: 'en',
@@ -52,6 +52,10 @@ describe('parseSpeechStreamClientFrame', () => {
       'includeRawChunks must be a boolean when present',
     ],
     [{ providerOptions: [] }, 'providerOptions must be an object when present'],
+    [
+      { outputFormat: 'pcm_24000' },
+      'outputFormat must be an audio format object ({ type, rate? }) when present',
+    ],
   ])('should reject invalid start frame %j', (fields, message) => {
     expect(
       parseSpeechStreamClientFrame(
@@ -71,6 +75,42 @@ describe('parseSpeechStreamClientFrame', () => {
         JSON.stringify({ type: 'speech-stream.text-done' }),
       ),
     ).toEqual({ type: 'text-done' });
+  });
+
+  it('should parse a text-delta frame with a voice and provider options', () => {
+    expect(
+      parseSpeechStreamClientFrame(
+        JSON.stringify({
+          type: 'speech-stream.text-delta',
+          delta: 'Hi ',
+          voice: 'v2',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        }),
+      ),
+    ).toEqual({
+      type: 'text-delta',
+      delta: 'Hi ',
+      voice: 'v2',
+      providerOptions: { elevenlabs: { newTurn: true } },
+    });
+  });
+
+  it.each([
+    [{ voice: 2 }, 'text-delta voice must be a string when present'],
+    [
+      { providerOptions: 'x' },
+      'text-delta providerOptions must be an object when present',
+    ],
+  ])('should reject invalid text-delta frame %j', (fields, message) => {
+    expect(
+      parseSpeechStreamClientFrame(
+        JSON.stringify({
+          type: 'speech-stream.text-delta',
+          delta: 'Hi',
+          ...fields,
+        }),
+      ),
+    ).toEqual({ type: 'invalid', message });
   });
 
   it('should reject a text-delta frame without a string delta', () => {

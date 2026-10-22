@@ -1,6 +1,7 @@
 import type {
   Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
   JSONObject,
+  SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import { isRecord } from './is-record';
 import { secureJsonParse } from './secure-json-parse';
@@ -15,7 +16,8 @@ import { convertUint8ArrayToBase64 } from './uint8-utils';
  * Envelope rules:
  *
  * 1. The client sends exactly one `speech-stream.start` TEXT frame first.
- * 2. Input text rides `speech-stream.text-delta` TEXT frames, in order.
+ * 2. Input text rides `speech-stream.text-delta` TEXT frames, in order. A
+ *    frame may carry the part's `voice` and `providerOptions`.
  * 3. The client signals the end of the input text with the
  *    `speech-stream.text-done` TEXT frame; a plain close without it is an
  *    abort.
@@ -54,7 +56,7 @@ export const SPEECH_STREAM_TEXT_DONE_FRAME_TYPE = 'speech-stream.text-done';
 export type SpeechStreamStartFrame = {
   type: typeof SPEECH_STREAM_START_FRAME_TYPE;
   voice?: string;
-  outputFormat?: string;
+  outputFormat?: SharedV4AudioFormat;
   instructions?: string;
   speed?: number;
   language?: string;
@@ -66,16 +68,26 @@ export type SpeechStreamStartFrame = {
   includeRawChunks?: boolean;
 };
 
-/** A client frame carrying one input text delta. */
+/**
+ * A client frame carrying one input text delta, i.e. one text part. Optional
+ * keys are omitted when undefined.
+ */
 export type SpeechStreamTextDeltaFrame = {
   type: typeof SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE;
   delta: string;
+  voice?: string;
+  providerOptions?: Record<string, JSONObject>;
 };
 
 /** Server-side classification of a client TEXT frame. */
 export type SpeechStreamClientFrame =
   | { type: 'start'; frame: SpeechStreamStartFrame }
-  | { type: 'text-delta'; delta: string }
+  | {
+      type: 'text-delta';
+      delta: string;
+      voice?: string;
+      providerOptions?: Record<string, JSONObject>;
+    }
   | { type: 'text-done' }
   | {
       /** Malformed JSON or a recognized frame with an invalid shape. */
@@ -90,7 +102,6 @@ export type SpeechStreamClientFrame =
 const optionalStartFrameFields = {
   instructions: 'string',
   language: 'string',
-  outputFormat: 'string',
   speed: 'number',
   voice: 'string',
   includeRawChunks: 'boolean',
@@ -129,6 +140,16 @@ export function parseSpeechStreamClientFrame(
         }
       }
       if (
+        value.outputFormat !== undefined &&
+        !isAudioFormat(value.outputFormat)
+      ) {
+        return {
+          type: 'invalid',
+          message:
+            'outputFormat must be an audio format object ({ type, rate? }) when present',
+        };
+      }
+      if (
         value.providerOptions !== undefined &&
         !isRecord(value.providerOptions)
       ) {
@@ -140,13 +161,37 @@ export function parseSpeechStreamClientFrame(
       return { type: 'start', frame: value as SpeechStreamStartFrame };
     }
 
-    case SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE:
-      return typeof value.delta === 'string'
-        ? { type: 'text-delta', delta: value.delta }
-        : {
-            type: 'invalid',
-            message: 'text-delta frame must have a string delta',
-          };
+    case SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE: {
+      if (typeof value.delta !== 'string') {
+        return {
+          type: 'invalid',
+          message: 'text-delta frame must have a string delta',
+        };
+      }
+      if (value.voice !== undefined && typeof value.voice !== 'string') {
+        return {
+          type: 'invalid',
+          message: 'text-delta voice must be a string when present',
+        };
+      }
+      if (
+        value.providerOptions !== undefined &&
+        !isRecord(value.providerOptions)
+      ) {
+        return {
+          type: 'invalid',
+          message: 'text-delta providerOptions must be an object when present',
+        };
+      }
+      return {
+        type: 'text-delta',
+        delta: value.delta,
+        ...(value.voice !== undefined && { voice: value.voice }),
+        ...(value.providerOptions !== undefined && {
+          providerOptions: value.providerOptions as Record<string, JSONObject>,
+        }),
+      };
+    }
 
     case SPEECH_STREAM_TEXT_DONE_FRAME_TYPE:
       return { type: 'text-done' };
