@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.280
+
+### Patch Changes
+
+- 1e4ab85: fix(ai): remove orphaned reasoning, including consecutive summary parts, when pruning tool calls
+- Updated dependencies [bd02a79]
+  - @ai-sdk/gateway@2.0.171
+
 ## 5.0.279
 
 ### Patch Changes
