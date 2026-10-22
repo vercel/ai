@@ -178,6 +178,18 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
   maxConsecutiveErrors?: number;
 
   /**
+   * Predicate that terminally stops automatic reconnection when it returns
+   * `true`.
+   *
+   * The predicate is evaluated before reconnect requests and after interrupted
+   * reconnect streams. Stopping closes the returned stream without requiring a
+   * `finish` chunk, does not invoke `onChatEnd`, and takes precedence over the
+   * consecutive error limit. It does not abort an in-flight request or cancel
+   * the server-side workflow.
+   */
+  stopWhen?: () => boolean | PromiseLike<boolean>;
+
+  /**
    * Default `startIndex` to use when reconnecting to a stream without a known
    * chunk position (i.e. the initial reconnection, not a retry).
    * Negative values read from the end of a durable UIMessageChunk stream (e.g.
@@ -225,6 +237,7 @@ export class WorkflowChatTransport<
   private readonly onChatSendMessage?: OnChatSendMessage<UI_MESSAGE>;
   private readonly onChatEnd?: OnChatEnd;
   private readonly maxConsecutiveErrors: number;
+  private readonly stopWhen?: () => boolean | PromiseLike<boolean>;
   private readonly initialStartIndex: number;
   private readonly prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   private readonly prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
@@ -238,6 +251,7 @@ export class WorkflowChatTransport<
    * @param options.onChatSendMessage - Callback after sending messages
    * @param options.onChatEnd - Callback when chat stream ends
    * @param options.maxConsecutiveErrors - Maximum consecutive errors for reconnection
+   * @param options.stopWhen - Predicate that terminally stops automatic reconnection
    * @param options.prepareSendMessagesRequest - Function to prepare send messages request
    * @param options.prepareReconnectToStreamRequest - Function to prepare reconnect request
    */
@@ -247,6 +261,7 @@ export class WorkflowChatTransport<
     this.onChatSendMessage = options.onChatSendMessage;
     this.onChatEnd = options.onChatEnd;
     this.maxConsecutiveErrors = options.maxConsecutiveErrors ?? 3;
+    this.stopWhen = options.stopWhen;
     this.initialStartIndex = options.initialStartIndex ?? 0;
     this.prepareSendMessagesRequest = options.prepareSendMessagesRequest;
     this.prepareReconnectToStreamRequest =
@@ -394,6 +409,10 @@ export class WorkflowChatTransport<
   ): AsyncGenerator<UIMessageChunk> {
     let chunkIndex = initialChunkIndex;
 
+    if (await this.shouldStopReconnecting()) {
+      return;
+    }
+
     // When called from the public reconnectToStream (initialChunkIndex === 0),
     // honour the caller's startIndex (or the constructor default) for the
     // first request. This enables negative values so the client can read only
@@ -439,6 +458,12 @@ export class WorkflowChatTransport<
         : null;
 
     while (!gotFinish) {
+      // Re-check after request preparation and before every retry so a stop
+      // requested while awaiting application code wins before the next fetch.
+      if (await this.shouldStopReconnecting()) {
+        return;
+      }
+
       const startIndex = useExplicitStartIndex
         ? explicitStartIndex
         : replayFromStart
@@ -446,11 +471,26 @@ export class WorkflowChatTransport<
           : chunkIndex;
 
       const url = `${baseUrl}?startIndex=${startIndex}`;
-      const response = await this.fetch(url, {
-        headers: requestConfig?.headers,
-        credentials: requestConfig?.credentials,
-        signal: options.abortSignal,
-      });
+      let response: Response;
+      try {
+        response = await this.fetch(url, {
+          headers: requestConfig?.headers,
+          credentials: requestConfig?.credentials,
+          signal: options.abortSignal,
+        });
+      } catch (error) {
+        if (await this.shouldStopReconnecting()) {
+          return;
+        }
+        throw error;
+      }
+
+      // The predicate does not abort an in-flight fetch. Check again as soon as
+      // it settles so a stop requested while waiting still wins before the
+      // response is consumed or another transport error is surfaced.
+      if (await this.shouldStopReconnecting()) {
+        return;
+      }
 
       if (!response.ok || !response.body) {
         throw new Error(
@@ -517,7 +557,17 @@ export class WorkflowChatTransport<
         }
         // Reset consecutive errors only after successful parsing with progress.
         consecutiveErrors = 0;
+
+        if (!gotFinish && (await this.shouldStopReconnecting())) {
+          return;
+        }
       } catch (error) {
+        // A terminal application stop wins over retry accounting, including
+        // when the current failure would otherwise reach the configured limit.
+        if (await this.shouldStopReconnecting()) {
+          return;
+        }
+
         console.error('Error in chat GET reconnectToStream', error);
         consecutiveErrors++;
 
@@ -530,6 +580,10 @@ export class WorkflowChatTransport<
     }
 
     await this.onFinish(gotFinish, { chatId: options.chatId, chunkIndex });
+  }
+
+  private async shouldStopReconnecting(): Promise<boolean> {
+    return (await this.stopWhen?.()) === true;
   }
 
   private async onFinish(
