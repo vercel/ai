@@ -1,5 +1,31 @@
 # @ai-sdk/gateway
 
+## 4.0.121
+
+### Patch Changes
+
+- f1b550e: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.120
+
+### Patch Changes
+
+- 9bec2c3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.119
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 4.0.118
 
 ### Patch Changes

@@ -217,7 +217,7 @@ function createMultipartResponseHandler() {
         const jsonStr = new TextDecoder().decode(part.body);
         jobResult = await parseJSON({
           text: jsonStr,
-          schema: zodSchema(prodiaJobResultSchema),
+          schema: zodSchema(prodiaJobResultSchema()),
         });
       } else if (contentDisposition.includes('name="output"')) {
         imageBytes = part.body;

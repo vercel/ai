@@ -1,5 +1,23 @@
 # @ai-sdk/deepseek
 
+## 3.0.70
+
+### Patch Changes
+
+- df6fe35: Defer DeepSeek validation schema creation until first use and cache shared schemas while preserving the internal Zod object exports.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 3.0.68
 
 ### Patch Changes

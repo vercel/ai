@@ -7,7 +7,7 @@ description: API Reference for generateText.
 
 Generates text and calls tools for a given prompt using a language model.
 
-It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting emails or summarizing web pages) and for agents that use tools.
 
 ```ts
 import { generateText } from 'ai';
@@ -1735,7 +1735,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -2029,7 +2029,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -2634,7 +2634,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
       description: 'The reason the model finished generating the text.',
     },
     {
@@ -3039,7 +3039,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason why the generation finished.',
             },
             {

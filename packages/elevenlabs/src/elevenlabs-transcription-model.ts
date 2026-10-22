@@ -6,6 +6,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToBase64,
@@ -214,7 +216,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
           endSecond: word.end ?? 0,
         })) ?? [],
       language: response.language_code,
-      durationInSeconds: response.words?.at(-1)?.end ?? undefined,
+      durationInSeconds:
+        response.audio_duration_secs ??
+        response.words?.at(-1)?.end ??
+        undefined,
       warnings,
       response: {
         timestamp: currentDate,
@@ -720,28 +725,33 @@ function createElevenLabsRealtimeTranscriptionStream({
   });
 }
 
-const elevenlabsTranscriptionResponseSchema = z.object({
-  language_code: z.string(),
-  language_probability: z.number(),
-  text: z.string(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        type: z.enum(['word', 'spacing', 'audio_event']),
-        start: z.number().nullish(),
-        end: z.number().nullish(),
-        speaker_id: z.string().nullish(),
-        characters: z
-          .array(
-            z.object({
-              text: z.string(),
-              start: z.number().nullish(),
-              end: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_duration_secs: z.number().nullish(),
+      language_code: z.string(),
+      language_probability: z.number(),
+      text: z.string(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            type: z.enum(['word', 'spacing', 'audio_event']),
+            start: z.number().nullish(),
+            end: z.number().nullish(),
+            speaker_id: z.string().nullish(),
+            characters: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  start: z.number().nullish(),
+                  end: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

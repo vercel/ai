@@ -61,7 +61,25 @@ export type ACPResolvedProviderAuthentication = z.infer<
   typeof providerAuthenticationSchema
 >;
 
+/**
+ * Launch command of the ACP agent inside the sandbox. `home` is set for
+ * agents acquired with an install command, which run with a private `HOME`
+ * below the harness bootstrap directory.
+ */
+export type ACPAgentLaunch = {
+  readonly command: string;
+  readonly args: ReadonlyArray<string>;
+  readonly home?: string;
+};
+
+const agentLaunchSchema: z.ZodType<ACPAgentLaunch> = z.object({
+  command: z.string(),
+  args: z.array(z.string()),
+  home: z.string().optional(),
+});
+
 export type ACPBridgeConfiguration = {
+  readonly agent: ACPAgentLaunch;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPResolvedProviderAuthentication;
   readonly providerEnvironment?: Readonly<Record<string, string>>;
@@ -73,6 +91,7 @@ export type ACPBridgeConfiguration = {
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
+  agent: agentLaunchSchema,
   authentication: authenticationSchema.optional(),
   providerAuthentication: providerAuthenticationSchema.optional(),
   providerEnvironment: z.record(z.string(), z.string()).optional(),
@@ -84,6 +103,7 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
 });
 
 export function createACPBridgeEnvironment({
+  agent,
   authentication,
   providerAuthentication,
   providerEnvironment,
@@ -95,6 +115,7 @@ export function createACPBridgeEnvironment({
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+      agent,
       ...(authentication == null ? {} : { authentication }),
       ...(providerAuthentication == null ? {} : { providerAuthentication }),
       ...(providerEnvironment == null ? {} : { providerEnvironment }),
@@ -114,10 +135,10 @@ export async function readACPBridgeEnvironment({
 }: {
   env: Readonly<Record<string, string | undefined>>;
 }): Promise<ACPBridgeConfiguration> {
-  const serialized = env[ACP_BRIDGE_CONFIGURATION_ENV];
-  if (serialized == null) return {};
   try {
-    const result = bridgeConfigurationSchema.safeParse(JSON.parse(serialized));
+    const result = bridgeConfigurationSchema.safeParse(
+      JSON.parse(env[ACP_BRIDGE_CONFIGURATION_ENV] ?? ''),
+    );
     if (result.success) return result.data;
   } catch {}
   throw new Error('ACP bridge configuration environment is invalid.');

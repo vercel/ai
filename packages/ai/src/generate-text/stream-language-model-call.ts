@@ -660,6 +660,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               : undefined;
 
           const toolChoiceViolationError =
+            chunk.finishReason.unified !== 'interrupted' &&
             enforcedToolChoice != null &&
             ![...toolCallsByToolCallId.values()].some(
               toolCall =>

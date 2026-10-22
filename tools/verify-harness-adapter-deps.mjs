@@ -13,6 +13,19 @@ const sdkPackagesToSync = [
   '@modelcontextprotocol/sdk',
 ];
 
+/*
+ * ACP adapters with an npm-locked source replace the harness-acp bridge
+ * manifest with their own bridge manifest, so their manifests must declare
+ * every harness-acp bridge dependency at the same version.
+ */
+const acpBridgeManifestPath = 'packages/harness-acp/src/v1/bridge/package.json';
+const acpNpmLockedBridgeManifestPaths = [
+  'packages/harness-github-copilot/src/bridge/package.json',
+  'packages/harness-grok-build/src/bridge/package.json',
+  'examples/ai-functions/src/lib/codex-acp-bridge/package.json',
+  'examples/harness-e2e-next/agent/harness/acp-codex/bridge/package.json',
+];
+
 const adapterConfigs = [
   {
     name: 'ACP',
@@ -246,6 +259,35 @@ export function validateSynchronizedSdkVersions({ manifests }) {
   return errors;
 }
 
+export function validateACPBridgeDependencies({
+  acpBridgeManifest,
+  acpBridgeManifestPath,
+  manifests,
+}) {
+  const errors = [];
+
+  for (const [packageName, expectedSpec] of Object.entries(
+    acpBridgeManifest.dependencies ?? {},
+  )) {
+    for (const { manifest, manifestPath } of manifests) {
+      const spec = manifest.dependencies?.[packageName];
+      if (spec == null) {
+        errors.push(
+          `${manifestPath} does not declare ${packageName}@${expectedSpec} ` +
+            `from ${acpBridgeManifestPath} in its dependencies.`,
+        );
+      } else if (spec !== expectedSpec) {
+        errors.push(
+          `${manifestPath} declares ${packageName}@${spec}, but ` +
+            `${acpBridgeManifestPath} declares ${packageName}@${expectedSpec}.`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
 function discoverAdapterPackageDirs() {
   return globSync('packages/harness-*/package.json', {
     cwd: repoRoot,
@@ -277,6 +319,23 @@ function main() {
           `${packageDir}/package.json has no entry in adapterConfigs in ` +
           'tools/verify-harness-adapter-deps.mjs.',
       ),
+    });
+    process.exitCode = 1;
+    return;
+  }
+
+  const acpBridgeDependencyErrors = validateACPBridgeDependencies({
+    acpBridgeManifest: readJson(resolve(repoRoot, acpBridgeManifestPath)),
+    acpBridgeManifestPath,
+    manifests: acpNpmLockedBridgeManifestPaths.map(manifestPath => ({
+      manifest: readJson(resolve(repoRoot, manifestPath)),
+      manifestPath,
+    })),
+  });
+  if (acpBridgeDependencyErrors.length > 0) {
+    reportErrors({
+      heading: 'ACP bridge dependency alignment failed',
+      errors: acpBridgeDependencyErrors,
     });
     process.exitCode = 1;
     return;
@@ -447,6 +506,10 @@ function main() {
   );
   console.log('✓ Verified primary SDK versions match across bridge manifests.');
   console.log('✓ Verified shared SDK versions match across harness manifests.');
+  console.log(
+    '✓ Verified npm-locked ACP bridge manifests include the harness-acp ' +
+      'bridge dependencies.',
+  );
 }
 
 if (

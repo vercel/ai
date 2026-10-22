@@ -1672,6 +1672,50 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    ['missing', 'interrupted'],
+    ['unknown_reason', 'other'],
+    ['invalid-json', 'error'],
+  ] as const)(
+    'handles a stream ending with %s as %s',
+    async (ending, unified) => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+          ...(ending === 'missing'
+            ? []
+            : ending === 'invalid-json'
+              ? ['data: {invalid-json}\n\n']
+              : [
+                  `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                ]),
+        ],
+      };
+      const { stream } = await provider('kimi-k2-0905-preview').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'invalid-json' ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified,
+            raw: ending === 'unknown_reason' ? ending : undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   it('should preserve a provider error envelope in stream errors', async () => {
     const data = {
       error: {

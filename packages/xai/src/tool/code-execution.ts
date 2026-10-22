@@ -1,10 +1,18 @@
-import { createProviderExecutedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  createProviderExecutedToolFactory,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const codeExecutionOutputSchema = z.object({
-  output: z.string().describe('the output of the code execution'),
-  error: z.string().optional().describe('any error that occurred'),
-});
+const codeExecutionOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z.string().describe('the output of the code execution'),
+      error: z.string().optional().describe('any error that occurred'),
+    }),
+  ),
+);
 
 const codeExecutionToolFactory = createProviderExecutedToolFactory({
   id: 'xai.code_execution',

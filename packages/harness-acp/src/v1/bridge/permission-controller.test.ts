@@ -229,7 +229,7 @@ describe('ACP permission controller', () => {
     { permissionMode: 'allow-reads', kind: 'think' },
     { permissionMode: 'allow-reads', kind: 'fetch' },
   ] as const)(
-    'auto-approves $kind for an unmapped $permissionMode implementation',
+    'auto-approves $kind for an unmapped $permissionMode agent',
     async ({ permissionMode, kind }) => {
       const fake = createFakeTurn();
       const emitToolCall = vi.fn();

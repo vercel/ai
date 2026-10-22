@@ -1,5 +1,34 @@
 # @ai-sdk/harness
 
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.157
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 1.0.156
 
 ### Patch Changes

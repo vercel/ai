@@ -1,5 +1,37 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.97
+
+### Patch Changes
+
+- 1f68635: feat(harness-acp): remove implementation layer in favor of unifying as a single bridge `package.json` for concrete harness plus ACP foundation
+- Updated dependencies [b089ce8]
+- Updated dependencies [1f68635]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness-acp@1.0.98
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [6993e42]
+  - @ai-sdk/harness-acp@1.0.97
+  - @ai-sdk/harness@1.0.158
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+  - @ai-sdk/harness-acp@1.0.96
+
 ## 1.0.94
 
 ### Patch Changes

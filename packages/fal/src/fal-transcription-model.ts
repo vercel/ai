@@ -4,11 +4,14 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -143,7 +146,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
           rawValue: statusRawResponse,
         } = await getFromApi({
           url: this.config.url({
-            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${queueResponse.request_id}`,
+            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
             modelId: this.modelId,
           }),
           validateUrl: false,
@@ -229,19 +232,27 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const falJobResponseSchema = z.object({
-  request_id: z.string().nullish(),
-});
+const falJobResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const falTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  chunks: z
-    .array(
-      z.object({
-        text: z.string(),
-        timestamp: z.array(z.number()).nullish(),
-      }),
-    )
-    .nullish(),
-  inferred_languages: z.array(z.string()).nullish(),
-});
+const falTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      chunks: z
+        .array(
+          z.object({
+            text: z.string(),
+            timestamp: z.array(z.number()).nullish(),
+          }),
+        )
+        .nullish(),
+      inferred_languages: z.array(z.string()).nullish(),
+    }),
+  ),
+);

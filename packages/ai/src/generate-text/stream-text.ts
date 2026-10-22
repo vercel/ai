@@ -3215,6 +3215,7 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
+                    stepFinishReason !== 'interrupted' &&
                     // Continue only after all client tool calls have been executed or denied,
                     // and if there are client results or pending deferred provider results.
                     clientToolCalls.length ===

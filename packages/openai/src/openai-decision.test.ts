@@ -659,3 +659,28 @@ it.each([{}, { instructions: undefined }, { instructions: null }])(
     );
   },
 );
+
+it('warns about unsupported maxOutputTokens without sending it', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({ ...options, maxOutputTokens: 512 });
+  expect(result.warnings).toEqual([
+    { type: 'unsupported', feature: 'maxOutputTokens' },
+  ]);
+  const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+  expect(body).not.toHaveProperty('maxOutputTokens');
+  expect(body).not.toHaveProperty('max_output_tokens');
+});
+
+it.each([undefined, 'none', 'provider-default', 'high'] as const)(
+  'warns about unsupported reasoning without sending it: %s',
+  async reasoning => {
+    const { model, fetch } = setup();
+    const result = await model.doDecide({ ...options, reasoning });
+    expect(result.warnings).toEqual(
+      reasoning == null ? [] : [{ type: 'unsupported', feature: 'reasoning' }],
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+    expect(body).not.toHaveProperty('reasoning');
+    expect(body).not.toHaveProperty('reasoning_effort');
+  },
+);

@@ -206,6 +206,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'content-filter',
             'tool-calls',
             'error',
+            'interrupted',
             'other',
           ] as const satisfies readonly FinishReason[])
           .optional(),

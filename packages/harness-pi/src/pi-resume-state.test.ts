@@ -127,6 +127,61 @@ describe('piResumeStateSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('accepts a pending tool batch with its assistant message', () => {
+    const pendingToolBatch = {
+      assistantMessage: {
+        role: 'assistant',
+        content: [
+          { type: 'toolCall', id: 'tool-1', name: 'askUser', arguments: {} },
+        ],
+      },
+      awaitingToolCallIds: ['tool-1'],
+      completedToolResults: [],
+      nativeApprovalDecisions: [],
+    };
+
+    expect(piResumeStateSchema.parse({ pendingToolBatch })).toEqual({
+      pendingToolBatch,
+    });
+  });
+
+  it('rejects a legacy pending tool batch without its assistant message', () => {
+    const result = piResumeStateSchema.safeParse({
+      pendingToolBatch: {
+        awaitingToolCallIds: ['tool-1'],
+        completedToolResults: [],
+        nativeApprovalDecisions: [],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "custom",
+          "message": "Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.",
+          "path": [
+            "pendingToolBatch",
+            "assistantMessage",
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('rejects a pending tool batch with a non-assistant message', () => {
+    expect(
+      piResumeStateSchema.safeParse({
+        pendingToolBatch: {
+          assistantMessage: { role: 'user', content: [] },
+          awaitingToolCallIds: ['tool-1'],
+          completedToolResults: [],
+          nativeApprovalDecisions: [],
+        },
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe('resolvePiPrivateSessionDirectory', () => {

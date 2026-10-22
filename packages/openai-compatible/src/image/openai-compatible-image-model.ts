@@ -11,6 +11,9 @@ import {
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -213,7 +216,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
   }
 
   private async getImages(
-    data: z.infer<typeof openaiCompatibleImageResponseSchema>['data'],
+    data: InferSchema<typeof openaiCompatibleImageResponseSchema>['data'],
     options: {
       url: string;
       headers: Record<string, string | undefined>;
@@ -258,7 +261,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
 // Providers that omit `usage` are not warned about: many OpenAI-compatible
 // backends legitimately do not report token counts for image generation.
 function mapImageUsage(
-  usage: z.infer<typeof openaiCompatibleImageResponseSchema>['usage'],
+  usage: InferSchema<typeof openaiCompatibleImageResponseSchema>['usage'],
 ): ImageModelV4Usage | undefined {
   return usage == null
     ? undefined
@@ -271,25 +274,29 @@ function mapImageUsage(
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(
-    z
-      .object({
-        b64_json: z.string().nullish(),
-        url: z.string().nullish(),
-      })
-      .refine(image => image.b64_json != null || image.url != null, {
-        message: 'Expected b64_json or url in the image response',
-      }),
+const openaiCompatibleImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(
+        z
+          .object({
+            b64_json: z.string().nullish(),
+            url: z.string().nullish(),
+          })
+          .refine(image => image.b64_json != null || image.url != null, {
+            message: 'Expected b64_json or url in the image response',
+          }),
+      ),
+      usage: z
+        .object({
+          input_tokens: z.number().nullish(),
+          output_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
   ),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      output_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+);
 
 type OpenAICompatibleFormDataInput = {
   model: string;

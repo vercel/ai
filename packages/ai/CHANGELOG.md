@@ -1,5 +1,37 @@
 # ai
 
+## 7.0.148
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [f1b550e]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/gateway@4.0.121
+
+## 7.0.147
+
+### Patch Changes
+
+- 66e74dc: fix(ai): preserve repaired tool names in streamed UI message parts
+- Updated dependencies [9bec2c3]
+  - @ai-sdk/gateway@4.0.120
+
+## 7.0.146
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 3785b2e: fix(ai): remove orphaned reasoning, including consecutive summary and reasoning-file parts, when pruning tool calls
+- ab8eb61: Fix optional tools adding an incorrect `undefined` member to tool call, result, error, denied output, and execution event types.
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/gateway@4.0.119
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 7.0.145
 
 ### Patch Changes

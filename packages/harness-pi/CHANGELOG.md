@@ -1,5 +1,31 @@
 # @ai-sdk/harness-pi
 
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.159
+
+### Patch Changes
+
+- 62b54a5: feat(harness-pi): add support for image input
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
 ## 1.0.158
 
 ### Patch Changes

@@ -1803,6 +1803,78 @@ describe('streamText', () => {
     });
 
     describe('tool choice enforcement', () => {
+      it.each(['required', { type: 'tool', toolName: 'tool1' }] as const)(
+        'should preserve interrupted output without enforcing tool choice %j',
+        async toolChoice => {
+          const onError = vi.fn();
+          const onEnd = vi.fn();
+          const onStepEnd = vi.fn();
+          const onLanguageModelCallEnd = vi.fn();
+          const result = streamText({
+            model: new MockLanguageModelV4({
+              doStream: {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Let me check' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'interrupted', raw: undefined },
+                    usage: testUsage,
+                    providerMetadata: { test: { partial: true } },
+                  },
+                ]),
+              },
+            }),
+            prompt: 'test-input',
+            tools: { tool1: tool({ inputSchema: z.object({}) }) },
+            toolChoice,
+            onError,
+            onEnd,
+            onStepEnd,
+            onLanguageModelCallEnd,
+          });
+
+          const parts = await convertAsyncIterableToArray(result.fullStream);
+
+          expect(parts.filter(part => part.type === 'error')).toEqual([]);
+          expect(
+            parts.filter(
+              part => part.type === 'finish-step' || part.type === 'finish',
+            ),
+          ).toEqual([
+            expect.objectContaining({
+              type: 'finish-step',
+              finishReason: 'interrupted',
+              rawFinishReason: undefined,
+            }),
+            expect.objectContaining({
+              type: 'finish',
+              finishReason: 'interrupted',
+              rawFinishReason: undefined,
+            }),
+          ]);
+          await expect(result.text).resolves.toBe('Let me check');
+          await expect(result.finishReason).resolves.toBe('interrupted');
+          await expect(result.usage).resolves.toEqual(
+            asLanguageModelUsage(testUsage),
+          );
+          await expect(result.providerMetadata).resolves.toEqual({
+            test: { partial: true },
+          });
+          expect(onError).not.toHaveBeenCalled();
+          for (const callback of [onEnd, onStepEnd, onLanguageModelCallEnd]) {
+            expect(callback).toHaveBeenCalledOnce();
+            expect(callback).toHaveBeenCalledWith(
+              expect.objectContaining({ finishReason: 'interrupted' }),
+            );
+          }
+          expect(
+            await convertAsyncIterableToArray(result.toUIMessageStream()),
+          ).toContainEqual({ type: 'finish', finishReason: 'interrupted' });
+        },
+      );
+
       it('should surface an error when a required tool choice produces no tool call', async () => {
         const onError = vi.fn();
 
@@ -27002,6 +27074,52 @@ describe('streamText', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should stop an interrupted stream with a deferred provider tool result', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: () =>
+          Promise.resolve({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'program',
+                input: '{}',
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'interrupted', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+      });
+      const onError = vi.fn();
+      const result = streamText({
+        model,
+        prompt: 'Run a program',
+        tools: {
+          program: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.program',
+            inputSchema: z.object({}),
+            args: {},
+            supportsDeferredResults: true,
+          },
+        },
+        stopWhen: isStepCount(3),
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      await expect(result.steps).resolves.toHaveLength(1);
+      await expect(result.finishReason).resolves.toBe('interrupted');
+      expect(onError).not.toHaveBeenCalled();
+    });
+
     it('should stop for client tool approval while a provider tool result is deferred', async () => {
       const execute = vi.fn();
       let modelCallCount = 0;

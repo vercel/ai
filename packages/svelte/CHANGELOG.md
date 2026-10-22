@@ -1,5 +1,33 @@
 # @ai-sdk/svelte
 
+## 5.0.148
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 5.0.147
+
+### Patch Changes
+
+- 8be2a2b: fix: preserve Headers instance entries in structured-object and completion requests
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 5.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 5.0.145
 
 ### Patch Changes

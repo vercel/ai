@@ -4,6 +4,8 @@ import type {
   SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -114,35 +116,40 @@ export class GatewaySpeechModel implements SpeechModelV4 {
   }
 }
 
-const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
 
-const gatewaySpeechWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewaySpeechWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewaySpeechResponseSchema = z.object({
-  audio: z.string(),
-  warnings: z.array(gatewaySpeechWarningSchema).optional(),
-  usage: z.record(z.string(), z.json()).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-});
+const gatewaySpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio: z.string(),
+      warnings: z.array(gatewaySpeechWarningSchema()).optional(),
+      usage: z.record(z.string(), z.json()).optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+    }),
+  ),
+);

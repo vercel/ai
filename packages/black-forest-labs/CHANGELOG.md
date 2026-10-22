@@ -1,5 +1,23 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.67
+
+### Patch Changes
+
+- bd1f92b: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 2.0.66
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 2.0.65
 
 ### Patch Changes
