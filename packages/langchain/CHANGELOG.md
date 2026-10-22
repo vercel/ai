@@ -1,5 +1,15 @@
 # @ai-sdk/langchain
 
+## 2.0.321
+
+### Patch Changes
+
+- 842eea4: Harden LangChain tool argument JSON parsing against prototype pollution while preserving the fallback for invalid arguments.
+- Updated dependencies [52803fb]
+- Updated dependencies [a0f7494]
+- Updated dependencies [a48e8a9]
+  - ai@6.0.313
+
 ## 2.0.320
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.76
+
+### Patch Changes
+
+- fa49238: Add Voxtral 3 speech model IDs and support speech expressiveness and pronunciation hints in the Mistral provider.
+
 ## 3.0.75
 
 ### Patch Changes

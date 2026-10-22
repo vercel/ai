@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.313
+
+### Patch Changes
+
+- 52803fb: fix(ai): process only the first approval response per tool call, so repeated or conflicting responses in the final tool message no longer execute a tool twice or both execute and deny it
+- a0f7494: fix(ai): remove orphaned reasoning, including consecutive reasoning parts, when pruning tool calls
+- a48e8a9: fix(ai): preserve repaired tool names in streamed UI message parts
+- Updated dependencies [fa49238]
+- Updated dependencies [d301a16]
+- Updated dependencies [965effe]
+- Updated dependencies [4f82ab0]
+  - @ai-sdk/gateway@3.0.220
+
 ## 6.0.312
 
 ### Patch Changes
