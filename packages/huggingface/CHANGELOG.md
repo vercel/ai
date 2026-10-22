@@ -1,5 +1,11 @@
 # @ai-sdk/huggingface
 
+## 1.0.90
+
+### Patch Changes
+
+- 6572f26: Fix `toolChoice: 'none'` by forwarding it to the Hugging Face Responses API and rejecting tool calls before local execution in `generateText` and `streamText`. Streamed tool parts are withheld so client-side tools cannot act on them, and `experimental_repairToolCall` is not invoked for rejected tool calls.
+
 ## 1.0.89
 
 ### Patch Changes
