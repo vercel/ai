@@ -51,6 +51,20 @@ describe('ElevenLabsSpeechModel', () => {
       );
     });
 
+    it('should warn about and ignore dialogue options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.dialogue',
+        }),
+      );
+    });
+
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 

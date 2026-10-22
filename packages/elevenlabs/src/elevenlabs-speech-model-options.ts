@@ -50,6 +50,15 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
           syncAlignment: z.boolean().optional(),
         })
         .optional(),
+      // https://elevenlabs.io/docs/api-reference/text-to-dialogue/ttd-websocket
+      dialogue: z
+        .object({
+          voices: z.array(z.string().min(1)).min(1).max(10),
+          voiceSettings: z
+            .object({ stability: z.number().min(0).max(1).optional() })
+            .optional(),
+        })
+        .optional(),
     }),
   ),
 );

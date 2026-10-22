@@ -25,8 +25,11 @@ import {
   type ElevenLabsSpeechModelOptions,
 } from './elevenlabs-speech-model-options';
 import {
+  createDialogueProtocol,
   createElevenLabsSpeechStream,
+  createSingleContextProtocol,
   getElevenLabsAudioFormat,
+  type ElevenLabsStreamProtocol,
 } from './elevenlabs-speech-stream';
 import type { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
 import type {
@@ -43,9 +46,9 @@ interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
 const defaultVoiceId = '21m00Tcm4TlvDq8ikWAM';
 const defaultOutputFormat = 'mp3_44100_128';
 
-// The stream-input WebSocket does not serve the v3/v4 model families.
-function supportsTextToSpeechWebSocket(modelId: string): boolean {
-  return !modelId.startsWith('eleven_v3') && !modelId.startsWith('eleven_v4');
+// The TTS WebSockets do not serve the v3/v4 families; Text-to-Dialogue does.
+function isDialogueModelId(modelId: string): boolean {
+  return modelId.startsWith('eleven_v3') || modelId.startsWith('eleven_v4');
 }
 
 export class ElevenLabsSpeechModel
@@ -93,13 +96,14 @@ export class ElevenLabsSpeechModel
       providerOptions,
       schema: elevenLabsSpeechModelOptionsSchema,
     });
-    if (elevenLabsOptions?.streaming != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'providerOptions.elevenlabs.streaming',
-        details:
-          'Streaming options apply only to streaming speech (experimental_streamSpeech) and were ignored.',
-      });
+    for (const option of ['streaming', 'dialogue'] as const) {
+      if (elevenLabsOptions?.[option] != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.elevenlabs.${option}`,
+          details: `${option === 'streaming' ? 'Streaming' : 'Dialogue'} options apply only to streaming speech (experimental_streamSpeech) and were ignored.`,
+        });
+      }
     }
 
     // Create request body
@@ -273,18 +277,37 @@ export class ElevenLabsSpeechModel
   private async startStream(
     options: SpeechModelV4StreamOptions,
   ): Promise<SpeechModelV4StreamResult> {
-    if (!supportsTextToSpeechWebSocket(this.modelId)) {
-      throw new UnsupportedFunctionalityError({
-        functionality: `streaming speech with ${this.modelId}`,
-      });
-    }
-
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions: options.providerOptions,
       schema: elevenLabsSpeechModelOptionsSchema,
     });
+    const dialogue = elevenLabsOptions?.dialogue;
+    const streaming = elevenLabsOptions?.streaming;
+
+    if (dialogue != null && !isDialogueModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming dialogue with ${this.modelId}`,
+        message: `ElevenLabs streaming dialogue requires an eleven_v3 or eleven_v4 model; ${this.modelId} is not one.`,
+      });
+    }
+    if (dialogue == null && isDialogueModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming speech with ${this.modelId}`,
+        message: `The ElevenLabs text-to-speech WebSocket does not serve ${this.modelId}. Set providerOptions.elevenlabs.dialogue to stream it as dialogue.`,
+      });
+    }
+    if (
+      dialogue != null &&
+      this.modelId === 'eleven_v3_conversational' &&
+      dialogue.voices.length !== 1
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.elevenlabs.dialogue.voices',
+        message: `eleven_v3_conversational supports exactly one dialogue voice; received ${dialogue.voices.length}.`,
+      });
+    }
     // The WebSocket API rejects locators without a version, unlike HTTP.
     const unversionedLocator =
       elevenLabsOptions?.pronunciationDictionaryLocators?.find(
@@ -301,25 +324,28 @@ export class ElevenLabsSpeechModel
       elevenLabsOptions?.streaming?.outputFormat ??
       toElevenLabsStreamOutputFormat(options.outputFormat);
     const voiceId = options.voice ?? defaultVoiceId;
-
+    const path =
+      dialogue != null
+        ? '/v1/text-to-dialogue/stream-input'
+        : `/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream-input`;
     const url = toWebSocketUrl(
-      this.config.url({
-        path: `/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream-input`,
-        modelId: this.modelId,
-      }),
+      this.config.url({ path, modelId: this.modelId }),
     );
-    const streaming = elevenLabsOptions?.streaming;
+
     const queryParams = {
       model_id: this.modelId,
       output_format: outputFormat,
       language_code: options.language ?? elevenLabsOptions?.languageCode,
       enable_logging: elevenLabsOptions?.enableLogging,
-      inactivity_timeout: streaming?.inactivityTimeout,
+      // Text-to-Dialogue has a fixed inactivity timeout and no auto/SSML mode.
+      inactivity_timeout:
+        dialogue == null ? streaming?.inactivityTimeout : null,
       sync_alignment: streaming?.syncAlignment,
-      auto_mode: streaming?.autoMode,
+      auto_mode: dialogue == null ? streaming?.autoMode : null,
       apply_text_normalization: elevenLabsOptions?.applyTextNormalization,
       seed: elevenLabsOptions?.seed,
-      enable_ssml_parsing: streaming?.enableSsmlParsing,
+      enable_ssml_parsing:
+        dialogue == null ? streaming?.enableSsmlParsing : null,
     };
     for (const [key, value] of Object.entries(queryParams)) {
       if (value != null) {
@@ -327,7 +353,28 @@ export class ElevenLabsSpeechModel
       }
     }
 
-    const initMessage = getStreamInitMessage(options, elevenLabsOptions);
+    let protocol: ElevenLabsStreamProtocol;
+    if (dialogue != null) {
+      if (options.voice != null && !dialogue.voices.includes(options.voice)) {
+        throw new InvalidArgumentError({
+          argument: 'voice',
+          message: `ElevenLabs streaming dialogue voice "${options.voice}" is not listed in providerOptions.elevenlabs.dialogue.voices.`,
+        });
+      }
+      protocol = createDialogueProtocol({
+        initMessage: getDialogueInitMessage(dialogue, elevenLabsOptions),
+        voices: dialogue.voices,
+        defaultVoice: options.voice ?? dialogue.voices[0],
+        // The v3 family accepts a single message per session.
+        incremental: this.modelId.startsWith('eleven_v4'),
+      });
+    } else {
+      protocol = createSingleContextProtocol({
+        initMessage: getStreamInitMessage(options, elevenLabsOptions),
+        voice: voiceId,
+      });
+    }
+
     // The API key goes in the init message (not a header) so native
     // WebSockets work; it is kept out of the reported request body.
     const { 'xi-api-key': apiKey, ...headers } = combineHeaders(
@@ -336,7 +383,9 @@ export class ElevenLabsSpeechModel
     );
 
     return {
-      request: { body: { url: url.toString(), initMessage } },
+      request: {
+        body: { url: url.toString(), initMessage: protocol.initMessage },
+      },
       response: { timestamp: currentDate, modelId: this.modelId },
       stream: createElevenLabsSpeechStream({
         abortSignal: options.abortSignal,
@@ -344,16 +393,35 @@ export class ElevenLabsSpeechModel
         audioFormat: getElevenLabsAudioFormat(outputFormat),
         headers,
         includeRawChunks: options.includeRawChunks,
-        keepalive: streaming?.inactivityTimeout == null,
-        initMessage,
+        // Text-to-Dialogue has a fixed 20 s inactivity timeout, so it always
+        // keeps alive; TTS honors an explicit inactivityTimeout instead.
+        keepalive: dialogue != null || streaming?.inactivityTimeout == null,
+        protocol,
         text: options.text,
         url,
-        voice: voiceId,
         warnings,
         webSocket: this.config.webSocket,
       }),
     };
   }
+}
+
+function getDialogueInitMessage(
+  dialogue: NonNullable<ElevenLabsSpeechModelOptions['dialogue']>,
+  elevenLabsOptions: ElevenLabsSpeechModelOptions | undefined,
+): Record<string, unknown> {
+  const locators = elevenLabsOptions?.pronunciationDictionaryLocators;
+  return {
+    ...(dialogue.voiceSettings?.stability != null && {
+      voice_settings: { stability: dialogue.voiceSettings.stability },
+    }),
+    ...(locators != null && {
+      pronunciation_dictionary_locators: locators.map(locator => ({
+        pronunciation_dictionary_id: locator.pronunciationDictionaryId,
+        version_id: locator.versionId,
+      })),
+    }),
+  };
 }
 
 function getStreamInitMessage(
@@ -420,6 +488,33 @@ function getStreamWarnings(
         type: 'unsupported',
         feature: `providerOptions.elevenlabs.${option}`,
         details: `ElevenLabs streaming speech does not support ${option}.`,
+      });
+    }
+  }
+  if (elevenLabsOptions?.dialogue != null) {
+    // Text-to-Dialogue takes only dialogue.voiceSettings.stability, and has a
+    // fixed inactivity timeout and no chunking, auto, or SSML modes.
+    const ignored = [
+      ...(options.speed != null ? ['speed'] : []),
+      ...(elevenLabsOptions.voiceSettings != null
+        ? ['providerOptions.elevenlabs.voiceSettings']
+        : []),
+      ...(
+        [
+          'autoMode',
+          'chunkLengthSchedule',
+          'enableSsmlParsing',
+          'inactivityTimeout',
+        ] as const
+      )
+        .filter(option => elevenLabsOptions.streaming?.[option] != null)
+        .map(option => `providerOptions.elevenlabs.streaming.${option}`),
+    ];
+    for (const feature of ignored) {
+      warnings.push({
+        type: 'unsupported',
+        feature,
+        details: `ElevenLabs streaming dialogue does not support ${feature}; it was ignored.`,
       });
     }
   }

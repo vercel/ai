@@ -455,7 +455,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
   });
 
   it.each(['eleven_v3', 'eleven_v3_conversational', 'eleven_v4'])(
-    'should reject %s, which the stream-input WebSocket does not serve',
+    'should reject %s without dialogue options, since the TTS WebSocket does not serve it',
     async modelId => {
       await expect(
         createModel(modelId).doStream({
@@ -464,6 +464,356 @@ describe('ElevenLabsSpeechModel.doStream', () => {
       ).rejects.toThrow(UnsupportedFunctionalityError);
     },
   );
+});
+
+describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+  });
+
+  it('streams speaker turns from text part voices over Text-to-Dialogue (v4)', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi there. ', voice: 'a' },
+        { type: 'text', text: 'Hello 👋 ', voice: 'b' },
+        { type: 'text', text: 'friend.', voice: 'b' },
+      ]),
+      outputFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        elevenlabs: {
+          dialogue: { voices: ['a', 'b'], voiceSettings: { stability: 0.5 } },
+          streaming: { syncAlignment: true, inactivityTimeout: 60 },
+        },
+      },
+    });
+    const socket = lastSocket();
+    expect(String(socket.url)).toBe(
+      'wss://api.elevenlabs.io/v1/text-to-dialogue/stream-input?model_id=eleven_v4&output_format=pcm_24000&sync_alignment=true',
+    );
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages()).toEqual([
+      {
+        voice_settings: { stability: 0.5 },
+        voices: ['a', 'b'],
+        xi_api_key: 'test-api-key',
+      },
+      { inputs: [{ text: 'Hi there. ', voice_id: 'a' }] },
+      { inputs: [{ text: 'Hello 👋 ', voice_id: 'b', new_turn: true }] },
+      { inputs: [{ text: 'friend.', voice_id: 'b' }] },
+      { close_socket: true },
+    ]);
+
+    socket.message({
+      audio: 'AQI=',
+      alignment: {
+        chars: ['H'],
+        char_start_times_ms: [0],
+        char_durations_ms: [5],
+      },
+    });
+    socket.message({ is_final_audio_for_turn: true });
+    socket.message({ is_final: true });
+
+    expect(await convertReadableStreamToArray(result.stream)).toEqual([
+      {
+        type: 'stream-start',
+        warnings: [
+          expect.objectContaining({
+            feature: 'providerOptions.elevenlabs.streaming.inactivityTimeout',
+          }),
+        ],
+      },
+      {
+        type: 'audio',
+        audio: 'AQI=',
+        audioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerMetadata: {
+          elevenlabs: {
+            alignment: {
+              chars: ['H'],
+              charStartTimesMs: [0],
+              charDurationsMs: [5],
+            },
+          },
+        },
+      },
+      {
+        type: 'audio',
+        audio: '',
+        audioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerMetadata: { elevenlabs: { isFinalAudioForTurn: true } },
+      },
+      // 'Hi there. ' (10) + 'Hello 👋 ' (8) + 'friend.' (7)
+      { type: 'finish', usage: { inputCharacters: 25 } },
+    ]);
+  });
+
+  it('flushes held text when the speaker changes, and honors newTurn', async () => {
+    await createModel('eleven_v4').doStream({
+      voice: 'b',
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi the', voice: 'a' },
+        { type: 'text', text: 'Hello ' },
+        {
+          type: 'text',
+          text: 'Again. ',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        },
+        { type: 'text', text: 'More.' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hi ', voice_id: 'a' }] },
+      // The held partial word is flushed before the speaker changes.
+      { inputs: [{ text: 'the', voice_id: 'a' }] },
+      { inputs: [{ text: 'Hello ', voice_id: 'b', new_turn: true }] },
+      { inputs: [{ text: 'Again. ', voice_id: 'b', new_turn: true }] },
+      { inputs: [{ text: 'More.', voice_id: 'b' }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it('does not split held text when a part names the default voice explicitly', async () => {
+    await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hel' },
+        { type: 'text', text: 'lo there.', voice: 'a' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hello ', voice_id: 'a' }] },
+      { inputs: [{ text: 'there.', voice_id: 'a' }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it('keeps a newTurn whose text is entirely held for the next text', async () => {
+    await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi. ' },
+        {
+          type: 'text',
+          text: 'Ag',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        },
+        { type: 'text', text: 'ain. ' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hi. ', voice_id: 'a' }] },
+      { inputs: [{ text: 'Again. ', voice_id: 'a', new_turn: true }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it.each([
+    ['a held part', 'Hel'],
+    ['an empty part', ''],
+  ])(
+    'errors on an unlisted voice in %s without waiting for more text',
+    async (_, text) => {
+      const result = await createModel('eleven_v4').doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({
+          start(controller) {
+            controller.enqueue({ type: 'text', text, voice: 'c' });
+            // never closes: the error must not wait for a flush
+          },
+        }),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      lastSocket().open();
+      await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+        'is not listed in',
+      );
+    },
+  );
+
+  it('warns about options Text-to-Dialogue ignores', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: textParts(['Hi.']),
+      speed: 1.2,
+      providerOptions: {
+        elevenlabs: {
+          dialogue: { voices: ['a'] },
+          voiceSettings: { stability: 0.3 },
+          streaming: { autoMode: true, chunkLengthSchedule: [50] },
+        },
+      },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.message({ is_final: true });
+    const [start] = await convertReadableStreamToArray(result.stream);
+    expect(start).toEqual({
+      type: 'stream-start',
+      warnings: [
+        'speed',
+        'providerOptions.elevenlabs.voiceSettings',
+        'providerOptions.elevenlabs.streaming.autoMode',
+        'providerOptions.elevenlabs.streaming.chunkLengthSchedule',
+      ].map(feature => expect.objectContaining({ feature })),
+    });
+  });
+
+  it('errors when a text part voice is not a dialogue voice', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi ', voice: 'c' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    lastSocket().open();
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'Dialogue text part voice "c" is not listed in providerOptions.elevenlabs.dialogue.voices.',
+    );
+  });
+
+  it('rejects a call voice that is not a dialogue voice before connecting', async () => {
+    const socketsBefore = MockWebSocket.instances.length;
+    await expect(
+      createModel('eleven_v4').doStream({
+        voice: 'c',
+        text: textParts(['Hi']),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+    expect(MockWebSocket.instances.length).toBe(socketsBefore);
+  });
+
+  it('keeps alive even when inactivityTimeout is set', async () => {
+    vi.useFakeTimers();
+    try {
+      await createModel('eleven_v4').doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({
+          pull: () => new Promise<void>(() => {}),
+        }),
+        providerOptions: {
+          elevenlabs: {
+            dialogue: { voices: ['a'] },
+            streaming: { inactivityTimeout: 60 },
+          },
+        },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(socket.sentMessages().slice(1)).toEqual([{ keep_alive: true }]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('sends the whole script in one message for the v3 family', async () => {
+    await createModel('eleven_v3_conversational').doStream({
+      text: textParts(['Hello ', 'world.']),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages()).toEqual([
+      { voices: ['a'], xi_api_key: 'test-api-key' },
+      {
+        inputs: [
+          { text: 'Hello ', voice_id: 'a' },
+          { text: 'world.', voice_id: 'a' },
+        ],
+        close_socket: true,
+      },
+    ]);
+  });
+
+  it('rejects more than one voice for eleven_v3_conversational before connecting', async () => {
+    const cancel = vi.fn();
+    const socketsBefore = MockWebSocket.instances.length;
+    await expect(
+      createModel('eleven_v3_conversational').doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({ cancel }),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+    expect(MockWebSocket.instances.length).toBe(socketsBefore);
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('errors on server error frames', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: textParts(['Hi']),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.message({
+      message: 'eleven_v3_conversational only supports a single voice.',
+      error: 'invalid_argument',
+      code: 1008,
+    });
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'ElevenLabs speech stream error: eleven_v3_conversational only supports a single voice.',
+    );
+  });
+
+  it('rejects dialogue on non-dialogue models', async () => {
+    await expect(
+      createModel('eleven_flash_v2_5').doStream({
+        text: textParts(['Hi']),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      }),
+    ).rejects.toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('sends keep_alive while a buffered v3 script waits for more text', async () => {
+    vi.useFakeTimers();
+    try {
+      let releaseText: (() => void) | undefined;
+      const text = new ReadableStream<SpeechModelV4StreamTextPart>({
+        async pull(controller) {
+          controller.enqueue({ type: 'text', text: 'Hello there. ' });
+          await new Promise<void>(resolve => {
+            releaseText = resolve;
+          });
+          controller.close();
+        },
+      });
+      await createModel('eleven_v3').doStream({
+        text,
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(socket.sentMessages().slice(1)).toEqual([{ keep_alive: true }]);
+
+      releaseText?.();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(socket.sentMessages().at(-1)).toEqual({
+        inputs: [{ text: 'Hello there. ', voice_id: 'a' }],
+        close_socket: true,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('countCodePoints', () => {
