@@ -83,7 +83,7 @@ const sessionHeaderSchema = z.custom<SessionHeader>(
   'Pi session entries must start with a session header.',
 );
 
-const sessionEntrySchema = z.custom<SessionEntry>(
+export const sessionEntrySchema = z.custom<SessionEntry>(
   value =>
     isRecord(value) &&
     typeof value.type === 'string' &&

@@ -7,11 +7,12 @@ import { tool } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { CURRENT_SESSION_VERSION } from '@earendil-works/pi-coding-agent';
+import { piLifecycleStateSchema } from './pi-lifecycle-state';
 import {
-  piLifecycleStateSchema,
-  piSessionEntriesSchema,
-} from './pi-lifecycle-state';
-import type { PiSessionStorage } from './pi-session-storage';
+  type PiSessionStorage,
+  readSessionEntries,
+} from './pi-session-storage';
 import {
   createFakePi,
   createThrowingSandboxSession,
@@ -20,17 +21,58 @@ import {
   useScriptedPiModel,
 } from './test-helpers';
 
-const createMemoryStorage = () => {
-  const logs = new Map<string, HarnessV1JSONValue[]>();
-  const storage: PiSessionStorage = {
-    append: async ({ sessionId, data }) => {
-      if (!logs.has(sessionId)) logs.set(sessionId, []);
-      logs.get(sessionId)!.push(structuredClone(data));
-    },
-    read: async ({ sessionId }) => logs.get(sessionId) ?? [],
-  };
-  return { logs, storage };
+type StoredEntry = {
+  entryId: string;
+  parentEntryId?: string;
+  data: HarnessV1JSONValue;
 };
+
+const pathTo = (log: Map<string, StoredEntry>, leafId: string) => {
+  const path: HarnessV1JSONValue[] = [];
+  for (let id: string | undefined = leafId; id != null; ) {
+    const entry = log.get(id);
+    if (entry == null) break;
+    path.push(entry.data);
+    id = entry.parentEntryId;
+  }
+  return path.reverse();
+};
+
+const createMemoryStorage = ({ readAll = false, batch = false } = {}) => {
+  const logs = new Map<string, Map<string, StoredEntry>>();
+  const calls = { append: 0, appendMany: 0 };
+  const getLog = (sessionId: string) => {
+    if (!logs.has(sessionId)) logs.set(sessionId, new Map());
+    return logs.get(sessionId)!;
+  };
+  const add = (sessionId: string, entry: StoredEntry) => {
+    const log = getLog(sessionId);
+    if (!log.has(entry.entryId)) {
+      log.set(entry.entryId, { ...entry, data: structuredClone(entry.data) });
+    }
+  };
+  const storage: PiSessionStorage = {
+    append: async ({ sessionId, entryId, parentEntryId, data }) => {
+      calls.append++;
+      add(sessionId, { entryId, parentEntryId, data });
+    },
+    ...(batch && {
+      appendMany: async ({ sessionId, entries }) => {
+        calls.appendMany++;
+        for (const entry of entries) add(sessionId, entry);
+      },
+    }),
+    read: async ({ sessionId, leafId }) =>
+      readAll
+        ? [...getLog(sessionId).values()].map(entry => entry.data)
+        : pathTo(getLog(sessionId), leafId),
+  };
+  const entriesOf = (sessionId: string) => [...getLog(sessionId).values()];
+  return { calls, entriesOf, storage };
+};
+
+const leafOf = (state: { data: unknown }) =>
+  piLifecycleStateSchema.parse(state.data).leafId;
 
 describe('Pi with a session storage', () => {
   const scripted = useScriptedPiModel();
@@ -86,25 +128,26 @@ describe('Pi with a session storage', () => {
     return scripted.model.requests[before];
   };
 
-  it('appends the entries each stop adds as one part and resumes from the leaf', async () => {
-    const { logs, storage } = createMemoryStorage();
+  it('appends each new entry with its parent and resumes from the leaf', async () => {
+    const { calls, entriesOf, storage } = createMemoryStorage();
 
     const [first, second] = await runTurns(storage);
 
     expect(first.data).toEqual({ leafId: expect.any(String) });
     expect(second.data).toEqual({ leafId: expect.any(String) });
-    const [part0, part1] = logs
-      .get('session-pelican')!
-      .map(value => piSessionEntriesSchema.parse(value));
-    expect(part1[0]).toMatchObject({ type: 'session', id: 'session-pelican' });
-    const savedIds = [...part0.slice(1), ...part1.slice(1)].map(
-      entry => entry.id,
-    );
-    expect(part1.length).toBeGreaterThan(1);
-    expect(new Set(savedIds).size).toBe(savedIds.length);
-    expect(savedIds.at(-1)).toBe(
-      piLifecycleStateSchema.parse(second.data).leafId,
-    );
+    const log = entriesOf('session-pelican');
+    expect(calls.append).toBe(log.length);
+    for (const { entryId, parentEntryId, data } of log) {
+      expect(data).toEqual({
+        version: CURRENT_SESSION_VERSION,
+        entry: expect.objectContaining({
+          id: entryId,
+          parentId: parentEntryId ?? null,
+        }),
+      });
+    }
+    expect(log[0].parentEntryId).toBeUndefined();
+    expect(log.at(-1)!.entryId).toBe(leafOf(second));
 
     const [, inline] = await runTurns();
     expect(await firstRequestAfter(storage, second)).toEqual(
@@ -112,32 +155,51 @@ describe('Pi with a session storage', () => {
     );
   });
 
-  it('keeps a turn resumed from an earlier state on its own branch', async () => {
-    const { logs, storage } = createMemoryStorage();
-    const first = await runTurn(storage, undefined, 'Remember PELICAN.');
+  it('appends the entries of each stop in one call when the storage has appendMany', async () => {
+    const { calls, entriesOf, storage } = createMemoryStorage({ batch: true });
 
-    const dropped = await runTurn(
-      storage,
-      first,
-      'The answer that was dropped.',
-    );
-    const regenerated = await runTurn(
-      storage,
-      first,
-      'The regenerated answer.',
-    );
+    const [, second] = await runTurns(storage);
 
-    expect(logs.get('session-pelican')).toHaveLength(3);
-    const request = JSON.stringify(
-      (await firstRequestAfter(storage, regenerated))?.messages,
-    );
-    expect(request).toContain('Remember PELICAN.');
-    expect(request).toContain('The regenerated answer.');
-    expect(request).not.toContain('The answer that was dropped.');
-    expect(
-      JSON.stringify((await firstRequestAfter(storage, dropped))?.messages),
-    ).not.toContain('The regenerated answer.');
+    expect(calls).toEqual({ append: 0, appendMany: 2 });
+    expect(entriesOf('session-pelican').at(-1)!.entryId).toBe(leafOf(second));
   });
+
+  it.each([
+    { name: 'the path to the leaf', readAll: false },
+    { name: 'every branch', readAll: true },
+  ])(
+    'keeps a turn resumed from an earlier state on its own branch when the storage reads $name',
+    async ({ readAll }) => {
+      const { entriesOf, storage } = createMemoryStorage({ readAll });
+      const first = await runTurn(storage, undefined, 'Remember PELICAN.');
+
+      const dropped = await runTurn(
+        storage,
+        first,
+        'The answer that was dropped.',
+      );
+      const regenerated = await runTurn(
+        storage,
+        first,
+        'The regenerated answer.',
+      );
+
+      expect(
+        entriesOf('session-pelican').filter(
+          entry => entry.parentEntryId === leafOf(first),
+        ),
+      ).toHaveLength(2);
+      const request = JSON.stringify(
+        (await firstRequestAfter(storage, regenerated))?.messages,
+      );
+      expect(request).toContain('Remember PELICAN.');
+      expect(request).toContain('The regenerated answer.');
+      expect(request).not.toContain('The answer that was dropped.');
+      expect(
+        JSON.stringify((await firstRequestAfter(storage, dropped))?.messages),
+      ).not.toContain('The regenerated answer.');
+    },
+  );
 
   it('continues a suspended client tool call from the log', async () => {
     const { storage } = createMemoryStorage();
@@ -206,28 +268,32 @@ describe('Pi with a session storage', () => {
     expect(request).toContain('Felix');
   });
 
-  it('appends no part when the session stops without new entries', async () => {
-    const { logs, storage } = createMemoryStorage();
+  it('appends nothing when the session stops without new entries', async () => {
+    const { entriesOf, storage } = createMemoryStorage();
     const [state] = await runTurns(storage);
-    const size = logs.get('session-pelican')!.length;
+    const size = entriesOf('session-pelican').length;
 
     const session = await start(storage, state);
     const stopped = await session.doStop();
 
     expect(stopped.data).toEqual(state.data);
-    expect(logs.get('session-pelican')).toHaveLength(size);
+    expect(entriesOf('session-pelican')).toHaveLength(size);
   });
 
-  it('appends a state recorded without a session storage as its first part', async () => {
-    const { logs, storage } = createMemoryStorage();
+  it('appends the entries of a state recorded without a session storage', async () => {
+    const { entriesOf, storage } = createMemoryStorage();
     const [inline] = await runTurns();
 
     const session = await start(storage, inline);
     const stopped = await session.doStop();
 
-    const entries = piLifecycleStateSchema.parse(inline.data).entries!;
+    const [header, ...entries] = piLifecycleStateSchema.parse(
+      inline.data,
+    ).entries!;
     expect(stopped.data).toEqual({ leafId: entries.at(-1)!.id });
-    expect(logs.get('session-pelican')).toEqual([entries]);
+    expect(entriesOf('session-pelican').map(entry => entry.data)).toEqual(
+      entries.map(entry => ({ version: header.version, entry })),
+    );
   });
 
   it('fails to start from a log without a session storage', async () => {
@@ -248,14 +314,40 @@ describe('Pi with a session storage', () => {
     );
   });
 
-  it('fails to start from a part that is not a Pi session', async () => {
+  it('fails to start from an entry that is not a Pi session entry', async () => {
     const storage: PiSessionStorage = {
       append: async () => {},
-      read: async () => [[{ type: 'message' }]],
+      read: async () => [{ version: CURRENT_SESSION_VERSION }],
     };
 
     await expect(start(storage, resumeAt('any'))).rejects.toThrow(
-      'Part 0 of the Pi session "session-pelican"',
+      'Entry 0 of the Pi session "session-pelican"',
     );
+  });
+
+  it('migrates each entry from the session version it was written under', async () => {
+    const storage: PiSessionStorage = {
+      append: async () => {},
+      read: async () => [
+        {
+          version: 2,
+          entry: {
+            type: 'message',
+            id: 'a1b2c3d4',
+            parentId: null,
+            timestamp: '2026-01-01T00:00:00.000Z',
+            message: { role: 'hookMessage', content: 'from a hook' },
+          },
+        },
+      ],
+    };
+
+    const [entry] = await readSessionEntries({
+      storage,
+      sessionId: 'session-pelican',
+      leafId: 'a1b2c3d4',
+    });
+
+    expect(entry).toMatchObject({ message: { role: 'custom' } });
   });
 });
