@@ -429,7 +429,7 @@ const result = streamText({
 const outcome = await steering.steer('I meant Paris, Texas.');
 ```
 
-Steering works the same way with `generateText` and agents, because you create the steering object before the call starts:
+Steering works the same way with `generateText` and `ToolLoopAgent`, because you create the steering object before the call starts:
 
 ```ts
 const steering = experimental_createSteering();
@@ -451,13 +451,16 @@ const result = await run;
 - Stop conditions still apply. `generateText` and `streamText` stop after one step by default, so set `stopWhen` to steer them. Agents run up to 20 steps by default.
 - Messages that are sent before the loop starts are added to the first step.
 - `prepareStep` and `onStepStart` receive the steering messages as part of `messages`.
+- A steering object can only be used for one call. Create a new one with `experimental_createSteering()` for each call.
+- For agents, steering is supported by `ToolLoopAgent`. `createAgentUIStream` throws when it gets a steering object with another agent.
 
 <Note type="warning">
   `messages` already contains the steering messages in the right place. If
   `prepareStep` returns a `messages` override that is rebuilt from other fields,
   e.g. `initialMessages` and `responseMessages`, the steering messages are
-  dropped even though `steer()` reports them as delivered. Build overrides from
-  `messages`, or add the steering messages of every step back in order.
+  dropped and `steer()` reports them as not delivered with the reason
+  `removed-by-prepare-step`. Build overrides from `messages`, or add the
+  steering messages of every step back in order.
 </Note>
 
 ```ts
@@ -491,9 +494,10 @@ if (outcome.type === 'delivered') {
 }
 ```
 
-A message is not delivered when the loop ends before the next step boundary. The `reason` is one of:
+A message is delivered when it is part of the messages that are sent to the model, after `prepareStep`. It is not delivered when the loop ends before the next step boundary, or when `prepareStep` removes it. The `reason` is one of:
 
 - `finished`: the loop ended before the message could be added.
+- `removed-by-prepare-step`: `prepareStep` returned messages without it.
 - `stop-condition`: a stop condition ended the loop.
 - `waiting-for-tool-results`: the loop ended to wait for tool results, e.g. a [tool approval](/docs/agents/tool-approvals).
 - `aborted`: the loop was aborted.

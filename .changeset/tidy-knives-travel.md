@@ -1,5 +1,4 @@
 ---
-"@ai-sdk/harness": patch
 "ai": patch
 ---
 
