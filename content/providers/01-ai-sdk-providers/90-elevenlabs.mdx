@@ -313,22 +313,17 @@ stream. A change of voice starts a new turn. To start a new turn with the same
 voice, set `providerOptions: { elevenlabs: { newTurn: true } }` on the part.
 
 ```ts
-async function* script() {
-  yield {
-    type: 'text' as const,
-    text: 'Did you hear we can stream dialogue now? ',
-    voice: alice,
-  };
-  yield {
-    type: 'text' as const,
-    text: 'Over one socket? That is neat.',
-    voice: bob,
-  };
-}
-
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_v4'),
-  text: script(),
+  // An array, or a stream of parts arriving from an LLM.
+  text: [
+    {
+      type: 'text',
+      text: 'Did you hear we can stream dialogue now? ',
+      voice: alice,
+    },
+    { type: 'text', text: 'Over one socket? That is neat.', voice: bob },
+  ],
   providerOptions: {
     elevenlabs: {
       dialogue: { voices: [alice, bob], voiceSettings: { stability: 0.5 } },
