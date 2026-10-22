@@ -282,6 +282,13 @@ stream from index `0` and apply the non-negative UI cursor in
 require a durable stream that already stores `UIMessageChunk` objects and
 cannot be used with this raw-to-UI conversion.
 
+If your application can detect that connectivity is unavailable, configure
+`waitUntilReconnectAllowed` on `WorkflowChatTransport`. The callback can wait
+for an online signal before allowing each reconnect request. Waiting preserves
+the current stream cursor and retry count, and cancellation interrupts the wait.
+See the [WorkflowChatTransport API reference](/docs/reference/ai-sdk-workflow/workflow-chat-transport#pausing-and-resuming-reconnection)
+for lifecycle details and a browser example.
+
 For the full API reference, see [`WorkflowChatTransport`](/docs/reference/ai-sdk-workflow/workflow-chat-transport).
 
 ## Tools as Workflow Steps
