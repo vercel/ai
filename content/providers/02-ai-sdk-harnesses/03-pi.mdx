@@ -270,25 +270,28 @@ a fresh session.
 The lifecycle state holds the whole session, including image bytes from tool
 results, so it grows with every turn. To keep it small, pass a `sessionStorage`
 that keeps the session in an append-only log somewhere else, such as an object
-store, a database table or a stream. The harness appends the entries each
-lifecycle state adds as one part, and the lifecycle state holds only `leafId`,
-the id of the entry the session ends at. Restoring a session reads the log,
-joins its parts and continues from that entry. The storage only moves JSON
-values; the harness checks each part when it reads it.
+store, a database table or a stream. The harness appends each new Pi session
+entry to the log, and the lifecycle state holds only `leafId`, the id of the
+entry the session ends at. Restoring a session reads the log and continues from
+that entry. The storage only moves JSON values; the harness checks each entry
+when it reads it.
 
 ```ts
 import { createPi, type PiSessionStorage } from '@ai-sdk/harness-pi';
 
 const storage: PiSessionStorage = {
-  append: async ({ sessionId, data }) => {
-    await db.insert(piSessionParts).values({ sessionId, data });
+  append: async ({ sessionId, entryId, parentEntryId, data }) => {
+    await db
+      .insert(piSessionEntries)
+      .values({ sessionId, entryId, parentEntryId, data })
+      .onConflictDoNothing();
   },
   read: async ({ sessionId }) => {
     const rows = await db
       .select()
-      .from(piSessionParts)
-      .where(eq(piSessionParts.sessionId, sessionId))
-      .orderBy(piSessionParts.position);
+      .from(piSessionEntries)
+      .where(eq(piSessionEntries.sessionId, sessionId))
+      .orderBy(piSessionEntries.position);
     return rows.map(row => row.data);
   },
 };
@@ -296,13 +299,38 @@ const storage: PiSessionStorage = {
 const harness = createPi({ sessionStorage: storage });
 ```
 
-Parts are never changed or deleted. Pi sessions are trees: every entry points to
-the entry before it. A regenerated turn, a workflow step retried after a crash
-or a second turn resumed from the same state appends a new branch, and each
-lifecycle state's `leafId` selects its own branch, so the others are left out. A
-tool batch waiting on host input stays in the lifecycle state. A state recorded
-without a session storage still restores, and its entries become the first part
-on the next append. A state with a `leafId` fails to restore when `createPi` has
+Entries are never changed or deleted. Pi sessions are trees: every entry points
+to the entry before it, its `parentEntryId`. A regenerated turn, a workflow step
+retried after a crash or a second turn resumed from the same state appends a new
+branch, and each lifecycle state's `leafId` selects its own branch, so the
+others are left out.
+
+An entry whose `entryId` the log already holds is a retried append, so the
+example keeps `(sessionId, entryId)` unique and ignores the conflict. `read` may
+return every entry of the log, as above. To read less, return only the entries
+that lead to `leafId`: the entry whose `entryId` is `leafId`, then its
+`parentEntryId`, and so on, in the order they were appended. A database can
+follow that chain in one query, such as a recursive common table expression.
+
+A turn usually adds several entries. The harness appends them one at a time,
+unless the storage also implements the optional `appendMany`, which receives a
+turn's entries in one call:
+
+```ts
+const storage: PiSessionStorage = {
+  // append and read as above
+  appendMany: async ({ sessionId, entries }) => {
+    await db
+      .insert(piSessionEntries)
+      .values(entries.map(entry => ({ sessionId, ...entry })))
+      .onConflictDoNothing();
+  },
+};
+```
+
+A tool batch waiting on host input stays in the lifecycle state. A state
+recorded without a session storage still restores, and its entries are appended
+on the next stop. A state with a `leafId` fails to restore when `createPi` has
 no `sessionStorage`.
 
 ## Authentication

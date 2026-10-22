@@ -1,5 +1,6 @@
 import {
   createAgentSession,
+  CURRENT_SESSION_VERSION,
   createMcpExtension,
   createReadToolDefinition,
   createSyntheticSourceInfo,
@@ -19,6 +20,7 @@ import {
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import { randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -84,6 +86,7 @@ import {
   type PiSessionEntries,
 } from './pi-lifecycle-state';
 import {
+  appendSessionEntries,
   readSessionEntries,
   type PiSessionStorage,
 } from './pi-session-storage';
@@ -558,7 +561,10 @@ export async function createPiSession(
     ? input.sessionId
     : undefined;
   const storage = input.settings.sessionStorage;
-  let resumeEntries = input.resumeEntries;
+  let seededEntries =
+    input.resumeEntries && piSessionId != null
+      ? withSessionId(input.resumeEntries, piSessionId)
+      : input.resumeEntries;
   let savedEntryCount = 0;
   if (input.resumeLeafId != null) {
     if (storage == null) {
@@ -567,17 +573,24 @@ export async function createPiSession(
           'The Pi lifecycle state was saved through a session storage, but createPi has no sessionStorage to load it from.',
       });
     }
-    resumeEntries = await readSessionEntries({
+    const storedEntries = await readSessionEntries({
       storage,
       sessionId: input.sessionId,
+      leafId: input.resumeLeafId,
       abortSignal: input.abortSignal,
     });
-    savedEntryCount = (resumeEntries?.length ?? 1) - 1;
+    seededEntries = [
+      {
+        type: 'session',
+        version: CURRENT_SESSION_VERSION,
+        id: piSessionId ?? randomUUID(),
+        timestamp: new Date().toISOString(),
+        cwd: sessionWorkDir,
+      },
+      ...storedEntries,
+    ];
+    savedEntryCount = storedEntries.length;
   }
-  const seededEntries =
-    resumeEntries && piSessionId != null
-      ? withSessionId(resumeEntries, piSessionId)
-      : resumeEntries;
   let sessionManager: SessionManager | undefined;
   const getSessionManager = (): SessionManager => {
     if (sessionManager == null) {
@@ -603,7 +616,7 @@ export async function createPiSession(
     }
   }
   const snapshotUnsavedEntries = ():
-    | { entries: HarnessV1JSONValue; count: number; leafId?: string }
+    | { entries: PiSessionEntries; count: number; leafId?: string }
     | undefined => {
     const entries =
       sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
@@ -611,7 +624,9 @@ export async function createPiSession(
     const [header, ...rest] = entries;
     const unsaved = rest.slice(savedEntryCount);
     return {
-      entries: secureJsonParse(JSON.stringify([header, ...unsaved])),
+      entries: secureJsonParse(
+        JSON.stringify([header, ...unsaved]),
+      ) as unknown as PiSessionEntries,
       count: unsaved.length,
       ...(storage != null
         ? { leafId: getSessionManager().getLeafId() ?? undefined }
@@ -958,17 +973,18 @@ export async function createPiSession(
     snapshot = snapshotUnsavedEntries(),
   ): Promise<HarnessV1LifecycleState['data']> {
     if (storage != null && snapshot != null && snapshot.count > 0) {
-      await storage.append({
+      const [header, ...entries] = snapshot.entries;
+      await appendSessionEntries({
+        storage,
         sessionId: input.sessionId,
-        data: snapshot.entries,
+        version: header.version ?? CURRENT_SESSION_VERSION,
+        entries,
       });
       savedEntryCount += snapshot.count;
     }
     const data: PiLifecycleData = {
       ...(storage == null
-        ? snapshot && {
-            entries: snapshot.entries as unknown as PiSessionEntries,
-          }
+        ? snapshot && { entries: snapshot.entries }
         : snapshot?.leafId && { leafId: snapshot.leafId }),
       ...(pendingToolBatch && { pendingToolBatch }),
     };
