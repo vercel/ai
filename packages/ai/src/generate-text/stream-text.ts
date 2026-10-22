@@ -138,6 +138,7 @@ import {
   startSteeringRun,
   type Steering,
   type SteeringNotDeliveredReason,
+  type SteeringRun,
 } from './steering';
 import {
   isStepCount,
@@ -387,7 +388,7 @@ export function streamText<
 >(
   options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
 ): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  return streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>(options);
+  return startStreamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>(options);
 }
 
 /**
@@ -424,7 +425,7 @@ export function streamTextLowMemory<
     (telemetry?.isEnabled !== false && integrations.length > 0);
 
   return createSingleConsumerStreamTextResult(
-    streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+    startStreamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
       ...options,
       _internal: {
         ...options._internal,
@@ -434,448 +435,478 @@ export function streamTextLowMemory<
   );
 }
 
+function startStreamText<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+>(
+  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  const steeringRun = startSteeringRun(options.experimental_steering);
+
+  try {
+    return streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>(
+      options,
+      steeringRun,
+    );
+  } catch (error) {
+    // the call can fail before the stream starts, e.g. for invalid settings:
+    steeringRun?.end('error');
+    throw error;
+  }
+}
+
 function streamTextInternal<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
->({
-  model,
-  tools,
-  toolChoice,
-  instructions,
-  system,
-  prompt,
-  messages,
-  allowSystemInMessages,
-  maxRetries,
-  streamRetries,
-  abortSignal,
-  timeout,
-  headers,
-  stopWhen = isStepCount(1),
-  experimental_sandbox: sandbox,
-  experimental_steering: steering,
-  output,
-  toolApproval,
-  experimental_toolCallers,
-  experimental_toolApprovalSecret,
-  experimental_telemetry,
-  telemetry = experimental_telemetry,
-  prepareStep,
-  providerOptions,
-  activeTools,
-  toolOrder,
-  toolCallConcurrency,
-  experimental_repairToolCall,
-  repairToolCall = experimental_repairToolCall,
-  experimental_refineToolInput: refineToolInput,
-  experimental_transform: transform,
-  experimental_download: download,
-  includeRawChunks,
-  onChunk,
-  onError: onErrorArg,
-  onFinish,
-  onEnd = onFinish,
-  onAbort,
-  onStepEnd,
-  onStepFinish,
-  onStart,
-  experimental_onStart,
-  onStepStart,
-  experimental_onStepStart,
-  onLanguageModelCallStart,
-  experimental_onLanguageModelCallStart,
-  onLanguageModelCallEnd,
-  experimental_onLanguageModelCallEnd,
-  onToolExecutionStart,
-  onToolExecutionEnd,
-  experimental_onToolCallStart,
-  experimental_onToolCallFinish,
-  runtimeContext = {} as RUNTIME_CONTEXT,
-  toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include,
-  include = experimental_include,
-  _internal: {
-    now = originalNow,
-    generateId = originalGenerateId,
-    generateCallId = originalGenerateCallId,
-    retention = { replay: true, collectContent: true },
-  } = {},
-  ...settings
-}: LanguageModelCallOptions &
-  RequestOptions<TOOLS> &
-  Prompt &
-  ToolsContextParameter<TOOLS> & {
-    /**
-     * The language model to use.
-     */
-    model: LanguageModel;
+>(
+  {
+    model,
+    tools,
+    toolChoice,
+    instructions,
+    system,
+    prompt,
+    messages,
+    allowSystemInMessages,
+    maxRetries,
+    streamRetries,
+    abortSignal,
+    timeout,
+    headers,
+    stopWhen = isStepCount(1),
+    experimental_sandbox: sandbox,
+    output,
+    toolApproval,
+    experimental_toolCallers,
+    experimental_toolApprovalSecret,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
+    prepareStep,
+    providerOptions,
+    activeTools,
+    toolOrder,
+    toolCallConcurrency,
+    experimental_repairToolCall,
+    repairToolCall = experimental_repairToolCall,
+    experimental_refineToolInput: refineToolInput,
+    experimental_transform: transform,
+    experimental_download: download,
+    includeRawChunks,
+    onChunk,
+    onError: onErrorArg,
+    onFinish,
+    onEnd = onFinish,
+    onAbort,
+    onStepEnd,
+    onStepFinish,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onLanguageModelCallStart,
+    experimental_onLanguageModelCallStart,
+    onLanguageModelCallEnd,
+    experimental_onLanguageModelCallEnd,
+    onToolExecutionStart,
+    onToolExecutionEnd,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
+    runtimeContext = {} as RUNTIME_CONTEXT,
+    toolsContext = {} as InferToolSetContext<TOOLS>,
+    experimental_include,
+    include = experimental_include,
+    _internal: {
+      now = originalNow,
+      generateId = originalGenerateId,
+      generateCallId = originalGenerateCallId,
+      retention = { replay: true, collectContent: true },
+    } = {},
+    ...settings
+  }: LanguageModelCallOptions &
+    RequestOptions<TOOLS> &
+    Prompt &
+    ToolsContextParameter<TOOLS> & {
+      /**
+       * The language model to use.
+       */
+      model: LanguageModel;
 
-    /**
-     * The tool choice strategy. Default: 'auto'.
-     */
-    toolChoice?: ToolChoice<TOOLS>;
+      /**
+       * The tool choice strategy. Default: 'auto'.
+       */
+      toolChoice?: ToolChoice<TOOLS>;
 
-    /**
-     * Condition for stopping the generation when there are tool results in the last step.
-     * When the condition is an array, any of the conditions can be met to stop the generation.
-     *
-     * @default isStepCount(1)
-     */
-    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+      /**
+       * Condition for stopping the generation when there are tool results in the last step.
+       * When the condition is an array, any of the conditions can be met to stop the generation.
+       *
+       * @default isStepCount(1)
+       */
+      stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
-    /**
-     * Optional telemetry configuration.
-     */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+      /**
+       * Optional telemetry configuration.
+       */
+      telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions<
+        RUNTIME_CONTEXT,
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Additional provider-specific options. They are passed through
-     * to the provider from the AI SDK and enable provider-specific
-     * functionality that can be fully encapsulated in the provider.
-     */
-    providerOptions?: ProviderOptions;
+      /**
+       * Additional provider-specific options. They are passed through
+       * to the provider from the AI SDK and enable provider-specific
+       * functionality that can be fully encapsulated in the provider.
+       */
+      providerOptions?: ProviderOptions;
 
-    /**
-     * The sandbox environment that is passed through to tool execution.
-     */
-    experimental_sandbox?: SandboxSession;
+      /**
+       * The sandbox environment that is passed through to tool execution.
+       */
+      experimental_sandbox?: SandboxSession;
 
-    /**
-     * A steering object created with `experimental_createSteering()`.
-     * Messages sent with it are added to the generation at the next step
-     * boundary.
-     */
-    experimental_steering?: Steering;
+      /**
+       * A steering object created with `experimental_createSteering()`.
+       * Messages sent with it are added to the generation at the next step
+       * boundary.
+       */
+      experimental_steering?: Steering;
 
-    /**
-     * Runtime context. Treat runtime context as immutable.
-     * If you need to mutate runtime context, update it in `prepareStep`.
-     */
-    runtimeContext?: RUNTIME_CONTEXT;
+      /**
+       * Runtime context. Treat runtime context as immutable.
+       * If you need to mutate runtime context, update it in `prepareStep`.
+       */
+      runtimeContext?: RUNTIME_CONTEXT;
 
-    /**
-     * Limits the tools that are available for the model to call without
-     * changing the tool call and result types in the result.
-     */
-    activeTools?: ActiveTools<NoInfer<TOOLS>>;
+      /**
+       * Limits the tools that are available for the model to call without
+       * changing the tool call and result types in the result.
+       */
+      activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
-    /**
-     * Controls the order in which tools are sent to the provider.
-     *
-     * The list can be partial. Tools not listed in `toolOrder` are sent after
-     * the listed tools, sorted alphabetically. This can improve provider-side
-     * caching by keeping tool definitions in a stable order.
-     */
-    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+      /**
+       * Controls the order in which tools are sent to the provider.
+       *
+       * The list can be partial. Tools not listed in `toolOrder` are sent after
+       * the listed tools, sorted alphabetically. This can improve provider-side
+       * caching by keeping tool definitions in a stable order.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
-    /**
-     * Maximum number of tool calls that may execute concurrently within a step.
-     *
-     * Set to `1` to execute tool calls sequentially in the order they were
-     * generated. By default, all tool calls execute concurrently.
-     */
-    toolCallConcurrency?: number;
+      /**
+       * Maximum number of tool calls that may execute concurrently within a step.
+       *
+       * Set to `1` to execute tool calls sequentially in the order they were
+       * generated. By default, all tool calls execute concurrently.
+       */
+      toolCallConcurrency?: number;
 
-    /**
-     * Optional specification for parsing structured outputs from the LLM response.
-     */
-    output?: OUTPUT;
+      /**
+       * Optional specification for parsing structured outputs from the LLM response.
+       */
+      output?: OUTPUT;
 
-    /**
-     * Optional tool approval configuration.
-     *
-     * This configuration takes precedence over tool-defined approval settings.
-     */
-    toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+      /**
+       * Optional tool approval configuration.
+       *
+       * This configuration takes precedence over tool-defined approval settings.
+       */
+      toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
-    /**
-     * Configures which caller tools may invoke each tool.
-     */
-    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+      /**
+       * Configures which caller tools may invoke each tool.
+       */
+      experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
-    /**
-     * Secret for HMAC-signing tool approval requests. When set, the server
-     * signs each approval request at issuance and verifies the signature when
-     * the approval is replayed, preventing client-forged approvals.
-     */
-    experimental_toolApprovalSecret?: string | Uint8Array;
+      /**
+       * Secret for HMAC-signing tool approval requests. When set, the server
+       * signs each approval request at issuance and verifies the signature when
+       * the approval is replayed, preventing client-forged approvals.
+       */
+      experimental_toolApprovalSecret?: string | Uint8Array;
 
-    /**
-     * Optional function that you can use to provide different settings for a step.
-     *
-     * @param options - The options for the step.
-     * @param options.steps - The steps that have been executed so far.
-     * @param options.stepNumber - The number of the step that is being executed.
-     * @param options.model - The model that is being used.
-     *
-     * @returns An object that contains the settings for the step.
-     * If you return undefined (or for undefined settings), the settings from the outer level will be used.
-     */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+      /**
+       * Optional function that you can use to provide different settings for a step.
+       *
+       * @param options - The options for the step.
+       * @param options.steps - The steps that have been executed so far.
+       * @param options.stepNumber - The number of the step that is being executed.
+       * @param options.model - The model that is being used.
+       *
+       * @returns An object that contains the settings for the step.
+       * If you return undefined (or for undefined settings), the settings from the outer level will be used.
+       */
+      prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     */
-    repairToolCall?: ToolCallRepairFunction<TOOLS>;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       */
+      repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     *
-     * @deprecated Use `repairToolCall` instead.
-     */
-    experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       *
+       * @deprecated Use `repairToolCall` instead.
+       */
+      experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
-    /**
-     * Optional mapping of tool names to functions that refine parsed tool inputs.
-     *
-     * The refined input must have the same type shape as the tool input. Refined
-     * inputs are used for tool execution, stream parts, callbacks, and telemetry.
-     */
-    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
+      /**
+       * Optional mapping of tool names to functions that refine parsed tool inputs.
+       *
+       * The refined input must have the same type shape as the tool input. Refined
+       * inputs are used for tool execution, stream parts, callbacks, and telemetry.
+       */
+      experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
-    /**
-     * Optional stream transformations.
-     * They are applied in the order they are provided.
-     * The stream transformations must maintain the stream structure for streamText to work correctly.
-     */
-    experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+      /**
+       * Optional stream transformations.
+       * They are applied in the order they are provided.
+       * The stream transformations must maintain the stream structure for streamText to work correctly.
+       */
+      experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 
-    /**
-     * Custom download function to use for URLs.
-     *
-     * By default, files are downloaded if the model does not support the URL for the given media type.
-     */
-    experimental_download?: DownloadFunction | undefined;
+      /**
+       * Custom download function to use for URLs.
+       *
+       * By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
 
-    /**
-     * Whether to include raw chunks from the provider in the stream.
-     * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
-     * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
-     * Defaults to false.
-     *
-     * @deprecated Use `include.rawChunks` instead.
-     */
-    includeRawChunks?: boolean;
+      /**
+       * Whether to include raw chunks from the provider in the stream.
+       * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+       * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+       * Defaults to false.
+       *
+       * @deprecated Use `include.rawChunks` instead.
+       */
+      includeRawChunks?: boolean;
 
-    /**
-     * Callback that is called for each chunk of the stream.
-     * The stream processing will pause until the callback promise is resolved.
-     */
-    onChunk?: StreamTextOnChunkCallback<TOOLS>;
+      /**
+       * Callback that is called for each chunk of the stream.
+       * The stream processing will pause until the callback promise is resolved.
+       */
+      onChunk?: StreamTextOnChunkCallback<TOOLS>;
 
-    /**
-     * Callback that is invoked when an error occurs during streaming.
-     * You can use it to log errors.
-     * Return `{ retry: true }` to retry the current model step after a provider
-     * error is received from the response stream when `streamRetries` is
-     * explicitly configured.
-     * The stream processing will pause until the callback promise is resolved.
-     */
-    onError?:
-      | StreamTextOnErrorCallback
-      | StreamTextOnErrorRetryCallback
-      | StreamTextOnErrorHandler;
+      /**
+       * Callback that is invoked when an error occurs during streaming.
+       * You can use it to log errors.
+       * Return `{ retry: true }` to retry the current model step after a provider
+       * error is received from the response stream when `streamRetries` is
+       * explicitly configured.
+       * The stream processing will pause until the callback promise is resolved.
+       */
+      onError?:
+        | StreamTextOnErrorCallback
+        | StreamTextOnErrorRetryCallback
+        | StreamTextOnErrorHandler;
 
-    /**
-     * Maximum number of automatic retries for provider errors received after
-     * response streaming has started. Each retry reruns only the current model
-     * step. Completed earlier steps and their tool results are preserved.
-     *
-     * Partial output from a failed attempt that was already emitted cannot be
-     * retracted and remains in consumer-facing streams. It is excluded from
-     * the recovered step result, structured output parsing, response messages,
-     * and subsequent model steps.
-     *
-     * Set to `0` to disable automatic retries while allowing `onError` to
-     * request one retry. When automatic retries are configured, `onError` can
-     * request at most one additional retry after they are exhausted. Omit this
-     * option to disable all stream retry behavior and preserve incremental tool
-     * streaming for existing `onError` observers.
-     *
-     * @default 0 (stream retry behavior disabled when omitted)
-     */
-    streamRetries?: number;
+      /**
+       * Maximum number of automatic retries for provider errors received after
+       * response streaming has started. Each retry reruns only the current model
+       * step. Completed earlier steps and their tool results are preserved.
+       *
+       * Partial output from a failed attempt that was already emitted cannot be
+       * retracted and remains in consumer-facing streams. It is excluded from
+       * the recovered step result, structured output parsing, response messages,
+       * and subsequent model steps.
+       *
+       * Set to `0` to disable automatic retries while allowing `onError` to
+       * request one retry. When automatic retries are configured, `onError` can
+       * request at most one additional retry after they are exhausted. Omit this
+       * option to disable all stream retry behavior and preserve incremental tool
+       * streaming for existing `onError` observers.
+       *
+       * @default 0 (stream retry behavior disabled when omitted)
+       */
+      streamRetries?: number;
 
-    /**
-     * Callback that is called when the LLM response and all request tool executions
-     * (for tools that have an `execute` function) are finished.
-     *
-     * The usage is the combined usage of all steps.
-     */
-    onEnd?: StreamTextOnEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when the LLM response and all request tool executions
+       * (for tools that have an `execute` function) are finished.
+       *
+       * The usage is the combined usage of all steps.
+       */
+      onEnd?: StreamTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called when the LLM response and all request tool executions
-     * (for tools that have an `execute` function) are finished.
-     *
-     * The usage is the combined usage of all steps.
-     *
-     * @deprecated Use `onEnd` instead.
-     */
-    onFinish?: StreamTextOnEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when the LLM response and all request tool executions
+       * (for tools that have an `execute` function) are finished.
+       *
+       * The usage is the combined usage of all steps.
+       *
+       * @deprecated Use `onEnd` instead.
+       */
+      onFinish?: StreamTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    onAbort?: StreamTextOnAbortCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      onAbort?: StreamTextOnAbortCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     */
-    onStepEnd?: GenerateTextOnStepEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       */
+      onStepEnd?: GenerateTextOnStepEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     *
-     * @deprecated Use `onStepEnd` instead.
-     */
-    onStepFinish?: GenerateTextOnStepFinishCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       *
+       * @deprecated Use `onStepEnd` instead.
+       */
+      onStepFinish?: GenerateTextOnStepFinishCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Callback that is called when the streamText operation begins,
-     * before any LLM calls are made.
-     */
-    onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when the streamText operation begins,
+       * before any LLM calls are made.
+       */
+      onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called when the streamText operation begins,
-     * before any LLM calls are made.
-     *
-     * @deprecated Use `onStart` instead.
-     */
-    experimental_onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when the streamText operation begins,
+       * before any LLM calls are made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
+      experimental_onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     */
-    onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       */
+      onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     *
-     * @deprecated Use `onStepStart` instead.
-     */
-    experimental_onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
+      experimental_onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     */
-    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       */
+      onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     *
-     * @deprecated Use `onLanguageModelCallStart` instead.
-     */
-    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       *
+       * @deprecated Use `onLanguageModelCallStart` instead.
+       */
+      experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     */
-    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       */
+      onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     *
-     * @deprecated Use `onLanguageModelCallEnd` instead.
-     */
-    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
-      NoInfer<TOOLS>
-    >;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       *
+       * @deprecated Use `onLanguageModelCallEnd` instead.
+       */
+      experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     */
-    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       */
+      onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     *
-     * @deprecated Use `onToolExecutionStart` instead.
-     */
-    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       *
+       * @deprecated Use `onToolExecutionStart` instead.
+       */
+      experimental_onToolCallStart?: OnToolExecutionStartCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     */
-    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       */
+      onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     *
-     * @deprecated Use `onToolExecutionEnd` instead.
-     */
-    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       *
+       * @deprecated Use `onToolExecutionEnd` instead.
+       */
+      experimental_onToolCallFinish?: OnToolExecutionEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     * Disabling inclusion can help reduce memory usage when processing
-     * large payloads like images.
-     *
-     * By default, request bodies and request messages are excluded.
-     */
-    include?: StreamTextInclude;
+      /**
+       * Settings for controlling what data is included in step results.
+       * Disabling inclusion can help reduce memory usage when processing
+       * large payloads like images.
+       *
+       * By default, request bodies and request messages are excluded.
+       */
+      include?: StreamTextInclude;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     *
-     * @deprecated Use `include` instead.
-     */
-    experimental_include?: StreamTextInclude;
+      /**
+       * Settings for controlling what data is included in step results.
+       *
+       * @deprecated Use `include` instead.
+       */
+      experimental_include?: StreamTextInclude;
 
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      now?: () => number;
-      generateId?: IdGenerator;
-      generateCallId?: IdGenerator;
-      /** Internal policy used by the streaming-only facade. */
-      retention?: StreamTextRetention;
-    };
-  }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        now?: () => number;
+        generateId?: IdGenerator;
+        generateCallId?: IdGenerator;
+        /** Internal policy used by the streaming-only facade. */
+        retention?: StreamTextRetention;
+      };
+    },
+  steeringRun: SteeringRun | undefined,
+): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const resolvedToolCallConcurrency =
     prepareToolCallConcurrency(toolCallConcurrency);
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -931,7 +962,7 @@ function streamTextInternal<
     messages,
     allowSystemInMessages,
     experimental_sandbox: sandbox,
-    steering,
+    steeringRun,
     tools,
     toolsContext,
     runtimeContext,
@@ -1332,7 +1363,7 @@ class DefaultStreamTextResult<
     messages,
     allowSystemInMessages,
     experimental_sandbox: sandbox,
-    steering,
+    steeringRun,
     tools,
     toolChoice,
     transforms,
@@ -1391,7 +1422,7 @@ class DefaultStreamTextResult<
     messages: Prompt['messages'];
     allowSystemInMessages: Prompt['allowSystemInMessages'];
     experimental_sandbox: SandboxSession | undefined;
-    steering: Steering | undefined;
+    steeringRun: SteeringRun | undefined;
     tools: TOOLS | undefined;
     toolChoice: ToolChoice<TOOLS> | undefined;
     transforms: Array<StreamTextTransform<TOOLS>>;
@@ -1497,7 +1528,6 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
-    const steeringRun = startSteeringRun(steering);
     let currentStepSteeringMessages: Array<UserModelMessage> = [];
     let isAborted = false;
     let currentStepModel = model;

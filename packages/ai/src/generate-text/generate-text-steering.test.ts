@@ -564,6 +564,28 @@ describe('generateText experimental_steering', () => {
     });
   });
 
+  it('should not deliver messages when the prompt is invalid', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    await expect(
+      generateText({
+        model: createModel([() => textResponse('unused')]),
+        messages: [],
+        experimental_steering: steering,
+      }),
+    ).rejects.toThrow();
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'error',
+    });
+    expect(await steering.steer('after the failure')).toMatchObject({
+      type: 'not-delivered',
+      reason: 'finished',
+    });
+  });
+
   it('should throw when the steering object is used by two runs at once', async () => {
     const steering = createSteering();
     const model = createModel([

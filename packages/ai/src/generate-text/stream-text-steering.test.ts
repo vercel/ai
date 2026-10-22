@@ -507,6 +507,89 @@ describe('streamText experimental_steering', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
+  it('should not deliver messages when the arguments are invalid', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    expect(() =>
+      streamText({
+        model: createModel([() => textStream('unused')]),
+        prompt: 'hello',
+        maxRetries: -1,
+        experimental_steering: steering,
+      }),
+    ).toThrow();
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'error',
+    });
+  });
+
+  it('should not deliver messages when the prompt is invalid', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const result = streamText({
+      model: createModel([() => textStream('unused')]),
+      messages: [],
+      onError: () => {},
+      experimental_steering: steering,
+    });
+
+    await result.consumeStream({ onError: () => {} });
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'error',
+    });
+  });
+
+  it('should keep a stream that is started from the finish chunk of a previous stream', async () => {
+    const steering = createSteering();
+    const secondModel = createModel([
+      () => textStream('second answer'),
+      () => textStream('corrected'),
+    ]);
+    const preparing = Promise.withResolvers<void>();
+    const resume = Promise.withResolvers<void>();
+    let second: ReturnType<typeof streamText> | undefined;
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const first = streamText({
+      model: createModel([() => textStream('first answer')]),
+      prompt: 'first',
+      experimental_steering: steering,
+      onChunk: async ({ chunk }) => {
+        if (chunk.type !== 'finish') {
+          return;
+        }
+
+        second = streamText({
+          model: secondModel,
+          prompt: 'second',
+          stopWhen: isStepCount(5),
+          experimental_steering: steering,
+          prepareStep: async ({ stepNumber }) => {
+            if (stepNumber === 0) {
+              outcome = steering.steer('correction');
+              preparing.resolve();
+              await resume.promise;
+            }
+            return undefined;
+          },
+        });
+        await preparing.promise;
+      },
+    });
+
+    await first.consumeStream();
+    resume.resolve();
+
+    expect(await second!.text).toBe('corrected');
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+  });
+
   it('should throw when the steering object is used by two streams at once', async () => {
     const steering = createSteering();
     const model = createModel([
