@@ -1,5 +1,4 @@
 import {
-  convertUint8ArrayToBase64,
   getRuntimeEnvironmentUserAgent,
   withUserAgentSuffix,
   type FetchFunction,
@@ -19,7 +18,6 @@ import {
   type WebFetchDefuddleOptions,
 } from './html-to-markdown';
 import { isUrlInUserMessages } from './is-url-in-user-messages';
-import { pdfToText } from './pdf-to-text';
 import { VERSION } from './version';
 
 type WebFetchInput = z.infer<typeof inputSchema>;
@@ -63,13 +61,6 @@ const outputSchema = z.discriminatedUnion('type', [
     nextOffset: z.number().optional(),
   }),
   z.object({
-    type: z.literal('file'),
-    url: z.string(),
-    finalUrl: z.string(),
-    mediaType: z.string(),
-    data: z.string(),
-  }),
-  z.object({
     type: z.literal('error'),
     url: z.string(),
     errorCode: z.enum([
@@ -98,7 +89,7 @@ const DOCUMENT_CACHE_SIZE = 16;
 
 const ACCEPT_HEADER =
   'text/markdown, text/html;q=0.9, application/xhtml+xml;q=0.9, ' +
-  'text/plain;q=0.8, application/json;q=0.8, application/pdf;q=0.7, */*;q=0.1';
+  'text/plain;q=0.8, application/json;q=0.8, */*;q=0.1';
 
 function createDocumentCache() {
   const entries = new Map<
@@ -254,8 +245,8 @@ function validatePositiveInteger({
  * Create a provider-independent web fetch tool.
  *
  * The model calls the tool with a URL. HTML pages are converted to markdown
- * with the main content extracted, PDFs are converted to text or returned as
- * files, and text formats are returned as is. JavaScript is not executed.
+ * with the main content extracted, and text formats are returned as is.
+ * JavaScript is not executed.
  * Failures are returned as results so the model can recover.
  *
  * Requests are GET only, without cookies or credentials. Every hop, including
@@ -274,9 +265,6 @@ function validatePositiveInteger({
  * @param maxBytes - Maximum response size in bytes. Defaults to 10 MiB.
  * @param timeout - Timeout in milliseconds for fetching each URL, including
  * redirects. Defaults to 30,000.
- * @param pdf - Whether PDFs are converted to `'text'` (works with every model)
- * or returned as `'file'` parts for models that support PDF tool results.
- * Defaults to `'text'`.
  * @param fetch - Custom fetch implementation. It must validate resolved
  * addresses at connect time, like the default Node.js transport.
  * @param defuddleOptions - Options for the defuddle content extractor used for
@@ -289,7 +277,6 @@ export function createWebFetchTool({
   maxLength = 50_000,
   maxBytes = 10 * 1024 * 1024,
   timeout = 30_000,
-  pdf = 'text',
   fetch,
   defuddleOptions,
 }: {
@@ -299,7 +286,6 @@ export function createWebFetchTool({
   maxLength?: number;
   maxBytes?: number;
   timeout?: number;
-  pdf?: 'text' | 'file';
   fetch?: FetchFunction;
   defuddleOptions?: WebFetchDefuddleOptions;
 } = {}): Tool<WebFetchInput, WebFetchOutput, {}> & {
@@ -321,14 +307,6 @@ export function createWebFetchTool({
     // AbortSignal.timeout overflows above 2^31 - 1 ms and fires immediately.
     max: 2_147_483_647,
   });
-
-  if (pdf !== 'text' && pdf !== 'file') {
-    throw new InvalidArgumentError({
-      parameter: 'pdf',
-      value: pdf,
-      message: "Must be 'text' or 'file'.",
-    });
-  }
 
   const normalizedAllowedDomains =
     allowedDomains === undefined
@@ -361,9 +339,7 @@ export function createWebFetchTool({
 
   const description = [
     'Fetch a web page or document by URL and return its content.',
-    pdf === 'file'
-      ? 'HTML is converted to markdown and PDFs are returned as files.'
-      : 'HTML is converted to markdown and PDFs to text.',
+    'HTML is converted to markdown.',
     'JavaScript is not executed, so pages that render in the browser may return little content.',
     ...(normalizedAllowedDomains !== undefined
       ? [
@@ -455,26 +431,14 @@ export function createWebFetchTool({
       if (kind === 'unsupported') {
         return error(
           'unsupported_content_type',
-          `Content type ${mediaType ?? 'unknown'} is not supported. Supported content types are HTML, PDF, and text formats such as markdown, plain text, JSON, and XML.`,
+          `Content type ${mediaType ?? 'unknown'} is not supported. Supported content types are HTML and text formats such as markdown, plain text, JSON, and XML.`,
         );
-      }
-
-      if (kind === 'pdf' && pdf === 'file') {
-        return {
-          type: 'file',
-          url,
-          finalUrl,
-          mediaType: 'application/pdf',
-          data: convertUint8ArrayToBase64(body),
-        };
       }
 
       let title: string | undefined;
       let content: string;
       try {
-        if (kind === 'pdf') {
-          ({ title, content } = await pdfToText(body));
-        } else if (kind === 'html') {
+        if (kind === 'html') {
           ({ title, content } = await htmlToMarkdown({
             html: decodeText({
               body,
@@ -501,12 +465,9 @@ export function createWebFetchTool({
         finalUrl,
         // Report the sniffed type when the server sent none or a generic one.
         contentType:
-          kind === 'pdf'
-            ? 'application/pdf'
-            : mediaType === undefined ||
-                mediaType === 'application/octet-stream'
-              ? 'text/html'
-              : mediaType,
+          mediaType === undefined || mediaType === 'application/octet-stream'
+            ? 'text/html'
+            : mediaType,
         ...(title !== undefined ? { title } : {}),
         content,
       };
@@ -521,21 +482,6 @@ export function createWebFetchTool({
       switch (output.type) {
         case 'document':
           return { type: 'text', value: formatDocument(output) };
-        case 'file':
-          return {
-            type: 'content',
-            value: [
-              {
-                type: 'text',
-                text: `URL: ${output.finalUrl}\nContent-Type: ${output.mediaType}`,
-              },
-              {
-                type: 'file',
-                mediaType: output.mediaType,
-                data: { type: 'data', data: output.data },
-              },
-            ],
-          };
         case 'error':
           return { type: 'error-text', value: output.message };
       }

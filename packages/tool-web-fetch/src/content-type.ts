@@ -1,4 +1,4 @@
-export type ContentKind = 'html' | 'text' | 'pdf' | 'unsupported';
+export type ContentKind = 'html' | 'text' | 'unsupported';
 
 const TEXT_MEDIA_TYPES = new Set([
   'application/ecmascript',
@@ -43,20 +43,11 @@ export function classifyContent({
 }): ContentKind {
   // Without a specific type, sniff the content.
   if (mediaType === undefined || mediaType === 'application/octet-stream') {
-    // %PDF-
-    if (startsWithBytes(body, [0x25, 0x50, 0x44, 0x46, 0x2d])) {
-      return 'pdf';
-    }
-
     return looksLikeHtml(body) ? 'html' : 'unsupported';
   }
 
   if (mediaType === 'text/html' || mediaType === 'application/xhtml+xml') {
     return 'html';
-  }
-
-  if (mediaType === 'application/pdf') {
-    return 'pdf';
   }
 
   if (

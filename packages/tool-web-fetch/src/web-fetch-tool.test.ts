@@ -63,31 +63,6 @@ async function toModelOutput(webFetch: WebFetchTool, output: WebFetchOutput) {
   });
 }
 
-// Minimal single-page PDF containing the text "Hello PDF".
-const minimalPdf = (() => {
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-    '<< /Length 41 >>\nstream\nBT /F1 12 Tf 20 100 Td (Hello PDF) Tj ET\nendstream',
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    '<< /Title (Test PDF) >>',
-  ];
-  let pdf = '%PDF-1.4\n';
-  const offsets: number[] = [];
-  objects.forEach((object, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  });
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (const offset of offsets) {
-    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
-  }
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-  return new TextEncoder().encode(pdf);
-})();
-
 describe('createWebFetchTool', () => {
   describe('options', () => {
     it('rejects combining allowed and blocked domains', () => {
@@ -117,7 +92,6 @@ describe('createWebFetchTool', () => {
       { maxBytes: -1 },
       { timeout: 0 },
       { timeout: 2_147_483_648 },
-      { pdf: 'image' as 'file' },
     ])('rejects invalid option %j', options => {
       expect(() => createWebFetchTool(options)).toThrow(InvalidArgumentError);
     });
@@ -126,14 +100,12 @@ describe('createWebFetchTool', () => {
       const webFetch = createWebFetchTool({
         allowedDomains: ['Example.COM'],
         maxLength: 1000,
-        pdf: 'file',
         requireUrlInUserMessage: true,
       });
 
       expect(webFetch.description).toContain(
         'Only these domains and their subdomains can be fetched: example.com.',
       );
-      expect(webFetch.description).toContain('PDFs are returned as files');
       expect(webFetch.description).toContain(
         'Only URLs that appear in user messages can be fetched.',
       );
@@ -355,98 +327,36 @@ describe('createWebFetchTool', () => {
       );
     });
 
-    it('sniffs HTML and PDF when the content type is missing', async () => {
-      const fetch = createFetch(url =>
-        url.endsWith('.pdf')
-          ? new Response(minimalPdf, {
-              headers: { 'content-type': 'application/octet-stream' },
-            })
-          : new Response(new TextEncoder().encode(articleHtml)),
+    it('sniffs HTML when the content type is missing', async () => {
+      const fetch = createFetch(
+        () => new Response(new TextEncoder().encode(articleHtml)),
       );
       const webFetch = createWebFetchTool({ fetch });
 
       expect(
         await execute(webFetch, { url: 'https://example.com/page' }),
       ).toMatchObject({ type: 'document', contentType: 'text/html' });
-      expect(
-        await execute(webFetch, { url: 'https://example.com/file.pdf' }),
-      ).toMatchObject({ type: 'document', contentType: 'application/pdf' });
     });
 
-    it('rejects unsupported content types', async () => {
-      const fetch = createFetch(
-        () =>
-          new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
-            headers: { 'content-type': 'image/png' },
-          }),
-      );
-      const webFetch = createWebFetchTool({ fetch });
+    it.each(['image/png', 'application/pdf', 'application/octet-stream'])(
+      'rejects unsupported content type %s',
+      async contentType => {
+        const fetch = createFetch(
+          () =>
+            new Response(new TextEncoder().encode('%PDF-1.4'), {
+              headers: { 'content-type': contentType },
+            }),
+        );
+        const webFetch = createWebFetchTool({ fetch });
 
-      expect(
-        await execute(webFetch, { url: 'https://example.com/image.png' }),
-      ).toMatchObject({
-        type: 'error',
-        errorCode: 'unsupported_content_type',
-      });
-    });
-  });
-
-  describe('PDF', () => {
-    it('converts PDFs to text by default', async () => {
-      const fetch = createFetch(
-        () =>
-          new Response(minimalPdf, {
-            headers: { 'content-type': 'application/pdf' },
-          }),
-      );
-      const webFetch = createWebFetchTool({ fetch });
-
-      expect(
-        await execute(webFetch, { url: 'https://example.com/file.pdf' }),
-      ).toMatchObject({
-        type: 'document',
-        contentType: 'application/pdf',
-        title: 'Test PDF',
-        content: 'Hello PDF',
-      });
-    });
-
-    it('returns PDFs as files when configured', async () => {
-      const fetch = createFetch(
-        () =>
-          new Response(minimalPdf, {
-            headers: { 'content-type': 'application/pdf' },
-          }),
-      );
-      const webFetch = createWebFetchTool({ fetch, pdf: 'file' });
-
-      const output = await execute(webFetch, {
-        url: 'https://example.com/file.pdf',
-      });
-
-      expect(output).toMatchObject({
-        type: 'file',
-        mediaType: 'application/pdf',
-        data: Buffer.from(minimalPdf).toString('base64'),
-      });
-      expect(await toModelOutput(webFetch, output)).toEqual({
-        type: 'content',
-        value: [
-          {
-            type: 'text',
-            text: 'URL: https://example.com/file.pdf\nContent-Type: application/pdf',
-          },
-          {
-            type: 'file',
-            mediaType: 'application/pdf',
-            data: {
-              type: 'data',
-              data: Buffer.from(minimalPdf).toString('base64'),
-            },
-          },
-        ],
-      });
-    });
+        expect(
+          await execute(webFetch, { url: 'https://example.com/file' }),
+        ).toMatchObject({
+          type: 'error',
+          errorCode: 'unsupported_content_type',
+        });
+      },
+    );
   });
 
   describe('truncation', () => {

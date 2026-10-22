@@ -5,8 +5,7 @@ A first-party, provider-independent web fetch tool for the [AI SDK](https://ai-s
 The `@ai-sdk/tool-web-fetch` entry point provides a web fetch tool for any model
 supporting function calling. The model calls it with a URL and receives the
 page content: HTML pages are converted to markdown with the main content
-extracted, PDFs are converted to text, and text formats such as markdown, JSON,
-and XML are returned as is.
+extracted, and text formats such as markdown, JSON, and XML are returned as is.
 
 ## Installation
 
@@ -59,17 +58,16 @@ Fetched content is untrusted and can contain prompt injections.
 
 ## Options
 
-| Option                    | Default          | Description                                                                                          |
-| ------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `allowedDomains`          | none             | Only fetch from these domains and their subdomains. Cannot be combined with `blockedDomains`.        |
-| `blockedDomains`          | none             | Never fetch from these domains or their subdomains.                                                  |
-| `requireUrlInUserMessage` | `false`          | Only fetch URLs that appear in user messages.                                                        |
-| `maxLength`               | `50000`          | Maximum characters returned per call.                                                                |
-| `maxBytes`                | 10 MiB           | Maximum response size in bytes.                                                                      |
-| `timeout`                 | `30000`          | Timeout in milliseconds for fetching each URL, including redirects.                                  |
-| `pdf`                     | `'text'`         | Convert PDFs to `'text'`, or return them as `'file'` parts for models that support PDF tool results. |
-| `fetch`                   | DNS-pinned fetch | Custom fetch implementation, e.g. for a proxy. It must validate resolved addresses itself.           |
-| `defuddleOptions`         | none             | Options for the HTML content extractor, e.g. `contentSelector` to choose the main content element.   |
+| Option                    | Default          | Description                                                                                        |
+| ------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| `allowedDomains`          | none             | Only fetch from these domains and their subdomains. Cannot be combined with `blockedDomains`.      |
+| `blockedDomains`          | none             | Never fetch from these domains or their subdomains.                                                |
+| `requireUrlInUserMessage` | `false`          | Only fetch URLs that appear in user messages.                                                      |
+| `maxLength`               | `50000`          | Maximum characters returned per call.                                                              |
+| `maxBytes`                | 10 MiB           | Maximum response size in bytes.                                                                    |
+| `timeout`                 | `30000`          | Timeout in milliseconds for fetching each URL, including redirects.                                |
+| `fetch`                   | DNS-pinned fetch | Custom fetch implementation, e.g. for a proxy. It must validate resolved addresses itself.         |
+| `defuddleOptions`         | none             | Options for the HTML content extractor, e.g. `contentSelector` to choose the main content element. |
 
 See the [Web Fetch Tool documentation](https://ai-sdk.dev/docs/ai-sdk-core/tools#web-fetch-tool)
 for details.

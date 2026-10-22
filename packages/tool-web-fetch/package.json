@@ -37,7 +37,6 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "defuddle": "0.19.5",
     "linkedom": "^0.18.13",
-    "unpdf": "^1.9.0",
     "zod": "3.25.76"
   },
   "peerDependencies": {

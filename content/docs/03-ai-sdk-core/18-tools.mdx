@@ -249,13 +249,6 @@ const result = await generateText({
         'Timeout in milliseconds for fetching each URL, including redirects. Defaults to `30000`.',
     },
     {
-      name: 'pdf',
-      type: "'text' | 'file'",
-      isOptional: true,
-      description:
-        "Convert PDFs to text, or return them as file parts. Defaults to `'text'`.",
-    },
-    {
       name: 'fetch',
       type: 'FetchFunction',
       isOptional: true,
@@ -276,9 +269,7 @@ The model calls the tool with `{ url: string, offset?: number }` and receives
 one of the following results:
 
 - `{ type: 'document', url, finalUrl, contentType, title?, content, offset, totalLength, nextOffset? }`
-  for HTML, text, and PDFs converted to text.
-- `{ type: 'file', url, finalUrl, mediaType, data }` for PDFs when `pdf` is set
-  to `'file'`. `data` is base64-encoded.
+  for HTML and text.
 - `{ type: 'error', url, errorCode, message, statusCode? }` when fetching fails.
 
 Errors are returned so the model can recover, for example by trying another URL.
@@ -293,8 +284,8 @@ Requests prefer markdown using the `Accept: text/markdown` header, which many
 documentation sites support. Otherwise, HTML pages are converted to markdown
 with [defuddle](https://github.com/kepano/defuddle), which removes navigation,
 footers, and other boilerplate. Text formats such as plain text, JSON, XML, and
-CSV are returned as is. Images, audio, video, and other binary formats are not
-supported.
+CSV are returned as is. PDFs, images, audio, video, and other binary formats
+are not supported.
 
 JavaScript is not executed. Pages that render their content in the browser may
 return little or no content, in which case the model is told that the page may
@@ -314,22 +305,6 @@ Content longer than `maxLength` is truncated. The model is told to call the tool
 again with `offset` to continue reading. Converted documents are cached for a
 few minutes per tool instance, so reading at an offset does not fetch the page
 again.
-
-### PDFs
-
-By default, PDFs are converted to text, which works with every model. Models
-that support PDF tool results (for example Anthropic, OpenAI Responses, and
-Google Gemini 3 models) can receive the PDF itself, including its layout and
-images:
-
-```ts
-const webFetch = createWebFetchTool({ pdf: 'file' });
-```
-
-<Note type="warning">
-  Only use `pdf: 'file'` with providers that support file parts in tool results.
-  Other providers may send the base64-encoded PDF to the model as text.
-</Note>
 
 ### Security
 
