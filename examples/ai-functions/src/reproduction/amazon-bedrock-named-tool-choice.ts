@@ -1,6 +1,6 @@
 // Deterministic public-API reproduction; no live provider calls.
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
@@ -76,7 +76,7 @@ run(async () => {
       stepNumber === 1
         ? { toolChoice: { type: 'tool', toolName: 'getWeatherForecast' } }
         : undefined,
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     maxRetries: 0,
     prompt: 'What is the weather in San Francisco this week?',
   });
