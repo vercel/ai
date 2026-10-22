@@ -1,7 +1,9 @@
 import {
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamTextPart,
   type JSONObject,
+  type SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
   convertAsyncIteratorToReadableStream,
@@ -11,6 +13,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
+import { StreamProviderError } from '../error/stream-provider-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechModel } from '../model/resolve-model';
 import type { SpeechModel } from '../types/speech-model';
@@ -23,6 +26,7 @@ import { isStreamingSpeechModel } from './is-streaming-speech-model';
 import type {
   SpeechStreamPart,
   SpeechStreamUsage,
+  SpeechTextPart,
   StreamSpeechResult,
 } from './stream-speech-result';
 
@@ -31,9 +35,10 @@ import type {
  *
  * @param model - The speech model to use. It must support streaming speech.
  * @param text - The text to convert to speech: a complete string, or a stream of text deltas
- * (e.g. the text stream of `streamText`) that is synthesized as it arrives.
+ * (e.g. the text stream of `streamText`) or text parts that is synthesized as it arrives.
+ * A text part can set its own `voice` on providers that support several voices per stream.
  * @param voice - The voice to use for speech generation.
- * @param outputFormat - The output format to use for speech generation. Supported values are provider-specific.
+ * @param outputFormat - The format of the output audio chunks, e.g. `{ type: 'audio/pcm', rate: 24000 }`.
  * @param instructions - Instructions for the speech generation e.g. "Speak in a slow and steady tone".
  * @param speed - The speed of the speech generation.
  * @param language - The language for speech generation (ISO 639-1 code e.g. "en", "es", "fr") or "auto" for automatic detection.
@@ -41,6 +46,7 @@ import type {
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP/WebSocket headers to send when supported by the provider.
  * @param includeRawChunks - When true, raw provider chunks are included in `fullStream`.
+ * @param onError - Called for each provider error part; defaults to `console.error`.
  *
  * @returns A result object with the audio stream and the final usage and metadata.
  */
@@ -56,6 +62,9 @@ export function streamSpeech({
   abortSignal,
   headers,
   includeRawChunks,
+  onError = ({ error }) => {
+    console.error(error);
+  },
   _internal: { currentDate = () => new Date() } = {},
 }: {
   /**
@@ -64,10 +73,13 @@ export function streamSpeech({
   model: SpeechModel;
 
   /**
-   * The text to convert to speech, either as a complete string or as a
-   * stream of text deltas.
+   * The text to convert to speech: a complete string, or a stream of text
+   * deltas and/or text parts.
    */
-  text: string | AsyncIterable<string> | ReadableStream<string>;
+  text:
+    | string
+    | AsyncIterable<string | SpeechTextPart>
+    | ReadableStream<string | SpeechTextPart>;
 
   /**
    * The voice to use for speech generation.
@@ -75,10 +87,11 @@ export function streamSpeech({
   voice?: string;
 
   /**
-   * The desired output format for the audio. Supported values are
-   * provider-specific.
+   * The desired format of the output audio chunks, e.g.
+   * `{ type: 'audio/pcm', rate: 24000 }` or `{ type: 'audio/mpeg' }`.
+   * Supported formats are provider-specific.
    */
-  outputFormat?: 'mp3' | 'wav' | (string & {});
+  outputFormat?: SharedV4AudioFormat;
 
   /**
    * Instructions for the speech generation e.g. "Speak in a slow and steady tone".
@@ -115,6 +128,13 @@ export function streamSpeech({
    * When true, providers should include raw provider chunks in the stream.
    */
   includeRawChunks?: boolean;
+
+  /**
+   * Called for each error part the provider reports. Error parts are not
+   * fatal: `fullStream` includes them and `audioStream` skips them.
+   * Defaults to logging the error with `console.error`.
+   */
+  onError?: (event: { error: unknown }) => void | PromiseLike<void>;
 
   /**
    * Internal test hooks.
@@ -189,8 +209,21 @@ export function streamSpeech({
   const pipeAbortController = new AbortController();
   let hasAudio = false;
   let finished = false;
-  // Kept so a no-audio failure reports the provider error that caused it.
+  // Kept so a failed stream reports the provider error that caused it.
   let lastError: unknown;
+
+  // A stream that ends without a finish part: when nothing was heard it is a
+  // no-speech failure; after audio it surfaces the provider's error instead.
+  const incompleteStreamError = () =>
+    hasAudio
+      ? (lastError ??
+        new StreamProviderError({
+          message: 'The speech stream ended before it finished.',
+        }))
+      : new NoSpeechGeneratedError({
+          responses: [currentResponseMetadata()],
+          cause: lastError,
+        });
 
   // `Transformer.cancel` is supported at runtime but missing from the
   // ambient `Transformer` type, so widen it here.
@@ -245,6 +278,9 @@ export function streamSpeech({
 
         case 'error': {
           lastError = value.error;
+          void Promise.resolve()
+            .then(() => onError({ error: value.error }))
+            .catch(() => {});
           controller.enqueue(value);
           break;
         }
@@ -272,10 +308,7 @@ export function streamSpeech({
 
     flush() {
       if (!finished) {
-        throw new NoSpeechGeneratedError({
-          responses: [currentResponseMetadata()],
-          cause: lastError,
-        });
+        throw incompleteStreamError();
       }
     },
 
@@ -414,13 +447,10 @@ function createAudioByteStream(
           controller.close();
           return;
         }
+        // Error parts are non-fatal (reported via `onError`), as for the
+        // text stream of `streamText`; only stream failures end the audio.
         if (value.type === 'audio' && value.audio.length > 0) {
           controller.enqueue(value.audio);
-          return;
-        }
-        if (value.type === 'error') {
-          controller.error(value.error);
-          await reader.cancel(value.error).catch(() => {});
           return;
         }
       }
@@ -438,18 +468,47 @@ function createAudioByteStream(
 }
 
 function toTextStream(
-  text: string | AsyncIterable<string> | ReadableStream<string>,
-): ReadableStream<string> {
+  text:
+    | string
+    | AsyncIterable<string | SpeechTextPart>
+    | ReadableStream<string | SpeechTextPart>,
+): ReadableStream<Experimental_SpeechModelV4StreamTextPart> {
   if (typeof text === 'string') {
-    return new ReadableStream<string>({
+    return new ReadableStream<Experimental_SpeechModelV4StreamTextPart>({
       start(controller) {
-        controller.enqueue(text);
+        controller.enqueue({ type: 'text', text });
         controller.close();
       },
     });
   }
-  if (text instanceof ReadableStream) {
-    return text;
+  const source =
+    text instanceof ReadableStream
+      ? text
+      : convertAsyncIteratorToReadableStream(text[Symbol.asyncIterator]());
+  return source.pipeThrough(
+    new TransformStream<
+      string | SpeechTextPart,
+      Experimental_SpeechModelV4StreamTextPart
+    >({
+      transform(value, controller) {
+        controller.enqueue(toTextPart(value));
+      },
+    }),
+  );
+}
+
+function toTextPart(
+  value: string | SpeechTextPart,
+): Experimental_SpeechModelV4StreamTextPart {
+  if (typeof value === 'string') {
+    return { type: 'text', text: value };
   }
-  return convertAsyncIteratorToReadableStream(text[Symbol.asyncIterator]());
+  return {
+    type: 'text',
+    text: value.text,
+    ...(value.voice != null && { voice: value.voice }),
+    ...(value.providerOptions != null && {
+      providerOptions: value.providerOptions,
+    }),
+  };
 }

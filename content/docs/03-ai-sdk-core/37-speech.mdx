@@ -69,7 +69,7 @@ const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
   text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
   voice: '21m00Tcm4TlvDq8ikWAM',
-  outputFormat: 'mp3_44100_128',
+  outputFormat: { type: 'audio/mpeg' },
 });
 
 for await (const chunk of result.audioStream) {
@@ -82,6 +82,15 @@ console.log(await result.usage); // e.g. { inputCharacters: 512 }
 `text` accepts a complete string or a stream of text deltas. Providers with an
 incremental text transport synthesize deltas as they arrive; others read the
 text stream to completion first. The end of the text stream ends the input.
+
+The stream can also contain text parts, `{ type: 'text', text, voice?, providerOptions? }`,
+to give parts of the text their own voice (for example for dialogue) on providers
+that support several voices per stream. Single-voice providers reject a part whose
+`voice` differs from the call's `voice`.
+
+`error` parts from the provider are not fatal: `fullStream` includes them,
+`audioStream` skips them, and both are reported through `onError` (which defaults
+to `console.error`).
 
 Use `fullStream` instead of `audioStream` when you need per-chunk metadata:
 each `audio` part carries the chunk `audioFormat` (e.g.

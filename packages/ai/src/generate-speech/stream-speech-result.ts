@@ -4,9 +4,31 @@ import type {
   SharedV4AudioFormat,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
+import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import type { Warning } from '../types/warning';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
+
+/**
+ * A piece of text to synthesize. Pass a stream of these (or mix them with
+ * plain strings) to give parts their own voice, e.g. for dialogue.
+ */
+export type SpeechTextPart = {
+  type: 'text';
+  text: string;
+
+  /**
+   * The voice that speaks this part (provider-specific, like the call's
+   * `voice`). Single-voice providers reject a voice that differs from the
+   * call's voice.
+   */
+  voice?: string;
+
+  /**
+   * Additional provider-specific options for this part.
+   */
+  providerOptions?: ProviderOptions;
+};
 
 export type SpeechStreamPart =
   | {

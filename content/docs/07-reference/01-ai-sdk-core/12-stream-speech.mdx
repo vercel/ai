@@ -47,9 +47,9 @@ for await (const chunk of result.audioStream) {
     },
     {
       name: 'text',
-      type: 'string | AsyncIterable<string> | ReadableStream<string>',
+      type: 'string | AsyncIterable<string | SpeechTextPart> | ReadableStream<string | SpeechTextPart>',
       description:
-        'The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`). The end of the stream ends the input.',
+        "The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers reject a voice that differs from the call's `voice`. The end of the stream ends the input.",
     },
     {
       name: 'voice',
@@ -59,10 +59,10 @@ for await (const chunk of result.audioStream) {
     },
     {
       name: 'outputFormat',
-      type: 'string',
+      type: 'SharedV4AudioFormat',
       isOptional: true,
       description:
-        'The output audio format. Supported values are provider-specific.',
+        "The format of the output audio chunks, e.g. `{ type: 'audio/pcm', rate: 24000 }` or `{ type: 'audio/mpeg' }`. Supported formats are provider-specific.",
     },
     {
       name: 'instructions',
@@ -109,6 +109,13 @@ for await (const chunk of result.audioStream) {
       description:
         'When true, the provider includes raw provider chunks in `fullStream` as `raw` parts.',
     },
+    {
+      name: 'onError',
+      type: '(event: { error: unknown }) => void | PromiseLike<void>',
+      isOptional: true,
+      description:
+        'Called for each `error` part the provider reports. Defaults to `console.error`.',
+    },
   ]}
 />
 
@@ -120,17 +127,17 @@ for await (const chunk of result.audioStream) {
       name: 'audioStream',
       type: 'AsyncIterableStream<Uint8Array>',
       description:
-        'Audio bytes in generation order. Shares one live stream with `fullStream`: only one of them can be accessed, once, before any result promise. Errors when the provider streams an `error` part.',
+        'Audio bytes in generation order. Shares one live stream with `fullStream`: only one of them can be accessed, once, before any result promise. `error` parts are skipped (they are reported via `onError`); the stream errors only when the speech stream itself fails.',
     },
     {
       name: 'fullStream',
       type: 'AsyncIterableStream<SpeechStreamPart>',
       description:
-        'A single-consumer live stream of `audio` (with `audio: Uint8Array` and `audioFormat`), `raw`, and `error` parts.',
+        'A single-consumer live stream of `audio` (with `audio: Uint8Array` and `audioFormat`), `raw`, and `error` parts. Error parts are not fatal; the stream continues after them.',
     },
     {
       name: 'usage',
-      type: 'Promise<{ inputCharacters?: number; inputTokens?: number; outputTokens?: number }>',
+      type: 'Promise<{ inputCharacters?: number; inputTokens?: number; outputTokens?: number; raw?: JSONObject }>',
       description: 'Usage information for the call, if known.',
     },
     {
@@ -154,6 +161,6 @@ for await (const chunk of result.audioStream) {
 
 <Note>
   The result promises settle as the stream is consumed. If you stop consuming
-  the stream early, pending result promises reject immediately and the
-  provider is signalled to close its connection.
+  the stream early, pending result promises reject immediately and the provider
+  is signalled to close its connection.
 </Note>
