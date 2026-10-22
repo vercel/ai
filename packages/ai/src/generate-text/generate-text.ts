@@ -1177,6 +1177,7 @@ export async function generateText<
                   : undefined;
 
               if (
+                currentModelResponse.finishReason.unified !== 'interrupted' &&
                 enforcedToolChoice != null &&
                 !stepToolCalls.some(
                   toolCall =>
@@ -1531,6 +1532,7 @@ export async function generateText<
           }
         }
       } while (
+        steps[steps.length - 1].finishReason !== 'interrupted' &&
         // Continue only after all client tool calls have been executed or denied,
         // and if there are client results or pending deferred provider results.
         clientToolOutputs.length + deniedToolApprovalResponses.length ===

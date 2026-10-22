@@ -47,10 +47,6 @@ type FakeExtensionsResult = {
   readonly extensions: unknown[];
   readonly runtime: object;
 };
-type FakeSkillsResult = {
-  readonly skills: Skill[];
-  readonly diagnostics: [];
-};
 type ResourceLoaderOptions = {
   readonly appendSystemPromptOverride?: (base: string[]) => string[];
   readonly extensionFactories?: Array<ExtensionFactory>;
@@ -64,6 +60,8 @@ type ResourceLoaderOptions = {
   readonly noThemes?: boolean;
   readonly skillsOverride?: (base: FakeSkillsResult) => FakeSkillsResult;
 };
+
+type FakeSkillsResult = { skills: Skill[]; diagnostics: unknown[] };
 
 const piMock = vi.hoisted(() => {
   const extensionHandlers = new Map<
@@ -148,6 +146,11 @@ vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
 
       getExtensions() {
         return this.extensionsResult;
+      }
+
+      getSkills() {
+        const base = { skills: [], diagnostics: [] };
+        return this.options.skillsOverride?.(base) ?? base;
       }
     },
     defineTool: vi.fn(tool => tool),
@@ -1100,6 +1103,173 @@ describe('createPiSession', () => {
       await runTurn([]);
       expect(sandboxSession.run).not.toHaveBeenCalled();
       expect(sandboxSession.readTextFile).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('expands a skill command from the sandbox before prompting', async () => {
+    const prompt = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-skill-command-prompt',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: '/skill:demo-skill do it',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(sandboxSession.readTextFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/sandbox/home/.agents/skills/demo-skill/SKILL.md',
+        }),
+      );
+      expect(prompt).toHaveBeenCalledExactlyOnceWith(
+        '<skill name="demo-skill" location="/sandbox/home/.agents/skills/demo-skill/SKILL.md">\nReferences are relative to /sandbox/home/.agents/skills/demo-skill.\n\nSkill instructions content\n</skill>\n\ndo it',
+        { images: [] },
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('does not prompt when the turn is aborted during the skill read', async () => {
+    const prompt = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt,
+      steer: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const sandboxSession = createSandboxSession();
+    const readSkillStarted = createDeferred<void>();
+    const readSkillResult = createDeferred<string>();
+    const readTextFile = vi.mocked(sandboxSession.readTextFile);
+    const readTextFileDefault = readTextFile.getMockImplementation()!;
+    readTextFile.mockImplementation(async options => {
+      if (options.path.endsWith('/demo-skill/SKILL.md')) {
+        readSkillStarted.resolve();
+        return readSkillResult.promise;
+      }
+      return readTextFileDefault(options);
+    });
+    const session = await createPiSession({
+      sessionId: 'session-skill-command-abort',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const abortController = new AbortController();
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: '/skill:demo-skill do it',
+        tools: [],
+        emit: vi.fn(),
+        abortSignal: abortController.signal,
+      });
+      await readSkillStarted.promise;
+      abortController.abort();
+      readSkillResult.resolve('Skill instructions content');
+      await control.done;
+
+      expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('expands a skill command from the sandbox before steering', async () => {
+    let finishPrompt!: () => void;
+    const promptDone = new Promise<void>(resolve => {
+      finishPrompt = resolve;
+    });
+    const steer = vi.fn(async () => {});
+    piMock.session = {
+      abort: vi.fn(async () => {}),
+      compact: vi.fn(async () => {}),
+      dispose: vi.fn(),
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => promptDone),
+      steer,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+    const session = await createPiSession({
+      sessionId: 'session-skill-command-steer',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'demo-skill',
+            description: 'Demo skill description',
+            content: 'Skill instructions content',
+          },
+        ],
+        prompt: 'Weather in Paris?',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.submitUserMessage?.('/skill:demo-skill');
+      await control.submitUserMessage?.('/skill:missing');
+
+      expect(steer.mock.calls).toEqual([
+        [
+          '<skill name="demo-skill" location="/sandbox/home/.agents/skills/demo-skill/SKILL.md">\nReferences are relative to /sandbox/home/.agents/skills/demo-skill.\n\nSkill instructions content\n</skill>',
+        ],
+        ['/skill:missing'],
+      ]);
+      finishPrompt();
+      await control.done;
     } finally {
       await session.doDestroy();
     }

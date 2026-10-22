@@ -309,8 +309,9 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     });
 
     // Track state across chunks
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: z.infer<ReturnType<typeof alibabaUsageSchema>> | undefined =
@@ -343,6 +344,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
 
             // Handle parse errors
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }

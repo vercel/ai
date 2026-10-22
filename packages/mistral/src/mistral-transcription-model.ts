@@ -73,9 +73,14 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       schema: mistralTranscriptionModelOptions,
     });
 
-    // Mistral documents these options as mutually incompatible. Rejecting the
-    // combination locally provides a stable SDK error instead of an API 4xx.
+    // Restrict only known legacy models so future and custom models can combine
+    // a pinned language with timestamps without an SDK update.
     if (
+      [
+        'voxtral-mini-2507',
+        'voxtral-mini-2602',
+        'voxtral-mini-latest',
+      ].includes(this.modelId) &&
       mistralOptions?.language != null &&
       mistralOptions.timestampGranularities != null
     ) {
@@ -83,6 +88,14 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
         argument: 'providerOptions',
         message:
           'providerOptions.mistral.language cannot be combined with providerOptions.mistral.timestampGranularities',
+      });
+    }
+
+    if (mistralOptions?.language != null && mistralOptions.returnLanguage) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.mistral.language cannot be combined with providerOptions.mistral.returnLanguage',
       });
     }
 
@@ -101,6 +114,11 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
 
     if (mistralOptions != null) {
       appendFormValue(formData, 'language', mistralOptions.language);
+      appendFormValue(
+        formData,
+        'return_language',
+        mistralOptions.returnLanguage,
+      );
       appendFormValue(formData, 'temperature', mistralOptions.temperature);
       appendFormValue(
         formData,

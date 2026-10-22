@@ -7460,6 +7460,132 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('reports interruption for a later message even when an earlier message completed', async () => {
+      const messageStart = (id: string) => ({
+        type: 'message_start',
+        message: {
+          id,
+          type: 'message',
+          role: 'assistant',
+          content: [],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: null,
+          usage: { input_tokens: 10, output_tokens: 1 },
+        },
+      });
+      const events = [
+        messageStart('msg1'),
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { output_tokens: 3 },
+        },
+        { type: 'message_stop' },
+        messageStart('msg2'),
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'Partial answer' },
+        },
+      ];
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(
+        parts
+          .filter(part => part.type === 'finish')
+          .map(part => part.finishReason),
+      ).toEqual([
+        { unified: 'stop', raw: 'end_turn' },
+        { unified: 'interrupted', raw: undefined },
+      ]);
+    });
+
+    it.each([
+      [undefined, false, 'interrupted'],
+      [null, false, 'interrupted'],
+      ['end_turn', false, 'interrupted'],
+      ['end_turn', true, 'stop'],
+      [undefined, true, 'other'],
+      ['unknown_reason', true, 'other'],
+    ] as const)(
+      'maps stop_reason %j and message_stop %s to %s',
+      async (stopReason, messageStop, unified) => {
+        const events = [
+          {
+            type: 'message_start',
+            message: {
+              id: 'msg1',
+              type: 'message',
+              role: 'assistant',
+              content: [],
+              model: 'claude-3-haiku-20240307',
+              stop_reason: null,
+              usage: { input_tokens: 10, output_tokens: 1 },
+            },
+          },
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: '' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: 'Partial answer' },
+          },
+          ...(stopReason === undefined
+            ? []
+            : [
+                {
+                  type: 'message_delta',
+                  delta: { stop_reason: stopReason, stop_sequence: null },
+                  usage: { output_tokens: 3 },
+                },
+              ]),
+          ...(messageStop ? [{ type: 'message_stop' }] : []),
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified,
+              raw: messageStop ? stopReason : undefined,
+            },
+            usage: expect.objectContaining({
+              inputTokens: expect.objectContaining({ total: 10 }),
+            }),
+            providerMetadata: expect.objectContaining({
+              anthropic: expect.objectContaining({
+                usage: expect.objectContaining({ input_tokens: 10 }),
+              }),
+            }),
+          }),
+        ]);
+      },
+    );
+
     it.each([
       {
         type: 'page_location',
