@@ -1,8 +1,14 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
-    "build": {
-      "outputs": ["**/dist/**"]
+    "test:e2e": {
+      "cache": false,
+      "env": [
+        "AI_GATEWAY_API_KEY",
+        "TEST_NODE_VERSION"
+      ]
     }
   }
 }

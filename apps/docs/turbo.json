@@ -1,0 +1,41 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "test:site": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/content/**"
+      ],
+      "env": [
+        "TEST_NODE_VERSION"
+      ]
+    },
+    "build:site": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "$TURBO_ROOT$/content/docs/**",
+        "$TURBO_ROOT$/content/providers/**",
+        "$TURBO_ROOT$/content/cookbook/**"
+      ],
+      "env": [
+        "NODE_ENV",
+        "VERCEL_ENV",
+        "NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL",
+        "GEISTDOCS_CHAT_PROXY_URL"
+      ],
+      "passThroughEnv": [
+        "GEISTDOCS_CHAT_PROXY_TOKEN"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "content/**",
+        ".source/**",
+        "!.next/dev/**"
+      ]
+    }
+  }
+}

@@ -46,9 +46,15 @@ const entries = await readdir(join(repository, 'packages'), {
 for (const entry of entries) {
   if (!entry.isDirectory()) continue;
   const cwd = join(repository, 'packages', entry.name);
-  const manifest = JSON.parse(
-    await readFile(join(cwd, 'package.json'), 'utf8'),
-  );
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(join(cwd, 'package.json'), 'utf8'));
+  } catch (error) {
+    // Old build directories can remain after switching branches. Only a
+    // directory with a manifest is a workspace package.
+    if (error.code === 'ENOENT') continue;
+    throw error;
+  }
   packages.set(manifest.name, { cwd, manifest, entry: entry.name });
 }
 const selected = new Map();

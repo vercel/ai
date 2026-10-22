@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "ultracite check"
+    "lint": "ultracite check",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "workspace:*",

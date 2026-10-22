@@ -108,7 +108,7 @@
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
     "test:file": "vitest run",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

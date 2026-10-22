@@ -16,21 +16,9 @@
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "Bundler",
     "rootDir": "./src",
-    "outDir": "./build",
-    "composite": true
+    "outDir": "./build"
   },
   "include": [
     "src/**/*.ts"
-  ],
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/mcp"
-    },
-    {
-      "path": "../../packages/openai"
-    }
   ]
 }

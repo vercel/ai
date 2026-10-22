@@ -7,7 +7,7 @@
     "test": "pnpm test:node && pnpm test:edge",
     "test:node": "vitest --config vitest.node.config.js --run",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "devDependencies": {
     "@ai-sdk/google-vertex": "workspace:*",

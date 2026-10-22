@@ -45,11 +45,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm and Node.js
-        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+      - uses: ./.github/actions/setup-ci
+        env:
+          TURBO_CACHE: local:rw,remote:rw
         with:
-          runtime: node@24
-          require-lockfile: true
+          node-version: '24'
 
       # Normal release path
       - name: Create Release Pull Request or Publish to npm
@@ -118,7 +118,7 @@ jobs:
 
       - name: Build
         if: inputs.snapshot == true
-        run: pnpm clean && pnpm build
+        run: pnpm build:packages
 
       - name: Publish Snapshot Release
         if: inputs.snapshot == true

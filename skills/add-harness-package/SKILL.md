@@ -49,7 +49,6 @@ packages/harness-<name>/
 ├── tsconfig.json
 ├── tsconfig.build.json
 ├── tsdown.config.ts
-├── turbo.json
 ├── vitest.node.config.js
 └── README.md
 ```
@@ -102,7 +101,6 @@ Copy the nearest existing harness package config files and adjust paths/package 
 - `tsconfig.json`
 - `tsconfig.build.json`
 - `tsdown.config.ts`
-- `turbo.json`
 - `vitest.node.config.js`
 
 Harness packages currently use Node tests only unless the implementation has a specific reason to add another runtime.
@@ -190,13 +188,12 @@ Include:
 
 Update `content/docs/03-ai-sdk-harnesses/05-harness-adapters.mdx` to list the new harness when it is ready to be public.
 
-### 10. Update References and Validate
+### 10. Validate the Workspace
 
 Run from the workspace root:
 
 ```bash
 pnpm konsistent
-pnpm update-references
 pnpm --filter @ai-sdk/harness-<name> build
 pnpm --filter @ai-sdk/harness-<name> test
 pnpm type-check:full
@@ -228,7 +225,7 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 - [ ] Documentation added in `content/providers/02-ai-sdk-harnesses/`
 - [ ] Harness adapter list updated, if public
 - [ ] Validated against a live sandbox (not just unit tests / type-check)
-- [ ] `pnpm update-references` run
+- [ ] `pnpm type-check:full` run
 - [ ] Package build passing
 - [ ] Package tests passing
 - [ ] Type checking passing (`pnpm type-check:full` from root)

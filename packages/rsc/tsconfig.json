@@ -3,19 +3,17 @@
   "compilerOptions": {
     "stripInternal": true,
     "rootDir": "src",
-    "composite": true,
     "outDir": "dist"
   },
-  "exclude": ["dist", "build", "node_modules", "*.config.ts", "tests", "**/*.test.ts", "**/*.test.tsx", "**/*.test-d.ts", "**/__snapshots__"],
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../provider"
-    },
-    {
-      "path": "../provider-utils"
-    }
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "*.config.ts",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.test-d.ts",
+    "**/__snapshots__"
   ]
 }

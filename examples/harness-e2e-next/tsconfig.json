@@ -15,7 +15,7 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -27,69 +27,18 @@
         "./*"
       ]
     },
-    "composite": true,
-    "noEmit": true
+    "noEmit": true,
+    "rootDir": "."
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/harness"
-    },
-    {
-      "path": "../../packages/harness-acp"
-    },
-    {
-      "path": "../../packages/harness-claude-code"
-    },
-    {
-      "path": "../../packages/harness-cline"
-    },
-    {
-      "path": "../../packages/harness-codex"
-    },
-    {
-      "path": "../../packages/harness-cursor"
-    },
-    {
-      "path": "../../packages/harness-deepagents"
-    },
-    {
-      "path": "../../packages/harness-fx"
-    },
-    {
-      "path": "../../packages/harness-github-copilot"
-    },
-    {
-      "path": "../../packages/harness-grok-build"
-    },
-    {
-      "path": "../../packages/harness-opencode"
-    },
-    {
-      "path": "../../packages/harness-pi"
-    },
-    {
-      "path": "../../packages/provider-utils"
-    },
-    {
-      "path": "../../packages/react"
-    },
-    {
-      "path": "../../packages/sandbox-vercel"
-    },
-    {
-      "path": "../../packages/workflow-harness"
-    }
+    "node_modules",
+    ".next/dev/**"
   ]
 }

@@ -24,11 +24,10 @@
     "strictInputAccessModifiers": true,
     "strictTemplates": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/server.ts"],
-  "references": [
-    {
-      "path": "../../packages/angular"
-    }
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "src/server.ts"
   ]
 }

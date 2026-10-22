@@ -17,18 +17,22 @@ coverage, and the limitations of the historical Zod regression reproduction.
 
 # Unit Testing
 
-## CI parallelism
+## Continuous integration
 
-`pnpm test:ci` uses Turbo to run at most one package per available CPU. In the
-package-test CI matrix, `VITEST_MAX_WORKERS=2` limits each package's Vitest worker
-pool. On a four-CPU runner, this permits four packages and up to eight test
-workers. Full-suite CI benchmarks selected this balance to reduce contention
-while retaining file parallelism. Individual package tests retain their default
-parallelism locally.
+GitHub Actions selects runners and Node versions; Turbo schedules builds, tests,
+and checks in dependency order and reuses cached results. Package tests run on
+Node 22, 24, and 26, including the full `ai` suite. Test cache keys include the Node
+version and worker limit.
 
-Both `VITEST_MAX_WORKERS` and `TEST_NODE_VERSION` are included in the Turbo test
-environment and cache key. The workflow sets `TEST_NODE_VERSION` to the matrix
-Node version so a passing result from one Node major cannot satisfy another.
+Jobs install their workspace dependencies and root tools. PRs restore pnpm stores;
+main pushes refresh them. Turbo caches task results on both.
+
+Build and validate (`pnpm ci:validate`) builds packages and examples and checks
+types, lint, formatting, Konsistent, docs, and bundles. Each Node version runs the
+same package tests (`pnpm ci:test`). Run both locally with `pnpm run ci`. Browser
+tests (`pnpm ci:browser`) and MCP Windows tests have separate jobs. Require these
+jobs individually; the load-time benchmark is advisory. The docs site is built
+and deployed by Vercel.
 
 ## Providers
 

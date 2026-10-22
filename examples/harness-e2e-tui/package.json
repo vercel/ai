@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",

@@ -1,12 +1,17 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
-    "build": {
-      "outputs": ["**/dist/**"]
-    },
     "test": {
-      "dependsOn": ["^build", "build"],
-      "env": ["$TURBO_EXTENDS$", "UPDATE_SNAPSHOT"]
+      "dependsOn": [
+        "^build",
+        "build"
+      ],
+      "env": [
+        "$TURBO_EXTENDS$",
+        "UPDATE_SNAPSHOT"
+      ]
     }
   }
 }
