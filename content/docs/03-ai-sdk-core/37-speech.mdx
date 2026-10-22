@@ -67,7 +67,7 @@ const { textStream } = streamText({
 
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
-  text: textStream, // a string, or a stream of strings and/or text parts
+  text: textStream, // a string, or an array or stream of strings and/or text parts
   voice: '21m00Tcm4TlvDq8ikWAM',
   outputFormat: { type: 'audio/mpeg' },
 });
@@ -83,10 +83,21 @@ console.log(await result.usage); // e.g. { inputCharacters: 512 }
 incremental text transport synthesize deltas as they arrive; others read the
 text stream to completion first. The end of the text stream ends the input.
 
-The stream can also contain text parts, `{ type: 'text', text, voice?, providerOptions? }`,
+`text` can also contain text parts, `{ type: 'text', text, voice?, providerOptions? }`,
 to give parts of the text their own voice (for example for dialogue) on providers
-that support several voices per stream. Single-voice providers reject a part whose
-`voice` differs from the call's `voice`.
+that support several voices per stream. Single-voice providers error the stream
+when a part's `voice` differs from the call's `voice`. A script that is known up
+front can be passed as an array:
+
+```ts
+const result = streamSpeech({
+  model,
+  text: [
+    { type: 'text', text: 'Did you hear? ', voice: alice },
+    { type: 'text', text: 'No, what?', voice: bob },
+  ],
+});
+```
 
 `error` parts from the provider are not fatal: `fullStream` includes them,
 `audioStream` skips them, and each one is also passed to `onError` (which

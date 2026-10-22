@@ -9,8 +9,8 @@ description: API Reference for experimental_streamSpeech.
   `experimental_streamSpeech` is an experimental feature.
 </Note>
 
-Streams speech audio from text, a stream of text deltas, or a stream of text
-parts, using a speech model with streaming support.
+Streams speech audio from text, or from an array or stream of text deltas and
+text parts, using a speech model with streaming support.
 
 ```ts
 import { experimental_streamSpeech as streamSpeech } from 'ai';
@@ -47,9 +47,9 @@ for await (const chunk of result.audioStream) {
     },
     {
       name: 'text',
-      type: 'string | AsyncIterable<string | Experimental_SpeechTextPart> | ReadableStream<string | Experimental_SpeechTextPart>',
+      type: 'string | Iterable<string | Experimental_SpeechTextPart> | AsyncIterable<string | Experimental_SpeechTextPart> | ReadableStream<string | Experimental_SpeechTextPart>',
       description:
-        "The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers error the stream when a part's voice differs from the call's voice. The end of the stream ends the input.",
+        "The text to convert to speech: a complete string, or an array, iterable, or stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers error the stream when a part's voice differs from the call's voice. The end of the stream ends the input.",
     },
     {
       name: 'voice',
@@ -172,7 +172,7 @@ for await (const chunk of result.audioStream) {
 - `UnsupportedFunctionalityError` is thrown synchronously when the model does
   not support streaming speech.
 - `InvalidArgumentError` is thrown synchronously when `text` is not a string,
-  an async iterable, or a readable stream.
+  an iterable or async iterable, or a readable stream.
 - Provider `error` parts are not fatal. They appear in `fullStream`, are
   skipped by `audioStream`, and are passed to `onError`.
 - If the stream ends without audio, the result rejects with
