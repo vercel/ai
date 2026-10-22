@@ -5297,7 +5297,7 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.toolConfig.tools.map(tool => tool.toolSpec.name),
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
       ).toEqual([
         'getWeatherByCity',
         'getCurrentWeather',
@@ -5327,7 +5327,7 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.toolConfig.tools.map(tool => tool.toolSpec.name),
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
       ).toEqual([
         'getWeatherByCity',
         'getCurrentWeather',
