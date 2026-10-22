@@ -204,7 +204,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
+      if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
     }),

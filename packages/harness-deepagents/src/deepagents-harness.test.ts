@@ -108,7 +108,7 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);

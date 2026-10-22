@@ -207,7 +207,7 @@ vi.mock('node:fs/promises', async importOriginal => {
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
         return '{"name":"@ai-sdk-harness-acp-bridge"}\n';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       const readFile = actual.readFile as unknown as (
         ...args: unknown[]
