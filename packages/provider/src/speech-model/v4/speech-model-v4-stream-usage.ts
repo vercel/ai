@@ -1,3 +1,5 @@
+import type { JSONObject } from '../../json-value/json-value';
+
 /**
  * Usage information for a speech stream call.
  *
@@ -20,4 +22,10 @@ export type SpeechModelV4StreamUsage = {
    * Number of output audio tokens, if reported.
    */
   outputTokens?: number;
+
+  /**
+   * Raw usage information from the provider, in the shape the provider
+   * returns it.
+   */
+  raw?: JSONObject;
 };

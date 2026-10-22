@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   type Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamTextPart,
   type Experimental_StreamingSpeechModelV4,
 } from '@ai-sdk/provider';
 import {
@@ -13,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import { MockStreamingSpeechModelV4 } from '../test/mock-streaming-speech-model-v4';
+import type { Experimental_SpeechTextPart } from './index';
 import { streamSpeech } from './stream-speech';
 
 vi.mock('../version', () => {
@@ -68,7 +70,7 @@ describe('experimental_streamSpeech', () => {
       }),
       text: 'Hello world',
       voice: 'voice-id',
-      outputFormat: 'mp3',
+      outputFormat: { type: 'audio/mpeg' },
       instructions: 'calm',
       speed: 1.1,
       language: 'en',
@@ -82,7 +84,7 @@ describe('experimental_streamSpeech', () => {
 
     expect(capturedArgs).toMatchObject({
       voice: 'voice-id',
-      outputFormat: 'mp3',
+      outputFormat: { type: 'audio/mpeg' },
       instructions: 'calm',
       speed: 1.1,
       language: 'en',
@@ -96,8 +98,10 @@ describe('experimental_streamSpeech', () => {
     expect(capturedArgs?.abortSignal).toBeInstanceOf(AbortSignal);
   });
 
+  const textPart = (text: string) => ({ type: 'text' as const, text });
+
   it.each([
-    ['a string', () => 'Hello world', ['Hello world']],
+    ['a string', () => 'Hello world', [textPart('Hello world')]],
     [
       'an async iterable',
       () =>
@@ -105,29 +109,54 @@ describe('experimental_streamSpeech', () => {
           yield 'Hello ';
           yield 'world';
         })(),
-      ['Hello ', 'world'],
+      [textPart('Hello '), textPart('world')],
     ],
     [
       'a readable stream',
       () => convertArrayToReadableStream(['Hello ', 'world']),
-      ['Hello ', 'world'],
+      [textPart('Hello '), textPart('world')],
     ],
-  ])('should pass %s as a text stream', async (_, createText, expected) => {
-    let textChunks: string[] = [];
-
-    const result = streamSpeech({
-      model: new MockStreamingSpeechModelV4({
-        doStream: async args => {
-          textChunks = await convertReadableStreamToArray(args.text);
-          return createStreamResponse(basicParts);
+    [
+      'a mix of strings and text parts',
+      () =>
+        convertArrayToReadableStream<string | Experimental_SpeechTextPart>([
+          'Hi. ',
+          {
+            type: 'text',
+            text: 'Hello. ',
+            voice: 'bob',
+            providerOptions: { mock: { newTurn: true } },
+          },
+        ]),
+      [
+        textPart('Hi. '),
+        {
+          type: 'text',
+          text: 'Hello. ',
+          voice: 'bob',
+          providerOptions: { mock: { newTurn: true } },
         },
-      }),
-      text: createText(),
-    });
+      ],
+    ],
+  ])(
+    'should pass %s as a text part stream',
+    async (_, createText, expected) => {
+      let textChunks: Experimental_SpeechModelV4StreamTextPart[] = [];
 
-    await result.usage;
-    expect(textChunks).toEqual(expected);
-  });
+      const result = streamSpeech({
+        model: new MockStreamingSpeechModelV4({
+          doStream: async args => {
+            textChunks = await convertReadableStreamToArray(args.text);
+            return createStreamResponse(basicParts);
+          },
+        }),
+        text: createText(),
+      });
+
+      await result.usage;
+      expect(textChunks).toEqual(expected);
+    },
+  );
 
   it('should stream audio bytes through audioStream', async () => {
     const result = streamSpeech({
@@ -164,6 +193,7 @@ describe('experimental_streamSpeech', () => {
       }),
       text: 'Hello',
       includeRawChunks: true,
+      onError: () => {},
     });
 
     expect(await convertAsyncIterableToArray(result.fullStream))
@@ -336,14 +366,11 @@ describe('experimental_streamSpeech', () => {
     });
   });
 
-  it('should reject when the stream ends without a finish part', async () => {
+  it('should reject with no-speech when the stream ends without audio or a finish part', async () => {
     const result = streamSpeech({
       model: new MockStreamingSpeechModelV4({
         doStream: async () =>
-          createStreamResponse([
-            { type: 'stream-start', warnings: [] },
-            { type: 'audio', audio: new Uint8Array([1]), audioFormat: mp3 },
-          ]),
+          createStreamResponse([{ type: 'stream-start', warnings: [] }]),
       }),
       text: 'Hi',
     });
@@ -353,22 +380,92 @@ describe('experimental_streamSpeech', () => {
     ).rejects.toMatchObject({ name: 'AI_NoSpeechGeneratedError' });
   });
 
-  it('should error audioStream on an error part', async () => {
+  it('should skip error parts in audioStream and report them through onError', async () => {
+    const onError = vi.fn();
     const result = streamSpeech({
       model: new MockStreamingSpeechModelV4({
         doStream: async () =>
           createStreamResponse([
             { type: 'stream-start', warnings: [] },
             { type: 'audio', audio: new Uint8Array([1]), audioFormat: mp3 },
-            { type: 'error', error: new Error('upstream failed') },
+            { type: 'error', error: 'recoverable' },
+            { type: 'audio', audio: new Uint8Array([2]), audioFormat: mp3 },
+            { type: 'finish', usage: { inputCharacters: 2 } },
+          ]),
+      }),
+      text: 'Hi',
+      onError,
+    });
+
+    expect(await convertAsyncIterableToArray(result.audioStream)).toEqual([
+      new Uint8Array([1]),
+      new Uint8Array([2]),
+    ]);
+    expect(await result.usage).toEqual({ inputCharacters: 2 });
+    expect(onError).toHaveBeenCalledWith({ error: 'recoverable' });
+  });
+
+  it('should surface the provider error when the stream ends after audio without finishing', async () => {
+    const upstream = new Error('upstream failed');
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'audio', audio: new Uint8Array([1]), audioFormat: mp3 },
+            { type: 'error', error: upstream },
+          ]),
+      }),
+      text: 'Hi',
+      onError: () => {},
+    });
+
+    await expect(convertAsyncIterableToArray(result.audioStream)).rejects.toBe(
+      upstream,
+    );
+  });
+
+  it('should fail with a stream error, not no-speech, when audio was streamed but no finish arrived', async () => {
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'audio', audio: new Uint8Array([1]), audioFormat: mp3 },
           ]),
       }),
       text: 'Hi',
     });
 
-    await expect(
-      convertAsyncIterableToArray(result.audioStream),
-    ).rejects.toThrow('upstream failed');
+    await expect(result.usage).rejects.toMatchObject({
+      name: 'AI_StreamProviderError',
+      message: 'The speech stream ended before it finished.',
+    });
+  });
+
+  it('should not throw when breaking out of fullStream early', async () => {
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () => ({
+          stream: new ReadableStream<SpeechModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'audio',
+                audio: new Uint8Array([1]),
+                audioFormat: mp3,
+              });
+            },
+          }),
+        }),
+      }),
+      text: 'Hi',
+    });
+
+    for await (const part of result.fullStream) {
+      expect(part.type).toBe('audio');
+      break;
+    }
   });
 
   it('should reject result promises and cancel the text when doStream rejects', async () => {
@@ -500,6 +597,7 @@ describe('experimental_streamSpeech', () => {
           ]),
       }),
       text: 'Hi',
+      onError: () => {},
     });
     await expect(finishing.usage).rejects.toMatchObject({
       name: 'AI_NoSpeechGeneratedError',
@@ -515,6 +613,7 @@ describe('experimental_streamSpeech', () => {
           ]),
       }),
       text: 'Hi',
+      onError: () => {},
     });
     await expect(ending.usage).rejects.toMatchObject({
       name: 'AI_NoSpeechGeneratedError',

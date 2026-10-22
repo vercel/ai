@@ -7,6 +7,7 @@ export { streamSpeech as experimental_streamSpeech } from './stream-speech';
 export type {
   SpeechStreamPart as Experimental_SpeechStreamPart,
   SpeechStreamUsage as Experimental_SpeechStreamUsage,
+  SpeechTextPart as Experimental_SpeechTextPart,
   StreamSpeechResult as Experimental_StreamSpeechResult,
 } from './stream-speech-result';
 export type { SpeechResult } from './generate-speech-result';
