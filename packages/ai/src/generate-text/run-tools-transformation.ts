@@ -1,6 +1,8 @@
 import type {
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2StreamPart,
+  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import {
   type ModelMessage,
@@ -9,6 +11,7 @@ import {
   getErrorMessage,
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getTelemetryMetadataAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
@@ -111,6 +114,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
+  toolChoice,
+  model,
   generatorStream,
   tracer,
   telemetry,
@@ -121,6 +126,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   experimental_context,
 }: {
   tools: TOOLS | undefined;
+  toolChoice?: LanguageModelV2ToolChoice;
+  model?: { provider: string; modelId: string };
   generatorStream: ReadableStream<LanguageModelV2StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
@@ -296,6 +303,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // overtake pending start or delta callbacks in a downstream stream.
   const activeToolCallToolNames = new Map<string, string>();
 
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair them or process their input.
+  const withholdToolParts = toolChoice?.type === 'none';
+  const withheldToolContent: Array<LanguageModelV2Content> = [];
+
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelV2StreamPart,
@@ -308,6 +322,23 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       >,
     ) {
       const chunkType = chunk.type;
+
+      if (
+        withholdToolParts &&
+        (chunkType === 'tool-input-start' ||
+          chunkType === 'tool-input-delta' ||
+          chunkType === 'tool-input-end')
+      ) {
+        return;
+      }
+
+      if (
+        withholdToolParts &&
+        (chunkType === 'tool-call' || chunkType === 'tool-result')
+      ) {
+        withheldToolContent.push(chunk);
+        return;
+      }
 
       switch (chunkType) {
         // forward:
@@ -371,12 +402,32 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'finish': {
+          const toolChoiceViolationError =
+            withholdToolParts &&
+            withheldToolContent.some(part => part.type === 'tool-call')
+              ? new ToolChoiceViolationError({
+                  toolChoice: { type: 'none' },
+                  finishReason: chunk.finishReason,
+                  provider: model?.provider ?? 'unknown',
+                  modelId: model?.modelId ?? 'unknown',
+                  content: withheldToolContent,
+                })
+              : undefined;
+
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason,
+            finishReason:
+              toolChoiceViolationError == null ? chunk.finishReason : 'error',
             usage: chunk.usage,
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (toolChoiceViolationError != null) {
+            controller.enqueue({
+              type: 'error',
+              error: toolChoiceViolationError,
+            });
+          }
 
           if (isToolExecutionAllowedFinishReason(chunk.finishReason)) {
             for (const toolCall of pendingToolCalls.splice(0)) {

@@ -13,6 +13,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -478,12 +479,27 @@ A function that attempts to repair a tool call that failed to parse.
                 parseToolCall({
                   toolCall,
                   tools: stepToolSet,
-                  repairToolCall,
+                  // tool calls are rejected with tool choice none,
+                  // so user callbacks must not process them:
+                  repairToolCall:
+                    stepToolChoice?.type === 'none'
+                      ? undefined
+                      : repairToolCall,
                   system,
                   messages: stepInputMessages,
                 }),
               ),
           );
+
+          if (stepToolChoice?.type === 'none' && stepToolCalls.length > 0) {
+            throw new ToolChoiceViolationError({
+              toolChoice: stepToolChoice,
+              finishReason: currentModelResponse.finishReason,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
+              content: currentModelResponse.content,
+            });
+          }
 
           // notify the tools that the tool calls are available:
           for (const toolCall of stepToolCalls) {

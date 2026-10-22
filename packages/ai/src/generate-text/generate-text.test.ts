@@ -1882,6 +1882,129 @@ describe('generateText', () => {
     });
   });
 
+  describe('tool choice none', () => {
+    it.each([
+      { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'tool-calls',
+      },
+      {
+        toolChoice: 'auto',
+        stepToolChoice: 'none',
+        finishReason: 'tool-calls',
+      },
+    ] as const)(
+      'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+      async ({ toolChoice, stepToolChoice, finishReason }) => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputStart = vi.fn();
+        const onInputAvailable = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV2({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+              ],
+              finishReason,
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputStart,
+              onInputAvailable,
+            }),
+          },
+          toolChoice,
+          prepareStep:
+            stepToolChoice == null
+              ? undefined
+              : () => ({ toolChoice: stepToolChoice }),
+          prompt: 'test-input',
+        });
+
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response contained a tool call even though tool choice was none.',
+          toolChoice: { type: 'none' },
+          finishReason,
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [expect.objectContaining({ type: 'tool-call' })],
+        });
+        expect(execute).not.toHaveBeenCalled();
+        expect(onInputStart).not.toHaveBeenCalled();
+        expect(onInputAvailable).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should not repair tool calls with none', async () => {
+      const repairToolCall = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: 'invalid json',
+              },
+            ],
+            finishReason: 'tool-calls',
+          },
+        }),
+        tools: {
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        toolChoice: 'none',
+        experimental_repairToolCall: repairToolCall,
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      });
+      expect(repairToolCall).not.toHaveBeenCalled();
+    });
+
+    it('should allow text responses with none and preserve tool definitions', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async ({ tools, toolChoice }) => {
+            expect(tools).toEqual([
+              expect.objectContaining({ type: 'function', name: 'tool1' }),
+            ]);
+            expect(toolChoice).toEqual({ type: 'none' });
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'No tool call.' }],
+            };
+          },
+        }),
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice: 'none',
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
+    });
+  });
+
   describe('options.headers', () => {
     it('should pass headers to model', async () => {
       const result = await generateText({
