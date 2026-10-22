@@ -238,7 +238,7 @@ const { textStream } = streamText({
 
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
-  text: textStream, // a string, or a stream of strings and/or text parts
+  text: textStream, // a string, or an array or stream of strings and/or text parts
   voice: '21m00Tcm4TlvDq8ikWAM',
   outputFormat: { type: 'audio/pcm', rate: 24000 },
   providerOptions: {
