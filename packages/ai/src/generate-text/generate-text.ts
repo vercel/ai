@@ -956,7 +956,12 @@ export async function generateText<
                   parseToolCall({
                     toolCall,
                     tools: stepToolSet,
-                    repairToolCall,
+                    // tool calls are rejected with tool choice none,
+                    // so user callbacks must not process them:
+                    repairToolCall:
+                      stepToolChoice?.type === 'none'
+                        ? undefined
+                        : repairToolCall,
                     system,
                     messages: stepInputMessages,
                   }),
@@ -964,18 +969,17 @@ export async function generateText<
             );
 
             const enforcedToolChoice =
-              stepToolChoice?.type === 'required' ||
-              stepToolChoice?.type === 'tool'
-                ? stepToolChoice
-                : undefined;
+              stepToolChoice?.type === 'auto' ? undefined : stepToolChoice;
 
             if (
               enforcedToolChoice != null &&
-              !stepToolCalls.some(
-                toolCall =>
-                  enforcedToolChoice.type === 'required' ||
-                  toolCall.toolName === enforcedToolChoice.toolName,
-              )
+              (enforcedToolChoice.type === 'none'
+                ? stepToolCalls.length > 0
+                : !stepToolCalls.some(
+                    toolCall =>
+                      enforcedToolChoice.type === 'required' ||
+                      toolCall.toolName === enforcedToolChoice.toolName,
+                  ))
             ) {
               throw new ToolChoiceViolationError({
                 toolChoice: enforcedToolChoice,
