@@ -97,11 +97,17 @@ Use a provider's `decisionModel` factory:
 
 | Provider    | Example model                                          |
 | ----------- | ------------------------------------------------------ |
+| AI Gateway  | `gateway.decisionModel('baseten/mammoth-1')`           |
 | TypeSafe AI | `typeSafeAi.decisionModel('jev-latest')`               |
 | Perplexity  | `perplexity.decisionModel('pplx-decider-latest')`      |
 | OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
+
+AI Gateway routes to hosted decision models such as Baseten's mammoth-1
+(`baseten/mammoth-1`), a 27B model for classification, routing, and scoring.
+You can also pass a Gateway model ID as a string, for example
+`model: 'baseten/mammoth-1'`.
 
 TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
 [Decisions API](https://developers.openai.com/api/docs/guides/decisions), and
