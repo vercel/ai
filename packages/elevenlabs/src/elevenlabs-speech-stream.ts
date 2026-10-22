@@ -1,8 +1,10 @@
-import type {
-  Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
-  JSONValue,
-  SharedV4AudioFormat,
-  SharedV4Warning,
+import {
+  InvalidArgumentError,
+  type Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamTextPart as SpeechModelV4StreamTextPart,
+  type JSONValue,
+  type SharedV4AudioFormat,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   connectToWebSocket,
@@ -34,8 +36,9 @@ export function countCodePoints(text: string): number {
 }
 
 // Deltas are held back to the last word boundary: the WebSocket expects every
-// text message to end at whitespace, and LLM deltas often split words.
-const WORD_BOUNDARY = /[\s.,!?;:。、！？，；：]/u;
+// text message to end at whitespace, and LLM deltas often split words. CJK
+// sentence punctuation also counts, since those scripts have no spaces.
+const WORD_BOUNDARY = /[\s。、！？，；：]/u;
 // Bounds buffering for scripts without spaces (e.g. CJK) or very long words.
 const MAX_HELD_CODE_POINTS = 100;
 
@@ -63,14 +66,9 @@ export function takeCompleteWords(buffered: string): {
 
 /**
  * Milliseconds of send inactivity after which a keepalive is sent, ahead of
- * the server's inactivity timeout (default 20 s).
+ * the server's default 20 s inactivity timeout.
  */
-export function getKeepaliveIntervalMs(
-  inactivityTimeoutSeconds: number | undefined,
-): number {
-  const timeoutMs = (inactivityTimeoutSeconds ?? 20) * 1000;
-  return Math.max(1000, timeoutMs - 5000);
-}
+export const KEEPALIVE_INTERVAL_MS = 15_000;
 
 /**
  * Maps an ElevenLabs `output_format` (e.g. `mp3_44100_128`, `pcm_24000`) to
@@ -116,10 +114,11 @@ export function createElevenLabsSpeechStream({
   audioFormat,
   headers,
   includeRawChunks,
-  inactivityTimeoutSeconds,
+  keepalive,
   initMessage,
   text,
   url,
+  voice,
   warnings,
   webSocket,
 }: {
@@ -129,9 +128,15 @@ export function createElevenLabsSpeechStream({
   audioFormat: SharedV4AudioFormat;
   headers: Record<string, string | undefined>;
   includeRawChunks: boolean | undefined;
-  inactivityTimeoutSeconds: number | undefined;
+  /**
+   * Send keepalives while the text stream is idle. Off when the caller sets
+   * an explicit `inactivityTimeout`, so the server timeout still applies.
+   */
+  keepalive: boolean;
   initMessage: Record<string, unknown>;
-  text: ReadableStream<string>;
+  text: ReadableStream<SpeechModelV4StreamTextPart>;
+  /** The call's voice; single-voice TTS rejects parts with another voice. */
+  voice: string;
   url: URL;
   warnings: SharedV4Warning[];
   webSocket: ElevenLabsConfig['webSocket'];
@@ -141,25 +146,27 @@ export function createElevenLabsSpeechStream({
 
   return new ReadableStream<SpeechModelV4StreamPart>({
     start: controller => {
-      let textReader: ReadableStreamDefaultReader<string> | undefined;
+      let textReader:
+        | ReadableStreamDefaultReader<SpeechModelV4StreamTextPart>
+        | undefined;
       let connection: WebSocketConnection | undefined;
       let inputCharacters = 0;
+      let inputEnded = false;
       let keepaliveTimer: ReturnType<typeof setTimeout> | undefined;
-      const keepaliveIntervalMs = getKeepaliveIntervalMs(
-        inactivityTimeoutSeconds,
-      );
 
       // Every send restarts the idle clock; a slow text producer (e.g. a
       // reasoning model) would otherwise hit the server's inactivity timeout.
+      // No keepalive follows the end of input.
       const send = (
         socket: WebSocketLike,
         message: Record<string, unknown>,
       ) => {
         socket.send(JSON.stringify(message));
         if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
+        if (!keepalive || inputEnded) return;
         keepaliveTimer = setTimeout(() => {
-          if (!finished) send(socket, { text: ' ' });
-        }, keepaliveIntervalMs);
+          if (!finished && !inputEnded) send(socket, { text: ' ' });
+        }, KEEPALIVE_INTERVAL_MS);
       };
 
       cleanup = (closeCode?: number) => {
@@ -206,7 +213,15 @@ export function createElevenLabsSpeechStream({
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished) break;
-            const { send: complete, hold } = takeCompleteWords(held + value);
+            if (value.voice != null && value.voice !== voice) {
+              throw new InvalidArgumentError({
+                argument: 'text',
+                message: `The ElevenLabs text-to-speech WebSocket speaks a single voice per stream ("${voice}"); a text part requested "${value.voice}". Use an eleven_v3 or eleven_v4 model with dialogue options for several voices.`,
+              });
+            }
+            const { send: complete, hold } = takeCompleteWords(
+              held + value.text,
+            );
             held = hold;
             await sendChunk(socket, complete);
           }
@@ -218,6 +233,7 @@ export function createElevenLabsSpeechStream({
         }
         if (!finished) {
           await sendChunk(socket, held);
+          inputEnded = true;
           send(socket, { text: '' });
         }
       };

@@ -16,7 +16,7 @@ run(async () => {
   const result = streamSpeech({
     model: elevenLabs.speech('eleven_flash_v2_5'),
     text: textStream,
-    outputFormat: 'mp3_44100_128',
+    outputFormat: { type: 'audio/mpeg' },
   });
 
   const chunks: Uint8Array[] = [];
