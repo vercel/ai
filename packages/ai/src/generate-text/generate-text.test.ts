@@ -1959,6 +1959,102 @@ describe('generateText', () => {
   });
 
   describe('tool choice enforcement', () => {
+    it.each([
+      { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'tool-calls',
+      },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'interrupted',
+      },
+      {
+        toolChoice: 'auto',
+        stepToolChoice: 'none',
+        finishReason: 'tool-calls',
+      },
+    ] as const)(
+      'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+      async ({ toolChoice, stepToolChoice, finishReason }) => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputStart = vi.fn();
+        const onInputAvailable = vi.fn();
+        const onLanguageModelCallEnd = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+              ],
+              finishReason: { unified: finishReason, raw: finishReason },
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputStart,
+              onInputAvailable,
+            }),
+          },
+          toolChoice,
+          prepareStep:
+            stepToolChoice == null
+              ? undefined
+              : () => ({ toolChoice: stepToolChoice }),
+          prompt: 'test-input',
+          onLanguageModelCallEnd,
+        });
+
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response contained a tool call even though tool choice was none.',
+          toolChoice: { type: 'none' },
+          finishReason,
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [expect.objectContaining({ type: 'tool-call' })],
+        });
+        expect(execute).not.toHaveBeenCalled();
+        expect(onInputStart).not.toHaveBeenCalled();
+        expect(onInputAvailable).not.toHaveBeenCalled();
+        expect(onLanguageModelCallEnd).toHaveBeenCalledOnce();
+      },
+    );
+
+    it('should allow text responses with none and preserve tool definitions', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools, toolChoice }) => {
+            expect(tools).toEqual([
+              expect.objectContaining({ type: 'function', name: 'tool1' }),
+            ]);
+            expect(toolChoice).toEqual({ type: 'none' });
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'No tool call.' }],
+            };
+          },
+        }),
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice: 'none',
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
+    });
+
     it('should reject when a required tool choice produces no tool call', async () => {
       const result = generateText({
         model: new MockLanguageModelV4({

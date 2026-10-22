@@ -655,18 +655,18 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           });
 
           const enforcedToolChoice =
-            toolChoice.type === 'required' || toolChoice.type === 'tool'
-              ? toolChoice
-              : undefined;
+            toolChoice.type === 'auto' ? undefined : toolChoice;
 
           const toolChoiceViolationError =
-            chunk.finishReason.unified !== 'interrupted' &&
             enforcedToolChoice != null &&
-            ![...toolCallsByToolCallId.values()].some(
-              toolCall =>
-                enforcedToolChoice.type === 'required' ||
-                toolCall.toolName === enforcedToolChoice.toolName,
-            )
+            (enforcedToolChoice.type === 'none'
+              ? toolCallsByToolCallId.size > 0
+              : chunk.finishReason.unified !== 'interrupted' &&
+                ![...toolCallsByToolCallId.values()].some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                ))
               ? new ToolChoiceViolationError({
                   toolChoice: enforcedToolChoice,
                   finishReason: chunk.finishReason.unified,
