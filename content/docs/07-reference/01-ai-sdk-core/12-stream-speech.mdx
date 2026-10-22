@@ -9,8 +9,8 @@ description: API Reference for experimental_streamSpeech.
   `experimental_streamSpeech` is an experimental feature.
 </Note>
 
-Streams speech audio from text, or from a stream of text deltas, using a speech
-model with streaming support.
+Streams speech audio from text, a stream of text deltas, or a stream of text
+parts, using a speech model with streaming support.
 
 ```ts
 import { experimental_streamSpeech as streamSpeech } from 'ai';
@@ -41,15 +41,15 @@ for await (const chunk of result.audioStream) {
   content={[
     {
       name: 'model',
-      type: 'SpeechModelV4',
+      type: 'SpeechModel',
       description:
         'The speech model to use. The model must implement the experimental streaming speech extension (`Experimental_StreamingSpeechModelV4`).',
     },
     {
       name: 'text',
-      type: 'string | AsyncIterable<string | SpeechTextPart> | ReadableStream<string | SpeechTextPart>',
+      type: 'string | AsyncIterable<string | Experimental_SpeechTextPart> | ReadableStream<string | Experimental_SpeechTextPart>',
       description:
-        "The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers reject a voice that differs from the call's `voice`. The end of the stream ends the input.",
+        "The text to convert to speech: a complete string, or a stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers error the stream when a part's voice differs from the call's voice. The end of the stream ends the input.",
     },
     {
       name: 'voice',
@@ -59,7 +59,7 @@ for await (const chunk of result.audioStream) {
     },
     {
       name: 'outputFormat',
-      type: 'SharedV4AudioFormat',
+      type: '{ type: string; rate?: number }',
       isOptional: true,
       description:
         "The format of the output audio chunks, e.g. `{ type: 'audio/pcm', rate: 24000 }` or `{ type: 'audio/mpeg' }`. Supported formats are provider-specific.",
@@ -131,7 +131,7 @@ for await (const chunk of result.audioStream) {
     },
     {
       name: 'fullStream',
-      type: 'AsyncIterableStream<SpeechStreamPart>',
+      type: 'AsyncIterableStream<Experimental_SpeechStreamPart>',
       description:
         'A single-consumer live stream of `audio` (with `audio: Uint8Array` and `audioFormat`), `raw`, and `error` parts. Error parts are not fatal; the stream continues after them.',
     },
@@ -160,7 +160,25 @@ for await (const chunk of result.audioStream) {
 />
 
 <Note>
-  The result promises settle as the stream is consumed. If you stop consuming
-  the stream early, pending result promises reject immediately and the provider
-  is signalled to close its connection.
+  The result promises settle as the stream is consumed. If you cancel the stream
+  early (for example by breaking out of a `for await` loop) or abort the call,
+  pending result promises reject immediately and the provider is signalled to
+  close its connection. A stream that is not read stalls under backpressure and
+  keeps the provider call open.
 </Note>
+
+## Errors
+
+- `UnsupportedFunctionalityError` is thrown synchronously when the model does
+  not support streaming speech.
+- `InvalidArgumentError` is thrown synchronously when `text` is not a string,
+  an async iterable, or a readable stream.
+- Provider `error` parts are not fatal. They appear in `fullStream`, are
+  skipped by `audioStream`, and are passed to `onError`.
+- If the stream ends without audio, the result rejects with
+  `NoSpeechGeneratedError`, whose `cause` is the last provider error part.
+- If the stream stops after audio but before it finished, the result rejects
+  with the last provider error part, or with a `StreamProviderError`.
+- If the provider call fails (for example an authentication error), the result
+  rejects with that error. Cancelling or aborting rejects with the
+  cancellation or abort reason.
