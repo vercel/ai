@@ -911,6 +911,57 @@ for await (const part of result.stream) {
 }
 ```
 
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools run
+through AI Gateway and work with supported tool-calling models from any provider.
+No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const model = process.env.DEEPSEEK_TOOLS_MODEL;
+if (!model)
+  throw new Error('Set DEEPSEEK_TOOLS_MODEL to a tool-calling model ID.');
+
+const result = await generateText({
+  model: gateway(model),
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    search: gateway.tools.deepseekSearch({ count: 5, needContent: true }),
+    fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+```
+
+Search configuration uses camelCase:
+
+| Option         | Type             | Description                                                        |
+| -------------- | ---------------- | ------------------------------------------------------------------ |
+| `query`        | `string`         | Pin the search query; otherwise the model chooses it.              |
+| `count`        | `number`         | Number of results, 1–50; defaults to 10.                           |
+| `needContent`  | `boolean`        | Include available page content; defaults to false.                 |
+| `oriQuestion`  | `string \| null` | Original question, 1–128 Unicode characters.                       |
+| `localization` | `string`         | IP address used to localize results; developer configuration only. |
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ title, content }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+Both output types also include structured tool errors.
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
+
 #### Exa Search
 
 The Exa Search tool enables models to search the web using [Exa's Search API](https://exa.ai/docs/reference/search-api-guide-for-coding-agents). This tool is executed by the AI Gateway and returns token-efficient web excerpts for agent workflows.

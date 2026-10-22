@@ -1,5 +1,7 @@
 import { browserbaseFetch } from './tool/browserbase-fetch';
 import { browserbaseSearch } from './tool/browserbase-search';
+import { deepseekFetch } from './tool/deepseek-fetch';
+import { deepseekSearch } from './tool/deepseek-search';
 import { exaSearch } from './tool/exa-search';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
@@ -9,6 +11,12 @@ import { takoSearch } from './tool/tako-search';
  * Gateway-specific provider-defined tools.
  */
 export const gatewayTools = {
+  /** Fetch a page as Markdown using DeepSeek. Executed by AI Gateway. */
+  deepseekFetch,
+
+  /** Search the web using DeepSeek. Executed by AI Gateway. */
+  deepseekSearch,
+
   /**
    * Fetch page content using Browserbase's lightweight Fetch API.
    *

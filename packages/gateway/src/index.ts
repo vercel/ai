@@ -76,3 +76,18 @@ export type GatewayEvaluationModelId = GatewayDecisionModelId;
 /** @deprecated Use `DecisionFallbackCondition` instead. */
 export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
   DecisionFallbackCondition<QUESTION_ID>;
+
+export type {
+  DeepSeekFetchConfig,
+  DeepSeekFetchInput,
+  DeepSeekFetchOutput,
+  DeepSeekFetchResponse,
+} from './tool/deepseek-fetch';
+export type {
+  DeepSeekSearchConfig,
+  DeepSeekSearchInput,
+  DeepSeekSearchOutput,
+  DeepSeekSearchResponse,
+  DeepSeekSearchResult,
+} from './tool/deepseek-search';
+export type { DeepSeekToolError } from './tool/deepseek-tool-error';
