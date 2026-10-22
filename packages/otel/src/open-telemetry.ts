@@ -145,13 +145,20 @@ export class OpenTelemetry implements Telemetry {
   }
 
   private getAgentSpanName({
+    operationName,
     modelId,
     functionId,
   }: {
+    operationName: string;
     modelId: string;
     functionId: string | undefined;
   }): string {
-    const defaultName = `invoke_agent ${modelId}`;
+    const defaultName = `${operationName} ${modelId}`;
+
+    // Other operations, such as harness turns, share the generation handler.
+    if (operationName !== 'invoke_agent') {
+      return defaultName;
+    }
 
     if (this.agentSpanName === 'functionId') {
       return `invoke_agent ${functionId ?? modelId}`;
@@ -456,6 +463,7 @@ export class OpenTelemetry implements Telemetry {
     });
 
     const spanName = this.getAgentSpanName({
+      operationName,
       modelId: event.modelId,
       functionId: telemetry.functionId,
     });
@@ -566,6 +574,7 @@ export class OpenTelemetry implements Telemetry {
     });
 
     const spanName = this.getAgentSpanName({
+      operationName,
       modelId: event.modelId,
       functionId: telemetry.functionId,
     });
