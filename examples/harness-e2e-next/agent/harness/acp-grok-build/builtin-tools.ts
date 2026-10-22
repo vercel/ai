@@ -7,8 +7,7 @@ const nullableBoolean = z.boolean().nullable().optional();
 
 /*
  * Tool names and inputs were captured from the model request produced by
- * @xai-official/grok 0.2.111, the version used by the pinned Grok Build ACP
- * implementation.
+ * @xai-official/grok 0.2.111.
  */
 export const grokBuildACPBuiltinTools = {
   bash: commonTool('bash', {

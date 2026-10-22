@@ -127,6 +127,9 @@
       "path": "packages/harness"
     },
     {
+      "path": "packages/heygen"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
@@ -212,6 +215,9 @@
     },
     {
       "path": "packages/togetherai"
+    },
+    {
+      "path": "packages/tool-bash"
     },
     {
       "path": "packages/topaz"

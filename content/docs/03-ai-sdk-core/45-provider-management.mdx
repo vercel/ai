@@ -80,7 +80,7 @@ export const anthropic = customProvider({
   languageModels: {
     opus: gateway('anthropic/claude-opus-5.5'),
     sonnet: gateway('anthropic/claude-sonnet-5.5'),
-    haiku: gateway('anthropic/claude-haiku-4.5'),
+    haiku: gateway('anthropic/claude-haiku-5.5'),
   },
   fallbackProvider: gateway,
 });
@@ -390,7 +390,7 @@ export const registry = createProviderRegistry(
     // setup model name aliases
     anthropic: customProvider({
       languageModels: {
-        fast: anthropic('claude-haiku-4-5'),
+        fast: anthropic('claude-haiku-5-5'),
 
         // simple model
         writing: anthropic('claude-sonnet-4-5'),
@@ -469,12 +469,12 @@ const result = await streamText({
 
 This simplifies provider usage and makes it easier to switch between providers without changing your model references throughout your codebase.
 
-## Experimental evaluation models
+## Experimental decision models
 
-Custom providers accept `evaluationModels` aliases, and registries expose
-`evaluationModel('provider:model')`. These methods return model instances for
-`experimental_evaluate`. Direct string IDs use Gateway by default, or an
-explicitly configured default provider with an `evaluationModel` method. Registry
-middleware for language and image models does not apply to evaluation.
-See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+Custom providers accept `decisionModels` aliases, and registries expose
+`decisionModel('provider:model')`. These methods return model instances for
+`experimental_decide`. Direct string IDs use Gateway by default, or an
+explicitly configured default provider with a `decisionModel` method. Registry
+middleware for language and image models does not apply to decision.
+See [Decisions](/docs/ai-sdk-core/decisions#model-aliases-and-registries)
 for aliases, default-provider configuration, and capability differences.

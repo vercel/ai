@@ -62,6 +62,146 @@ function normalizeStreamPerformance(parts: Array<TextStreamPart<any>>) {
 }
 
 describe('extractReasoningMiddleware', () => {
+  describe('custom delimiters', () => {
+    const gemmaTags = {
+      opening: '<|channel>thought\n',
+      closing: '<channel|>',
+    };
+
+    const cases = [
+      {
+        name: 'Gemma thought channel',
+        options: { tagName: gemmaTags },
+        input: '<|channel>thought\nChecking the sum.\nIt is four.<channel|>4',
+        reasoning: 'Checking the sum.\nIt is four.',
+        text: '4',
+      },
+      {
+        name: 'empty Gemma thought channel',
+        options: { tagName: gemmaTags },
+        input: '<|channel>thought\n<channel|>4',
+        reasoning: '',
+        text: '4',
+      },
+      {
+        name: 'omitted opening delimiter',
+        options: { tagName: gemmaTags, startWithReasoning: true },
+        input: 'Checking the sum.<channel|>4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+      {
+        name: 'literal regex metacharacters',
+        options: {
+          tagName: { opening: '[.*+?^${}()|\\]', closing: '(end.*+?^${}|\\)' },
+        },
+        input: '[.*+?^${}()|\\]Checking the sum.(end.*+?^${}|\\)4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+      {
+        name: 'multiple reasoning blocks and a custom separator',
+        options: { tagName: gemmaTags, separator: ' / ' },
+        input:
+          'Before<|channel>thought\nFirst<channel|>Between<|channel>thought\nSecond<channel|>After',
+        reasoning: 'First / Second',
+        text: 'Before / Between / After',
+      },
+      {
+        name: 'text without delimiters',
+        options: { tagName: gemmaTags },
+        input: '4',
+        reasoning: undefined,
+        text: '4',
+      },
+      {
+        name: 'literal regex metacharacters in a string tag name',
+        options: { tagName: 'think|reason' },
+        input: '<think|reason>Checking the sum.</think|reason>4',
+        reasoning: 'Checking the sum.',
+        text: '4',
+      },
+    ];
+
+    describe.each(cases)('$name', ({ options, input, reasoning, text }) => {
+      it('extracts reasoning in generateText', async () => {
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                content: [{ type: 'text', text: input }],
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                warnings: [],
+              },
+            }),
+            middleware: extractReasoningMiddleware(options),
+          }),
+          prompt: 'What is 2 + 2?',
+        });
+
+        expect(result.text).toBe(text);
+        expect(result.reasoningText).toBe(
+          reasoning === '' ? undefined : reasoning,
+        );
+        if (reasoning === '') {
+          expect(result.reasoning).toEqual([{ type: 'reasoning', text: '' }]);
+        }
+      });
+
+      it('extracts reasoning when every delimiter character is streamed separately', async () => {
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doStream: {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: 'text-0' },
+                  ...Array.from(input, delta => ({
+                    type: 'text-delta' as const,
+                    id: 'text-0',
+                    delta,
+                  })),
+                  { type: 'text-end', id: 'text-0' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              },
+            }),
+            middleware: extractReasoningMiddleware(options),
+          }),
+          prompt: 'What is 2 + 2?',
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(await result.text).toBe(text);
+        expect(await result.reasoningText).toBe(
+          reasoning === '' ? undefined : reasoning,
+        );
+        if (reasoning !== undefined) {
+          const starts = parts.filter(part => part.type === 'reasoning-start');
+          const ends = parts.filter(part => part.type === 'reasoning-end');
+          expect(starts.length).toBeGreaterThan(0);
+          expect(ends.map(part => part.id)).toEqual(
+            starts.map(part => part.id),
+          );
+        }
+      });
+    });
+
+    it.each([
+      { opening: '', closing: '<channel|>' },
+      { opening: '<|channel>thought\n', closing: '' },
+    ])('rejects empty delimiters: %j', tagName => {
+      expect(() => extractReasoningMiddleware({ tagName })).toThrow(
+        'Reasoning delimiters must not be empty.',
+      );
+    });
+  });
+
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
       const mockModel = new MockLanguageModelV4({

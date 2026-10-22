@@ -78,6 +78,15 @@ const gateway = createGateway({
 
 You can use the following optional settings to customize the AI Gateway provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
@@ -238,7 +247,7 @@ import {
 // The receiver uses this token to look up the expected batch and signing
 // secret before trusting anything in the webhook body.
 const token = randomUUID();
-const model = 'anthropic/claude-haiku-4.5' as const;
+const model = 'anthropic/claude-haiku-5.5' as const;
 
 // Reserve the token before starting so an early delivery finds a retryable
 // pending record rather than an unknown callback.
@@ -1223,7 +1232,7 @@ for await (const part of result.stream) {
 
 #### Parallel Search
 
-The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search-beta/search). This tool is optimized for LLM consumption, returning relevant excerpts from web pages that can replace multiple keyword searches with a single call.
+The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search/search). The model provides a research objective and a few keyword queries, and the tool returns relevant excerpts from web pages, optimized for LLM consumption.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1251,7 +1260,8 @@ const result = await generateText({
   prompt: 'Find detailed information about TypeScript 5.0 features.',
   tools: {
     parallel_search: gateway.tools.parallelSearch({
-      mode: 'agentic',
+      mode: 'advanced',
+      location: 'us',
       maxResults: 5,
       sourcePolicy: {
         includeDomains: ['typescriptlang.org', 'github.com'],
@@ -1270,11 +1280,15 @@ console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 
 The Parallel Search tool supports the following optional configuration options:
 
-- **mode** _'one-shot' | 'agentic'_
+- **mode** _'turbo' | 'fast' | 'basic' | 'advanced'_
 
-  Mode preset for different use cases:
-  - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
-  - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
+  Search mode. Defaults to `'basic'`. See the [AI Gateway web search docs](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-parallel-search) for pricing.
+  - `'turbo'` - Lowest latency, shorter excerpts. Supports English and Japanese only.
+  - `'fast'` - Low latency, shorter excerpts.
+  - `'basic'` - Balanced latency and excerpt depth (default).
+  - `'advanced'` - Most thorough retrieval, higher latency.
+
+  `'one-shot'` and `'agentic'` are deprecated but still accepted: `'one-shot'` runs as `'basic'` and `'agentic'` runs as `'advanced'`.
 
 - **maxResults** _number_
 
@@ -1283,20 +1297,34 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-  - `includeDomains` - List of domains to include in search results
-  - `excludeDomains` - List of domains to exclude from search results
-  - `afterDate` - Only include results published after this date (ISO 8601 format)
+  - `includeDomains` - Domains or domain/path prefixes to include, such as `'wikipedia.org'` or `'docs.python.org/3'`. When set, `excludeDomains` is ignored.
+  - `excludeDomains` - Domains or domain/path prefixes to exclude
+  - `afterDate` - Only include results published on or after this date (`YYYY-MM-DD`)
+
+  The include and exclude lists can hold up to 200 entries combined.
+
+- **maxCharsTotal** _number_
+
+  Maximum total characters across all result excerpts.
 
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
   - `maxCharsPerResult` - Maximum characters per result
-  - `maxCharsTotal` - Maximum total characters across all results
+  - `maxCharsTotal` - Deprecated; use the top-level `maxCharsTotal`
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-  - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
+  - `maxAgeSeconds` - Maximum age of cached content, in seconds, before a live fetch is attempted. Minimum 600; lower values are raised to 600.
+  - `timeoutSeconds` - Timeout for a live fetch, in seconds. The gateway caps it to stay within its own tool timeout.
+  - `disableCacheFallback` - Return an error instead of older cached content when a live fetch fails. Defaults to `false`.
+
+- **location** _string_
+
+  ISO 3166-1 alpha-2 country code to localize results, such as `'us'`. Invalid codes are ignored with a warning.
+
+Each tool result contains a `search_id` and `results`, ordered by decreasing relevance, and may include a `session_id`. Each result has a `url`, a `title`, a `publish_date` (both may be `null`), and `excerpts` (an array of markdown strings). The result can also include `warnings`, for example when an invalid `location` is ignored.
 
 The tool works with both `generateText` and `streamText`:
 
@@ -1403,7 +1431,7 @@ import { gateway, streamText } from 'ai';
 
 // 1. Make requests with tags
 const result = streamText({
-  model: gateway('anthropic/claude-haiku-4.5'),
+  model: gateway('anthropic/claude-haiku-5.5'),
   prompt: 'Summarize this quarter's results',
   providerOptions: {
     gateway: {
@@ -1478,7 +1506,7 @@ The following gateway provider options are available:
 
 - **models** _string[] | [GatewayModelFallback, ...string[]]_
 
-  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Evaluation requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain evaluation with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-evaluation requests.
+  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
 
@@ -1616,15 +1644,15 @@ const { text } = await generateText({
 // 4. Return the result from the first model that succeeds
 ```
 
-#### Conditional Evaluation Fallbacks Example
+#### Conditional Decision Fallbacks Example
 
-Conditional model entries are available only for evaluation requests. Keep the
-configuration under `providerOptions.gateway.models`. `experimental_evaluate`
+Conditional model entries are available only for decision requests. Keep the
+configuration under `providerOptions.gateway.models`. `experimental_decide`
 does not have a top-level fallback option.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
 const questions = {
   department: {
@@ -1638,7 +1666,7 @@ const questions = {
   },
 } as const;
 
-const result = await experimental_evaluate({
+const result = await experimental_decide({
   model: 'typesafe-ai/jev',
   state: 'I was charged twice. Please refund the duplicate.',
   questions,

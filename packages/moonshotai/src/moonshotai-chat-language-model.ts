@@ -36,7 +36,7 @@ import { mapMoonshotAIFinishReason } from './map-moonshotai-finish-reason';
 import {
   moonshotAIChatChunkSchema,
   moonshotAIChatResponseSchema,
-  moonshotAIErrorSchema,
+  moonshotAIErrorSchemaValidator,
   type MoonshotAIChatLogprob,
   type MoonshotAIChatTokenUsage,
 } from './moonshotai-chat-api-types';
@@ -141,7 +141,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     this.config = config;
 
     this.failedResponseHandler = createJsonErrorResponseHandler({
-      errorSchema: moonshotAIErrorSchema,
+      errorSchema: moonshotAIErrorSchemaValidator,
       errorToMessage: error => error.error.message,
     });
   }
@@ -277,6 +277,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'max',
+                  max: 'max',
                 },
                 warnings: allWarnings,
               })
@@ -380,6 +381,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'max',
+                  max: 'max',
                 },
                 warnings: allWarnings,
               })
@@ -585,8 +587,9 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let topLevelUsage: MoonshotAIChatTokenUsage | undefined = undefined;

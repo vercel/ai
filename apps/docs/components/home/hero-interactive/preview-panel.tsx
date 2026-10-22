@@ -10,6 +10,7 @@ import {
   type Provider,
 } from '@/lib/home/code-examples';
 import { IMAGE_SRC, VIDEO_SRC } from '../media-assets';
+import { DecisionPreview } from './decision-generation';
 import { ImageGenerationPreview } from './image-generation';
 import { AudioPlayer } from './speech-generation';
 import { ChatBubble } from './text-generation';
@@ -114,6 +115,15 @@ export function PreviewPanel({
             key={animationKey}
           >
             <TranscriptionPlayer animationKey={animationKey} />
+          </div>
+        );
+      case 'decision':
+        return (
+          <div
+            className="flex flex-1 animate-[slideUpFadeIn_500ms_ease-out_both] items-start p-6"
+            key={animationKey}
+          >
+            <DecisionPreview animationKey={animationKey} />
           </div>
         );
       default:

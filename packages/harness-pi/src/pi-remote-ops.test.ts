@@ -6,6 +6,7 @@ import {
   mkdtemp,
   readFile,
   rm,
+  symlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,10 +14,13 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
-import { createPiPathMapper } from './pi-paths';
-import { createPiRemoteOps } from './pi-remote-ops';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
+import {
+  createPiRemoteOps,
+  resolvePiSandboxPathOrParent,
+} from './pi-remote-ops';
 
 type RunCalls = Array<{
   command: string;
@@ -100,24 +104,24 @@ function mockRealpathCommand(
     return undefined;
   }
 
-  const target = command.match(/target='([^']+)'/)?.[1];
-  if (!target) {
-    return undefined;
-  }
-
-  const resolvedPath = resolvePath?.(target) ?? target;
-  if (resolvedPath === null) {
-    return { stdout: '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
-  }
+  const targets = [...command.matchAll(/target='([^']+)'/g)].map(
+    match => match[1]!,
+  );
+  if (targets.length === 0) return undefined;
   const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
-  const resolvedBytes =
-    resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
-  const outputPath = command.includes('base64')
-    ? Buffer.from(resolvedBytes).toString('base64')
-    : new TextDecoder().decode(resolvedBytes);
-  return {
-    stdout: frame == null ? `${resolvedPath}\n` : `${outputPath}${frame}`,
-  };
+  let stdout = '';
+  for (const target of targets) {
+    const resolvedPath = resolvePath ? resolvePath(target) : target;
+    if (resolvedPath === null)
+      return { stdout: stdout + '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
+    const resolvedBytes =
+      resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
+    const outputPath = command.includes('base64')
+      ? Buffer.from(resolvedBytes).toString('base64')
+      : new TextDecoder().decode(resolvedBytes);
+    stdout += frame == null ? resolvedPath + '\n' : outputPath + frame;
+  }
+  return { stdout };
 }
 
 const hostWorkDir = '/tmp/pi-test-host';
@@ -136,9 +140,9 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
 
 describe('createPiRemoteOps with just-bash', () => {
   it('supports file operations with the seeded realpath command', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -172,9 +176,9 @@ describe('createPiRemoteOps with just-bash', () => {
   });
 
   it('resolves chained workspace symlinks for file operations', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -400,9 +404,9 @@ describe('createPiRemoteOps with just-bash', () => {
   });
 
   it('rejects intermediate workspace symlinks outside readable roots', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -454,9 +458,9 @@ describe('createPiRemoteOps with just-bash', () => {
 });
 
 async function makeJustBashOps() {
-  const sandboxSession = await createJustBashSandbox({
+  const sandboxSession = await createJustBashNetworkSandboxSession({
     cwd: sandboxWorkDir,
-  }).createSession();
+  });
   const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
@@ -660,6 +664,48 @@ describe('createPiRemoteOps.readBuffer', () => {
     expect(env.readCalls).toEqual([]);
     expect(env.writeCalls).toEqual([]);
   });
+
+  it.each([
+    { name: 'malformed base64', record: 'not-base64!' },
+    { name: 'invalid UTF-8', record: Buffer.from([0xff]).toString('base64') },
+    {
+      name: 'relative path',
+      record: Buffer.from('relative').toString('base64'),
+    },
+  ])(
+    'rejects a later configured root record with $name',
+    async ({ record }) => {
+      const root = '/tmp/pi-artifacts';
+      const { sandbox, readCalls, writeCalls } = makeMockSandbox({});
+      vi.mocked(sandbox.run).mockResolvedValue({
+        exitCode: 0,
+        stdout: [
+          Buffer.from(`${sandboxWorkDir}/notes.txt`).toString('base64'),
+          Buffer.from(sandboxWorkDir).toString('base64'),
+          record,
+          '',
+        ].join('__PI_REALPATH_FRAME__'),
+        stderr: '',
+      });
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          writableRoots: [root],
+        }),
+      });
+
+      await expect(ops.readBuffer('notes.txt')).rejects.toThrow(
+        `Unable to resolve path: ${root}`,
+      );
+      await expect(ops.writeFile('notes.txt', 'blocked')).rejects.toThrow(
+        `Unable to resolve path: ${root}`,
+      );
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+    },
+  );
 
   it('rejects invalid UTF-8 paths from native shell output', async () => {
     const workDir = await mkdtemp(path.join(tmpdir(), 'pi-invalid-path-'));
@@ -1120,5 +1166,481 @@ describe('createPiRemoteOps.exec', () => {
     } finally {
       setTimeoutSpy.mockRestore();
     }
+  });
+});
+
+async function makePathPolicyFixture() {
+  const root = realpathSync.native(
+    await mkdtemp(path.join(tmpdir(), 'pi-path-policy-')),
+  );
+  const workspace = path.join(root, 'workspace');
+  const home = path.join(root, 'home');
+  const denied = path.join(home, 'credentials');
+  const dotDenied = path.join(home, '..private');
+  await mkdir(path.join(workspace, 'private'), { recursive: true });
+  await mkdir(path.join(workspace, 'private', '..backup'));
+  await mkdir(path.join(home, 'docs'), { recursive: true });
+  await mkdir(denied);
+  await mkdir(dotDenied);
+  await writeFile(path.join(workspace, 'main.txt'), 'needle workspace\n');
+  await writeFile(
+    path.join(workspace, 'private', '..backup', 'token.txt'),
+    'needle backup\n',
+  );
+  await writeFile(path.join(home, 'docs', 'notes.txt'), 'needle notes\n');
+  await writeFile(path.join(denied, 'token.txt'), 'needle token\n');
+  await writeFile(path.join(dotDenied, 'token.txt'), 'needle dotted secret\n');
+
+  const readCalls: string[] = [];
+  const writeCalls: WriteCalls = [];
+  const ops = createPiRemoteOps({
+    sandbox: createNativeFileSandbox({ readCalls, writeCalls }),
+    paths: createPiPathMapper({
+      hostWorkDir: path.join(root, 'host-mirror'),
+      sandboxWorkDir: workspace,
+      readableRoots: [{ sandboxDir: home }],
+      deniedRoots: [denied, dotDenied, path.join(workspace, 'private')],
+    }),
+  });
+
+  return {
+    workspace,
+    home,
+    denied,
+    dotDenied,
+    ops,
+    readCalls,
+    writeCalls,
+    cleanup: () => rm(root, { recursive: true, force: true }),
+  };
+}
+
+describe('createPiRemoteOps with denied roots', () => {
+  it('refuses a symlinked denied root through its canonical workspace path', async () => {
+    const root = realpathSync.native(
+      await mkdtemp(path.join(tmpdir(), 'pi-denied-link-')),
+    );
+    const workspace = path.join(root, 'workspace');
+    const home = path.join(root, 'home');
+    const target = path.join(workspace, 'private');
+    const alias = path.join(home, 'blocked');
+    const readCalls: string[] = [];
+    const writeCalls: WriteCalls = [];
+
+    try {
+      await mkdir(target, { recursive: true });
+      await mkdir(home);
+      await writeFile(path.join(target, 'notes.txt'), 'needle private\n');
+      await writeFile(path.join(workspace, 'public.txt'), 'needle public\n');
+      await writeFile(
+        path.join(workspace, 'private-copy.txt'),
+        'needle copy\n',
+      );
+      await symlink(target, alias);
+
+      const sandbox = createNativeFileSandbox({ readCalls, writeCalls });
+      const canonicalRoot = await resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      });
+      expect(canonicalRoot).toBe(target);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir: path.join(root, 'host-mirror'),
+          sandboxWorkDir: workspace,
+          readableRoots: [{ sandboxDir: home }],
+          deniedRoots: [alias, canonicalRoot],
+        }),
+      });
+
+      await expect(ops.readBuffer('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        ops.readBuffer(path.join(alias, 'notes.txt')),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(ops.access('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.listDirectory('private')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.findFiles('*.txt', 'private')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        ops.grepFiles('needle', { path: 'private', literal: true }),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        ops.writeFile('private/new.txt', 'new private\n'),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        ops.editFile('private/notes.txt', 'private', 'changed'),
+      ).rejects.toThrow(/inside a denied root/);
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+
+      await expect(ops.findFiles('*.txt', '.')).resolves.toEqual([
+        'private-copy.txt',
+        'public.txt',
+      ]);
+      const output = await ops.grepFiles('needle', { literal: true });
+      expect(output).toContain('public.txt:1:needle public');
+      expect(output).toContain('private-copy.txt:1:needle copy');
+      expect(output).not.toContain('needle private');
+      await expect(ops.readBuffer('private-copy.txt')).resolves.toEqual(
+        Buffer.from('needle copy\n'),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('refuses to read a path inside a denied root', async () => {
+    const fixture = await makePathPolicyFixture();
+    try {
+      await expect(
+        fixture.ops.readBuffer(path.join(fixture.denied, 'token.txt')),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(fixture.ops.listDirectory(fixture.denied)).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        fixture.ops.readBuffer('private/..backup/token.txt'),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.readBuffer(path.join(fixture.dotDenied, 'token.txt')),
+      ).rejects.toThrow(/inside a denied root/);
+      expect(fixture.readCalls).toEqual([]);
+      await expect(
+        fixture.ops.readBuffer(path.join(fixture.home, 'docs', 'notes.txt')),
+      ).resolves.toEqual(Buffer.from('needle notes\n'));
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+
+  it('refuses to read through a symlink into a denied root', async () => {
+    const fixture = await makePathPolicyFixture();
+    try {
+      await symlink(
+        path.join(fixture.denied, 'token.txt'),
+        path.join(fixture.workspace, 'token-link.txt'),
+      );
+      await symlink(fixture.denied, path.join(fixture.home, 'alias'));
+
+      await expect(fixture.ops.readBuffer('token-link.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        fixture.ops.readBuffer(path.join(fixture.home, 'alias', 'token.txt')),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.findFiles('*.txt', path.join(fixture.home, 'alias')),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.grepFiles('needle', {
+          path: path.join(fixture.home, 'alias'),
+        }),
+      ).rejects.toThrow(/inside a denied root/);
+      expect(fixture.readCalls).toEqual([]);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+
+  it('refuses to write inside a denied root', async () => {
+    const fixture = await makePathPolicyFixture();
+    try {
+      await expect(
+        fixture.ops.writeFile('private/journal.txt', 'overwritten\n'),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.writeFile('private/..backup/new.txt', 'overwritten\n'),
+      ).rejects.toThrow(/inside a denied root/);
+      expect(fixture.writeCalls).toEqual([]);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+
+  it('skips denied roots when finding and searching files', async () => {
+    const fixture = await makePathPolicyFixture();
+    try {
+      await symlink(fixture.denied, path.join(fixture.home, 'alias'));
+      await mkdir(path.join(fixture.home, 'docs', 'credentials'));
+      await writeFile(
+        path.join(fixture.home, 'docs', 'credentials', 'public.txt'),
+        'needle nested public\n',
+      );
+      await mkdir(path.join(fixture.workspace, 'credentials'));
+      await writeFile(
+        path.join(fixture.workspace, 'credentials', 'public.txt'),
+        'needle public\n',
+      );
+
+      await expect(
+        fixture.ops.findFiles('**/*.txt', fixture.home),
+      ).resolves.toEqual(['docs/credentials/public.txt', 'docs/notes.txt']);
+      await expect(
+        fixture.ops.findFiles('..private/*.txt', fixture.home),
+      ).resolves.toEqual([]);
+
+      const output = await fixture.ops.grepFiles('needle', {
+        path: fixture.home,
+        literal: true,
+      });
+      expect(output).toContain('notes.txt:1:needle notes');
+      expect(output).toContain(
+        'docs/credentials/public.txt:1:needle nested public',
+      );
+      expect(output).not.toContain('needle token');
+      expect(output).not.toContain('needle dotted secret');
+
+      await expect(
+        fixture.ops.grepFiles('needle', { literal: true }),
+      ).resolves.toContain('credentials/public.txt:1:needle public');
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+
+  it('skips denied roots in the per-file grep fallback', async () => {
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
+    const sandbox = session.restricted();
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${sandboxWorkDir}/docs ${sandboxWorkDir}/private ${sandboxWorkDir}/..private`,
+          `printf 'needle notes\\n' > ${sandboxWorkDir}/docs/notes.txt`,
+          `printf 'needle token\\n' > ${sandboxWorkDir}/private/token.txt`,
+          `printf 'needle dotted secret\\n' > ${sandboxWorkDir}/..private/token.txt`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          deniedRoots: [
+            `${sandboxWorkDir}/private`,
+            `${sandboxWorkDir}/..private`,
+          ],
+        }),
+      });
+
+      await expect(ops.findFiles('**/*.txt', '.')).resolves.toEqual([
+        'docs/notes.txt',
+      ]);
+      await expect(ops.findFiles('..private/*.txt', '.')).resolves.toEqual([]);
+      const output = await ops.grepFiles('needle', { literal: true });
+      expect(output).toContain('docs/notes.txt:1:needle notes');
+      expect(output).not.toContain('needle token');
+      expect(output).not.toContain('needle dotted secret');
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('resolves denied symlinks and excludes their targets in just-bash', async () => {
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
+    const sandbox = session.restricted();
+    const target = `${sandboxWorkDir}/private`;
+    const alias = `${sandboxWorkDir}/blocked`;
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${target}`,
+          `printf 'needle private\\n' > ${target}/notes.txt`,
+          `printf 'needle public\\n' > ${sandboxWorkDir}/public.txt`,
+          `ln -s private ${alias}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const canonicalRoot = await resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      });
+      expect(canonicalRoot).toBe(target);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          deniedRoots: [alias, canonicalRoot],
+        }),
+      });
+
+      await expect(ops.readBuffer('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.findFiles('*.txt', '.')).resolves.toEqual([
+        'public.txt',
+      ]);
+      const output = await ops.grepFiles('needle', { literal: true });
+      expect(output).toContain('public.txt:1:needle public');
+      expect(output).not.toContain('needle private');
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('resolves a missing denied directory beneath a symlinked parent', async () => {
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
+    const sandbox = session.restricted();
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${sandboxWorkDir}/actual`,
+          `ln -s actual ${sandboxWorkDir}/link`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const alias = `${sandboxWorkDir}/link/future/private`;
+      await expect(
+        resolvePiSandboxPathOrParent({
+          sandbox,
+          remotePath: alias,
+          inputPath: alias,
+        }),
+      ).resolves.toBe(`${sandboxWorkDir}/actual/future/private`);
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('refuses malformed canonical denied paths from the sandbox', async () => {
+    const alias = `${sandboxWorkDir}/blocked`;
+    const { sandbox } = makeMockSandbox({
+      realpathBytes: () => Uint8Array.of(0xff),
+    });
+
+    await expect(
+      resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      }),
+    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
+  });
+  it('keeps the stock find and grep commands without a policy', async () => {
+    const env = makeOps({ run: () => ({ stdout: '' }) });
+    await env.ops.findFiles('*.ts', '.');
+    await env.ops.grepFiles('needle', {}).catch(() => {});
+
+    const commands = env.runCalls.map(call => call.command).join('\n');
+    expect(commands).toContain(`find '${sandboxWorkDir}' -type f -print`);
+    expect(commands).toContain("'-r' '-n' '-m' '100' -e 'needle' '.'");
+    expect(commands).toContain("find '.' -type f -exec");
+    expect(commands).not.toContain('-prune');
+  });
+});
+
+describe('createPiRemoteOps configured writable roots', () => {
+  function makePolicyOps(input: {
+    behaviors: Parameters<typeof makeMockSandbox>[0];
+    policy: PiFileToolPathPolicy;
+    onFileChange?: Parameters<typeof createPiRemoteOps>[0]['onFileChange'];
+  }) {
+    const env = makeMockSandbox(input.behaviors);
+    const paths = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      readableRoots: input.policy.readableRoots?.map(sandboxDir => ({
+        sandboxDir,
+      })),
+      writableRoots: input.policy.writableRoots,
+      deniedRoots: input.policy.deniedRoots,
+    });
+    return {
+      ...env,
+      ops: createPiRemoteOps({
+        sandbox: env.sandbox,
+        paths,
+        onFileChange: input.onFileChange,
+      }),
+    };
+  }
+
+  it('batches configured roots and the target in one sandbox call', async () => {
+    const env = makePolicyOps({
+      behaviors: { readBinary: () => Buffer.from('reference') },
+      policy: {
+        readableRoots: ['/mnt/reference', '/mnt/other-reference'],
+        writableRoots: ['/tmp'],
+        deniedRoots: ['/tmp/private'],
+      },
+    });
+    await env.ops.readBuffer('/mnt/reference/info.txt');
+    expect(env.runCalls).toHaveLength(1);
+    expect(env.runCalls[0]!.command).toContain("target='/mnt/reference'");
+    expect(env.runCalls[0]!.command).toContain("target='/tmp/private'");
+  });
+
+  it('allows external writes and edits without workspace file-change events', async () => {
+    const onFileChange = vi.fn();
+    const env = makePolicyOps({
+      behaviors: {
+        readBinary: filePath =>
+          filePath === '/tmp/existing.txt' ? Buffer.from('old value') : null,
+      },
+      policy: {
+        readableRoots: ['/mnt/reference'],
+        writableRoots: ['/tmp'],
+        deniedRoots: ['/tmp/private'],
+      },
+      onFileChange,
+    });
+    await env.ops.writeFile('/tmp/new.txt', 'new value');
+    await expect(
+      env.ops.editFile('/tmp/existing.txt', 'old', 'updated'),
+    ).resolves.toBe('updated value');
+    expect(env.writeCalls).toEqual([
+      { path: '/tmp/new.txt', content: 'new value' },
+      { path: '/tmp/existing.txt', content: 'updated value' },
+    ]);
+    expect(onFileChange).not.toHaveBeenCalled();
+    await expect(
+      env.ops.writeFile('/mnt/reference/no-write.txt', 'no'),
+    ).rejects.toThrow(/escapes the workspace/);
+    await expect(env.ops.readBuffer('/tmp/private/token')).rejects.toThrow(
+      /inside a denied root/,
+    );
+  });
+
+  it('rechecks missing write paths through their canonical parents', async () => {
+    const env = makePolicyOps({
+      behaviors: {
+        realpath: filePath =>
+          filePath === '/tmp/link/missing/output.json'
+            ? '/etc/missing/output.json'
+            : filePath,
+      },
+      policy: { writableRoots: ['/tmp'] },
+    });
+    await expect(
+      env.ops.writeFile('/tmp/link/missing/output.json', '{}'),
+    ).rejects.toThrow(/escapes the workspace/);
+    expect(env.writeCalls).toEqual([]);
+    expect(env.runCalls[0]!.command).toContain(
+      'while [ ! -e "$dir" ] && [ ! -L "$dir" ]',
+    );
   });
 });

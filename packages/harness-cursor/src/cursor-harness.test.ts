@@ -15,10 +15,11 @@ describe('createCursor', () => {
     mocks.createACP.mockClear();
   });
 
-  it('enforces the Cursor ACP implementation', () => {
+  it('enforces the Cursor ACP agent', () => {
     createCursor();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toEqual(['image']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,

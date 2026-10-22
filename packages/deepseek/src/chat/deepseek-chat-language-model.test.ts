@@ -676,6 +676,23 @@ describe('DeepSeekChatLanguageModel', () => {
         });
       });
 
+      it('should map top-level reasoning max directly to reasoning_effort max', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'max',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
+      });
+
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
         const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
@@ -1299,6 +1316,50 @@ describe('DeepSeekChatLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      ['missing', 'interrupted'],
+      ['unknown_reason', 'other'],
+      ['invalid-json', 'error'],
+    ] as const)(
+      'handles a stream ending with %s as %s',
+      async (ending, unified) => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+            ...(ending === 'missing'
+              ? []
+              : ending === 'invalid-json'
+                ? ['data: {invalid-json}\n\n']
+                : [
+                    `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                  ]),
+          ],
+        };
+        const { stream } = await provider
+          .chat('deepseek-chat')
+          .doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          ending === 'invalid-json' ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified,
+              raw: ending === 'unknown_reason' ? ending : undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')

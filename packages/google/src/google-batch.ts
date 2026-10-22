@@ -78,35 +78,38 @@ function assertSupportedBatchRequests(
   }
 }
 
-const googleRpcStatusSchema = z.object({
-  code: z.union([z.number(), z.string()]).nullish(),
-  message: z.string().nullish(),
-  status: z.string().nullish(),
-});
+const googleRpcStatusSchema = () =>
+  z.object({
+    code: z.union([z.number(), z.string()]).nullish(),
+    message: z.string().nullish(),
+    status: z.string().nullish(),
+  });
 
-const googleBatchStatsSchema = z.object({
-  requestCount: z.union([z.string(), z.number()]).nullish(),
-  successfulRequestCount: z.union([z.string(), z.number()]).nullish(),
-  failedRequestCount: z.union([z.string(), z.number()]).nullish(),
-  pendingRequestCount: z.union([z.string(), z.number()]).nullish(),
-});
+const googleBatchStatsSchema = () =>
+  z.object({
+    requestCount: z.union([z.string(), z.number()]).nullish(),
+    successfulRequestCount: z.union([z.string(), z.number()]).nullish(),
+    failedRequestCount: z.union([z.string(), z.number()]).nullish(),
+    pendingRequestCount: z.union([z.string(), z.number()]).nullish(),
+  });
 
-const googleBatchOutputSchema = z.object({
-  responsesFile: z.string().nullish(),
-  inlinedResponses: z
-    .object({
-      inlinedResponses: z.array(
-        z.object({
-          metadata: z.object({
-            key: z.string(),
+const googleBatchOutputSchema = () =>
+  z.object({
+    responsesFile: z.string().nullish(),
+    inlinedResponses: z
+      .object({
+        inlinedResponses: z.array(
+          z.object({
+            metadata: z.object({
+              key: z.string(),
+            }),
+            response: z.unknown().nullish(),
+            error: googleRpcStatusSchema().nullish(),
           }),
-          response: z.unknown().nullish(),
-          error: googleRpcStatusSchema.nullish(),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        ),
+      })
+      .nullish(),
+  });
 
 const googleBatchOperationZodSchema = () =>
   z.object({
@@ -115,13 +118,13 @@ const googleBatchOperationZodSchema = () =>
       .object({
         state: z.string().nullish(),
         createTime: z.string().nullish(),
-        batchStats: googleBatchStatsSchema.nullish(),
-        output: googleBatchOutputSchema.nullish(),
+        batchStats: googleBatchStatsSchema().nullish(),
+        output: googleBatchOutputSchema().nullish(),
       })
       .nullish(),
     done: z.boolean().nullish(),
-    error: googleRpcStatusSchema.nullish(),
-    response: googleBatchOutputSchema.nullish(),
+    error: googleRpcStatusSchema().nullish(),
+    response: googleBatchOutputSchema().nullish(),
   });
 
 const googleBatchOperationSchema = lazySchema(() =>
@@ -159,7 +162,7 @@ const googleBatchResultLineSchema = lazySchema(() =>
     z.object({
       key: z.string(),
       response: z.unknown().nullish(),
-      error: googleRpcStatusSchema.nullish(),
+      error: googleRpcStatusSchema().nullish(),
     }),
   ),
 );
@@ -185,16 +188,19 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
   readonly supportedUrls: Record<string, RegExp[]>;
   private readonly batchConfig: GoogleLanguageModelConfig;
   private readonly batchGenerateId: () => string;
+  private readonly maxLineBytes?: number;
 
   constructor(options: {
     provider: string;
     config: GoogleLanguageModelConfig;
     supportedUrls: Record<string, RegExp[]>;
+    maxLineBytes?: number;
   }) {
     this.provider = options.provider;
     this.batchConfig = options.config;
     this.supportedUrls = options.supportedUrls;
     this.batchGenerateId = options.config.generateId ?? generateId;
+    this.maxLineBytes = options.maxLineBytes;
   }
 
   async doStartBatch(
@@ -511,6 +517,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         googleBatchResultLineSchema,
+        { maxLineBytes: this.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.batchConfig.fetch,
@@ -868,7 +875,7 @@ function parseCount(value: string | number | null | undefined) {
 }
 
 function convertGoogleRpcError(
-  error: InferSchema<typeof googleRpcStatusSchema>,
+  error: InferSchema<ReturnType<typeof googleRpcStatusSchema>>,
   fallbackMessage: string,
 ): BatchV4Error {
   return {

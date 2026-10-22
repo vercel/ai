@@ -715,9 +715,9 @@ describe('doGenerate', () => {
       expect(usage).toMatchInlineSnapshot(`
         {
           "inputTokens": {
-            "cacheRead": undefined,
+            "cacheRead": 448,
             "cacheWrite": undefined,
-            "noCache": 507,
+            "noCache": 59,
             "total": 507,
           },
           "outputTokens": {
@@ -773,8 +773,8 @@ describe('doGenerate', () => {
       expect(usage).toStrictEqual({
         inputTokens: {
           total: 507,
-          noCache: 507,
-          cacheRead: undefined,
+          noCache: 59,
+          cacheRead: 448,
           cacheWrite: undefined,
         },
         outputTokens: {
@@ -852,6 +852,44 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/cohere-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.type === 'content-delta',
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+          ...(withError ? ['data: {invalid-json}\n\n'] : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-text');
@@ -928,8 +966,8 @@ describe('doStream', () => {
           usage: {
             inputTokens: {
               total: 507,
-              noCache: 507,
-              cacheRead: undefined,
+              noCache: 59,
+              cacheRead: 448,
               cacheWrite: undefined,
             },
             outputTokens: {

@@ -1,5 +1,118 @@
 # @ai-sdk/provider-utils
 
+## 5.0.65
+
+### Patch Changes
+
+- b089ce8: Block `.internal` hostnames in download URL validation.
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+
+## 5.0.64
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 200c47f: Avoid retaining oversized backing buffers when reading response bodies, reducing memory usage for responses delivered in small chunks on runtimes such as Deno.
+- Updated dependencies [0c2a9de]
+  - @ai-sdk/provider@4.0.31
+
+## 5.0.63
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+
+## 5.0.62
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+
+## 5.0.60
+
+### Patch Changes
+
+- 2e89fa4: fix(provider-utils): keep case-sensitive url paths and query values
+
+## 5.0.59
+
+### Patch Changes
+
+- 9667bf2: docs(provider-utils): clarify how `ToolApprovalResponse.reason` is handled for approved and denied tool calls
+- 81663cc: fix(provider-utils): accept exact criteria labels in decision choice responses
+- Updated dependencies [e57803c]
+  - @ai-sdk/provider@4.0.27
+
+## 5.0.58
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+
+## 5.0.57
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+
+## 5.0.56
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+
+## 5.0.55
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 5094ebd: fix(provider-utils): preserve parallel tool calls when stream labels are missing or reused
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [268225c]
+  - @ai-sdk/provider@4.0.23
+
+## 5.0.54
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+  - @ai-sdk/provider@4.0.22
+
 ## 5.0.53
 
 ### Patch Changes

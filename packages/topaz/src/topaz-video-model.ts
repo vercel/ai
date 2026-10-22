@@ -9,6 +9,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -778,30 +780,39 @@ function buildFilter(
 }
 
 // `cost` (credits) and `time` (seconds) are [lowerBound, upperBound] pairs.
-const topazVideoEstimatesSchema = z
-  .object({
-    cost: z.array(z.number()).nullish(),
-    time: z.array(z.number()).nullish(),
-  })
-  .nullish();
-
-const topazVideoExpressResponseSchema = z.object({
-  requestId: z.string().nullish(),
-  uploadUrls: z.array(z.string()).nullish(),
-  estimates: topazVideoEstimatesSchema,
-});
-
-const topazVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  message: z.string().nullish(),
-  errorCode: z.string().nullish(),
-  // Documented as a string, accepted as a number too.
-  outputSize: z.union([z.string(), z.number()]).nullish(),
-  estimates: topazVideoEstimatesSchema,
-  download: z
+const topazVideoEstimatesSchema = () =>
+  z
     .object({
-      url: z.string().nullish(),
-      expiresAt: z.union([z.string(), z.number()]).nullish(),
+      cost: z.array(z.number()).nullish(),
+      time: z.array(z.number()).nullish(),
     })
-    .nullish(),
-});
+    .nullish();
+
+const topazVideoExpressResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      requestId: z.string().nullish(),
+      uploadUrls: z.array(z.string()).nullish(),
+      estimates: topazVideoEstimatesSchema(),
+    }),
+  ),
+);
+
+const topazVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      message: z.string().nullish(),
+      errorCode: z.string().nullish(),
+      // Documented as a string, accepted as a number too.
+      outputSize: z.union([z.string(), z.number()]).nullish(),
+      estimates: topazVideoEstimatesSchema(),
+      download: z
+        .object({
+          url: z.string().nullish(),
+          expiresAt: z.union([z.string(), z.number()]).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);

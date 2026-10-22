@@ -3,6 +3,7 @@
 # and features. It uses `minor` for "marketing releases", accompanied by a blog post and migration guide.
 # This workflow verifies that all `.changeset/*.md` files use `patch` unless a `minor` or `major` label is present.
 # It also verifies that code changes in public `packages/*` packages are covered by changeset entries.
+# Package-level scripts, examples, docs, and test files do not require changesets.
 name: Verify Changesets
 
 on:

@@ -349,6 +349,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 medium: 'medium',
                 high: 'high',
                 xhigh: 'xhigh',
+                max: 'max',
               },
               warnings,
             })
@@ -654,8 +655,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     let activeReasoningId: string | undefined;
     let hasToolCalls = false;
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     const toolCallsByItemId = new Map<
@@ -690,6 +692,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!parseResult.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: parseResult.error });
               return;
             }
@@ -711,6 +714,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                       part.type === 'tool-input-start';
                   }
                 } catch (error) {
+                  finishReason = { unified: 'error', raw: undefined };
                   controller.enqueue({ type: 'error', error });
                 }
                 return;
@@ -859,6 +863,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                   hasToolCalls ||= part.type === 'tool-call';
                 }
               } catch (error) {
+                finishReason = { unified: 'error', raw: undefined };
                 controller.enqueue({ type: 'error', error });
               }
             }

@@ -1,13 +1,15 @@
 import type { SessionUpdate, ToolCallUpdate } from '@agentclientprotocol/sdk';
+import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
-
-type HostToolCall = {
-  readonly toolName: string;
-  readonly input: Readonly<Record<string, unknown>>;
-};
+import { mergeObservedToolCall } from './merge-observed-tool-call';
+import {
+  resolveHostToolCall,
+  type HostToolCall,
+} from './resolve-host-tool-call';
 
 type ObservedCall = {
-  toolCall: ToolCallUpdate;
+  toolCall?: ACPToolCall;
+  permissionCall?: HostToolCall;
   consumed: boolean;
   terminal: boolean;
 };
@@ -24,7 +26,10 @@ export function createHostToolRelayAuthorization({
   ttlMs?: number;
 }): {
   observeUpdate(options: { update: SessionUpdate }): void;
-  observeAllowedPermission(options: { toolCall: ToolCallUpdate }): void;
+  authorizePermission(options: {
+    toolCallId: string;
+    call: HostToolCall;
+  }): void;
   waitForToolCallAuthorization(options: HostToolCall): Promise<boolean>;
   close(): void;
 } {
@@ -37,29 +42,46 @@ export function createHostToolRelayAuthorization({
   }> = [];
   let closed = false;
 
+  const authorizeCall = ({
+    toolCallId,
+    call,
+    observed,
+  }: {
+    toolCallId: string;
+    call: HostToolCall;
+    observed: ObservedCall;
+  }) => {
+    const key = callKey(call);
+    authorizations.set(toolCallId, key);
+    const pendingIndex = pendingRequests.findIndex(
+      request => request.key === key,
+    );
+    if (pendingIndex !== -1) {
+      const [pending] = pendingRequests.splice(pendingIndex, 1);
+      clearTimeout(pending.timeout);
+      authorizations.delete(toolCallId);
+      observed.consumed = true;
+      pending.resolve(true);
+    }
+  };
+
   const observe = ({ toolCall }: { toolCall: ToolCallUpdate }) => {
     if (closed) return;
     const previous = observedCalls.get(toolCall.toolCallId);
     if (previous?.consumed || previous?.terminal) return;
-    const merged: ToolCallUpdate = {
-      ...previous?.toolCall,
-      ...toolCall,
-      ...(toolCall.name == null && previous?.toolCall.name != null
-        ? { name: previous.toolCall.name }
-        : {}),
-      ...(toolCall.rawInput === undefined &&
-      previous?.toolCall.rawInput !== undefined
-        ? { rawInput: previous.toolCall.rawInput }
-        : {}),
-      ...(toolCall.title == null && previous?.toolCall.title != null
-        ? { title: previous.toolCall.title }
-        : {}),
-      ...(toolCall._meta == null && previous?.toolCall._meta != null
-        ? { _meta: previous.toolCall._meta }
-        : {}),
-    };
+    const merged = mergeObservedToolCall({
+      previous: previous?.toolCall,
+      update: toolCall,
+    });
+    const permissionCall =
+      toolCall.name == null &&
+      toolCall.rawInput === undefined &&
+      toolCall._meta === undefined
+        ? previous?.permissionCall
+        : undefined;
     const observed: ObservedCall = {
       toolCall: merged,
+      permissionCall,
       consumed: false,
       terminal: merged.status === 'completed' || merged.status === 'failed',
     };
@@ -69,27 +91,18 @@ export function createHostToolRelayAuthorization({
       return;
     }
 
-    const call = resolveHostToolCall({
-      toolCall: merged,
-      serverName,
-      toolNames,
-    });
+    const call =
+      permissionCall ??
+      resolveHostToolCall({
+        toolCall: merged,
+        serverName,
+        toolNames,
+      });
     if (call == null) {
       authorizations.delete(toolCall.toolCallId);
       return;
     }
-    const key = callKey(call);
-    authorizations.set(toolCall.toolCallId, key);
-    const pendingIndex = pendingRequests.findIndex(
-      request => request.key === key,
-    );
-    if (pendingIndex !== -1) {
-      const [pending] = pendingRequests.splice(pendingIndex, 1);
-      clearTimeout(pending.timeout);
-      authorizations.delete(toolCall.toolCallId);
-      observed.consumed = true;
-      pending.resolve(true);
-    }
+    authorizeCall({ toolCallId: toolCall.toolCallId, call, observed });
   };
 
   return {
@@ -101,7 +114,19 @@ export function createHostToolRelayAuthorization({
         observe({ toolCall: update });
       }
     },
-    observeAllowedPermission: ({ toolCall }) => observe({ toolCall }),
+    authorizePermission: ({ toolCallId, call }) => {
+      if (closed) return;
+      const previous = observedCalls.get(toolCallId);
+      if (previous?.consumed || previous?.terminal) return;
+      const observed: ObservedCall = {
+        toolCall: previous?.toolCall,
+        permissionCall: call,
+        consumed: false,
+        terminal: false,
+      };
+      observedCalls.set(toolCallId, observed);
+      authorizeCall({ toolCallId, call, observed });
+    },
     waitForToolCallAuthorization: ({ toolName, input }) => {
       if (closed) return Promise.resolve(false);
       const key = callKey({ toolName, input });
@@ -137,98 +162,6 @@ export function createHostToolRelayAuthorization({
   };
 }
 
-function resolveHostToolCall({
-  toolCall,
-  serverName,
-  toolNames,
-}: {
-  toolCall: ToolCallUpdate;
-  serverName: string;
-  toolNames: ReadonlyArray<string>;
-}): HostToolCall | undefined {
-  const rawInput = toolCall.rawInput;
-  if (!isRecord(rawInput)) return undefined;
-  const isDeferred = 'tool_name' in rawInput;
-  const isProvider =
-    'providerIdentifier' in rawInput &&
-    'toolName' in rawInput &&
-    'args' in rawInput;
-  const isOrigin =
-    'origin' in rawInput && 'operation' in rawInput && 'arguments' in rawInput;
-  const isCodex =
-    'server' in rawInput && 'tool' in rawInput && 'arguments' in rawInput;
-  if ([isDeferred, isProvider, isOrigin, isCodex].filter(Boolean).length > 1) {
-    return undefined;
-  }
-  const matches: HostToolCall[] = [];
-  for (const toolName of toolNames) {
-    const qualifiedNames = [
-      `mcp__${serverName}__${toolName}`,
-      `${serverName}__${toolName}`,
-      `mcp_${serverName}_${toolName}`,
-    ];
-    const isQualified = (value: unknown) =>
-      typeof value === 'string' && qualifiedNames.includes(value);
-    const isDirect =
-      toolCall.name === toolName &&
-      isRecord(toolCall._meta) &&
-      toolCall._meta.serverName === serverName;
-    if (
-      isDeferred &&
-      isQualified(rawInput.tool_name) &&
-      isRecord(rawInput.tool_input) &&
-      (toolCall.name == null ||
-        toolCall.name === 'use_tool' ||
-        isQualified(toolCall.name))
-    ) {
-      matches.push({ toolName, input: rawInput.tool_input });
-    } else if (
-      isProvider &&
-      rawInput.providerIdentifier === serverName &&
-      rawInput.toolName === toolName &&
-      isRecord(rawInput.args) &&
-      (toolCall.name == null || isQualified(toolCall.name))
-    ) {
-      matches.push({ toolName, input: rawInput.args });
-    } else if (
-      isCodex &&
-      rawInput.server === serverName &&
-      rawInput.tool === toolName &&
-      isRecord(rawInput.arguments) &&
-      (toolCall.name == null || isQualified(toolCall.name))
-    ) {
-      matches.push({ toolName, input: rawInput.arguments });
-    } else if (
-      isOrigin &&
-      rawInput.origin === serverName &&
-      rawInput.operation === toolName &&
-      isRecord(rawInput.arguments) &&
-      (toolCall.name == null ||
-        toolCall.name === toolName ||
-        isQualified(toolCall.name))
-    ) {
-      matches.push({ toolName, input: rawInput.arguments });
-    } else if (
-      !isDeferred &&
-      !isProvider &&
-      !isOrigin &&
-      !isCodex &&
-      (isDirect ||
-        isQualified(toolCall.name) ||
-        (toolCall.name == null &&
-          (isQualified(toolCall.title) ||
-            toolCall.title === `${serverName}-${toolName}`)))
-    ) {
-      matches.push({ toolName, input: rawInput });
-    }
-  }
-  return matches.length === 1 ? matches[0] : undefined;
-}
-
 function callKey({ toolName, input }: HostToolCall): string {
   return `${toolName}\0${canonicalFingerprint({ value: input })}`;
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

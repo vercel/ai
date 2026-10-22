@@ -108,15 +108,15 @@ describe('resolveACPSkillsDirectory', () => {
   it('uses the standard directory by default', () => {
     expect(
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
       }),
     ).toBe(`/home/agent/${DEFAULT_ACP_SKILLS_DIRECTORY}`);
   });
 
-  it('resolves a runtime-specific directory relative to implementation home', () => {
+  it('resolves a runtime-specific directory relative to the agent home', () => {
     expect(
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
         skillsDirectory: '.claude/skills',
       }),
     ).toBe('/home/agent/.claude/skills');
@@ -132,7 +132,7 @@ describe('resolveACPSkillsDirectory', () => {
   ])('rejects invalid directory %j', skillsDirectory => {
     expect(() =>
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
         skillsDirectory,
       }),
     ).toThrow('must be a relative POSIX path without traversal');

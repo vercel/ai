@@ -164,7 +164,8 @@ export class SseMCPTransport implements MCPTransport {
           }
 
           if (!response.ok || !response.body) {
-            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}`;
+            const text = await response.text().catch(() => null);
+            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}${text ? `: ${text}` : ''}`;
 
             if (response.status === 405) {
               errorMessage +=
@@ -173,6 +174,9 @@ export class SseMCPTransport implements MCPTransport {
 
             const error = new MCPClientError({
               message: errorMessage,
+              statusCode: response.status,
+              url: this.url.href,
+              responseBody: text ?? undefined,
             });
             this.onerror?.(error);
             return reject(error);
@@ -190,6 +194,10 @@ export class SseMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
 
                 if (done) {
+                  if (this.abortController?.signal.aborted) {
+                    return;
+                  }
+
                   if (this.connected) {
                     this.connected = false;
                     throw new MCPClientError({
@@ -197,7 +205,11 @@ export class SseMCPTransport implements MCPTransport {
                         'MCP SSE Transport Error: Connection closed unexpectedly',
                     });
                   }
-                  return;
+
+                  throw new MCPClientError({
+                    message:
+                      'MCP SSE Transport Error: Connection closed before endpoint event was received',
+                  });
                 }
 
                 const { event, data } = value;

@@ -1,5 +1,190 @@
 # @ai-sdk/azure
 
+## 4.0.107
+
+### Patch Changes
+
+- 7b4ad47: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [df6fe35]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai@4.0.99
+  - @ai-sdk/deepseek@3.0.70
+
+## 4.0.106
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [8b728ec]
+- Updated dependencies [3cb1dae]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/openai@4.0.98
+  - @ai-sdk/deepseek@3.0.69
+
+## 4.0.105
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/deepseek@3.0.68
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.104
+
+### Patch Changes
+
+- 70a6398: Deprecate `azure.tools.webSearchPreview()` in favor of `azure.tools.webSearch()`.
+- Updated dependencies [2be133e]
+- Updated dependencies [0957554]
+- Updated dependencies [fa98094]
+  - @ai-sdk/openai@4.0.96
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/deepseek@3.0.67
+
+## 4.0.103
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai@4.0.95
+  - @ai-sdk/deepseek@3.0.66
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/deepseek@3.0.65
+  - @ai-sdk/openai@4.0.94
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [216e2c9]
+  - @ai-sdk/openai@4.0.93
+
+## 4.0.100
+
+### Patch Changes
+
+- Updated dependencies [6aedb07]
+- Updated dependencies [9667bf2]
+- Updated dependencies [7b33cb0]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+- Updated dependencies [1f7e5ad]
+  - @ai-sdk/openai@4.0.92
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/deepseek@3.0.64
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [5cf13d2]
+- Updated dependencies [72e9d38]
+- Updated dependencies [fb933f9]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/openai@4.0.91
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/deepseek@3.0.63
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [6c59fb1]
+  - @ai-sdk/openai@4.0.90
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/openai@4.0.89
+  - @ai-sdk/deepseek@3.0.62
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [32ff7ad]
+  - @ai-sdk/openai@4.0.88
+
+## 4.0.95
+
+### Patch Changes
+
+- Updated dependencies [bccc1b7]
+  - @ai-sdk/openai@4.0.87
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai@4.0.86
+  - @ai-sdk/deepseek@3.0.61
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.93
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [99bdcd2]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/openai@4.0.85
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/deepseek@3.0.60
+
+## 4.0.92
+
+### Patch Changes
+
+- 35347c3: feat(azure): support MAI-Image models through the MAI image API
+
+## 4.0.91
+
+### Patch Changes
+
+- 9210b70: fix(azure): report the Azure Speech voice-reset 502 as a non-retryable 400. An unknown voice or unsupported style on MAI-Voice-2.1 makes Azure Speech reset the connection with an Envoy `protocol error` 502; since this is a client input error, the resulting `APICallError` now carries `statusCode: 400` so HTTP clients and gateways do not retry it as a server error.
+- Updated dependencies [2959d35]
+- Updated dependencies [5b8e63b]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/openai@4.0.84
+  - @ai-sdk/deepseek@3.0.59
+
 ## 4.0.90
 
 ### Patch Changes

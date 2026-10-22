@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/quiverai",
-  "version": "2.0.54",
+  "version": "2.0.66",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -50,9 +50,10 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

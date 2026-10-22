@@ -15,7 +15,7 @@ import {
   type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
+import { ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -76,6 +76,7 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
+import { DefaultGenerateTextResult } from './default-generate-text-result';
 import type { GenerateTextResult } from './generate-text-result';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
@@ -83,11 +84,9 @@ import type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { text, type Output } from './output';
-import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
-import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -125,6 +124,10 @@ import type { ToolOutput } from './tool-output';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
+import {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from './tool-call-concurrency';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -171,6 +174,7 @@ export type GenerateTextInclude = {
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
  * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
+ * @param toolCallConcurrency - Maximum number of tool calls that may execute concurrently within a step. Set to 1 for sequential execution. Default: unlimited.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -256,6 +260,7 @@ export async function generateText<
   providerOptions,
   activeTools,
   toolOrder,
+  toolCallConcurrency,
   prepareStep,
   experimental_repairToolCall,
   repairToolCall = experimental_repairToolCall,
@@ -353,6 +358,14 @@ export async function generateText<
      * caching by keeping tool definitions in a stable order.
      */
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -572,6 +585,8 @@ export async function generateText<
     responseBody: include?.responseBody ?? false,
   };
 
+  const resolvedToolCallConcurrency =
+    prepareToolCallConcurrency(toolCallConcurrency);
   const model = resolveLanguageModel(modelArg);
   const resolvedToolCallers = resolveToolCallerConfiguration({
     tools,
@@ -771,6 +786,7 @@ export async function generateText<
             }),
           executeToolInTelemetryContext: telemetryDispatcher.executeTool,
           runInTracingChannelSpan,
+          toolCallConcurrency: resolvedToolCallConcurrency,
         });
 
         const toolContent: Array<any> = [];
@@ -1100,7 +1116,9 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const generatedFileDataCache = new WeakMap();
+              const generatedFileDataCache: Parameters<
+                typeof convertLanguageModelContent
+              >[0]['generatedFileDataCache'] = new WeakMap();
               const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
@@ -1159,6 +1177,7 @@ export async function generateText<
                   : undefined;
 
               if (
+                currentModelResponse.finishReason.unified !== 'interrupted' &&
                 enforcedToolChoice != null &&
                 !stepToolCalls.some(
                   toolCall =>
@@ -1370,6 +1389,7 @@ export async function generateText<
                   executeToolInTelemetryContext:
                     telemetryDispatcher.executeTool,
                   runInTracingChannelSpan,
+                  toolCallConcurrency: resolvedToolCallConcurrency,
                 });
 
                 for (const result of toolExecutionResults) {
@@ -1512,6 +1532,7 @@ export async function generateText<
           }
         }
       } while (
+        steps[steps.length - 1].finishReason !== 'interrupted' &&
         // Continue only after all client tool calls have been executed or denied,
         // and if there are client results or pending deferred provider results.
         clientToolOutputs.length + deniedToolApprovalResponses.length ===
@@ -1642,6 +1663,7 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1657,152 +1679,35 @@ async function executeTools<TOOLS extends ToolSet>({
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency: number | undefined;
 }): Promise<
   Array<{
     output: ToolOutput<TOOLS>;
     toolExecutionMs: number;
   }>
 > {
-  const toolResults = await Promise.all(
-    toolCalls.map(
-      async toolCall =>
-        await executeToolCall({
-          toolCall,
-          tools,
-          callId,
-          messages,
-          abortSignal,
-          timeout,
-          experimental_sandbox: sandbox,
-          toolsContext,
-          onToolExecutionStart,
-          onToolExecutionEnd,
-          executeToolInTelemetryContext,
-          runInTracingChannelSpan,
-        }),
-    ),
-  );
+  const toolResults = await mapWithConcurrency({
+    items: toolCalls,
+    concurrency: toolCallConcurrency,
+    abortSignal,
+    execute: async toolCall =>
+      await executeToolCall({
+        toolCall,
+        tools,
+        callId,
+        messages,
+        abortSignal,
+        timeout,
+        experimental_sandbox: sandbox,
+        toolsContext,
+        onToolExecutionStart,
+        onToolExecutionEnd,
+        executeToolInTelemetryContext,
+        runInTracingChannelSpan,
+      }),
+  });
 
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
   );
-}
-
-class DefaultGenerateTextResult<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-  OUTPUT extends Output,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-  readonly totalUsage: LanguageModelUsage;
-  private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
-
-  constructor(options: {
-    initialResponseMessages: Array<ResponseMessage>;
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-    output: InferCompleteOutput<OUTPUT> | undefined;
-    totalUsage: LanguageModelUsage;
-  }) {
-    this.initialResponseMessages = options.initialResponseMessages;
-    this.steps = options.steps;
-    this._output = options.output;
-    this.totalUsage = options.totalUsage;
-  }
-
-  private readonly initialResponseMessages: Array<ResponseMessage>;
-
-  get finalStep() {
-    return this.steps.at(-1)!;
-  }
-
-  get content() {
-    return this.steps.flatMap(step => step.content);
-  }
-
-  get text() {
-    return this.finalStep.text;
-  }
-
-  get files() {
-    return this.steps.flatMap(step => step.files);
-  }
-
-  get reasoningText() {
-    return this.finalStep.reasoningText;
-  }
-
-  get reasoning() {
-    return convertToReasoningOutputs(this.finalStep.reasoning);
-  }
-
-  get toolCalls() {
-    return this.steps.flatMap(step => step.toolCalls);
-  }
-
-  get staticToolCalls() {
-    return this.steps.flatMap(step => step.staticToolCalls);
-  }
-
-  get dynamicToolCalls() {
-    return this.steps.flatMap(step => step.dynamicToolCalls);
-  }
-
-  get toolResults() {
-    return this.steps.flatMap(step => step.toolResults);
-  }
-
-  get staticToolResults() {
-    return this.steps.flatMap(step => step.staticToolResults);
-  }
-
-  get dynamicToolResults() {
-    return this.steps.flatMap(step => step.dynamicToolResults);
-  }
-
-  get sources() {
-    return this.steps.flatMap(step => step.sources);
-  }
-
-  get finishReason() {
-    return this.finalStep.finishReason;
-  }
-
-  get rawFinishReason() {
-    return this.finalStep.rawFinishReason;
-  }
-
-  get warnings() {
-    return this.steps.flatMap(step => step.warnings ?? []);
-  }
-
-  get providerMetadata() {
-    return this.finalStep.providerMetadata;
-  }
-
-  get response() {
-    return this.finalStep.response;
-  }
-
-  get responseMessages() {
-    return [
-      ...this.initialResponseMessages,
-      ...this.steps.flatMap(step => step.response.messages),
-    ];
-  }
-
-  get request() {
-    return this.finalStep.request;
-  }
-
-  get usage() {
-    return this.totalUsage;
-  }
-
-  get output() {
-    if (this._output == null) {
-      throw new NoOutputGeneratedError();
-    }
-
-    return this._output;
-  }
 }

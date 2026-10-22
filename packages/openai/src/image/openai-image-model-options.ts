@@ -49,45 +49,46 @@ export function getMaxImagesPerCall(modelId: OpenAIImageModelId): number {
   );
 }
 
-const baseImageModelOptionsObject = z.object({
-  /**
-   * Quality of the generated image(s).
-   *
-   * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`.
-   * `xhigh` and `max` are supported by GPT Image 2.5 models.
-   */
-  quality: z
-    .enum(['standard', 'hd', 'low', 'medium', 'high', 'xhigh', 'max', 'auto'])
-    .optional(),
+const baseImageModelOptionsObject = () =>
+  z.object({
+    /**
+     * Quality of the generated image(s).
+     *
+     * Valid values: `standard`, `hd`, `low`, `medium`, `high`, `xhigh`, `max`, `auto`.
+     * `xhigh` and `max` are supported by GPT Image 2.5 models.
+     */
+    quality: z
+      .enum(['standard', 'hd', 'low', 'medium', 'high', 'xhigh', 'max', 'auto'])
+      .optional(),
 
-  /**
-   * Background behavior for the generated image(s).
-   *
-   * If `transparent`, the output format must support transparency
-   * (i.e. `png` or `webp`).
-   */
-  background: z.enum(['transparent', 'opaque', 'auto']).optional(),
+    /**
+     * Background behavior for the generated image(s).
+     *
+     * If `transparent`, the output format must support transparency
+     * (i.e. `png` or `webp`).
+     */
+    background: z.enum(['transparent', 'opaque', 'auto']).optional(),
 
-  /**
-   * Format in which the generated image(s) are returned.
-   */
-  outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
+    /**
+     * Format in which the generated image(s) are returned.
+     */
+    outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
 
-  /**
-   * Compression level (0-100) for the generated image(s). Applies to the
-   * `jpeg` and `webp` output formats.
-   */
-  outputCompression: z.number().int().min(0).max(100).optional(),
+    /**
+     * Compression level (0-100) for the generated image(s). Applies to the
+     * `jpeg` and `webp` output formats.
+     */
+    outputCompression: z.number().int().min(0).max(100).optional(),
 
-  /**
-   * A unique identifier representing your end-user, which can help OpenAI
-   * to monitor and detect abuse.
-   */
-  user: z.string().optional(),
-});
+    /**
+     * A unique identifier representing your end-user, which can help OpenAI
+     * to monitor and detect abuse.
+     */
+    user: z.string().optional(),
+  });
 
 export const openaiImageModelOptions = lazySchema(() =>
-  zodSchema(baseImageModelOptionsObject),
+  zodSchema(baseImageModelOptionsObject()),
 );
 
 export type OpenAIImageModelOptions = InferSchema<
@@ -96,7 +97,7 @@ export type OpenAIImageModelOptions = InferSchema<
 
 export const openaiImageModelGenerationOptions = lazySchema(() =>
   zodSchema(
-    baseImageModelOptionsObject.extend({
+    baseImageModelOptionsObject().extend({
       /**
        * Style of the generated image. `vivid` produces hyper-real and
        * dramatic images; `natural` produces more subdued, less hyper-real
@@ -119,7 +120,7 @@ export type OpenAIImageModelGenerationOptions = InferSchema<
 
 export const openaiImageModelEditOptions = lazySchema(() =>
   zodSchema(
-    baseImageModelOptionsObject.extend({
+    baseImageModelOptionsObject().extend({
       /**
        * Fidelity of the output image(s) to the input image(s).
        */

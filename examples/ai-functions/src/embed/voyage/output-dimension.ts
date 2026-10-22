@@ -6,10 +6,10 @@ run(async () => {
   const { embedding, usage } = await embed({
     model: voyage.embedding('voyage-4-large'),
     value: 'sunny day at the beach',
+    dimensions: 512,
     providerOptions: {
       voyage: {
         inputType: 'document',
-        outputDimension: 512,
       },
     },
   });

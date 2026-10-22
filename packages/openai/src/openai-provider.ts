@@ -1,6 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
+  Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
@@ -20,7 +20,10 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  DecisionOpenAIModel,
+  type OpenAIDecisionModelId,
+} from './openai-decision-model';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -50,8 +53,12 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
-  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using the Decisions API. */
+  decisionModel(modelId: OpenAIDecisionModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   /**
    * Creates an OpenAI model for text generation.
@@ -155,6 +162,12 @@ export interface OpenAIProvider extends ProviderV4 {
 }
 
 export interface OpenAIProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -332,6 +345,7 @@ export function createOpenAI(
   const createBatch = () =>
     new OpenAIBatch({
       provider: `${providerName}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: {
         provider: `${providerName}.responses`,
         baseURL,
@@ -352,11 +366,16 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
-  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
-    new EvaluationLanguageModel({
-      model: createResponsesModel(modelId),
-      provider: `${providerName}.evaluation`,
+  provider.decisionModel = (modelId: OpenAIDecisionModelId) =>
+    new DecisionOpenAIModel(modelId, {
+      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      provider: `${providerName}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as OpenAIProvider['evaluationModel'];
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

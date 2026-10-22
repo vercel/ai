@@ -40,6 +40,14 @@ function createControlledTransport() {
   };
 }
 
+function createIdleTransport(close: () => void): ChatTransport<UIMessage> {
+  return {
+    close,
+    sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+    reconnectToStream: async () => null,
+  };
+}
+
 async function waitForCondition(condition: () => boolean) {
   for (let index = 0; index < 100; index++) {
     await Promise.resolve();
@@ -119,6 +127,22 @@ const MessageWithPartChild = defineComponent({
 });
 
 describe('useChat', () => {
+  describe('transport lifecycle', () => {
+    it('does not close a caller-owned transport shared by multiple scopes', () => {
+      const close = vi.fn();
+      const transport = createIdleTransport(close);
+      const firstScope = effectScope();
+      const secondScope = effectScope();
+
+      firstScope.run(() => useChat({ transport }));
+      secondScope.run(() => useChat({ transport }));
+
+      firstScope.stop();
+      secondScope.stop();
+      expect(close).not.toHaveBeenCalled();
+    });
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       defineComponent({
@@ -196,12 +220,12 @@ describe('useChat', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            id: 'id-1',
+            id: 'id-0',
             role: 'user',
             parts: [{ type: 'text', text: 'hi' }],
           },
           {
-            id: 'id-2',
+            id: 'id-1',
             role: 'assistant',
             parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
           },
@@ -463,15 +487,15 @@ describe('useChat', () => {
         controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hel' });
         await waitForCondition(
           () =>
-            screen.queryByTestId('message-id-2')?.textContent === 'Hel' &&
-            screen.queryByTestId('part-id-2')?.textContent === 'Hel',
+            screen.queryByTestId('message-id-1')?.textContent === 'Hel' &&
+            screen.queryByTestId('part-id-1')?.textContent === 'Hel',
         );
 
         controller.enqueue({ type: 'text-delta', id: '0', delta: 'lo' });
         await waitForCondition(
           () =>
-            screen.queryByTestId('message-id-2')?.textContent === 'Hello' &&
-            screen.queryByTestId('part-id-2')?.textContent === 'Hello',
+            screen.queryByTestId('message-id-1')?.textContent === 'Hello' &&
+            screen.queryByTestId('part-id-1')?.textContent === 'Hello',
         );
 
         controller.close();
@@ -555,8 +579,8 @@ describe('useChat', () => {
       await vi.advanceTimersByTimeAsync(50);
       await waitForCondition(
         () =>
-          screen.queryByTestId('message-id-2')?.textContent === 'Hel' &&
-          screen.queryByTestId('part-id-2')?.textContent === 'Hel',
+          screen.queryByTestId('message-id-1')?.textContent === 'Hel' &&
+          screen.queryByTestId('part-id-1')?.textContent === 'Hel',
       );
 
       expect(renderCounts.get('history-1')).toBe(1);
@@ -566,8 +590,8 @@ describe('useChat', () => {
       await vi.advanceTimersByTimeAsync(50);
       await waitForCondition(
         () =>
-          screen.queryByTestId('message-id-2')?.textContent === 'Hello' &&
-          screen.queryByTestId('part-id-2')?.textContent === 'Hello',
+          screen.queryByTestId('message-id-1')?.textContent === 'Hello' &&
+          screen.queryByTestId('part-id-1')?.textContent === 'Hello',
       );
 
       expect(renderCounts.get('history-1')).toBe(1);
