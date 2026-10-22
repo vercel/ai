@@ -17,7 +17,12 @@ import { convertUint8ArrayToBase64 } from './uint8-utils';
  *
  * 1. The client sends exactly one `speech-stream.start` TEXT frame first.
  * 2. Input text rides `speech-stream.text-delta` TEXT frames, in order. A
- *    frame may carry the part's `voice` and `providerOptions`.
+ *    frame may carry its text part's `voice` and `providerOptions`. A long
+ *    part may span several frames: `voice` is repeated on each, and
+ *    `providerOptions` appear on the first only, so they must describe an
+ *    event at the start of the part (e.g. a turn break), not a setting. An
+ *    empty `delta` is valid and carries only part metadata; it does not end
+ *    the input.
  * 3. The client signals the end of the input text with the
  *    `speech-stream.text-done` TEXT frame; a plain close without it is an
  *    abort.
@@ -25,10 +30,12 @@ import { convertUint8ArrayToBase64 } from './uint8-utils';
  *    `SpeechModelV4StreamPart` (flattened, no wrapper). `audio` payloads are
  *    base64 strings. `Date` values (`response-metadata.timestamp`) serialize
  *    to ISO 8601 strings and are revived by `parseSpeechStreamPart`. `Error`
- *    payloads in `error` parts serialize as `{ name, message }`.
- * 5. The server closes with code 1000 after the `finish` part; on failure it
- *    sends an `error` part and closes non-1000. A close without a prior
- *    `finish` is an error.
+ *    payloads in `error` parts serialize as `{ name, message }`; servers may
+ *    instead send `{ type, message }`, where `type` names an error class the
+ *    client can map to a typed error (e.g. `invalid_request_error`).
+ * 5. The server closes with code 1000 after the `finish` part. Over this
+ *    envelope an `error` part is terminal: the server sends it on failure and
+ *    then closes non-1000. A close without a prior `finish` is an error.
  * 6. Unknown frame/part types are ignored in both directions (forward
  *    compatibility).
  * 7. Servers may enforce a maximum frame size (the AI Gateway rejects frames
@@ -151,14 +158,36 @@ export function parseSpeechStreamClientFrame(
       }
       if (
         value.providerOptions !== undefined &&
-        !isRecord(value.providerOptions)
+        !isProviderOptions(value.providerOptions)
       ) {
         return {
           type: 'invalid',
-          message: 'providerOptions must be an object when present',
+          message:
+            'providerOptions must be an object of provider objects when present',
         };
       }
-      return { type: 'start', frame: value as SpeechStreamStartFrame };
+      // Only known keys are passed on, so servers never see client extras.
+      const frame: SpeechStreamStartFrame = {
+        type: SPEECH_STREAM_START_FRAME_TYPE,
+      };
+      for (const field of Object.keys(optionalStartFrameFields) as Array<
+        keyof typeof optionalStartFrameFields
+      >) {
+        if (value[field] !== undefined) {
+          (frame as Record<string, unknown>)[field] = value[field];
+        }
+      }
+      if (value.outputFormat !== undefined) {
+        const { type, rate } = value.outputFormat as SharedV4AudioFormat;
+        frame.outputFormat = { type, ...(rate !== undefined && { rate }) };
+      }
+      if (value.providerOptions !== undefined) {
+        frame.providerOptions = value.providerOptions as Record<
+          string,
+          JSONObject
+        >;
+      }
+      return { type: 'start', frame };
     }
 
     case SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE: {
@@ -176,11 +205,12 @@ export function parseSpeechStreamClientFrame(
       }
       if (
         value.providerOptions !== undefined &&
-        !isRecord(value.providerOptions)
+        !isProviderOptions(value.providerOptions)
       ) {
         return {
           type: 'invalid',
-          message: 'text-delta providerOptions must be an object when present',
+          message:
+            'text-delta providerOptions must be an object of provider objects when present',
         };
       }
       return {
@@ -362,11 +392,19 @@ function isWarning(value: unknown): boolean {
   }
 }
 
+function isProviderOptions(value: unknown): boolean {
+  return isRecord(value) && Object.values(value).every(isRecord);
+}
+
 function isAudioFormat(value: unknown): boolean {
   return (
     isRecord(value) &&
     isString(value.type) &&
-    isOptional(value.rate, rate => typeof rate === 'number')
+    value.type.length > 0 &&
+    isOptional(
+      value.rate,
+      rate => typeof rate === 'number' && Number.isFinite(rate) && rate > 0,
+    )
   );
 }
 

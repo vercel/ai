@@ -93,8 +93,9 @@ export function getElevenLabsAudioFormat(
       return withRate('audio/pcmu');
     case 'alaw':
       return withRate('audio/pcma');
+    // ElevenLabs Opus audio arrives in an Ogg container.
     case 'opus':
-      return withRate('audio/opus');
+      return withRate('audio/ogg');
     case 'wav':
       return withRate('audio/wav');
     default:
@@ -165,7 +166,12 @@ export function createElevenLabsSpeechStream({
         if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
         if (!keepalive || inputEnded) return;
         keepaliveTimer = setTimeout(() => {
-          if (!finished && !inputEnded) send(socket, { text: ' ' });
+          if (finished || inputEnded) return;
+          try {
+            send(socket, { text: ' ' });
+          } catch (error) {
+            finishWithError(error);
+          }
         }, KEEPALIVE_INTERVAL_MS);
       };
 

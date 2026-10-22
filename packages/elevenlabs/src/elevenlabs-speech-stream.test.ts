@@ -479,7 +479,7 @@ describe('getElevenLabsAudioFormat', () => {
     ['pcm_16000', { type: 'audio/pcm', rate: 16000 }],
     ['ulaw_8000', { type: 'audio/pcmu', rate: 8000 }],
     ['alaw_8000', { type: 'audio/pcma', rate: 8000 }],
-    ['opus_48000_64', { type: 'audio/opus', rate: 48000 }],
+    ['opus_48000_64', { type: 'audio/ogg', rate: 48000 }],
     ['unknown', { type: 'application/octet-stream' }],
   ])('should map %s', (outputFormat, expected) => {
     expect(getElevenLabsAudioFormat(outputFormat)).toEqual(expected);
@@ -496,6 +496,7 @@ describe('toElevenLabsStreamOutputFormat', () => {
     [{ type: 'audio/pcmu' }, 'ulaw_8000'],
     [{ type: 'audio/pcma', rate: 8000 }, 'alaw_8000'],
     [{ type: 'audio/opus' }, 'opus_48000_64'],
+    [{ type: 'Audio/L16; rate=16000', rate: 16000 }, 'pcm_16000'],
   ])('should map %j to %s', (format, expected) => {
     expect(toElevenLabsStreamOutputFormat(format)).toBe(expected);
   });

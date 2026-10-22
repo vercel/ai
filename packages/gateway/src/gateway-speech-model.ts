@@ -209,8 +209,11 @@ export function toGatewaySpeechUrl(baseURL: string, modelId: string): string {
   return url.toString();
 }
 
-/** Text-delta frames stay well under server frame-size limits (envelope rule 7). */
-const MAX_TEXT_DELTA_CODE_UNITS = 16 * 1024;
+/**
+ * Keeps text-delta frames under 64 KiB (envelope rule 7) even when JSON
+ * escapes every code unit as `\uXXXX`.
+ */
+const MAX_TEXT_DELTA_CODE_UNITS = 8 * 1024;
 
 /**
  * Splits a long text delta into pieces of at most `MAX_TEXT_DELTA_CODE_UNITS`
@@ -296,7 +299,15 @@ function createGatewaySpeechStream({
             const { done, value } = await reader.read();
             if (done || finished || textStopped) break;
             let first = true;
-            for (const delta of splitTextDelta(value.text)) {
+            // An empty part still carries its voice or provider options.
+            const pieces = splitTextDelta(value.text);
+            if (
+              pieces.length === 0 &&
+              (value.voice != null || value.providerOptions != null)
+            ) {
+              pieces.push('');
+            }
+            for (const delta of pieces) {
               if (finished || textStopped) break;
               // The voice applies to every frame of the part; provider
               // options (e.g. a turn break) only to its first frame.
@@ -378,7 +389,7 @@ function createGatewaySpeechStream({
             new Error('Connection error on AI Gateway speech stream'),
           );
         },
-        onClose: () => {
+        onClose: ({ code, reason }) => {
           if (hasServerErrorPart) {
             if (finished) return;
             void createErrorFromServerErrorPart(
@@ -390,7 +401,11 @@ function createGatewaySpeechStream({
           }
           finishWithError(
             new Error(
-              'AI Gateway speech stream closed before a finish part was received',
+              'AI Gateway speech stream closed before a finish part was received' +
+                (code != null
+                  ? ` (code ${code}${reason ? `: ${reason}` : ''})`
+                  : '') +
+                '.',
             ),
           );
         },

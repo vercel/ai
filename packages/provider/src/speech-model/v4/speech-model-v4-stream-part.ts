@@ -1,4 +1,3 @@
-import type { JSONObject } from '../../json-value/json-value';
 import type { SharedV4AudioFormat, SharedV4Headers } from '../../shared';
 import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
@@ -24,7 +23,12 @@ export type SpeechModelV4StreamPart =
        * point in the audio, e.g. a provider's end-of-turn marker.
        */
       type: 'audio';
+
+      /**
+       * Optional provider identifier for the chunk.
+       */
       id?: string;
+
       audio: Uint8Array | string;
 
       /**
@@ -60,7 +64,7 @@ export type SpeechModelV4StreamPart =
       /**
        * Additional provider-specific metadata.
        */
-      providerMetadata?: Record<string, JSONObject>;
+      providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
       /**
@@ -71,7 +75,9 @@ export type SpeechModelV4StreamPart =
     }
   | {
       /**
-       * Error parts are streamed, allowing for multiple errors.
+       * A non-fatal error; the stream continues and may carry more of them.
+       * Providers signal an unrecoverable failure by erroring the stream, or
+       * by closing it without a `finish` part.
        */
       type: 'error';
       error: unknown;

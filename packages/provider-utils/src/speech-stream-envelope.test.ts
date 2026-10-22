@@ -44,6 +44,26 @@ describe('parseSpeechStreamClientFrame', () => {
     });
   });
 
+  it('should drop unknown start frame keys', () => {
+    expect(
+      parseSpeechStreamClientFrame(
+        JSON.stringify({
+          type: 'speech-stream.start',
+          voice: 'v1',
+          headers: { authorization: 'x' },
+          outputFormat: { type: 'audio/pcm', rate: 16000, extra: true },
+        }),
+      ),
+    ).toEqual({
+      type: 'start',
+      frame: {
+        type: 'speech-stream.start',
+        voice: 'v1',
+        outputFormat: { type: 'audio/pcm', rate: 16000 },
+      },
+    });
+  });
+
   it.each([
     [{ voice: 1 }, 'voice must be a string when present'],
     [{ speed: '1' }, 'speed must be a number when present'],
@@ -51,7 +71,26 @@ describe('parseSpeechStreamClientFrame', () => {
       { includeRawChunks: 'yes' },
       'includeRawChunks must be a boolean when present',
     ],
-    [{ providerOptions: [] }, 'providerOptions must be an object when present'],
+    [
+      { providerOptions: [] },
+      'providerOptions must be an object of provider objects when present',
+    ],
+    [
+      { providerOptions: { openai: null } },
+      'providerOptions must be an object of provider objects when present',
+    ],
+    [
+      { providerOptions: { openai: 'x' } },
+      'providerOptions must be an object of provider objects when present',
+    ],
+    [
+      { outputFormat: { type: '' } },
+      'outputFormat must be an audio format object ({ type, rate? }) when present',
+    ],
+    [
+      { outputFormat: { type: 'audio/pcm', rate: -1 } },
+      'outputFormat must be an audio format object ({ type, rate? }) when present',
+    ],
     [
       { outputFormat: 'pcm_24000' },
       'outputFormat must be an audio format object ({ type, rate? }) when present',
@@ -99,7 +138,11 @@ describe('parseSpeechStreamClientFrame', () => {
     [{ voice: 2 }, 'text-delta voice must be a string when present'],
     [
       { providerOptions: 'x' },
-      'text-delta providerOptions must be an object when present',
+      'text-delta providerOptions must be an object of provider objects when present',
+    ],
+    [
+      { providerOptions: { elevenlabs: [] } },
+      'text-delta providerOptions must be an object of provider objects when present',
     ],
   ])('should reject invalid text-delta frame %j', (fields, message) => {
     expect(
