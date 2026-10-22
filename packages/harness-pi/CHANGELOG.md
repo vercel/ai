@@ -1,5 +1,15 @@
 # @ai-sdk/harness-pi
 
+## 1.0.162
+
+### Patch Changes
+
+- 36e4ce7: fix(harness-pi): ensure `/skill` command reads skill file from sandbox
+- 7fcc24e: fix(harness-pi): validate cold-resume tool calls against host state
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 1.0.161
 
 ### Patch Changes

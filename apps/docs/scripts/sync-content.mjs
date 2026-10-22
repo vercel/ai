@@ -36,7 +36,7 @@ const versions = [
   { id: "v7", ref: null },
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v6", ref: "0fb3a2241334c3e9df9aa15c86cb26c1cee9ba3a" },
+  { id: "v6", ref: "b5444fed66a11d50ed21d2d9d8dfc0e11c846926" },
   // Update this SHA explicitly when stable v5 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
   { id: "v5", ref: "239ea3a151f81aa55b78d8eeca5fd20555730de5" },

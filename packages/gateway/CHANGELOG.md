@@ -1,5 +1,22 @@
 # @ai-sdk/gateway
 
+## 4.0.122
+
+### Patch Changes
+
+- 101ce42: chore(provider/gateway): update gateway model settings files
+- e104368: Add Voxtral 3 offline transcription and speech model IDs. Support transcription context phrases and detected language, update timestamp validation for Voxtral 3, and expose speech expressiveness and pronunciation hints.
+- eb1f056: fix(provider/gateway): update `parallelSearch` for Parallel's GA Search API
+
+  - Accept the `turbo`, `fast`, `basic`, and `advanced` modes. Tool calls that use one of these modes no longer fail client-side input validation. `one-shot` and `agentic` are deprecated but still accepted.
+  - Add the `location` and top-level `maxCharsTotal` options, plus `fetchPolicy.timeoutSeconds` and `fetchPolicy.disableCacheFallback`. `excerpts.maxCharsTotal` is deprecated in favor of `maxCharsTotal`.
+  - Fix the result type and schema to match the response the gateway returns: `search_id`, results with `url`, nullable `title` and `publish_date`, and `excerpts: string[]`, plus optional `warnings`, `usage`, and `session_id`. The `searchId`, `excerpt`, `publishDate`, and `relevanceScore` fields were never populated and are removed; update code that reads them. `validateUIMessages` now accepts Parallel Search results.
+
+- 5893e99: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 4.0.121
 
 ### Patch Changes

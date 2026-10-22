@@ -534,6 +534,52 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('agentSpanName', () => {
+    describe.each(['ai.generateText', 'ai.generateObject'])(
+      '%s',
+      operationId => {
+        it.each([
+          {
+            agentSpanName: undefined,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'modelId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent my-agent',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: undefined,
+            expectedName: 'invoke_agent gpt-4',
+          },
+        ])(
+          'uses $expectedName with agentSpanName=$agentSpanName and functionId=$functionId',
+          ({ agentSpanName, functionId, expectedName }) => {
+            integration = new OpenTelemetry({ tracer, agentSpanName });
+
+            integration.onStart!(makeOnStartEvent({ operationId, functionId }));
+
+            expect(tracer.spans[0].name).toBe(expectedName);
+            expect(getStartSpanAttributes(tracer, 0)).toMatchObject({
+              'gen_ai.operation.name': 'invoke_agent',
+              'gen_ai.request.model': 'gpt-4',
+            });
+            expect(getStartSpanAttributes(tracer, 0)['gen_ai.agent.name']).toBe(
+              functionId,
+            );
+          },
+        );
+      },
+    );
+  });
+
   describe('onStepStart', () => {
     it('creates agent_step and chat spans with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
