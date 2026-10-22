@@ -74,11 +74,12 @@ export function streamSpeech({
   model: SpeechModel;
 
   /**
-   * The text to convert to speech: a complete string, or a stream of text
-   * deltas and/or text parts.
+   * The text to convert to speech: a complete string, or an array, iterable,
+   * or stream of text deltas and/or text parts.
    */
   text:
     | string
+    | Iterable<string | SpeechTextPart>
     | AsyncIterable<string | SpeechTextPart>
     | ReadableStream<string | SpeechTextPart>;
 
@@ -489,6 +490,7 @@ function createAudioByteStream(
 function toTextStream(
   text:
     | string
+    | Iterable<string | SpeechTextPart>
     | AsyncIterable<string | SpeechTextPart>
     | ReadableStream<string | SpeechTextPart>,
 ): ReadableStream<Experimental_SpeechModelV4StreamTextPart> {
@@ -500,22 +502,7 @@ function toTextStream(
       },
     });
   }
-  if (
-    !(text instanceof ReadableStream) &&
-    typeof (text as Partial<AsyncIterable<unknown>>)?.[Symbol.asyncIterator] !==
-      'function'
-  ) {
-    throw new InvalidArgumentError({
-      parameter: 'text',
-      value: text,
-      message:
-        'Expected a string, an AsyncIterable, or a ReadableStream of strings or text parts.',
-    });
-  }
-  const source =
-    text instanceof ReadableStream
-      ? text
-      : convertAsyncIteratorToReadableStream(text[Symbol.asyncIterator]());
+  const source = toSourceStream(text);
   return source.pipeThrough(
     new TransformStream<
       string | SpeechTextPart,
@@ -526,6 +513,43 @@ function toTextStream(
       },
     }),
   );
+}
+
+function toSourceStream(
+  text:
+    | Iterable<string | SpeechTextPart>
+    | AsyncIterable<string | SpeechTextPart>
+    | ReadableStream<string | SpeechTextPart>,
+): ReadableStream<string | SpeechTextPart> {
+  if (text instanceof ReadableStream) {
+    return text;
+  }
+  if (
+    typeof (text as Partial<AsyncIterable<unknown>>)?.[Symbol.asyncIterator] ===
+    'function'
+  ) {
+    const iterable = text as AsyncIterable<string | SpeechTextPart>;
+    return convertAsyncIteratorToReadableStream(
+      iterable[Symbol.asyncIterator](),
+    );
+  }
+  if (
+    typeof (text as Partial<Iterable<unknown>>)?.[Symbol.iterator] ===
+    'function'
+  ) {
+    const iterable = text as Iterable<string | SpeechTextPart>;
+    return convertAsyncIteratorToReadableStream(
+      (async function* () {
+        yield* iterable;
+      })(),
+    );
+  }
+  throw new InvalidArgumentError({
+    parameter: 'text',
+    value: text,
+    message:
+      'Expected a string, an iterable or async iterable, or a ReadableStream of strings or text parts.',
+  });
 }
 
 function toTextPart(

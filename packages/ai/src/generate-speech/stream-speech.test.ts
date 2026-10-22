@@ -117,6 +117,20 @@ describe('experimental_streamSpeech', () => {
       [textPart('Hello '), textPart('world')],
     ],
     [
+      'an array of strings and text parts',
+      () => ['Hi. ', { type: 'text' as const, text: 'Hello. ', voice: 'bob' }],
+      [textPart('Hi. '), { type: 'text', text: 'Hello. ', voice: 'bob' }],
+    ],
+    [
+      'a sync iterable',
+      () =>
+        (function* () {
+          yield 'Hello ';
+          yield 'world';
+        })(),
+      [textPart('Hello '), textPart('world')],
+    ],
+    [
       'an async iterable of strings and text parts',
       () =>
         (async function* (): AsyncGenerator<
@@ -492,9 +506,30 @@ describe('experimental_streamSpeech', () => {
         model: new MockStreamingSpeechModelV4({
           doStream: async () => createStreamResponse(basicParts),
         }),
-        text: ['Hello'] as never,
+        text: { text: 'Hello' } as never,
       }),
     ).toThrow('Invalid argument for parameter text');
+  });
+
+  it('should accept a readonly array of text parts directly', async () => {
+    const script = [
+      { type: 'text', text: 'Did you hear? ', voice: 'alice' },
+      { type: 'text', text: 'No, what?', voice: 'bob' },
+    ] as const;
+    let textChunks: Experimental_SpeechModelV4StreamTextPart[] = [];
+
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async args => {
+          textChunks = await convertReadableStreamToArray(args.text);
+          return createStreamResponse(basicParts);
+        },
+      }),
+      text: script,
+    });
+
+    await result.usage;
+    expect(textChunks).toEqual(script);
   });
 
   it('should surface the provider error when the stream ends after audio without finishing', async () => {
