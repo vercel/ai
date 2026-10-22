@@ -280,10 +280,10 @@ when it reads it.
 import { createPi, type PiSessionStorage } from '@ai-sdk/harness-pi';
 
 const storage: PiSessionStorage = {
-  append: async ({ sessionId, entryId, parentEntryId, data }) => {
+  append: async ({ sessionId, entryId, parentEntryId, version, data }) => {
     await db
       .insert(piSessionEntries)
-      .values({ sessionId, entryId, parentEntryId, data })
+      .values({ sessionId, entryId, parentEntryId, version, data })
       .onConflictDoNothing();
   },
   read: async ({ sessionId }) => {
@@ -292,7 +292,7 @@ const storage: PiSessionStorage = {
       .from(piSessionEntries)
       .where(eq(piSessionEntries.sessionId, sessionId))
       .orderBy(piSessionEntries.position);
-    return rows.map(row => row.data);
+    return rows.map(({ version, data }) => ({ version, data }));
   },
 };
 
@@ -305,7 +305,10 @@ retried after a crash or a second turn resumed from the same state appends a new
 branch, and each lifecycle state's `leafId` selects its own branch, so the
 others are left out.
 
-An entry whose `entryId` the log already holds is a retried append, so the
+Each entry also comes with `version`, the Pi session version it was written
+under, and `read` returns it next to `data`, so the harness can migrate entries
+written by an older Pi. An entry whose `entryId` the log already holds is a
+retried append, so the
 example keeps `(sessionId, entryId)` unique and ignores the conflict. `read` may
 return every entry of the log, as above. To read less, return only the entries
 that lead to `leafId`: the entry whose `entryId` is `leafId`, then its
