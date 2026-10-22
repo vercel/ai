@@ -767,6 +767,161 @@ describe('GatewayLanguageModel', () => {
       ]);
     });
 
+    it('should report interrupted when the stream ends after output without a finish', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'text-start', id: '1' })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            id: '1',
+            delta: 'Partial output',
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'Partial output' },
+        {
+          type: 'finish',
+          finishReason: { unified: 'interrupted', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should report interrupted when the stream ends after a tool call without a finish', async () => {
+      const toolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: '{}',
+      };
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(toolCall)}\n\n`],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'interrupted', raw: undefined },
+      });
+    });
+
+    it('should not add a finish when the stream ends without output', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'stream-start', warnings: [] })}\n\n`,
+          `data: ${JSON.stringify({ type: 'text-start', id: '1' })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            id: '1',
+            delta: '',
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'finish')).toBe(false);
+    });
+
+    it('should not add a finish after a mid-stream error', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            id: '1',
+            delta: 'Partial output',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'error',
+            error: { message: 'stream terminated' },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'finish')).toBe(false);
+    });
+
+    it('should keep the server finish when one arrives', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            id: '1',
+            delta: 'Done',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              inputTokens: { total: 10 },
+              outputTokens: { total: 2 },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const finishes = (await convertReadableStreamToArray(stream)).filter(
+        part => part.type === 'finish',
+      );
+
+      expect(finishes).toEqual([
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: { inputTokens: { total: 10 }, outputTokens: { total: 2 } },
+        },
+      ]);
+    });
+
     it('should pass streaming headers', async () => {
       prepareStreamResponse({
         content: ['Test'],
