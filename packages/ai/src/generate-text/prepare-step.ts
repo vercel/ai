@@ -81,9 +81,10 @@ export type PrepareStepFunction<
   /**
    * The user messages that were sent with `experimental_steering` and added to
    * `messages` for the current step. Undefined when the step received no
-   * steering messages. If you return a `messages` override that is built from
-   * other messages, e.g. `initialMessages` and `responseMessages`, include
-   * these so the steering messages reach the model.
+   * steering messages. `messages` already contains them. If you return a
+   * `messages` override that is rebuilt from other fields, e.g.
+   * `initialMessages` and `responseMessages`, add them back together with the
+   * steering messages of previous steps from `steps`.
    */
   experimental_steeringMessages?: Array<UserModelMessage>;
 

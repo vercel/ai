@@ -920,10 +920,17 @@ export async function generateText<
         // results, or steering messages:
         if (
           clientToolCalls.length === 0 &&
-          pendingDeferredToolCalls.size === 0 &&
-          !steeringRun?.hasPendingMessages()
+          pendingDeferredToolCalls.size === 0
         ) {
-          return false;
+          if (!steeringRun?.hasPendingMessages()) {
+            return false;
+          }
+
+          // steering messages do not continue a failed step:
+          if (steps[steps.length - 1].finishReason === 'error') {
+            steeringEndReason = 'error';
+            return false;
+          }
         }
 
         // continue until a stop condition is met:

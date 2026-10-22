@@ -461,11 +461,13 @@ describe('generateText experimental_steering', () => {
     `);
   });
 
-  it('should pass steering messages to prepareStep so rebuilt messages can keep them', async () => {
+  it('should pass steering messages to prepareStep so rebuilt messages keep them in later steps', async () => {
     const steering = createSteering();
     const prepareStepSteeringMessages: Array<unknown> = [];
+    let steered = false;
 
     const model = createModel([
+      () => toolCallResponse,
       () => toolCallResponse,
       () => textResponse('It is sunny in Paris, Texas.'),
     ]);
@@ -477,7 +479,10 @@ describe('generateText experimental_steering', () => {
         weather: tool({
           inputSchema: z.object({ city: z.string() }),
           execute: async () => {
-            steering.steer('I meant Paris, Texas.');
+            if (!steered) {
+              steered = true;
+              steering.steer('I meant Paris, Texas.');
+            }
             return 'sunny';
           },
         }),
@@ -486,14 +491,17 @@ describe('generateText experimental_steering', () => {
       experimental_steering: steering,
       prepareStep: ({
         initialMessages,
-        responseMessages,
+        steps,
         experimental_steeringMessages,
       }) => {
         prepareStepSteeringMessages.push(experimental_steeringMessages);
         return {
           messages: [
             ...initialMessages,
-            ...responseMessages,
+            ...steps.flatMap(step => [
+              ...(step.experimental_steeringMessages ?? []),
+              ...step.response.messages,
+            ]),
             ...(experimental_steeringMessages ?? []),
           ],
         };
@@ -509,11 +517,51 @@ describe('generateText experimental_steering', () => {
             "role": "user",
           },
         ],
+        undefined,
       ]
     `);
-    expect(lastUserText(model.doGenerateCalls[1])).toBe(
-      'I meant Paris, Texas.',
-    );
+    for (const call of [1, 2]) {
+      expect(
+        model.doGenerateCalls[call].prompt.some(
+          message =>
+            message.role === 'user' &&
+            message.content.some(
+              part =>
+                part.type === 'text' && part.text === 'I meant Paris, Texas.',
+            ),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('should not continue for a steering message after a step that finished with an error', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const model = createModel([
+      () => {
+        outcome = steering.steer('Also tell me about Tokyo.');
+        return {
+          ...textResponse('It is'),
+          finishReason: { unified: 'error', raw: 'error' },
+        };
+      },
+      () => textResponse('Tokyo is rainy.'),
+    ]);
+
+    const result = await generateText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+    });
+
+    expect(model.doGenerateCalls).toHaveLength(1);
+    expect(result.finishReason).toBe('error');
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'error',
+    });
   });
 
   it('should throw when the steering object is used by two runs at once', async () => {

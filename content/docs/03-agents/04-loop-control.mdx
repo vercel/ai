@@ -453,21 +453,22 @@ const result = await run;
 - `prepareStep` and `onStepStart` receive the steering messages as part of `messages`.
 
 <Note type="warning">
-  If `prepareStep` returns a `messages` override that is built from other
-  messages, e.g. `initialMessages` and `responseMessages`, include
-  `experimental_steeringMessages`. Otherwise the steering messages are dropped
-  even though `steer()` reports them as delivered.
+  `messages` already contains the steering messages in the right place. If
+  `prepareStep` returns a `messages` override that is rebuilt from other
+  fields, e.g. `initialMessages` and `responseMessages`, the steering messages
+  are dropped even though `steer()` reports them as delivered. Build overrides
+  from `messages`, or add the steering messages of every step back in order.
 </Note>
 
 ```ts
-prepareStep: ({
-  initialMessages,
-  responseMessages,
-  experimental_steeringMessages,
-}) => ({
+prepareStep: ({ initialMessages, steps, experimental_steeringMessages }) => ({
   messages: [
     ...initialMessages,
-    ...responseMessages,
+    ...steps.flatMap(step => [
+      ...(step.experimental_steeringMessages ?? []),
+      ...step.response.messages,
+    ]),
+    // steering messages for the current step:
     ...(experimental_steeringMessages ?? []),
   ],
 }),

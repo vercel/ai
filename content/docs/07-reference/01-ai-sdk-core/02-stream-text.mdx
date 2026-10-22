@@ -720,7 +720,7 @@ retain the content their contracts require.
                       type: 'Array<UserModelMessage> | undefined',
                       isOptional: true,
                       description:
-                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. Include them when you return a `messages` override that is built from other messages.',
+                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. `messages` already contains them. If you return a `messages` override that is rebuilt from other fields, add them back together with the steering messages of previous steps from `steps`.',
                     },
                     {
                       name: 'runtimeContext',
