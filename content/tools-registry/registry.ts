@@ -751,4 +751,32 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'tablejourney',
+    name: 'TableJourney',
+    description:
+      'Food travel data for 224 cities: verified places to eat with their sources and opening hours, food festivals with the dates of their next edition, and bookable food tours, cooking classes and stays. No API key needed.',
+    packageName: 'tablejourney-ai-sdk',
+    tags: ['travel', 'food', 'restaurants', 'events'],
+    installCommand: {
+      pnpm: 'pnpm add tablejourney-ai-sdk',
+      npm: 'npm install tablejourney-ai-sdk',
+      yarn: 'yarn add tablejourney-ai-sdk',
+      bun: 'bun add tablejourney-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { tablejourneyTools } from 'tablejourney-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: tablejourneyTools(),
+  stopWhen: isStepCount(5),
+  prompt: 'Plan a food day in Lisbon on Saturday, with one food tour.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://tablejourney.com/agents/#ai-sdk',
+    websiteUrl: 'https://tablejourney.com',
+    npmUrl: 'https://www.npmjs.com/package/tablejourney-ai-sdk',
+  },
 ];
