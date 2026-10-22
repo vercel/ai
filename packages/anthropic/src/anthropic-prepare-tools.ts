@@ -129,7 +129,9 @@ export async function prepareTools({
             : {}),
         });
 
-        if (supportsStructuredOutput === true) {
+        // Native final output does not require this beta. Only send it for
+        // providers that also support strict tools.
+        if (supportsStructuredOutput === true && supportsStrictTools === true) {
           betas.add('structured-outputs-2025-11-13');
         }
 

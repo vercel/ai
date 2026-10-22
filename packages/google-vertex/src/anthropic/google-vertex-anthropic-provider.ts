@@ -161,6 +161,14 @@ export interface GoogleVertexAnthropicProviderSettings {
   location?: string;
 
   /**
+   * Enable native structured output in `structuredOutputMode: 'auto'` for Claude
+   * 4.5 and newer. Defaults to false. Requires the Google Cloud organization
+   * policy to allow the `structured_outputs` feature for each model used.
+   * This does not enable strict tool input schemas.
+   */
+  supportsNativeStructuredOutput?: boolean;
+
+  /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
    */
@@ -265,9 +273,11 @@ export function createGoogleVertexAnthropic(
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
-      // Vertex Anthropic doesn't support strict mode on tool definitions.
+      // Native output is default-denied by GCP policy and requires Claude 4.5+.
+      supportsNativeStructuredOutput:
+        options.supportsNativeStructuredOutput === true &&
+        supportsNativeStructuredOutput(modelId),
+      // Native final output does not opt in to strict tool input schemas.
       supportsStrictTools: false,
     });
 
@@ -297,4 +307,13 @@ export function createGoogleVertexAnthropic(
   provider.tools = googleVertexAnthropicTools;
 
   return provider;
+}
+
+function supportsNativeStructuredOutput(modelId: string): boolean {
+  const version = /^claude-[a-z]+-(\d+)(?:-(\d+))?(?:@|$)/.exec(modelId);
+  return (
+    version != null &&
+    (Number(version[1]) > 4 ||
+      (Number(version[1]) === 4 && Number(version[2]) >= 5))
+  );
 }
