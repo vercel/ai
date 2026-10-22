@@ -98,15 +98,13 @@ SOKKAN Router serves the following model IDs pay-per-token
 (`"availability": "on_demand"`). Prices are in USD per million tokens, as listed
 on 2026-10-22:
 
-| Model ID                    | Region | Context | Input | Cached input | Output |
-| --------------------------- | ------ | ------- | ----- | ------------ | ------ |
-| `qwen/qwen3.8-27b`          | EU     | 131,072 | 0.20  | 0.05         | 2.50   |
-| `qwen/qwen3.6-35b-a3b-eu`   | EU     | 262,144 | 0.20  | 0.05         | 1.40   |
-| `qwen/qwen3.5-397b-a17b`    | EU     | 262,144 | 1.00  | 1.00         | 6.00   |
-| `openai/gpt-oss-120b`       | EU     | 131,072 | 0.10  | 0.10         | 0.50   |
-| `openai/gpt-oss-20b`        | CH     | 65,536  | 0.015 | 0.008        | 0.075  |
-| `moonshotai/kimi-k2.6`      | CH     | 131,072 | 0.85  | 0.85         | 4.15   |
-| `swiss-ai/apertus-v1.5-70b` | CH     | 65,536  | 0.875 | 0.19         | 3.125  |
+| Model ID                  | Region | Context | Input | Cached input | Output |
+| ------------------------- | ------ | ------- | ----- | ------------ | ------ |
+| `qwen/qwen3.8-27b`        | EU     | 131,072 | 0.20  | 0.05         | 2.50   |
+| `qwen/qwen3.6-35b-a3b-eu` | EU     | 262,144 | 0.20  | 0.05         | 1.40   |
+| `qwen/qwen3.5-397b-a17b`  | EU     | 262,144 | 1.00  | 1.00         | 6.00   |
+| `openai/gpt-oss-120b`     | EU     | 131,072 | 0.10  | 0.10         | 0.50   |
+| `openai/gpt-oss-20b`      | CH     | 65,536  | 0.015 | 0.008        | 0.075  |
 
 Models, prices and availability can change. The unauthenticated
 [`GET /v1/models`](https://router.sokkan.ch/v1/models) endpoint is the current
