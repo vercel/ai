@@ -1,5 +1,6 @@
 import {
   createIdGenerator,
+  type ModelMessage,
   type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
@@ -12,6 +13,7 @@ const steeringRunStarter = Symbol.for('vercel.ai.steering.start');
  * Why a steering message was not delivered:
  *
  * - `finished`: the run ended before the message could be delivered.
+ * - `removed-by-prepare-step`: `prepareStep` returned messages without it.
  * - `stop-condition`: a stop condition ended the run.
  * - `waiting-for-tool-results`: the run ended to wait for tool results,
  *   e.g. a tool approval or a tool without an `execute` function.
@@ -20,6 +22,7 @@ const steeringRunStarter = Symbol.for('vercel.ai.steering.start');
  */
 export type SteeringNotDeliveredReason =
   | 'finished'
+  | 'removed-by-prepare-step'
   | 'stop-condition'
   | 'waiting-for-tool-results'
   | 'aborted'
@@ -38,7 +41,7 @@ export type SteeringOutcome =
       /** The user message that was added to the run. */
       readonly message: UserModelMessage;
 
-      /** The number of the step that received the message. */
+      /** The number of the step whose model call received the message. */
       readonly stepNumber: number;
     }
   | {
@@ -66,7 +69,7 @@ export interface Steering {
    * condition is met.
    *
    * Messages that are sent before the run starts are delivered in the first
-   * step.
+   * step. A steering object can only be used for one generation.
    *
    * @param message - The user message, or its text.
    * @param options.id - The id of the message. Sending a message again with
@@ -85,7 +88,22 @@ export interface Steering {
  */
 export type SteeringRun = {
   hasPendingMessages(): boolean;
-  takeMessages(stepNumber: number): Array<UserModelMessage>;
+
+  /**
+   * Takes the waiting messages for the next step. They are resolved by
+   * `resolveTakenMessages` once the prompt of the step is known.
+   */
+  takeMessages(): Array<UserModelMessage>;
+
+  /**
+   * Resolves the taken messages as delivered when they are part of the
+   * messages that are sent to the model, and returns the delivered messages.
+   */
+  resolveTakenMessages(options: {
+    stepNumber: number;
+    sentMessages: ReadonlyArray<ModelMessage>;
+  }): Array<UserModelMessage>;
+
   end(reason: SteeringNotDeliveredReason): void;
 };
 
@@ -97,8 +115,8 @@ type PendingSteer = {
 
 class DefaultSteering implements Steering {
   private state: 'idle' | 'running' | 'ended' = 'idle';
-  private activeRun: object | undefined;
   private pending: Array<PendingSteer> = [];
+  private taken: Array<PendingSteer> = [];
   private outcomes = new Map<string, Promise<SteeringOutcome>>();
 
   steer(
@@ -143,53 +161,64 @@ class DefaultSteering implements Steering {
   }
 
   [steeringRunStarter](): SteeringRun {
-    if (this.state === 'running') {
+    if (this.state !== 'idle') {
       throw new InvalidArgumentError({
         parameter: 'experimental_steering',
         value: this,
-        message: 'The steering object is already used by a running generation.',
+        message:
+          'The steering object was already used by a generation. Create a new one with experimental_createSteering() for each call.',
       });
     }
 
-    const run = {};
-    this.activeRun = run;
     this.state = 'running';
-    this.outcomes = new Map(
-      [...this.outcomes].filter(([id]) =>
-        this.pending.some(pending => pending.id === id),
-      ),
-    );
-
-    // a run only changes the steering object while it is the active run:
-    const isActive = () => this.activeRun === run;
 
     return {
-      hasPendingMessages: () => isActive() && this.pending.length > 0,
+      hasPendingMessages: () =>
+        this.state === 'running' && this.pending.length > 0,
 
-      takeMessages: stepNumber => {
-        if (!isActive()) {
+      takeMessages: () => {
+        if (this.state !== 'running') {
           return [];
         }
 
-        const delivered = this.pending;
+        this.taken = [...this.taken, ...this.pending];
         this.pending = [];
 
-        for (const { id, message, resolve } of delivered) {
-          resolve({ type: 'delivered', id, message, stepNumber });
+        return this.taken.map(({ message }) => message);
+      },
+
+      resolveTakenMessages: ({ stepNumber, sentMessages }) => {
+        const taken = this.taken;
+        this.taken = [];
+
+        const delivered: Array<UserModelMessage> = [];
+
+        for (const { id, message, resolve } of taken) {
+          if (isSent({ message, sentMessages })) {
+            delivered.push(message);
+            resolve({ type: 'delivered', id, message, stepNumber });
+          } else {
+            resolve({
+              type: 'not-delivered',
+              id,
+              message,
+              reason: 'removed-by-prepare-step',
+            });
+          }
         }
 
-        return delivered.map(({ message }) => message);
+        return delivered;
       },
 
       end: reason => {
-        if (!isActive()) {
+        if (this.state !== 'running') {
           return;
         }
 
-        const notDelivered = this.pending;
+        const notDelivered = [...this.taken, ...this.pending];
+        this.taken = [];
         this.pending = [];
         this.state = 'ended';
-        this.activeRun = undefined;
 
         for (const { id, message, resolve } of notDelivered) {
           resolve({ type: 'not-delivered', id, message, reason });
@@ -197,6 +226,25 @@ class DefaultSteering implements Steering {
       },
     };
   }
+}
+
+// prepareStep can map messages to new objects, e.g. to add provider options,
+// so a message also counts as sent when a user message has the same content:
+function isSent({
+  message,
+  sentMessages,
+}: {
+  message: UserModelMessage;
+  sentMessages: ReadonlyArray<ModelMessage>;
+}): boolean {
+  const content = JSON.stringify(message.content);
+
+  return sentMessages.some(
+    sentMessage =>
+      sentMessage === message ||
+      (sentMessage.role === 'user' &&
+        JSON.stringify(sentMessage.content) === content),
+  );
 }
 
 /**

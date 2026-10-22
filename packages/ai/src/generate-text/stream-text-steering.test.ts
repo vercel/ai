@@ -477,36 +477,6 @@ describe('streamText experimental_steering', () => {
     });
   });
 
-  it('should deliver messages to a stream that the previous stream started in onEnd', async () => {
-    const steering = createSteering();
-    const model = createModel([
-      () => textStream('first answer'),
-      () => textStream('second answer'),
-    ]);
-    let second: ReturnType<typeof streamText> | undefined;
-    let outcome: Promise<SteeringOutcome> | undefined;
-
-    const first = streamText({
-      model,
-      prompt: 'hello',
-      experimental_steering: steering,
-      onEnd: () => {
-        second = streamText({
-          model,
-          prompt: 'hello again',
-          experimental_steering: steering,
-        });
-        outcome = steering.steer('for the second stream');
-      },
-    });
-
-    await first.consumeStream();
-    await second!.consumeStream();
-
-    expect(lastUserText(model.doStreamCalls[1])).toBe('for the second stream');
-    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
-  });
-
   it('should not deliver messages when the arguments are invalid', async () => {
     const steering = createSteering();
     const outcome = steering.steer('hello');
@@ -545,49 +515,55 @@ describe('streamText experimental_steering', () => {
     });
   });
 
-  it('should keep a stream that is started from the finish chunk of a previous stream', async () => {
+  it('should throw when the steering object is reused after a stream finished', async () => {
     const steering = createSteering();
-    const secondModel = createModel([
-      () => textStream('second answer'),
-      () => textStream('corrected'),
-    ]);
-    const preparing = Promise.withResolvers<void>();
-    const resume = Promise.withResolvers<void>();
-    let second: ReturnType<typeof streamText> | undefined;
+    const model = createModel([() => textStream('first answer')]);
+
+    await streamText({
+      model,
+      prompt: 'hello',
+      experimental_steering: steering,
+    }).consumeStream();
+
+    expect(() =>
+      streamText({ model, prompt: 'hello', experimental_steering: steering }),
+    ).toThrow(
+      'Create a new one with experimental_createSteering() for each call.',
+    );
+  });
+
+  it('should not deliver messages that prepareStep removes', async () => {
+    const steering = createSteering();
     let outcome: Promise<SteeringOutcome> | undefined;
 
-    const first = streamText({
-      model: createModel([() => textStream('first answer')]),
-      prompt: 'first',
-      experimental_steering: steering,
-      onChunk: async ({ chunk }) => {
-        if (chunk.type !== 'finish') {
-          return;
-        }
+    const model = createModel([
+      () => toolCallStream,
+      () => textStream('It is sunny in Paris.'),
+    ]);
 
-        second = streamText({
-          model: secondModel,
-          prompt: 'second',
-          stopWhen: isStepCount(5),
-          experimental_steering: steering,
-          prepareStep: async ({ stepNumber }) => {
-            if (stepNumber === 0) {
-              outcome = steering.steer('correction');
-              preparing.resolve();
-              await resume.promise;
-            }
-            return undefined;
-          },
-        });
-        await preparing.promise;
+    const result = streamText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: weather(() => {
+          outcome = steering.steer('I meant Paris, Texas.');
+          return 'sunny';
+        }),
       },
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+      prepareStep: ({ initialMessages, responseMessages }) => ({
+        messages: [...initialMessages, ...responseMessages],
+      }),
     });
 
-    await first.consumeStream();
-    resume.resolve();
+    const steps = await result.steps;
 
-    expect(await second!.text).toBe('corrected');
-    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'removed-by-prepare-step',
+    });
+    expect(steps[1].experimental_steeringMessages).toBeUndefined();
   });
 
   it('should throw when the steering object is used by two streams at once', async () => {
@@ -606,7 +582,7 @@ describe('streamText experimental_steering', () => {
     expect(() =>
       streamText({ model, prompt: 'hello', experimental_steering: steering }),
     ).toThrowErrorMatchingInlineSnapshot(
-      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object is already used by a running generation.]`,
+      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object was already used by a generation. Create a new one with experimental_createSteering() for each call.]`,
     );
 
     await first.consumeStream();

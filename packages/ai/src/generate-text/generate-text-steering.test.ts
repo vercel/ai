@@ -586,6 +586,42 @@ describe('generateText experimental_steering', () => {
     });
   });
 
+  it('should not deliver messages that prepareStep removes', async () => {
+    const steering = createSteering();
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const model = createModel([
+      () => toolCallResponse,
+      () => textResponse('It is sunny in Paris.'),
+    ]);
+
+    const result = await generateText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async () => {
+            outcome = steering.steer('I meant Paris, Texas.');
+            return 'sunny';
+          },
+        }),
+      },
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+      prepareStep: ({ initialMessages, responseMessages }) => ({
+        messages: [...initialMessages, ...responseMessages],
+      }),
+    });
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'removed-by-prepare-step',
+    });
+    expect(result.steps[1].experimental_steeringMessages).toBeUndefined();
+    expect(lastUserText(model.doGenerateCalls[1])).toBeUndefined();
+  });
+
   it('should throw when the steering object is used by two runs at once', async () => {
     const steering = createSteering();
     const model = createModel([
@@ -602,7 +638,7 @@ describe('generateText experimental_steering', () => {
     await expect(
       generateText({ model, prompt: 'hello', experimental_steering: steering }),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object is already used by a running generation.]`,
+      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object was already used by a generation. Create a new one with experimental_createSteering() for each call.]`,
     );
 
     await first;

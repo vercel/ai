@@ -14,7 +14,8 @@ describe('createSteering', () => {
     const run = startSteeringRun(steering)!;
 
     expect(run.hasPendingMessages()).toBe(true);
-    expect(run.takeMessages(0)).toMatchInlineSnapshot(`
+    const taken = run.takeMessages();
+    expect(taken).toMatchInlineSnapshot(`
       [
         {
           "content": "first",
@@ -32,6 +33,10 @@ describe('createSteering', () => {
       ]
     `);
     expect(run.hasPendingMessages()).toBe(false);
+
+    expect(
+      run.resolveTakenMessages({ stepNumber: 0, sentMessages: taken }),
+    ).toEqual(taken);
     expect(await Promise.all([first, second])).toMatchInlineSnapshot(`
       [
         {
@@ -61,6 +66,53 @@ describe('createSteering', () => {
     `);
   });
 
+  it('should not deliver messages that are not sent to the model', async () => {
+    const steering = createSteering();
+    const kept = steering.steer('kept', { id: 'steer-1' });
+    const removed = steering.steer('removed', { id: 'steer-2' });
+
+    const run = startSteeringRun(steering)!;
+    const [keptMessage] = run.takeMessages();
+
+    expect(
+      run.resolveTakenMessages({ stepNumber: 1, sentMessages: [keptMessage] }),
+    ).toEqual([keptMessage]);
+    expect(await kept).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(await removed).toMatchInlineSnapshot(`
+      {
+        "id": "steer-2",
+        "message": {
+          "content": "removed",
+          "role": "user",
+        },
+        "reason": "removed-by-prepare-step",
+        "type": "not-delivered",
+      }
+    `);
+  });
+
+  it('should deliver messages that are sent as new objects with the same content', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('hello');
+
+    const run = startSteeringRun(steering)!;
+    const [message] = run.takeMessages();
+
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: [
+        {
+          ...message,
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+      ],
+    });
+
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
   it('should not deliver pending messages when the run ends', async () => {
     const steering = createSteering();
     const run = startSteeringRun(steering)!;
@@ -79,6 +131,20 @@ describe('createSteering', () => {
         "type": "not-delivered",
       }
     `);
+  });
+
+  it('should not deliver taken messages when the run ends before they are sent', async () => {
+    const steering = createSteering();
+    const outcome = steering.steer('taken');
+
+    const run = startSteeringRun(steering)!;
+    run.takeMessages();
+    run.end('error');
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      reason: 'error',
+    });
   });
 
   it('should not deliver messages sent after the run ended', async () => {
@@ -108,7 +174,10 @@ describe('createSteering', () => {
     expect(repeated).toBe(first);
 
     const run = startSteeringRun(steering)!;
-    expect(run.takeMessages(1)).toHaveLength(1);
+    const taken = run.takeMessages();
+    expect(taken).toHaveLength(1);
+
+    run.resolveTakenMessages({ stepNumber: 1, sentMessages: taken });
     expect(await repeated).toMatchObject({
       type: 'delivered',
       stepNumber: 1,
@@ -120,7 +189,11 @@ describe('createSteering', () => {
     const steering = createSteering();
 
     const outcome = steering.steer('hello');
-    startSteeringRun(steering)!.takeMessages(0);
+    const run = startSteeringRun(steering)!;
+    run.resolveTakenMessages({
+      stepNumber: 0,
+      sentMessages: run.takeMessages(),
+    });
 
     expect((await outcome).id).toMatch(/^steer-/);
   });
@@ -140,36 +213,17 @@ describe('createSteering', () => {
     startSteeringRun(steering);
 
     expect(() => startSteeringRun(steering)).toThrowErrorMatchingInlineSnapshot(
-      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object is already used by a running generation.]`,
+      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object was already used by a generation. Create a new one with experimental_createSteering() for each call.]`,
     );
   });
 
-  it('should allow a new run after the previous run ended', async () => {
+  it('should throw when the steering object is reused after its run ended', () => {
     const steering = createSteering();
     startSteeringRun(steering)!.end('finished');
 
-    const run = startSteeringRun(steering)!;
-    const outcome = steering.steer('next run', { id: 'steer-1' });
-    run.takeMessages(0);
-
-    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
-  });
-
-  it('should not let a previous run change a newer run', async () => {
-    const steering = createSteering();
-    const previousRun = startSteeringRun(steering)!;
-    previousRun.end('finished');
-
-    const nextRun = startSteeringRun(steering)!;
-    const outcome = steering.steer('for the next run', { id: 'steer-1' });
-
-    previousRun.end('finished');
-    expect(previousRun.takeMessages(3)).toEqual([]);
-    expect(previousRun.hasPendingMessages()).toBe(false);
-
-    expect(nextRun.hasPendingMessages()).toBe(true);
-    expect(nextRun.takeMessages(0)).toHaveLength(1);
-    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+    expect(() => startSteeringRun(steering)).toThrow(
+      'Create a new one with experimental_createSteering() for each call.',
+    );
   });
 
   it('should throw for steering objects that were not created with createSteering', () => {

@@ -990,7 +990,7 @@ async function generateTextInternal<
         });
         const stepNumber = steps.length;
 
-        const steeringMessages = steeringRun?.takeMessages(stepNumber) ?? [];
+        const steeringMessages = steeringRun?.takeMessages() ?? [];
         if (steeringMessages.length > 0) {
           messagesForNextStep = [...messagesForNextStep, ...steeringMessages];
         }
@@ -1079,6 +1079,14 @@ async function generateTextInternal<
                 messages: prepareStepResult?.messages ?? stepInputMessages,
                 toolCallerMessages,
               });
+
+              // steering messages are delivered when they are in the messages
+              // that are sent to the model after prepareStep:
+              const deliveredSteeringMessages =
+                steeringRun?.resolveTakenMessages({
+                  stepNumber,
+                  sentMessages: stepMessages,
+                }) ?? [];
 
               const promptMessages = await convertToLanguageModelPrompt({
                 prompt: {
@@ -1611,7 +1619,7 @@ async function generateTextInternal<
                   request: stepRequest,
                   response: stepResponse,
                   toolsContext,
-                  steeringMessages,
+                  steeringMessages: deliveredSteeringMessages,
                 });
 
               logWarnings({

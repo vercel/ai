@@ -2491,8 +2491,7 @@ class DefaultStreamTextResult<
             ...initialResponseMessages,
             ...responseMessagesFromPreviousSteps,
           ];
-          const steeringMessages = steeringRun?.takeMessages(currentStep) ?? [];
-          currentStepSteeringMessages = steeringMessages;
+          const steeringMessages = steeringRun?.takeMessages() ?? [];
 
           const stepInputMessages = [
             ...(stepMessagesForNextStep ?? [
@@ -2571,6 +2570,14 @@ class DefaultStreamTextResult<
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;
+
+          // steering messages are delivered when they are in the messages that
+          // are sent to the model after prepareStep:
+          currentStepSteeringMessages =
+            steeringRun?.resolveTakenMessages({
+              stepNumber: currentStep,
+              sentMessages: stepMessages,
+            }) ?? [];
           const stepInstructions =
             prepareStepResult?.instructions ??
             prepareStepResult?.system ??
