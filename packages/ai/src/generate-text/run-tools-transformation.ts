@@ -1,5 +1,7 @@
 import type {
+  LanguageModelV3Content,
   LanguageModelV3StreamPart,
+  LanguageModelV3ToolChoice,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type {
   FinishReason,
@@ -122,6 +125,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
+  toolChoice,
   generatorStream,
   tracer,
   telemetry,
@@ -138,6 +142,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish,
 }: {
   tools: TOOLS | undefined;
+  toolChoice?: LanguageModelV3ToolChoice;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
@@ -265,6 +270,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // overtake pending start or delta callbacks in a downstream stream.
   const activeToolCallToolNames = new Map<string, string>();
 
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair them or process their input.
+  const withholdToolParts = toolChoice?.type === 'none';
+  const withheldToolContent: Array<LanguageModelV3Content> = [];
+
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelV3StreamPart,
@@ -277,6 +289,24 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       >,
     ) {
       const chunkType = chunk.type;
+
+      if (
+        withholdToolParts &&
+        (chunkType === 'tool-input-start' ||
+          chunkType === 'tool-input-delta' ||
+          chunkType === 'tool-input-end' ||
+          chunkType === 'tool-approval-request')
+      ) {
+        return;
+      }
+
+      if (
+        withholdToolParts &&
+        (chunkType === 'tool-call' || chunkType === 'tool-result')
+      ) {
+        withheldToolContent.push(chunk);
+        return;
+      }
 
       switch (chunkType) {
         // forward:
@@ -343,13 +373,35 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'finish': {
+          const toolChoiceViolationError =
+            withholdToolParts &&
+            withheldToolContent.some(part => part.type === 'tool-call')
+              ? new ToolChoiceViolationError({
+                  toolChoice: { type: 'none' },
+                  finishReason: chunk.finishReason.unified,
+                  provider: model?.provider ?? 'unknown',
+                  modelId: model?.modelId ?? 'unknown',
+                  content: withheldToolContent,
+                })
+              : undefined;
+
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason.unified,
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
             rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (toolChoiceViolationError != null) {
+            controller.enqueue({
+              type: 'error',
+              error: toolChoiceViolationError,
+            });
+          }
 
           if (isToolExecutionAllowedFinishReason(chunk.finishReason.unified)) {
             for (const toolCall of toolCallsToExecute.splice(0)) {
