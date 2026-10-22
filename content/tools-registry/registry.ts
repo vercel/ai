@@ -755,7 +755,7 @@ console.log(text);`,
     slug: 'live-tennis-api',
     name: 'Live Tennis API',
     description:
-      'Live tennis scores, fixtures, players, rankings and head-to-head records as 24 AI SDK tools, covering ATP, WTA, Challenger, ITF and junior events. Live data works on the free plan. Paid plans add the results archive back to 1968, match-winner prices and model win probability.',
+      'Live tennis scores, fixtures, players, rankings, head-to-head records and player stats as 25 AI SDK tools, covering ATP, WTA, Challenger, ITF and junior events. Live data works on the free plan. Paid plans add the results archive back to 1968, match-winner prices and model win probability.',
     packageName: 'livetennisapi-ai',
     tags: ['sports', 'tennis', 'live-data'],
     apiKeyEnvName: 'LIVETENNISAPI_KEY',
