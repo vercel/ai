@@ -339,7 +339,6 @@ export type ToolLoopAgentSettings<
         >,
         | 'abortSignal'
         | 'timeout'
-        | 'experimental_steering'
         | 'onStart'
         | 'experimental_onStart'
         | 'onStepStart'

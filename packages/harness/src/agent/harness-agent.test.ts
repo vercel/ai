@@ -18,7 +18,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   convertToModelMessages,
-  experimental_createSteering,
   isStepCount,
   NoSuchToolError,
   Output,
@@ -1289,27 +1288,6 @@ describe('HarnessAgent', () => {
 
     await session.destroy();
   });
-
-  test.each(['generate', 'stream'] as const)(
-    '%s() rejects the experimental_steering option',
-    async method => {
-      const { harness } = mockHarness({ script: () => [] });
-      const agent = new HarnessAgent({ harness });
-      const session = await agent.createSession({
-        sandboxSession: makeSandboxSession(),
-      });
-
-      await expect(
-        agent[method]({
-          session,
-          prompt: 'hello',
-          experimental_steering: experimental_createSteering(),
-        }),
-      ).rejects.toThrow(HarnessCapabilityUnsupportedError);
-
-      await session.destroy();
-    },
-  );
 
   test('experimental_steer() rejects while the turn awaits tool approval', async () => {
     const { harness, userMessages } = mockHarness({

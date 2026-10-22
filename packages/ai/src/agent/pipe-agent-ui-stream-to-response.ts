@@ -29,7 +29,7 @@ import type { Steering } from '../generate-text/steering';
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
- * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Optional.
+ * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Only supported by `ToolLoopAgent`. Optional.
  * @param options - The options for the agent. Optional.
  * @param experimental_transform - Stream transformations. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.

@@ -654,7 +654,6 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    this._assertNoSteeringOption(options);
     const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
@@ -685,7 +684,6 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    this._assertNoSteeringOption(options);
     const continueTurnInput = this._resolveContinueTurnInput(options);
     const runtimeContext =
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
@@ -908,17 +906,6 @@ export class HarnessAgent<
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, call?.onEnd ?? call?.onFinish),
     };
-  }
-
-  private _assertNoSteeringOption(options: {
-    experimental_steering?: unknown;
-  }) {
-    if (options.experimental_steering != null) {
-      throw new HarnessCapabilityUnsupportedError({
-        message: `HarnessAgent does not support experimental_steering yet. Use agent.experimental_steer({ session, text }) to steer a running turn.`,
-        harnessId: this.settings.harness.harnessId,
-      });
-    }
   }
 
   private _resolveContinueTurnInput(options: {

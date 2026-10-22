@@ -12,6 +12,7 @@ import {
   type SteeringOutcome,
 } from '../generate-text/steering';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import type { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
 import { ToolLoopAgent } from './tool-loop-agent';
 
@@ -156,5 +157,33 @@ describe('ToolLoopAgent experimental_steering', () => {
 
     expect(model.doStreamCalls).toHaveLength(2);
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+  });
+
+  it('should throw when createAgentUIStream gets a steering object with an agent that is not a ToolLoopAgent', async () => {
+    const stream = vi.fn();
+    const agent: Agent = {
+      version: 'agent-v1',
+      id: undefined,
+      tools: {},
+      generate: vi.fn(),
+      stream,
+    };
+
+    await expect(
+      createAgentUIStream({
+        agent,
+        uiMessages: [
+          {
+            id: 'message-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hello' }],
+          },
+        ],
+        experimental_steering: createSteering(),
+      }),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: Steering is only supported by ToolLoopAgent.]`,
+    );
+    expect(stream).not.toHaveBeenCalled();
   });
 });

@@ -28,8 +28,10 @@ import {
   createAsyncIterableStream,
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
-import type { Agent } from './agent';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { Steering } from '../generate-text/steering';
+import type { Agent } from './agent';
+import { ToolLoopAgent } from './tool-loop-agent';
 
 /**
  * UI stream options with separate generation and UI message step callbacks.
@@ -57,7 +59,7 @@ export type AgentUIMessageStreamOptions<
  * @param abortSignal - The abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
- * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Optional.
+ * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Only supported by `ToolLoopAgent`. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.
@@ -111,6 +113,15 @@ export async function createAgentUIStream<
 } & AgentUIMessageStreamOptions<TOOLS, UI_MESSAGE>): Promise<
   AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>
 > {
+  // other agents would ignore the steering object and never resolve its messages:
+  if (steering != null && !(agent instanceof ToolLoopAgent)) {
+    throw new InvalidArgumentError({
+      parameter: 'experimental_steering',
+      value: steering,
+      message: 'Steering is only supported by ToolLoopAgent.',
+    });
+  }
+
   const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
     messages: uiMessages,
     // tools are compatible; the casting is required because the context param is
