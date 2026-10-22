@@ -1,5 +1,25 @@
 # @ai-sdk/otel
 
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.149
+
+### Patch Changes
+
+- e6a568d: Add an `agentSpanName` option to `OpenTelemetry` to name root agent spans using `functionId` or a custom callback. Preserve model-based span names by default.
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+
 ## 1.0.148
 
 ### Patch Changes

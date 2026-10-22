@@ -2516,6 +2516,65 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['missing', 'invalid-json', 'provider-error', 'empty-status'])(
+      'handles a stream ending with %s',
+      async ending => {
+        const withError =
+          ending === 'invalid-json' || ending === 'provider-error';
+        const events = fs
+          .readFileSync(
+            'src/responses/__fixtures__/xai-text-streaming.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        const firstText = events.findIndex(
+          event => event.type === 'response.output_text.delta',
+        );
+        expect(firstText).toBeGreaterThanOrEqual(0);
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events
+              .slice(0, firstText + 1)
+              .map(event => `data: ${JSON.stringify(event)}\n\n`),
+            ...(ending === 'invalid-json' ? ['data: {invalid-json}\n\n'] : []),
+            ...(ending === 'provider-error'
+              ? [
+                  `data: ${JSON.stringify({ type: 'error', message: 'Stream failed', code: 'server_error' })}\n\n`,
+                ]
+              : []),
+            ...(ending === 'empty-status'
+              ? [
+                  `data: ${JSON.stringify({ type: 'response.completed', response: { ...events.find(event => event.type === 'response.completed').response, status: '' } })}\n\n`,
+                ]
+              : []),
+          ],
+        };
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError
+                ? 'error'
+                : ending === 'empty-status'
+                  ? 'other'
+                  : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     it('should warn about unsupported sampling settings', async () => {
       prepareChunksFixtureResponse('xai-text-streaming.1');
 

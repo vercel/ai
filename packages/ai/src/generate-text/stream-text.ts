@@ -2534,7 +2534,7 @@ class DefaultStreamTextResult<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
           const {
-            executionTools: stepExecutionTools,
+            executionTools,
             modelTools: stepModelTools,
             toolCallerMessages,
           } = prepareToolsForToolCallers({
@@ -2564,6 +2564,8 @@ class DefaultStreamTextResult<
           const stepToolChoice = prepareToolChoice({
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
+          const stepExecutionTools =
+            stepToolChoice.type === 'none' ? undefined : executionTools;
 
           const stepMessages = appendToolCallerMessages({
             messages: prepareStepResult?.messages ?? stepInputMessages,

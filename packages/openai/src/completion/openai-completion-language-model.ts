@@ -272,8 +272,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       responseHeaders,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };

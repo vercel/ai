@@ -3203,8 +3203,71 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
     );
 
+    let hasOutput = false;
+    let hasStreamError = false;
+    let lastFinish:
+      | Extract<LanguageModelV4StreamPart, { type: 'finish' }>
+      | undefined;
+    const streamWithFinishReason = transformedStream.pipeThrough(
+      new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(
+        {
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'response-metadata':
+                hasOutput = false;
+                break;
+              case 'finish':
+                hasOutput = false;
+                lastFinish = chunk;
+                break;
+              case 'error':
+                hasStreamError = true;
+                break;
+              case 'text-delta':
+              case 'reasoning-delta':
+              case 'tool-input-delta':
+                hasOutput ||= chunk.delta.length > 0;
+                break;
+              case 'tool-call':
+                hasOutput = true;
+                break;
+            }
+            controller.enqueue(chunk);
+          },
+          flush(controller) {
+            // Preserve the existing no-output error path. Only partial output
+            // without a finish chunk receives an interrupted finish reason.
+            if (hasOutput && !hasStreamError) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason: { unified: 'interrupted', raw: undefined },
+                // Keep the usage and metadata core already had before the cutoff.
+                usage: lastFinish?.usage ?? {
+                  inputTokens: {
+                    total: undefined,
+                    noCache: undefined,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: undefined,
+                    text: undefined,
+                    reasoning: undefined,
+                  },
+                },
+                ...(lastFinish?.providerMetadata != null
+                  ? { providerMetadata: lastFinish.providerMetadata }
+                  : {}),
+              });
+            }
+          },
+        },
+      ),
+    );
+
     // The first chunk needs to be pulled immediately to check if it is an error
-    const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
+    const [streamForFirstChunk, streamForConsumer] =
+      streamWithFinishReason.tee();
 
     const firstChunkReader = streamForFirstChunk.getReader();
     try {
