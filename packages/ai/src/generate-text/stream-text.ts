@@ -2481,6 +2481,9 @@ class DefaultStreamTextResult<
             messages: stepInputMessages,
             initialMessages,
             responseMessages: accumulatedResponseMessages,
+            ...(steeringMessages.length > 0
+              ? { experimental_steeringMessages: steeringMessages }
+              : {}),
             toolsContext,
             runtimeContext,
             experimental_sandbox: sandbox,

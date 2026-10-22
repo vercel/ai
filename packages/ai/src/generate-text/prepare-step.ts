@@ -5,6 +5,7 @@ import type {
   ModelMessage,
   ProviderOptions,
   ToolSet,
+  UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { Instructions } from '../prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
@@ -26,6 +27,7 @@ import type { ToolOrder } from './tool-order';
  * @param options.messages - The messages that will be sent to the model for the current step. If you return a `messages` override, those messages carry forward to later steps.
  * @param options.initialMessages - The initial messages that were passed into generateText or streamText.
  * @param options.responseMessages - The response messages that have been accumulated from previous steps.
+ * @param options.experimental_steeringMessages - The steering messages that were added to `messages` for the current step.
  * @param options.runtimeContext - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
@@ -75,6 +77,15 @@ export type PrepareStepFunction<
    * The response messages that have been accumulated from all previous steps.
    */
   responseMessages: Array<ResponseMessage>;
+
+  /**
+   * The user messages that were sent with `experimental_steering` and added to
+   * `messages` for the current step. Undefined when the step received no
+   * steering messages. If you return a `messages` override that is built from
+   * other messages, e.g. `initialMessages` and `responseMessages`, include
+   * these so the steering messages reach the model.
+   */
+  experimental_steeringMessages?: Array<UserModelMessage>;
 
   /**
    * Tool context.

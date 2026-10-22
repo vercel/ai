@@ -42,6 +42,19 @@ describe('steering types', () => {
     >().toEqualTypeOf<Array<UserModelMessage> | undefined>();
   });
 
+  it('should pass steering messages to prepareStep', () => {
+    generateText({
+      model: new MockLanguageModelV4(),
+      prompt: 'hello',
+      prepareStep: ({ experimental_steeringMessages }) => {
+        expectTypeOf(experimental_steeringMessages).toEqualTypeOf<
+          Array<UserModelMessage> | undefined
+        >();
+        return undefined;
+      },
+    });
+  });
+
   it('should accept a steering object in generateText, streamText and agents', () => {
     const steering = createSteering();
     const model = new MockLanguageModelV4();

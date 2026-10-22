@@ -365,6 +365,58 @@ describe('streamText experimental_steering', () => {
     `);
   });
 
+  it('should pass steering messages to prepareStep so rebuilt messages can keep them', async () => {
+    const steering = createSteering();
+    const prepareStepSteeringMessages: Array<unknown> = [];
+
+    const model = createModel([
+      () => toolCallStream,
+      () => textStream('It is sunny in Paris, Texas.'),
+    ]);
+
+    const result = streamText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      tools: {
+        weather: weather(() => {
+          steering.steer('I meant Paris, Texas.');
+          return 'sunny';
+        }),
+      },
+      stopWhen: isStepCount(5),
+      experimental_steering: steering,
+      prepareStep: ({
+        initialMessages,
+        responseMessages,
+        experimental_steeringMessages,
+      }) => {
+        prepareStepSteeringMessages.push(experimental_steeringMessages);
+        return {
+          messages: [
+            ...initialMessages,
+            ...responseMessages,
+            ...(experimental_steeringMessages ?? []),
+          ],
+        };
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(prepareStepSteeringMessages).toMatchInlineSnapshot(`
+      [
+        undefined,
+        [
+          {
+            "content": "I meant Paris, Texas.",
+            "role": "user",
+          },
+        ],
+      ]
+    `);
+    expect(lastUserText(model.doStreamCalls[1])).toBe('I meant Paris, Texas.');
+  });
+
   it('should throw when the steering object is used by two streams at once', async () => {
     const steering = createSteering();
     const model = createModel([

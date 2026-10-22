@@ -452,6 +452,27 @@ const result = await run;
 - Messages that are sent before the loop starts are added to the first step.
 - `prepareStep` and `onStepStart` receive the steering messages as part of `messages`.
 
+<Note type="warning">
+  If `prepareStep` returns a `messages` override that is built from other
+  messages, e.g. `initialMessages` and `responseMessages`, include
+  `experimental_steeringMessages`. Otherwise the steering messages are dropped
+  even though `steer()` reports them as delivered.
+</Note>
+
+```ts
+prepareStep: ({
+  initialMessages,
+  responseMessages,
+  experimental_steeringMessages,
+}) => ({
+  messages: [
+    ...initialMessages,
+    ...responseMessages,
+    ...(experimental_steeringMessages ?? []),
+  ],
+}),
+```
+
 ### Handling the Outcome
 
 `steer()` resolves with the outcome of the message and never rejects:

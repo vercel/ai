@@ -716,6 +716,13 @@ retain the content their contracts require.
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
+                      name: 'experimental_steeringMessages',
+                      type: 'Array<UserModelMessage> | undefined',
+                      isOptional: true,
+                      description:
+                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. Include them when you return a `messages` override that is built from other messages.',
+                    },
+                    {
                       name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,

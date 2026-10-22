@@ -973,6 +973,9 @@ export async function generateText<
                 messages: stepInputMessages,
                 initialMessages,
                 responseMessages: accumulatedResponseMessages,
+                ...(steeringMessages.length > 0
+                  ? { experimental_steeringMessages: steeringMessages }
+                  : {}),
                 runtimeContext,
                 toolsContext,
                 experimental_sandbox: sandbox,
