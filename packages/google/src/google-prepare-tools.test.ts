@@ -1067,3 +1067,56 @@ it('should use AUTO mode when no tools have strict: true', () => {
     functionCallingConfig: { mode: 'AUTO' },
   });
 });
+
+it('should let providerFunctionCallingConfig override the derived mode', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-2.5-flash',
+    providerFunctionCallingConfig: {
+      mode: 'NONE',
+      allowedFunctionNames: ['getWeather'],
+    },
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'NONE',
+      allowedFunctionNames: ['getWeather'],
+    },
+  });
+});
+
+it('should apply providerFunctionCallingConfig when no toolChoice is set', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+    providerFunctionCallingConfig: { mode: 'ANY' },
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});

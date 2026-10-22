@@ -17,7 +17,7 @@ type GoogleFunctionDeclaration = {
   parametersJsonSchema: unknown;
 };
 
-export function prepareTools({
+export function prepareToolsBase({
   tools,
   toolChoice,
   modelId,
@@ -307,6 +307,57 @@ export function prepareTools({
       });
     }
   }
+}
+
+export type GoogleFunctionCallingConfigOverride = {
+  mode?: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
+  allowedFunctionNames?: string[];
+};
+
+/**
+ * prepareToolsBase plus an explicit `functionCallingConfig` override from
+ * provider options (Closes https://github.com/vercel/ai/issues/10006).
+ * Without the override the result is identical to prepareToolsBase.
+ */
+export function prepareTools({
+  tools,
+  toolChoice,
+  modelId,
+  isVertexProvider = false,
+  providerFunctionCallingConfig,
+}: {
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  modelId: GoogleModelId;
+  isVertexProvider?: boolean;
+  providerFunctionCallingConfig?: GoogleFunctionCallingConfigOverride;
+}): ReturnType<typeof prepareToolsBase> {
+  const result = prepareToolsBase({
+    tools,
+    toolChoice,
+    modelId,
+    isVertexProvider,
+  });
+
+  if (providerFunctionCallingConfig?.mode == null) {
+    return result;
+  }
+
+  return {
+    ...result,
+    toolConfig: {
+      ...(result.toolConfig ?? {}),
+      functionCallingConfig: {
+        mode: providerFunctionCallingConfig.mode,
+        ...(providerFunctionCallingConfig.allowedFunctionNames != null
+          ? {
+              allowedFunctionNames:
+                providerFunctionCallingConfig.allowedFunctionNames,
+            }
+          : {}),
+      },
+    },
+  };
 }
 
 function prepareFunctionDeclaration(
