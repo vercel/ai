@@ -435,7 +435,9 @@ export function toElevenLabsStreamOutputFormat(
   format: SharedV4AudioFormat | undefined,
 ): string {
   if (format == null) return defaultOutputFormat;
-  const { type, rate } = format;
+  const { rate } = format;
+  // MIME types are case-insensitive and may carry parameters.
+  const type = format.type.split(';')[0].trim().toLowerCase();
   switch (type) {
     case 'audio/mpeg':
     case 'audio/mp3':
