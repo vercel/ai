@@ -205,6 +205,31 @@ describe('GatewaySpeechModel.doStream', () => {
     );
   });
 
+  it('should expose a typed error to audio-stream consumers', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream(['Hi']),
+    });
+    const reader = result.stream.getReader();
+    // Mirrors core's pull-based audioStream error propagation.
+    const audioStream = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        const { value } = await reader.read();
+        if (value?.type === 'error') {
+          controller.error(value.error);
+          await reader.cancel(value.error).catch(() => {});
+        }
+      },
+    });
+    const rejection = expect(audioStream.getReader().read()).rejects.toSatisfy(
+      error => GatewayRateLimitError.isInstance(error),
+    );
+    lastSocket().message({
+      type: 'error',
+      error: { message: 'Rate limited', type: 'rate_limit_exceeded' },
+    });
+    await rejection;
+  });
+
   it('should error when the socket closes before a finish part', async () => {
     const result = await createStreamingTestModel().doStream({
       text: convertArrayToReadableStream(['Hi']),

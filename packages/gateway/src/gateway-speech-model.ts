@@ -330,7 +330,7 @@ function createGatewaySpeechStream({
           socket.send(JSON.stringify(startFrame));
           void sendText(socket).catch(finishWithError);
         },
-        onMessageText: messageText => {
+        onMessageText: async messageText => {
           if (finished) return;
           const part = parseSpeechStreamPart(messageText);
           if (part == null) return;
@@ -349,6 +349,12 @@ function createGatewaySpeechStream({
             lastServerError = part.error;
             textStopped = true;
             cancelText();
+            part.error = await createErrorFromServerErrorPart(
+              part.error,
+              authMethod,
+              'speech',
+            );
+            if (finished) return;
           }
 
           controller.enqueue(part);
