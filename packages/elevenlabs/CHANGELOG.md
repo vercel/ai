@@ -1,5 +1,14 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.67
+
+### Patch Changes
+
+- 762d96e: fix(elevenlabs): use the reported audio duration for batch transcription, including trailing silence, with word timestamps as a fallback.
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 3.0.66
 
 ### Patch Changes
