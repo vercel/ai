@@ -318,6 +318,7 @@ export function createWebFetchTool({
   validatePositiveInteger({
     parameter: 'timeout',
     value: timeout,
+    // AbortSignal.timeout overflows above 2^31 - 1 ms and fires immediately.
     max: 2_147_483_647,
   });
 
