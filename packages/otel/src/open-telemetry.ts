@@ -125,11 +125,13 @@ export class OpenTelemetry implements Telemetry {
   private readonly callStates = new Map<string, CallState>();
 
   private readonly tracer: Tracer;
+  private readonly agentSpanName: OpenTelemetryOptions['agentSpanName'];
   private readonly supplementalAttributes: SupplementalAttributeOptions;
   private readonly enrichSpan: EnrichSpan | undefined;
 
   constructor(options: OpenTelemetryOptions = {}) {
     this.tracer = options.tracer ?? trace.getTracer('gen_ai');
+    this.agentSpanName = options.agentSpanName;
     this.supplementalAttributes = normalizeSupplementalAttributes(options);
     this.enrichSpan = options.enrichSpan;
   }
@@ -140,6 +142,30 @@ export class OpenTelemetry implements Telemetry {
 
   private cleanupCallState(callId: string): void {
     this.callStates.delete(callId);
+  }
+
+  private getAgentSpanName({
+    modelId,
+    functionId,
+  }: {
+    modelId: string;
+    functionId: string | undefined;
+  }): string {
+    const defaultName = `invoke_agent ${modelId}`;
+
+    if (this.agentSpanName === 'functionId') {
+      return `invoke_agent ${functionId ?? modelId}`;
+    }
+
+    if (typeof this.agentSpanName === 'function') {
+      try {
+        return this.agentSpanName({ modelId, functionId }) ?? defaultName;
+      } catch {
+        return defaultName;
+      }
+    }
+
+    return defaultName;
   }
 
   private getSpanAttributes({
@@ -429,7 +455,10 @@ export class OpenTelemetry implements Telemetry {
       ...baseSupplementalAttributes,
     });
 
-    const spanName = `${operationName} ${event.modelId}`;
+    const spanName = this.getAgentSpanName({
+      modelId: event.modelId,
+      functionId: telemetry.functionId,
+    });
     const rootSpan = this.tracer.startSpan(spanName, {
       attributes: this.getSpanAttributes({
         attributes,
@@ -536,7 +565,10 @@ export class OpenTelemetry implements Telemetry {
       }),
     });
 
-    const spanName = `${operationName} ${event.modelId}`;
+    const spanName = this.getAgentSpanName({
+      modelId: event.modelId,
+      functionId: telemetry.functionId,
+    });
     const rootSpan = this.tracer.startSpan(spanName, {
       attributes: this.getSpanAttributes({
         attributes,
