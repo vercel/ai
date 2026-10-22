@@ -164,22 +164,84 @@ describe('CartesiaRealtimeModel', () => {
       });
       expect(model.parseServerEvent(turnStart)).toEqual({
         type: 'speech-started',
-        itemId: 'request-1',
+        itemId: 'request-1:1',
         raw: turnStart,
       });
       expect(model.parseServerEvent(turnEnd)).toEqual([
         {
           type: 'speech-stopped',
-          itemId: 'request-1',
+          itemId: 'request-1:1',
           raw: turnEnd,
         },
         {
           type: 'input-transcription-completed',
-          itemId: 'request-1',
+          itemId: 'request-1:1',
           transcript: 'Hello world',
           raw: turnEnd,
         },
       ]);
+    });
+
+    it('gives each Ink 2 turn its own item id', () => {
+      const model = createModel();
+      const itemIds = (events: unknown[]) =>
+        events.map(event =>
+          [model.parseServerEvent(event)]
+            .flat()
+            .map(mapped => ('itemId' in mapped ? mapped.itemId : undefined)),
+        );
+
+      expect(
+        itemIds([
+          { type: 'connected', request_id: 'request-1' },
+          { type: 'turn.start', request_id: 'request-1' },
+          { type: 'turn.end', request_id: 'request-1', transcript: 'One' },
+          { type: 'turn.start', request_id: 'request-1' },
+          { type: 'turn.end', request_id: 'request-1', transcript: 'Two' },
+        ]),
+      ).toEqual([
+        [undefined],
+        ['request-1:1'],
+        ['request-1:1', 'request-1:1'],
+        ['request-1:2'],
+        ['request-1:2', 'request-1:2'],
+      ]);
+    });
+
+    it('keeps one item id when a turn resumes', () => {
+      const model = createModel();
+      const itemIds = [
+        { type: 'turn.start', request_id: 'request-1' },
+        { type: 'turn.eager_end', request_id: 'request-1', transcript: 'Hi' },
+        { type: 'turn.resume', request_id: 'request-1' },
+        { type: 'turn.end', request_id: 'request-1', transcript: 'Hi there' },
+      ].flatMap(event =>
+        [model.parseServerEvent(event)]
+          .flat()
+          .flatMap(mapped => ('itemId' in mapped ? [mapped.itemId] : [])),
+      );
+
+      expect(new Set(itemIds)).toEqual(new Set(['request-1:1']));
+    });
+
+    it('does not reuse item ids after a reconnect', () => {
+      const model = createModel();
+      const speechStartedId = (requestId: string) => {
+        const mapped = model.parseServerEvent({
+          type: 'turn.start',
+          request_id: requestId,
+        });
+        const events = Array.isArray(mapped) ? mapped : [mapped];
+        return events.find(event => event.type === 'speech-started');
+      };
+
+      model.parseServerEvent({ type: 'connected', request_id: 'request-1' });
+      const first = speechStartedId('request-1');
+      model.parseServerEvent({ type: 'connected', request_id: 'request-2' });
+      const second = speechStartedId('request-2');
+
+      expect(first).toMatchObject({ itemId: 'request-1:1' });
+      expect(second).toMatchObject({ itemId: 'request-2:1' });
     });
 
     it('assembles manual transcript chunks when a flush completes', () => {

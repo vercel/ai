@@ -327,6 +327,9 @@ function createCartesiaStreamingTranscriptionStream({
     start: controller => {
       const finalTexts: string[] = [];
       let durationInSeconds = 0;
+      let turnCount = 0;
+      const turnId = (requestId: string | undefined) =>
+        requestId != null ? `${requestId}:${turnCount}` : String(turnCount);
       let audioReader:
         | ReadableStreamDefaultReader<Uint8Array | string>
         | undefined;
@@ -409,11 +412,16 @@ function createCartesiaStreamingTranscriptionStream({
           }
 
           switch (raw.type) {
+            case 'turn.start': {
+              turnCount += 1;
+              break;
+            }
+
             case 'turn.update':
             case 'turn.eager_end': {
               controller.enqueue({
                 type: 'transcript-partial',
-                id: raw.request_id,
+                id: turnId(raw.request_id),
                 text: raw.transcript ?? '',
               });
               break;
@@ -424,7 +432,7 @@ function createCartesiaStreamingTranscriptionStream({
               finalTexts.push(text);
               controller.enqueue({
                 type: 'transcript-final',
-                id: raw.request_id,
+                id: turnId(raw.request_id),
                 text,
               });
               break;
