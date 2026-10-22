@@ -1,9 +1,11 @@
-import type {
-  Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
-  JSONObject,
-  JSONValue,
-  SharedV4AudioFormat,
-  SharedV4Warning,
+import {
+  InvalidArgumentError,
+  type Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
+  type Experimental_SpeechModelV4StreamTextPart as SpeechModelV4StreamTextPart,
+  type JSONObject,
+  type JSONValue,
+  type SharedV4AudioFormat,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   connectToWebSocket,
@@ -13,7 +15,6 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import type { ElevenLabsConfig } from './elevenlabs-config';
-import { ElevenLabsDialogueMarkerParser } from './elevenlabs-dialogue-markers';
 
 /**
  * Counts Unicode code points, the unit ElevenLabs bills text-to-speech in.
@@ -27,8 +28,9 @@ export function countCodePoints(text: string): number {
 }
 
 // Deltas are held back to the last word boundary: the WebSockets expect text
-// messages to end at whitespace, and LLM deltas often split words.
-const WORD_BOUNDARY = /[\s.,!?;:。、！？，；：]/u;
+// messages to end at whitespace, and LLM deltas often split words. CJK
+// sentence punctuation also counts, since those scripts have no spaces.
+const WORD_BOUNDARY = /[\s。、！？，；：]/u;
 // Bounds buffering for scripts without spaces (e.g. CJK) or very long words.
 const MAX_HELD_CODE_POINTS = 100;
 
@@ -56,13 +58,29 @@ export function takeCompleteWords(buffered: string): {
 
 /**
  * Milliseconds of send inactivity after which a keepalive is sent, ahead of
- * the server's inactivity timeout (default 20 s).
+ * the servers' default 20 s inactivity timeout.
  */
-export function getKeepaliveIntervalMs(
-  inactivityTimeoutSeconds: number | undefined,
-): number {
-  const timeoutMs = (inactivityTimeoutSeconds ?? 20) * 1000;
-  return Math.max(1000, timeoutMs - 5000);
+export const KEEPALIVE_INTERVAL_MS = 15_000;
+
+/** Text to send, with the speaker it belongs to. */
+export type ElevenLabsTextSegment = {
+  text: string;
+  /** The part's voice; the protocol applies its default when absent. */
+  voice?: string;
+  /** Forces a new dialogue turn even when the voice is unchanged. */
+  newTurn?: boolean;
+};
+
+/** Reads `providerOptions.elevenlabs.newTurn` from a text part. */
+export function getNewTurn(part: SpeechModelV4StreamTextPart): boolean {
+  const newTurn = part.providerOptions?.elevenlabs?.newTurn;
+  if (newTurn != null && typeof newTurn !== 'boolean') {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.elevenlabs.newTurn',
+      message: 'providerOptions.elevenlabs.newTurn must be a boolean.',
+    });
+  }
+  return newTurn === true;
 }
 
 /**
@@ -107,7 +125,8 @@ export type ElevenLabsStreamEvent = {
 
 /**
  * Wire protocol for one ElevenLabs streaming TTS WebSocket. `encodeText`
- * returns the messages for a text delta and the characters they carry.
+ * returns the messages for a text segment and the characters they carry, and
+ * throws for a voice the socket cannot speak.
  */
 export type ElevenLabsStreamProtocol = {
   initMessage: Record<string, unknown>;
@@ -115,7 +134,7 @@ export type ElevenLabsStreamProtocol = {
   authFields(apiKey: string): Record<string, unknown>;
   /** Resets the server's inactivity timeout without generating audio. */
   keepaliveMessage: Record<string, unknown>;
-  encodeText(delta: string): {
+  encodeText(segment: ElevenLabsTextSegment): {
     messages: Array<Record<string, unknown>>;
     characters: number;
   };
@@ -126,87 +145,93 @@ export type ElevenLabsStreamProtocol = {
   decodeEvent(raw: Record<string, unknown>): ElevenLabsStreamEvent;
 };
 
-/** `stream-input`: one implicit context; `{"text":""}` ends the input. */
-export function createSingleContextProtocol(
-  initMessage: Record<string, unknown>,
-): ElevenLabsStreamProtocol {
+/**
+ * `stream-input`: one implicit context and one voice; `{"text":""}` ends the
+ * input.
+ */
+export function createSingleContextProtocol({
+  initMessage,
+  voice,
+}: {
+  initMessage: Record<string, unknown>;
+  voice: string;
+}): ElevenLabsStreamProtocol {
   return {
     initMessage,
     authFields: apiKey => ({ 'xi-api-key': apiKey }),
     keepaliveMessage: { text: ' ' },
-    encodeText: delta => ({
-      messages: [{ text: delta }],
-      characters: countCodePoints(delta),
-    }),
+    encodeText: segment => {
+      if (segment.voice != null && segment.voice !== voice) {
+        throw new InvalidArgumentError({
+          argument: 'text',
+          message: `The ElevenLabs text-to-speech WebSocket speaks a single voice per stream ("${voice}"); a text part requested "${segment.voice}". Use an eleven_v3 or eleven_v4 model with dialogue options for several voices.`,
+        });
+      }
+      return {
+        messages: [{ text: segment.text }],
+        characters: countCodePoints(segment.text),
+      };
+    },
     endMessages: () => ({ messages: [{ text: '' }], characters: 0 }),
     decodeEvent: raw => decodeTextToSpeechEvent(raw),
   };
 }
 
 /**
- * Text-to-Dialogue `stream-input`. Speaker turns come from inline
- * `[[voice:<id>]]` markers (see `ElevenLabsDialogueMarkerParser`). With
- * `incremental: false` (the v3 family) all inputs go in one final message.
+ * Text-to-Dialogue `stream-input`. Each text part's `voice` (default
+ * `defaultVoice`) must be one of `voices`; a voice change, or a part with
+ * `newTurn`, starts a new turn. With `incremental: false` (the v3 family) all
+ * inputs go in one final message.
  */
 export function createDialogueProtocol({
   initMessage,
   voices,
+  defaultVoice,
   incremental,
 }: {
   initMessage: Record<string, unknown>;
   voices: string[];
+  defaultVoice: string;
   incremental: boolean;
 }): ElevenLabsStreamProtocol {
-  const parser = new ElevenLabsDialogueMarkerParser(voices);
   const buffered: Array<Record<string, unknown>> = [];
+  let currentVoice: string | undefined;
 
-  const toInputs = (
-    segments: ReturnType<ElevenLabsDialogueMarkerParser['push']>,
-  ) => {
-    let characters = 0;
-    const inputs = segments.map(segment => {
-      characters += countCodePoints(segment.text);
-      return {
-        text: segment.text,
-        voice_id: segment.voiceId,
-        ...(segment.newTurn && { new_turn: true }),
-      };
-    });
-    return { inputs, characters };
-  };
-
-  const emit = (
-    segments: ReturnType<ElevenLabsDialogueMarkerParser['push']>,
-  ) => {
-    const { inputs, characters } = toInputs(segments);
+  const emit = (segment: ElevenLabsTextSegment) => {
+    const voice = segment.voice ?? defaultVoice;
+    if (!voices.includes(voice)) {
+      throw new InvalidArgumentError({
+        argument: 'text',
+        message: `Dialogue text part voice "${voice}" is not listed in providerOptions.elevenlabs.dialogue.voices.`,
+      });
+    }
+    const newTurn =
+      currentVoice != null && (voice !== currentVoice || segment.newTurn);
+    currentVoice = voice;
+    const input = {
+      text: segment.text,
+      voice_id: voice,
+      ...(newTurn && { new_turn: true }),
+    };
+    const characters = countCodePoints(segment.text);
     if (!incremental) {
-      buffered.push(...inputs);
+      buffered.push(input);
       return { messages: [], characters };
     }
-    return {
-      messages: inputs.length > 0 ? [{ inputs }] : [],
-      characters,
-    };
+    return { messages: [{ inputs: [input] }], characters };
   };
 
   return {
     initMessage: { ...initMessage, voices },
     authFields: apiKey => ({ xi_api_key: apiKey }),
     keepaliveMessage: { keep_alive: true },
-    encodeText: delta => emit(parser.push(delta)),
-    endMessages: () => {
-      const tail = emit(parser.flush());
-      if (!incremental) {
-        return {
-          messages: [{ inputs: buffered, close_socket: true }],
-          characters: tail.characters,
-        };
-      }
-      return {
-        messages: [...tail.messages, { close_socket: true }],
-        characters: tail.characters,
-      };
-    },
+    encodeText: emit,
+    endMessages: () => ({
+      messages: incremental
+        ? [{ close_socket: true }]
+        : [{ inputs: buffered, close_socket: true }],
+      characters: 0,
+    }),
     decodeEvent: raw => {
       const error = getErrorText(raw);
       if (error != null) return { error };
@@ -278,17 +303,17 @@ function camelizeAlignment(value: unknown): JSONObject | undefined {
 
 /**
  * Streams text-to-speech over an ElevenLabs WebSocket using `protocol`: an
- * init message carrying the API key, text ending at word boundaries,
- * keepalives while idle, end-of-input messages, then audio until the final
- * event.
+ * init message carrying the API key, text parts ending at word boundaries
+ * (held back per speaker), keepalives while idle, end-of-input messages, then
+ * audio until the final event.
  */
 export function createElevenLabsSpeechStream({
   abortSignal,
   apiKey,
   audioFormat,
   headers,
-  inactivityTimeoutSeconds,
   includeRawChunks,
+  keepalive,
   protocol,
   text,
   url,
@@ -300,10 +325,11 @@ export function createElevenLabsSpeechStream({
   apiKey: string | undefined;
   audioFormat: SharedV4AudioFormat;
   headers: Record<string, string | undefined>;
-  inactivityTimeoutSeconds: number | undefined;
   includeRawChunks: boolean | undefined;
+  /** Send keepalives while the text stream is idle. */
+  keepalive: boolean;
   protocol: ElevenLabsStreamProtocol;
-  text: ReadableStream<string>;
+  text: ReadableStream<SpeechModelV4StreamTextPart>;
   url: URL;
   warnings: SharedV4Warning[];
   webSocket: ElevenLabsConfig['webSocket'];
@@ -313,25 +339,29 @@ export function createElevenLabsSpeechStream({
 
   return new ReadableStream<SpeechModelV4StreamPart>({
     start: controller => {
-      let textReader: ReadableStreamDefaultReader<string> | undefined;
+      let textReader:
+        | ReadableStreamDefaultReader<SpeechModelV4StreamTextPart>
+        | undefined;
       let connection: WebSocketConnection | undefined;
       let inputCharacters = 0;
+      let inputEnded = false;
       let keepaliveTimer: ReturnType<typeof setTimeout> | undefined;
-      const keepaliveIntervalMs = getKeepaliveIntervalMs(
-        inactivityTimeoutSeconds,
-      );
 
       // Every send restarts the idle clock; a slow text producer (e.g. a
       // reasoning model) would otherwise hit the server's inactivity timeout.
+      // No keepalive follows the end of input.
       const send = (
         socket: WebSocketLike,
         message: Record<string, unknown>,
       ) => {
         socket.send(JSON.stringify(message));
         if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
+        if (!keepalive || inputEnded) return;
         keepaliveTimer = setTimeout(() => {
-          if (!finished) send(socket, protocol.keepaliveMessage);
-        }, keepaliveIntervalMs);
+          if (!finished && !inputEnded) {
+            send(socket, protocol.keepaliveMessage);
+          }
+        }, KEEPALIVE_INTERVAL_MS);
       };
 
       cleanup = (closeCode?: number) => {
@@ -373,20 +403,44 @@ export function createElevenLabsSpeechStream({
         }
       };
 
+      // Text is held back per segment (speaker + turn): a part with another
+      // voice or a new turn first flushes the held text of the previous one.
+      // An empty text message ends the input, so never send one here.
       const sendText = async (socket: WebSocketLike) => {
         const reader = text.getReader();
         textReader = reader;
-        let held = '';
+        let held: ElevenLabsTextSegment | undefined;
+        const flushHeld = async () => {
+          if (held != null && held.text.length > 0) {
+            await sendAll(socket, protocol.encodeText(held));
+          }
+          held = undefined;
+        };
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished) break;
-            const { send: complete, hold } = takeCompleteWords(held + value);
-            held = hold;
-            // An empty text message ends the input, so never send one here.
-            if (complete.length > 0) {
-              await sendAll(socket, protocol.encodeText(complete));
+            const newTurn = getNewTurn(value);
+            if (held != null && (held.voice !== value.voice || newTurn)) {
+              await flushHeld();
             }
+            const segment: ElevenLabsTextSegment = held ?? {
+              text: '',
+              ...(value.voice != null && { voice: value.voice }),
+              ...(newTurn && { newTurn }),
+            };
+            const { send: complete, hold } = takeCompleteWords(
+              segment.text + value.text,
+            );
+            if (complete.length > 0) {
+              await sendAll(
+                socket,
+                protocol.encodeText({ ...segment, text: complete }),
+              );
+              // The rest of the segment continues the same turn.
+              delete segment.newTurn;
+            }
+            held = { ...segment, text: hold };
           }
         } finally {
           reader.releaseLock();
@@ -395,9 +449,8 @@ export function createElevenLabsSpeechStream({
           }
         }
         if (!finished) {
-          if (held.length > 0) {
-            await sendAll(socket, protocol.encodeText(held));
-          }
+          await flushHeld();
+          inputEnded = true;
           await sendAll(socket, protocol.endMessages());
         }
       };

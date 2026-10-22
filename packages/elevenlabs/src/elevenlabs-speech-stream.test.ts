@@ -1,4 +1,5 @@
 import {
+  type Experimental_SpeechModelV4StreamTextPart as SpeechModelV4StreamTextPart,
   InvalidArgumentError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -9,11 +10,20 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createElevenLabs } from './elevenlabs-provider';
-import type { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
+import {
+  type ElevenLabsSpeechModel,
+  toElevenLabsStreamOutputFormat,
+} from './elevenlabs-speech-model';
 import {
   countCodePoints,
   getElevenLabsAudioFormat,
 } from './elevenlabs-speech-stream';
+
+function textParts(texts: string[]) {
+  return convertArrayToReadableStream<SpeechModelV4StreamTextPart>(
+    texts.map(text => ({ type: 'text', text })),
+  );
+}
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -88,9 +98,9 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should stream text deltas and audio over the stream-input WebSocket', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hello ', '', 'wörld 👋 ']),
+      text: textParts(['Hello ', '', 'wörld 👋 ']),
       voice: 'voice-1',
-      outputFormat: 'pcm_24000',
+      outputFormat: { type: 'audio/pcm', rate: 24000 },
       speed: 1.1,
       language: 'en',
       providerOptions: {
@@ -168,13 +178,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should hold partial words until a word boundary and flush the rest at the end', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream([
-        'Hel',
-        'lo wor',
-        'ld, how a',
-        're',
-        ' you',
-      ]),
+      text: textParts(['Hel', 'lo wor', 'ld, how a', 're', ' you']),
     });
     const socket = lastSocket();
     socket.open();
@@ -200,11 +204,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should not hold text without spaces indefinitely', async () => {
     await createModel().doStream({
-      text: convertArrayToReadableStream([
-        'こんにちは',
-        '世界。次',
-        'x'.repeat(100),
-      ]),
+      text: textParts(['こんにちは', '世界。次', 'x'.repeat(100)]),
     });
     const socket = lastSocket();
     socket.open();
@@ -218,25 +218,20 @@ describe('ElevenLabsSpeechModel.doStream', () => {
     ]);
   });
 
-  it('should send keepalives while the text stream is idle', async () => {
+  it('should send keepalives while the text stream is idle, and none after the input ends', async () => {
     vi.useFakeTimers();
     try {
       let releaseText: (() => void) | undefined;
-      const text = new ReadableStream<string>({
+      const text = new ReadableStream<SpeechModelV4StreamTextPart>({
         async pull(controller) {
-          controller.enqueue('Thinking... ');
+          controller.enqueue({ type: 'text', text: 'Thinking... ' });
           await new Promise<void>(resolve => {
             releaseText = resolve;
           });
           controller.close();
         },
       });
-      await createModel().doStream({
-        text,
-        providerOptions: {
-          elevenlabs: { streaming: { inactivityTimeout: 20 } },
-        },
-      });
+      await createModel().doStream({ text });
       const socket = lastSocket();
       socket.open();
       await vi.advanceTimersByTimeAsync(0);
@@ -253,14 +248,57 @@ describe('ElevenLabsSpeechModel.doStream', () => {
       releaseText?.();
       await vi.advanceTimersByTimeAsync(0);
       expect(socket.sentMessages().at(-1)).toEqual({ text: '' });
+      const sentAtEnd = socket.sentMessages().length;
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(socket.sentMessages().length).toBe(sentAtEnd);
     } finally {
       vi.useRealTimers();
     }
   });
 
+  it('should not send keepalives when inactivityTimeout is set explicitly', async () => {
+    vi.useFakeTimers();
+    try {
+      const text = new ReadableStream<SpeechModelV4StreamTextPart>({
+        async pull(controller) {
+          controller.enqueue({ type: 'text', text: 'Thinking... ' });
+          await new Promise<void>(() => {});
+        },
+      });
+      await createModel().doStream({
+        text,
+        providerOptions: {
+          elevenlabs: { streaming: { inactivityTimeout: 20 } },
+        },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(socket.sentMessages().slice(1)).toEqual([
+        { text: 'Thinking... ' },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('should error when a text part requests a different voice', async () => {
+    const result = await createModel().doStream({
+      voice: 'voice-1',
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hello ', voice: 'voice-1' },
+        { type: 'text', text: 'there ', voice: 'voice-2' },
+      ]),
+    });
+    lastSocket().open();
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      InvalidArgumentError,
+    );
+  });
+
   it('should default the voice and output format', async () => {
     await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
     });
 
     expect(String(lastSocket().url)).toBe(
@@ -270,7 +308,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should include raw chunks when requested', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
       includeRawChunks: true,
     });
     const socket = lastSocket();
@@ -288,7 +326,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should warn about unsupported options', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
       instructions: 'whisper',
       providerOptions: { elevenlabs: { previousText: 'Before.' } },
     });
@@ -317,7 +355,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should error on a server error message', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
     });
     const socket = lastSocket();
     socket.open();
@@ -331,7 +369,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should error when the socket closes before isFinal', async () => {
     const result = await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
     });
     const socket = lastSocket();
     socket.open();
@@ -346,7 +384,9 @@ describe('ElevenLabsSpeechModel.doStream', () => {
   it('should close the socket and cancel the text when the stream is cancelled', async () => {
     const cancelText = vi.fn();
     const result = await createModel().doStream({
-      text: new ReadableStream<string>({ cancel: cancelText }),
+      text: new ReadableStream<SpeechModelV4StreamTextPart>({
+        cancel: cancelText,
+      }),
     });
     const socket = lastSocket();
     socket.open();
@@ -361,7 +401,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
   it('should close the socket on abort', async () => {
     const abortController = new AbortController();
     const result = await createModel().doStream({
-      text: new ReadableStream<string>(),
+      text: new ReadableStream<SpeechModelV4StreamTextPart>(),
       abortSignal: abortController.signal,
     });
     const socket = lastSocket();
@@ -376,7 +416,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
   it('should send versioned pronunciation dictionary locators', async () => {
     await createModel().doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
       providerOptions: {
         elevenlabs: {
           pronunciationDictionaryLocators: [
@@ -400,7 +440,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
 
     await expect(
       createModel().doStream({
-        text: new ReadableStream<string>({ cancel }),
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({ cancel }),
         providerOptions: {
           elevenlabs: {
             pronunciationDictionaryLocators: [
@@ -419,7 +459,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
     async modelId => {
       await expect(
         createModel(modelId).doStream({
-          text: convertArrayToReadableStream(['Hi']),
+          text: textParts(['Hi']),
         }),
       ).rejects.toThrow(UnsupportedFunctionalityError);
     },
@@ -431,14 +471,14 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     MockWebSocket.instances = [];
   });
 
-  it('streams speaker turns from inline markers over Text-to-Dialogue (v4)', async () => {
+  it('streams speaker turns from text part voices over Text-to-Dialogue (v4)', async () => {
     const result = await createModel('eleven_v4').doStream({
-      text: convertArrayToReadableStream([
-        '[[voice:a]]Hi there. [[vo',
-        'ice:b]]Hello 👋 ',
-        'friend.',
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi there. ', voice: 'a' },
+        { type: 'text', text: 'Hello 👋 ', voice: 'b' },
+        { type: 'text', text: 'friend.', voice: 'b' },
       ]),
-      outputFormat: 'pcm_24000',
+      outputFormat: { type: 'audio/pcm', rate: 24000 },
       providerOptions: {
         elevenlabs: {
           dialogue: { voices: ['a', 'b'], voiceSettings: { stability: 0.5 } },
@@ -459,7 +499,7 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
         voices: ['a', 'b'],
         xi_api_key: 'test-api-key',
       },
-      { inputs: [{ text: 'Hi there. ', voice_id: 'a', new_turn: true }] },
+      { inputs: [{ text: 'Hi there. ', voice_id: 'a' }] },
       { inputs: [{ text: 'Hello 👋 ', voice_id: 'b', new_turn: true }] },
       { inputs: [{ text: 'friend.', voice_id: 'b' }] },
       { close_socket: true },
@@ -498,14 +538,92 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
         audioFormat: { type: 'audio/pcm', rate: 24000 },
         providerMetadata: { elevenlabs: { isFinalAudioForTurn: true } },
       },
-      // markers are not billed: 'Hi there. ' (10) + 'Hello 👋 ' (8) + 'friend.' (7)
+      // 'Hi there. ' (10) + 'Hello 👋 ' (8) + 'friend.' (7)
       { type: 'finish', usage: { inputCharacters: 25 } },
     ]);
   });
 
+  it('flushes held text when the speaker changes, and honors newTurn', async () => {
+    await createModel('eleven_v4').doStream({
+      voice: 'b',
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi the', voice: 'a' },
+        { type: 'text', text: 'Hello ' },
+        {
+          type: 'text',
+          text: 'Again. ',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        },
+        { type: 'text', text: 'More.' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hi ', voice_id: 'a' }] },
+      // The held partial word is flushed before the speaker changes.
+      { inputs: [{ text: 'the', voice_id: 'a' }] },
+      { inputs: [{ text: 'Hello ', voice_id: 'b', new_turn: true }] },
+      { inputs: [{ text: 'Again. ', voice_id: 'b', new_turn: true }] },
+      { inputs: [{ text: 'More.', voice_id: 'b' }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it('errors when a text part voice is not a dialogue voice', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi ', voice: 'c' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    lastSocket().open();
+    await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+      'Dialogue text part voice "c" is not listed in providerOptions.elevenlabs.dialogue.voices.',
+    );
+  });
+
+  it('rejects a call voice that is not a dialogue voice before connecting', async () => {
+    const socketsBefore = MockWebSocket.instances.length;
+    await expect(
+      createModel('eleven_v4').doStream({
+        voice: 'c',
+        text: textParts(['Hi']),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+    expect(MockWebSocket.instances.length).toBe(socketsBefore);
+  });
+
+  it('keeps alive even when inactivityTimeout is set', async () => {
+    vi.useFakeTimers();
+    try {
+      await createModel('eleven_v4').doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({
+          pull: () => new Promise<void>(() => {}),
+        }),
+        providerOptions: {
+          elevenlabs: {
+            dialogue: { voices: ['a'] },
+            streaming: { inactivityTimeout: 60 },
+          },
+        },
+      });
+      const socket = lastSocket();
+      socket.open();
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(socket.sentMessages().slice(1)).toEqual([{ keep_alive: true }]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('sends the whole script in one message for the v3 family', async () => {
     await createModel('eleven_v3_conversational').doStream({
-      text: convertArrayToReadableStream(['Hello ', 'world.']),
+      text: textParts(['Hello ', 'world.']),
       providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
     });
     const socket = lastSocket();
@@ -529,7 +647,7 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     const socketsBefore = MockWebSocket.instances.length;
     await expect(
       createModel('eleven_v3_conversational').doStream({
-        text: new ReadableStream<string>({ cancel }),
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({ cancel }),
         providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
       }),
     ).rejects.toThrow(InvalidArgumentError);
@@ -539,7 +657,7 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
 
   it('errors on server error frames', async () => {
     const result = await createModel('eleven_v4').doStream({
-      text: convertArrayToReadableStream(['Hi']),
+      text: textParts(['Hi']),
       providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
     });
     const socket = lastSocket();
@@ -558,7 +676,7 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
   it('rejects dialogue on non-dialogue models', async () => {
     await expect(
       createModel('eleven_flash_v2_5').doStream({
-        text: convertArrayToReadableStream(['Hi']),
+        text: textParts(['Hi']),
         providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
       }),
     ).rejects.toThrow(UnsupportedFunctionalityError);
@@ -568,9 +686,9 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     vi.useFakeTimers();
     try {
       let releaseText: (() => void) | undefined;
-      const text = new ReadableStream<string>({
+      const text = new ReadableStream<SpeechModelV4StreamTextPart>({
         async pull(controller) {
-          controller.enqueue('Hello there. ');
+          controller.enqueue({ type: 'text', text: 'Hello there. ' });
           await new Promise<void>(resolve => {
             releaseText = resolve;
           });
@@ -615,5 +733,30 @@ describe('getElevenLabsAudioFormat', () => {
     ['unknown', { type: 'application/octet-stream' }],
   ])('should map %s', (outputFormat, expected) => {
     expect(getElevenLabsAudioFormat(outputFormat)).toEqual(expected);
+  });
+});
+
+describe('toElevenLabsStreamOutputFormat', () => {
+  it.each([
+    [undefined, 'mp3_44100_128'],
+    [{ type: 'audio/mpeg' }, 'mp3_44100_128'],
+    [{ type: 'audio/mpeg', rate: 22050 }, 'mp3_22050_32'],
+    [{ type: 'audio/pcm' }, 'pcm_24000'],
+    [{ type: 'audio/pcm', rate: 16000 }, 'pcm_16000'],
+    [{ type: 'audio/pcmu' }, 'ulaw_8000'],
+    [{ type: 'audio/pcma', rate: 8000 }, 'alaw_8000'],
+    [{ type: 'audio/opus' }, 'opus_48000_64'],
+  ])('should map %j to %s', (format, expected) => {
+    expect(toElevenLabsStreamOutputFormat(format)).toBe(expected);
+  });
+
+  it.each([
+    { type: 'audio/pcm', rate: 11025 },
+    { type: 'audio/wav' },
+    { type: 'audio/mpeg', rate: 48000 },
+  ])('should reject %j', format => {
+    expect(() => toElevenLabsStreamOutputFormat(format)).toThrow(
+      InvalidArgumentError,
+    );
   });
 });

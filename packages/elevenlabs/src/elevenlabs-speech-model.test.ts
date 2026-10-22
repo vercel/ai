@@ -34,26 +34,34 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
-    it('should reject streaming-only options', async () => {
-      await expect(
-        model.doGenerate({
-          text: 'Hello, world!',
-          providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
+    it('should warn about and ignore streaming-only options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.streaming',
         }),
-      ).rejects.toThrow(
-        'providerOptions.elevenlabs.streaming applies only to streaming speech',
       );
-      expect(server.calls).toHaveLength(0);
+      expect(server.calls[0].requestUrlSearchParams.get('auto_mode')).toBe(
+        null,
+      );
     });
 
-    it('should reject dialogue options', async () => {
-      await expect(
-        model.doGenerate({
-          text: 'Hello, world!',
-          providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+    it('should warn about and ignore dialogue options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.dialogue',
         }),
-      ).rejects.toThrow(
-        'providerOptions.elevenlabs.dialogue applies only to streaming speech',
       );
     });
 

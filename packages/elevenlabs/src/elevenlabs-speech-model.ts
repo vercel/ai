@@ -5,6 +5,7 @@ import {
   type Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
   type Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   type SpeechModelV4,
+  type SharedV4AudioFormat,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -50,7 +51,9 @@ function isDialogueModelId(modelId: string): boolean {
   return modelId.startsWith('eleven_v3') || modelId.startsWith('eleven_v4');
 }
 
-export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
+export class ElevenLabsSpeechModel
+  implements SpeechModelV4, StreamingSpeechModelV4
+{
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -95,9 +98,10 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
     });
     for (const option of ['streaming', 'dialogue'] as const) {
       if (elevenLabsOptions?.[option] != null) {
-        throw new InvalidArgumentError({
-          argument: `providerOptions.elevenlabs.${option}`,
-          message: `providerOptions.elevenlabs.${option} applies only to streaming speech (experimental_streamSpeech), not generateSpeech.`,
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.elevenlabs.${option}`,
+          details: `${option === 'streaming' ? 'Streaming' : 'Dialogue'} options apply only to streaming speech (experimental_streamSpeech) and were ignored.`,
         });
       }
     }
@@ -316,9 +320,9 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
       });
     }
     const warnings = getStreamWarnings(options, elevenLabsOptions);
-    const outputFormat = toElevenLabsOutputFormat(
-      options.outputFormat ?? defaultOutputFormat,
-    );
+    const outputFormat =
+      elevenLabsOptions?.streaming?.outputFormat ??
+      toElevenLabsStreamOutputFormat(options.outputFormat);
     const voiceId = options.voice ?? defaultVoiceId;
     const voicePath = `/v1/text-to-speech/${encodeURIComponent(voiceId)}`;
     const path =
@@ -352,24 +356,24 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
 
     let protocol: ElevenLabsStreamProtocol;
     if (dialogue != null) {
-      if (options.voice != null) {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'voice',
-          details:
-            'ElevenLabs streaming dialogue uses providerOptions.elevenlabs.dialogue.voices; voice was ignored.',
+      if (options.voice != null && !dialogue.voices.includes(options.voice)) {
+        throw new InvalidArgumentError({
+          argument: 'voice',
+          message: `ElevenLabs streaming dialogue voice "${options.voice}" is not listed in providerOptions.elevenlabs.dialogue.voices.`,
         });
       }
       protocol = createDialogueProtocol({
         initMessage: getDialogueInitMessage(dialogue, elevenLabsOptions),
         voices: dialogue.voices,
+        defaultVoice: options.voice ?? dialogue.voices[0],
         // The v3 family accepts a single message per session.
         incremental: this.modelId.startsWith('eleven_v4'),
       });
     } else {
-      protocol = createSingleContextProtocol(
-        getStreamInitMessage(options, elevenLabsOptions),
-      );
+      protocol = createSingleContextProtocol({
+        initMessage: getStreamInitMessage(options, elevenLabsOptions),
+        voice: voiceId,
+      });
     }
 
     // The API key goes in the init message (not a header) so native
@@ -389,10 +393,10 @@ export class ElevenLabsSpeechModel implements StreamingSpeechModelV4 {
         apiKey,
         audioFormat: getElevenLabsAudioFormat(outputFormat),
         headers,
-        // Text-to-Dialogue always times out after 20 s of inactivity.
-        inactivityTimeoutSeconds:
-          dialogue == null ? streaming?.inactivityTimeout : undefined,
         includeRawChunks: options.includeRawChunks,
+        // Text-to-Dialogue has a fixed 20 s inactivity timeout, so it always
+        // keeps alive; TTS honors an explicit inactivityTimeout instead.
+        keepalive: dialogue != null || streaming?.inactivityTimeout == null,
         protocol,
         text: options.text,
         url,
@@ -489,6 +493,48 @@ function getStreamWarnings(
     }
   }
   return warnings;
+}
+
+/**
+ * Maps a portable output format to an ElevenLabs `output_format`. Exact
+ * native formats (e.g. other MP3 bitrates) use
+ * `providerOptions.elevenlabs.streaming.outputFormat`.
+ */
+export function toElevenLabsStreamOutputFormat(
+  format: SharedV4AudioFormat | undefined,
+): string {
+  if (format == null) return defaultOutputFormat;
+  const { type, rate } = format;
+  switch (type) {
+    case 'audio/mpeg':
+    case 'audio/mp3':
+      if (rate == null || rate === 44100) return 'mp3_44100_128';
+      if (rate === 22050) return 'mp3_22050_32';
+      break;
+    case 'audio/pcm':
+    case 'audio/l16': {
+      const pcmRate = rate ?? 24000;
+      if ([8000, 16000, 22050, 24000, 44100, 48000].includes(pcmRate)) {
+        return `pcm_${pcmRate}`;
+      }
+      break;
+    }
+    case 'audio/pcmu':
+    case 'audio/basic':
+      if (rate == null || rate === 8000) return 'ulaw_8000';
+      break;
+    case 'audio/pcma':
+      if (rate == null || rate === 8000) return 'alaw_8000';
+      break;
+    case 'audio/opus':
+    case 'audio/ogg':
+      if (rate == null || rate === 48000) return 'opus_48000_64';
+      break;
+  }
+  throw new InvalidArgumentError({
+    argument: 'outputFormat',
+    message: `ElevenLabs streaming speech does not support the output format ${JSON.stringify(format)}. Use providerOptions.elevenlabs.streaming.outputFormat for a native ElevenLabs format.`,
+  });
 }
 
 function toElevenLabsOutputFormat(outputFormat: string): string {

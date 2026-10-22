@@ -2,6 +2,7 @@ import type {
   Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
   Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
+  Experimental_SpeechModelV4StreamTextPart as SpeechModelV4StreamTextPart,
   Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   SharedV4ProviderMetadata,
   SharedV4Warning,
@@ -23,6 +24,7 @@ import {
   EXPERIMENTAL_SPEECH_STREAM_TEXT_DONE_FRAME_TYPE as SPEECH_STREAM_TEXT_DONE_FRAME_TYPE,
   waitForWebSocketBufferDrain,
   type Experimental_SpeechStreamStartFrame,
+  type Experimental_SpeechStreamTextDeltaFrame,
   type Resolvable,
   type WebSocketConnection,
   type WebSocketConstructor,
@@ -42,7 +44,9 @@ import {
 } from './gateway-stream-errors';
 import { getProtocolsFromHeaders } from './gateway-transcription-model';
 
-export class GatewaySpeechModel implements StreamingSpeechModelV4 {
+export class GatewaySpeechModel
+  implements SpeechModelV4, StreamingSpeechModelV4
+{
   readonly specificationVersion = 'v4' as const;
 
   constructor(
@@ -246,7 +250,7 @@ function createGatewaySpeechStream({
   protocols: string[];
   headers: Record<string, string | undefined>;
   startFrame: Experimental_SpeechStreamStartFrame;
-  text: ReadableStream<string>;
+  text: ReadableStream<SpeechModelV4StreamTextPart>;
   abortSignal: AbortSignal | undefined;
   authMethod: 'api-key' | 'oidc' | undefined;
 }): ReadableStream<SpeechModelV4StreamPart> {
@@ -255,7 +259,9 @@ function createGatewaySpeechStream({
 
   return new ReadableStream<SpeechModelV4StreamPart>({
     start: controller => {
-      let textReader: ReadableStreamDefaultReader<string> | undefined;
+      let textReader:
+        | ReadableStreamDefaultReader<SpeechModelV4StreamTextPart>
+        | undefined;
       let hasServerErrorPart = false;
       let lastServerError: unknown;
       let textStopped = false;
@@ -289,14 +295,22 @@ function createGatewaySpeechStream({
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished || textStopped) break;
-            for (const delta of splitTextDelta(value)) {
+            let first = true;
+            for (const delta of splitTextDelta(value.text)) {
               if (finished || textStopped) break;
-              socket.send(
-                JSON.stringify({
-                  type: SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
-                  delta,
-                }),
-              );
+              // The voice applies to every frame of the part; provider
+              // options (e.g. a turn break) only to its first frame.
+              const frame: Experimental_SpeechStreamTextDeltaFrame = {
+                type: SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
+                delta,
+                ...(value.voice != null && { voice: value.voice }),
+                ...(first &&
+                  value.providerOptions != null && {
+                    providerOptions: value.providerOptions,
+                  }),
+              };
+              first = false;
+              socket.send(JSON.stringify(frame));
               await waitForWebSocketBufferDrain(socket);
             }
           }
@@ -330,7 +344,7 @@ function createGatewaySpeechStream({
           socket.send(JSON.stringify(startFrame));
           void sendText(socket).catch(finishWithError);
         },
-        onMessageText: messageText => {
+        onMessageText: async messageText => {
           if (finished) return;
           const part = parseSpeechStreamPart(messageText);
           if (part == null) return;
@@ -349,6 +363,12 @@ function createGatewaySpeechStream({
             lastServerError = part.error;
             textStopped = true;
             cancelText();
+            part.error = await createErrorFromServerErrorPart(
+              part.error,
+              authMethod,
+              'speech',
+            );
+            if (finished) return;
           }
 
           controller.enqueue(part);

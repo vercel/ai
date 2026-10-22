@@ -45,6 +45,8 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
             .optional(),
           enableSsmlParsing: z.boolean().optional(),
           inactivityTimeout: z.number().int().min(1).max(180).optional(),
+          // Native output_format (e.g. mp3_44100_192), overriding outputFormat.
+          outputFormat: z.string().min(1).optional(),
           syncAlignment: z.boolean().optional(),
         })
         .optional(),

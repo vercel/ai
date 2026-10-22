@@ -201,19 +201,22 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
-| Model                      | Instructions |
-| -------------------------- | ------------ |
-| `eleven_v4`                | <Check />    |
-| `eleven_v4_turbo`          | <Check />    |
-| `eleven_v3`                | <Check />    |
-| `eleven_v3_conversational` | <Check />    |
-| `eleven_multilingual_v2`   | <Check />    |
-| `eleven_flash_v2_5`        | <Check />    |
-| `eleven_flash_v2`          | <Check />    |
-| `eleven_turbo_v2_5`        | <Check />    |
-| `eleven_turbo_v2`          | <Check />    |
-| `eleven_monolingual_v1`    | <Check />    |
-| `eleven_multilingual_v1`   | <Check />    |
+| Model                      | Speech    | Streaming Speech     |
+| -------------------------- | --------- | -------------------- |
+| `eleven_v4`                | <Check /> | <Check /> (dialogue) |
+| `eleven_v4_turbo`          | <Check /> | <Check /> (dialogue) |
+| `eleven_v3`                | <Check /> | <Check /> (dialogue) |
+| `eleven_v3_conversational` | <Check /> | <Check /> (dialogue) |
+| `eleven_multilingual_v2`   | <Check /> | <Check />            |
+| `eleven_flash_v2_5`        | <Check /> | <Check />            |
+| `eleven_flash_v2`          | <Check /> | <Check />            |
+| `eleven_turbo_v2_5`        | <Check /> | <Check />            |
+| `eleven_turbo_v2`          | <Check /> | <Check />            |
+| `eleven_monolingual_v1`    | <Check /> | <Cross />            |
+| `eleven_multilingual_v1`   | <Check /> | <Cross />            |
+
+ElevenLabs speech models do not support `instructions`; the option is ignored
+with a warning.
 
 ## Streaming Speech Models
 
@@ -237,7 +240,7 @@ const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
   text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
   voice: '21m00Tcm4TlvDq8ikWAM',
-  outputFormat: 'pcm_24000',
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
   providerOptions: {
     elevenlabs: {
       streaming: {
@@ -261,11 +264,25 @@ The API key is sent in the WebSocket's first message, so the native
 `WebSocket` works in every runtime. Run streaming speech on the server: in
 browser code the API key would be exposed to the client.
 
+`outputFormat` maps to an ElevenLabs `output_format`: `audio/mpeg` (44.1 kHz,
+or 22.05 kHz), `audio/pcm` (8, 16, 22.05, 24 (default), 44.1, or 48 kHz),
+`audio/pcmu` and `audio/pcma` (8 kHz), and `audio/opus` (48 kHz). Other formats
+are rejected. Set `providerOptions.elevenlabs.streaming.outputFormat` to a
+native ElevenLabs format (for example `mp3_44100_192`) to choose one directly.
+Without either, audio is `mp3_44100_128`.
+
+The text-to-speech WebSocket speaks one voice per stream. A text part whose
+`voice` differs from the call's `voice` errors the stream; use dialogue
+(below) for several voices.
+
 Text deltas that end mid-word (common in LLM streams) are held back until the
-next word boundary before they are sent, and the rest is flushed when the text
-stream ends. While the text stream is idle, the provider sends keepalive
-messages so the connection outlives the server's inactivity timeout (for
-example while a reasoning model thinks).
+next whitespace before they are sent, and the rest is flushed when the text
+stream ends. CJK sentence punctuation also counts as a boundary, and held text
+is sent after 100 characters regardless. While the text stream is idle, the
+provider sends keepalive messages so the connection outlives the server's
+default inactivity timeout (for example while a reasoning model thinks).
+Setting `inactivityTimeout` turns keepalives off, so the timeout you set
+applies.
 
 `usage.inputCharacters` is the number of Unicode code points sent for synthesis.
 Audio parts carry ElevenLabs `alignment` and `normalizedAlignment` data in
@@ -273,40 +290,40 @@ Audio parts carry ElevenLabs `alignment` and `normalizedAlignment` data in
 
 The `streaming` provider options mirror the WebSocket settings: `autoMode`,
 `chunkLengthSchedule`, `enableSsmlParsing`, `inactivityTimeout` (seconds, up to
-180), and `syncAlignment`. `voiceSettings`, `pronunciationDictionaryLocators`,
+180), `outputFormat`, and `syncAlignment`. `generateSpeech` ignores them with a
+warning. `voiceSettings`, `pronunciationDictionaryLocators`,
 `seed`, `applyTextNormalization`, `languageCode`, and `enableLogging` apply as
 for `generateSpeech`. `previousText`, `nextText`, `previousRequestIds`,
 `nextRequestIds`, and `applyLanguageTextNormalization` are not supported over
 the WebSocket and produce warnings.
 
-### Model Capabilities
-
-| Model                    | Streaming Speech    |
-| ------------------------ | ------------------- |
-| `eleven_multilingual_v2` | <Check size={18} /> |
-| `eleven_flash_v2_5`      | <Check size={18} /> |
-| `eleven_flash_v2`        | <Check size={18} /> |
-| `eleven_turbo_v2_5`      | <Check size={18} /> |
-| `eleven_turbo_v2`        | <Check size={18} /> |
-
-The `eleven_v3` and `eleven_v4` model families are not served by the
+See the speech model capabilities table above for which models stream. The
+`eleven_v3` and `eleven_v4` model families are not served by the
 text-to-speech WebSocket; stream them as dialogue (below).
 
 ### Streaming dialogue
 
 Set `providerOptions.elevenlabs.dialogue` to stream multi-speaker dialogue over
-the Text-to-Dialogue WebSocket with an `eleven_v3` or `eleven_v4` model. Register
-the voices in `dialogue.voices`, then mark speaker turns inline in the text with
-`[[voice:<voiceId>]]`. Text before the first marker belongs to the first voice.
-Markers can be split across text deltas; they are not spoken and are not counted
-in `usage.inputCharacters`.
+the Text-to-Dialogue WebSocket with an `eleven_v3` or `eleven_v4` model. List
+the voices in `dialogue.voices` (the socket needs them up front), then give each
+text part its speaker with `voice`. Parts without a `voice` use the call's
+`voice`, or else the first dialogue voice; a voice that is not listed errors the
+stream. A change of voice starts a new turn. To start a new turn with the same
+voice, set `providerOptions: { elevenlabs: { newTurn: true } }` on the part.
 
 ```ts
+async function* script() {
+  yield {
+    type: 'text',
+    text: 'Did you hear we can stream dialogue now? ',
+    voice: alice,
+  };
+  yield { type: 'text', text: 'Over one socket? That is neat.', voice: bob };
+}
+
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_v4'),
-  text:
-    `[[voice:${alice}]]Did you hear we can stream dialogue now? ` +
-    `[[voice:${bob}]]Over one socket? That is neat.`,
+  text: script(),
   providerOptions: {
     elevenlabs: {
       dialogue: { voices: [alice, bob], voiceSettings: { stability: 0.5 } },
@@ -315,10 +332,13 @@ const result = streamSpeech({
 });
 ```
 
-`eleven_v4` models receive the text incrementally. `eleven_v3` models accept a
-single message per dialogue session, so the provider reads the whole text stream
-before sending it. `eleven_v3_conversational` supports a single voice. Audio parts
-carry `alignment` (camelCase) and `isFinalAudioForTurn` in
+Text is held back to word boundaries within each speaker's text and flushed
+when the speaker changes. `eleven_v4` models receive the text incrementally.
+`eleven_v3` models accept a single message per dialogue session, so the
+provider reads the whole text stream before sending it.
+`eleven_v3_conversational` supports a single voice. Text-to-Dialogue has a fixed
+inactivity timeout, so keepalives are always sent while the text stream is idle.
+Audio parts carry `alignment` (camelCase) and `isFinalAudioForTurn` in
 `providerMetadata.elevenlabs` when the server returns them; a turn boundary
 without audio arrives as an empty audio part carrying only `isFinalAudioForTurn`.
 
