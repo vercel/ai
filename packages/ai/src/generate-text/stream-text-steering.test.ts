@@ -477,6 +477,36 @@ describe('streamText experimental_steering', () => {
     });
   });
 
+  it('should deliver messages to a stream that the previous stream started in onEnd', async () => {
+    const steering = createSteering();
+    const model = createModel([
+      () => textStream('first answer'),
+      () => textStream('second answer'),
+    ]);
+    let second: ReturnType<typeof streamText> | undefined;
+    let outcome: Promise<SteeringOutcome> | undefined;
+
+    const first = streamText({
+      model,
+      prompt: 'hello',
+      experimental_steering: steering,
+      onEnd: () => {
+        second = streamText({
+          model,
+          prompt: 'hello again',
+          experimental_steering: steering,
+        });
+        outcome = steering.steer('for the second stream');
+      },
+    });
+
+    await first.consumeStream();
+    await second!.consumeStream();
+
+    expect(lastUserText(model.doStreamCalls[1])).toBe('for the second stream');
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
   it('should throw when the steering object is used by two streams at once', async () => {
     const steering = createSteering();
     const model = createModel([

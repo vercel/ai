@@ -454,10 +454,10 @@ const result = await run;
 
 <Note type="warning">
   `messages` already contains the steering messages in the right place. If
-  `prepareStep` returns a `messages` override that is rebuilt from other
-  fields, e.g. `initialMessages` and `responseMessages`, the steering messages
-  are dropped even though `steer()` reports them as delivered. Build overrides
-  from `messages`, or add the steering messages of every step back in order.
+  `prepareStep` returns a `messages` override that is rebuilt from other fields,
+  e.g. `initialMessages` and `responseMessages`, the steering messages are
+  dropped even though `steer()` reports them as delivered. Build overrides from
+  `messages`, or add the steering messages of every step back in order.
 </Note>
 
 ```ts

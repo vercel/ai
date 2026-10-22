@@ -155,6 +155,23 @@ describe('createSteering', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
   });
 
+  it('should not let a previous run change a newer run', async () => {
+    const steering = createSteering();
+    const previousRun = startSteeringRun(steering)!;
+    previousRun.end('finished');
+
+    const nextRun = startSteeringRun(steering)!;
+    const outcome = steering.steer('for the next run', { id: 'steer-1' });
+
+    previousRun.end('finished');
+    expect(previousRun.takeMessages(3)).toEqual([]);
+    expect(previousRun.hasPendingMessages()).toBe(false);
+
+    expect(nextRun.hasPendingMessages()).toBe(true);
+    expect(nextRun.takeMessages(0)).toHaveLength(1);
+    expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 0 });
+  });
+
   it('should throw for steering objects that were not created with createSteering', () => {
     expect(() =>
       startSteeringRun({ steer: async () => undefined as never }),

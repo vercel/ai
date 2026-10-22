@@ -97,6 +97,7 @@ type PendingSteer = {
 
 class DefaultSteering implements Steering {
   private state: 'idle' | 'running' | 'ended' = 'idle';
+  private activeRun: object | undefined;
   private pending: Array<PendingSteer> = [];
   private outcomes = new Map<string, Promise<SteeringOutcome>>();
 
@@ -150,6 +151,8 @@ class DefaultSteering implements Steering {
       });
     }
 
+    const run = {};
+    this.activeRun = run;
     this.state = 'running';
     this.outcomes = new Map(
       [...this.outcomes].filter(([id]) =>
@@ -157,10 +160,17 @@ class DefaultSteering implements Steering {
       ),
     );
 
+    // a run only changes the steering object while it is the active run:
+    const isActive = () => this.activeRun === run;
+
     return {
-      hasPendingMessages: () => this.pending.length > 0,
+      hasPendingMessages: () => isActive() && this.pending.length > 0,
 
       takeMessages: stepNumber => {
+        if (!isActive()) {
+          return [];
+        }
+
         const delivered = this.pending;
         this.pending = [];
 
@@ -172,9 +182,14 @@ class DefaultSteering implements Steering {
       },
 
       end: reason => {
+        if (!isActive()) {
+          return;
+        }
+
         const notDelivered = this.pending;
         this.pending = [];
         this.state = 'ended';
+        this.activeRun = undefined;
 
         for (const { id, message, resolve } of notDelivered) {
           resolve({ type: 'not-delivered', id, message, reason });
