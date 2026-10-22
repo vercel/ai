@@ -15,9 +15,10 @@ export type SpeechModelV4StreamTextPart = {
   /**
    * The voice that speaks this part. Like the call's `voice`, the value is
    * provider-specific (a voice ID, name, or other identifier). Defaults to the
-   * call's `voice`. Providers that support several voices per stream (e.g.
-   * dialogue) switch speakers when it changes; single-voice providers reject a
-   * part whose voice differs from the call's voice.
+   * call's `voice` (or the provider's default voice). Providers that support
+   * several voices per stream (e.g. dialogue) switch speakers when it changes.
+   * Single-voice providers fail the stream (error it) when a part's voice
+   * differs from the voice of the call.
    */
   voice?: string;
 

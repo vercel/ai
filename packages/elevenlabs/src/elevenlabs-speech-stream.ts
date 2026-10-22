@@ -65,8 +65,8 @@ export const KEEPALIVE_INTERVAL_MS = 15_000;
 /** Text to send, with the speaker it belongs to. */
 export type ElevenLabsTextSegment = {
   text: string;
-  /** The part's voice; the protocol applies its default when absent. */
-  voice?: string;
+  /** The resolved voice (see `ElevenLabsStreamProtocol.resolveVoice`). */
+  voice: string;
   /** Forces a new dialogue turn even when the voice is unchanged. */
   newTurn?: boolean;
 };
@@ -106,8 +106,9 @@ export function getElevenLabsAudioFormat(
       return withRate('audio/pcmu');
     case 'alaw':
       return withRate('audio/pcma');
+    // ElevenLabs Opus audio arrives in an Ogg container.
     case 'opus':
-      return withRate('audio/opus');
+      return withRate('audio/ogg');
     case 'wav':
       return withRate('audio/wav');
     default:
@@ -124,9 +125,10 @@ export type ElevenLabsStreamEvent = {
 };
 
 /**
- * Wire protocol for one ElevenLabs streaming TTS WebSocket. `encodeText`
- * returns the messages for a text segment and the characters they carry, and
- * throws for a voice the socket cannot speak.
+ * Wire protocol for one ElevenLabs streaming TTS WebSocket. `resolveVoice`
+ * applies the default voice to a text part and throws for a voice the socket
+ * cannot speak; `encodeText` returns the messages for a text segment and the
+ * characters they carry.
  */
 export type ElevenLabsStreamProtocol = {
   initMessage: Record<string, unknown>;
@@ -134,6 +136,7 @@ export type ElevenLabsStreamProtocol = {
   authFields(apiKey: string): Record<string, unknown>;
   /** Resets the server's inactivity timeout without generating audio. */
   keepaliveMessage: Record<string, unknown>;
+  resolveVoice(voice: string | undefined): string;
   encodeText(segment: ElevenLabsTextSegment): {
     messages: Array<Record<string, unknown>>;
     characters: number;
@@ -160,18 +163,19 @@ export function createSingleContextProtocol({
     initMessage,
     authFields: apiKey => ({ 'xi-api-key': apiKey }),
     keepaliveMessage: { text: ' ' },
-    encodeText: segment => {
-      if (segment.voice != null && segment.voice !== voice) {
+    resolveVoice: partVoice => {
+      if (partVoice != null && partVoice !== voice) {
         throw new InvalidArgumentError({
           argument: 'text',
-          message: `The ElevenLabs text-to-speech WebSocket speaks a single voice per stream ("${voice}"); a text part requested "${segment.voice}". Use an eleven_v3 or eleven_v4 model with dialogue options for several voices.`,
+          message: `The ElevenLabs text-to-speech WebSocket speaks a single voice per stream ("${voice}"); a text part requested "${partVoice}". Use an eleven_v3 or eleven_v4 model with dialogue options for several voices.`,
         });
       }
-      return {
-        messages: [{ text: segment.text }],
-        characters: countCodePoints(segment.text),
-      };
+      return voice;
     },
+    encodeText: segment => ({
+      messages: [{ text: segment.text }],
+      characters: countCodePoints(segment.text),
+    }),
     endMessages: () => ({ messages: [{ text: '' }], characters: 0 }),
     decodeEvent: raw => decodeTextToSpeechEvent(raw),
   };
@@ -197,14 +201,19 @@ export function createDialogueProtocol({
   const buffered: Array<Record<string, unknown>> = [];
   let currentVoice: string | undefined;
 
-  const emit = (segment: ElevenLabsTextSegment) => {
-    const voice = segment.voice ?? defaultVoice;
+  const resolveVoice = (partVoice: string | undefined) => {
+    const voice = partVoice ?? defaultVoice;
     if (!voices.includes(voice)) {
       throw new InvalidArgumentError({
         argument: 'text',
         message: `Dialogue text part voice "${voice}" is not listed in providerOptions.elevenlabs.dialogue.voices.`,
       });
     }
+    return voice;
+  };
+
+  const emit = (segment: ElevenLabsTextSegment) => {
+    const { voice } = segment;
     const newTurn =
       currentVoice != null && (voice !== currentVoice || segment.newTurn);
     currentVoice = voice;
@@ -225,6 +234,7 @@ export function createDialogueProtocol({
     initMessage: { ...initMessage, voices },
     authFields: apiKey => ({ xi_api_key: apiKey }),
     keepaliveMessage: { keep_alive: true },
+    resolveVoice,
     encodeText: emit,
     endMessages: () => ({
       messages: incremental
@@ -358,8 +368,11 @@ export function createElevenLabsSpeechStream({
         if (keepaliveTimer != null) clearTimeout(keepaliveTimer);
         if (!keepalive || inputEnded) return;
         keepaliveTimer = setTimeout(() => {
-          if (!finished && !inputEnded) {
+          if (finished || inputEnded) return;
+          try {
             send(socket, protocol.keepaliveMessage);
+          } catch (error) {
+            finishWithError(error);
           }
         }, KEEPALIVE_INTERVAL_MS);
       };
@@ -420,13 +433,14 @@ export function createElevenLabsSpeechStream({
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished) break;
+            const voice = protocol.resolveVoice(value.voice);
             const newTurn = getNewTurn(value);
-            if (held != null && (held.voice !== value.voice || newTurn)) {
+            if (held != null && (held.voice !== voice || newTurn)) {
               await flushHeld();
             }
             const segment: ElevenLabsTextSegment = held ?? {
               text: '',
-              ...(value.voice != null && { voice: value.voice }),
+              voice,
               ...(newTurn && { newTurn }),
             };
             const { send: complete, hold } = takeCompleteWords(

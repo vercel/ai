@@ -117,6 +117,17 @@ describe('experimental_streamSpeech', () => {
       [textPart('Hello '), textPart('world')],
     ],
     [
+      'an async iterable of strings and text parts',
+      () =>
+        (async function* (): AsyncGenerator<
+          string | Experimental_SpeechTextPart
+        > {
+          yield 'Hi. ';
+          yield { type: 'text', text: 'Hello. ', voice: 'bob' };
+        })(),
+      [textPart('Hi. '), { type: 'text', text: 'Hello. ', voice: 'bob' }],
+    ],
+    [
       'a mix of strings and text parts',
       () =>
         convertArrayToReadableStream<string | Experimental_SpeechTextPart>([
@@ -403,6 +414,87 @@ describe('experimental_streamSpeech', () => {
     ]);
     expect(await result.usage).toEqual({ inputCharacters: 2 });
     expect(onError).toHaveBeenCalledWith({ error: 'recoverable' });
+  });
+
+  it('should log error parts with console.error by default', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    try {
+      const result = streamSpeech({
+        model: new MockStreamingSpeechModelV4({
+          doStream: async () =>
+            createStreamResponse([
+              { type: 'stream-start', warnings: [] },
+              { type: 'error', error: 'recoverable' },
+              ...basicParts.slice(1),
+            ]),
+        }),
+        text: 'Hi',
+      });
+      await result.usage;
+      await vi.waitFor(() =>
+        expect(consoleError).toHaveBeenCalledWith('recoverable'),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it.each([
+    [
+      'throws',
+      () => {
+        throw new Error('handler failed');
+      },
+    ],
+    ['rejects', () => Promise.reject(new Error('handler failed'))],
+  ])('should keep streaming when onError %s', async (_, onError) => {
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: 'recoverable' },
+            ...basicParts.slice(1),
+          ]),
+      }),
+      text: 'Hi',
+      onError,
+    });
+    expect(await convertAsyncIterableToArray(result.audioStream)).toHaveLength(
+      2,
+    );
+    expect(await result.usage).toEqual({ inputCharacters: 11 });
+  });
+
+  it('should reject result promises and error the output on a user abort while doStream is pending', async () => {
+    const abortController = new AbortController();
+    const result = streamSpeech({
+      model: new MockStreamingSpeechModelV4({
+        // A provider that ignores the abort signal.
+        doStream: () => new Promise(() => {}),
+      }),
+      text: 'Hi',
+      abortSignal: abortController.signal,
+    });
+    const reader = result.fullStream.getReader();
+    const usage = result.usage;
+    const read = reader.read();
+    abortController.abort(new Error('user abort'));
+    await expect(usage).rejects.toThrow('user abort');
+    await expect(read).rejects.toThrow('user abort');
+  });
+
+  it('should reject a text value that is not a string, iterable, or stream', () => {
+    expect(() =>
+      streamSpeech({
+        model: new MockStreamingSpeechModelV4({
+          doStream: async () => createStreamResponse(basicParts),
+        }),
+        text: ['Hello'] as never,
+      }),
+    ).toThrow('Invalid argument for parameter text');
   });
 
   it('should surface the provider error when the stream ends after audio without finishing', async () => {

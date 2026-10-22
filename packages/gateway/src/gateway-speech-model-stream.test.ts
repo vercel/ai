@@ -291,8 +291,36 @@ describe('GatewaySpeechModel.doStream', () => {
     socket.remoteClose();
 
     await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
-      'AI Gateway speech stream closed before a finish part was received',
+      'AI Gateway speech stream closed before a finish part was received (code 1011).',
     );
+  });
+
+  it('should send an empty text part that carries a voice or provider options', async () => {
+    await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: '' },
+        {
+          type: 'text',
+          text: '',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        },
+        { type: 'text', text: 'Hi', voice: 'v2' },
+      ]),
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+
+    expect(socket.sentFrames().slice(1)).toEqual([
+      {
+        type: 'speech-stream.text-delta',
+        delta: '',
+        providerOptions: { elevenlabs: { newTurn: true } },
+      },
+      { type: 'speech-stream.text-delta', delta: 'Hi', voice: 'v2' },
+      { type: 'speech-stream.text-done' },
+    ]);
   });
 
   it('should map an authentication error part', async () => {
@@ -349,7 +377,7 @@ describe('splitTextDelta', () => {
   });
 
   it('should not split a surrogate pair at a piece boundary', () => {
-    const delta = `${'a'.repeat(16 * 1024 - 1)}👋b`;
+    const delta = `${'a'.repeat(8 * 1024 - 1)}👋b`;
     const pieces = splitTextDelta(delta);
     expect(pieces.join('')).toBe(delta);
     expect(pieces[0].endsWith('a')).toBe(true);

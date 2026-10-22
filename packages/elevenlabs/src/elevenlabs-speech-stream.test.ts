@@ -517,7 +517,14 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
     socket.message({ is_final: true });
 
     expect(await convertReadableStreamToArray(result.stream)).toEqual([
-      { type: 'stream-start', warnings: [] },
+      {
+        type: 'stream-start',
+        warnings: [
+          expect.objectContaining({
+            feature: 'providerOptions.elevenlabs.streaming.inactivityTimeout',
+          }),
+        ],
+      },
       {
         type: 'audio',
         audio: 'AQI=',
@@ -571,6 +578,99 @@ describe('ElevenLabsSpeechModel.doStream (dialogue)', () => {
       { inputs: [{ text: 'More.', voice_id: 'b' }] },
       { close_socket: true },
     ]);
+  });
+
+  it('does not split held text when a part names the default voice explicitly', async () => {
+    await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hel' },
+        { type: 'text', text: 'lo there.', voice: 'a' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a', 'b'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hello ', voice_id: 'a' }] },
+      { inputs: [{ text: 'there.', voice_id: 'a' }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it('keeps a newTurn whose text is entirely held for the next text', async () => {
+    await createModel('eleven_v4').doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        { type: 'text', text: 'Hi. ' },
+        {
+          type: 'text',
+          text: 'Ag',
+          providerOptions: { elevenlabs: { newTurn: true } },
+        },
+        { type: 'text', text: 'ain. ' },
+      ]),
+      providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    await flush();
+    expect(socket.sentMessages().slice(1)).toEqual([
+      { inputs: [{ text: 'Hi. ', voice_id: 'a' }] },
+      { inputs: [{ text: 'Again. ', voice_id: 'a', new_turn: true }] },
+      { close_socket: true },
+    ]);
+  });
+
+  it.each([
+    ['a held part', 'Hel'],
+    ['an empty part', ''],
+  ])(
+    'errors on an unlisted voice in %s without waiting for more text',
+    async (_, text) => {
+      const result = await createModel('eleven_v4').doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({
+          start(controller) {
+            controller.enqueue({ type: 'text', text, voice: 'c' });
+            // never closes: the error must not wait for a flush
+          },
+        }),
+        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
+      });
+      lastSocket().open();
+      await expect(convertReadableStreamToArray(result.stream)).rejects.toThrow(
+        'is not listed in',
+      );
+    },
+  );
+
+  it('warns about options Text-to-Dialogue ignores', async () => {
+    const result = await createModel('eleven_v4').doStream({
+      text: textParts(['Hi.']),
+      speed: 1.2,
+      providerOptions: {
+        elevenlabs: {
+          dialogue: { voices: ['a'] },
+          voiceSettings: { stability: 0.3 },
+          streaming: { autoMode: true, chunkLengthSchedule: [50] },
+        },
+      },
+    });
+    const socket = lastSocket();
+    socket.open();
+    await flush();
+    socket.message({ is_final: true });
+    const [start] = await convertReadableStreamToArray(result.stream);
+    expect(start).toEqual({
+      type: 'stream-start',
+      warnings: [
+        'speed',
+        'providerOptions.elevenlabs.voiceSettings',
+        'providerOptions.elevenlabs.streaming.autoMode',
+        'providerOptions.elevenlabs.streaming.chunkLengthSchedule',
+      ].map(feature => expect.objectContaining({ feature })),
+    });
   });
 
   it('errors when a text part voice is not a dialogue voice', async () => {
@@ -729,7 +829,7 @@ describe('getElevenLabsAudioFormat', () => {
     ['pcm_16000', { type: 'audio/pcm', rate: 16000 }],
     ['ulaw_8000', { type: 'audio/pcmu', rate: 8000 }],
     ['alaw_8000', { type: 'audio/pcma', rate: 8000 }],
-    ['opus_48000_64', { type: 'audio/opus', rate: 48000 }],
+    ['opus_48000_64', { type: 'audio/ogg', rate: 48000 }],
     ['unknown', { type: 'application/octet-stream' }],
   ])('should map %s', (outputFormat, expected) => {
     expect(getElevenLabsAudioFormat(outputFormat)).toEqual(expected);
@@ -746,6 +846,7 @@ describe('toElevenLabsStreamOutputFormat', () => {
     [{ type: 'audio/pcmu' }, 'ulaw_8000'],
     [{ type: 'audio/pcma', rate: 8000 }, 'alaw_8000'],
     [{ type: 'audio/opus' }, 'opus_48000_64'],
+    [{ type: 'Audio/L16; rate=16000', rate: 16000 }, 'pcm_16000'],
   ])('should map %j to %s', (format, expected) => {
     expect(toElevenLabsStreamOutputFormat(format)).toBe(expected);
   });

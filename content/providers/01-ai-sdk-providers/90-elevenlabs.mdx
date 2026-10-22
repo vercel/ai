@@ -238,7 +238,7 @@ const { textStream } = streamText({
 
 const result = streamSpeech({
   model: elevenLabs.speech('eleven_flash_v2_5'),
-  text: textStream, // string | AsyncIterable<string> | ReadableStream<string>
+  text: textStream, // a string, or a stream of strings and/or text parts
   voice: '21m00Tcm4TlvDq8ikWAM',
   outputFormat: { type: 'audio/pcm', rate: 24000 },
   providerOptions: {
@@ -266,7 +266,8 @@ browser code the API key would be exposed to the client.
 
 `outputFormat` maps to an ElevenLabs `output_format`: `audio/mpeg` (44.1 kHz,
 or 22.05 kHz), `audio/pcm` (8, 16, 22.05, 24 (default), 44.1, or 48 kHz),
-`audio/pcmu` and `audio/pcma` (8 kHz), and `audio/opus` (48 kHz). Other formats
+`audio/pcmu` and `audio/pcma` (8 kHz), and `audio/opus` or `audio/ogg` (48 kHz
+Opus, delivered in an Ogg container and reported as `audio/ogg`). Other formats
 are rejected. Set `providerOptions.elevenlabs.streaming.outputFormat` to a
 native ElevenLabs format (for example `mp3_44100_192`) to choose one directly.
 Without either, audio is `mp3_44100_128`.
@@ -314,11 +315,15 @@ voice, set `providerOptions: { elevenlabs: { newTurn: true } }` on the part.
 ```ts
 async function* script() {
   yield {
-    type: 'text',
+    type: 'text' as const,
     text: 'Did you hear we can stream dialogue now? ',
     voice: alice,
   };
-  yield { type: 'text', text: 'Over one socket? That is neat.', voice: bob };
+  yield {
+    type: 'text' as const,
+    text: 'Over one socket? That is neat.',
+    voice: bob,
+  };
 }
 
 const result = streamSpeech({
@@ -333,7 +338,10 @@ const result = streamSpeech({
 ```
 
 Text is held back to word boundaries within each speaker's text and flushed
-when the speaker changes. `eleven_v4` models receive the text incrementally.
+when the speaker changes. Text-to-Dialogue ignores `speed`, top-level
+`voiceSettings` (use `dialogue.voiceSettings.stability`), and the `autoMode`,
+`chunkLengthSchedule`, `enableSsmlParsing`, and `inactivityTimeout` streaming
+options; each produces a warning. `eleven_v4` models receive the text incrementally.
 `eleven_v3` models accept a single message per dialogue session, so the
 provider reads the whole text stream before sending it.
 `eleven_v3_conversational` supports a single voice. Text-to-Dialogue has a fixed

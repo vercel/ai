@@ -324,11 +324,10 @@ export class ElevenLabsSpeechModel
       elevenLabsOptions?.streaming?.outputFormat ??
       toElevenLabsStreamOutputFormat(options.outputFormat);
     const voiceId = options.voice ?? defaultVoiceId;
-    const voicePath = `/v1/text-to-speech/${encodeURIComponent(voiceId)}`;
     const path =
       dialogue != null
         ? '/v1/text-to-dialogue/stream-input'
-        : `${voicePath}/stream-input`;
+        : `/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream-input`;
     const url = toWebSocketUrl(
       this.config.url({ path, modelId: this.modelId }),
     );
@@ -492,6 +491,33 @@ function getStreamWarnings(
       });
     }
   }
+  if (elevenLabsOptions?.dialogue != null) {
+    // Text-to-Dialogue takes only dialogue.voiceSettings.stability, and has a
+    // fixed inactivity timeout and no chunking, auto, or SSML modes.
+    const ignored = [
+      ...(options.speed != null ? ['speed'] : []),
+      ...(elevenLabsOptions.voiceSettings != null
+        ? ['providerOptions.elevenlabs.voiceSettings']
+        : []),
+      ...(
+        [
+          'autoMode',
+          'chunkLengthSchedule',
+          'enableSsmlParsing',
+          'inactivityTimeout',
+        ] as const
+      )
+        .filter(option => elevenLabsOptions.streaming?.[option] != null)
+        .map(option => `providerOptions.elevenlabs.streaming.${option}`),
+    ];
+    for (const feature of ignored) {
+      warnings.push({
+        type: 'unsupported',
+        feature,
+        details: `ElevenLabs streaming dialogue does not support ${feature}; it was ignored.`,
+      });
+    }
+  }
   return warnings;
 }
 
@@ -504,7 +530,9 @@ export function toElevenLabsStreamOutputFormat(
   format: SharedV4AudioFormat | undefined,
 ): string {
   if (format == null) return defaultOutputFormat;
-  const { type, rate } = format;
+  const { rate } = format;
+  // MIME types are case-insensitive and may carry parameters.
+  const type = format.type.split(';')[0].trim().toLowerCase();
   switch (type) {
     case 'audio/mpeg':
     case 'audio/mp3':
