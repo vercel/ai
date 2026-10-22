@@ -524,14 +524,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
       isOptional: true,
       description:
-        'Callback invoked when an agent step that started fails before it produces a step result, for example when the provider call fails or the model stream ends without output. `onStepEnd` is not called for such a step. The event contains all properties of the `onStepStart` event of the step that failed, plus `error`. Not called when the call is aborted or times out. Only available in the constructor.',
+        "Callback invoked when an agent step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the model stream ends without output. `onStepEnd` is not called for such a step. A provider `error` chunk does not fail the step: it still ends with `onStepEnd` and `finishReason: 'error'`. The event contains all properties of the `onStepStart` event of the step that failed, plus `error`. In `generate()`, aborts and timeouts also end the step here. In `stream()`, they are reported as an `abort` part in the stream instead. Only available in the constructor.",
     },
     {
       name: 'onError',
       type: '(event: { error: unknown }) => Promise<void> | void',
       isOptional: true,
       description:
-        'Callback invoked when an error occurs. For `stream()` it receives the errors of the stream, for `generate()` it receives the error before it is thrown. When not set, `stream()` logs errors to the console. Only available in the constructor.',
+        'Callback invoked when an error occurs. For `stream()` it receives the errors of the stream, for `generate()` it receives the error before it is thrown. Aborts and timeouts are not reported. When not set, `stream()` logs errors to the console. Only available in the constructor.',
     },
     {
       name: 'onStepFinish',

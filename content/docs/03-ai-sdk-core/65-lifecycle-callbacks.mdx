@@ -296,7 +296,9 @@ A multi-step generation with local tool execution usually runs like this:
 9. `onEnd`
 
 `onStepStart` and `onStepEnd` describe the full step.
-When a step that started fails before it produces a step result, for example because the provider call fails or the model stream ends without output, `onStepError` is called instead of `onStepEnd`.
+When a step that started fails before it produces a step result, `onStepError` is called instead of `onStepEnd`. This happens when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk does not fail the step: the step still ends with `onStepEnd` and `finishReason: 'error'`.
+
+Aborts and timeouts end the step differently in each function. In `generateText`, they end the step with `onStepError` and the abort or timeout error. In `streamText`, they end the step with `onAbort`.
 `onLanguageModelCallStart` and `onLanguageModelCallEnd` describe only the model call inside that step.
 This distinction matters when the step includes local tool execution: the step duration can be longer than the model response duration.
 
@@ -408,7 +410,7 @@ const result = await generateText({
       name: 'onStepError',
       type: '(event: GenerateTextStepErrorEvent) => void | Promise<void>',
       description:
-        'Called when a step that started fails before it produces a step result. Receives the `onStepStart` event of the failed step plus `error`. Not called on abort or timeout.',
+        'Called when a step that started fails before it produces a step result: the provider call throws or rejects, or the model stream ends without output. Receives the `onStepStart` event of the failed step plus `error`. In `generateText`, also called on abort or timeout. In `streamText`, aborts and timeouts call `onAbort` instead.',
     },
     {
       name: 'onEnd',
