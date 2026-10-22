@@ -35,6 +35,21 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
       applyTextNormalization: z.enum(['auto', 'on', 'off']).optional(),
       applyLanguageTextNormalization: z.boolean().optional(),
       enableLogging: z.boolean().optional(),
+      // https://elevenlabs.io/docs/api-reference/text-to-speech/v-1-text-to-speech-voice-id-stream-input
+      streaming: z
+        .object({
+          autoMode: z.boolean().optional(),
+          chunkLengthSchedule: z
+            .array(z.number().min(50).max(500))
+            .min(1)
+            .optional(),
+          enableSsmlParsing: z.boolean().optional(),
+          inactivityTimeout: z.number().int().min(1).max(180).optional(),
+          // Native output_format (e.g. mp3_44100_192), overriding outputFormat.
+          outputFormat: z.string().min(1).optional(),
+          syncAlignment: z.boolean().optional(),
+        })
+        .optional(),
     }),
   ),
 );

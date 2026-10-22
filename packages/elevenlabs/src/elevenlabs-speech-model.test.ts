@@ -34,6 +34,23 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should warn about and ignore streaming-only options', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
+      });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.elevenlabs.streaming',
+        }),
+      );
+      expect(server.calls[0].requestUrlSearchParams.get('auto_mode')).toBe(
+        null,
+      );
+    });
+
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 
