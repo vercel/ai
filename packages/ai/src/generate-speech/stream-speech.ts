@@ -426,10 +426,12 @@ function createAudioByteStream(
       }
     },
     async cancel(reason) {
+      // Aborting the active model pipe can reject the part stream's cancel
+      // promise; result promises already surface that cancellation reason.
       if (reader != null) {
-        await reader.cancel(reason);
+        await reader.cancel(reason).catch(() => {});
       } else {
-        await parts.cancel(reason);
+        await parts.cancel(reason).catch(() => {});
       }
     },
   });
