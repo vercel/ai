@@ -1037,10 +1037,10 @@
             "declareConstants": ["inputSchema", "outputSchema"],
             "exportFunctions": ["create${toolId.toPascalCase()}Tool"],
             "useDeclarationOrder": [
-              "${toolId.toPascalCase()}Input",
-              "${toolId.toPascalCase()}Output",
               "inputSchema",
               "outputSchema",
+              "${toolId.toPascalCase()}Input",
+              "${toolId.toPascalCase()}Output",
               "create${toolId.toPascalCase()}Tool"
             ]
           }
