@@ -256,6 +256,34 @@ Session memory supports two modes: **tool-driven** (the LLM decides when to read
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
+### past dev
+
+[past dev](/providers/community-providers/past) is a memory API for AI agents. A recall returns ranked memories, each with its date and quotations from the sources it rests on, and a later statement supersedes an earlier one. The `@pastdotdev/ai-sdk` package provides two tools, `recall` and `ingest`, and a middleware that recalls before each model call.
+
+```bash
+pnpm add @pastdotdev/ai-sdk
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { pastTools } from '@pastdotdev/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: pastTools({ identity: 'user-123' }),
+  instructions: 'You are a helpful assistant with long-term memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+The `identity` is the person the memory is for, typically a user ID. Your code sets it, and no tool schema exposes it, so the model cannot read or write another person's memory. In multi-user apps, call `pastTools` inside your request handler. To recall on every call without a tool, wrap the model with `pastRecallMiddleware({ identity: 'user-123' })`. past dev works with any AI SDK provider.
+
+See the [past dev provider documentation](/providers/community-providers/past) for full setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ## Custom Tool
