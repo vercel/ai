@@ -1487,6 +1487,15 @@ const vertexAnthropic = createVertexAnthropic({
 
 You can use the following optional settings to customize the Google Vertex Anthropic provider instance:
 
+- **supportsNativeStructuredOutput** _boolean_
+
+  Optional. Defaults to `false`. Set to `true` to let
+  `providerOptions.anthropic.structuredOutputMode: 'auto'` use native structured
+  output for Claude 4.5 and newer model IDs. The Google Cloud organization policy
+  must allow `structured_outputs` for every model used with native output.
+  This setting does not enable strict tool input schemas.
+  See [Native Structured Output](#native-structured-output).
+
 - **project** _string_
 
   The Google Cloud project ID that you want to use for the API calls.
@@ -1661,6 +1670,58 @@ The following optional provider options are available for Anthropic models:
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+### Native Structured Output
+
+By default, Vertex Anthropic uses a JSON response tool to generate structured
+output. If your Google Cloud organization policy permits native structured output,
+you can opt in for a provider instance:
+
+```ts
+import { createGoogleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { Output, streamText } from 'ai';
+import { z } from 'zod';
+
+const vertexAnthropic = createGoogleVertexAnthropic({
+  supportsNativeStructuredOutput: true,
+});
+
+const result = streamText({
+  model: vertexAnthropic('claude-sonnet-4-6'),
+  output: Output.object({
+    schema: z.object({ name: z.string(), ingredients: z.array(z.string()) }),
+  }),
+  prompt: 'Create a vegetarian lasagna recipe.',
+});
+
+console.log(await result.output);
+```
+
+The opt-in applies to `structuredOutputMode: 'auto'` (the default) for versioned
+Claude model IDs from 4.5 onward, including Vertex IDs with an `@` suffix.
+Older models and unrecognized IDs continue to use the JSON response tool.
+The setting is available in both the Node.js and Edge providers.
+
+Google Cloud denies the feature by default through
+`constraints/vertexai.allowedPartnerModelFeatures`. Allow
+`publishers/anthropic/models/MODEL_ID:structured_outputs` for each model you use.
+See [Google Cloud's structured output documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/structured-outputs)
+for supported models and policy configuration. Enabling the SDK setting does not
+change that policy. API errors, including policy rejections, are returned without
+automatically falling back to tool emulation.
+
+You can still set `providerOptions.anthropic.structuredOutputMode` per request:
+
+- `'jsonTool'` selects tool emulation. Models that reject forced tool use retain
+  the Anthropic provider's existing behavior of switching to native output when
+  native output is enabled and supported.
+- `'outputFormat'` explicitly requests native output, bypassing the opt-in and
+  model detection. The API rejects unsupported or policy-denied requests.
+
+Native output constrains the final response generated with `Output.object`.
+Ordinary tool arguments use separate input schemas; this opt-in does not enable
+`strict: true` for Vertex tools. The SDK still validates generated output against
+your original schema, including constraints that the native API cannot enforce.
 
 ### Billing Labels
 
