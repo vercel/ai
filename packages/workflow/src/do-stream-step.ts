@@ -433,6 +433,15 @@ async function streamModelStep(
           }
           break;
         }
+        case 'custom':
+          content.push({
+            type: 'custom',
+            kind: part.kind,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
+          break;
         case 'model-call-end':
           finish = {
             finishReason: part.finishReason,

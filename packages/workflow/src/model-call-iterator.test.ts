@@ -2056,3 +2056,61 @@ describe('modelCallIterator', () => {
     });
   });
 });
+
+describe('modelCallIterator custom parts', () => {
+  it('carries custom parts into the step content and the conversation in stream mode', async () => {
+    const providerMetadata = {
+      openai: { type: 'compaction', itemId: 'cmp_synthetic', encryptedContent: 'enc-payload' },
+    };
+    const customPart = {
+      type: 'custom' as const,
+      kind: 'openai.compaction',
+      providerMetadata,
+    };
+
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+        rawOverrides: { content: [customPart] } as any,
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'search' }] },
+      ] as any,
+      tools: {
+        search: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+        },
+      } as any,
+      model: vi.fn() as any,
+    });
+
+    const result = await iterator.next();
+
+    const step = (result.value as any).step;
+    expect(step.content).toContainEqual(customPart);
+
+    const messages = (result.value as any).messages;
+    const assistant = messages.find(
+      (message: any) => message.role === 'assistant',
+    );
+    expect(assistant.content).toContainEqual({
+      type: 'custom',
+      kind: 'openai.compaction',
+      providerOptions: providerMetadata,
+    });
+  });
+});

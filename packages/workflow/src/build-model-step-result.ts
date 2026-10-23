@@ -219,6 +219,15 @@ export async function buildModelStepResult(
         }
         break;
       }
+      case 'custom':
+        content.push({
+          type: 'custom',
+          kind: part.kind,
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
       case 'provider-tool-result': {
         const result = providerExecutedToolResults.get(part.toolCallId);
         if (result == null) {
