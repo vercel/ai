@@ -1,13 +1,8 @@
-<<<<<<< HEAD
-import { APICallError, type LanguageModelV2Prompt } from '@ai-sdk/provider';
-=======
 import {
   APICallError,
-  UnsupportedFunctionalityError,
   type JSONSchema7,
-  type LanguageModelV3Prompt,
+  type LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
->>>>>>> 4ce782671f (Backport: fix(moonshotai): accept root unions of objects in tool and response schemas (#23884))
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -217,144 +212,9 @@ describe('MoonshotAIChatLanguageModel', () => {
               content: [{ type: 'text', text: 'Hello' }],
               providerOptions: { moonshotai: { name: 123 } },
             },
-<<<<<<< HEAD
           ],
         }),
       ).rejects.toThrow('invalid moonshotai provider options');
-=======
-          },
-        },
-      });
-    });
-
-    it('should send root unions of objects with type object in response_format', async () => {
-      const city: JSONSchema7 = {
-        type: 'object',
-        properties: { city: { type: 'string' } },
-        required: ['city'],
-      };
-      const coords: JSONSchema7 = {
-        properties: { lat: { type: 'number' } },
-        required: ['lat'],
-      };
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          name: 'location',
-          schema: { anyOf: [city, coords] },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format.json_schema.schema).toStrictEqual({
-        type: 'object',
-        anyOf: [city, coords],
-      });
-    });
-
-    it('should allow strict json schema validation to be disabled', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            strictJsonSchema: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { name: { type: 'string' } },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_schema',
-        json_schema: {
-          name: 'response',
-          strict: false,
-          schema: {
-            type: 'object',
-            properties: { name: { type: 'string' } },
-          },
-        },
-      });
-    });
-
-    it('should fall back to json_object without a schema', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: { type: 'json' },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
-      });
-    });
-
-    it.each([
-      'moonshot-v1-8k',
-      'moonshot-v1-32k',
-      'moonshot-v1-128k',
-      'moonshot-v1-auto',
-      'moonshot-v1-8k-vision-preview',
-      'moonshot-v1-32k-vision-preview',
-      'moonshot-v1-128k-vision-preview',
-    ])('should use json_schema for %s', async modelId => {
-      await provider.chatModel(modelId).doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          name: 'response',
-          schema: { type: 'object', properties: {} },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_schema',
-        json_schema: {
-          name: 'response',
-          schema: { type: 'object', properties: {} },
-          strict: true,
-        },
-      });
-    });
-
-    it.each(['custom-model-id', 'moonshot-v2', 'kimi-next'])(
-      'should preserve JSON schema output for unknown model %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          responseFormat: {
-            type: 'json',
-            name: 'response',
-            schema: { type: 'object', properties: {} },
-          },
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.response_format).toStrictEqual({
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            schema: { type: 'object', properties: {} },
-            strict: true,
-          },
-        });
-        expect(result.warnings).toEqual([]);
-      },
-    );
-  });
-
-  describe('Partial Mode', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
->>>>>>> 4ce782671f (Backport: fix(moonshotai): accept root unions of objects in tool and response schemas (#23884))
     });
 
     it('should send partial true on the final assistant message', async () => {
@@ -482,194 +342,6 @@ describe('MoonshotAIChatLanguageModel', () => {
         type: 'json_schema',
       });
     });
-<<<<<<< HEAD
-=======
-  });
-
-  describe('tool calls', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-tool-call');
-    });
-
-    it.each([
-      'kimi-k2.6',
-      'kimi-k2.7-code',
-      'kimi-k2.7-code-highspeed',
-    ] as const)(
-      'should omit required tool choice and warn for %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'get_weather',
-              description: 'Get the weather',
-              inputSchema: { type: 'object', properties: {} },
-            },
-          ],
-          toolChoice: { type: 'required' },
-        });
-
-        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-          'tool_choice',
-        );
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported',
-            feature: `tool choice "required" for model "${modelId}"`,
-            details:
-              'Moonshot AI rejects required tool choice for this model. The setting has been omitted; use "auto" or select a specific tool instead.',
-          },
-        ]);
-      },
-    );
-
-    it.each(['kimi-k3', 'custom-kimi-model'] as const)(
-      'should preserve required tool choice for %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'get_weather',
-              description: 'Get the weather',
-              inputSchema: { type: 'object', properties: {} },
-            },
-          ],
-          toolChoice: { type: 'required' },
-        });
-
-        expect((await server.calls[0].requestBodyJson).tool_choice).toBe(
-          'required',
-        );
-        expect(result.warnings).toStrictEqual([]);
-      },
-    );
-
-    it('should normalize tuple tool schemas to prefixItems on the wire', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'probe',
-            description: 'probe',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                a: {
-                  type: 'array',
-                  items: [{ type: 'number' }, { type: 'number' }],
-                },
-              },
-              required: ['a'],
-            },
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.tools[0].function.parameters).toStrictEqual({
-        type: 'object',
-        properties: {
-          a: {
-            type: 'array',
-            prefixItems: [{ type: 'number' }, { type: 'number' }],
-          },
-        },
-        required: ['a'],
-      });
-    });
-
-    it('should send root unions of objects with type object on the wire', async () => {
-      const city: JSONSchema7 = {
-        type: 'object',
-        properties: { city: { type: 'string' } },
-        required: ['city'],
-      };
-      const coords: JSONSchema7 = {
-        properties: { lat: { type: 'number' } },
-        required: ['lat'],
-      };
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'untyped',
-            inputSchema: { anyOf: [city, coords] },
-          },
-          {
-            type: 'function',
-            name: 'typed',
-            inputSchema: { type: 'object', anyOf: [city, coords] },
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      for (const tool of requestBody.tools) {
-        expect(tool.function.parameters).toStrictEqual({
-          type: 'object',
-          anyOf: [city, coords],
-        });
-      }
-    });
-
-    it('should extract tool calls and finish reason', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call_abc123',
-          toolName: 'get_weather',
-          input: '{"city":"Paris"}',
-        },
-      ]);
-      expect(result.finishReason).toEqual({
-        unified: 'tool-calls',
-        raw: 'tool_calls',
-      });
-      expect(result.providerMetadata).toEqual({
-        moonshotai: {
-          responseObject: 'chat.completion',
-          choiceIndex: 0,
-          messageRole: 'assistant',
-          toolCallTypes: ['function'],
-        },
-      });
-    });
-  });
-
-  describe('warnings', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
-    });
-
-    it('should warn for unsupported topK and seed', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        topK: 5,
-        seed: 42,
-      });
-
-      expect(result.warnings).toEqual([
-        { type: 'unsupported', feature: 'topK' },
-        { type: 'unsupported', feature: 'seed' },
-      ]);
-    });
-  });
-
-  describe('provider options passthrough', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
-    });
->>>>>>> 4ce782671f (Backport: fix(moonshotai): accept root unions of objects in tool and response schemas (#23884))
 
     it('should forward string predicted content unchanged', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
@@ -971,6 +643,8 @@ describe('MoonshotAIChatLanguageModel', () => {
       'kimi-k2.7-code',
       'kimi-k2.7-code-highspeed',
       'kimi-k3',
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
     ] as const)(
       'should omit fixed sampling options and warn for %s',
       async modelId => {
@@ -1176,29 +850,32 @@ describe('MoonshotAIChatLanguageModel', () => {
       );
     });
 
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
+    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should omit thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: {
+              thinking: { type: 'disabled' },
+              reasoningHistory: 'preserved',
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'thinking',
-      );
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'providerOptions',
-          details:
-            'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
-        },
-      ]);
-    });
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'thinking',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'providerOptions',
+            details:
+              'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
+          },
+        ]);
+      },
+    );
 
     it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
       'should not disable thinking for %s',
@@ -1356,6 +1033,31 @@ describe('MoonshotAIChatLanguageModel', () => {
             },
           },
         });
+      });
+
+      it('should send root unions of objects with type object', async () => {
+        const city: JSONSchema7 = {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        };
+        const coords: JSONSchema7 = {
+          properties: { lat: { type: 'number' } },
+          required: ['lat'],
+        };
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'location',
+            schema: { anyOf: [city, coords] },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format.json_schema
+            .schema,
+        ).toStrictEqual({ type: 'object', anyOf: [city, coords] });
       });
 
       it('should allow strict validation to be disabled without leaking the provider option', async () => {

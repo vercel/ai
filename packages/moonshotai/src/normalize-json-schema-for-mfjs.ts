@@ -1,7 +1,5 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
-<<<<<<< HEAD
-=======
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -9,7 +7,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 const ROOT_ERROR =
   'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)';
 
->>>>>>> 4ce782671f (Backport: fix(moonshotai): accept root unions of objects in tool and response schemas (#23884))
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
 const SCHEMA_MAP_KEYS = [
   'properties',
@@ -27,10 +24,6 @@ const SCHEMA_SINGLE_KEYS = [
   'then',
   'else',
 ] as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 /**
  * Normalizes a JSON Schema to the subset Moonshot's MFJS validator accepts:
@@ -68,6 +61,7 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
 
   const result: Record<string, unknown> = { ...root };
 
+  // Existing prefixItems stay first (they are positional).
   if (Array.isArray(result.items)) {
     const tuple = result.items;
     result.prefixItems = [
@@ -79,9 +73,6 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     result.items = normalizeDefinition(result.items, false);
   }
 
-<<<<<<< HEAD
-  if (typeof result.type === 'string' && Array.isArray(result.anyOf)) {
-=======
   // MFJS requires type to live inside anyOf items, except at the root, which
   // must keep type "object" (moving it leaves a typeless root that 400s).
   if (
@@ -89,7 +80,6 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     typeof result.type === 'string' &&
     Array.isArray(result.anyOf)
   ) {
->>>>>>> 4ce782671f (Backport: fix(moonshotai): accept root unions of objects in tool and response schemas (#23884))
     const parentType = result.type;
     delete result.type;
     result.anyOf = result.anyOf.map(branch =>
@@ -110,9 +100,9 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     const value = result[key];
     if (isRecord(value)) {
       result[key] = Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          normalizeDefinition(item, false),
+        Object.entries(value).map(([k, v]) => [
+          k,
+          normalizeDefinition(v, false),
         ]),
       );
     }
