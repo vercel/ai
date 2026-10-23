@@ -1,0 +1,85 @@
+---
+title: Abstract
+description: Use the Abstract Open Responses compatible API with the AI SDK.
+---
+
+# Abstract Provider
+
+[Abstract](https://abstract.inc/) is an AI inference provider that serves high-throughput models through an Open Responses compatible endpoint. You can use its Responses endpoint with the AI SDK through the `@ai-sdk/open-responses` module.
+
+## Setup
+
+Install the Open Responses provider:
+
+<InstallPackages packages="@ai-sdk/open-responses" />
+
+Create an [Abstract API key](https://platform.abstract.inc/keys), and set the key as a server-side environment variable:
+
+```bash
+export ABSTRACT_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create an Abstract provider instance using `createOpenResponses`:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const abstract = createOpenResponses({
+  name: 'abstract',
+  url: 'https://api.abstract.inc/v1/responses',
+  apiKey: process.env.ABSTRACT_API_KEY,
+});
+```
+
+## Language Models
+
+Create a language model by passing an Abstract model ID to the provider instance:
+
+```ts
+const model = abstract('deepseek-v4-flash:superfast');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenResponses } from '@ai-sdk/open-responses';
+import { generateText } from 'ai';
+
+const abstract = createOpenResponses({
+  name: 'abstract',
+  url: 'https://api.abstract.inc/v1/responses',
+  apiKey: process.env.ABSTRACT_API_KEY,
+});
+
+const { text } = await generateText({
+  model: abstract('deepseek-v4-flash:superfast'),
+  prompt: 'What is the capital of France?',
+});
+
+console.log(text);
+```
+
+You can also use Abstract language models with `streamText`.
+
+## Supported Models
+
+Abstract exposes the following model IDs through its Open Responses endpoint:
+
+| Model ID | Description |
+| --- | --- |
+| `glm-5.3:superfast` | High-throughput GLM 5.3 |
+| `deepseek-v4-flash:superfast` | High-throughput DeepSeek v4 Flash |
+| `kimi-k3:superfast` | High-throughput Kimi k3 |
+
+For current model availability and pricing, see the [Abstract pricing page](https://abstract.inc/pricing).
+
+## Resources
+
+- [Abstract API documentation](https://abstract.inc/docs/llm/responses)
+- [Abstract API keys](https://platform.abstract.inc/keys)
+- [Abstract pricing](https://abstract.inc/pricing)
+- [AI SDK Open Responses provider](/providers/ai-sdk-providers/open-responses)
