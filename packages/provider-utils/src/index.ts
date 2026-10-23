@@ -40,7 +40,10 @@ export {
   fetchWithValidatedEndpoint,
   fetchWithValidatedRedirects,
 } from './fetch-with-validated-redirects';
-export { encodePathSegment } from './encode-path-segment';
+export {
+  encodePathSegment,
+  encodePathSegments,
+} from './encode-path-segment';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';

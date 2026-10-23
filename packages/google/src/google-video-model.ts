@@ -22,6 +22,7 @@ import {
   resolve,
   type FetchFunction,
   type Resolvable,
+  encodePathSegments,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -398,7 +399,7 @@ export class GoogleVideoModel implements VideoModelV4 {
     const { operationName } = options.operation as { operationName: string };
 
     const { value: statusOperation, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/${operationName}`,
+      url: `${this.config.baseURL}/${encodePathSegments(operationName)}`,
       validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),
