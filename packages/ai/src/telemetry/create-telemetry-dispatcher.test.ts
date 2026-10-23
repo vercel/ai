@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
+import { VERSION } from '../version';
 
 const dummyEvent = {} as any;
 const augmentedDummyEvent = {
@@ -9,6 +10,7 @@ const augmentedDummyEvent = {
   recordInputs: undefined,
   recordOutputs: undefined,
   functionId: undefined,
+  aiSdkVersion: VERSION,
 };
 
 beforeEach(() => {
@@ -692,6 +694,99 @@ describe('createTelemetryDispatcher', () => {
       });
 
       expect(integration.calls).toBe(1);
+    });
+  });
+
+  describe('aiSdkVersion', () => {
+    it('attaches the current VERSION to lifecycle events', async () => {
+      const onStart = vi.fn();
+      const onStepStart = vi.fn();
+      const onEnd = vi.fn();
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: {
+          integrations: { onStart, onStepStart, onEnd },
+        },
+      });
+
+      await telemetry.onStart!({ callId: 'call-1' } as any);
+      await telemetry.onStepStart!({ callId: 'call-1', stepNumber: 0 } as any);
+      await telemetry.onEnd!({ callId: 'call-1' } as any);
+
+      expect(onStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: 'call-1',
+          aiSdkVersion: VERSION,
+        }),
+      );
+      expect(onStepStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: 'call-1',
+          stepNumber: 0,
+          aiSdkVersion: VERSION,
+        }),
+      );
+      expect(onEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: 'call-1',
+          aiSdkVersion: VERSION,
+        }),
+      );
+    });
+
+    it('attaches aiSdkVersion to executeLanguageModelCall wrappers and events', async () => {
+      let capturedWrapperEvent: any;
+      const executeLanguageModelCall: Telemetry['executeLanguageModelCall'] =
+        async event => {
+          capturedWrapperEvent = event;
+          return await event.execute();
+        };
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: {
+          integrations: { executeLanguageModelCall },
+        },
+      });
+
+      await telemetry.executeLanguageModelCall!({
+        callId: 'call-1',
+        execute: async () => 'result',
+      });
+
+      expect(capturedWrapperEvent).toEqual(
+        expect.objectContaining({
+          callId: 'call-1',
+          aiSdkVersion: VERSION,
+        }),
+      );
+    });
+
+    it('attaches aiSdkVersion to executeTool wrappers and events', async () => {
+      let capturedWrapperEvent: any;
+      const executeTool: Telemetry['executeTool'] = async event => {
+        capturedWrapperEvent = event;
+        return await event.execute();
+      };
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: {
+          integrations: { executeTool },
+        },
+      });
+
+      await telemetry.executeTool!({
+        callId: 'call-1',
+        toolCallId: 'tool-1',
+        execute: async () => 'result',
+      });
+
+      expect(capturedWrapperEvent).toEqual(
+        expect.objectContaining({
+          callId: 'call-1',
+          toolCallId: 'tool-1',
+          aiSdkVersion: VERSION,
+        }),
+      );
     });
   });
 });
