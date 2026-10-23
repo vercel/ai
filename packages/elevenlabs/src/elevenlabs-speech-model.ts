@@ -276,6 +276,7 @@ export class ElevenLabsSpeechModel
    */
   private getDialogueArgs(
     {
+      text,
       voice,
       outputFormat = defaultOutputFormat,
       instructions,
@@ -293,11 +294,13 @@ export class ElevenLabsSpeechModel
       });
     }
 
-    warnings.push({
-      type: 'other',
-      message:
-        'ElevenLabs dialogue uses providerOptions.elevenlabs.inputs; the text prompt was ignored.',
-    });
+    if (text.length > 0) {
+      warnings.push({
+        type: 'other',
+        message:
+          'ElevenLabs dialogue uses providerOptions.elevenlabs.inputs; the text prompt was ignored.',
+      });
+    }
     const voiceSettings = elevenLabsOptions.voiceSettings;
     const ignoredOptions = {
       instructions,
@@ -447,11 +450,13 @@ export class ElevenLabsSpeechModel
             });
           }
         }
-        warnings.push({
-          type: 'other',
-          message:
-            'ElevenLabs music uses providerOptions.elevenlabs.compositionPlan; the text prompt was ignored.',
-        });
+        if (text.length > 0) {
+          warnings.push({
+            type: 'other',
+            message:
+              'ElevenLabs music uses providerOptions.elevenlabs.compositionPlan; the text prompt was ignored.',
+          });
+        }
         requestedDurationMs = getCompositionPlanDurationMs(compositionPlan);
       } else {
         requestedDurationMs = elevenLabsOptions?.musicLengthMs;
