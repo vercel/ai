@@ -500,13 +500,42 @@ while (step < maxSteps) {
 
   messages.push(...result.responseMessages);
 
-  if (result.text) {
-    break; // Stop when model generates text
+  const clientToolCalls = result.finalStep.toolCalls.filter(
+    toolCall => !toolCall.providerExecuted,
+  );
+  const toolResults = result.responseMessages
+    .filter(message => message.role === 'tool')
+    .flatMap(message => message.content)
+    .filter(part => part.type === 'tool-result');
+
+  if (
+    clientToolCalls.length === 0 ||
+    clientToolCalls.some(
+      toolCall =>
+        !toolResults.some(result => result.toolCallId === toolCall.toolCallId),
+    )
+  ) {
+    break; // Stop when there are no client tool calls or some still need a result
   }
 
   step++;
 }
 ```
+
+Continue when there are client-side tool calls and each has a corresponding tool
+result in `responseMessages`. These results also represent tool execution errors
+and denied approvals. If a tool has no `execute` function or is waiting for
+approval, pause the loop until its result or approval response is available.
+
+Do not use `text` or `finishReason` alone to decide whether to continue. A model
+can generate text alongside a tool call, such as "I'll look that up for you,"
+and an executed tool call can accompany a finish reason of `stop`.
+The next generation still needs the tool result in these cases. A response
+without client-side tool calls should stop the loop even when its text is empty.
+
+This example handles client-side tools. For provider-executed tools with deferred
+results, use the built-in loop management in `ToolLoopAgent`, `generateText`, or
+`streamText`.
 
 This manual approach gives you complete control over:
 
