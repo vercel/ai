@@ -1,10 +1,10 @@
 import { streamText } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
+import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: new MockLanguageModelV3({
+    model: new MockLanguageModelV4({
       doStream: async () => ({
         // the stream ends without output or a finish chunk:
         stream: convertArrayToReadableStream([
