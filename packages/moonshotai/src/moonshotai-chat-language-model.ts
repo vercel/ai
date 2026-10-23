@@ -404,11 +404,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
       usage: convertMoonshotAIChatUsage(responseBody.usage),
       providerMetadata: {
         [this.providerOptionsName]: {
-<<<<<<< HEAD
-=======
           ...extractCacheWriteTokensByTtl(responseHeaders),
-          ...(choice.logprobs != null && { logprobs: choice.logprobs }),
->>>>>>> fce7a32cfd (feat(provider/moonshotai): support prompt cache options and report cache write tokens (#23887))
           ...(responseBody.object != null && {
             responseObject: responseBody.object,
           }),
@@ -727,13 +723,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV3 {
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
               providerMetadata: {
                 [providerOptionsName]: {
-<<<<<<< HEAD
-=======
                   ...extractCacheWriteTokensByTtl(responseHeaders),
-                  ...(contentLogprobs.length > 0 && {
-                    logprobs: { content: contentLogprobs },
-                  }),
->>>>>>> fce7a32cfd (feat(provider/moonshotai): support prompt cache options and report cache write tokens (#23887))
                   ...(responseObject != null && { responseObject }),
                   ...(choiceIndex != null && { choiceIndex }),
                   ...(messageRole != null && { messageRole }),
