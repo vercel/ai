@@ -528,6 +528,41 @@ The following optional provider options are available for Moonshot AI language m
   - `'preserved'` maps to `thinking.keep: 'all'` for Kimi K2.6. Kimi K2.7 and
     K3 preserve reasoning by default.
 
+- **promptCacheKey** _string_
+
+  Groups similar requests to improve cache hit rates. Typically a session or
+  task id.
+
+- **promptCacheOptions** _&#123; mode?: 'implicit'; ttl?: '5m' | '1h' &#125;_
+
+  Context caching options for Kimi K3 models, sent as `prompt_cache_options`.
+  `ttl` selects the cache write tier, and Moonshot uses `'5m'` when it is
+  omitted. A cached prefix keeps the TTL it was first written with, so a `'1h'`
+  request that extends a `'5m'` prefix still writes at `'5m'`. See
+  [Context Caching](https://platform.kimi.ai/docs/guide/context-caching).
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const { usage, providerMetadata } = await generateText({
+  model: moonshotai('kimi-k3.1-pro'),
+  system: longReferenceDocument,
+  prompt: 'Summarize the key conclusions.',
+  providerOptions: {
+    moonshotai: {
+      promptCacheOptions: { ttl: '1h' },
+    } satisfies MoonshotAILanguageModelOptions,
+  },
+});
+
+console.log(usage.inputTokenDetails.cacheWriteTokens);
+console.log(providerMetadata?.moonshotai?.cacheWriteTokens); // { ttl5m, ttl1h }
+```
+
 ### Chat Response Metadata
 
 Moonshot AI preserves provider-specific response fields in
@@ -537,6 +572,8 @@ Moonshot AI preserves provider-specific response fields in
 - `choiceIndex`: the selected response choice index
 - `messageRole`: the response message role, when supplied
 - `toolCallTypes`: the tool-call type for each returned call
+- `cacheWriteTokens`: cache write tokens split by TTL (`ttl5m` and `ttl1h`),
+  from Moonshot's usage response headers, when supplied
 
 These fields remain in provider metadata because they are specific to
 Moonshot's Chat Completions response rather than shared AI SDK result fields.

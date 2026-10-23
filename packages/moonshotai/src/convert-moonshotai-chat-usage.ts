@@ -8,6 +8,7 @@ export function convertMoonshotAIChatUsage(
         cached_tokens?: number | null;
         prompt_tokens_details?: {
           cached_tokens?: number | null;
+          cache_write_tokens?: number | null;
         } | null;
         completion_tokens_details?: {
           reasoning_tokens?: number | null;
@@ -39,15 +40,17 @@ export function convertMoonshotAIChatUsage(
   const cacheReadTokens =
     usage.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0;
 
+  const cacheWriteTokens = usage.prompt_tokens_details?.cache_write_tokens;
+
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
   return {
     inputTokens: {
       total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
+      noCache: promptTokens - cacheReadTokens - (cacheWriteTokens ?? 0),
       cacheRead: cacheReadTokens,
-      cacheWrite: undefined,
+      cacheWrite: cacheWriteTokens ?? undefined,
     },
     outputTokens: {
       total: completionTokens,
