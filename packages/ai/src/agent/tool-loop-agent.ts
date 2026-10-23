@@ -15,6 +15,7 @@ import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { Steering } from '../generate-text/steering';
 import type { Prompt } from '../prompt';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type {
@@ -24,6 +25,17 @@ import type {
 } from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 import { createDefaultStopCondition } from './default-stop-condition';
+
+/**
+ * Call parameters that only `ToolLoopAgent` supports.
+ */
+export interface ToolLoopAgentCallExtensions {
+  /**
+   * A steering object created with `experimental_createSteering()`.
+   * Messages sent with it are added to the run at the next step boundary.
+   */
+  experimental_steering?: Steering;
+}
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -198,6 +210,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    experimental_steering: steering,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -209,7 +222,8 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+    ToolLoopAgentCallExtensions): Promise<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
@@ -221,6 +235,7 @@ export class ToolLoopAgent<
       abortSignal,
       timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
+      experimental_steering: steering,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
         (onStart ?? experimental_onStart) as
@@ -262,6 +277,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    experimental_steering: steering,
     experimental_transform,
     onStart,
     experimental_onStart,
@@ -274,7 +290,8 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+    ToolLoopAgentCallExtensions): Promise<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
@@ -286,6 +303,7 @@ export class ToolLoopAgent<
       abortSignal,
       timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
+      experimental_steering: steering,
       experimental_transform,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,

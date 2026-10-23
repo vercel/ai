@@ -96,6 +96,12 @@ import {
   type StepResultPerformance,
 } from './step-result';
 import {
+  startSteeringRun,
+  type Steering,
+  type SteeringNotDeliveredReason,
+  type SteeringRun,
+} from './steering';
+import {
   isStepCount,
   isStopConditionMet,
   type StopCondition,
@@ -208,6 +214,7 @@ export type GenerateTextInclude = {
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
+ * @param experimental_steering - A steering object that adds user messages to the generation at the next step boundary.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  * @param onStart - Callback invoked when generation begins, before any LLM calls.
@@ -236,348 +243,395 @@ export async function generateText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
->({
-  model: modelArg,
-  tools,
-  toolChoice,
-  instructions,
-  system,
-  prompt,
-  messages,
-  allowSystemInMessages,
-  maxRetries: maxRetriesArg,
-  abortSignal,
-  timeout,
-  headers,
-  stopWhen = isStepCount(1),
-  experimental_sandbox: sandbox,
-  output,
-  toolApproval,
-  experimental_toolCallers,
-  experimental_toolApprovalSecret,
-  experimental_telemetry,
-  telemetry = experimental_telemetry,
-  providerOptions,
-  activeTools,
-  toolOrder,
-  toolCallConcurrency,
-  prepareStep,
-  experimental_repairToolCall,
-  repairToolCall = experimental_repairToolCall,
-  experimental_refineToolInput: refineToolInput,
-  experimental_download: download,
-  runtimeContext = {} as RUNTIME_CONTEXT,
-  toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include,
-  include = experimental_include,
-  _internal: {
-    generateId = originalGenerateId,
-    generateCallId = originalGenerateCallId,
-    now = originalNow,
-  } = {},
-  onStart,
-  experimental_onStart,
-  onStepStart,
-  experimental_onStepStart,
-  onLanguageModelCallStart,
-  experimental_onLanguageModelCallStart,
-  onLanguageModelCallEnd,
-  experimental_onLanguageModelCallEnd,
-  onToolExecutionStart,
-  onToolExecutionEnd,
-  experimental_onToolCallStart,
-  experimental_onToolCallFinish,
-  onStepEnd,
-  onStepFinish,
-  onFinish,
-  onEnd = onFinish,
-  ...settings
-}: LanguageModelCallOptions &
-  RequestOptions<TOOLS> &
-  Prompt &
-  ToolsContextParameter<TOOLS> & {
-    /**
-     * The language model to use.
-     */
-    model: LanguageModel;
+>(
+  options: GenerateTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+  const steeringRun = startSteeringRun(options.experimental_steering);
 
-    /**
-     * The tool choice strategy. Default: 'auto'.
-     */
-    toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+  try {
+    return await generateTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>(
+      options,
+      steeringRun,
+    );
+  } catch (error) {
+    // the call can fail before its loop starts, e.g. when the prompt is invalid:
+    steeringRun?.end(options.abortSignal?.aborted ? 'aborted' : 'error');
+    throw error;
+  }
+}
 
-    /**
-     * Condition for stopping the generation when there are tool results in the last step.
-     * When the condition is an array, any of the conditions can be met to stop the generation.
-     *
-     * @default isStepCount(1)
-     */
-    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+type GenerateTextOptions<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = Parameters<typeof generateTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>>[0];
 
-    /**
-     * Optional telemetry configuration.
-     */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+async function generateTextInternal<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string>,
+>(
+  {
+    model: modelArg,
+    tools,
+    toolChoice,
+    instructions,
+    system,
+    prompt,
+    messages,
+    allowSystemInMessages,
+    maxRetries: maxRetriesArg,
+    abortSignal,
+    timeout,
+    headers,
+    stopWhen = isStepCount(1),
+    experimental_sandbox: sandbox,
+    output,
+    toolApproval,
+    experimental_toolCallers,
+    experimental_toolApprovalSecret,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
+    providerOptions,
+    activeTools,
+    toolOrder,
+    toolCallConcurrency,
+    prepareStep,
+    experimental_repairToolCall,
+    repairToolCall = experimental_repairToolCall,
+    experimental_refineToolInput: refineToolInput,
+    experimental_download: download,
+    runtimeContext = {} as RUNTIME_CONTEXT,
+    toolsContext = {} as InferToolSetContext<TOOLS>,
+    experimental_include,
+    include = experimental_include,
+    _internal: {
+      generateId = originalGenerateId,
+      generateCallId = originalGenerateCallId,
+      now = originalNow,
+    } = {},
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onLanguageModelCallStart,
+    experimental_onLanguageModelCallStart,
+    onLanguageModelCallEnd,
+    experimental_onLanguageModelCallEnd,
+    onToolExecutionStart,
+    onToolExecutionEnd,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
+    onStepEnd,
+    onStepFinish,
+    onFinish,
+    onEnd = onFinish,
+    ...settings
+  }: LanguageModelCallOptions &
+    RequestOptions<TOOLS> &
+    Prompt &
+    ToolsContextParameter<TOOLS> & {
+      /**
+       * The language model to use.
+       */
+      model: LanguageModel;
 
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+      /**
+       * The tool choice strategy. Default: 'auto'.
+       */
+      toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    /**
-     * Additional provider-specific options. They are passed through
-     * to the provider from the AI SDK and enable provider-specific
-     * functionality that can be fully encapsulated in the provider.
-     */
-    providerOptions?: ProviderOptions;
+      /**
+       * Condition for stopping the generation when there are tool results in the last step.
+       * When the condition is an array, any of the conditions can be met to stop the generation.
+       *
+       * @default isStepCount(1)
+       */
+      stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
-    /**
-     * The sandbox environment that is passed through to tool execution.
-     */
-    experimental_sandbox?: SandboxSession;
+      /**
+       * Optional telemetry configuration.
+       */
+      telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
-    /**
-     * Runtime context. Treat runtime context as immutable.
-     * If you need to mutate runtime context, update it in `prepareStep`.
-     */
-    runtimeContext?: RUNTIME_CONTEXT;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions<
+        RUNTIME_CONTEXT,
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Limits the tools that are available for the model to call without
-     * changing the tool call and result types in the result.
-     */
-    activeTools?: ActiveTools<NoInfer<TOOLS>>;
+      /**
+       * Additional provider-specific options. They are passed through
+       * to the provider from the AI SDK and enable provider-specific
+       * functionality that can be fully encapsulated in the provider.
+       */
+      providerOptions?: ProviderOptions;
 
-    /**
-     * Controls the order in which tools are sent to the provider.
-     *
-     * The list can be partial. Tools not listed in `toolOrder` are sent after
-     * the listed tools, sorted alphabetically. This can improve provider-side
-     * caching by keeping tool definitions in a stable order.
-     */
-    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+      /**
+       * The sandbox environment that is passed through to tool execution.
+       */
+      experimental_sandbox?: SandboxSession;
 
-    /**
-     * Maximum number of tool calls that may execute concurrently within a step.
-     *
-     * Set to `1` to execute tool calls sequentially in the order they were
-     * generated. By default, all tool calls execute concurrently.
-     */
-    toolCallConcurrency?: number;
+      /**
+       * A steering object created with `experimental_createSteering()`.
+       * Messages sent with it are added to the generation at the next step
+       * boundary.
+       */
+      experimental_steering?: Steering;
 
-    /**
-     * Optional specification for parsing structured outputs from the LLM response.
-     */
-    output?: OUTPUT;
+      /**
+       * Runtime context. Treat runtime context as immutable.
+       * If you need to mutate runtime context, update it in `prepareStep`.
+       */
+      runtimeContext?: RUNTIME_CONTEXT;
 
-    /**
-     * Optional tool approval configuration.
-     *
-     * This configuration takes precedence over tool-defined approval settings.
-     */
-    toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+      /**
+       * Limits the tools that are available for the model to call without
+       * changing the tool call and result types in the result.
+       */
+      activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
-    /**
-     * Configures which caller tools may invoke each tool.
-     */
-    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+      /**
+       * Controls the order in which tools are sent to the provider.
+       *
+       * The list can be partial. Tools not listed in `toolOrder` are sent after
+       * the listed tools, sorted alphabetically. This can improve provider-side
+       * caching by keeping tool definitions in a stable order.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
-    /**
-     * Secret for HMAC-signing tool approval requests. When set, the server
-     * signs each approval request at issuance and verifies the signature when
-     * the approval is replayed, preventing client-forged approvals.
-     */
-    experimental_toolApprovalSecret?: string | Uint8Array;
+      /**
+       * Maximum number of tool calls that may execute concurrently within a step.
+       *
+       * Set to `1` to execute tool calls sequentially in the order they were
+       * generated. By default, all tool calls execute concurrently.
+       */
+      toolCallConcurrency?: number;
 
-    /**
-     * Custom download function to use for URLs.
-     *
-     * By default, files are downloaded if the model does not support the URL for the given media type.
-     */
-    experimental_download?: DownloadFunction | undefined;
+      /**
+       * Optional specification for parsing structured outputs from the LLM response.
+       */
+      output?: OUTPUT;
 
-    /**
-     * Optional function that you can use to provide different settings for a step.
-     */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+      /**
+       * Optional tool approval configuration.
+       *
+       * This configuration takes precedence over tool-defined approval settings.
+       */
+      toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     */
-    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+      /**
+       * Configures which caller tools may invoke each tool.
+       */
+      experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     *
-     * @deprecated Use `repairToolCall` instead.
-     */
-    experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+      /**
+       * Secret for HMAC-signing tool approval requests. When set, the server
+       * signs each approval request at issuance and verifies the signature when
+       * the approval is replayed, preventing client-forged approvals.
+       */
+      experimental_toolApprovalSecret?: string | Uint8Array;
 
-    /**
-     * Optional mapping of tool names to functions that refine parsed tool inputs.
-     *
-     * The refined input must have the same type shape as the tool input. Refined
-     * inputs are used for tool execution, outputs, callbacks, and telemetry.
-     */
-    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
+      /**
+       * Custom download function to use for URLs.
+       *
+       * By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
 
-    /**
-     * Callback that is called when the generateText operation begins,
-     * before any LLM calls are made.
-     */
-    onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Optional function that you can use to provide different settings for a step.
+       */
+      prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
-    /**
-     * Callback that is called when the generateText operation begins,
-     * before any LLM calls are made.
-     *
-     * @deprecated Use `onStart` instead.
-     */
-    experimental_onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       */
+      repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     */
-    onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       *
+       * @deprecated Use `repairToolCall` instead.
+       */
+      experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     *
-     * @deprecated Use `onStepStart` instead.
-     */
-    experimental_onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Optional mapping of tool names to functions that refine parsed tool inputs.
+       *
+       * The refined input must have the same type shape as the tool input. Refined
+       * inputs are used for tool execution, outputs, callbacks, and telemetry.
+       */
+      experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     */
-    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Callback that is called when the generateText operation begins,
+       * before any LLM calls are made.
+       */
+      onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     *
-     * @deprecated Use `onLanguageModelCallStart` instead.
-     */
-    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Callback that is called when the generateText operation begins,
+       * before any LLM calls are made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
+      experimental_onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     */
-    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       */
+      onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     *
-     * @deprecated Use `onLanguageModelCallEnd` instead.
-     */
-    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
-      NoInfer<TOOLS>
-    >;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
+      experimental_onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     */
-    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       */
+      onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     *
-     * @deprecated Use `onToolExecutionStart` instead.
-     */
-    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       *
+       * @deprecated Use `onLanguageModelCallStart` instead.
+       */
+      experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     */
-    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       */
+      onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     *
-     * @deprecated Use `onToolExecutionEnd` instead.
-     */
-    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       *
+       * @deprecated Use `onLanguageModelCallEnd` instead.
+       */
+      experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     */
-    onStepEnd?: GenerateTextOnStepEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       */
+      onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     *
-     * @deprecated Use `onStepEnd` instead.
-     */
-    onStepFinish?: GenerateTextOnStepFinishCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       *
+       * @deprecated Use `onToolExecutionStart` instead.
+       */
+      experimental_onToolCallStart?: OnToolExecutionStartCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called when all steps are finished and the response is complete.
-     */
-    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       */
+      onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when all steps are finished and the response is complete.
-     *
-     * @deprecated Use `onEnd` instead.
-     */
-    onFinish?: GenerateTextOnEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       *
+       * @deprecated Use `onToolExecutionEnd` instead.
+       */
+      experimental_onToolCallFinish?: OnToolExecutionEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     * Disabling inclusion can help reduce memory usage when processing
-     * large payloads like images.
-     *
-     * By default, request bodies, request messages, and response bodies are
-     * excluded.
-     */
-    include?: GenerateTextInclude;
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       */
+      onStepEnd?: GenerateTextOnStepEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     *
-     * @deprecated Use `include` instead.
-     */
-    experimental_include?: GenerateTextInclude;
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       *
+       * @deprecated Use `onStepEnd` instead.
+       */
+      onStepFinish?: GenerateTextOnStepFinishCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      generateId?: IdGenerator;
-      generateCallId?: IdGenerator;
-      now?: () => number;
-    };
-  }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+      /**
+       * Callback that is called when all steps are finished and the response is complete.
+       */
+      onEnd?: GenerateTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
+
+      /**
+       * Callback that is called when all steps are finished and the response is complete.
+       *
+       * @deprecated Use `onEnd` instead.
+       */
+      onFinish?: GenerateTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
+
+      /**
+       * Settings for controlling what data is included in step results.
+       * Disabling inclusion can help reduce memory usage when processing
+       * large payloads like images.
+       *
+       * By default, request bodies, request messages, and response bodies are
+       * excluded.
+       */
+      include?: GenerateTextInclude;
+
+      /**
+       * Settings for controlling what data is included in step results.
+       *
+       * @deprecated Use `include` instead.
+       */
+      experimental_include?: GenerateTextInclude;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: IdGenerator;
+        generateCallId?: IdGenerator;
+        now?: () => number;
+      };
+    },
+  steeringRun: SteeringRun | undefined,
+): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
   include = {
     requestBody: include?.requestBody ?? false,
@@ -880,6 +934,49 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
+      // why waiting steering messages are not delivered when the loop ends:
+      let steeringEndReason: SteeringNotDeliveredReason = 'finished';
+
+      const shouldStartNextStep = async () => {
+        if (steps[steps.length - 1].finishReason === 'interrupted') {
+          return false;
+        }
+
+        // Continue only after all client tool calls have been executed or denied:
+        if (
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+          clientToolCalls.length
+        ) {
+          steeringEndReason = 'waiting-for-tool-results';
+          return false;
+        }
+
+        // Continue if there are client results, pending deferred provider
+        // results, or steering messages:
+        if (
+          clientToolCalls.length === 0 &&
+          pendingDeferredToolCalls.size === 0
+        ) {
+          if (!steeringRun?.hasPendingMessages()) {
+            return false;
+          }
+
+          // steering messages do not continue a failed step:
+          if (steps[steps.length - 1].finishReason === 'error') {
+            steeringEndReason = 'error';
+            return false;
+          }
+        }
+
+        // continue until a stop condition is met:
+        if (await isStopConditionMet({ stopConditions, steps })) {
+          steeringEndReason = 'stop-condition';
+          return false;
+        }
+
+        return true;
+      };
+
       do {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
@@ -892,6 +989,11 @@ export async function generateText<
           timeoutMs: stepTimeoutMs,
         });
         const stepNumber = steps.length;
+
+        const steeringMessages = steeringRun?.takeMessages() ?? [];
+        if (steeringMessages.length > 0) {
+          messagesForNextStep = [...messagesForNextStep, ...steeringMessages];
+        }
 
         try {
           await runInTracingChannelSpan({
@@ -913,6 +1015,9 @@ export async function generateText<
                 messages: stepInputMessages,
                 initialMessages,
                 responseMessages: accumulatedResponseMessages,
+                ...(steeringMessages.length > 0
+                  ? { experimental_steeringMessages: steeringMessages }
+                  : {}),
                 runtimeContext,
                 toolsContext,
                 experimental_sandbox: sandbox,
@@ -976,6 +1081,14 @@ export async function generateText<
                 messages: prepareStepResult?.messages ?? stepInputMessages,
                 toolCallerMessages,
               });
+
+              // steering messages are delivered when they are in the messages
+              // that are sent to the model after prepareStep:
+              const deliveredSteeringMessages =
+                steeringRun?.resolveTakenMessages({
+                  stepNumber,
+                  sentMessages: stepMessages,
+                }) ?? [];
 
               const promptMessages = await convertToLanguageModelPrompt({
                 prompt: {
@@ -1516,6 +1629,7 @@ export async function generateText<
                   request: stepRequest,
                   response: stepResponse,
                   toolsContext,
+                  steeringMessages: deliveredSteeringMessages,
                 });
 
               logWarnings({
@@ -1541,16 +1655,9 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        steps[steps.length - 1].finishReason !== 'interrupted' &&
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+      } while (await shouldStartNextStep());
+
+      steeringRun?.end(steeringEndReason);
 
       const lastStep = steps[steps.length - 1];
 
@@ -1648,6 +1755,7 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      steeringRun?.end(mergedAbortSignal?.aborted ? 'aborted' : 'error');
       await telemetryDispatcher.onError?.({ callId, error });
       throw wrapGatewayError(error);
     }

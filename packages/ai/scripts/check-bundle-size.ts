@@ -4,7 +4,7 @@ import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
-const LIMIT = 578 * 1024;
+const LIMIT = 582 * 1024;
 
 interface BundleResult {
   size: number;
@@ -55,7 +55,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 289 * 1024
+          ? 292 * 1024
           : LIMIT,
   };
 }
@@ -103,7 +103,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 289 * 1024
+          ? 292 * 1024
           : LIMIT,
   };
 }

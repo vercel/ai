@@ -94,6 +94,7 @@ function restrictStepResult<
     request: step.request,
     response: step.response,
     providerMetadata: step.providerMetadata,
+    steeringMessages: step.experimental_steeringMessages,
   });
 }
 

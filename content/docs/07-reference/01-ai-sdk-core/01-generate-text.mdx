@@ -659,6 +659,13 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
+                      name: 'experimental_steeringMessages',
+                      type: 'Array<UserModelMessage> | undefined',
+                      isOptional: true,
+                      description:
+                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. `messages` already contains them. If you return a `messages` override that is rebuilt from other fields, add them back together with the steering messages of previous steps from `steps`.',
+                    },
+                    {
                       name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,
@@ -844,6 +851,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
+      name: 'experimental_steering',
+      type: 'Experimental_Steering',
+      isOptional: true,
+      description:
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
@@ -3225,6 +3239,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'ProviderMetadata | undefined',
               description:
                 'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
+            },
+            {
+              name: 'experimental_steeringMessages',
+              type: 'Array<UserModelMessage> | undefined',
+              isOptional: true,
+              description:
+                'The user messages that were sent with `experimental_steering` and added to the input of this step. Undefined when the step received no steering messages.',
             },
           ],
         },
