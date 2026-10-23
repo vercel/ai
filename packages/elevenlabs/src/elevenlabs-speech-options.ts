@@ -1,5 +1,8 @@
 export type ElevenLabsSpeechModelId =
+  | 'eleven_v4'
+  | 'eleven_v4_turbo'
   | 'eleven_v3'
+  | 'eleven_v3_conversational'
   | 'eleven_multilingual_v2'
   | 'eleven_flash_v2_5'
   | 'eleven_flash_v2'
