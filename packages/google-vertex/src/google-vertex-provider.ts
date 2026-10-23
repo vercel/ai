@@ -1,6 +1,10 @@
-import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
+import {
+  loadOptionalSetting,
+  normalizeHeaders,
+  resolve,
+} from '@ai-sdk/provider-utils';
 import type { GoogleAuthOptions } from 'google-auth-library';
-import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
+import { createAuthHeadersGenerator } from './google-vertex-auth-google-auth-library';
 import {
   createGoogleVertex as createGoogleVertexOriginal,
   type GoogleVertexProvider,
@@ -38,13 +42,13 @@ export function createGoogleVertex(
           ...options.googleAuthOptions,
         };
 
-  const generateAuthToken = createAuthTokenGenerator(googleAuthOptions);
+  const generateAuthHeaders = createAuthHeadersGenerator(googleAuthOptions);
 
   return createGoogleVertexOriginal({
     ...options,
     headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken()}`,
-      ...(await resolve(options.headers)),
+      ...(await generateAuthHeaders()),
+      ...normalizeHeaders(await resolve(options.headers)),
     }),
   });
 }
