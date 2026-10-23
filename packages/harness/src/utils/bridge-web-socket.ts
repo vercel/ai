@@ -62,33 +62,28 @@ export function createBridgeWebSocketConnect({
 ) => Promise<WebSocket> {
   return async ({ abortSignal, reason }) => {
     const isInitialOpen = reason === 'open';
-    const linkedAbort =
+    const connectAbortSignal =
       isInitialOpen && startAbortSignal != null
-        ? linkAbortSignals({ abortSignals: [abortSignal, startAbortSignal] })
-        : undefined;
-    const connectAbortSignal = linkedAbort?.abortSignal ?? abortSignal;
+        ? AbortSignal.any([abortSignal, startAbortSignal])
+        : abortSignal;
 
-    try {
-      const { ws, hello } =
-        isInitialOpen && openRetryTimeoutMs != null
-          ? await openBridgeWebSocketWithRetry({
-              endpoint,
-              webSocketConstructor,
-              abortSignal: connectAbortSignal,
-              retryTimeoutMs: openRetryTimeoutMs,
-            })
-          : await openBridgeWebSocket({
-              endpoint,
-              webSocketConstructor,
-              abortSignal: connectAbortSignal,
-              openTimeoutMs: OPEN_TIMEOUT_MS,
-              getHelloTimeoutMs: () => HELLO_TIMEOUT_MS,
-            });
-      onHello?.(hello);
-      return ws;
-    } finally {
-      linkedAbort?.dispose();
-    }
+    const { ws, hello } =
+      isInitialOpen && openRetryTimeoutMs != null
+        ? await openBridgeWebSocketWithRetry({
+            endpoint,
+            webSocketConstructor,
+            abortSignal: connectAbortSignal,
+            retryTimeoutMs: openRetryTimeoutMs,
+          })
+        : await openBridgeWebSocket({
+            endpoint,
+            webSocketConstructor,
+            abortSignal: connectAbortSignal,
+            openTimeoutMs: OPEN_TIMEOUT_MS,
+            getHelloTimeoutMs: () => HELLO_TIMEOUT_MS,
+          });
+    onHello?.(hello);
+    return ws;
   };
 }
 
@@ -137,7 +132,7 @@ async function openBridgeWebSocketWithRetry({
   if (abortSignal.aborted) throw getAbortReason({ abortSignal });
 
   throw new HarnessError({
-    message: `The harness bridge did not complete the WebSocket handshake within ${retryTimeoutMs}ms after ${attempt} attempt(s). Last error: ${formatError(lastError)}`,
+    message: `The harness bridge did not complete the WebSocket handshake within ${retryTimeoutMs}ms after ${attempt} attempt(s).`,
     cause: lastError,
   });
 }
@@ -265,32 +260,6 @@ function openBridgeWebSocket({
   });
 }
 
-function linkAbortSignals({ abortSignals }: { abortSignals: AbortSignal[] }): {
-  abortSignal: AbortSignal;
-  dispose: () => void;
-} {
-  const controller = new AbortController();
-  const listeners: Array<() => void> = [];
-  const dispose = () => {
-    abortSignals.forEach((signal, index) =>
-      signal.removeEventListener('abort', listeners[index]),
-    );
-  };
-  for (const signal of abortSignals) {
-    const onAbort = () => {
-      controller.abort(signal.reason);
-      dispose();
-    };
-    listeners.push(onAbort);
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-      break;
-    }
-    signal.addEventListener('abort', onAbort, { once: true });
-  }
-  return { abortSignal: controller.signal, dispose };
-}
-
 function getAbortReason({
   abortSignal,
 }: {
@@ -314,9 +283,4 @@ function webSocketMessageToString(raw: unknown): string {
     );
   }
   return String(raw);
-}
-
-function formatError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
 }

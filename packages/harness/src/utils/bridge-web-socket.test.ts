@@ -211,15 +211,16 @@ describe('createBridgeWebSocketConnect', () => {
 
   it('applies the start abort signal to the initial open only', async () => {
     const startController = new AbortController();
-    startController.abort(new Error('start aborted'));
+    const startAbortReason = new Error('start aborted');
     const connect = createConnect({
       startAbortSignal: startController.signal,
     });
+    scripts.push(() => startController.abort(startAbortReason));
 
     await expect(
       connect({ abortSignal: new AbortController().signal, reason: 'open' }),
-    ).rejects.toThrow('start aborted');
-    expect(sockets).toHaveLength(0);
+    ).rejects.toBe(startAbortReason);
+    expect(sockets[0].terminated).toBe(true);
 
     scripts.push(openWithHello);
     await expect(
@@ -227,7 +228,7 @@ describe('createBridgeWebSocketConnect', () => {
         abortSignal: new AbortController().signal,
         reason: 'reconnect',
       }),
-    ).resolves.toBe(sockets[0]);
+    ).resolves.toBe(sockets[1]);
   });
 
   it('retries the initial open until it succeeds', async () => {
@@ -245,8 +246,9 @@ describe('createBridgeWebSocketConnect', () => {
   });
 
   it('gives up retrying once the budget is used up', async () => {
+    const socketError = new Error('connect ECONNREFUSED 10.0.0.1:4000');
     for (let i = 0; i < 10; i++) {
-      scripts.push(socket => socket.emit('error', new Error('502')));
+      scripts.push(socket => socket.emit('error', socketError));
     }
 
     const connection = createConnect({ openRetryTimeoutMs: 1_000 })({
@@ -259,9 +261,10 @@ describe('createBridgeWebSocketConnect', () => {
 
     expect(HarnessError.isInstance(error)).toBe(true);
     expect(error.message).toMatchInlineSnapshot(
-      `"The harness bridge did not complete the WebSocket handshake within 1000ms after 3 attempt(s). Last error: 502"`,
+      `"The harness bridge did not complete the WebSocket handshake within 1000ms after 3 attempt(s)."`,
     );
-    expect(error.cause).toEqual(new Error('502'));
+    expect(error.message).not.toContain('10.0.0.1:4000');
+    expect(error.cause).toBe(socketError);
   });
 
   it('does not retry when the bridge rejects the token', async () => {
@@ -293,7 +296,10 @@ describe('createBridgeWebSocketConnect', () => {
     const error = await result;
 
     expect(error.message).toMatchInlineSnapshot(
-      `"The harness bridge did not complete the WebSocket handshake within 3000ms after 1 attempt(s). Last error: The harness bridge did not send bridge-hello within 3000ms."`,
+      `"The harness bridge did not complete the WebSocket handshake within 3000ms after 1 attempt(s)."`,
+    );
+    expect(error.cause).toEqual(
+      new Error('The harness bridge did not send bridge-hello within 3000ms.'),
     );
     expect(sockets).toHaveLength(1);
   });
