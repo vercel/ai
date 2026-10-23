@@ -23,11 +23,17 @@ export async function agentStep(
 ): Promise<HarnessWorkflowState> {
   'use step';
 
-  const { steppedAgent } = await import('./stepped-agent');
+  const { HarnessAgent } = await import('@ai-sdk/harness/agent');
+  const { claudeCode } = await import('@ai-sdk/harness-claude-code');
+  const { isStepCount } = await import('ai');
   const {
     createVercelNetworkSandboxSession,
     resumeVercelNetworkSandboxSession,
   } = await import('@ai-sdk/sandbox-vercel');
+  const steppedAgent = new HarnessAgent({
+    harness: claudeCode,
+    stopWhen: isStepCount(1),
+  });
   const sandboxId = `harness-${state.sessionId}`;
   const sandboxSession =
     state.resumeFrom == null && state.continueFrom == null

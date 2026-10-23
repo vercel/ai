@@ -5,7 +5,7 @@ Policy-as-code authorization for AI SDK tool calls, powered by [Open Policy Agen
 ## Setup
 
 ```bash
-npm i ai @ai-sdk/policy-opa @ai-sdk/anthropic
+npm i ai @ai-sdk/policy-opa @ai-sdk/anthropic @open-policy-agent/opa-wasm
 ```
 
 ## Usage
