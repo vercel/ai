@@ -24,7 +24,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
 | `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
 | `packages/codemod`        | Automated migrations for major releases                                              |
-| `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
+| `examples/`               | Example applications (ai-functions, next, etc.)                                      |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
 | `tools/`                  | Internal tooling (tsconfig)                                                          |
@@ -99,8 +99,8 @@ pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 | -------------------------- | -------------------------- | ------- |
 | `generateText`             | Generate text completion   | `ai`    |
 | `streamText`               | Stream text completion     | `ai`    |
-| `generateObject`           | Generate structured output | `ai`    |
-| `streamObject`             | Stream structured output   | `ai`    |
+| `generateText` + `Output`  | Generate structured output | `ai`    |
+| `streamText` + `Output`    | Stream structured output   | `ai`    |
 | `embed` / `embedMany`      | Generate embeddings        | `ai`    |
 | `generateImage`            | Generate images            | `ai`    |
 | `tool`                     | Define a tool              | `ai`    |
@@ -217,7 +217,7 @@ The SDK uses a layered provider architecture following the adapter pattern:
 1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
-4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
+4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `embed`
 
 For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
 
