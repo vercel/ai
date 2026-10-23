@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertBase64ToUint8Array,
@@ -561,24 +563,35 @@ function cartesiaEncodingFromInputAudioFormat(type: string): string {
 }
 
 function isStreamingTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'ink-2' || modelId.startsWith('ink-2-');
+  // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
+  // is the known batch-only model family. Future IDs inherit the current
+  // streaming protocol regardless of their name.
+  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
 }
 
-const cartesiaTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const cartesiaTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            word: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-const cartesiaAccessTokenResponseSchema = z.object({
-  token: z.string().min(1),
-});
+const cartesiaAccessTokenResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string().min(1),
+    }),
+  ),
+);

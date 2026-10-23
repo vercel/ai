@@ -217,27 +217,6 @@ vi.mock('node:fs/promises', async importOriginal => {
   };
 });
 
-const agentSettings = {
-  source: {
-    type: 'npm-simple',
-    packageName: '@agentclientprotocol/codex-acp',
-    packageVersion: '1.1.4',
-  },
-  executable: 'codex-acp',
-  args: ['--example'],
-  forwardEnv: ['CODEX_API_KEY'],
-  modelMapping: {
-    type: 'session-config-option' as const,
-    path: 'model',
-  },
-} as const;
-
-const permissionModeMapping = {
-  'allow-reads': { type: 'session-mode', modeId: 'read-only' },
-  'allow-edits': { type: 'session-mode', modeId: 'agent' },
-  'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
-} as const satisfies ACPPermissionModeMapping;
-
 const lockedPackageJson = `{
   "name": "locked-codex-acp",
   "private": true,
@@ -254,6 +233,27 @@ importers:
         specifier: 1.1.4
         version: 1.1.4
 `;
+
+const agentSettings = {
+  source: {
+    type: 'npm-locked',
+    packageJson: lockedPackageJson,
+    pnpmLockYaml: lockedPnpmLockYaml,
+  },
+  executable: 'codex-acp',
+  args: ['--example'],
+  forwardEnv: ['CODEX_API_KEY'],
+  modelMapping: {
+    type: 'session-config-option' as const,
+    path: 'model',
+  },
+} as const;
+
+const permissionModeMapping = {
+  'allow-reads': { type: 'session-mode', modeId: 'read-only' },
+  'allow-edits': { type: 'session-mode', modeId: 'agent' },
+  'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
+} as const satisfies ACPPermissionModeMapping;
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream({
@@ -1490,7 +1490,7 @@ describe('createACP', () => {
     expect(harnessUtilsMocks.channels).toEqual([]);
   });
 
-  it('forwards MCP servers and lets the implementation classify unknown ACP tools', async () => {
+  it('forwards MCP servers and lets the agent classify unknown ACP tools', async () => {
     const isMcpToolCall = vi.fn(
       (toolCall: { _meta?: Record<string, unknown> | null }) =>
         toolCall._meta?.is_mcp_tool_call === true,
@@ -1816,84 +1816,6 @@ describe('createACP', () => {
     ).not.toContain('Execute a command');
   });
 
-  it('requires an exact npm package version', () => {
-    expect(() =>
-      createACP({
-        harnessId: 'codex-acp',
-        ...agentSettings,
-        source: { ...agentSettings.source, packageVersion: '^1.1.4' },
-      }),
-    ).toThrow('exact semantic version');
-  });
-
-  it('resolves the latest dist-tag when no package version is pinned', async () => {
-    const harness = createACP({
-      harnessId: 'codex-acp-unpinned',
-      ...agentSettings,
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-      },
-    });
-    const bootstrap = await harness.getBootstrap!();
-
-    expect(
-      bootstrap.files.find(file =>
-        file.path.endsWith('/implementation/package.json'),
-      )?.content,
-    ).toContain('"@agentclientprotocol/codex-acp": "latest"');
-    expect(bootstrap.commands.map(command => command.command)).toEqual([
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
-    ]);
-  });
-
-  it('generates implementation acquisition files and caches the bootstrap', async () => {
-    const harness = createACP({
-      harnessId: 'codex-acp',
-      ...agentSettings,
-    });
-    const first = await harness.getBootstrap!();
-    const second = await harness.getBootstrap!();
-
-    expect(second).toBe(first);
-    expect(first.harnessId).toBe('codex-acp');
-    expect(first.bootstrapDir).toBe('.harness-bootstrap/codex-acp');
-    expect(first.files.map(file => file.path).sort()).toEqual([
-      '.harness-bootstrap/codex-acp/bridge.mjs',
-      '.harness-bootstrap/codex-acp/host-tool-mcp.mjs',
-      '.harness-bootstrap/codex-acp/implementation/implementation.json',
-      '.harness-bootstrap/codex-acp/implementation/package.json',
-      '.harness-bootstrap/codex-acp/package.json',
-      '.harness-bootstrap/codex-acp/pnpm-lock.yaml',
-    ]);
-    expect(
-      first.files.find(file => file.path.endsWith('/package.json'))?.content,
-    ).toContain('@ai-sdk-harness-acp-bridge');
-    expect(
-      first.files.find(file =>
-        file.path.endsWith('/implementation/package.json'),
-      )?.content,
-    ).toContain('"@agentclientprotocol/codex-acp": "1.1.4"');
-    expect(
-      first.files.find(file =>
-        file.path.endsWith('/implementation/implementation.json'),
-      )?.content,
-    ).toContain('"executablePath": "node_modules/.bin/codex-acp"');
-    expect(first.commands.map(command => command.command)).toEqual([
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      'pnpm --dir implementation install --prod --store-dir ../.pnpm-store',
-    ]);
-    expect(
-      first.files.every(file =>
-        file.path.startsWith('.harness-bootstrap/codex-acp/'),
-      ),
-    ).toBe(true);
-    expect(
-      first.files.some(file => file.path.startsWith('/workspace/user-project')),
-    ).toBe(false);
-  });
-
   it('caches bootstrap per factory without sharing configuration globally', async () => {
     const firstHarness = createACP({
       harnessId: 'first-acp',
@@ -1911,83 +1833,6 @@ describe('createACP', () => {
     expect(firstBootstrap).not.toBe(secondBootstrap);
     expect(firstBootstrap.bootstrapDir).toBe('.harness-bootstrap/first-acp');
     expect(secondBootstrap.bootstrapDir).toBe('.harness-bootstrap/second-acp');
-  });
-
-  it('uses caller-provided artifacts for locked frozen acquisition', async () => {
-    const pnpmWorkspaceYaml =
-      "allowBuilds:\n  '@example/codex-acp@1.2.3': true\n";
-    const harness = createACP({
-      harnessId: 'codex-acp-locked',
-      source: {
-        type: 'npm-locked',
-        packageJson: lockedPackageJson,
-        pnpmLockYaml: lockedPnpmLockYaml,
-        pnpmWorkspaceYaml,
-      },
-      executable: 'codex-acp',
-      modelMapping: agentSettings.modelMapping,
-    });
-    const bootstrap = await harness.getBootstrap!();
-
-    expect(
-      bootstrap.files.find(
-        file =>
-          file.path ===
-          '.harness-bootstrap/codex-acp-locked/implementation/package.json',
-      )?.content,
-    ).toBe(lockedPackageJson);
-    expect(
-      bootstrap.files.find(
-        file =>
-          file.path ===
-          '.harness-bootstrap/codex-acp-locked/implementation/pnpm-lock.yaml',
-      )?.content,
-    ).toBe(lockedPnpmLockYaml);
-    expect(
-      bootstrap.files.find(
-        file =>
-          file.path ===
-          '.harness-bootstrap/codex-acp-locked/implementation/pnpm-workspace.yaml',
-      )?.content,
-    ).toBe(pnpmWorkspaceYaml);
-    expect(bootstrap.commands.map(command => command.command)).toContain(
-      'pnpm --dir implementation install --frozen-lockfile --prod --store-dir ../.pnpm-store',
-    );
-  });
-
-  it('generates isolated install command acquisition without npm implementation files', async () => {
-    const harness = createACP({
-      harnessId: 'cursor-acp',
-      source: {
-        type: 'install-command',
-        command: 'curl https://cursor.com/install -fsS | bash',
-      },
-      executable: 'agent',
-      args: ['--disable-auto-update', 'acp'],
-      modelMapping: agentSettings.modelMapping,
-    });
-    const bootstrap = await harness.getBootstrap!();
-    const implementationFiles = bootstrap.files.filter(file =>
-      file.path.includes('/implementation/'),
-    );
-
-    expect(implementationFiles.map(file => file.path).sort()).toEqual([
-      '.harness-bootstrap/cursor-acp/implementation/implementation.json',
-      '.harness-bootstrap/cursor-acp/implementation/install.sh',
-    ]);
-    expect(
-      implementationFiles.find(file => file.path.endsWith('/install.sh'))
-        ?.content,
-    ).toContain('curl https://cursor.com/install -fsS | bash');
-    expect(
-      implementationFiles.find(file =>
-        file.path.endsWith('/implementation.json'),
-      )?.content,
-    ).toContain('"executablePath": "home/.local/bin/agent"');
-    expect(bootstrap.commands.map(command => command.command)).toEqual([
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      'bash implementation/install.sh',
-    ]);
   });
 
   it('uses the supplied sandbox and workdir while separating bridge and direct provider auth', async () => {
@@ -2023,9 +1868,18 @@ describe('createACP', () => {
     expect(spawns[0].command).toContain(
       "node '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
-    expect(spawns[0].command).toContain(
-      "--implementation-dir '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/implementation'",
-    );
+    await expect(
+      safeParseJSON({ text: spawns[0].env[ACP_BRIDGE_CONFIGURATION_ENV]! }),
+    ).resolves.toMatchObject({
+      success: true,
+      value: {
+        agent: {
+          command:
+            '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/node_modules/.bin/codex-acp',
+          args: ['--example'],
+        },
+      },
+    });
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
@@ -2434,7 +2288,7 @@ describe('createACP', () => {
 
     const lifecycleState = await session.doStop();
     expect(lifecycleState.data).toMatchObject({
-      implementationIdentity: expect.any(String),
+      agentIdentity: expect.any(String),
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         providerKind: 'direct',
@@ -2446,7 +2300,7 @@ describe('createACP', () => {
     expect(lifecycleState.data).not.toHaveProperty('skillsMaterialized');
   });
 
-  it('materializes install-command skills relative to the private implementation home', async () => {
+  it('materializes install-command skills relative to the private agent home', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const harness = createACP({
       harnessId: 'cursor-skills-acp',
@@ -2482,7 +2336,7 @@ describe('createACP', () => {
     });
 
     expect(writes).toContainEqual({
-      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/home/.agents/skills/release-notes/SKILL.md',
       content:
         '---\n' +
         'name: release-notes\n' +
@@ -2804,7 +2658,7 @@ describe('createACP', () => {
     harnessUtilsMocks.nextSuspensionCursor = 17;
     const resumeFrom = await firstSession.doDetach();
     expect(resumeFrom.data).toMatchObject({
-      implementationIdentity: expect.any(String),
+      agentIdentity: expect.any(String),
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         acpMethodId: 'api-key',
@@ -3753,107 +3607,240 @@ describe('createACP', () => {
     });
   });
 
-  it('preserves a pending client tool result across cross-process continuation', async () => {
-    const sandboxSession = fakeSandbox({
-      runs: [],
-      spawns: [],
-      stop: async () => {},
-    });
-    const clientTool = tool({
-      description: 'Get a value from the client.',
-      inputSchema: z.object({ key: z.string() }),
-    });
-    const harness = createACP({
-      harnessId: 'codex-acp',
-      ...agentSettings,
-    });
-    const firstAgent = new HarnessAgent({
-      harness,
-      tools: { clientTool },
-    });
-    const firstSession = await firstAgent.createSession({
-      sessionId: 'session-1',
-      sandboxSession,
-    });
-    const firstChannel = harnessUtilsMocks.channels[0]!;
-    const first = await firstAgent.stream({
-      session: firstSession,
-      prompt: 'Use the client tool.',
-    });
-    const firstPartsPromise = collectStream({ stream: first.fullStream });
-    firstChannel.emit({ type: 'stream-start' });
-    firstChannel.emit({
-      type: 'tool-call',
-      toolCallId: 'client-call',
-      toolName: 'clientTool',
-      input: JSON.stringify({ key: 'answer' }),
-      providerExecuted: false,
-    });
-    await firstPartsPromise;
-
-    harnessUtilsMocks.nextSuspensionCursor = 31;
-    const continueFrom = await firstSession.suspendTurn();
-    expect(continueFrom.pendingToolResults).toEqual([
-      {
-        toolCallId: 'client-call',
-        toolName: 'clientTool',
-        input: JSON.stringify({ key: 'answer' }),
-      },
-    ]);
-
-    const secondAgent = new HarnessAgent({
-      harness,
-      tools: { clientTool },
-    });
-    const secondSession = await secondAgent.createSession({
-      sessionId: 'session-1',
-      continueFrom,
-      sandboxSession,
-    });
-    const secondChannel = harnessUtilsMocks.channels[1]!;
-    const continued = await secondAgent.continueStream({
-      session: secondSession,
-      toolResultContinuations: [
+  it('submits converted output once while preserving raw results and complete response content', async () => {
+    const toModelOutput = vi.fn(async () => ({
+      type: 'content' as const,
+      value: [
+        { type: 'text' as const, text: 'marker' },
         {
-          type: 'tool-result',
-          toolCallId: 'client-call',
-          toolName: 'clientTool',
-          output: { type: 'json', value: { value: 42 } },
+          type: 'file' as const,
+          mediaType: 'image/png',
+          data: { type: 'data' as const, data: new Uint8Array([1, 2, 3]) },
         },
       ],
+    }));
+    const execute = vi.fn(async () => ({ status: 'ready' }));
+    const agent = new HarnessAgent({
+      harness: createACP({ harnessId: 'test-acp', ...agentSettings }),
+      tools: {
+        inspect: tool({ inputSchema: z.object({}), execute, toModelOutput }),
+      },
     });
-    const continuedPartsPromise = collectStream({
-      stream: continued.fullStream,
+    const session = await agent.createSession({
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
     });
-    await vi.waitFor(() => {
-      expect(secondChannel.sent).toContainEqual({
+    const channel = harnessUtilsMocks.channels[0]!;
+    const result = await agent.stream({
+      session,
+      prompt: 'Inspect the image.',
+    });
+    const consumed = result.consumeStream();
+    channel.emit({ type: 'stream-start' });
+    channel.emit({
+      type: 'tool-call',
+      toolCallId: 'call',
+      toolName: 'inspect',
+      input: '{}',
+      providerExecuted: false,
+    });
+    const output = {
+      type: 'content',
+      value: [
+        { type: 'text', text: 'marker' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'AQID' },
+        },
+      ],
+    };
+    await vi.waitFor(() =>
+      expect(channel.sent).toContainEqual({
         type: 'tool-result',
-        toolCallId: 'client-call',
-        output: { value: 42 },
+        toolCallId: 'call',
+        output: { status: 'ready' },
         isError: undefined,
         toolResult: {
           type: 'tool-result',
-          toolCallId: 'client-call',
-          toolName: 'clientTool',
-          output: { type: 'json', value: { value: 42 } },
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output,
         },
-      });
-    });
-    secondChannel.emit({
+      }),
+    );
+    channel.emit({
       type: 'tool-result',
-      toolCallId: 'client-call',
-      toolName: 'clientTool',
-      result: { value: 42 },
-      providerExecuted: false,
+      toolCallId: 'call',
+      toolName: 'inspect',
+      result: { status: 'ready' },
     });
-    secondChannel.emit({
+    channel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      usage: unknownUsage(),
+    });
+    channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
       totalUsage: unknownUsage(),
     });
-    await continuedPartsPromise;
-    await secondSession.destroy();
+    await consumed;
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(toModelOutput).toHaveBeenCalledTimes(1);
+    expect(await result.toolResults).toMatchObject([
+      { output: { status: 'ready' } },
+    ]);
+    expect(await result.responseMessages).toContainEqual({
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output,
+        },
+      ],
+    });
+    await session.destroy();
   });
+
+  it.each([false, true])(
+    'preserves a pending client tool result across cross-process continuation with conversion %s',
+    async convertModelOutput => {
+      const sandboxSession = fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      });
+      const modelOutput = {
+        type: 'content' as const,
+        value: [
+          { type: 'text' as const, text: 'marker' },
+          {
+            type: 'file' as const,
+            mediaType: 'image/png',
+            data: { type: 'data' as const, data: 'AQID' },
+          },
+        ],
+      };
+      const toModelOutput = vi.fn(async () => modelOutput);
+      const clientTool = tool({
+        description: 'Get a value from the client.',
+        inputSchema: z.object({ key: z.string() }),
+        ...(convertModelOutput ? { toModelOutput } : {}),
+      });
+      const harness = createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+      });
+      const firstAgent = new HarnessAgent({
+        harness,
+        tools: { clientTool },
+      });
+      const firstSession = await firstAgent.createSession({
+        sessionId: 'session-1',
+        sandboxSession,
+      });
+      const firstChannel = harnessUtilsMocks.channels[0]!;
+      const first = await firstAgent.stream({
+        session: firstSession,
+        prompt: 'Use the client tool.',
+      });
+      const firstPartsPromise = collectStream({ stream: first.fullStream });
+      firstChannel.emit({ type: 'stream-start' });
+      firstChannel.emit({
+        type: 'tool-call',
+        toolCallId: 'client-call',
+        toolName: 'clientTool',
+        input: JSON.stringify({ key: 'answer' }),
+        providerExecuted: false,
+      });
+      firstChannel.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: unknownUsage(),
+        harnessMetadata: { acp: { inferredStep: true } },
+      });
+      await firstPartsPromise;
+
+      harnessUtilsMocks.nextSuspensionCursor = 31;
+      const continueFrom = await firstSession.suspendTurn();
+      expect(continueFrom.pendingToolResults).toEqual([
+        {
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          input: JSON.stringify({ key: 'answer' }),
+        },
+      ]);
+
+      const secondAgent = new HarnessAgent({
+        harness,
+        tools: { clientTool },
+      });
+      const secondSession = await secondAgent.createSession({
+        sessionId: 'session-1',
+        continueFrom,
+        sandboxSession,
+      });
+      const secondChannel = harnessUtilsMocks.channels[1]!;
+      const continued = await secondAgent.continueStream({
+        session: secondSession,
+        toolResultContinuations: [
+          {
+            type: 'tool-result',
+            toolCallId: 'client-call',
+            toolName: 'clientTool',
+            output: convertModelOutput
+              ? modelOutput
+              : { type: 'json', value: { value: 42 } },
+          },
+        ],
+      });
+      const continuedPartsPromise = collectStream({
+        stream: continued.fullStream,
+      });
+      await vi.waitFor(() => {
+        expect(secondChannel.sent).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          output: convertModelOutput ? modelOutput : { value: 42 },
+          isError: undefined,
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'client-call',
+            toolName: 'clientTool',
+            output: convertModelOutput
+              ? modelOutput
+              : { type: 'json', value: { value: 42 } },
+          },
+        });
+      });
+      secondChannel.emit({
+        type: 'tool-result',
+        toolCallId: 'client-call',
+        toolName: 'clientTool',
+        result: convertModelOutput ? modelOutput : { value: 42 },
+        providerExecuted: false,
+      });
+      secondChannel.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage: unknownUsage(),
+      });
+      secondChannel.emit({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'end_turn' },
+        totalUsage: unknownUsage(),
+      });
+      await continuedPartsPromise;
+      expect(toModelOutput).not.toHaveBeenCalled();
+      await secondSession.destroy();
+    },
+  );
 
   it('preserves a pending native approval across cross-process continuation', async () => {
     const sandboxSession = fakeSandbox({
@@ -3899,6 +3886,12 @@ describe('createACP', () => {
       type: 'tool-approval-request',
       approvalId: 'native-approval',
       toolCallId: 'native-call',
+    });
+    firstChannel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
     });
     await firstPartsPromise;
 
@@ -4400,6 +4393,12 @@ describe('createACP', () => {
       input: JSON.stringify({ question: 'name' }),
       providerExecuted: false,
     });
+    channel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
+    });
     await firstPartsPromise;
     expect(session.hasUnfinishedTurn()).toBe(true);
 
@@ -4720,7 +4719,7 @@ describe('createACP', () => {
     expect(JSON.stringify(lifecycleState)).not.toContain('direct-secret');
     expect(JSON.stringify(lifecycleState)).not.toContain('gateway-secret');
     expect(lifecycleState.data).toMatchObject({
-      implementationIdentity: expect.any(String),
+      agentIdentity: expect.any(String),
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         providerKind: 'ai-gateway',
@@ -4768,7 +4767,7 @@ describe('createACP', () => {
     expect(serialized).not.toContain('direct-profile-secret');
     expect(serialized).not.toContain('unused-gateway-secret');
     expect(lifecycleState.data).toMatchObject({
-      implementationIdentity: expect.any(String),
+      agentIdentity: expect.any(String),
       authenticationProfile: {
         digest: expect.stringMatching(/^[a-f0-9]{64}$/),
         providerKind: 'direct',
@@ -4798,35 +4797,12 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
     const resumeFrom = await firstSession.doStop();
-    const lifecycleData = resumeFrom.data as Record<string, unknown>;
-    const authenticationProfile = lifecycleData.authenticationProfile as Record<
-      string,
-      unknown
-    >;
 
     const structurallyCompatible = await safeValidateTypes({
-      value: lifecycleData,
+      value: resumeFrom.data,
       schema: second.lifecycleStateSchema!,
     });
-    const legacyCompatible = await safeValidateTypes({
-      value: {
-        ...lifecycleData,
-        authenticationProfile: {
-          ...authenticationProfile,
-          providerKind: 'implementation-default',
-        },
-      },
-      schema: first.lifecycleStateSchema!,
-    });
     expect(structurallyCompatible.success).toBe(true);
-    expect(legacyCompatible).toMatchObject({
-      success: true,
-      value: {
-        authenticationProfile: {
-          providerKind: 'direct',
-        },
-      },
-    });
     await expect(
       second.doStart({
         sessionId: 'session-1',
@@ -4835,7 +4811,7 @@ describe('createACP', () => {
         resumeFrom,
       }),
     ).rejects.toThrow(
-      'ACP lifecycle state is incompatible with the configured implementation.',
+      'ACP lifecycle state is incompatible with the configured agent.',
     );
   });
 });

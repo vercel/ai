@@ -35,7 +35,6 @@ run(async () => {
     teamId,
     projectId,
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
   });
   let activeSandboxSession = sandboxSession;

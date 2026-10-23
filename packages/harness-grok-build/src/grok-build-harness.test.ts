@@ -16,10 +16,11 @@ describe('createGrokBuild', () => {
     mocks.createACP.mockClear();
   });
 
-  it('enforces the Grok Build ACP implementation', () => {
+  it('enforces the Grok Build ACP agent', () => {
     createGrokBuild();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toEqual(['image']);
     if (settings.source.type !== 'npm-locked') {
       throw new Error('Expected a locked Grok Build source.');
     }
@@ -30,7 +31,7 @@ describe('createGrokBuild', () => {
       pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@1.0.36'",
+      "'@xai-official/grok@1.0.49'",
     );
     expect(settings.source.pnpmWorkspaceYaml).toContain(
       "'@xai-official/grok': true",
@@ -130,9 +131,9 @@ describe('createGrokBuild', () => {
         "source": {
           "packageJson": {
             "dependencies": {
-              "@agentclientprotocol/sdk": "1.5.0",
-              "@modelcontextprotocol/sdk": "1.32.0",
-              "@xai-official/grok": "1.0.36",
+              "@agentclientprotocol/sdk": "1.7.0",
+              "@modelcontextprotocol/sdk": "1.32.1",
+              "@xai-official/grok": "1.0.49",
               "ws": "8.21.0",
               "zod": "4.4.3",
             },

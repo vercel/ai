@@ -196,6 +196,79 @@ it('rejects an unsupported model version', async () => {
 });
 
 describe('input validation', () => {
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'accepts criteria-only questions with %j and forwards them unchanged',
+    async instructionFields => {
+      const { model, doDecide } = setup();
+      const criteriaOnly = {
+        topic: {
+          type: 'choice',
+          criteria: questions.topic.criteria,
+          ...instructionFields,
+        },
+        severity: {
+          type: 'score',
+          criteria: questions.severity.criteria,
+          ...instructionFields,
+        },
+        refund: {
+          type: 'boolean',
+          criteria: questions.refund.criteria,
+          ...instructionFields,
+        },
+      } as const;
+      const result = await decide({
+        model,
+        state: 'text',
+        questions: criteriaOnly,
+      });
+      expect(result.answers).toEqual(answers);
+      expect(doDecide.mock.calls[0][0].questions).toBe(criteriaOnly);
+    },
+  );
+
+  it.each([
+    { true: ['Refund requested'] },
+    { false: { intent: 'Status inquiry' } },
+  ])('accepts a single Boolean criterion: %j', async criteria => {
+    const { model } = setup({
+      answers: { refund: answers.refund },
+      warnings: [],
+    });
+    await expect(
+      decide({
+        model,
+        state: 'text',
+        questions: { refund: { type: 'boolean', criteria } },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'rejects Boolean questions without instructions or a described criterion: %j',
+    async instructionFields => {
+      const { model, doDecide } = setup();
+      for (const criteria of [
+        undefined,
+        {},
+        { true: null },
+        { false: null },
+        { true: null, false: null },
+      ]) {
+        await expect(
+          decide({
+            model,
+            state: 'text',
+            questions: {
+              refund: { type: 'boolean', ...instructionFields, criteria },
+            },
+          }),
+        ).rejects.toBeInstanceOf(InvalidArgumentError);
+      }
+      expect(doDecide).not.toHaveBeenCalled();
+    },
+  );
+
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
   it.each([
@@ -223,12 +296,25 @@ describe('input validation', () => {
     null,
     { test: { type: 'other', instructions: 'test' } },
     { test: { type: 'boolean', instructions: null } },
+    { test: { type: 'box' } },
+    { test: { type: 'box', instructions: null } },
+    { test: { type: 'choice', instructions: 42, criteria: { a: null } } },
+    { test: { type: 'score', instructions: false, criteria: ['Low', 'High'] } },
+    {
+      test: {
+        type: 'boolean',
+        instructions: () => true,
+        criteria: { true: 'Yes' },
+      },
+    },
+    { test: { type: 'boolean', criteria: { true: 42 } } },
+    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
     {
       test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
     },
     { test: { type: 'choice', instructions: 'test', criteria: {} } },
     { test: { type: 'choice', instructions: 'test', criteria: { a: 42 } } },
-    { test: { type: 'score', instructions: 'test', criteria: ['Only one'] } },
+    { test: { type: 'score', instructions: 'test', criteria: [] } },
     {
       test: {
         type: 'score',
@@ -314,6 +400,36 @@ describe('response validation', () => {
         questions,
       }),
     ).rejects.toBeInstanceOf(InvalidResponseDataError);
+  });
+
+  it('accepts a selected choice within the declared probability rounding', async () => {
+    const choiceQuestions = {
+      ...questions,
+      topic: {
+        ...questions.topic,
+        criteria: { billing: null, support: null, other: null },
+      },
+    } as const;
+    const roundedAnswers = {
+      ...answers,
+      topic: {
+        type: 'choice' as const,
+        choice: 'support',
+        probabilities: { billing: 0.44, support: 0.43, other: 0.13 },
+      },
+    };
+
+    await expect(
+      decide({
+        ...setup({
+          answers: roundedAnswers,
+          rounding: { probabilityDecimals: 2 },
+          warnings: [],
+        }),
+        state: 'text',
+        questions: choiceQuestions,
+      }),
+    ).resolves.toMatchObject({ answers: roundedAnswers });
   });
 
   it.each([-1, 16, NaN, 1.5])(
@@ -912,3 +1028,134 @@ it('preserves structured questions for provider calls and all lifecycle events',
   );
   expect(publicQuestions).toEqual(originalQuestions);
 });
+
+const boxQuestions = {
+  target: { type: 'box', instructions: 'The cat' },
+} as const;
+const validBox = { top: 0.25, bottom: 0.82, left: 0.44, right: 0.84 };
+
+function boxModel(box: unknown) {
+  return new DecisionMockModelV4({
+    supportedQuestionTypes: ['box'],
+    doDecide: async () => ({
+      answers: {
+        target: { type: 'box', box },
+      } as DecisionModelV4Result['answers'],
+      warnings: [],
+    }),
+  });
+}
+
+it('preserves normalized box coordinates', async () => {
+  const result = await decide({
+    model: boxModel(validBox),
+    state: '',
+    questions: boxQuestions,
+  });
+  expect(result.answers.target).toEqual({ type: 'box', box: validBox });
+});
+
+it.each([
+  undefined,
+  null,
+  [],
+  {},
+  { ...validBox, top: -0.1 },
+  { ...validBox, bottom: 1.1 },
+  { ...validBox, left: NaN },
+  { ...validBox, right: Infinity },
+  { ...validBox, top: '0.25' },
+  { ...validBox, left: 0.9 },
+  { ...validBox, bottom: 0.2 },
+  { ...validBox, right: validBox.left },
+  { ...validBox, bottom: validBox.top },
+  { ...validBox, extra: 0 },
+])('rejects malformed box coordinates: %j', async box => {
+  await expect(
+    decide({ model: boxModel(box), state: '', questions: boxQuestions }),
+  ).rejects.toBeInstanceOf(InvalidResponseDataError);
+});
+
+it('passes a single Score level to the provider and accepts its zero score', async () => {
+  const answers = {
+    severity: { type: 'score', score: 0, probabilities: { '0': 1 } },
+  } as const;
+  const { model, doDecide } = setup({ answers, warnings: [] });
+  const questions = {
+    severity: { type: 'score', criteria: ['Product unusable'] },
+  } as const;
+  const result = await decide({
+    model,
+    state: 'The product is broken.',
+    questions,
+  });
+  expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+  expect(result.answers).toEqual(answers);
+});
+
+it.each<DecisionModelV4Result['answers'][string]>([
+  { type: 'score', score: 1, probabilities: { '0': 1 } },
+  { type: 'score', score: 0, probabilities: { '0': 0.5 } },
+  { type: 'score', score: 0, probabilities: { '0': 0.5, '1': 0.5 } },
+])('rejects invalid single-level Score answers: %j', async answer => {
+  const { model } = setup({ answers: { severity: answer }, warnings: [] });
+  await expect(
+    decide({
+      model,
+      state: 'The product is broken.',
+      questions: {
+        severity: { type: 'score', criteria: ['Product unusable'] },
+      },
+    }),
+  ).rejects.toBeInstanceOf(InvalidResponseDataError);
+});
+
+it.each([undefined, 1, 512])(
+  'forwards maxOutputTokens: %s',
+  async maxOutputTokens => {
+    const { model, doDecide } = setup();
+    await decide({ model, state: 'test', questions, maxOutputTokens });
+    expect(doDecide.mock.calls[0][0].maxOutputTokens).toBe(maxOutputTokens);
+  },
+);
+
+it.each([0, -1, 1.5, NaN, Infinity])(
+  'rejects invalid maxOutputTokens before calling the model: %s',
+  async maxOutputTokens => {
+    const { model, doDecide } = setup();
+    await expect(
+      decide({ model, state: 'test', questions, maxOutputTokens }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(doDecide).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  undefined,
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+] as const)(
+  'forwards reasoning and reports it in lifecycle callbacks: %s',
+  async reasoning => {
+    const { model, doDecide } = setup();
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    await decide({
+      model,
+      state: 'test',
+      questions,
+      reasoning,
+      onStart,
+      onEnd,
+    });
+    expect(doDecide.mock.calls[0][0].reasoning).toBe(reasoning);
+    expect(onStart.mock.calls[0][0].reasoning).toBe(reasoning);
+    expect(onEnd.mock.calls[0][0].reasoning).toBe(reasoning);
+  },
+);

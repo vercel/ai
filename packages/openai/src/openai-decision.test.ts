@@ -531,6 +531,39 @@ it.each(['iVBORw==', new Uint8Array([0x89, 0x50, 0x4e, 0x47])])(
   },
 );
 
+it.each(['low', 'high', 'auto', 'original'])(
+  'sends %s image detail from file part provider options',
+  async imageDetail => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { openai: { imageDetail } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([
+      {
+        type: 'input_image',
+        image_url: 'data:image/png;base64,iVBORw==',
+        detail: imageDetail,
+      },
+      { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+    ]);
+  },
+);
+
 it.each([
   { mediaType: 'audio/wav', data: { type: 'data' as const, data: 'AAAA' } },
   { mediaType: 'image/svg+xml', data: { type: 'data' as const, data: 'AAAA' } },
@@ -565,3 +598,89 @@ it('fails the decision when an unnamed question is refused', async () => {
     data: body,
   });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'sends criteria-only questions without locally rejecting missing instructions: %j',
+  async instructionFields => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      questions: {
+        department: {
+          type: 'choice',
+          criteria: options.questions.department.criteria,
+          ...instructionFields,
+        },
+        severity: {
+          type: 'score',
+          criteria: options.questions.severity.criteria,
+          ...instructionFields,
+        },
+        refund: {
+          type: 'boolean',
+          criteria: { true: 'Requests money back', false: ['Status inquiry'] },
+          ...instructionFields,
+        },
+      },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).questions,
+    ).toStrictEqual(
+      JSON.parse(
+        JSON.stringify([
+          {
+            type: 'choice',
+            name: 'department',
+            ...instructionFields,
+            choices: [
+              { value: 'technical', description: 'Bugs' },
+              { value: 'billing', description: 'Charges' },
+            ],
+          },
+          {
+            type: 'score',
+            name: 'severity',
+            ...instructionFields,
+            levels: [
+              { label: '0', description: 'Low' },
+              { label: '1', description: 'Medium' },
+              { label: '2', description: 'High' },
+            ],
+          },
+          {
+            type: 'predicate',
+            name: 'refund',
+            instructions:
+              'Criteria for true:\nRequests money back\n\nCriteria for false:\n["Status inquiry"]',
+          },
+        ]),
+      ),
+    );
+  },
+);
+
+it('warns about unsupported maxOutputTokens without sending it', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({ ...options, maxOutputTokens: 512 });
+  expect(result.warnings).toEqual([
+    { type: 'unsupported', feature: 'maxOutputTokens' },
+  ]);
+  const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+  expect(body).not.toHaveProperty('maxOutputTokens');
+  expect(body).not.toHaveProperty('max_output_tokens');
+});
+
+it.each([undefined, 'none', 'provider-default', 'high'] as const)(
+  'warns about unsupported reasoning without sending it: %s',
+  async reasoning => {
+    const { model, fetch } = setup();
+    const result = await model.doDecide({ ...options, reasoning });
+    expect(result.warnings).toEqual(
+      reasoning == null ? [] : [{ type: 'unsupported', feature: 'reasoning' }],
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+    expect(body).not.toHaveProperty('reasoning');
+    expect(body).not.toHaveProperty('reasoning_effort');
+  },
+);

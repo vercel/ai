@@ -211,6 +211,120 @@ describe('abort signal handling', () => {
   });
 });
 
+describe('toolCallConcurrency', () => {
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => ({
+      ...dummyResponseValues,
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      content: [
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: '{}',
+        },
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: '{}',
+        },
+      ],
+    }),
+  });
+
+  it('should execute tool calls concurrently by default', async () => {
+    const release = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await release.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            await release.promise;
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() =>
+      expect(events).toEqual(['first:start', 'second:start']),
+    );
+    release.resolve();
+    await resultPromise;
+  });
+
+  it('should execute tool calls sequentially in model order with concurrency 1', async () => {
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      toolCallConcurrency: 1,
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await releaseFirst.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() => expect(events).toEqual(['first:start']));
+    releaseFirst.resolve();
+    await resultPromise;
+
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+  });
+
+  it('should reject invalid concurrency before calling the model', async () => {
+    const doGenerate = vi.fn();
+
+    await expect(
+      generateText({
+        model: new MockLanguageModelV4({ doGenerate }),
+        prompt: 'test-input',
+        toolCallConcurrency: 0,
+      }),
+    ).rejects.toMatchObject({
+      parameter: 'toolCallConcurrency',
+      value: 0,
+    });
+    expect(doGenerate).not.toHaveBeenCalled();
+  });
+});
+
 describe('experimental_toolCallers', () => {
   it('late-binds local caller tools and hides local-only callees', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
@@ -754,6 +868,28 @@ const defaultSettings = () =>
   }) as const;
 
 describe('generateText', () => {
+  it.each(['required', { type: 'tool', toolName: 'tool1' }] as const)(
+    'should preserve interrupted output without enforcing tool choice %j',
+    async toolChoice => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Let me check' }],
+            finishReason: { unified: 'interrupted', raw: undefined },
+          },
+        }),
+        prompt: 'test-input',
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice,
+      });
+
+      expect(result.text).toBe('Let me check');
+      expect(result.finishReason).toBe('interrupted');
+      expect(result.rawFinishReason).toBeUndefined();
+    },
+  );
+
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
@@ -770,7 +906,13 @@ describe('generateText', () => {
     logWarningsSpy.mockRestore();
   });
 
-  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+  it.each([
+    'length',
+    'error',
+    'content-filter',
+    'interrupted',
+    'other',
+  ] as const)(
     'should not execute tools when the finish reason is %s',
     async finishReason => {
       const execute = vi.fn(async () => 'tool-result');
@@ -1817,6 +1959,145 @@ describe('generateText', () => {
   });
 
   describe('tool choice enforcement', () => {
+    it.each([
+      { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'tool-calls',
+      },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'interrupted',
+      },
+      {
+        toolChoice: 'auto',
+        stepToolChoice: 'none',
+        finishReason: 'tool-calls',
+      },
+    ] as const)(
+      'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+      async ({ toolChoice, stepToolChoice, finishReason }) => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputStart = vi.fn();
+        const onInputAvailable = vi.fn();
+        const onLanguageModelCallEnd = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+              ],
+              finishReason: { unified: finishReason, raw: finishReason },
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputStart,
+              onInputAvailable,
+            }),
+          },
+          toolChoice,
+          prepareStep:
+            stepToolChoice == null
+              ? undefined
+              : () => ({ toolChoice: stepToolChoice }),
+          prompt: 'test-input',
+          onLanguageModelCallEnd,
+        });
+
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response contained a tool call even though tool choice was none.',
+          toolChoice: { type: 'none' },
+          finishReason,
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [expect.objectContaining({ type: 'tool-call' })],
+        });
+        expect(execute).not.toHaveBeenCalled();
+        expect(onInputStart).not.toHaveBeenCalled();
+        expect(onInputAvailable).not.toHaveBeenCalled();
+        expect(onLanguageModelCallEnd).toHaveBeenCalledOnce();
+      },
+    );
+
+    it('should not repair or refine tool calls with none', async () => {
+      const repairToolCall = vi.fn();
+      const refineToolInput = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: 'invalid json',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool2',
+                input: '{"value":"x"}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
+        }),
+        tools: {
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+          tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        toolChoice: 'none',
+        repairToolCall,
+        experimental_refineToolInput: { tool2: refineToolInput },
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      });
+      expect(repairToolCall).not.toHaveBeenCalled();
+      expect(refineToolInput).not.toHaveBeenCalled();
+    });
+
+    it('should allow text responses with none and preserve tool definitions', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools, toolChoice }) => {
+            expect(tools).toEqual([
+              expect.objectContaining({ type: 'function', name: 'tool1' }),
+            ]);
+            expect(toolChoice).toEqual({ type: 'none' });
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'No tool call.' }],
+            };
+          },
+        }),
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice: 'none',
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
+    });
+
     it('should reject when a required tool choice produces no tool call', async () => {
       const result = generateText({
         model: new MockLanguageModelV4({
@@ -9063,6 +9344,43 @@ describe('generateText', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should stop an interrupted response with a deferred provider tool result', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'program',
+              input: '{}',
+              providerExecuted: true,
+            },
+          ],
+          finishReason: { unified: 'interrupted', raw: undefined },
+        },
+      });
+      const result = await generateText({
+        model,
+        prompt: 'Run a program',
+        tools: {
+          program: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.program',
+            inputSchema: z.object({}),
+            args: {},
+            supportsDeferredResults: true,
+          },
+        },
+        stopWhen: isStepCount(3),
+      });
+
+      expect(model.doGenerateCalls).toHaveLength(1);
+      expect(result.steps).toHaveLength(1);
+      expect(result.finishReason).toBe('interrupted');
+    });
+
     it('should stop for client tool approval while a provider tool result is deferred', async () => {
       const execute = vi.fn();
       let modelCallCount = 0;

@@ -1,17 +1,66 @@
 ---
 title: Kling AI
-description: Learn how to use the Kling AI provider for the AI SDK.
+description: Learn how to use Kling AI with AI Gateway and the direct provider.
 ---
 
 # Kling AI Provider
 
 The [Kling AI](https://klingai.com/) provider contains support for Kling AI's video generation models, including text-to-video, image-to-video, motion control, and multi-shot video generation.
+You can use Kling AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/klingai`.
 
-## Setup
+```ts provider="klingai" model="klingai/kling-v3.0-t2v"
+import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
+import { writeFile } from 'node:fs/promises';
 
-The Kling AI provider is available in the `@ai-sdk/klingai` module. You can install it with
+const { video } = await generateVideo({
+  model: __VIDEO_MODEL__,
+  prompt: 'A paper boat drifting across a calm lake at sunrise.',
+  duration: 5,
+  aspectRatio: '16:9',
+});
 
-<InstallPackages packages="@ai-sdk/klingai" />
+await writeFile('video.mp4', video.uint8Array);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/klingai`
+
+For direct access to Kling AI, install `ai` and `@ai-sdk/klingai`:
+
+<InstallPackages packages="ai @ai-sdk/klingai" />
+
+Set your Kling AI API key:
+
+```bash
+export KLINGAI_API_KEY=your_api_key_here
+```
+
+Legacy access-key and secret-key authentication is documented in [Provider Instance](#provider-instance).
+
+AI Gateway does not expose every API in `@ai-sdk/klingai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/klingai` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 

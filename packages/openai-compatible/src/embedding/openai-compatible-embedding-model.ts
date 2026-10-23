@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -89,6 +91,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -156,7 +159,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: compatibleOptions.dimensions,
+        dimensions: compatibleOptions.dimensions ?? dimensions,
         user: compatibleOptions.user,
       },
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -183,10 +186,14 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
-  providerMetadata: z
-    .record(z.string(), z.record(z.string(), z.any()))
-    .optional(),
-});
+const openaiTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ embedding: z.array(z.number()) })),
+      usage: z.object({ prompt_tokens: z.number() }).nullish(),
+      providerMetadata: z
+        .record(z.string(), z.record(z.string(), z.any()))
+        .optional(),
+    }),
+  ),
+);

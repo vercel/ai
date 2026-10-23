@@ -124,6 +124,10 @@ import type { ToolOutput } from './tool-output';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
+import {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from './tool-call-concurrency';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -170,6 +174,7 @@ export type GenerateTextInclude = {
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
  * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
+ * @param toolCallConcurrency - Maximum number of tool calls that may execute concurrently within a step. Set to 1 for sequential execution. Default: unlimited.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -255,6 +260,7 @@ export async function generateText<
   providerOptions,
   activeTools,
   toolOrder,
+  toolCallConcurrency,
   prepareStep,
   experimental_repairToolCall,
   repairToolCall = experimental_repairToolCall,
@@ -352,6 +358,14 @@ export async function generateText<
      * caching by keeping tool definitions in a stable order.
      */
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -571,6 +585,8 @@ export async function generateText<
     responseBody: include?.responseBody ?? false,
   };
 
+  const resolvedToolCallConcurrency =
+    prepareToolCallConcurrency(toolCallConcurrency);
   const model = resolveLanguageModel(modelArg);
   const resolvedToolCallers = resolveToolCallerConfiguration({
     tools,
@@ -770,6 +786,7 @@ export async function generateText<
             }),
           executeToolInTelemetryContext: telemetryDispatcher.executeTool,
           runInTracingChannelSpan,
+          toolCallConcurrency: resolvedToolCallConcurrency,
         });
 
         const toolContent: Array<any> = [];
@@ -922,7 +939,7 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
               const {
-                executionTools: stepExecutionTools,
+                executionTools,
                 modelTools: stepModelTools,
                 toolCallerMessages,
               } = prepareToolsForToolCallers({
@@ -952,6 +969,8 @@ export async function generateText<
               const stepToolChoice = prepareToolChoice({
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
+              const stepExecutionTools =
+                stepToolChoice.type === 'none' ? undefined : executionTools;
 
               const stepMessages = appendToolCallerMessages({
                 messages: prepareStepResult?.messages ?? stepInputMessages,
@@ -1080,8 +1099,16 @@ export async function generateText<
                     parseToolCall({
                       toolCall,
                       tools: stepModelTools as TOOLS,
-                      repairToolCall,
-                      refineToolInput,
+                      // tool calls are rejected with tool choice none,
+                      // so user callbacks must not process them:
+                      repairToolCall:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : repairToolCall,
+                      refineToolInput:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
                       abortSignal: mergedAbortSignal,
@@ -1154,18 +1181,19 @@ export async function generateText<
               });
 
               const enforcedToolChoice =
-                stepToolChoice.type === 'required' ||
-                stepToolChoice.type === 'tool'
-                  ? stepToolChoice
-                  : undefined;
+                stepToolChoice.type === 'auto' ? undefined : stepToolChoice;
 
               if (
                 enforcedToolChoice != null &&
-                !stepToolCalls.some(
-                  toolCall =>
-                    enforcedToolChoice.type === 'required' ||
-                    toolCall.toolName === enforcedToolChoice.toolName,
-                )
+                (enforcedToolChoice.type === 'none'
+                  ? stepToolCalls.length > 0
+                  : currentModelResponse.finishReason.unified !==
+                      'interrupted' &&
+                    !stepToolCalls.some(
+                      toolCall =>
+                        enforcedToolChoice.type === 'required' ||
+                        toolCall.toolName === enforcedToolChoice.toolName,
+                    ))
               ) {
                 throw new ToolChoiceViolationError({
                   toolChoice: enforcedToolChoice,
@@ -1371,6 +1399,7 @@ export async function generateText<
                   executeToolInTelemetryContext:
                     telemetryDispatcher.executeTool,
                   runInTracingChannelSpan,
+                  toolCallConcurrency: resolvedToolCallConcurrency,
                 });
 
                 for (const result of toolExecutionResults) {
@@ -1513,6 +1542,7 @@ export async function generateText<
           }
         }
       } while (
+        steps[steps.length - 1].finishReason !== 'interrupted' &&
         // Continue only after all client tool calls have been executed or denied,
         // and if there are client results or pending deferred provider results.
         clientToolOutputs.length + deniedToolApprovalResponses.length ===
@@ -1643,6 +1673,7 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1658,31 +1689,33 @@ async function executeTools<TOOLS extends ToolSet>({
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency: number | undefined;
 }): Promise<
   Array<{
     output: ToolOutput<TOOLS>;
     toolExecutionMs: number;
   }>
 > {
-  const toolResults = await Promise.all(
-    toolCalls.map(
-      async toolCall =>
-        await executeToolCall({
-          toolCall,
-          tools,
-          callId,
-          messages,
-          abortSignal,
-          timeout,
-          experimental_sandbox: sandbox,
-          toolsContext,
-          onToolExecutionStart,
-          onToolExecutionEnd,
-          executeToolInTelemetryContext,
-          runInTracingChannelSpan,
-        }),
-    ),
-  );
+  const toolResults = await mapWithConcurrency({
+    items: toolCalls,
+    concurrency: toolCallConcurrency,
+    abortSignal,
+    execute: async toolCall =>
+      await executeToolCall({
+        toolCall,
+        tools,
+        callId,
+        messages,
+        abortSignal,
+        timeout,
+        experimental_sandbox: sandbox,
+        toolsContext,
+        onToolExecutionStart,
+        onToolExecutionEnd,
+        executeToolInTelemetryContext,
+        runInTracingChannelSpan,
+      }),
+  });
 
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,

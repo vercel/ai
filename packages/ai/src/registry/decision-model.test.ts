@@ -3,7 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   NoSuchModelError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
-  type JSONValue,
+  type Experimental_DecisionModelV4State as DecisionModelV4State,
 } from '@ai-sdk/provider';
 import type { DecisionState } from '../decide/decision-state';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
@@ -235,17 +235,24 @@ describe('decision model resolution', () => {
   const gatewayStateCases: {
     name: string;
     state: DecisionState;
-    expectedState: JSONValue;
+    expectedStateParts: DecisionModelV4State;
   }[] = [
     {
       name: 'string',
       state: 'The capital of France is Paris.',
-      expectedState: 'The capital of France is Paris.',
+      expectedStateParts: [
+        { type: 'text', text: 'The capital of France is Paris.' },
+      ],
     },
     {
       name: 'JSON object',
       state: { statement: 'The capital of France is Paris.' },
-      expectedState: { statement: 'The capital of France is Paris.' },
+      expectedStateParts: [
+        {
+          type: 'json',
+          value: { statement: 'The capital of France is Paris.' },
+        },
+      ],
     },
     {
       name: 'mixed parts',
@@ -253,12 +260,12 @@ describe('decision model resolution', () => {
         { type: 'text', text: 'Check this statement.' },
         { type: 'json', value: { capital: 'Paris', country: 'France' } },
       ],
-      expectedState: [
-        'Check this statement.',
-        { capital: 'Paris', country: 'France' },
+      expectedStateParts: [
+        { type: 'text', text: 'Check this statement.' },
+        { type: 'json', value: { capital: 'Paris', country: 'France' } },
       ],
     },
-    { name: 'empty parts', state: [], expectedState: [] },
+    { name: 'empty parts', state: [], expectedStateParts: [] },
   ];
   it.each(
     ['string', 'alias'].flatMap(resolution =>
@@ -266,7 +273,7 @@ describe('decision model resolution', () => {
     ),
   )(
     'decides through Gateway using a model $resolution with $name state when no default provider is configured',
-    async ({ resolution, state, expectedState }) => {
+    async ({ resolution, state, expectedStateParts }) => {
       vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
       vi.stubEnv('AI_GATEWAY_API_KEY', 'test-api-key');
       const modelId = 'typesafe-ai/jev';
@@ -294,7 +301,7 @@ describe('decision model resolution', () => {
         'ai-decision-model-specification-version': '4',
       });
       expect(await server.calls[0].requestBodyJson).toEqual({
-        state: expectedState,
+        stateParts: expectedStateParts,
         questions,
         providerOptions: {},
       });

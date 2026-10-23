@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@agentclientprotocol/sdk':
-        specifier: 1.5.0
-        version: 1.5.0(zod@4.4.3)
+        specifier: 1.7.0
+        version: 1.7.0(zod@4.4.3)
       '@modelcontextprotocol/sdk':
-        specifier: 1.32.0
-        version: 1.32.0(zod@4.4.3)
+        specifier: 1.32.1
+        version: 1.32.1(zod@4.4.3)
       '@xai-official/grok':
-        specifier: 1.0.36
-        version: 1.0.36
+        specifier: 1.0.49
+        version: 1.0.49
       ws:
         specifier: 8.21.0
         version: 8.21.0
@@ -26,8 +26,8 @@ importers:
 
 packages:
 
-  '@agentclientprotocol/sdk@1.5.0':
-    resolution: {integrity: sha512-524jwbB2iYWA+kWWyv9fhKbhU89dH/lu9u5EXwVNmfYzopV8BujCDxByBDZhxRUkB7RWIJzISCnwivdDk+bdVg==}
+  '@agentclientprotocol/sdk@1.7.0':
+    resolution: {integrity: sha512-ZORuxsuEnLjRly7t6Ad7zAsWitjWsyprswyPUHz/yycPb+tTm3DGa8XheaHhRXqX8LS9snuxaYavXSRA50TlHw==}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
@@ -40,8 +40,8 @@ packages:
   '@iarna/toml@3.0.0':
     resolution: {integrity: sha512-td6ZUkz2oS3VeleBcN+m//Q6HlCFCPrnI0FZhrt/h4XqLEdOyYp2u21nd8MdsR+WJy5r9PTDaHTDDfhf4H4l6Q==}
 
-  '@modelcontextprotocol/sdk@1.32.0':
-    resolution: {integrity: sha512-8BviX/hK4Gd2eL1KdTwm0gfl4d3wdoErW0Jd00h6nomUAtk6IJk5vwQJc6kfWtJTzN5OEV/lgIiJKI8fiDGAlA==}
+  '@modelcontextprotocol/sdk@1.32.1':
+    resolution: {integrity: sha512-2DdE+SJDtzLEEWzY1ZjY7Q+VcPhcV1KisD3zI4u0XZyktsjHum1mwbMI+JaulUBi2OZk+KJAi2uPXzxichPkdw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -50,38 +50,38 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@xai-official/grok-darwin-arm64@1.0.36':
-    resolution: {integrity: sha512-op6WziW232p+P2jBiPujhoi9MYxdayBCQ81/Pl/8+24nBRcQ/VLzW53xf15akVI4hdXqtPp/bmcBQCJAVIzn6Q==}
+  '@xai-official/grok-darwin-arm64@1.0.49':
+    resolution: {integrity: sha512-6Ng+mNhbEBHYgK3phrIUT3+Myr9Lu9oEHWNvBb579N2tw9VGxKStPhV8uA0J4CPU1qZ/1ctsAvU7M73Gk1DrKw==}
     cpu: [arm64]
     os: [darwin]
 
-  '@xai-official/grok-darwin-x64@1.0.36':
-    resolution: {integrity: sha512-qIBg7cM8kU6wZBmc3XZdFHfQ7oCNgCqTUM76cGq/uESQdcUNvTkfFu53m04rDeruIrpXyYFtt90rRULdFfCuXA==}
+  '@xai-official/grok-darwin-x64@1.0.49':
+    resolution: {integrity: sha512-gZZe0ahGsYmoasd9EUJJJdlrmlkdKceUquILOlT+IUriy82MukHFtldvIsySh3/eNa5ouBl+dHfLmyVFFAB6+Q==}
     cpu: [x64]
     os: [darwin]
 
-  '@xai-official/grok-linux-arm64@1.0.36':
-    resolution: {integrity: sha512-tpI0J37D0z4GLLECi5FoCLVzy6LRWXGJVg42cqSS7SRtaFHdxYps+SD3INWuWc8rsKan46Fg30jpFt/kKNeWbQ==}
+  '@xai-official/grok-linux-arm64@1.0.49':
+    resolution: {integrity: sha512-HbX2fliGwr5y40Yug/zmOHO8qK0q9QSQqIyINmLzGWuR+UHnILue38ExMJDz5SqHsoDT7ECKMUE5GVUc8vsSiA==}
     cpu: [arm64]
     os: [linux]
 
-  '@xai-official/grok-linux-x64@1.0.36':
-    resolution: {integrity: sha512-4q1RWgP4pr+gH8mcCFzsl6M3Au/rZY6Yt8SZJ6Fq6A9XDvQHcotQaa4s0JcEWBGmVQ9OhryUkX82kCnoxBdsGw==}
+  '@xai-official/grok-linux-x64@1.0.49':
+    resolution: {integrity: sha512-49I9NutgxQpME8bSeEWXuLP3cr5A5oCxch4PfQaXV6sO+N9Tc0QtI5aU5Y3zV2m2XMOvmIwW9/D4YgEtPksnqw==}
     cpu: [x64]
     os: [linux]
 
-  '@xai-official/grok-win32-arm64@1.0.36':
-    resolution: {integrity: sha512-tabpHCLtppzxTmbsFOR9CscOxVDdyUHNFZ3LsOdTcGx81nclmyCahbynO7bz53iqajQg8w8l/U3K9AWCkm2PHA==}
+  '@xai-official/grok-win32-arm64@1.0.49':
+    resolution: {integrity: sha512-QZ4fxnY32d3geUdNcpw8MCogo6PCa4lY50sy73Of+yTNQ8amTZZFe1v2OKjWUD+USfemGMH8E7A3aUEizhkXGA==}
     cpu: [arm64]
     os: [win32]
 
-  '@xai-official/grok-win32-x64@1.0.36':
-    resolution: {integrity: sha512-LCBvy5eKLqPzXh0ULBiZvJoM+/ao9lVCgP5bpwLHkdbx1eUe9s0z8iJ+JzDKZKki5PDqWROp2aX5tukuB/+SFg==}
+  '@xai-official/grok-win32-x64@1.0.49':
+    resolution: {integrity: sha512-F4gS/uxw/GMY20DnJNGXN+UXsVo9NWOPON3dyjaYDgfUfqpQ9iZ5JzFlVIyAK6J9XvV0ekbETOn4J4sxBx4o/g==}
     cpu: [x64]
     os: [win32]
 
-  '@xai-official/grok@1.0.36':
-    resolution: {integrity: sha512-CCuiMZgzGbY72lCwUX3i4zPHCn2aihCyvo8TS95GVneEjK+QltJ5BUc1+yUcVcWfci+S2mxO8/oLOthKcWh1iw==}
+  '@xai-official/grok@1.0.49':
+    resolution: {integrity: sha512-vvrgCWsAPlDwl5MdkbC8fjwOOPje32wdbvV10tclIByYqHmvR0iPweNcd3/jCJBhi+BftL7N8fBeC2WfpoV8uA==}
     engines: {node: '>=20'}
     cpu: [arm64, x64]
     os: [darwin, linux, win32]
@@ -93,11 +93,6 @@ packages:
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
-    peerDependencies:
-      ajv: ^8.0.0
-    peerDependenciesMeta:
-      ajv:
-        optional: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -455,7 +450,7 @@ packages:
 
 snapshots:
 
-  '@agentclientprotocol/sdk@1.5.0(zod@4.4.3)':
+  '@agentclientprotocol/sdk@1.7.0(zod@4.4.3)':
     dependencies:
       zod: 4.4.3
 
@@ -465,11 +460,11 @@ snapshots:
 
   '@iarna/toml@3.0.0': {}
 
-  '@modelcontextprotocol/sdk@1.32.0(zod@4.4.3)':
+  '@modelcontextprotocol/sdk@1.32.1(zod@4.4.3)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.8)
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       content-type: 1.0.5
       cors: 2.8.6
       cross-spawn: 7.0.6
@@ -487,42 +482,42 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@xai-official/grok-darwin-arm64@1.0.36':
+  '@xai-official/grok-darwin-arm64@1.0.49':
     optional: true
 
-  '@xai-official/grok-darwin-x64@1.0.36':
+  '@xai-official/grok-darwin-x64@1.0.49':
     optional: true
 
-  '@xai-official/grok-linux-arm64@1.0.36':
+  '@xai-official/grok-linux-arm64@1.0.49':
     optional: true
 
-  '@xai-official/grok-linux-x64@1.0.36':
+  '@xai-official/grok-linux-x64@1.0.49':
     optional: true
 
-  '@xai-official/grok-win32-arm64@1.0.36':
+  '@xai-official/grok-win32-arm64@1.0.49':
     optional: true
 
-  '@xai-official/grok-win32-x64@1.0.36':
+  '@xai-official/grok-win32-x64@1.0.49':
     optional: true
 
-  '@xai-official/grok@1.0.36':
+  '@xai-official/grok@1.0.49':
     dependencies:
       '@iarna/toml': 3.0.0
     optionalDependencies:
-      '@xai-official/grok-darwin-arm64': 1.0.36
-      '@xai-official/grok-darwin-x64': 1.0.36
-      '@xai-official/grok-linux-arm64': 1.0.36
-      '@xai-official/grok-linux-x64': 1.0.36
-      '@xai-official/grok-win32-arm64': 1.0.36
-      '@xai-official/grok-win32-x64': 1.0.36
+      '@xai-official/grok-darwin-arm64': 1.0.49
+      '@xai-official/grok-darwin-x64': 1.0.49
+      '@xai-official/grok-linux-arm64': 1.0.49
+      '@xai-official/grok-linux-x64': 1.0.49
+      '@xai-official/grok-win32-arm64': 1.0.49
+      '@xai-official/grok-win32-x64': 1.0.49
 
   accepts@2.0.0:
     dependencies:
       mime-types: 3.0.2
       negotiator: 1.1.0
 
-  ajv-formats@3.0.1(ajv@8.20.0):
-    optionalDependencies:
+  ajv-formats@3.0.1:
+    dependencies:
       ajv: 8.20.0
 
   ajv@8.20.0:

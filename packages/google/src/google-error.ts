@@ -6,15 +6,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+export const getGoogleErrorSchema = () =>
+  z.object({
+    code: z.number().nullable(),
+    message: z.string(),
+    status: z.string(),
+    details: z.array(z.unknown()).nullish(),
+  });
+
 const googleErrorDataSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      error: z.object({
-        code: z.number().nullable(),
-        message: z.string(),
-        status: z.string(),
-        details: z.array(z.unknown()).nullish(),
-      }),
+      error: getGoogleErrorSchema(),
     }),
   ),
 );

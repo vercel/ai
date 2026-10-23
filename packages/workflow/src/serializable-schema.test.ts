@@ -36,6 +36,23 @@ describe('serializeToolSet', () => {
     });
   });
 
+  it('records when a tool input schema has its own validator', () => {
+    const serialized = serializeToolSet({
+      validated: tool({
+        inputSchema: z.object({ value: z.coerce.number() }),
+      }),
+      jsonOnly: tool({
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { value: { type: 'number' } },
+        }),
+      }),
+    });
+
+    expect(serialized.validated.hasOwnValidator).toBe(true);
+    expect(serialized.jsonOnly.hasOwnValidator).toBeUndefined();
+  });
+
   it('preserves provider tool type, id, and args', () => {
     // Provider tools (like anthropic.tools.webSearch) have type: 'provider',
     // an id, and args. These must survive serialization so the Gateway can
@@ -180,6 +197,82 @@ describe('resolveSerializableTools', () => {
 
     expect(tools.getWeather).toBeDefined();
     expect(tools.getWeather.description).toBe('Get weather for a city');
+  });
+
+  it('defers validation to the original schema when it has its own validator', async () => {
+    const tools = resolveSerializableTools(
+      serializeToolSet({
+        normalize: tool({
+          inputSchema: z.object({ value: z.coerce.number() }),
+        }),
+      }),
+    );
+
+    expect(
+      asSchema(tools.normalize.inputSchema).validate?.({
+        value: '42',
+        extra: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('reports actionable details for every validation error', async () => {
+    const tools = resolveSerializableTools({
+      interaction: {
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: { enum: ['click', 'type', 'scroll'] },
+          },
+          required: ['action'],
+        },
+      },
+      edit: {
+        inputSchema: {
+          type: 'object',
+          properties: {
+            edits: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  oldText: { type: 'string' },
+                  newText: { type: 'string' },
+                },
+                required: ['oldText', 'newText'],
+              },
+            },
+          },
+          required: ['edits'],
+        },
+      },
+    });
+
+    const enumValidation = await asSchema(
+      tools.interaction.inputSchema,
+    ).validate?.({
+      action: 'press',
+    });
+    const additionalPropertiesValidation = await asSchema(
+      tools.edit.inputSchema,
+    ).validate?.({
+      edits: [
+        { oldText: 'a', newText: 'b', path: 'a.ts' },
+        { oldText: 'c', newText: 'd', path: 'b.ts' },
+      ],
+    });
+
+    expect(enumValidation).toMatchObject({
+      success: false,
+      error: new Error('data/action must be one of "click", "type", "scroll"'),
+    });
+    expect(additionalPropertiesValidation).toMatchObject({
+      success: false,
+      error: new Error(
+        'data/edits/0 has unexpected property "path", data/edits/1 has unexpected property "path"',
+      ),
+    });
   });
 
   it('accepts tool schemas with formats, annotations, unions, and JSON Schema 2020-12 without warnings', async () => {

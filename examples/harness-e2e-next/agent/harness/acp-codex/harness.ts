@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
@@ -5,6 +7,13 @@ import { z } from 'zod';
 import { codexACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-codex';
+const bridgeDirectory = path.join(
+  process.cwd(),
+  'agent',
+  'harness',
+  'acp-codex',
+  'bridge',
+);
 
 const codexConfigSchema = z.object({
   model_provider: z.string().optional(),
@@ -22,9 +31,15 @@ export const codexACPHarness = createACP({
   builtinTools: codexACPBuiltinTools,
   isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   source: {
-    type: 'npm-simple',
-    packageName: '@agentclientprotocol/codex-acp',
-    packageVersion: '1.1.4',
+    type: 'npm-locked',
+    packageJson: readFileSync(
+      path.join(bridgeDirectory, 'package.json'),
+      'utf8',
+    ),
+    pnpmLockYaml: readFileSync(
+      path.join(bridgeDirectory, 'pnpm-lock.yaml'),
+      'utf8',
+    ),
   },
   executable: 'codex-acp',
   modelMapping: {

@@ -18,6 +18,9 @@ const server = createTestServer({
   'https://api.rev.ai/speechtotext/v1/jobs': {},
   'https://api.rev.ai/speechtotext/v1/jobs/test-id': {},
   'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript': {},
+  'https://api.rev.ai/speechtotext/v1/jobs/abc%2F..%2F..%2Finternal': {},
+  'https://api.rev.ai/speechtotext/v1/jobs/abc%2F..%2F..%2Finternal/transcript':
+    {},
 });
 
 function prepareJsonFixtureResponse(headers?: Record<string, string>) {
@@ -49,6 +52,55 @@ function prepareJsonFixtureResponse(headers?: Record<string, string>) {
 describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse());
+
+    it('should encode the job ID as a single URL path segment in the poll and transcript URLs', async () => {
+      const jobId = 'abc/../../internal';
+      const encodedJobId = encodeURIComponent(jobId);
+
+      server.urls['https://api.rev.ai/speechtotext/v1/jobs'].response = {
+        type: 'json-value',
+        body: {
+          id: jobId,
+          created_on: '2026-02-12T23:26:22.276Z',
+          name: 'audio.mp3',
+          status: 'in_progress',
+          type: 'async',
+          language: 'en',
+        },
+      };
+      server.urls[
+        'https://api.rev.ai/speechtotext/v1/jobs/abc%2F..%2F..%2Finternal'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: jobId,
+          created_on: '2026-02-12T23:26:22.276Z',
+          completed_on: '2026-02-12T23:26:26.971Z',
+          name: 'audio.mp3',
+          status: 'transcribed',
+          duration_seconds: 2.51,
+          type: 'async',
+          language: 'en',
+        },
+      };
+      server.urls[
+        'https://api.rev.ai/speechtotext/v1/jobs/abc%2F..%2F..%2Finternal/transcript'
+      ].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync('src/__fixtures__/revai-transcript.json', 'utf8'),
+        ),
+      };
+
+      await model.doGenerate({ audio: audioData, mediaType: 'audio/mp3' });
+
+      expect(server.calls[1].requestUrl).toBe(
+        `https://api.rev.ai/speechtotext/v1/jobs/${encodedJobId}`,
+      );
+      expect(server.calls[2].requestUrl).toBe(
+        `https://api.rev.ai/speechtotext/v1/jobs/${encodedJobId}/transcript`,
+      );
+    });
 
     it('should pass the model', async () => {
       await model.doGenerate({

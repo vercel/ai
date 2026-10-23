@@ -250,12 +250,14 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       /**
        * Prompt cache behavior for GPT-5.6 and later models.
        * `mode` controls whether OpenAI also places an implicit breakpoint.
-       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       * `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`.
+       * `prewarm` writes the prompt to the cache without generating output.
        */
       promptCacheOptions: z
         .object({
           mode: z.enum(['implicit', 'explicit']).optional(),
-          ttl: z.literal('30m').optional(),
+          ttl: z.enum(['30m', '12h']).optional(),
+          prewarm: z.boolean().optional(),
         })
         .optional(),
 
@@ -456,4 +458,27 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
 
 export type OpenAIResponsesSystemMessageOptions = InferSchema<
   typeof openaiResponsesSystemMessageOptionsSchema
+>;
+
+export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** Function definitions to load immediately after this ordinary tool result. */
+      additionalTools: z
+        .array(
+          z.strictObject({
+            type: z.literal('function'),
+            name: z.string().min(1),
+            description: z.string().optional(),
+            parameters: z.record(z.string(), z.json()),
+            strict: z.boolean().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesToolResultOptions = InferSchema<
+  typeof openaiResponsesToolResultOptionsSchema
 >;

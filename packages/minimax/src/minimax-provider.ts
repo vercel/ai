@@ -11,8 +11,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
-import type { MiniMaxChatModelId } from './minimax-chat-options';
+import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
+import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
@@ -104,7 +104,7 @@ export function createMiniMax(
     );
 
   const createChatModel = (modelId: MiniMaxChatModelId) =>
-    new AnthropicLanguageModel(modelId, {
+    new MiniMaxChatLanguageModel(modelId, {
       provider: 'minimax.messages',
       baseURL,
       headers: getHeaders,

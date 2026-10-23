@@ -263,6 +263,26 @@ describe('Anthropic batch', () => {
     expect(new Set(betas).size).toBe(betas.length);
   });
 
+  it.each(['batch-beta', [123], null])(
+    'rejects invalid batch-level betas %j before making an API request',
+    async anthropicBeta => {
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(
+        model.doStartBatch({
+          requests: [{ id: 'request-1', ...request('Hello') }],
+          providerOptions: { anthropic: { anthropicBeta } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
   it('rejects per-request betas before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
@@ -1397,6 +1417,31 @@ describe('Anthropic batch', () => {
             {
               type: 'text',
               text: 'Paris is sunny.',
+              citations: [
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_page',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_char',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'url',
+                    url: 'https://example.com/weather',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+              ],
               providerMetadata: {
                 anthropic: {
                   citations: [
@@ -1433,14 +1478,14 @@ describe('Anthropic batch', () => {
               type: 'source',
               sourceType: 'url',
               id: 'citation-source',
-              url: 'https://example.com/weather',
-              title: 'Paris weather',
               providerMetadata: {
                 anthropic: {
                   citedText: 'Paris is sunny.',
                   encryptedIndex: 'encrypted-index',
                 },
               },
+              url: 'https://example.com/weather',
+              title: 'Paris weather',
             },
           ],
         },

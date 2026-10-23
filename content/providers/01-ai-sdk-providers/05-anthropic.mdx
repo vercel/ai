@@ -1,17 +1,61 @@
 ---
 title: Anthropic
-description: Learn how to use the Anthropic provider for the AI SDK.
+description: Learn how to use Anthropic with AI Gateway and the direct provider.
 ---
 
 # Anthropic Provider
 
 The [Anthropic](https://www.anthropic.com/) provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
+You can use Anthropic models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/anthropic`.
 
-## Setup
+```ts provider="anthropic" model="anthropic/claude-sonnet-5.5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/anthropic" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/anthropic`
+
+For direct access to Anthropic, install `ai` and `@ai-sdk/anthropic`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic" />
+
+Set your Anthropic API credential in the `ANTHROPIC_API_KEY` environment variable:
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/anthropic`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/anthropic` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -742,6 +786,13 @@ room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
 setting `max_tokens`. For known models, the combined value is capped at the
 model's maximum output token limit.
 
+With manual thinking (`thinking.type: 'enabled'`), a `required` or named
+`toolChoice` falls back to `auto` with a warning. For a named tool choice, only
+the selected tool is sent. This also applies when the top-level `reasoning`
+option enables manual thinking, including when structured output uses the
+internal JSON response tool. Tool use is no longer guaranteed: instruct the
+model to use the tool in your prompt and verify that a tool call was made.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
@@ -1419,6 +1470,40 @@ const result = await generateText({
   Web search must be enabled in your organization's [Console
   settings](https://console.anthropic.com/settings/privacy).
 </Note>
+
+#### Sources and Citations
+
+`result.sources` and source stream events expose web-search results. Inline
+references are attached separately to generated text as `part.citations`, and
+to streamed text as `text-end.citations`. This shared citation representation
+includes the referenced URL or document and its supporting passage. If web-search
+results are unavailable, web citations also provide source references for
+compatibility. Indexed document references retain their existing document source
+parts when the original prompt supplies document information.
+
+Raw citations remain available as
+`text.providerMetadata.anthropic.citations`, including on streamed `text-end`
+events. Import `AnthropicTextProviderMetadata` and `AnthropicCitation` for typed
+access. `AnthropicCitation` is a union of `web_search_result_location`,
+`search_result_location`, `page_location`, `char_location`, and
+`content_block_location`. Document page, character, and block locations refer to
+the source document, rather than the generated answer.
+
+```ts
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
+
+for (const part of result.content) {
+  if (part.type === 'text') {
+    console.log(part.citations);
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      console.log(citation.type, citation.cited_text);
+    }
+  }
+}
+```
 
 #### Configuration Options
 

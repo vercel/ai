@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/policy-opa",
-  "version": "1.0.133",
+  "version": "1.0.151",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -41,6 +41,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3"

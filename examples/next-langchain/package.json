@@ -14,7 +14,7 @@
     "@ai-sdk/langchain": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@langchain/core": "^1.2.3",
-    "@langchain/langgraph": "^1.4.8",
+    "@langchain/langgraph": "^1.4.15",
     "@langchain/langgraph-cli": "^1.2.1",
     "@langchain/openai": "^1.4.5",
     "ai": "workspace:*",

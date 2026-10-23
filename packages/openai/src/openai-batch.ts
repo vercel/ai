@@ -35,7 +35,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  openaiErrorDataSchema,
+  openaiErrorDataSchemaValidator,
   openaiFailedResponseHandler,
 } from './openai-error';
 import type { OpenAIConfig } from './openai-config';
@@ -663,7 +663,7 @@ async function convertOpenAIErrorResponse({
 }): Promise<BatchV4Error> {
   const result = await safeValidateTypes({
     value: body,
-    schema: openaiErrorDataSchema,
+    schema: openaiErrorDataSchemaValidator,
   });
 
   if (!result.success) {
@@ -812,7 +812,9 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: mapWebSearchOutput(part.action),
+          ...(part.status === 'failed' || part.status === 'incomplete'
+            ? { isError: true, result: { status: part.status } }
+            : { result: mapWebSearchOutput(part.action) }),
           dynamic: true,
         });
         break;
