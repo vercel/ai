@@ -1,10 +1,10 @@
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
   NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -15,10 +15,14 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import type { BasetenChatModelId } from './baseten-chat-options';
+import { DecisionBasetenModel } from './baseten-decision-model';
+import type { BasetenDecisionModelId } from './baseten-decision-model-options';
 import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
+import { basetenErrorStructure } from './baseten-error';
 import { VERSION } from './version';
+
+export type { BasetenErrorData } from './baseten-error';
 
 /**
  * Baseten's per-request embedding input limit: larger batches are rejected with
@@ -46,32 +50,6 @@ export type BasetenPerformanceClientConstructor = new (
   baseUrl: string,
   apiKey?: string,
 ) => BasetenPerformanceClient;
-
-export type BasetenErrorData = z.infer<typeof basetenErrorSchema>;
-
-// Baseten returns two different envelopes. The Model APIs send a bare string
-// (`{"error":"please check the model you provided"}`), while dedicated
-// deployments pass through their server's OpenAI-shaped object. Parsing only
-// the string form left dedicated-deployment errors falling back to the HTTP
-// reason phrase — "Not Found", or nothing at all over HTTP/2.
-const basetenErrorSchema = z.object({
-  error: z.union([
-    z.string(),
-    z.object({
-      message: z.string(),
-      object: z.string().nullish(),
-      type: z.string().nullish(),
-      param: z.any().nullish(),
-      code: z.union([z.string(), z.number()]).nullish(),
-    }),
-  ]),
-});
-
-const basetenErrorStructure: ProviderErrorStructure<BasetenErrorData> = {
-  errorSchema: basetenErrorSchema,
-  errorToMessage: data =>
-    typeof data.error === 'string' ? data.error : data.error.message,
-};
 
 export interface BasetenProviderSettings {
   /**
@@ -121,6 +99,9 @@ export interface BasetenProviderSettings {
 }
 
 export interface BasetenProvider extends ProviderV4 {
+  /** Creates an experimental decision model using Baseten's System One API. */
+  decisionModel(modelId: BasetenDecisionModelId): DecisionModelV4;
+
   /**
    * Creates a chat model for text generation.
    */
@@ -153,7 +134,7 @@ const defaultBaseURL = 'https://inference.baseten.co/v1';
 export function createBaseten(
   options: BasetenProviderSettings = {},
 ): BasetenProvider {
-  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
+  const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL)!;
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -294,6 +275,13 @@ export function createBaseten(
   provider.specificationVersion = 'v4' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
+  provider.decisionModel = (modelId: BasetenDecisionModelId) =>
+    new DecisionBasetenModel(modelId, {
+      provider: 'baseten.decision',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
