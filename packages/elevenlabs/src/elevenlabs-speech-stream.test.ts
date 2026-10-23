@@ -353,6 +353,53 @@ describe('ElevenLabsSpeechModel.doStream', () => {
     await reader.cancel();
   });
 
+  it.each([
+    {
+      name: 'single-voice streaming',
+      modelId: 'eleven_flash_v2_5',
+      dialogue: undefined,
+    },
+    {
+      name: 'streaming dialogue',
+      modelId: 'eleven_v4',
+      dialogue: { voices: ['voice-a'] },
+    },
+  ])(
+    'should warn about HTTP-only generation options in $name',
+    async ({ modelId, dialogue }) => {
+      const result = await createModel(modelId).doStream({
+        text: textParts(['Hi']),
+        providerOptions: {
+          elevenlabs: {
+            ...(dialogue && { dialogue }),
+            inputs: [{ text: 'Knock knock', voiceId: 'voice-a' }],
+            musicLengthMs: 5000,
+            durationSeconds: 2,
+            loop: true,
+          },
+        },
+      });
+      const socket = lastSocket();
+      socket.open();
+      const reader = result.stream.getReader();
+
+      const start = (await reader.read()).value;
+      expect(
+        start?.type === 'stream-start' &&
+          start.warnings.map(
+            warning => 'feature' in warning && warning.feature,
+          ),
+      ).toEqual([
+        'providerOptions.elevenlabs.inputs',
+        'providerOptions.elevenlabs.musicLengthMs',
+        'providerOptions.elevenlabs.durationSeconds',
+        'providerOptions.elevenlabs.loop',
+      ]);
+      expect(JSON.stringify(socket.sentMessages())).not.toContain('Knock');
+      await reader.cancel();
+    },
+  );
+
   it('should error on a server error message', async () => {
     const result = await createModel().doStream({
       text: textParts(['Hi']),
