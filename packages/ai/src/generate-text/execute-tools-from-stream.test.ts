@@ -12,7 +12,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
-import { TypeValidationError } from '../error';
+import { ToolCallNotExecutedError, TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
 import { executeToolsFromStream } from './execute-tools-from-stream';
@@ -347,7 +347,7 @@ describe('executeToolsFromStream', () => {
           },
         ]);
 
-      await convertReadableStreamToArray(
+      const result = await convertReadableStreamToArray(
         executeToolsFromStream({
           stream: inputStream,
           generateId: mockId({ prefix: 'id' }),
@@ -362,8 +362,63 @@ describe('executeToolsFromStream', () => {
       );
 
       expect(execute).not.toHaveBeenCalled();
+
+      expect(result).toHaveLength(3);
+      expect(result[2]).toEqual({
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: { value: 'test' },
+        dynamic: false,
+        error: expect.any(ToolCallNotExecutedError),
+      });
+      expect(result[2]).toMatchObject({
+        error: { toolCallId: 'call-1', toolName: 'testTool', finishReason },
+      });
     },
   );
+
+  it('should not resolve tool calls without an execute function when the finish reason is length', async () => {
+    const tools = {
+      clientTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'clientTool',
+          input: { value: 'test' },
+        },
+        {
+          ...finishChunk,
+          finishReason: 'length',
+          rawFinishReason: 'length',
+        },
+      ]);
+
+    const result = await convertReadableStreamToArray(
+      executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+      }),
+    );
+
+    expect(result).toEqual([
+      expect.objectContaining({ type: 'tool-call' }),
+      expect.objectContaining({ type: 'model-call-end' }),
+    ]);
+  });
 
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {

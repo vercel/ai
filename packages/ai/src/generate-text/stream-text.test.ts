@@ -54,6 +54,7 @@ import {
 import {
   NoOutputGeneratedError,
   StreamProviderError,
+  ToolCallNotExecutedError,
   ToolChoiceViolationError,
 } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
@@ -20154,6 +20155,71 @@ describe('streamText', () => {
         ]
       `);
     });
+  });
+
+  describe('tool calls skipped for the finish reason', () => {
+    it.each(['length', 'error', 'content-filter', 'other'] as const)(
+      'should resolve the tool call with an error and stop when the finish reason is %s',
+      async finishReason => {
+        const execute = vi.fn(async () => 'tool-result');
+        let modelCallCount = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              modelCallCount++;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{"value":"test"}',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: finishReason, raw: finishReason },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          prompt: 'test-input',
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute,
+            }),
+          },
+          stopWhen: isStepCount(3),
+        });
+
+        const errors: unknown[] = [];
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: error => {
+              errors.push(error);
+              return 'not executed';
+            },
+          }),
+        );
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(modelCallCount).toBe(1);
+        expect(errors).toHaveLength(1);
+        expect(ToolCallNotExecutedError.isInstance(errors[0])).toBe(true);
+        expect(chunks).toContainEqual({
+          type: 'tool-output-error',
+          toolCallId: 'call-1',
+          errorText: 'not executed',
+        });
+        expect(
+          (await result.response).messages.map(message => message.role),
+        ).toEqual(['assistant', 'tool']);
+      },
+    );
   });
 
   describe('tools with custom schema', () => {
