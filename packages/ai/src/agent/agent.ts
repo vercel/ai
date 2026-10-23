@@ -14,7 +14,10 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
-import type { StreamTextTransform } from '../generate-text/stream-text';
+import type {
+  StreamTextOnAbortCallback,
+  StreamTextTransform,
+} from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type {
   OnToolExecutionEndCallback,
@@ -172,6 +175,12 @@ export type AgentStreamParameters<
    * The stream transformations must maintain the stream structure for streamText to work correctly.
    */
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+
+  /**
+   * Callback that is called when the stream is aborted. Receives the steps
+   * that finished before the abort.
+   */
+  onAbort?: StreamTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
 };
 
 /**
