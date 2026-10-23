@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.221
+
+### Patch Changes
+
+- e4469a3: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
 ## 3.0.220
 
 ### Patch Changes

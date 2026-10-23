@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 2.0.69
+
+### Patch Changes
+
+- e4469a3: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+- 4ce7826: fix(moonshotai): accept root unions of objects (including local `$ref` branches) in tool and response schemas, and keep a root `type: "object"` beside `anyOf`
+- 459d95f: feat(provider/moonshotai): support prompt cache options and report cache write tokens
+
 ## 2.0.68
 
 ### Patch Changes
