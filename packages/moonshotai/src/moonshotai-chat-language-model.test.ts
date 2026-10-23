@@ -1,4 +1,8 @@
-import { APICallError, type LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  APICallError,
+  type JSONSchema7,
+  type LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -1029,6 +1033,31 @@ describe('MoonshotAIChatLanguageModel', () => {
             },
           },
         });
+      });
+
+      it('should send root unions of objects with type object', async () => {
+        const city: JSONSchema7 = {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        };
+        const coords: JSONSchema7 = {
+          properties: { lat: { type: 'number' } },
+          required: ['lat'],
+        };
+        await provider.chatModel('kimi-k3').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'location',
+            schema: { anyOf: [city, coords] },
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).response_format.json_schema
+            .schema,
+        ).toStrictEqual({ type: 'object', anyOf: [city, coords] });
       });
 
       it('should allow strict validation to be disabled without leaking the provider option', async () => {
