@@ -806,6 +806,100 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
+  it('keeps caller model limits for the provider it configures', async () => {
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig: {
+        provider: {
+          openai: {
+            options: { apiKey: 'caller-key' },
+            models: {
+              'gpt-5.6-sol': {
+                limit: { context: 1_050_000, input: 220_000, output: 128_000 },
+                headers: { Authorization: 'Bearer caller-key' },
+                provider: { npm: 'caller-sdk' },
+              },
+              'gpt-5.4-mini': {
+                limit: { context: 400_000, input: 100_000, output: 128_000 },
+              },
+            },
+          },
+        },
+      },
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    vi.stubEnv('AI_GATEWAY_API_KEY', 'gateway-key');
+    vi.stubEnv('AI_GATEWAY_BASE_URL', 'https://gateway.test');
+    setBridgeArgv();
+
+    await import('./index');
+
+    const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+      .config as Record<string, unknown>;
+    expect(serverConfig.provider).toEqual({
+      openai: {
+        options: {
+          apiKey: 'gateway-key',
+          baseURL: 'https://gateway.test/v1',
+        },
+        models: {
+          'gpt-5.6-sol': {
+            id: 'gpt-5.6-sol',
+            name: 'gpt-5.6-sol',
+            limit: { context: 1_050_000, input: 220_000, output: 128_000 },
+          },
+          'gpt-5.4-mini': {
+            limit: { context: 400_000, input: 100_000, output: 128_000 },
+          },
+        },
+      },
+    });
+  });
+
   it('settles when OpenCode emits session.next.step.failed', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();

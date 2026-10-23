@@ -341,7 +341,12 @@ function buildOpenCodeConfig({
     permission[BUILTIN_TOOL_PERMISSION[toolName]] = 'deny';
   }
   const provider = buildProviderConfig(start);
-  if (provider) config.provider = provider;
+  if (provider) {
+    config.provider = withCallerModelLimits(
+      provider,
+      start.openCodeConfig?.provider,
+    );
+  }
   const mcp = { ...start.mcpServers };
   if (relayPort && toolSchemasPath) {
     mcp['harness-tools'] = {
@@ -398,6 +403,33 @@ function withoutAgentPolicyOverrides(
     );
   }
   return config;
+}
+
+function withCallerModelLimits(
+  provider: OpenCodeObject,
+  callerProviders: unknown,
+): OpenCodeObject {
+  const caller = asOpenCodeObject(callerProviders);
+  if (!caller) return provider;
+  return Object.fromEntries(
+    Object.entries(provider).map(([providerID, value]) => {
+      const callerModels = asOpenCodeObject(
+        asOpenCodeObject(caller[providerID])?.models,
+      );
+      const entry = asOpenCodeObject(value);
+      if (!callerModels || !entry) return [providerID, value];
+      const models: OpenCodeObject = Object.assign(
+        Object.create(null),
+        asOpenCodeObject(entry.models),
+      );
+      for (const [modelID, model] of Object.entries(callerModels)) {
+        const limit = asOpenCodeObject(model)?.limit;
+        if (limit === undefined) continue;
+        models[modelID] = { ...asOpenCodeObject(models[modelID]), limit };
+      }
+      return [providerID, { ...entry, models }];
+    }),
+  );
 }
 
 function buildProviderConfig(
