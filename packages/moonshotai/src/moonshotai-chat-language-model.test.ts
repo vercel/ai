@@ -1402,6 +1402,126 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('prompt cache writes', () => {
+    const cacheWriteUsage = {
+      prompt_tokens: 22459,
+      completion_tokens: 44,
+      total_tokens: 22503,
+      prompt_tokens_details: { cached_tokens: 1024, cache_write_tokens: 21248 },
+    };
+    const cacheWriteHeaders = {
+      'msh-usage-cache-write-tokens-5m': '0',
+      'msh-usage-cache-write-tokens-1h': '21248',
+    };
+
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it('should forward promptCacheOptions as prompt_cache_options', async () => {
+      await provider.chatModel('kimi-k3.1-pro').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            promptCacheOptions: { ttl: '1h' },
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).prompt_cache_options,
+      ).toStrictEqual({ mode: 'implicit', ttl: '1h' });
+    });
+
+    it('should default the mode when no ttl is set', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            promptCacheOptions: {},
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).prompt_cache_options,
+      ).toStrictEqual({ mode: 'implicit' });
+    });
+
+    it('should omit prompt_cache_options when not set', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'prompt_cache_options',
+      );
+    });
+
+    it('should report cache writes and the TTL split on generate', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        headers: cacheWriteHeaders,
+        body: { ...readJsonFixture('moonshotai-text'), usage: cacheWriteUsage },
+      };
+
+      const result = await provider.chatModel('kimi-k3.1-pro').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.inputTokens).toStrictEqual({
+        total: 22459,
+        noCache: 187,
+        cacheRead: 1024,
+        cacheWrite: 21248,
+      });
+      expect(
+        result.providerMetadata?.moonshotai?.cacheWriteTokens,
+      ).toStrictEqual({ ttl5m: 0, ttl1h: 21248 });
+    });
+
+    it('should report cache writes and the TTL split on stream', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        headers: cacheWriteHeaders,
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chatcmpl-cache',
+            created: 1785880003,
+            model: 'kimi-k3.1-pro',
+            choices: [
+              { index: 0, delta: { content: 'OK' }, finish_reason: 'stop' },
+            ],
+            usage: cacheWriteUsage,
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider.chatModel('kimi-k3.1-pro').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const finish = (await convertReadableStreamToArray(stream)).find(
+        part => part.type === 'finish',
+      );
+
+      expect(finish?.usage.inputTokens.cacheWrite).toBe(21248);
+      expect(finish?.usage.inputTokens.noCache).toBe(187);
+      expect(
+        finish?.providerMetadata?.moonshotai?.cacheWriteTokens,
+      ).toStrictEqual({ ttl5m: 0, ttl1h: 21248 });
+    });
+
+    it('should omit the TTL split without the usage headers', async () => {
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata?.moonshotai).not.toHaveProperty(
+        'cacheWriteTokens',
+      );
+    });
+  });
+
   describe('dynamic tool loading', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('moonshotai-tool-call');
