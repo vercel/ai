@@ -1,6 +1,13 @@
 import * as acp from '@agentclientprotocol/sdk';
 import type { ACPModelMapping } from '../acp-v1-settings';
+import { resolveACPModelId } from './resolve-acp-model-id';
 
+/**
+ * Applies the requested model to the ACP session and returns the model the
+ * agent reports as selected afterwards, falling back to the requested model
+ * when the agent's response does not report one. Returns `undefined` when no
+ * model is requested.
+ */
 export async function configureACPModel({
   agent,
   sessionId,
@@ -11,8 +18,8 @@ export async function configureACPModel({
   sessionId: string;
   model: string | undefined;
   mapping: ACPModelMapping | undefined;
-}): Promise<void> {
-  if (model == null) return;
+}): Promise<string | undefined> {
+  if (model == null) return undefined;
   if (mapping == null) {
     throw new Error('ACP model mapping is required when a model is set.');
   }
@@ -21,15 +28,25 @@ export async function configureACPModel({
    * `session/set_model` convention.
    */
   if (mapping.type === 'session-model') {
-    await agent.request('session/set_model', {
+    const response = await agent.request('session/set_model', {
       sessionId,
       [mapping.path]: model,
     });
-    return;
+    return (
+      resolveACPModelId({ sessionState: response, modelMapping: mapping }) ??
+      model
+    );
   }
-  await agent.request(acp.methods.agent.session.setConfigOption, {
-    sessionId,
-    configId: mapping.path,
-    value: model,
-  });
+  const response = await agent.request(
+    acp.methods.agent.session.setConfigOption,
+    {
+      sessionId,
+      configId: mapping.path,
+      value: model,
+    },
+  );
+  return (
+    resolveACPModelId({ sessionState: response, modelMapping: mapping }) ??
+    model
+  );
 }

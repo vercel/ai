@@ -630,6 +630,47 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('sends the model mapping without a model so the bridge can report the agent default', async () => {
+    const harness = createACP({
+      harnessId: 'model-mapping-acp',
+      ...agentSettings,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    const startMessage = harnessUtilsMocks.channels[0]!.sent[0];
+    expect(startMessage).toMatchObject({
+      type: 'start',
+      modelMapping: {
+        type: 'session-config-option',
+        path: 'model',
+      },
+    });
+    expect(startMessage).not.toHaveProperty('model');
+    harnessUtilsMocks.channels[0]!.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+
+    await session.doDestroy();
+  });
+
   it('requires credential environment and brokering settings together', () => {
     expect(() =>
       createACP({
