@@ -104,7 +104,7 @@ async function startSession(options?: {
   resumeFrom?: HarnessV1ResumeSessionState;
   continueFrom?: HarnessV1ContinueTurnState;
 }): Promise<HarnessV1Session> {
-  const harness = createClaudeCode();
+  const harness = createClaudeCode({ auth: {} });
   return harness.doStart({
     sessionId: 's1',
     sandboxSession: fakeNetworkSandboxSession(),
