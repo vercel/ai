@@ -402,7 +402,7 @@
                 "from": "@ai-sdk/harness/utils"
               },
               {
-                "name": "withBridgeToken",
+                "name": "resolveBridgeEndpoint",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -410,6 +410,7 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
+            "callFunction": ["resolveBridgeEndpoint"],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
@@ -520,10 +521,11 @@
                 "from": "@ai-sdk/harness/utils"
               },
               {
-                "name": "withBridgeToken",
+                "name": "resolveBridgeEndpoint",
                 "from": "@ai-sdk/harness/utils"
               }
-            ]
+            ],
+            "callFunction": ["resolveBridgeEndpoint"]
           }
         },
         {

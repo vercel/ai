@@ -16,7 +16,6 @@ import {
   type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
@@ -28,6 +27,7 @@ import {
   classifyDiskLog,
   resolveSandboxCredentialEnvironment,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -36,18 +36,19 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
-  sleep,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeSkills,
+  type BridgeHello,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
@@ -862,18 +863,13 @@ export function createClaudeCode(
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        sandboxId,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'claude-code',
-          message:
-            'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -1000,26 +996,10 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
       });
       let supportsUserMessageResponses = false;
-
-      // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
-      // (re)connect: open the socket, then wait for `bridge-hello` so the
-      // end-to-end link is proven live before any frame is sent.
-      const buildConnect =
-        (endpoint: HarnessV1PortEndpoint) =>
-        async ({
-          abortSignal,
-        }: {
-          abortSignal: AbortSignal;
-        }): Promise<WebSocket> => {
-          return openBridgeWebSocket({
-            endpoint,
-            timeoutMs,
-            abortSignal,
-            onHello: supportsResponses => {
-              supportsUserMessageResponses = supportsResponses;
-            },
-          });
-        };
+      const onHello = (hello: BridgeHello) => {
+        supportsUserMessageResponses =
+          hello.capabilities?.experimental_userMessageResponses === true;
+      };
 
       /*
        * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
@@ -1031,17 +1011,18 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
+            portEndpointOverride: settings.portEndpoint,
             token: coords.token,
           });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
-            connect: buildConnect(attachEndpoint),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              webSocketConstructor: WebSocket,
+              onHello,
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -1118,7 +1099,7 @@ export function createClaudeCode(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
@@ -1191,15 +1172,21 @@ export function createClaudeCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect: buildConnect(bridgeEndpoint),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+          onHello,
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -1255,71 +1242,6 @@ export function createClaudeCode(
   };
 }
 
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'claude-code',
-    message:
-      'The claude-code harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'claude-code',
-      message:
-        'The Claude Code harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'claude-code',
-      message:
-        'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'claude-code',
-    message:
-      'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
 /**
  * Materialise skill files into
  * `$HOME/.claude/skills/<name>/SKILL.md`. The `claude` CLI
@@ -1327,221 +1249,6 @@ async function resolveBridgeEndpoint({
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-/**
- * Wait for the bridge's `bridge-hello` message to arrive on the freshly
- * opened WebSocket before any other host-side code touches it.
- *
- * Some sandbox runtimes (Vercel in particular) complete the WS upgrade
- * with the host long before the connection is actually forwarded to the
- * sandbox-side bridge. Anything sent in that gap is silently dropped —
- * including the `start` message we send next. The bridge emits
- * `bridge-hello` the instant it accepts the connection, so receiving it
- * is the only reliable evidence that the end-to-end link is live.
- */
-function openWebSocketAndWaitForBridgeHello({
-  endpoint,
-  openTimeoutMs,
-  getHelloTimeoutMs,
-  abortSignal,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  openTimeoutMs: number;
-  getHelloTimeoutMs: () => number;
-  abortSignal: AbortSignal;
-  onHello: (supportsUserMessageResponses: boolean) => void;
-}): Promise<WebSocket> {
-  return new Promise<WebSocket>((resolve, reject) => {
-    const abortReason = () =>
-      abortSignal.reason ?? new Error('WebSocket connection aborted');
-    if (abortSignal.aborted) {
-      reject(abortReason());
-      return;
-    }
-
-    const ws = new WebSocket(endpoint.url, {
-      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
-    });
-    let opened = false;
-    let sawBridgeHello = false;
-    let settled = false;
-    let openTimer: ReturnType<typeof setTimeout> | undefined;
-    let helloTimer: ReturnType<typeof setTimeout> | undefined;
-    let onAbort: (() => void) | undefined;
-
-    const cleanup = ({
-      keepTerminationListeners = false,
-    }: {
-      keepTerminationListeners?: boolean;
-    } = {}) => {
-      if (openTimer) clearTimeout(openTimer);
-      if (helloTimer) clearTimeout(helloTimer);
-      ws.off('open', onOpen);
-      ws.off('message', onMessage);
-      if (onAbort != null) {
-        abortSignal.removeEventListener('abort', onAbort);
-      }
-      if (!keepTerminationListeners) {
-        ws.off('close', onClose);
-        ws.off('error', onError);
-      }
-    };
-    const settle = (err?: unknown) => {
-      if (settled) return;
-      settled = true;
-      if (err) {
-        cleanup({ keepTerminationListeners: true });
-        try {
-          ws.terminate();
-        } catch {
-          cleanup();
-        }
-        reject(err);
-      } else {
-        cleanup();
-        resolve(ws);
-      }
-    };
-    const tryResolve = () => {
-      if (opened && sawBridgeHello) settle();
-    };
-    const startHelloTimer = () => {
-      if (helloTimer) return;
-      const helloTimeoutMs = getHelloTimeoutMs();
-      helloTimer = setTimeout(
-        () =>
-          settle(
-            new Error(
-              `claude-code bridge did not send bridge-hello within ${helloTimeoutMs}ms`,
-            ),
-          ),
-        helloTimeoutMs,
-      );
-      helloTimer.unref?.();
-    };
-    const onOpen = () => {
-      opened = true;
-      if (openTimer) {
-        clearTimeout(openTimer);
-        openTimer = undefined;
-      }
-      startHelloTimer();
-      tryResolve();
-    };
-    const onMessage = (raw: unknown) => {
-      void (async () => {
-        const parsed = await safeParseJSON({
-          text: webSocketMessageToString(raw),
-        });
-        if (!parsed.success || settled) return;
-        const value = parsed.value;
-        if (
-          typeof value === 'object' &&
-          value !== null &&
-          !Array.isArray(value) &&
-          (value as { type?: unknown }).type === 'bridge-hello'
-        ) {
-          const capabilities = (
-            value as {
-              capabilities?: { experimental_userMessageResponses?: unknown };
-            }
-          ).capabilities;
-          onHello(capabilities?.experimental_userMessageResponses === true);
-          sawBridgeHello = true;
-          tryResolve();
-        }
-      })();
-    };
-    const onClose = () => {
-      settle(
-        new Error('claude-code bridge closed before sending bridge-hello'),
-      );
-      cleanup();
-    };
-    const onError = (err: Error) => settle(err);
-    onAbort = () => settle(abortReason());
-    openTimer = setTimeout(
-      () =>
-        settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
-      openTimeoutMs,
-    );
-    openTimer.unref?.();
-    ws.on('open', onOpen);
-    ws.on('message', onMessage);
-    ws.on('close', onClose);
-    ws.on('error', onError);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-  });
-}
-
-async function openBridgeWebSocket({
-  endpoint,
-  timeoutMs,
-  abortSignal,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  timeoutMs: number;
-  abortSignal: AbortSignal;
-  onHello: (supportsUserMessageResponses: boolean) => void;
-}): Promise<WebSocket> {
-  const deadline = Date.now() + timeoutMs;
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (!abortSignal.aborted && Date.now() < deadline) {
-    attempt++;
-    try {
-      const remaining = Math.max(1, deadline - Date.now());
-      return await openWebSocketAndWaitForBridgeHello({
-        endpoint,
-        openTimeoutMs: Math.min(10_000, remaining),
-        getHelloTimeoutMs: () =>
-          Math.min(5_000, Math.max(1, deadline - Date.now())),
-        abortSignal,
-        onHello,
-      });
-    } catch (err) {
-      if (abortSignal.aborted) {
-        throw abortSignal.reason ?? new Error('WebSocket connection aborted');
-      }
-      lastError = err;
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) break;
-      await sleep({
-        ms: Math.min(250 * attempt, 1_000, remaining),
-        abortSignal,
-      });
-    }
-  }
-
-  if (abortSignal.aborted) {
-    throw abortSignal.reason ?? new Error('WebSocket connection aborted');
-  }
-
-  throw new Error(
-    `claude-code bridge did not complete WebSocket handshake within ${timeoutMs}ms after ${attempt} attempt(s). Last error: ${formatUnknownError(lastError)}`,
-  );
-}
-
-function webSocketMessageToString(raw: unknown): string {
-  if (typeof raw === 'string') return raw;
-  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
-  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
-  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
-  if (ArrayBuffer.isView(raw)) {
-    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
-      'utf8',
-    );
-  }
-  return String(raw);
-}
-
-function formatUnknownError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 function createSession({
   sessionId,
   channel,
