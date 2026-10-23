@@ -1996,6 +1996,9 @@ importers:
       '@ai-sdk/amazon-bedrock':
         specifier: workspace:*
         version: link:../amazon-bedrock
+      '@ai-sdk/anthropic':
+        specifier: workspace:*
+        version: link:../anthropic
       '@ai-sdk/deepseek':
         specifier: workspace:*
         version: link:../deepseek
