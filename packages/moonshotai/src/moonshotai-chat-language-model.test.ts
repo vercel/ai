@@ -132,57 +132,9 @@ describe('MoonshotAIChatLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should send a name on a multi-part user message', async () => {
       await provider.chatModel('moonshot-v1-8k').doGenerate({
         prompt: [
-=======
-    it('should send maxOutputTokens as max_completion_tokens', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        maxOutputTokens: 17,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.max_completion_tokens).toBe(17);
-      expect(requestBody).not.toHaveProperty('max_tokens');
-    });
-
-    it('should omit max_completion_tokens when maxOutputTokens is undefined', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('max_completion_tokens');
-      expect(requestBody).not.toHaveProperty('max_tokens');
-    });
-
-    it.each([
-      'kimi-k2.5',
-      'kimi-k2.6',
-      'kimi-k2.7-code',
-      'kimi-k2.7-code-highspeed',
-      'kimi-k3',
-      'kimi-k3.1-pro',
-      'kimi-k3.1-pro-highspeed',
-    ] as const)(
-      'should omit fixed sampling options and warn for %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          temperature: 0.2,
-          topP: 0.4,
-          frequencyPenalty: 0.5,
-          presencePenalty: 0.6,
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: modelId,
-          messages: [{ role: 'user', content: 'Hello' }],
-        });
-        expect(result.warnings).toStrictEqual([
->>>>>>> e4469a302c (Backport: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed (#23888))
           {
             role: 'user',
             content: [
@@ -207,352 +159,7 @@ describe('MoonshotAIChatLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should omit a name on a tool message with a warning', async () => {
-=======
-    it('should extract text content, finish reason, and usage', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toEqual([{ type: 'text', text: 'Hello, world!' }]);
-      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
-      expect(result.usage).toMatchObject({
-        inputTokens: { total: 9, noCache: 9, cacheRead: 0 },
-        outputTokens: { total: 5, text: 5, reasoning: 0 },
-      });
-    });
-
-    it.each([null, undefined])(
-      'should tolerate %s response metadata fields',
-      async metadataValue => {
-        const responseBody = JSON.parse(
-          fs.readFileSync('src/__fixtures__/moonshotai-text.json', 'utf8'),
-        );
-        responseBody.object = metadataValue;
-        responseBody.choices[0].index = metadataValue;
-        responseBody.choices[0].message.role = metadataValue;
-
-        if (metadataValue === undefined) {
-          delete responseBody.object;
-          delete responseBody.choices[0].index;
-          delete responseBody.choices[0].message.role;
-        }
-
-        server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-          type: 'json-value',
-          body: responseBody,
-        };
-
-        const result = await provider.chatModel('kimi-k3').doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.providerMetadata).toEqual({ moonshotai: {} });
-      },
-    );
-
-    it('should preserve extra top-level and nested fields in raw usage', async () => {
-      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-        type: 'json-value',
-        body: {
-          id: 'chatcmpl-raw-usage',
-          object: 'chat.completion',
-          created: 1785880000,
-          model: 'kimi-k3',
-          choices: [
-            {
-              index: 0,
-              message: { role: 'assistant', content: 'Hello' },
-              finish_reason: 'stop',
-            },
-          ],
-          usage: {
-            prompt_tokens: 100,
-            completion_tokens: 50,
-            total_tokens: 150,
-            cached_tokens: 20,
-            provider_usage_id: 'usage-123',
-            prompt_tokens_details: {
-              cached_tokens: 20,
-              cache_type: 'ephemeral',
-            },
-            completion_tokens_details: {
-              reasoning_tokens: 10,
-              billable_tokens: 42,
-            },
-          },
-        },
-      };
-
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.usage).toMatchObject({
-        inputTokens: { total: 100, noCache: 80, cacheRead: 20 },
-        outputTokens: { total: 50, text: 40, reasoning: 10 },
-        raw: {
-          prompt_tokens: 100,
-          completion_tokens: 50,
-          total_tokens: 150,
-          cached_tokens: 20,
-          provider_usage_id: 'usage-123',
-          prompt_tokens_details: {
-            cached_tokens: 20,
-            cache_type: 'ephemeral',
-          },
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-            billable_tokens: 42,
-          },
-        },
-      });
-    });
-
-    it('should continue validating known usage field types', async () => {
-      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
-        type: 'json-value',
-        body: {
-          id: 'chatcmpl-invalid-usage',
-          created: 1785880000,
-          model: 'kimi-k3',
-          choices: [
-            {
-              message: { role: 'assistant', content: 'Hello' },
-              finish_reason: 'stop',
-            },
-          ],
-          usage: {
-            prompt_tokens: '100',
-            completion_tokens: 50,
-            total_tokens: 150,
-          },
-        },
-      };
-
-      await expect(
-        provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow();
-    });
-  });
-
-  describe('video input', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-text');
-    });
-
-    it('should send video data parts as video_url data URIs', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Describe this video' },
-              {
-                type: 'file',
-                data: new Uint8Array([0, 1, 2, 3]),
-                mediaType: 'video/mp4',
-              },
-            ],
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.messages[0].content).toEqual([
-        { type: 'text', text: 'Describe this video' },
-        {
-          type: 'video_url',
-          video_url: { url: 'data:video/mp4;base64,AAECAw==' },
-        },
-      ]);
-    });
-
-    it('should pass through video URL parts', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: new URL('https://example.com/video.mp4'),
-                mediaType: 'video/*',
-              },
-            ],
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.messages[0].content).toEqual([
-        {
-          type: 'video_url',
-          video_url: { url: 'https://example.com/video.mp4' },
-        },
-      ]);
-    });
-  });
-
-  describe('thinking options', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('moonshotai-reasoning');
-    });
-
-    it('should omit unsupported budget tokens and warn', async () => {
-      const result = await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'enabled', budgetTokens: 2048 },
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.thinking).toStrictEqual({
-        type: 'enabled',
-      });
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'other',
-          message:
-            'providerOptions.moonshotai.thinking.budgetTokens is deprecated because Moonshot Chat Completions does not support budget_tokens. The option has been omitted.',
-        },
-      ]);
-    });
-
-    it('should map reasoningHistory preserved to thinking.keep all', async () => {
-      await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'enabled' },
-            reasoningHistory: 'preserved',
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.thinking).toStrictEqual({
-        type: 'enabled',
-        keep: 'all',
-      });
-      expect(requestBody).not.toHaveProperty('reasoning_history');
-    });
-
-    it('should not send reasoning_history for other reasoningHistory values', async () => {
-      await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningHistory: 'interleaved' },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('reasoning_history');
-      expect(requestBody).not.toHaveProperty('thinking');
-    });
-
-    it('should pass through reasoning_effort', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningEffort: 'max' },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.reasoning_effort).toBe('max');
-    });
-
-    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
-      'should omit thinking for %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            moonshotai: {
-              thinking: { type: 'disabled' },
-              reasoningHistory: 'preserved',
-            },
-          },
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody).not.toHaveProperty('thinking');
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported',
-            feature: 'thinking',
-            details:
-              'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
-          },
-        ]);
-      },
-    );
-
-    it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
-      'should not disable thinking for %s',
-      async modelId => {
-        const result = await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            moonshotai: { thinking: { type: 'disabled' } },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-          'thinking',
-        );
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported',
-            feature: 'thinking.type "disabled"',
-            details: 'Kimi K2.7 thinking cannot be disabled.',
-          },
-        ]);
-      },
-    );
-
-    it('should rely on K2.7 preserved-thinking defaults', async () => {
-      const result = await provider.chatModel('kimi-k2.7-code').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningHistory: 'preserved' },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'thinking',
-      );
-      expect(result.warnings).toStrictEqual([]);
-    });
-
-    it('should omit reasoning effort for K2 models and warn', async () => {
-      const result = await provider.chatModel('kimi-k2.6').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: { reasoningEffort: 'high' },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'reasoning_effort',
-      );
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported',
-          feature: 'reasoningEffort',
-          details:
-            'reasoningEffort is only supported by Kimi K3 and has been omitted for model "kimi-k2.6".',
-        },
-      ]);
-    });
-
-    it('should omit thinking and reasoning options for Moonshot V1', async () => {
->>>>>>> e4469a302c (Backport: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed (#23888))
       const result = await provider.chatModel('moonshot-v1-8k').doGenerate({
         prompt: [
           {
@@ -1032,6 +639,8 @@ describe('MoonshotAIChatLanguageModel', () => {
       'kimi-k2.7-code',
       'kimi-k2.7-code-highspeed',
       'kimi-k3',
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
     ] as const)(
       'should omit fixed sampling options and warn for %s',
       async modelId => {
@@ -1237,29 +846,32 @@ describe('MoonshotAIChatLanguageModel', () => {
       );
     });
 
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
+    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should omit thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: {
+              thinking: { type: 'disabled' },
+              reasoningHistory: 'preserved',
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'thinking',
-      );
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'providerOptions',
-          details:
-            'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
-        },
-      ]);
-    });
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'thinking',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'providerOptions',
+            details:
+              'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
+          },
+        ]);
+      },
+    );
 
     it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
       'should not disable thinking for %s',
