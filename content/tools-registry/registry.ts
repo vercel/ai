@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'mrscraper',
+    name: 'MrScraper',
+    description:
+      'Retrieve public web pages as Markdown, HTML, or screenshots (with automatic browser rendering), search Google for parsed organic results, and check MrScraper plan usage. Screenshots reach the model as images.',
+    packageName: '@mrscraper/ai-sdk',
+    tags: ['scraping', 'search', 'web', 'screenshots'],
+    apiKeyEnvName: 'MRSCRAPER_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @mrscraper/ai-sdk',
+      npm: 'npm install @mrscraper/ai-sdk',
+      yarn: 'yarn add @mrscraper/ai-sdk',
+      bun: 'bun add @mrscraper/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { mrscraperTools } from '@mrscraper/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  prompt:
+    'Read https://www.scrapethissite.com/pages/simple/ and list the five countries with the largest area.',
+  tools: mrscraperTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.mrscraper.com/docs/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.mrscraper.com/api-tokens',
+    websiteUrl: 'https://mrscraper.com',
+    npmUrl: 'https://www.npmjs.com/package/@mrscraper/ai-sdk',
+  },
 ];
