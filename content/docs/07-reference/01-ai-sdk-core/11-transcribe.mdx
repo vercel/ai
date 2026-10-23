@@ -41,6 +41,13 @@ console.log(transcript);
       description: 'The audio file to generate the transcript from.',
     },
     {
+      name: 'timestampGranularities',
+      type: "Array<'word' | 'segment'>",
+      isOptional: true,
+      description:
+        'Word and segment timings to request. Providers map this onto their native control when the matching provider option is omitted. An explicit provider option wins. A warning is returned when a provider cannot supply a requested granularity.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string, JSONObject>',
       isOptional: true,
@@ -95,6 +102,12 @@ console.log(transcript);
       type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
       description:
         'An array of transcript segments, each containing a portion of the transcribed text along with its start and end times in seconds.',
+    },
+    {
+      name: 'words',
+      type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
+      description:
+        'Word-level timings when the provider returns them. Empty when word timestamps were not requested or the provider did not report them. Segments stay phrase- or utterance-level.',
     },
     {
       name: 'language',

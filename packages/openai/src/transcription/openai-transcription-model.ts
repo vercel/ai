@@ -172,6 +172,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
+    timestampGranularities,
   }: OpenAITranscriptionCallOptions) {
     const warnings: SharedV4Warning[] = [];
 
@@ -229,7 +230,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
                 : 'verbose_json'),
         }),
         temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        timestamp_granularities:
+          providerOptions?.openai?.timestampGranularities ??
+          timestampGranularities ??
+          openAIOptions.timestampGranularities,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
@@ -245,6 +249,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       }
     } else if (isDiarizationModel) {
       formData.append('response_format', 'diarized_json');
+    } else if (timestampGranularities != null) {
+      for (const item of timestampGranularities) {
+        formData.append('timestamp_granularities[]', item);
+      }
     }
 
     if (chunkingStrategy != null) {
@@ -329,6 +337,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         : [],
     );
 
+    const words = response.words?.map(word => ({
+      text: word.word,
+      startSecond: word.start,
+      endSecond: word.end,
+    }));
+
     return {
       text: response.text,
       segments:
@@ -337,12 +351,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           startSecond: segment.start,
           endSecond: segment.end,
         })) ??
-        response.words?.map(word => ({
-          text: word.word,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ??
+        words ??
         [],
+      ...(words != null && words.length > 0 ? { words } : {}),
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,

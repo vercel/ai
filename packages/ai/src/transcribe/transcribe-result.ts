@@ -32,6 +32,26 @@ export interface TranscriptionResult {
   }>;
 
   /**
+   * Word-level timings, when the provider returns them.
+   * Empty when the provider did not report word timestamps.
+   * This is separate from `segments`, which stay phrase- or utterance-level.
+   */
+  readonly words: Array<{
+    /**
+     * The text of this word.
+     */
+    readonly text: string;
+    /**
+     * The start time of this word in seconds.
+     */
+    readonly startSecond: number;
+    /**
+     * The end time of this word in seconds.
+     */
+    readonly endSecond: number;
+  }>;
+
+  /**
    * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English).
    * May be undefined if the language couldn't be detected.
    */

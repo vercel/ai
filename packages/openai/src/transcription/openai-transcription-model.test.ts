@@ -175,6 +175,35 @@ describe('doGenerate', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
+  it('should map shared timestampGranularities when the provider option is omitted', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.['timestamp_granularities[]']).toBe('word');
+  });
+
+  it('should let the OpenAI timestamp option win over the shared option', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['segment'],
+      providerOptions: {
+        openai: { timestampGranularities: ['word'] },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.['timestamp_granularities[]']).toBe('word');
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -672,6 +701,53 @@ describe('doGenerate', () => {
         },
       ]
     `);
+    expect(result.words).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 1 },
+      { text: 'world', startSecond: 1, endSecond: 2 },
+    ]);
+  });
+
+  it('should keep word timings when segments are also present', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world',
+        words: [
+          { word: 'Hello', start: 0, end: 0.4 },
+          { word: 'world', start: 0.4, end: 1 },
+        ],
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 1,
+            text: 'Hello world',
+            tokens: [1],
+            temperature: 0,
+            avg_logprob: -0.2,
+            compression_ratio: 1,
+            no_speech_prob: 0.01,
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: { timestampGranularities: ['word', 'segment'] },
+      },
+    });
+
+    expect(result.segments).toEqual([
+      { text: 'Hello world', startSecond: 0, endSecond: 1 },
+    ]);
+    expect(result.words).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ]);
   });
 
   it('should handle empty segments array', async () => {
