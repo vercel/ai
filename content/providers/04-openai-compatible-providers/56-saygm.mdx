@@ -1,0 +1,113 @@
+---
+title: SayGM
+description: Use the SayGM OpenAI compatible API with the AI SDK.
+---
+
+# SayGM Provider
+
+[SayGM](https://saygm.com) is an LLM API gateway that provides unified access to models from leading AI labs (including OpenAI, DeepSeek, GLM, Kimi, Qwen, and Gemma) through an OpenAI-compatible API. Models also include confidential compute (`-tee`) variants running inside Intel TDX enclaves.
+
+You can use SayGM's Chat Completions endpoint with the AI SDK through the [`@ai-sdk/openai-compatible`](https://www.npmjs.com/package/@ai-sdk/openai-compatible) module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key in the [SayGM Dashboard](https://saygm.com/dashboard) and set it as an environment variable:
+
+```bash
+export SAYGM_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a SayGM provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const saygm = createOpenAICompatible({
+  name: 'saygm',
+  apiKey: process.env.SAYGM_API_KEY,
+  baseURL: 'https://api.saygm.com/v1',
+});
+```
+
+The `apiKey` option sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Pass a SayGM model ID to the provider instance:
+
+```ts
+const model = saygm('deepseek-v4.1-flash');
+```
+
+### Generate Text
+
+Use `generateText` to generate text:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const saygm = createOpenAICompatible({
+  name: 'saygm',
+  apiKey: process.env.SAYGM_API_KEY,
+  baseURL: 'https://api.saygm.com/v1',
+});
+
+const { text } = await generateText({
+  model: saygm('deepseek-v4.1-flash'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream responses:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const saygm = createOpenAICompatible({
+  name: 'saygm',
+  apiKey: process.env.SAYGM_API_KEY,
+  baseURL: 'https://api.saygm.com/v1',
+});
+
+const result = streamText({
+  model: saygm('glm-5.3-flash'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Capabilities and Model Selection
+
+The public [`GET https://api.saygm.com/v1/models`](https://api.saygm.com/v1/models) endpoint lists currently available models and their supported `api_shapes`. Models that list `chat.completions` work with `@ai-sdk/openai-compatible`.
+
+Supported capabilities depend on the chosen model and include:
+
+- **Text generation and streaming** (e.g. `deepseek-v4.1-flash`, `glm-5.3-flash`)
+- **Tool calling** with multi-step tool use (e.g. `gpt-5.4-mini`)
+- **Structured output** via `Output.object` with `supportsStructuredOutputs: true`
+- **Image inputs** for vision-capable models (e.g. `gpt-5.4-mini`, `kimi-k3`)
+- **Reasoning content** via `reasoningText` for supported reasoning models
+
+> [!NOTE]
+> Claude and Gemini models on SayGM use their native endpoints (`/v1/messages` and `generateContent` respectively) rather than OpenAI Chat Completions. To access Claude models on SayGM, point `@ai-sdk/anthropic` at `https://api.saygm.com/v1` with your `SAYGM_API_KEY`.
+
+## Resources
+
+- [SayGM Website](https://saygm.com)
+- [SayGM Dashboard](https://saygm.com/dashboard)
+- [SayGM Documentation](https://saygm.com/llms.txt)
