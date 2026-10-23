@@ -261,6 +261,10 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when a step that started fails before it
      * produces a step result. `onStepEnd` is not called for such a step.
+     *
+     * Unlike `onStepStart` and `onStepEnd`, it can only be set here and not
+     * per call, because the per-call callbacks are shared with other `Agent`
+     * implementations that do not report step errors.
      */
     onStepError?: GenerateTextOnStepErrorCallback<
       NoInfer<TOOLS>,

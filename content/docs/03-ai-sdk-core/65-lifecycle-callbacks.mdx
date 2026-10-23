@@ -296,11 +296,12 @@ A multi-step generation with local tool execution usually runs like this:
 9. `onEnd`
 
 `onStepStart` and `onStepEnd` describe the full step.
+`onLanguageModelCallStart` and `onLanguageModelCallEnd` describe only the model call inside that step.
+This distinction matters when the step includes local tool execution: the step duration can be longer than the model response duration.
+
 When a step that started fails before it produces a step result, `onStepError` is called instead of `onStepEnd`. This happens when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk does not fail the step: the step still ends with `onStepEnd` and `finishReason: 'error'`.
 
 Aborts and timeouts end the step differently in each function. In `generateText` and `agent.generate()`, they end the step with `onStepError`. Its `error` is the abort or timeout error, or a provider error that has it as its `cause`. In `streamText` and `agent.stream()`, they end the step with `onAbort`.
-`onLanguageModelCallStart` and `onLanguageModelCallEnd` describe only the model call inside that step.
-This distinction matters when the step includes local tool execution: the step duration can be longer than the model response duration.
 
 ## Runtime and Tool Context
 

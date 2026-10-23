@@ -412,7 +412,7 @@ export function myIntegration(): Telemetry {
       name: 'onStepError',
       type: '(event: GenerateTextStepErrorEvent) => void | PromiseLike<void>',
       description:
-        'Called when a step that started fails before it produces a step result. The generation can still continue or end normally afterwards, so use it to close step-level spans.',
+        'Called when a step that started fails before it produces a step result. Use it to close step-level spans. The call then ends with `onError`.',
     },
     {
       name: 'onEmbedEnd',

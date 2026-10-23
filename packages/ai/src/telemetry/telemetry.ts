@@ -206,8 +206,7 @@ export interface Telemetry {
 
   /**
    * Called when a step that started fails before it produces a step result.
-   * The generation can still continue or end normally after it, so use this
-   * to close step-level spans and `onError` for unrecoverable errors.
+   * Use it to close step-level spans. The call then ends with `onError`.
    */
   onStepError?: Callback<InferTelemetryEvent<GenerateTextStepErrorEvent>>;
 
