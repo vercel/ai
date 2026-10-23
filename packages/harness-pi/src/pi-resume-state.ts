@@ -1,6 +1,9 @@
-import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  harnessSessionDataDirectoryPath,
+  harnessStateDirectoryPath,
+} from '@ai-sdk/harness';
 import type { AgentSession } from '@earendil-works/pi-coding-agent';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -100,12 +103,14 @@ export function resolvePiPrivateSessionDirectory(input: {
   readonly sessionWorkDir: string;
   readonly sessionId: string;
 }): string {
-  const sessionKey = createHash('sha256').update(input.sessionId).digest('hex');
   const privateSessionDir = path.posix.join(
-    input.sandboxHomeDir,
-    '.ai-sdk',
-    'harness-pi',
-    sessionKey,
+    harnessSessionDataDirectoryPath({
+      stateDirectory: harnessStateDirectoryPath({
+        sandboxHomeDir: input.sandboxHomeDir,
+      }),
+      sessionId: input.sessionId,
+    }),
+    'pi',
   );
   const relativePath = path.posix.relative(
     input.sessionWorkDir,
