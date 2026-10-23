@@ -571,7 +571,7 @@ it('should handle null type correctly', () => {
     type: 'object',
     properties: {
       nullableField: {
-        anyOf: [{ type: 'string' }],
+        type: 'string',
         nullable: true,
       },
       explicitNullField: {
@@ -864,6 +864,26 @@ it('should convert nullable string enum', () => {
         type: 'string',
         enum: ['a', 'b', 'c'],
       },
+    },
+  });
+});
+
+it('should keep sibling keywords on a single nullable type', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      tags: { type: ['array', 'null'], items: { type: 'string' } },
+      at: { type: ['string', 'null'], format: 'date-time' },
+      count: { type: ['integer', 'null'] },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      tags: { type: 'array', nullable: true, items: { type: 'string' } },
+      at: { type: 'string', nullable: true, format: 'date-time' },
+      count: { type: 'integer', nullable: true },
     },
   });
 });
