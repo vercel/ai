@@ -81,4 +81,4 @@
 "@ai-sdk/zai": patch
 ---
 
-chore: update `README.md` for consistent format and to avoid duplication
+chore(docs): update `README.md` for consistent format and to avoid duplication
