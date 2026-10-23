@@ -622,3 +622,64 @@ function usageBreakdown({
     reasoningOutputTokens: 0,
   };
 }
+
+describe('createAppServerEventHandler main thread', () => {
+  const mainThreadId = '01a15f6d-441e-76e1-a1b2-eb781287ad13';
+  const subagentThreadId = '01a15f6d-53c0-7663-bb4f-ca2c5d11bfc6';
+
+  function createMainThreadHarness() {
+    const emitted: Array<Record<string, unknown>> = [];
+    const stepTracker = createCodexStepTracker({
+      send: event => emitted.push(event),
+    });
+    const handler = createAppServerEventHandler({
+      stepTracker,
+      emitStreamEvent: createEmitStreamEvent({
+        send: event => emitted.push(event),
+        stepTracker,
+        setTurnUsage: () => {},
+        setThreadId: () => {},
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      }),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    });
+    return { emitted, handler };
+  }
+
+  it("does not take a subagent's thread/started as the main thread", () => {
+    const { emitted, handler } = createMainThreadHarness();
+
+    handler.handle({
+      method: 'thread/started',
+      params: {
+        thread: {
+          id: subagentThreadId,
+          forkedFromId: mainThreadId,
+          parentThreadId: mainThreadId,
+        },
+      },
+    });
+    handler.announceThread(mainThreadId);
+
+    expect(emitted).toEqual([
+      { type: 'bridge-thread', threadId: mainThreadId },
+    ]);
+  });
+
+  it('takes a thread/started without a parent thread as the main thread', () => {
+    const { emitted, handler } = createMainThreadHarness();
+
+    handler.handle({
+      method: 'thread/started',
+      params: {
+        thread: { id: mainThreadId, forkedFromId: null, parentThreadId: null },
+      },
+    });
+
+    expect(emitted).toEqual([
+      { type: 'bridge-thread', threadId: mainThreadId },
+    ]);
+  });
+});

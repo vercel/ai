@@ -164,7 +164,10 @@ export function createAppServerEventHandler({
       const params = asRecord(notification.params);
       if (notification.method === 'thread/started') {
         const thread = asRecord(params?.thread);
-        if (typeof thread?.id === 'string') announceThread(thread.id);
+        // A subagent's thread must never become the main thread.
+        if (typeof thread?.id === 'string' && thread.parentThreadId == null) {
+          announceThread(thread.id);
+        }
         return;
       }
       if (notification.method === 'turn/started') {
