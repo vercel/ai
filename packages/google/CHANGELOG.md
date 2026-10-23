@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.138
+
+### Patch Changes
+
+- 2b59d8a: fix(google): convert `type: [X, "null"]` to a plain nullable node so `items` and `format` beside it stay valid for Gemini
+
 ## 3.0.137
 
 ### Patch Changes
