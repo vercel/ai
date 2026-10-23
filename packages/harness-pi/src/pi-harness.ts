@@ -7,13 +7,18 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import {
+  piLifecycleStateSchema,
+  type PiLifecycleData,
+} from './pi-lifecycle-state';
+import type { PiSessionStorage } from './pi-session-storage';
 import {
   createPiSession,
   type PiCacheRetention,
   type PiHarnessExtensionFactory,
   type PiMcpServerConfig,
   type PiMcpSettings,
+  type PiResources,
   type PiThinkingLevel,
 } from './pi-session';
 import type { PiFileToolPathPolicy } from './pi-paths';
@@ -36,6 +41,11 @@ export type PiHarnessSettings = {
    * this replaces Pi's file-backed auth.json credential storage.
    */
   readonly credentials?: PiCredentialStore;
+  /**
+   * Caller-provided append-only log for the Pi session (see `PiSessionStorage`).
+   * Without it, the lifecycle state holds the whole session.
+   */
+  readonly sessionStorage?: PiSessionStorage;
   /**
    * Whether a suspended turn may reuse its live Pi session in this process.
    * Disable this in stateless or multi-replica applications so every request
@@ -109,11 +119,20 @@ export type PiHarnessSettings = {
    * outside the session workspace. `writableRoots` also permits writes and
    * edits outside the workspace and grants read access. `deniedRoots` are
    * refused by every native file tool and take precedence, including through
-   * symlinks. Configured roots are resolved for each operation; canonical
-   * denied roots captured at session startup remain denied. The `bash` tool
-   * is not restricted.
+   * symlinks. Configured roots are resolved for each operation; denied roots
+   * are also resolved in the sandbox before the first native file tool runs.
+   * The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  /**
+   * Project resources for the session. Pi reads no project resources from the
+   * host or the sandbox, so project skills reach the model only through this
+   * setting, and `AGENTS.md` and `CLAUDE.md` are not read at all.
+   *
+   * `skills` are listed to the model and must already exist in the sandbox at
+   * `filePath`, because the model reads them with the `read` tool.
+   */
+  readonly resources?: PiResources;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -203,10 +222,10 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: true,
-    lifecycleStateSchema: piResumeStateSchema,
+    lifecycleStateSchema: piLifecycleStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
+      const resumeData = lifecycleState?.data as PiLifecycleData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -243,6 +262,10 @@ export function createPi(
           ...(settings.fileToolPathPolicy
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
+          ...(settings.resources ? { resources: settings.resources } : {}),
+          ...(settings.sessionStorage
+            ? { sessionStorage: settings.sessionStorage }
+            : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
@@ -250,10 +273,13 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.sessionFileName
-          ? { resumeSessionFileName: resumeData.sessionFileName }
-          : {}),
-        ...(resumeData?.pendingToolBatch
+        ...(resumeData?.leafId
+          ? { resumeLeafId: resumeData.leafId }
+          : resumeData?.entries
+            ? { resumeEntries: resumeData.entries }
+            : {}),
+        ...((resumeData?.leafId || resumeData?.entries) &&
+        resumeData.pendingToolBatch
           ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),
         ...(startOpts.abortSignal

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
-import type { PiAssistantMessage } from './pi-resume-state';
+import type { PiAssistantMessage } from './pi-lifecycle-state';
 import {
   runToolBatchReplay,
   takeToolBatchForReplay,
