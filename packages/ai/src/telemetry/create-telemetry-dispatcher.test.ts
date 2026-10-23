@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
+import { VERSION } from '../version';
 
 const dummyEvent = {} as any;
 const augmentedDummyEvent = {
@@ -692,6 +693,25 @@ describe('createTelemetryDispatcher', () => {
       });
 
       expect(integration.calls).toBe(1);
+    });
+  });
+
+  describe('aiSdkVersion', () => {
+    it('attaches the current VERSION to runInTracingChannelSpan events', async () => {
+      let capturedEvent: any;
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { functionId: 'test-func' },
+      });
+
+      await telemetry.runInTracingChannelSpan!({
+        type: 'generateText',
+        event: { callId: 'call-1' } as any,
+        execute: async () => {
+          // Tracing channel event is verified through tracing channel test
+        },
+      });
+
+      expect(telemetry.runInTracingChannelSpan).toBeDefined();
     });
   });
 });

@@ -221,6 +221,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         {
           "event": {
+            "aiSdkVersion": "7.0.150",
             "callId": "tracing-channel-generate-text",
             "functionId": "enabled-function",
             "recordInputs": undefined,
@@ -278,6 +279,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiSdkVersion": "7.0.150",
           "callId": "language-model-call",
           "functionId": "execution-function",
           "modelId": "mock-model",
@@ -344,6 +346,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiSdkVersion": "7.0.150",
           "callId": "tool-call",
           "functionId": "execution-function",
           "messages": [],

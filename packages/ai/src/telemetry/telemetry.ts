@@ -59,7 +59,9 @@ export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
     TelemetryOptions,
     'integrations' | 'isEnabled' | 'includeRuntimeContext'
-  >;
+  > & {
+    aiSdkVersion?: string;
+  };
 
 type BivariantCallback<EVENT> = {
   bivarianceHack(event: EVENT): PromiseLike<void> | void;

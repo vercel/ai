@@ -17,6 +17,7 @@ import {
 } from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
+import { VERSION } from '../version';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -61,6 +62,7 @@ function augmentEvent<EVENT>(
       recordInputs: telemetry.recordInputs,
       recordOutputs: telemetry.recordOutputs,
       functionId: telemetry.functionId,
+      ...(filterContext ? { aiSdkVersion: VERSION } : {}),
     },
   );
 
@@ -271,7 +273,10 @@ export function createTelemetryDispatcher({
       }
 
       return await runWithTracingChannelSpan(
-        { type: 'languageModelCall', event: augmentedEvent },
+        {
+          type: 'languageModelCall',
+          event: augmentEvent(event, telemetryMetadata, true),
+        },
         wrappedExecute,
       );
     },
