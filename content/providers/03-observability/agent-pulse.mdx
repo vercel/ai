@@ -5,7 +5,7 @@ description: Record AI SDK spend and enforce budgets with Agent Pulse
 
 # Agent Pulse Observability
 
-[Agent Pulse](https://dev.agentspulse.ai/docs/vercel-ai-sdk) ([GitHub](https://github.com/techbridgeinnovation/agentpulse)) records what an AI agent spends on models and tools, and can attribute that spend to the request, user, and workspace it was for. It integrates with the AI SDK in two ways, which can be used alone or together:
+[Agent Pulse](https://www.agentspulse.ai/docs/vercel-ai-sdk) ([GitHub](https://github.com/techbridgeinnovation/agentpulse)) records what an AI agent spends on models and tools, and can attribute that spend to the request, user, and workspace it was for. It integrates with the AI SDK in two ways, which can be used alone or together:
 
 - **Telemetry** (AI SDK 7) records every model, embedding, and tool call the AI SDK reports. It records a call after it has happened, so it cannot block or change one.
 - **Middleware** (AI SDK 7 and 6) wraps a model, records that model's calls, and checks your budgets before each call is sent to the provider.
