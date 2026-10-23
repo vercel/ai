@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 0.0.33
+
+### Patch Changes
+
+- 0a444c6: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
 ## 0.0.32
 
 ### Patch Changes
