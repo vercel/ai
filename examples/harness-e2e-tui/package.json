@@ -19,7 +19,7 @@
     "@vercel/sandbox": "^3.0.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

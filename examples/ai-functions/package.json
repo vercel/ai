@@ -104,7 +104,7 @@
     "valibot": "1.1.0",
     "workflow": "5.1.0",
     "ws": "^8.21.0",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
