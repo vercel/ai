@@ -256,6 +256,36 @@ Session memory supports two modes: **tool-driven** (the LLM decides when to read
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
+### LLMSlim
+
+[LLMSlim](https://llmslim.app) gives agents long-term memory with no LLM in the loop: messages are stored word for word, and the ones that answer a question are selected at read time within a token budget. It runs self-hosted with `llmslim serve` (one process, SQLite or Postgres), so memory stays in your infrastructure.
+
+```bash
+pnpm add llmslim
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { LLMSlim } from 'llmslim';
+import { memoryTools } from 'llmslim/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const client = new LLMSlim({ baseUrl: process.env.LLMSLIM_BASE_URL });
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: memoryTools({ client, userId: 'user-123' }),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+The tools give the model `remember`, which stores a message verbatim, and `recall_memory`, which returns the stored messages that answer a query, with their dates, within a token budget. The `userId` comes from your code rather than the model, so in multi-user apps create the tools inside your request handler. To save every turn without a tool call, wrap the model with `memoryMiddleware({ client, userId })`. LLMSlim works with any AI SDK provider.
+
+See the [LLMSlim TypeScript client](https://github.com/Thanatos9404/llmslim/tree/main/clients/typescript) for server setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ## Custom Tool
