@@ -1,0 +1,118 @@
+---
+title: TrustRoute
+description: Use the TrustRoute OpenAI compatible API with the AI SDK.
+---
+
+# TrustRoute Provider
+
+[TrustRoute](https://trustroute.ch/) is an LLM gateway hosted in Switzerland that provides open and frontier models through an OpenAI-compatible API. Each response reports which provider served the call and whether processing stayed in Switzerland. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a TrustRoute API key in the [dashboard](https://trustroute.ch/dashboard) and set it as a server-side environment variable:
+
+```bash
+export TRUSTROUTE_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a TrustRoute provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const trustroute = createOpenAICompatible({
+  name: 'trustroute',
+  apiKey: process.env.TRUSTROUTE_API_KEY,
+  baseURL: 'https://api.trustroute.ch/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a TrustRoute model ID to the provider instance:
+
+```ts
+const model = trustroute('apertus-v1-5-70b');
+```
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const trustroute = createOpenAICompatible({
+  name: 'trustroute',
+  apiKey: process.env.TRUSTROUTE_API_KEY,
+  baseURL: 'https://api.trustroute.ch/v1',
+});
+
+const { text, response } = await generateText({
+  model: trustroute('apertus-v1-5-70b'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+// Which provider served the call, and where it was processed
+console.log(response.headers?.['x-trustroute-provider']);
+console.log(response.headers?.['x-trustroute-processing']);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const trustroute = createOpenAICompatible({
+  name: 'trustroute',
+  apiKey: process.env.TRUSTROUTE_API_KEY,
+  baseURL: 'https://api.trustroute.ch/v1',
+});
+
+const result = streamText({
+  model: trustroute('apertus-v1-5-70b'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Data Classification
+
+TrustRoute routes each request by your organization's policy. An optional `X-Data-Classification` header can only tighten routing: requests marked `confidential` are only sent to providers that are Swiss operated and process in Switzerland.
+
+```ts
+const trustroute = createOpenAICompatible({
+  name: 'trustroute',
+  apiKey: process.env.TRUSTROUTE_API_KEY,
+  baseURL: 'https://api.trustroute.ch/v1',
+  headers: { 'X-Data-Classification': 'confidential' },
+});
+```
+
+## Supported Models and Capabilities
+
+This integration uses TrustRoute's OpenAI-compatible Chat Completions endpoint for text generation and streaming. Support for tools, vision, and other model-specific features depends on the selected model.
+
+The model catalog changes over time. The authenticated `GET /v1/models` endpoint lists the models your organization's policy allows.
+
+## Resources
+
+- [TrustRoute API reference](https://trustroute.ch/docs)
+- [TrustRoute model catalog](https://trustroute.ch/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
