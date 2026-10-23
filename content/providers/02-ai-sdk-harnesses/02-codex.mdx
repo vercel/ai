@@ -224,6 +224,16 @@ The adapter exposes these Codex built-ins through `agent.tools`:
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
 
+## Subagents
+
+When Codex starts subagents, their activity is surfaced as `raw` stream parts
+that carry the Codex app-server notification unchanged. The main thread's
+`subAgentActivity` and `collabAgentToolCall` items say when a subagent starts,
+is given a task or is waited on; `agentThreadId` names the subagent's thread.
+Each subagent's own `turn/*`, `item/*`, message, reasoning and token usage
+notifications follow, with that thread's `threadId`. They do not add text,
+tool, step or usage parts to the main turn.
+
 ## Known Limitations
 
 Codex does not currently support built-in tool approval requests. Use

@@ -79,3 +79,9 @@ try {
 
 The adapter needs a sandbox session with an exposed port. The caller ends the
 harness session and sandbox separately.
+
+Codex subagent activity is surfaced as `raw` stream parts carrying the
+app-server notifications unchanged: `subAgentActivity` and `collabAgentToolCall`
+items from the main thread, and each subagent thread's turn, item, message,
+reasoning and token usage notifications. They do not add text, tool, step or
+usage parts to the main turn.
