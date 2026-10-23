@@ -806,6 +806,143 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
+  it.each([
+    {
+      credentialMode: 'AI Gateway',
+      environment: {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+        AI_GATEWAY_BASE_URL: 'https://gateway.ai.test',
+      },
+      model: 'openai/gpt-6.1-sol',
+      providerId: 'openai',
+      modelId: 'gpt-6.1-sol',
+    },
+    {
+      credentialMode: 'direct OpenAI',
+      environment: {
+        OPENAI_API_KEY: 'openai-key',
+      },
+      model: 'openai/gpt-6.1-sol',
+      providerId: 'openai',
+      modelId: 'gpt-6.1-sol',
+    },
+    {
+      credentialMode: 'direct Anthropic',
+      environment: {
+        ANTHROPIC_API_KEY: 'anthropic-key',
+      },
+      model: 'anthropic/claude-sonnet-5-5',
+      providerId: 'anthropic',
+      modelId: 'claude-sonnet-5-5',
+    },
+    {
+      credentialMode: 'OpenAI-compatible',
+      environment: {
+        OPENAI_API_KEY: 'compatible-key',
+        OPENAI_BASE_URL: 'https://compatible.ai.test/v1',
+      },
+      model: 'compatible/custom-model',
+      providerId: 'compatible',
+      modelId: 'custom-model',
+    },
+  ])(
+    'preserves caller model limits when the bridge supplies $credentialMode credentials',
+    async ({ environment, model, providerId, modelId }) => {
+      const limit = {
+        context: 1_050_000,
+        input: 220_000,
+        output: 128_000,
+      };
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        model,
+        openCodeConfig: {
+          provider: {
+            [providerId]: {
+              models: {
+                [modelId]: {
+                  limit,
+                },
+              },
+            },
+          },
+        },
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'model step failed',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      for (const [name, value] of Object.entries(environment)) {
+        vi.stubEnv(name, value);
+      }
+      setBridgeArgv();
+
+      await import('./index');
+
+      const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+        .config as {
+        provider?: Record<
+          string,
+          {
+            models?: Record<
+              string,
+              {
+                limit?: {
+                  context: number;
+                  input: number;
+                  output: number;
+                };
+              }
+            >;
+          }
+        >;
+      };
+      expect(
+        serverConfig.provider?.[providerId]?.models?.[modelId]?.limit,
+        'OpenCode bridge dropped caller model limit',
+      ).toEqual(limit);
+    },
+  );
+
   it('settles when OpenCode emits session.next.step.failed', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();
