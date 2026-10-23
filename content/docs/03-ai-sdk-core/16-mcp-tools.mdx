@@ -447,6 +447,39 @@ const tools = await mcpClient.tools();
 
 This approach is simpler to implement and automatically stays in sync with server changes. However, you won't have TypeScript type safety during development, and all tools from the server will be loaded
 
+### Hugging Bay model catalog
+
+Hugging Bay's public MCP endpoint exposes catalog tools without an API key. This example adds only `find_runnable` to the model's tool set, so no write tool is available in this request:
+
+```typescript
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText } from 'ai';
+
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://huggingbay.xyz/api/mcp',
+  },
+});
+
+try {
+  const discoveredTools = await mcpClient.tools();
+  const result = await generateText({
+    model: __MODEL__, // use the model configured for your application
+    tools: { find_runnable: discoveredTools.find_runnable },
+    prompt:
+      'Call find_runnable with task "chat" and hardware "8gb-laptop". ' +
+      'Describe the returned fit as an estimate, not a measured run.',
+  });
+
+  console.log(result.text);
+} finally {
+  await mcpClient.close();
+}
+```
+
+The LLM provider is configured by your application; Hugging Bay does not require an account for this read. Hugging Face clients can set `HF_ENDPOINT=https://hf.huggingbay.xyz` when downloading repositories currently mirrored by Hugging Bay. The mirror serves hosted files; it does not run inference.
+
 ### Tool Annotations and Approval
 
 MCP servers can describe tool behavior with annotations such as
