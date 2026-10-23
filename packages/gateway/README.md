@@ -4,10 +4,8 @@ The Gateway provider for the [AI SDK](https://ai-sdk.dev/docs) allows the use of
 
 ## Setup
 
-The Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
-
 ```bash
-npm i @ai-sdk/gateway
+npm i ai @ai-sdk/gateway
 ```
 
 ## Skill for Coding Agents
@@ -18,15 +16,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `gateway` from `@ai-sdk/gateway`:
-
-```ts
-import { gateway } from '@ai-sdk/gateway';
-```
-
-## Example
+## Usage
 
 ```ts
 import { gateway } from '@ai-sdk/gateway';
@@ -39,6 +29,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the [AI SDK documentation](https://ai-sdk.dev/docs) for more information.
+See the [Gateway Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) for more information.
