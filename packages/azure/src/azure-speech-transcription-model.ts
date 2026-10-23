@@ -1,5 +1,7 @@
 import type { TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -129,28 +131,32 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const responseSchema = z.object({
-  combinedPhrases: z.array(z.object({ text: z.string() })),
-  durationMilliseconds: z.number().nullish(),
-  phrases: z
-    .array(
-      z.object({
-        text: z.string(),
-        offsetMilliseconds: z.number().nullish(),
-        durationMilliseconds: z.number().nullish(),
-        locale: z.string().nullish(),
-        speaker: z.number().nullish(),
-        confidence: z.number().nullish(),
-        words: z
-          .array(
-            z.object({
-              text: z.string(),
-              offsetMilliseconds: z.number().nullish(),
-              durationMilliseconds: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      combinedPhrases: z.array(z.object({ text: z.string() })),
+      durationMilliseconds: z.number().nullish(),
+      phrases: z
+        .array(
+          z.object({
+            text: z.string(),
+            offsetMilliseconds: z.number().nullish(),
+            durationMilliseconds: z.number().nullish(),
+            locale: z.string().nullish(),
+            speaker: z.number().nullish(),
+            confidence: z.number().nullish(),
+            words: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  offsetMilliseconds: z.number().nullish(),
+                  durationMilliseconds: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

@@ -1,5 +1,35 @@
 # @ai-sdk/quiverai
 
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/open-responses@2.0.72
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+  - @ai-sdk/open-responses@2.0.71
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 2.0.66
+
+### Patch Changes
+
+- 19cba9f: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/open-responses@2.0.70
+
 ## 2.0.65
 
 ### Patch Changes

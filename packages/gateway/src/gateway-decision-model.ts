@@ -135,52 +135,54 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }
 }
 
-const gatewayDecisionAnswerSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('choice'),
-    choice: z.string(),
-    probabilities: z.record(z.string(), z.number()).optional(),
-  }),
-  z.object({
-    type: z.literal('score'),
-    score: z.number(),
-    probabilities: z.record(z.string(), z.number()).optional(),
-  }),
-  z.object({
-    type: z.literal('boolean'),
-    probability: z.number(),
-  }),
-  z.object({
-    type: z.literal('refusal'),
-  }),
-]);
+const gatewayDecisionAnswerSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('choice'),
+      choice: z.string(),
+      probabilities: z.record(z.string(), z.number()).optional(),
+    }),
+    z.object({
+      type: z.literal('score'),
+      score: z.number(),
+      probabilities: z.record(z.string(), z.number()).optional(),
+    }),
+    z.object({
+      type: z.literal('boolean'),
+      probability: z.number(),
+    }),
+    z.object({
+      type: z.literal('refusal'),
+    }),
+  ]);
 
-const gatewayDecisionWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayDecisionWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
 const gatewayDecisionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      answers: z.record(z.string(), gatewayDecisionAnswerSchema),
+      answers: z.record(z.string(), gatewayDecisionAnswerSchema()),
       model: z.string().optional(),
       rounding: z
         .object({
@@ -194,7 +196,7 @@ const gatewayDecisionResponseSchema = lazySchema(() =>
           outputTokens: z.number().optional(),
         })
         .optional(),
-      warnings: z.array(gatewayDecisionWarningSchema).optional(),
+      warnings: z.array(gatewayDecisionWarningSchema()).optional(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),

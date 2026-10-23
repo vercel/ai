@@ -106,6 +106,38 @@ try {
 }
 ```
 
+### Image Inputs
+
+For harness adapters that support images, you can include an image as a file part
+in the latest user message. Set `mediaType` to the image's MIME type:
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await agent.generate({
+  session,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Describe the image in one sentence.',
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: readFileSync('image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+For image input support, see the
+[adapter capability table](/docs/ai-sdk-harnesses/harness-adapters#adapter-capabilities).
+
 ## Lifecycle Callbacks
 
 Configure lifecycle callbacks on `HarnessAgent` to observe agent calls, model

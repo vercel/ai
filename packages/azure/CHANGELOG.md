@@ -1,5 +1,41 @@
 # @ai-sdk/azure
 
+## 4.0.109
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/deepseek@3.0.72
+  - @ai-sdk/openai@4.0.101
+
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+  - @ai-sdk/openai@4.0.100
+  - @ai-sdk/deepseek@3.0.71
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.107
+
+### Patch Changes
+
+- 7b4ad47: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [df6fe35]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai@4.0.99
+  - @ai-sdk/deepseek@3.0.70
+
 ## 4.0.106
 
 ### Patch Changes

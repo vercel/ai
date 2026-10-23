@@ -2465,7 +2465,7 @@ class DefaultStreamTextResult<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
           const {
-            executionTools: stepExecutionTools,
+            executionTools,
             modelTools: stepModelTools,
             toolCallerMessages,
           } = prepareToolsForToolCallers({
@@ -2495,6 +2495,8 @@ class DefaultStreamTextResult<
           const stepToolChoice = prepareToolChoice({
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
+          const stepExecutionTools =
+            stepToolChoice.type === 'none' ? undefined : executionTools;
 
           const stepMessages = appendToolCallerMessages({
             messages: prepareStepResult?.messages ?? stepInputMessages,
@@ -3215,6 +3217,7 @@ class DefaultStreamTextResult<
                   cleanupStepTimeouts();
 
                   if (
+                    stepFinishReason !== 'interrupted' &&
                     // Continue only after all client tool calls have been executed or denied,
                     // and if there are client results or pending deferred provider results.
                     clientToolCalls.length ===

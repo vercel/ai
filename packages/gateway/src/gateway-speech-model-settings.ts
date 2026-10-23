@@ -9,6 +9,7 @@ export type GatewaySpeechModelId =
   | 'microsoft/mai-voice-2-flash'
   | 'microsoft/mai-voice-2.1'
   | 'microsoft/mai-voice-2.1-flash'
+  | 'mistral/voxtral-mini-tts-3'
   | 'openai/tts-1'
   | 'openai/tts-1-hd'
   | 'spacexai/grok-tts'

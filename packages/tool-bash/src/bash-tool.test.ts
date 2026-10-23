@@ -192,13 +192,79 @@ describe('createBashTool', () => {
     expect(write).not.toHaveBeenCalled();
   });
 
-  it('propagates an aborted command', async () => {
-    const bash = await createBashTool({ sandbox: await createSandbox() });
+  it.each([undefined, 1_000])(
+    'propagates an aborted command with timeout %s',
+    async timeout => {
+      const bash = await createBashTool({
+        sandbox: await createSandbox(),
+        timeout,
+      });
+      const controller = new AbortController();
+      controller.abort(new Error('Cancelled'));
+      await expect(
+        bash.execute(
+          { command: 'echo hello' },
+          {
+            toolCallId: 'test-call',
+            messages: [],
+            context: {},
+            abortSignal: controller.signal,
+          },
+        ),
+      ).rejects.toThrow('Cancelled');
+    },
+  );
+
+  it.each([false, true])(
+    'times out commands with a caller signal: %s',
+    async withCallerSignal => {
+      const sandbox = await createSandbox();
+      const bash = await createBashTool({ sandbox, timeout: 50 });
+      const controller = new AbortController();
+
+      const result = await bash.execute(
+        { command: 'sleep 1; echo finished > marker.txt' },
+        {
+          toolCallId: 'test-call',
+          messages: [],
+          context: {},
+          abortSignal: withCallerSignal ? controller.signal : undefined,
+        },
+      );
+
+      expect(result).toEqual({ stdout: '', stderr: '', exitCode: 124 });
+      expect(await sandbox.readTextFile({ path: 'marker.txt' })).toBeNull();
+      expect(controller.signal.aborted).toBe(false);
+
+      // Each execution gets a fresh timeout, even after a previous one expires.
+      expect(await execute(bash, 'echo hello')).toEqual({
+        stdout: 'hello\n',
+        stderr: '',
+        exitCode: 0,
+      });
+    },
+  );
+
+  it('preserves caller cancellation before the timeout expires', async () => {
+    const sandbox = await createSandbox();
     const controller = new AbortController();
-    controller.abort(new Error('Cancelled'));
+    const reason = new Error('Cancelled by caller');
+    vi.spyOn(sandbox, 'run').mockImplementation(async ({ abortSignal }) => {
+      const aborted = new Promise<never>((_, reject) => {
+        abortSignal!.addEventListener(
+          'abort',
+          () => reject(abortSignal!.reason),
+          { once: true },
+        );
+      });
+      controller.abort(reason);
+      return aborted;
+    });
+    const bash = await createBashTool({ sandbox, timeout: 1_000 });
+
     await expect(
       bash.execute(
-        { command: 'echo hello' },
+        { command: 'sleep 1' },
         {
           toolCallId: 'test-call',
           messages: [],
@@ -206,8 +272,23 @@ describe('createBashTool', () => {
           abortSignal: controller.signal,
         },
       ),
-    ).rejects.toThrow('Cancelled');
+    ).rejects.toBe(reason);
   });
+
+  it.each([0, -1, 1.5, NaN, Infinity, 2_147_483_648])(
+    'rejects an invalid timeout before changing the session: %s',
+    async timeout => {
+      const sandbox = await createSandbox();
+      const run = vi.spyOn(sandbox, 'run');
+      await expect(
+        createBashTool({ sandbox, workingDirectory: '/app', timeout }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'timeout',
+      });
+      expect(run).not.toHaveBeenCalled();
+    },
+  );
 
   it('executes pipelines against existing files and exposes generated files', async () => {
     const sandbox = await createSandbox();

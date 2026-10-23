@@ -53,13 +53,7 @@ import {
   type ACPClientApp,
 } from '../acp-auth';
 import type { ACPToolCall } from '../acp-tool-call';
-import {
-  createACPV1Implementation,
-  createImplementationIdentity,
-  resolveImplementationEnvironment,
-  validateACPV1Implementation,
-} from './implementation';
-import { createACPBootstrap } from './acp-v1-bootstrap';
+import { createACPBootstrap, resolveACPAgentLaunch } from './acp-v1-bootstrap';
 import {
   outboundMessageSchema,
   type ACPBuiltinToolMapping,
@@ -76,24 +70,27 @@ import {
   createACPTurnStartConfig,
 } from './acp-v1-turn-start-config';
 import {
+  createACPAgentIdentity,
   resolveACPInitialGuidanceApplied,
   validateACPLifecycleCompatibility,
   type ACPLifecycleData,
 } from './acp-v1-lifecycle';
 import {
-  convertHarnessPromptToACPTextBlocks,
+  convertHarnessPromptToACPContentBlocks,
   prependACPInstructionGuidance,
 } from './acp-v1-prompt';
-import type {
-  ACPAskUserQuestionsSettings,
-  ACPInstructionMapping,
-  ACPModelMapping,
-  ACPOutputSchemaMapping,
-  ACPPermissionModeMapping,
-  ACPPermissionModeTarget,
-  ACPProfileValue,
-  ACPSerializableValue,
-  ACPV1Settings,
+import {
+  resolveACPAgentEnvironment,
+  validateACPV1Settings,
+  type ACPAskUserQuestionsSettings,
+  type ACPInstructionMapping,
+  type ACPModelMapping,
+  type ACPOutputSchemaMapping,
+  type ACPPermissionModeMapping,
+  type ACPPermissionModeTarget,
+  type ACPProfileValue,
+  type ACPSerializableValue,
+  type ACPV1Settings,
 } from './acp-v1-settings';
 import {
   ACP_SKILL_NAME_PATTERN,
@@ -102,8 +99,6 @@ import {
   resolveACPSkillsDirectory,
   validateACPSkills,
 } from './acp-v1-skills';
-
-const HARNESS_ID_REGEXP = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type ACPChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 
@@ -146,35 +141,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
   >;
 }): HarnessV1<TBuiltinTools> {
-  if (
-    (settings.credentialEnv == null) !==
-    (settings.credentialBrokering == null)
-  ) {
-    throw new Error(
-      'ACP credentialEnv and credentialBrokering must be configured together.',
-    );
-  }
-  if (
-    settings.mcpServers != null &&
-    Object.prototype.hasOwnProperty.call(
-      settings.mcpServers,
-      'ai-sdk-harness-tools',
-    )
-  ) {
-    throw new Error(
-      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
-    );
-  }
-  if (!HARNESS_ID_REGEXP.test(settings.harnessId)) {
-    throw new Error(
-      `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
-    );
-  }
-  const implementation = createACPV1Implementation({ settings });
-  validateACPV1Implementation(implementation);
+  validateACPV1Settings({ settings });
   const bootstrap = createACPBootstrap({
     harnessId: settings.harnessId,
-    implementation,
+    source: settings.source,
   });
   const permissionModeMapping = isCompletePermissionModeMapping({
     value: settings.permissionModeMapping,
@@ -216,16 +186,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           env: authenticationEnvironment,
         });
-      const implementationIdentity = createImplementationIdentity({
-        harnessId: settings.harnessId,
-        acpVersion: 'v1',
-        implementation,
+      const agentIdentity = createACPAgentIdentity({
+        settings,
         clientApp,
-        clientCapabilities: settings.clientCapabilities,
-        modelMapping: settings.modelMapping,
         providerAuthentication: providerAuthenticationCompatibility,
-        permissionModeMapping: settings.permissionModeMapping,
-        nonTextContentTypes: settings.nonTextContentTypes,
       });
       const authenticationProfile = createACPAuthenticationProfileIdentity({
         authentication: settings.authentication,
@@ -270,18 +234,18 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         validateACPLifecycleCompatibility({
           harnessId: settings.harnessId,
           lifecycleHarnessId: lifecycleState.harnessId,
-          implementationIdentity,
+          agentIdentity,
           authenticationProfile,
           lifecycleData,
           sandboxId,
         });
       }
-      const implementationEnvironment = resolveImplementationEnvironment({
-        implementation,
+      const agentEnvironment = resolveACPAgentEnvironment({
+        settings,
         env: { ...env, ...authenticationEnvironment },
         credentialEnv: authenticationEnvironment,
       });
-      let sandboxImplementationEnvironment = implementationEnvironment;
+      let sandboxAgentEnvironment = agentEnvironment;
       let sandboxProviderAuthenticationEnvironment =
         resolvedProviderAuthentication.env;
       let sandboxProviderEnvironment: Record<string, string> | undefined;
@@ -315,7 +279,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           clientApp,
         });
         const brokeringEnvironment = {
-          ...implementationEnvironment,
+          ...agentEnvironment,
           ...providerEnvironment,
         };
         sandboxCredentialEnvironment =
@@ -327,13 +291,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             previousSandboxCredentialEnvironment:
               lifecycleData?.sandboxCredentialEnvironment,
           });
-        sandboxImplementationEnvironment = {
+        sandboxAgentEnvironment = {
           ...brokeringEnvironment,
           ...sandboxCredentialEnvironment,
         };
         const requestTransformations = settings.credentialBrokering({
           env: brokeringEnvironment,
-          sandboxEnv: sandboxImplementationEnvironment,
+          sandboxEnv: sandboxAgentEnvironment,
           ...(startOptions.headers == null
             ? {}
             : { headers: startOptions.headers }),
@@ -361,8 +325,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         });
       }
       if (sandboxProviderEnvironment != null) {
-        sandboxImplementationEnvironment = {
-          ...sandboxImplementationEnvironment,
+        sandboxAgentEnvironment = {
+          ...sandboxAgentEnvironment,
           ...sandboxProviderEnvironment,
         };
         sandboxProviderAuthenticationEnvironment = Object.fromEntries(
@@ -384,20 +348,22 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         stateDirectory,
         bootstrap.bootstrapDir,
       );
-      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
+      const agentLaunch = resolveACPAgentLaunch({
+        bootstrapDirectory: resolvedBridgeDir,
+        source: settings.source,
+        executable: settings.executable,
+        args: settings.args,
+      });
       const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
         stateDirectory,
         sessionId: startOptions.sessionId,
       });
-      const implementationHomeDir =
-        implementation.source.type === 'install-command'
-          ? `${resolvedImplementationDir}/home`
-          : sandboxHomeDir;
+      const agentHomeDir = agentLaunch.home ?? sandboxHomeDir;
       const skillsDir =
         settings.skillsDirectory ?? DEFAULT_ACP_SKILLS_DIRECTORY;
       const skillsDirectory = resolveACPSkillsDirectory({
-        implementationHomeDir,
+        agentHomeDir,
         skillsDirectory: settings.skillsDirectory,
       });
       const bridgeStateDir = `${privateSessionDir}/bridge`;
@@ -463,7 +429,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               outputSchemaMapping: settings.outputSchemaMapping,
               askUserQuestions: settings.askUserQuestions,
               debug: startOptions.observability?.debug,
-              implementationIdentity,
+              agentIdentity,
               authenticationProfile,
               builtinTools: builtinToolCatalog,
               permissionMode,
@@ -476,7 +442,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               }),
               instructionsFingerprint: lifecycleData.instructionsFingerprint,
               sandbox: toolSafeSandboxSession,
-              homePath: implementationHomeDir,
+              homePath: agentHomeDir,
               skillsDir,
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
@@ -571,26 +537,26 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
       }
 
-      const forwardedImplementationEnvironment =
+      const forwardedAgentEnvironment =
         sandboxCredentialEnvironment == null
           ? await applyCredentialForwarding({
-              environment: sandboxImplementationEnvironment,
+              environment: sandboxAgentEnvironment,
               credentialEnvironmentVariables:
                 credentialForwardingEnvironmentVariables,
               credentialForwarding: settings.credentialForwarding,
             })
-          : sandboxImplementationEnvironment;
+          : sandboxAgentEnvironment;
       if (
         settings.credentialBrokering != null &&
         sandboxCredentialEnvironment == null
       ) {
         warnCredentialBrokeringUnavailable({
           environment: {
-            ...sandboxImplementationEnvironment,
+            ...sandboxAgentEnvironment,
             ...resolvedProviderAuthentication.env,
           },
           forwardedEnvironment: {
-            ...forwardedImplementationEnvironment,
+            ...forwardedAgentEnvironment,
             ...sandboxProviderAuthenticationEnvironment,
           },
           credentialEnvironmentVariables: [
@@ -601,11 +567,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       await writeACPAuthenticationFiles({
         sandbox: toolSafeSandboxSession,
-        homePath: implementationHomeDir,
+        homePath: agentHomeDir,
         files:
           settings.authenticationFiles?.({
-            env: implementationEnvironment,
-            sandboxEnv: forwardedImplementationEnvironment,
+            env: agentEnvironment,
+            sandboxEnv: forwardedAgentEnvironment,
             credentialBrokeringAvailable: sandboxCredentialEnvironment != null,
           }) ?? [],
         abortSignal: startOptions.abortSignal,
@@ -635,11 +601,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           `node ${shellQuote(`${resolvedBridgeDir}/bridge.mjs`)}` +
           ` --workdir ${shellQuote(workDir)}` +
           ` --bridge-state-dir ${shellQuote(bridgeStateDir)}` +
-          ` --implementation-dir ${shellQuote(resolvedImplementationDir)}` +
           ` --bridge-type ${shellQuote(settings.harnessId)}`,
         env: {
-          ...forwardedImplementationEnvironment,
+          ...forwardedAgentEnvironment,
           ...createACPBridgeEnvironment({
+            agent: agentLaunch,
             authentication: settings.authentication,
             providerAuthentication:
               resolvedProviderAuthentication.providerAuthentication,
@@ -771,7 +737,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         outputSchemaMapping: settings.outputSchemaMapping,
         askUserQuestions: settings.askUserQuestions,
         debug: startOptions.observability?.debug,
-        implementationIdentity,
+        agentIdentity,
         authenticationProfile,
         builtinTools: builtinToolCatalog,
         permissionMode,
@@ -784,7 +750,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }),
         instructionsFingerprint: lifecycleData?.instructionsFingerprint,
         sandbox: toolSafeSandboxSession,
-        homePath: implementationHomeDir,
+        homePath: agentHomeDir,
         skillsDir,
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
@@ -1165,7 +1131,7 @@ function createSession({
   outputSchemaMapping,
   askUserQuestions,
   debug,
-  implementationIdentity,
+  agentIdentity,
   authenticationProfile,
   builtinTools,
   permissionMode,
@@ -1202,7 +1168,7 @@ function createSession({
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
   askUserQuestions: ACPAskUserQuestionsSettings | undefined;
   debug: HarnessV1DebugConfig | undefined;
-  implementationIdentity: string;
+  agentIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
@@ -1653,7 +1619,7 @@ function createSession({
     bridge?: ACPLifecycleData['bridge'];
     includeTurnStartConfig?: boolean;
   }): ACPLifecycleData => ({
-    implementationIdentity,
+    agentIdentity,
     authenticationProfile,
     ...(sandboxCredentialEnvironment == null
       ? {}
@@ -1756,7 +1722,7 @@ function createSession({
           new DOMException('Aborted', 'AbortError')
         );
       }
-      const prompt = convertHarnessPromptToACPTextBlocks({
+      const prompt = convertHarnessPromptToACPContentBlocks({
         prompt: options.prompt,
         harnessId,
       });

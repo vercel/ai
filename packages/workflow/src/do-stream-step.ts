@@ -354,6 +354,7 @@ async function streamModelStep(
           });
           break;
         case 'source':
+        case 'custom':
           content.push(part);
           break;
         case 'tool-approval-request':

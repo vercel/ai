@@ -63,10 +63,10 @@ try {
 - `harnessId`: stable kebab-case identity for this profile.
 - `version`: ACP protocol version. It defaults to and currently supports only
   `'v1'`.
-- `source`: how to acquire the ACP implementation, as a simple NPM package,
-  locked NPM installation, or trusted Bash install command.
+- `source`: how to acquire the ACP agent, as a locked NPM installation or a
+  trusted Bash install command.
 - `executable`: the bare command name to launch from the acquired
-  implementation.
+  agent.
 - `args`: optional arguments passed to the executable.
 - `forwardEnv`: non-credential host environment variable names to forward into
   the sandbox.
@@ -96,9 +96,14 @@ try {
   `agentCapabilities.mcpCapabilities.http`.
 - `authentication`: advertised ACP authentication method, metadata, and client
   capabilities.
-- `nonTextContentTypes`: non-text tool model output the implementation can
-  deliver to the model. Currently accepts `['image']`. Text is always supported.
-  Defaults to an empty list; undeclared images are omitted with a warning.
+- `nonTextContentTypes`: non-text image content supported across ACP prompts
+  and tool model output. Currently accepts `['image']`. Image prompts are
+  supported when the agent advertises
+  `agentCapabilities.promptCapabilities.image` or this setting includes
+  `'image'`; the setting can opt in when that capability flag is absent or
+  incorrect. Image content from tool `toModelOutput()` callbacks is delivered
+  only when this setting includes `'image'`; otherwise it is omitted with a
+  warning. Defaults to an empty list.
 - `auth`: downstream provider authentication mode:
   - `auto` (default): use AI Gateway when Gateway credentials and a
     `providerAuthentication` configuration are available; otherwise use direct
@@ -167,8 +172,8 @@ implementations with a private prompt metadata extension can opt in explicitly:
 const harness = createACP({
   harnessId: 'example-acp',
   source: {
-    type: 'npm-simple',
-    packageName: '@example/acp-agent',
+    type: 'install-command',
+    command: 'curl -fsSL https://example.com/install.sh | bash',
   },
   executable: 'example-acp',
   modelMapping: {
@@ -188,27 +193,10 @@ mapping throws `HarnessCapabilityUnsupportedError` instead of assuming that an
 arbitrary ACP implementation understands the schema; Codex ACP is unsupported,
 while the Grok Build harness includes its verified mapping.
 
-### Implementation source
+### Agent source
 
-A simple NPM source installs a single package by name:
-
-```ts
-const source = {
-  type: 'npm-simple',
-  packageName: '@agentclientprotocol/codex-acp',
-  packageVersion: '1.1.4',
-} as const;
-```
-
-`packageVersion` is optional and must be an exact version when supplied. Omit it
-to install the package's `latest` dist-tag instead. An omitted version also
-stays out of the harness identity, so a new upstream release does not
-invalidate existing lifecycle state.
-
-A simple source pins only the requested ACP package, while its transitive
-dependencies are resolved when the sandbox bootstraps. To freeze the complete
-installation, use a locked source and provide the contents of a `package.json`
-and its `pnpm-lock.yaml`:
+A locked source freezes the complete installation. Provide the contents of a
+`package.json` and its `pnpm-lock.yaml`:
 
 ```ts
 const source = {
@@ -224,12 +212,15 @@ A locked source installs the supplied files with
 when the locked installation needs workspace-level pnpm configuration, such as
 an exact-version `allowBuilds` policy for a required dependency build script.
 
+The locked `package.json` must also declare every dependency of the
+`@ai-sdk/harness-acp` bridge manifest (`dist/bridge/package.json`) at the same
+versions.
+
 The manifest, lockfile, and optional workspace configuration are persisted
 bootstrap artifacts and participate in lifecycle identity. Do not include
 credentials in these strings.
 
-An install command source runs a trusted Bash command inside the harness's
-deterministic bootstrap directory:
+An install command source runs a trusted Bash command:
 
 ```ts
 const cursorSource = {
@@ -243,10 +234,9 @@ const fxSource = {
 } as const;
 ```
 
-The command runs with `set -euo pipefail`, with its working directory set to
-`.harness-bootstrap/<harnessId>/implementation` and `HOME` set to the `home`
-directory immediately below it. All persistent installation files must remain
-below that `HOME`. The command must install `executable` into
+The command runs with `set -euo pipefail` and a private `HOME`. All persistent
+installation files must remain below that `HOME`. The command must install
+`executable` into
 `$HOME/.local/bin`; the adapter launches that deterministic path without a
 shell and does not fall back to a command already present in the sandbox.
 
@@ -360,99 +350,13 @@ Unless noted otherwise, these profiles support direct authentication through
 the runtime-specific environment variables shown below and AI Gateway
 authentication through `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN`.
 
-### Claude Code ACP
-
-Claude Code accepts the Anthropic-compatible Gateway root URL without `/v1`.
-This profile uses the runtime's supported launch environment:
-
-```ts
-import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-
-export const claudeCodeACPHarness = createACP({
-  harnessId: 'acp-claude-code',
-  // Define the runtime's built-in tool names and input schemas to expose
-  // provider-executed calls as typed HarnessAgent tools.
-  // builtinTools: { ... },
-  source: {
-    type: 'npm-simple',
-    packageName: '@agentclientprotocol/claude-agent-acp',
-    packageVersion: '0.61.0',
-  },
-  executable: 'claude-agent-acp',
-  modelMapping: {
-    type: 'session-config-option',
-    path: 'model',
-  },
-  skillsDirectory: '.claude/skills',
-  credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-  credentialBrokering: ({ env, sandboxEnv }) => {
-    const apiKey = env.ANTHROPIC_API_KEY;
-    const authToken = env.ANTHROPIC_AUTH_TOKEN;
-    const sandboxApiKey = sandboxEnv?.ANTHROPIC_API_KEY;
-    const sandboxAuthToken = sandboxEnv?.ANTHROPIC_AUTH_TOKEN;
-    if (!apiKey && !authToken) return [];
-
-    const transformations = [];
-    if (apiKey && sandboxApiKey) {
-      transformations.push(
-        createCredentialRequestTransformation({
-          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-          matchHeaders: { 'x-api-key': sandboxApiKey },
-          transformHeaders: { 'x-api-key': apiKey },
-        }),
-      );
-    }
-    if (authToken && sandboxAuthToken) {
-      transformations.push(
-        createCredentialRequestTransformation({
-          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-          matchHeaders: {
-            Authorization: `Bearer ${sandboxAuthToken}`,
-          },
-          transformHeaders: { Authorization: `Bearer ${authToken}` },
-        }),
-      );
-    }
-    return transformations;
-  },
-  env: {
-    IS_SANDBOX: '1',
-  },
-  instructionMapping: {
-    type: 'session-meta',
-    path: ['systemPrompt', 'append'],
-  },
-  permissionModeMapping: {
-    'allow-reads': { type: 'session-mode', modeId: 'default' },
-    'allow-edits': { type: 'session-mode', modeId: 'acceptEdits' },
-    'allow-all': { type: 'session-mode', modeId: 'bypassPermissions' },
-  } as const satisfies ACPPermissionModeMapping,
-  providerAuthentication: {
-    gateway: {
-      env: {
-        ANTHROPIC_API_KEY: { $source: 'gateway-api-key' },
-        ANTHROPIC_AUTH_TOKEN: { $source: 'gateway-api-key' },
-        ANTHROPIC_BASE_URL: { $source: 'gateway-base-url' },
-        CLAUDE_AGENT_SDK_CLIENT_APP: { $source: 'client-app' },
-      },
-    },
-  },
-});
-```
-
-Without Gateway credentials, this profile uses direct
-`ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` authentication. The
-Gateway environment supplies versioned attribution through Claude's supported
-`CLAUDE_AGENT_SDK_CLIENT_APP` setting. `IS_SANDBOX` allows Claude Code ACP to
-advertise `bypassPermissions` when the sandbox process runs as root.
-
 ### Codex ACP
 
 Codex ACP accepts an API key and JSON session configuration through its launch
 environment. Its OpenAI-compatible endpoint must end in `/v1`:
 
 ```ts
+import { readFileSync } from 'node:fs';
 import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
@@ -464,9 +368,15 @@ export const codexACPHarness = createACP({
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
   source: {
-    type: 'npm-simple',
-    packageName: '@agentclientprotocol/codex-acp',
-    packageVersion: '1.1.4',
+    type: 'npm-locked',
+    packageJson: readFileSync(
+      new URL('./codex-acp/package.json', import.meta.url),
+      'utf8',
+    ),
+    pnpmLockYaml: readFileSync(
+      new URL('./codex-acp/pnpm-lock.yaml', import.meta.url),
+      'utf8',
+    ),
   },
   executable: 'codex-acp',
   modelMapping: {
@@ -637,9 +547,9 @@ export const grokBuildACPHarness = createACP({
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
   source: {
-    type: 'npm-simple',
-    packageName: '@xai-official/grok',
-    packageVersion: '0.2.111',
+    type: 'install-command',
+    command:
+      'curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="$HOME/.local/bin" bash',
   },
   executable: 'grok',
   args: ['agent', 'stdio'],

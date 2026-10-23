@@ -1,5 +1,37 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- 8effb13: feat(harness-deepagents): add support for image input
+  - @ai-sdk/harness@1.0.158
+
 ## 1.0.157
 
 ### Patch Changes

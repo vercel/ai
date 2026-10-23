@@ -1,5 +1,46 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.75
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+  - @ai-sdk/harness-acp@1.0.100
+
+## 1.0.74
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+  - @ai-sdk/harness-acp@1.0.99
+
+## 1.0.73
+
+### Patch Changes
+
+- 1f68635: feat(harness-acp): remove implementation layer in favor of unifying as a single bridge `package.json` for concrete harness plus ACP foundation
+- Updated dependencies [b089ce8]
+- Updated dependencies [1f68635]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness-acp@1.0.98
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.72
+
+### Patch Changes
+
+- Updated dependencies [6993e42]
+  - @ai-sdk/harness-acp@1.0.97
+  - @ai-sdk/harness@1.0.158
+
 ## 1.0.71
 
 ### Patch Changes

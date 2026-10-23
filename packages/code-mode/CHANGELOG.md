@@ -1,5 +1,35 @@
 # @ai-sdk/code-mode
 
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 1.0.106
+
+### Patch Changes
+
+- d0063af: feat(code-mode): add `executionPolicy.cpuTimeoutMs` to bound CPU time spent running sandboxed code, and throw `CodeModeCpuTimeoutError` when it is exceeded
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
+## 1.0.105
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
 ## 1.0.103
 
 ### Patch Changes

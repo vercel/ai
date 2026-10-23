@@ -1,5 +1,38 @@
 # @ai-sdk/harness-acp
 
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.98
+
+### Patch Changes
+
+- 1f68635: feat(harness-acp): remove implementation layer in favor of unifying as a single bridge `package.json` for concrete harness plus ACP foundation
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.97
+
+### Patch Changes
+
+- 6993e42: feat(harness-acp): add support for image input
+  - @ai-sdk/harness@1.0.158
+
 ## 1.0.96
 
 ### Patch Changes

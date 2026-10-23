@@ -18,17 +18,11 @@ import { VERSION } from './version';
 import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
 import { grokBuildAskUserQuestions } from './grok-build-question-tool';
 
-declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
-declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
-declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
+declare const __GROK_BUILD_BRIDGE_PACKAGE_JSON__: string;
+declare const __GROK_BUILD_BRIDGE_PNPM_LOCK_YAML__: string;
+declare const __GROK_BUILD_BRIDGE_PNPM_WORKSPACE_YAML__: string;
 
 const GROK_BUILD_CLIENT_APP = `ai-sdk-harness-grok-build/${VERSION}`;
-const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
-  __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
-const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
-  __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
-const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
-  __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 
 export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
 
@@ -91,7 +85,7 @@ export type GrokBuildHarnessSettings = {
 /*
  * Tool names and inputs were captured from the model request produced by
  * @xai-official/grok 0.2.111, the version used by the pinned Grok Build ACP
- * implementation.
+ * agent.
  */
 const GROK_BUILD_BUILTIN_TOOLS = {
   askUserQuestions: HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
@@ -332,9 +326,9 @@ export function createGrokBuild(
     },
     source: {
       type: 'npm-locked',
-      packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
-      pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
-      pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE,
+      packageJson: __GROK_BUILD_BRIDGE_PACKAGE_JSON__,
+      pnpmLockYaml: __GROK_BUILD_BRIDGE_PNPM_LOCK_YAML__,
+      pnpmWorkspaceYaml: __GROK_BUILD_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'grok',
     args: [

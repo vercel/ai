@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertToBase64,
@@ -684,33 +686,38 @@ function validateLiveInputAudioFormat(
   }
 }
 
-const googleInteractionsWordAnnotationSchema = z.object({
-  type: z.string().nullish(),
-  text: z.string().nullish(),
-  speaker: z.string().nullish(),
-  start_offset: z.string().nullish(),
-  end_offset: z.string().nullish(),
-});
+const googleInteractionsWordAnnotationSchema = () =>
+  z.object({
+    type: z.string().nullish(),
+    text: z.string().nullish(),
+    speaker: z.string().nullish(),
+    start_offset: z.string().nullish(),
+    end_offset: z.string().nullish(),
+  });
 
-const googleInteractionsTranscriptionResponseSchema = z.object({
-  status: z.string().nullish(),
-  steps: z
-    .array(
-      z.object({
-        type: z.string().nullish(),
-        content: z
-          .array(
-            z.object({
-              type: z.string().nullish(),
-              text: z.string().nullish(),
-              annotations: z
-                .array(googleInteractionsWordAnnotationSchema)
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-  usage: z.record(z.string(), z.json()).nullish(),
-});
+const googleInteractionsTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      steps: z
+        .array(
+          z.object({
+            type: z.string().nullish(),
+            content: z
+              .array(
+                z.object({
+                  type: z.string().nullish(),
+                  text: z.string().nullish(),
+                  annotations: z
+                    .array(googleInteractionsWordAnnotationSchema())
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+      usage: z.record(z.string(), z.json()).nullish(),
+    }),
+  ),
+);
