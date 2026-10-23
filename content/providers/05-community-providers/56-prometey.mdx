@@ -1,0 +1,173 @@
+---
+title: Prometey
+description: Prometey provider for the AI SDK
+---
+
+# Prometey
+
+[Prometey](https://github.com/FifthWye/prometey) is an open-source, self-hosted AI gateway that lets your users bring their own AI. Users connect their free tiers and their own API keys once, approve your app with a "Connect Prometey" button (OAuth with PKCE, no registration needed), and your app's requests run on their providers. Prometey's router picks a model for each request and falls back when one is rate-limited.
+
+The Prometey provider is a good fit if you want:
+
+- **No AI bill for your app**: requests run on your users' own providers
+- **Automatic model choice**: `auto` routes each request to a suitable model
+- **Declared needs instead of model names**: ask for vision, tools, JSON output or long context, and Prometey only routes to models that can do it
+- **Embeddings and images** through the same provider
+
+## Setup
+
+The Prometey provider is available in the `prometey-ai-sdk` module. You can install it with:
+
+<InstallPackages packages="prometey-ai-sdk" />
+
+## Provider Instance
+
+Create a provider instance with `createPrometey`, pointing it at a Prometey server and passing the user's token:
+
+```ts
+import { createPrometey } from 'prometey-ai-sdk';
+
+const prometey = createPrometey({
+  baseURL: 'https://your-prometey-server.example',
+  apiKey: userToken,
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **baseURL** _string_
+
+  The Prometey server, with or without `/v1`.
+
+- **apiKey** _string | (() => string | null | Promise&lt;string | null&gt;) | &#123; getToken(): ... &#125;_
+
+  The user's token from "Connect Prometey", or an API key from the Prometey dashboard for your own scripts. A function is called before each request. A connected `Prometey` client from [`prometey-sdk`](https://www.npmjs.com/package/prometey-sdk) can be passed directly; its current token is used. Without a token, calls throw `PrometeyNotConnectedError` before any network request.
+
+- **requires** _object_
+
+  What your features need, applied to every request: `vision`, `tools`, `json`, `min_context` (tokens) and `quality` (`'fast' | 'balanced' | 'best'`).
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Getting the User's Token
+
+In the browser, users connect with [`prometey-sdk`](https://www.npmjs.com/package/prometey-sdk) (or [`prometey-react`](https://www.npmjs.com/package/prometey-react) for a `<ConnectPrometey />` button). Pass the connected client as `apiKey`:
+
+```ts
+import { Prometey } from 'prometey-sdk';
+import { createPrometey } from 'prometey-ai-sdk';
+
+const client = new Prometey({
+  baseUrl: 'https://your-prometey-server.example',
+});
+
+if (!(await client.ready())) {
+  await client.connect(); // the user approves and comes back to this page
+}
+
+const prometey = createPrometey({ baseURL: client.baseUrl, apiKey: client });
+```
+
+Command-line and desktop apps can get a token with device sign-in (`signInWithDevice` from `prometey-sdk`).
+
+## Language Models
+
+Create a model with the provider instance:
+
+```ts
+const model = prometey('auto');
+```
+
+| Model ID             | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `auto`               | The best model for each request among the user's providers    |
+| `auto:fast`          | Prefers fast models                                           |
+| `auto:best`          | Prefers the strongest models                                  |
+| `auto:cascade`       | A fast model first, a stronger one if the answer looks weak   |
+| `auto:<task>`        | The best model for a task, for example `auto:code:generation` |
+| `<provider>/<model>` | An exact model on one of the user's providers                 |
+
+### Example
+
+```ts
+import { createPrometey } from 'prometey-ai-sdk';
+import { generateText } from 'ai';
+
+const prometey = createPrometey({
+  baseURL: 'https://your-prometey-server.example',
+  apiKey: process.env.PROMETEY_TOKEN,
+});
+
+const { text, providerMetadata } = await generateText({
+  model: prometey('auto'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+console.log(providerMetadata?.prometey); // { provider, model, requestId }
+```
+
+Streaming works the same way with `streamText`:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: prometey('auto:fast'),
+  prompt: 'Explain quantum entanglement in two sentences.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Declaring What Your App Needs
+
+```ts
+const prometey = createPrometey({
+  baseURL: 'https://your-prometey-server.example',
+  apiKey: userToken,
+  requires: { vision: true, json: true, quality: 'best' },
+});
+```
+
+Prometey then only routes to models that support images and structured output, preferring the strongest ones.
+
+### Provider Metadata
+
+`providerMetadata.prometey` reports which provider and model answered (`provider`, `model` and `requestId` for non-streaming calls, and `model` for streaming).
+
+## Embedding Models
+
+```ts
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: prometey.embeddingModel('nemotron-3-embed-1b'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Image Models
+
+```ts
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: prometey.imageModel('auto'),
+  prompt: 'A lighthouse at dusk, watercolor',
+});
+```
+
+## Additional Resources
+
+- [Prometey on GitHub](https://github.com/FifthWye/prometey)
+- [`prometey-ai-sdk` on npm](https://www.npmjs.com/package/prometey-ai-sdk)
+- [Developer guide](https://github.com/FifthWye/prometey/blob/main/docs/developers.md)
