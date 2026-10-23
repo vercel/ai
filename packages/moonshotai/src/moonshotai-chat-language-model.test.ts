@@ -493,73 +493,6 @@ describe('doGenerate', () => {
       expect(requestBody.reasoning_effort).toBe('max');
     });
 
-<<<<<<< HEAD
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
-=======
-    it('should map generic reasoning levels to reasoning_effort', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'low',
-      });
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'low',
-      );
-
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'xhigh',
-      });
-      expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
-        'max',
-      );
-
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'max',
-      });
-      expect((await server.calls[2].requestBodyJson).reasoning_effort).toBe(
-        'max',
-      );
-    });
-
-    it('should prefer explicit reasoningEffort over generic reasoning', async () => {
-      await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'low',
-        providerOptions: {
-          moonshotai: { reasoningEffort: 'high' },
-        },
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
-      );
-    });
-
-    it('should warn and omit reasoning_effort for reasoning none', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
-      expect(result.warnings).toEqual([
-        {
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-          details: 'Kimi K3 reasoning cannot be disabled.',
-        },
-      ]);
-    });
-
     it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
       'should omit thinking for %s',
       async modelId => {
@@ -570,7 +503,6 @@ describe('doGenerate', () => {
               thinking: { type: 'disabled' },
               reasoningHistory: 'preserved',
             },
->>>>>>> a70667850f (feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed (#23886))
           },
         });
 
@@ -584,20 +516,6 @@ describe('doGenerate', () => {
               'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
           },
         ]);
-      },
-    );
-
-    it.each(['kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
-      'should map generic reasoning to reasoning_effort for %s',
-      async modelId => {
-        await provider.chatModel(modelId).doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'medium',
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'high',
-        );
       },
     );
 
