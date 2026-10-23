@@ -62,7 +62,7 @@ function augmentEvent<EVENT>(
       recordInputs: telemetry.recordInputs,
       recordOutputs: telemetry.recordOutputs,
       functionId: telemetry.functionId,
-      aiSdkVersion: VERSION,
+      ...(filterContext ? { aiSdkVersion: VERSION } : {}),
     },
   );
 
@@ -273,7 +273,10 @@ export function createTelemetryDispatcher({
       }
 
       return await runWithTracingChannelSpan(
-        { type: 'languageModelCall', event: augmentedEvent },
+        {
+          type: 'languageModelCall',
+          event: augmentEvent(event, telemetryMetadata, true),
+        },
         wrappedExecute,
       );
     },

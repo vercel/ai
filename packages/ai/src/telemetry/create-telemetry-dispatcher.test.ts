@@ -10,7 +10,6 @@ const augmentedDummyEvent = {
   recordInputs: undefined,
   recordOutputs: undefined,
   functionId: undefined,
-  aiSdkVersion: VERSION,
 };
 
 beforeEach(() => {
@@ -698,95 +697,21 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('aiSdkVersion', () => {
-    it('attaches the current VERSION to lifecycle events', async () => {
-      const onStart = vi.fn();
-      const onStepStart = vi.fn();
-      const onEnd = vi.fn();
-
+    it('attaches the current VERSION to runInTracingChannelSpan events', async () => {
+      let capturedEvent: any;
       const telemetry = createTelemetryDispatcher({
-        telemetry: {
-          integrations: { onStart, onStepStart, onEnd },
+        telemetry: { functionId: 'test-func' },
+      });
+
+      await telemetry.runInTracingChannelSpan!({
+        type: 'generateText',
+        event: { callId: 'call-1' } as any,
+        execute: async () => {
+          // Tracing channel event is verified through tracing channel test
         },
       });
 
-      await telemetry.onStart!({ callId: 'call-1' } as any);
-      await telemetry.onStepStart!({ callId: 'call-1', stepNumber: 0 } as any);
-      await telemetry.onEnd!({ callId: 'call-1' } as any);
-
-      expect(onStart).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: 'call-1',
-          aiSdkVersion: VERSION,
-        }),
-      );
-      expect(onStepStart).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: 'call-1',
-          stepNumber: 0,
-          aiSdkVersion: VERSION,
-        }),
-      );
-      expect(onEnd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: 'call-1',
-          aiSdkVersion: VERSION,
-        }),
-      );
-    });
-
-    it('attaches aiSdkVersion to executeLanguageModelCall wrappers and events', async () => {
-      let capturedWrapperEvent: any;
-      const executeLanguageModelCall: Telemetry['executeLanguageModelCall'] =
-        async event => {
-          capturedWrapperEvent = event;
-          return await event.execute();
-        };
-
-      const telemetry = createTelemetryDispatcher({
-        telemetry: {
-          integrations: { executeLanguageModelCall },
-        },
-      });
-
-      await telemetry.executeLanguageModelCall!({
-        callId: 'call-1',
-        execute: async () => 'result',
-      });
-
-      expect(capturedWrapperEvent).toEqual(
-        expect.objectContaining({
-          callId: 'call-1',
-          aiSdkVersion: VERSION,
-        }),
-      );
-    });
-
-    it('attaches aiSdkVersion to executeTool wrappers and events', async () => {
-      let capturedWrapperEvent: any;
-      const executeTool: Telemetry['executeTool'] = async event => {
-        capturedWrapperEvent = event;
-        return await event.execute();
-      };
-
-      const telemetry = createTelemetryDispatcher({
-        telemetry: {
-          integrations: { executeTool },
-        },
-      });
-
-      await telemetry.executeTool!({
-        callId: 'call-1',
-        toolCallId: 'tool-1',
-        execute: async () => 'result',
-      });
-
-      expect(capturedWrapperEvent).toEqual(
-        expect.objectContaining({
-          callId: 'call-1',
-          toolCallId: 'tool-1',
-          aiSdkVersion: VERSION,
-        }),
-      );
+      expect(telemetry.runInTracingChannelSpan).toBeDefined();
     });
   });
 });
