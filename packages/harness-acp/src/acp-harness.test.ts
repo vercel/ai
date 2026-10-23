@@ -21,13 +21,26 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
+  const state = { withholdHello: false };
 
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        if (!state.withholdHello) {
+          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        }
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -53,7 +66,7 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, WebSocket: FakeWebSocket };
+  return { calls, state, WebSocket: FakeWebSocket };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -64,7 +77,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -87,7 +103,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -105,6 +124,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       if (harnessUtilsMocks.connectOnOpen) {
         await this.options.connect({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
@@ -436,6 +456,7 @@ describe('createACP', () => {
     vi.clearAllMocks();
     vi.stubEnv('CODEX_API_KEY', 'test-key');
     harnessUtilsMocks.channels.length = 0;
+    webSocketMocks.state.withholdHello = false;
     harnessUtilsMocks.openErrors.length = 0;
     harnessUtilsMocks.nextSuspensionCursor = 0;
     harnessUtilsMocks.connectOnOpen = false;
@@ -1977,6 +1998,31 @@ describe('createACP', () => {
         sessionWorkDir: '/workspace/user-project',
       }),
     ).rejects.toThrow(/does not expose an id/);
+  });
+
+  it('waits for bridge-hello before a fresh bridge connection is established', async () => {
+    harnessUtilsMocks.connectOnOpen = true;
+    webSocketMocks.state.withholdHello = true;
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      startupTimeoutMs: 20,
+    });
+
+    await expect(
+      harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns: [],
+          stop: async () => {},
+          bridgePortEndpoint: { url: 'ws://unused.example' },
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      }),
+    ).rejects.toThrow(
+      'The harness bridge did not complete the WebSocket handshake within 20ms',
+    );
   });
 
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {

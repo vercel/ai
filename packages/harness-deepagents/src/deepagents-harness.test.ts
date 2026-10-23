@@ -13,7 +13,10 @@ const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
   connects: [] as Array<
-    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+    (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
 }));
@@ -23,13 +26,26 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
+  const state = { withholdHello: false };
 
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        if (!state.withholdHello) {
+          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        }
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -55,7 +71,7 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, WebSocket: FakeWebSocket };
+  return { calls, state, WebSocket: FakeWebSocket };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -67,7 +83,10 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       channelMocks.connects.push(connect);
@@ -77,6 +96,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       if (channelMocks.connectOnOpen) {
         await channelMocks.connects.at(-1)!({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
@@ -194,6 +214,7 @@ async function startTurn() {
 describe('createDeepAgents', () => {
   beforeEach(() => {
     channelMocks.connectOnOpen = false;
+    webSocketMocks.state.withholdHello = false;
     channelMocks.connects.length = 0;
     channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
@@ -611,6 +632,24 @@ describe('createDeepAgents', () => {
       }
     `);
     await session.doDestroy();
+  });
+
+  it('waits for bridge-hello before a fresh bridge connection is established', async () => {
+    channelMocks.connectOnOpen = true;
+    webSocketMocks.state.withholdHello = true;
+    const harness = createDeepAgents({ startupTimeoutMs: 20 });
+
+    await expect(
+      harness.doStart({
+        sessionId: 'test-session',
+        sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+        sandboxSession: fakeSandboxSession({
+          bridgePortEndpoint: { url: 'ws://unused.example' },
+        }),
+      }),
+    ).rejects.toThrow(
+      'The harness bridge did not complete the WebSocket handshake within 20ms',
+    );
   });
 
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {

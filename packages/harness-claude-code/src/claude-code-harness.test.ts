@@ -109,13 +109,17 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   class FakeSandboxChannel {
     private readonly connect: (options: {
       abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
 
     constructor({
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       this.connect = connect;
@@ -125,7 +129,10 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect({ abortSignal: new AbortController().signal });
+        await this.connect({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
     beginListenerAttachment(): () => void {
@@ -466,7 +473,7 @@ describe('createClaudeCode adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it('quotes dynamic startup paths in shell commands', async () => {
@@ -1095,6 +1102,51 @@ describe('createClaudeCode adapter', () => {
       expect(socket.url).toContain('agent_bridge_token=bridge-token');
     }
     await attachedSession.doDetach();
+  });
+
+  it('makes a single attempt when attaching and falls back to respawning', async () => {
+    connectOnOpen = true;
+    const openWithHello = (socket: {
+      emit: (event: string, ...args: unknown[]) => void;
+    }) => {
+      queueMicrotask(() => {
+        socket.emit('open');
+        socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    };
+    wsMock.scripts.push(
+      openWithHello,
+      socket => {
+        queueMicrotask(() => {
+          socket.emit('error', new Error('mock attach failure'));
+        });
+      },
+      openWithHello,
+    );
+    const harness = createClaudeCode({ mintBridgeToken: () => 'bridge-token' });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(wsMock.sockets).toHaveLength(3);
+    expect(wsMock.sockets[1].terminated).toBe(true);
+    expect(wsMock.sockets[2].terminated).toBe(false);
+    await resumedSession.doDetach();
   });
 
   it('does not set the client app for direct Anthropic auth', async () => {
@@ -1729,7 +1781,7 @@ describe('createClaudeCode adapter', () => {
       });
 
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge did not send bridge-hello',
+        'The harness bridge did not send bridge-hello',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
     });
@@ -1744,7 +1796,7 @@ describe('createClaudeCode adapter', () => {
       });
 
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge did not send bridge-hello within 5ms',
+        'The harness bridge did not send bridge-hello within 5ms.',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
     });
@@ -1759,7 +1811,7 @@ describe('createClaudeCode adapter', () => {
       });
 
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge closed before sending bridge-hello',
+        'before sending bridge-hello.',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
     });
@@ -1772,7 +1824,7 @@ describe('createClaudeCode adapter', () => {
       });
 
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'WebSocket open timed out after',
+        'The harness bridge WebSocket did not open within',
       );
       expect(wsMock.sockets[0].terminated).toBe(true);
     });
@@ -1786,7 +1838,7 @@ describe('createClaudeCode adapter', () => {
       });
 
       await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'WebSocket open timed out after',
+        'The harness bridge WebSocket did not open within',
       );
       await new Promise(resolve => setImmediate(resolve));
 
