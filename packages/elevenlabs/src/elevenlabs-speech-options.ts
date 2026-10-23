@@ -10,6 +10,11 @@ export type ElevenLabsSpeechModelId =
   | 'eleven_turbo_v2'
   | 'eleven_monolingual_v1'
   | 'eleven_multilingual_v1'
+  | 'music_v2_5'
+  | 'music_v2'
+  | 'music_v1'
+  | 'eleven_text_to_sound_v2'
+  | 'eleven_text_to_sound_v3'
   | (string & {});
 
 export type ElevenLabsSpeechVoiceId = string;
