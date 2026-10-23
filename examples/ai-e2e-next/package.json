@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "ultracite check",
     "dev:websocket": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/websocket-chat-server.ts",
-    "test:websocket": "playwright test --config playwright.websocket.config.ts"
+    "test:websocket": "playwright test --config playwright.websocket.config.ts",
+    "dev:transcribe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/mistral-transcription-server.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "workspace:*",
