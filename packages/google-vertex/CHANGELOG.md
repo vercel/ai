@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.122
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/openai-compatible@3.0.78
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/anthropic@4.0.88
+  - @ai-sdk/google@4.0.105
+
 ## 5.0.121
 
 ### Patch Changes
