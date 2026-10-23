@@ -479,7 +479,7 @@ export async function generateObject<
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
-      text,
+      generateResult.structuredOutputText ?? text,
       outputStrategy,
       repairText,
       {
