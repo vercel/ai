@@ -5,6 +5,56 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+// Native (snake_case) composition plans, sent as-is in place of the prompt.
+// https://elevenlabs.io/docs/api-reference/music/compose
+function compositionPlanSchema() {
+  const timeRange = z.object({
+    start_ms: z.number().int().min(0),
+    end_ms: z.number().int().min(0),
+  });
+  const audioRefChunk = z.object({ song_id: z.string(), range: timeRange });
+  const durationMs = z.number().int().min(3000).max(120000);
+  const styles = z.array(z.string());
+
+  // music_v1
+  const musicPrompt = z.object({
+    positive_global_styles: styles,
+    negative_global_styles: styles,
+    sections: z.array(
+      z.object({
+        section_name: z.string().min(1).max(100),
+        positive_local_styles: styles,
+        negative_local_styles: styles,
+        duration_ms: durationMs,
+        lines: z.array(z.string().max(200)).max(30),
+        source_from: z
+          .object({
+            song_id: z.string(),
+            range: timeRange,
+            negative_ranges: z.array(timeRange).optional(),
+          })
+          .nullish(),
+      }),
+    ),
+  });
+
+  // music_v2 and later
+  const generationChunk = z.object({
+    text: z.string(),
+    duration_ms: durationMs,
+    positive_styles: styles,
+    negative_styles: styles.optional(),
+    context_adherence: z.enum(['low', 'medium', 'high']).optional(),
+    conditioning_ref: audioRefChunk.nullish(),
+    condition_strength: z.enum(['low', 'medium', 'high', 'xhigh']).nullish(),
+  });
+  const chunkedPlan = z.object({
+    chunks: z.array(z.union([generationChunk, audioRefChunk])),
+  });
+
+  return z.union([musicPrompt, chunkedPlan]);
+}
+
 // Schema for camelCase input from users
 export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
   zodSchema(
@@ -72,8 +122,7 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
       // https://elevenlabs.io/docs/api-reference/music/compose
       musicLengthMs: z.number().int().min(3000).max(600000).optional(),
       forceInstrumental: z.boolean().optional(),
-      // Native composition_plan, sent as-is in place of the text prompt.
-      compositionPlan: z.record(z.string(), z.unknown()).optional(),
+      compositionPlan: compositionPlanSchema().optional(),
       // https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert
       durationSeconds: z.number().min(0.5).max(30).optional(),
       promptInfluence: z.number().min(0).max(1).optional(),

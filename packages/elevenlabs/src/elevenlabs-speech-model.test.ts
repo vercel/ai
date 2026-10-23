@@ -238,6 +238,73 @@ describe('ElevenLabsSpeechModel', () => {
         elevenlabs: { outputFormat: 'pcm_24000' },
       });
     });
+
+    it.each([
+      {
+        voice: 'test-voice-id',
+        url: 'https://api.elevenlabs.io/v1/text-to-speech/test-voice-id?output_format=mp3_44100_128',
+      },
+      {
+        voice: undefined,
+        url: 'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_44100_128',
+      },
+    ])(
+      'should send the full text-to-speech request for voice $voice',
+      async ({ voice, url }) => {
+        prepareAudioResponse();
+
+        await model.doGenerate({ text: 'Hello, world!', voice });
+
+        expect(server.calls[0].requestUrl).toBe(url);
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          text: 'Hello, world!',
+          model_id: 'eleven_multilingual_v2',
+        });
+      },
+    );
+  });
+
+  describe('native output formats', () => {
+    it.each([
+      {
+        modelId: 'music_v2_5',
+        url: 'https://api.elevenlabs.io/v1/music',
+        outputFormat: 'auto',
+        providerOptions: {},
+      },
+      {
+        modelId: 'eleven_text_to_sound_v2',
+        url: 'https://api.elevenlabs.io/v1/sound-generation',
+        outputFormat: 'wav_24000',
+        providerOptions: {},
+      },
+      {
+        modelId: 'eleven_v3',
+        url: 'https://api.elevenlabs.io/v1/text-to-dialogue',
+        outputFormat: 'wav_22050',
+        providerOptions: {
+          inputs: [{ text: 'Knock knock', voiceId: 'voice-a' }],
+        },
+      },
+    ] as const)(
+      'should pass $outputFormat through to $modelId',
+      async ({ modelId, url, outputFormat, providerOptions }) => {
+        prepareGenerationResponse(url);
+
+        const result = await provider.speech(modelId).doGenerate({
+          text: 'Hello',
+          outputFormat,
+          providerOptions: { elevenlabs: providerOptions },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${url}?output_format=${outputFormat}`,
+        );
+        expect(result.providerMetadata?.elevenlabs.outputFormat).toBe(
+          outputFormat,
+        );
+      },
+    );
   });
 
   describe('dialogue', () => {
@@ -480,35 +547,41 @@ describe('ElevenLabsSpeechModel', () => {
 
     it('should sum music_v1 composition plan sections', async () => {
       prepareGenerationResponse('https://api.elevenlabs.io/v1/music');
+      const section = {
+        section_name: 'Verse',
+        positive_local_styles: ['driving'],
+        negative_local_styles: [],
+        lines: ['Hello'],
+      };
+      const compositionPlan = {
+        positive_global_styles: ['rock'],
+        negative_global_styles: [],
+        sections: [
+          { ...section, duration_ms: 3000 },
+          { ...section, duration_ms: 5000 },
+        ],
+      };
 
       const result = await provider.speech('music_v1').doGenerate({
         text: 'ignored',
-        providerOptions: {
-          elevenlabs: {
-            compositionPlan: {
-              positive_global_styles: ['rock'],
-              negative_global_styles: [],
-              sections: [{ duration_ms: 3000 }, { duration_ms: 5000 }],
-            },
-          },
-        },
+        providerOptions: { elevenlabs: { compositionPlan } },
       });
 
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        composition_plan: compositionPlan,
+        model_id: 'music_v1',
+      });
       expect(result.providerMetadata?.elevenlabs.requestedDurationMs).toBe(
         8000,
       );
     });
 
-    it('should omit the requested duration when a plan part has no length', async () => {
+    it('should omit the requested duration for an empty plan', async () => {
       prepareGenerationResponse('https://api.elevenlabs.io/v1/music');
 
       const result = await musicModel.doGenerate({
         text: 'ignored',
-        providerOptions: {
-          elevenlabs: {
-            compositionPlan: { chunks: [{ duration_ms: 3000 }, { text: 'x' }] },
-          },
-        },
+        providerOptions: { elevenlabs: { compositionPlan: { chunks: [] } } },
       });
 
       expect(result.providerMetadata).toEqual({
@@ -516,22 +589,39 @@ describe('ElevenLabsSpeechModel', () => {
       });
     });
 
-    it('should reject prompt-only options combined with a composition plan', async () => {
+    it('should reject a plan chunk without a length', async () => {
       await expect(
         musicModel.doGenerate({
           text: 'ignored',
           providerOptions: {
             elevenlabs: {
-              compositionPlan: { chunks: [] },
-              musicLengthMs: 5000,
+              compositionPlan: { chunks: [{ text: '[Intro]' }] },
             },
           },
         }),
-      ).rejects.toThrow(
-        'ElevenLabs music musicLengthMs cannot be combined with compositionPlan.',
-      );
+      ).rejects.toThrow();
       expect(server.calls).toHaveLength(0);
     });
+
+    it.each([
+      { option: 'musicLengthMs', value: 5000 },
+      { option: 'forceInstrumental', value: false },
+    ])(
+      'should reject $option: $value combined with a composition plan',
+      async ({ option, value }) => {
+        await expect(
+          musicModel.doGenerate({
+            text: 'ignored',
+            providerOptions: {
+              elevenlabs: { compositionPlan: { chunks: [] }, [option]: value },
+            },
+          }),
+        ).rejects.toThrow(
+          `ElevenLabs music ${option} cannot be combined with compositionPlan.`,
+        );
+        expect(server.calls).toHaveLength(0);
+      },
+    );
 
     it('should reject an out-of-range music length', async () => {
       await expect(
@@ -542,16 +632,22 @@ describe('ElevenLabsSpeechModel', () => {
       ).rejects.toThrow();
       expect(server.calls).toHaveLength(0);
     });
-
-    it('should not stream', async () => {
-      const text = new ReadableStream({ start: c => c.close() });
-      await expect(
-        (musicModel as ElevenLabsSpeechModel).doStream({ text }),
-      ).rejects.toThrow(
-        'ElevenLabs music_v2_5 does not support streaming; use generateSpeech instead.',
-      );
-    });
   });
+
+  it.each(['music_v2_5', 'eleven_text_to_sound_v2'])(
+    'should reject streaming with %s and cancel the text stream',
+    async modelId => {
+      const cancel = vi.fn();
+      const text = new ReadableStream({ cancel });
+
+      await expect(
+        (provider.speech(modelId) as ElevenLabsSpeechModel).doStream({ text }),
+      ).rejects.toThrow(
+        `ElevenLabs ${modelId} does not support streaming; use generateSpeech instead.`,
+      );
+      expect(cancel).toHaveBeenCalledTimes(1);
+    },
+  );
 
   describe('sound effects models', () => {
     const soundEffectsModel = provider.speech('eleven_text_to_sound_v2');

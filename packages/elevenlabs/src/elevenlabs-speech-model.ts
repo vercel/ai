@@ -770,12 +770,16 @@ function getStreamWarnings(
         'ElevenLabs speech models do not support instructions. Instructions parameter was ignored.',
     });
   }
+  // HTTP-only options: neither WebSocket protocol carries them.
   for (const option of [
     'applyLanguageTextNormalization',
+    'inputs',
     'nextRequestIds',
     'nextText',
     'previousRequestIds',
     'previousText',
+    ...musicOnlyOptions,
+    ...soundEffectsOnlyOptions,
   ] as const) {
     if (elevenLabsOptions?.[option] != null) {
       warnings.push({
@@ -879,41 +883,25 @@ function toElevenLabsOutputFormat(outputFormat: string): string {
 
 /**
  * Total length of a music composition plan: `sections` (music_v1) or
- * `chunks` (music_v2+). Undefined when any part has no stated length.
+ * `chunks` (music_v2+). Undefined when the plan has no parts.
  */
 function getCompositionPlanDurationMs(
-  plan: Record<string, unknown>,
+  plan: NonNullable<ElevenLabsSpeechModelOptions['compositionPlan']>,
 ): number | undefined {
-  const parts = Array.isArray(plan.sections)
-    ? plan.sections
-    : Array.isArray(plan.chunks)
-      ? plan.chunks
-      : undefined;
-  if (parts == null || parts.length === 0) return undefined;
-
-  let totalMs = 0;
-  for (const part of parts) {
-    const durationMs = getPlanPartDurationMs(part);
-    if (durationMs == null) return undefined;
-    totalMs += durationMs;
-  }
-  return totalMs;
-}
-
-function getPlanPartDurationMs(part: unknown): number | undefined {
-  if (typeof part !== 'object' || part == null) return undefined;
-  const { duration_ms: durationMs, range } = part as {
-    duration_ms?: unknown;
-    range?: { start_ms?: unknown; end_ms?: unknown } | null;
-  };
-  if (typeof durationMs === 'number') return durationMs;
-  // Audio reference chunks reuse a time range of an earlier song.
+  const partDurationsMs =
+    'sections' in plan
+      ? plan.sections.map(section => section.duration_ms)
+      : plan.chunks.map(chunk =>
+          // Audio reference chunks reuse a time range of an earlier song.
+          'duration_ms' in chunk
+            ? chunk.duration_ms
+            : chunk.range.end_ms - chunk.range.start_ms,
+        );
   if (
-    typeof range?.start_ms === 'number' &&
-    typeof range.end_ms === 'number' &&
-    range.end_ms > range.start_ms
+    partDurationsMs.length === 0 ||
+    partDurationsMs.some(durationMs => durationMs <= 0)
   ) {
-    return range.end_ms - range.start_ms;
+    return undefined;
   }
-  return undefined;
+  return partDurationsMs.reduce((sum, durationMs) => sum + durationMs, 0);
 }
