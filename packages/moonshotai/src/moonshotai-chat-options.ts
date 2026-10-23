@@ -126,6 +126,17 @@ export const moonshotaiLanguageModelOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Context caching options for Kimi K3 models. `ttl` selects the cache
+       * write tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.literal('implicit').optional(),
+          ttl: z.enum(['5m', '1h']).optional(),
+        })
+        .optional(),
+
+      /**
        * A stable identifier used to help Moonshot detect users violating usage
        * policies. Recommended to hash the username or email address.
        */
@@ -182,6 +193,15 @@ export type MoonshotAILanguageModelOptions = {
    */
   reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
   promptCacheKey?: string;
+
+  /**
+   * Context caching options for Kimi K3 models. `ttl` selects the cache write
+   * tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+   */
+  promptCacheOptions?: {
+    mode?: 'implicit';
+    ttl?: '5m' | '1h';
+  };
   safetyIdentifier?: string;
 };
 
