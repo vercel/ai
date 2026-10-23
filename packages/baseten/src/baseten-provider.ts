@@ -16,7 +16,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { BasetenChatModelId } from './baseten-chat-options';
-import { BasetenDecisionModel } from './baseten-decision-model';
+import { DecisionBasetenModel } from './baseten-decision-model';
 import type { BasetenDecisionModelId } from './baseten-decision-model-options';
 import type { BasetenEmbeddingModelId } from './baseten-embedding-options';
 import { basetenErrorStructure } from './baseten-error';
@@ -276,7 +276,7 @@ export function createBaseten(
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.decisionModel = (modelId: BasetenDecisionModelId) =>
-    new BasetenDecisionModel(modelId, {
+    new DecisionBasetenModel(modelId, {
       provider: 'baseten.decision',
       baseURL,
       headers: getHeaders,

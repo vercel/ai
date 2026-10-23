@@ -35,7 +35,7 @@ type BasetenDecisionConfig = {
   fetch?: FetchFunction;
 };
 
-export class BasetenDecisionModel implements DecisionModelV4 {
+export class DecisionBasetenModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
@@ -48,7 +48,7 @@ export class BasetenDecisionModel implements DecisionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: BasetenDecisionModel) {
+  static [WORKFLOW_SERIALIZE](model: DecisionBasetenModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -59,7 +59,7 @@ export class BasetenDecisionModel implements DecisionModelV4 {
     modelId: BasetenDecisionModelId;
     config: BasetenDecisionConfig;
   }) {
-    return new BasetenDecisionModel(options.modelId, options.config);
+    return new DecisionBasetenModel(options.modelId, options.config);
   }
 
   async doDecide({

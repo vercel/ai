@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BasetenDecisionModel } from './baseten-decision-model';
+import { DecisionBasetenModel } from './baseten-decision-model';
 import { createBaseten } from './baseten-provider';
 
 // Captured from mammoth-1 on 2026-10-22 using src/decide/baseten/basic.ts.
@@ -481,15 +481,15 @@ it('forwards cancellation without retrying inside the provider', async () => {
 
 it('restores the model, endpoint and authentication across workflow serialization', async () => {
   const { model, fetch } = setup();
-  const serialized = BasetenDecisionModel[WORKFLOW_SERIALIZE](
-    model as BasetenDecisionModel,
+  const serialized = DecisionBasetenModel[WORKFLOW_SERIALIZE](
+    model as DecisionBasetenModel,
   );
   expect(serialized.config.fetch).toBeUndefined();
   vi.stubGlobal('fetch', fetch);
-  const restored = BasetenDecisionModel[WORKFLOW_DESERIALIZE]({
+  const restored = DecisionBasetenModel[WORKFLOW_DESERIALIZE]({
     modelId: serialized.modelId,
     config: serialized.config as unknown as Parameters<
-      (typeof BasetenDecisionModel)[typeof WORKFLOW_DESERIALIZE]
+      (typeof DecisionBasetenModel)[typeof WORKFLOW_DESERIALIZE]
     >[0]['config'],
   });
   await restored.doDecide(options);
