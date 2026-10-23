@@ -1,5 +1,11 @@
 # @ai-sdk/harness-fx
 
+## 1.0.79
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
 ## 1.0.78
 
 ### Patch Changes
