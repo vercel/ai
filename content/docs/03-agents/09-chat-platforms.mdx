@@ -21,7 +21,7 @@ Install Chat SDK, a platform adapter, and a state adapter. The state adapter sto
 
 <InstallPackages packages="ai chat @chat-adapter/slack @chat-adapter/state-redis" />
 
-The Slack adapter reads `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` from the environment, and the Redis state adapter reads `REDIS_URL`. See the [Slack adapter docs](https://chat-sdk.dev/adapters/official/slack) for the Slack app manifest.
+The Slack adapter reads `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` from the environment, and the Redis state adapter reads `REDIS_URL`. See the [Slack adapter docs](https://chat-sdk.dev/adapters/official/slack) for the Slack app manifest. The examples on this page set `agentView: true` to match a manifest that uses Slack's Agent messaging experience (`agent_view`).
 
 ## Create a Bot
 
@@ -36,7 +36,7 @@ import { ToolLoopAgent } from 'ai';
 export const bot = new Chat({
   userName: 'mybot',
   adapters: {
-    slack: createSlackAdapter(),
+    slack: createSlackAdapter({ agentView: true }),
   },
   state: createRedisState(),
 });
@@ -145,7 +145,7 @@ import { createRedisState } from '@chat-adapter/state-redis';
 export const bot = new Chat({
   userName: 'mybot',
   adapters: {
-    slack: createSlackAdapter(),
+    slack: createSlackAdapter({ agentView: true }),
     teams: createTeamsAdapter(),
     discord: createDiscordAdapter(),
   },

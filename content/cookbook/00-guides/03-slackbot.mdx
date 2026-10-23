@@ -166,7 +166,8 @@ import { agent } from './agent';
 export const bot = new Chat({
   userName: 'mybot',
   adapters: {
-    slack: createSlackAdapter(),
+    // Match the manifest's `agent_view` (Slack's Agent messaging experience).
+    slack: createSlackAdapter({ agentView: true }),
   },
   state: createRedisState(),
 });
@@ -202,6 +203,7 @@ bot.onSubscribedMessage(async thread => {
 
 Here's what each part does:
 
+- `agentView: true` tells the Slack adapter that the app uses Slack's Agent messaging experience, which the manifest enables with `agent_view`. In direct messages, each top-level message starts its own thread and the bot replies in that thread. Keep this option in sync with the manifest: without it, the adapter uses the older `assistant_view` thread mapping, and top-level direct messages fail to load their history.
 - `onNewMention` runs when someone mentions the bot in a thread it hasn't subscribed to. Direct messages are treated as mentions too. `thread.subscribe()` makes later messages in the thread go to `onSubscribedMessage`.
 - `startTyping()` shows Slack's typing indicator while the agent works.
 - `bot.history.thread.list()` loads the thread's recent messages, and `toAiMessages` converts them to `ModelMessage[]`, with the bot's own messages as `assistant` messages.
