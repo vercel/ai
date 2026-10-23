@@ -155,6 +155,17 @@ export type SandboxSession = {
   ) => PromiseLike<void>;
 
   /**
+   * Write multiple text files to the sandbox in one operation. Creates parent
+   * directories recursively and overwrites any existing files. This method is
+   * optional so sandbox implementations can provide a more efficient batch
+   * write without requiring every implementation to support it.
+   */
+  readonly writeTextFiles?: (options: {
+    files: ReadonlyArray<Pick<WriteFileOptions<string>, 'path' | 'content'>>;
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<void>;
+
+  /**
    * Spawn a long-running process in the sandbox. Returns immediately with a
    * handle that streams stdout/stderr, can be waited on, and can be killed.
    *
