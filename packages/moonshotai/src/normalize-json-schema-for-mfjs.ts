@@ -22,8 +22,9 @@ const SCHEMA_SINGLE_KEYS = [
 /**
  * Normalizes a JSON Schema to the subset Moonshot's MFJS validator accepts:
  * `object` root required, tuple `items` become `prefixItems`, and `type` next
- * to `anyOf` moves into the branches. Everything else passes through. The
- * full original schema is still used for AI SDK result validation.
+ * to `anyOf` moves into the branches below the root. Everything else passes
+ * through. The full original schema is still used for AI SDK result
+ * validation.
  */
 export function normalizeJsonSchemaForMFJS(schema: unknown): unknown {
   return normalizeDefinition(schema, true);
@@ -40,14 +41,21 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     return definition;
   }
 
-  if (isRoot && definition.type !== 'object') {
+  // A root union of objects (Zod z.union / discriminatedUnion of objects) is
+  // an object; MFJS only needs the root to say so.
+  const root =
+    isRoot && definition.type === undefined && isObjectUnion(definition)
+      ? { type: 'object', ...definition }
+      : definition;
+
+  if (isRoot && root.type !== 'object') {
     throw new UnsupportedFunctionalityError({
       functionality:
         'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
     });
   }
 
-  const result: Record<string, unknown> = { ...definition };
+  const result: Record<string, unknown> = { ...root };
 
   // Existing prefixItems stay first (they are positional).
   if (Array.isArray(result.items)) {
@@ -61,8 +69,13 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     result.items = normalizeDefinition(result.items, false);
   }
 
-  // MFJS requires type to live inside anyOf items.
-  if (typeof result.type === 'string' && Array.isArray(result.anyOf)) {
+  // MFJS requires type to live inside anyOf items, except at the root, which
+  // must keep type "object" (moving it leaves a typeless root that 400s).
+  if (
+    !isRoot &&
+    typeof result.type === 'string' &&
+    Array.isArray(result.anyOf)
+  ) {
     const parentType = result.type;
     delete result.type;
     result.anyOf = result.anyOf.map(branch =>
@@ -99,4 +112,20 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
   }
 
   return result;
+}
+
+function isObjectUnion(definition: Record<string, unknown>): boolean {
+  return (['anyOf', 'oneOf'] as const).some(key => {
+    const branches = definition[key];
+    return (
+      Array.isArray(branches) &&
+      branches.length > 0 &&
+      branches.every(
+        branch =>
+          isRecord(branch) &&
+          (branch.type === 'object' ||
+            (branch.type === undefined && isRecord(branch.properties))),
+      )
+    );
+  });
 }
