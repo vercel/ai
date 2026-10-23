@@ -751,4 +751,47 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'm91',
+    name: 'M91',
+    description:
+      'Human-in-the-loop approval and alerting for AI agents. Before an irreversible action, the agent calls M91, which rings a person\'s phone at full volume through silent mode and Do Not Disturb, escalating to a voice call, until they approve or reject. Only a real human approval returns "approved"; a rejection, timeout or unreachable channel is a no.',
+    packageName: '@msg91comm/m91',
+    tags: ['approval', 'human-in-the-loop', 'alerting', 'phone'],
+    apiKeyEnvName: 'M91_SEND_LINK',
+    installCommand: {
+      pnpm: 'pnpm add @msg91comm/m91 ai',
+      npm: 'npm install @msg91comm/m91 ai',
+      yarn: 'yarn add @msg91comm/m91 ai',
+      bun: 'bun add @msg91comm/m91 ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91Tools } from '@msg91comm/m91/integrations/vercel-ai';
+ 
+// The send link comes from a channel in the M91 app. Keep it secret.
+const client = new M91Client(process.env.M91_SEND_LINK!);
+ 
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  system:
+    'Before moving money, call m91_request_approval with a clear title, ' +
+    'a description and a customId derived from the order id. ' +
+    'Proceed only if the result is exactly "approved".',
+  tools: {
+    // m91_request_approval blocks until a human answers on their phone.
+    // m91_send_alert wakes somebody and carries on.
+    ...(await createM91Tools(client, { timeoutSeconds: 600 })),
+    // ...your own tools, e.g. issueRefund
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'Order ORD-40122 never arrived. Refund the customer if it checks out.',
+});
+ 
+console.log(text);`,
+    docsUrl: 'https://github.com/MSG91/m91-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://m91-api.msg91.com/docs',
+    websiteUrl: 'https://m91.msg91.com',
+    npmUrl: 'https://www.npmjs.com/package/@msg91comm/m91',
+  },
 ];
