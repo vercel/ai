@@ -51,6 +51,40 @@ function isDialogueModelId(modelId: string): boolean {
   return modelId.startsWith('eleven_v3') || modelId.startsWith('eleven_v4');
 }
 
+function isMusicModelId(modelId: string): boolean {
+  return modelId.startsWith('music_');
+}
+
+function isSoundEffectsModelId(modelId: string): boolean {
+  return modelId.startsWith('eleven_text_to_sound');
+}
+
+// Options that only the text-to-speech and dialogue endpoints read.
+const textToSpeechOnlyOptions = [
+  'applyLanguageTextNormalization',
+  'applyTextNormalization',
+  'dialogue',
+  'inputs',
+  'languageCode',
+  'nextRequestIds',
+  'nextText',
+  'previousRequestIds',
+  'previousText',
+  'pronunciationDictionaryLocators',
+  'streaming',
+  'voiceSettings',
+] as const;
+const musicOnlyOptions = [
+  'compositionPlan',
+  'forceInstrumental',
+  'musicLengthMs',
+] as const;
+const soundEffectsOnlyOptions = [
+  'durationSeconds',
+  'loop',
+  'promptInfluence',
+] as const;
+
 export class ElevenLabsSpeechModel
   implements SpeechModelV4, StreamingSpeechModelV4
 {
@@ -79,15 +113,16 @@ export class ElevenLabsSpeechModel
     private readonly config: ElevenLabsSpeechModelConfig,
   ) {}
 
-  private async getArgs({
-    text,
-    voice = '21m00Tcm4TlvDq8ikWAM',
-    outputFormat = 'mp3_44100_128',
-    instructions,
-    language,
-    speed,
-    providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  private async getArgs(options: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const {
+      text,
+      voice = '21m00Tcm4TlvDq8ikWAM',
+      outputFormat = 'mp3_44100_128',
+      instructions,
+      language,
+      speed,
+      providerOptions,
+    } = options;
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -105,7 +140,23 @@ export class ElevenLabsSpeechModel
         });
       }
     }
-
+    for (const option of [...musicOnlyOptions, ...soundEffectsOnlyOptions]) {
+      if (elevenLabsOptions?.[option] != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.elevenlabs.${option}`,
+          details: `ElevenLabs speech models do not support ${option}; it was ignored.`,
+        });
+      }
+    }
+    if (elevenLabsOptions?.inputs != null) {
+      return this.getDialogueArgs(
+        options,
+        elevenLabsOptions,
+        elevenLabsOptions.inputs,
+        warnings,
+      );
+    }
     // Create request body
     const requestBody: ElevenLabsSpeechAPITypes = {
       text,
@@ -212,10 +263,237 @@ export class ElevenLabsSpeechModel
     }
 
     return {
+      path: `/v1/text-to-speech/${voice as ElevenLabsSpeechVoiceId}`,
       requestBody,
       queryParams,
       warnings,
-      voiceId: voice as ElevenLabsSpeechVoiceId,
+    };
+  }
+
+  /**
+   * Multi-voice dialogue (`/v1/text-to-dialogue`) from
+   * `providerOptions.elevenlabs.inputs`, which replaces `text` and `voice`.
+   */
+  private getDialogueArgs(
+    {
+      voice,
+      outputFormat = defaultOutputFormat,
+      instructions,
+      language,
+      speed,
+    }: Parameters<SpeechModelV4['doGenerate']>[0],
+    elevenLabsOptions: ElevenLabsSpeechModelOptions,
+    inputs: NonNullable<ElevenLabsSpeechModelOptions['inputs']>,
+    warnings: SharedV4Warning[],
+  ) {
+    if (!isDialogueModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `dialogue with ${this.modelId}`,
+        message: `ElevenLabs dialogue requires an eleven_v3 or eleven_v4 model; ${this.modelId} is not one.`,
+      });
+    }
+
+    warnings.push({
+      type: 'other',
+      message:
+        'ElevenLabs dialogue uses providerOptions.elevenlabs.inputs; the text prompt was ignored.',
+    });
+    const voiceSettings = elevenLabsOptions.voiceSettings;
+    const ignoredOptions = {
+      instructions,
+      speed,
+      voice,
+      'providerOptions.elevenlabs.applyLanguageTextNormalization':
+        elevenLabsOptions.applyLanguageTextNormalization,
+      'providerOptions.elevenlabs.voiceSettings.style': voiceSettings?.style,
+      'providerOptions.elevenlabs.voiceSettings.useSpeakerBoost':
+        voiceSettings?.useSpeakerBoost,
+    };
+    const ignored = Object.entries(ignoredOptions)
+      .filter(([, value]) => value != null)
+      .map(([feature]) => feature);
+    for (const feature of ignored) {
+      warnings.push({
+        type: 'unsupported',
+        feature,
+        details: `ElevenLabs dialogue does not support ${feature}; it was ignored.`,
+      });
+    }
+
+    const queryParams: Record<string, string> = {
+      output_format: toElevenLabsOutputFormat(outputFormat),
+    };
+    if (elevenLabsOptions.enableLogging != null) {
+      queryParams.enable_logging = String(elevenLabsOptions.enableLogging);
+    }
+
+    const settings = {
+      ...(voiceSettings?.stability != null && {
+        stability: voiceSettings.stability,
+      }),
+      // Text-to-Dialogue names this setting `similarity`.
+      ...(voiceSettings?.similarityBoost != null && {
+        similarity: voiceSettings.similarityBoost,
+      }),
+    };
+    const languageCode = language ?? elevenLabsOptions.languageCode;
+    const locators = elevenLabsOptions.pronunciationDictionaryLocators;
+
+    const requestBody = {
+      inputs: inputs.map(input => ({
+        text: input.text,
+        voice_id: input.voiceId,
+      })),
+      model_id: this.modelId,
+      ...(languageCode != null && { language_code: languageCode }),
+      ...(Object.keys(settings).length > 0 && { settings }),
+      ...(elevenLabsOptions.previousText != null && {
+        previous_text: elevenLabsOptions.previousText,
+      }),
+      ...(elevenLabsOptions.nextText != null && {
+        future_text: elevenLabsOptions.nextText,
+      }),
+      ...(locators != null && {
+        pronunciation_dictionary_locators: locators.map(locator => ({
+          pronunciation_dictionary_id: locator.pronunciationDictionaryId,
+          ...(locator.versionId && { version_id: locator.versionId }),
+        })),
+      }),
+      ...(elevenLabsOptions.seed != null && { seed: elevenLabsOptions.seed }),
+      ...(elevenLabsOptions.applyTextNormalization != null && {
+        apply_text_normalization: elevenLabsOptions.applyTextNormalization,
+      }),
+      ...(elevenLabsOptions.previousRequestIds != null && {
+        previous_request_ids: elevenLabsOptions.previousRequestIds,
+      }),
+      ...(elevenLabsOptions.nextRequestIds != null && {
+        next_request_ids: elevenLabsOptions.nextRequestIds,
+      }),
+    };
+
+    return {
+      path: '/v1/text-to-dialogue',
+      requestBody,
+      queryParams,
+      warnings,
+    };
+  }
+
+  /**
+   * Music (`/v1/music`) and sound effects (`/v1/sound-generation`) take a
+   * text prompt and return audio, so they share the speech model interface.
+   */
+  private async getAudioGenerationArgs({
+    text,
+    voice,
+    outputFormat = defaultOutputFormat,
+    instructions,
+    language,
+    speed,
+    providerOptions,
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
+    const isMusic = isMusicModelId(this.modelId);
+    const label = isMusic ? 'music' : 'sound effects';
+    const elevenLabsOptions = await parseProviderOptions({
+      provider: 'elevenlabs',
+      providerOptions,
+      schema: elevenLabsSpeechModelOptionsSchema,
+    });
+
+    const ignoredCallOptions = { instructions, language, speed, voice };
+    for (const [feature, value] of Object.entries(ignoredCallOptions)) {
+      if (value != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature,
+          details: `ElevenLabs ${label} models do not support ${feature}; it was ignored.`,
+        });
+      }
+    }
+    const ignoredProviderOptions = [
+      ...textToSpeechOnlyOptions,
+      ...(isMusic ? soundEffectsOnlyOptions : musicOnlyOptions),
+      ...(isMusic ? [] : (['seed'] as const)),
+    ];
+    for (const option of ignoredProviderOptions) {
+      if (elevenLabsOptions?.[option] != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.elevenlabs.${option}`,
+          details: `ElevenLabs ${label} models do not support ${option}; it was ignored.`,
+        });
+      }
+    }
+
+    const queryParams: Record<string, string> = {
+      output_format: toElevenLabsOutputFormat(outputFormat),
+    };
+    if (elevenLabsOptions?.enableLogging != null) {
+      queryParams.enable_logging = String(elevenLabsOptions.enableLogging);
+    }
+
+    let requestBody: Record<string, unknown>;
+    let requestedDurationMs: number | undefined;
+    if (isMusic) {
+      const compositionPlan = elevenLabsOptions?.compositionPlan;
+      if (compositionPlan != null) {
+        // The API rejects prompt-only options alongside a composition plan.
+        for (const option of ['forceInstrumental', 'musicLengthMs'] as const) {
+          if (elevenLabsOptions?.[option] != null) {
+            throw new InvalidArgumentError({
+              argument: `providerOptions.elevenlabs.${option}`,
+              message: `ElevenLabs music ${option} cannot be combined with compositionPlan.`,
+            });
+          }
+        }
+        warnings.push({
+          type: 'other',
+          message:
+            'ElevenLabs music uses providerOptions.elevenlabs.compositionPlan; the text prompt was ignored.',
+        });
+        requestedDurationMs = getCompositionPlanDurationMs(compositionPlan);
+      } else {
+        requestedDurationMs = elevenLabsOptions?.musicLengthMs;
+      }
+      requestBody = {
+        ...(compositionPlan != null
+          ? { composition_plan: compositionPlan }
+          : { prompt: text }),
+        model_id: this.modelId,
+        ...(elevenLabsOptions?.musicLengthMs != null && {
+          music_length_ms: elevenLabsOptions.musicLengthMs,
+        }),
+        ...(elevenLabsOptions?.forceInstrumental != null && {
+          force_instrumental: elevenLabsOptions.forceInstrumental,
+        }),
+        ...(elevenLabsOptions?.seed != null && {
+          seed: elevenLabsOptions.seed,
+        }),
+      };
+    } else {
+      const durationSeconds = elevenLabsOptions?.durationSeconds;
+      requestedDurationMs =
+        durationSeconds != null ? durationSeconds * 1000 : undefined;
+      requestBody = {
+        text,
+        model_id: this.modelId,
+        ...(durationSeconds != null && { duration_seconds: durationSeconds }),
+        ...(elevenLabsOptions?.promptInfluence != null && {
+          prompt_influence: elevenLabsOptions.promptInfluence,
+        }),
+        ...(elevenLabsOptions?.loop != null && {
+          loop: elevenLabsOptions.loop,
+        }),
+      };
+    }
+
+    return {
+      path: isMusic ? '/v1/music' : '/v1/sound-generation',
+      requestBody,
+      queryParams,
+      requestedDurationMs,
+      warnings,
     };
   }
 
@@ -223,8 +501,10 @@ export class ElevenLabsSpeechModel
     options: Parameters<SpeechModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, queryParams, warnings, voiceId } =
-      await this.getArgs(options);
+    const { path, requestBody, queryParams, requestedDurationMs, warnings } =
+      isMusicModelId(this.modelId) || isSoundEffectsModelId(this.modelId)
+        ? await this.getAudioGenerationArgs(options)
+        : { ...(await this.getArgs(options)), requestedDurationMs: undefined };
 
     const {
       value: audio,
@@ -233,7 +513,7 @@ export class ElevenLabsSpeechModel
     } = await postJsonToApi({
       url: (() => {
         const baseUrl = this.config.url({
-          path: `/v1/text-to-speech/${voiceId}`,
+          path,
           modelId: this.modelId,
         });
         const queryString = new URLSearchParams(queryParams).toString();
@@ -259,6 +539,14 @@ export class ElevenLabsSpeechModel
         headers: responseHeaders,
         body: rawResponse,
       },
+      providerMetadata: {
+        elevenlabs: {
+          ...(queryParams.output_format != null && {
+            outputFormat: queryParams.output_format,
+          }),
+          ...(requestedDurationMs != null && { requestedDurationMs }),
+        },
+      },
     };
   }
 
@@ -277,6 +565,12 @@ export class ElevenLabsSpeechModel
   private async startStream(
     options: SpeechModelV4StreamOptions,
   ): Promise<SpeechModelV4StreamResult> {
+    if (isMusicModelId(this.modelId) || isSoundEffectsModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming speech with ${this.modelId}`,
+        message: `ElevenLabs ${this.modelId} does not support streaming; use generateSpeech instead.`,
+      });
+    }
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
@@ -581,4 +875,45 @@ function toElevenLabsOutputFormat(outputFormat: string): string {
     ulaw: 'ulaw_8000',
   };
   return formatMap[outputFormat] || outputFormat;
+}
+
+/**
+ * Total length of a music composition plan: `sections` (music_v1) or
+ * `chunks` (music_v2+). Undefined when any part has no stated length.
+ */
+function getCompositionPlanDurationMs(
+  plan: Record<string, unknown>,
+): number | undefined {
+  const parts = Array.isArray(plan.sections)
+    ? plan.sections
+    : Array.isArray(plan.chunks)
+      ? plan.chunks
+      : undefined;
+  if (parts == null || parts.length === 0) return undefined;
+
+  let totalMs = 0;
+  for (const part of parts) {
+    const durationMs = getPlanPartDurationMs(part);
+    if (durationMs == null) return undefined;
+    totalMs += durationMs;
+  }
+  return totalMs;
+}
+
+function getPlanPartDurationMs(part: unknown): number | undefined {
+  if (typeof part !== 'object' || part == null) return undefined;
+  const { duration_ms: durationMs, range } = part as {
+    duration_ms?: unknown;
+    range?: { start_ms?: unknown; end_ms?: unknown } | null;
+  };
+  if (typeof durationMs === 'number') return durationMs;
+  // Audio reference chunks reuse a time range of an earlier song.
+  if (
+    typeof range?.start_ms === 'number' &&
+    typeof range.end_ms === 'number' &&
+    range.end_ms > range.start_ms
+  ) {
+    return range.end_ms - range.start_ms;
+  }
+  return undefined;
 }

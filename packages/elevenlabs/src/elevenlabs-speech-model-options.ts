@@ -59,6 +59,25 @@ export const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
             .optional(),
         })
         .optional(),
+      // https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert
+      inputs: z
+        .array(
+          z.object({
+            text: z.string().min(1),
+            voiceId: z.string().min(1),
+          }),
+        )
+        .min(1)
+        .optional(),
+      // https://elevenlabs.io/docs/api-reference/music/compose
+      musicLengthMs: z.number().int().min(3000).max(600000).optional(),
+      forceInstrumental: z.boolean().optional(),
+      // Native composition_plan, sent as-is in place of the text prompt.
+      compositionPlan: z.record(z.string(), z.unknown()).optional(),
+      // https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert
+      durationSeconds: z.number().min(0.5).max(30).optional(),
+      promptInfluence: z.number().min(0).max(1).optional(),
+      loop: z.boolean().optional(),
     }),
   ),
 );

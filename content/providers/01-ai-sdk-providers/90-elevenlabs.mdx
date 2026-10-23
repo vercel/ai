@@ -214,9 +214,116 @@ const result = await generateSpeech({
 | `eleven_turbo_v2`          | <Check /> | <Check />            |
 | `eleven_monolingual_v1`    | <Check /> | <Cross />            |
 | `eleven_multilingual_v1`   | <Check /> | <Cross />            |
+| `music_v2_5`               | <Check /> | <Cross />            |
+| `music_v2`                 | <Check /> | <Cross />            |
+| `music_v1`                 | <Check /> | <Cross />            |
+| `eleven_text_to_sound_v2`  | <Check /> | <Cross />            |
+| `eleven_text_to_sound_v3`  | <Check /> | <Cross />            |
 
 ElevenLabs speech models do not support `instructions`; the option is ignored
 with a warning.
+
+The speech model reports the ElevenLabs `output_format` it requested in
+`providerMetadata.elevenlabs.outputFormat`.
+
+### Dialogue
+
+Set `providerOptions.elevenlabs.inputs` to generate multi-speaker dialogue with
+the [Text-to-Dialogue API](https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert)
+and an `eleven_v3` or `eleven_v4` model. Each input pairs a line of text with
+the voice that speaks it. The inputs replace `text` and `voice`, which are
+ignored with a warning.
+
+```ts
+const result = await generateSpeech({
+  model: elevenLabs.speech('eleven_v3'),
+  text: 'Knock knock',
+  providerOptions: {
+    elevenlabs: {
+      inputs: [
+        { text: '[giggling] Knock knock', voiceId: alice },
+        { text: '[curious] Who is there?', voiceId: bob },
+      ],
+      voiceSettings: { stability: 0.5, similarityBoost: 0.75 },
+    } satisfies ElevenLabsSpeechModelOptions,
+  },
+});
+```
+
+`voiceSettings.stability` and `voiceSettings.similarityBoost` map to the
+dialogue `settings`; `nextText` is sent as `future_text`. `speed`,
+`voiceSettings.style`, `voiceSettings.useSpeakerBoost`, and
+`applyLanguageTextNormalization` are ignored with a warning.
+
+### Music
+
+The `music_*` models compose music with the
+[Music API](https://elevenlabs.io/docs/api-reference/music/compose). `text` is
+the music prompt; `voice`, `speed`, `language`, and the text-to-speech options
+are ignored with a warning. The Music API requires a paid ElevenLabs plan.
+
+```ts
+const result = await generateSpeech({
+  model: elevenLabs.speech('music_v2_5'),
+  text: 'An upbeat synthwave intro with driving bass',
+  providerOptions: {
+    elevenlabs: {
+      musicLengthMs: 10000,
+      forceInstrumental: true,
+    } satisfies ElevenLabsSpeechModelOptions,
+  },
+});
+```
+
+- **musicLengthMs** _integer_  
+  Optional. Length of the song in milliseconds, between 3000 and 600000. When
+  omitted, the model picks a length from the prompt.
+
+- **forceInstrumental** _boolean_  
+  Optional. Guarantees an instrumental song.
+
+- **compositionPlan** _object_  
+  Optional. A native ElevenLabs `composition_plan` (snake_case), sent as-is in
+  place of the prompt: `sections` for `music_v1`, `chunks` for `music_v2` and
+  later. It cannot be combined with `musicLengthMs` or `forceInstrumental`.
+  `seed` is only accepted with a composition plan.
+
+When the length is known, from `musicLengthMs` or the plan's sections or
+chunks, it is reported in `providerMetadata.elevenlabs.requestedDurationMs`.
+
+### Sound effects
+
+The `eleven_text_to_sound_*` models generate sound effects with the
+[Sound Effects API](https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert).
+`text` describes the sound; `voice`, `speed`, `language`, `seed`, and the
+text-to-speech options are ignored with a warning.
+
+```ts
+const result = await generateSpeech({
+  model: elevenLabs.speech('eleven_text_to_sound_v2'),
+  text: 'Glass shattering on a concrete floor',
+  providerOptions: {
+    elevenlabs: {
+      durationSeconds: 2,
+      promptInfluence: 0.5,
+    } satisfies ElevenLabsSpeechModelOptions,
+  },
+});
+```
+
+- **durationSeconds** _number_  
+  Optional. Length of the sound between 0.5 and 30 seconds. When omitted, the
+  model picks a length from the prompt.
+
+- **promptInfluence** _number_  
+  Optional. How closely the sound follows the prompt, from 0 to 1. Defaults to
+  0.3.
+
+- **loop** _boolean_  
+  Optional. Creates a sound that loops smoothly.
+
+Music and sound effects models do not stream; `experimental_streamSpeech`
+throws an `UnsupportedFunctionalityError`.
 
 ## Streaming Speech Models
 
