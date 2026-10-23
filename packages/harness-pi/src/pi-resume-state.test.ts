@@ -28,15 +28,17 @@ function makeSandbox(
 } {
   const readCalls: ReadCalls = [];
   const writeCalls: WriteCalls = [];
+  const files = new Map<string, Uint8Array>();
 
   const run = vi.fn();
   const readBinaryFile = vi.fn(async ({ path }: { path: string }) => {
     readCalls.push(path);
-    return input.readBinary?.(path);
+    return input.readBinary?.(path) ?? files.get(path);
   });
   const writeBinaryFile = vi.fn(
     async ({ path, content }: { path: string; content: Uint8Array }) => {
       writeCalls.push({ path, content });
+      files.set(path, content);
     },
   );
 
@@ -63,6 +65,11 @@ function makeSandbox(
 }
 
 let hostSessionDir: string;
+const privateSessionDir = resolvePiPrivateSessionDirectory({
+  sandboxHomeDir: '/sandbox/home',
+  sessionWorkDir: '/sandbox/work/pi-s1',
+  sessionId: 'session-1',
+});
 
 beforeEach(() => {
   hostSessionDir = mkdtempSync(path.join(tmpdir(), 'pi-resume-state-'));
@@ -185,34 +192,51 @@ describe('piResumeStateSchema', () => {
 });
 
 describe('resolvePiPrivateSessionDirectory', () => {
-  it('creates a stable private directory outside the session workspace', () => {
-    const privateSessionDir = resolvePiPrivateSessionDirectory({
-      sandboxHomeDir: '/sandbox/home',
-      sessionWorkDir: '/sandbox/work/pi-s1',
-      sessionId: '../unsafe/session-id',
-    });
-
-    expect(privateSessionDir).toMatch(
-      /^\/sandbox\/home\/\.ai-sdk\/harness-pi\/[a-f0-9]{64}$/,
-    );
-    expect(privateSessionDir).toBe(
-      resolvePiPrivateSessionDirectory({
+  it.each([
+    { sessionId: 'session-1', segment: 'session-1' },
+    { sessionId: '../unsafe/session-id', segment: '..%2Funsafe%2Fsession-id' },
+    { sessionId: 'a/b', segment: 'a%2Fb' },
+    { sessionId: 'a%2Fb', segment: 'a%252Fb' },
+    { sessionId: '..', segment: '%2E%2E' },
+    { sessionId: '', segment: '%' },
+  ])(
+    'keeps $sessionId in one stable session directory',
+    ({ sessionId, segment }) => {
+      const privateSessionDir = resolvePiPrivateSessionDirectory({
         sandboxHomeDir: '/sandbox/home',
         sessionWorkDir: '/sandbox/work/pi-s1',
-        sessionId: '../unsafe/session-id',
-      }),
-    );
-  });
+        sessionId,
+      });
 
-  it('rejects a private directory inside the session workspace', () => {
-    expect(() =>
-      resolvePiPrivateSessionDirectory({
-        sandboxHomeDir: '/sandbox/work/pi-s1',
-        sessionWorkDir: '/sandbox/work/pi-s1',
-        sessionId: 'session-1',
-      }),
-    ).toThrow(/must be outside sessionWorkDir/);
-  });
+      expect(privateSessionDir).toBe(
+        `/sandbox/home/.ai-sdk-harness/.agent-runs/${segment}/pi`,
+      );
+      expect(privateSessionDir).toBe(
+        resolvePiPrivateSessionDirectory({
+          sandboxHomeDir: '/sandbox/home',
+          sessionWorkDir: '/sandbox/work/pi-s1',
+          sessionId,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    '/sandbox/home',
+    '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1',
+    '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/pi',
+  ])(
+    'rejects private state inside or equal to workspace %s',
+    sessionWorkDir => {
+      expect(() =>
+        resolvePiPrivateSessionDirectory({
+          sandboxHomeDir: '/sandbox/home',
+          sessionWorkDir,
+          sessionId: 'session-1',
+        }),
+      ).toThrow(/must be outside sessionWorkDir/);
+    },
+  );
 });
 
 describe('pullSessionFileFromSandbox', () => {
@@ -221,14 +245,14 @@ describe('pullSessionFileFromSandbox', () => {
     const sandbox = makeSandbox({
       readBinary: requestedPath =>
         requestedPath ===
-        '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl'
+        '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/pi/session.jsonl'
           ? bytes
           : undefined,
     });
 
     const hostPath = await pullSessionFileFromSandbox({
       sandbox: sandbox.sandbox,
-      privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
+      privateSessionDir,
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
@@ -236,7 +260,7 @@ describe('pullSessionFileFromSandbox', () => {
     expect(hostPath).toBe(path.join(hostSessionDir, 'session.jsonl'));
     expect(readFileSync(hostPath!, 'utf8')).toBe('session data');
     expect(sandbox.readCalls).toEqual([
-      '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl',
+      '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/pi/session.jsonl',
     ]);
   });
 
@@ -246,7 +270,7 @@ describe('pullSessionFileFromSandbox', () => {
     await expect(
       pullSessionFileFromSandbox({
         sandbox: sandbox.sandbox,
-        privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
+        privateSessionDir,
         hostSessionDir,
         sessionFileName: '../session.jsonl',
       }),
@@ -257,23 +281,33 @@ describe('pullSessionFileFromSandbox', () => {
 });
 
 describe('persistSessionFileToSandbox', () => {
-  it('copies a safe host session file into the sandbox session directory', async () => {
+  it('round-trips a host session file through the sandbox session directory', async () => {
     const sandbox = makeSandbox();
     writeFileSync(path.join(hostSessionDir, 'session.jsonl'), 'session data');
 
     await persistSessionFileToSandbox({
       sandbox: sandbox.sandbox,
-      privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
+      privateSessionDir,
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
 
     expect(sandbox.writeCalls[0]?.path).toBe(
-      '/sandbox/home/.ai-sdk/harness-pi/session-key/session.jsonl',
+      '/sandbox/home/.ai-sdk-harness/.agent-runs/session-1/pi/session.jsonl',
     );
     expect(Buffer.from(sandbox.writeCalls[0]!.content).toString('utf8')).toBe(
       'session data',
     );
+
+    const restoredPath = await pullSessionFileFromSandbox({
+      sandbox: sandbox.sandbox,
+      privateSessionDir,
+      hostSessionDir,
+      sessionFileName: 'session.jsonl',
+    });
+    expect(restoredPath).toBe(path.join(hostSessionDir, 'session.jsonl'));
+    expect(readFileSync(restoredPath!, 'utf8')).toBe('session data');
+    expect(sandbox.readCalls).toEqual([sandbox.writeCalls[0]!.path]);
   });
 
   it('does not place session state in the agent workspace', async () => {
@@ -282,13 +316,17 @@ describe('persistSessionFileToSandbox', () => {
 
     await persistSessionFileToSandbox({
       sandbox: sandbox.sandbox,
-      privateSessionDir: '/home/vercel-sandbox/.ai-sdk/harness-pi/session-key',
+      privateSessionDir: resolvePiPrivateSessionDirectory({
+        sandboxHomeDir: '/home/vercel-sandbox',
+        sessionWorkDir: '/vercel/sandbox/pi-s1',
+        sessionId: 'session-1',
+      }),
       hostSessionDir,
       sessionFileName: 'session.jsonl',
     });
 
     expect(sandbox.writeCalls[0]?.path).toBe(
-      '/home/vercel-sandbox/.ai-sdk/harness-pi/session-key/session.jsonl',
+      '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/session-1/pi/session.jsonl',
     );
     expect(sandbox.writeCalls[0]?.path).not.toContain('/vercel/sandbox/pi-s1');
     expect(Buffer.from(sandbox.writeCalls[0]!.content).toString('utf8')).toBe(
@@ -302,7 +340,7 @@ describe('persistSessionFileToSandbox', () => {
     await expect(
       persistSessionFileToSandbox({
         sandbox: sandbox.sandbox,
-        privateSessionDir: '/sandbox/home/.ai-sdk/harness-pi/session-key',
+        privateSessionDir,
         hostSessionDir,
         sessionFileName: '../session.jsonl',
       }),

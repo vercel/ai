@@ -2,6 +2,7 @@ import {
   InvalidPromptError,
   JSONParseError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
@@ -8950,6 +8951,221 @@ describe('generateText', () => {
           }
         `);
       });
+    });
+
+    describe('provider-selected structured output', () => {
+      it('should parse the selected text while preserving content, messages, and callbacks', async () => {
+        const source = {
+          type: 'source' as const,
+          sourceType: 'url' as const,
+          id: 'source-1',
+          url: 'https://example.com',
+          title: 'Example',
+        };
+        const draftMetadata = {
+          testProvider: {
+            itemId: 'draft',
+            phase: 'commentary',
+            annotations: [
+              { type: 'url_citation', url: source.url, title: source.title },
+            ],
+          },
+        };
+        const finalMetadata = {
+          testProvider: { itemId: 'final', phase: 'final_answer' },
+        };
+        const content: LanguageModelV4Content[] = [
+          { type: 'reasoning', text: 'Thinking.' },
+          {
+            type: 'text',
+            text: '{"value":"draft"}',
+            citations: [{ source, startIndex: 0, endIndex: 17 }],
+            providerMetadata: draftMetadata,
+          },
+          source,
+          {
+            type: 'text',
+            text: '{"value":',
+            providerMetadata: finalMetadata,
+          },
+          {
+            type: 'text',
+            text: '"final"}',
+            providerMetadata: finalMetadata,
+          },
+        ];
+        const onLanguageModelCallEnd = vi.fn();
+        const onStepEnd = vi.fn();
+        const onEnd = vi.fn();
+
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content,
+              structuredOutputText: '{"value":"final"}',
+            },
+          }),
+          prompt: 'prompt',
+          output: Output.object({ schema: z.object({ value: z.string() }) }),
+          onLanguageModelCallEnd,
+          onStepEnd,
+          onEnd,
+        });
+
+        const expectedText = '{"value":"draft"}{"value":"final"}';
+        const expectedMessages = [
+          {
+            role: 'assistant',
+            content: content
+              .filter(part => part.type === 'text' || part.type === 'reasoning')
+              .map(part => ({
+                type: part.type,
+                text: part.text,
+                providerOptions: part.providerMetadata,
+              })),
+          },
+        ];
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe(expectedText);
+        expect(result.content).toEqual(content);
+        expect(result.sources).toEqual([source]);
+        expect(result.finalStep.content).toEqual(content);
+        expect(result.response.messages).toEqual(expectedMessages);
+        expect(result.responseMessages).toEqual(expectedMessages);
+        expect(result.usage.totalTokens).toBe(13);
+        expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+          expect.objectContaining({ content }),
+        );
+        expect(onStepEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: expectedText,
+            content,
+            response: expect.objectContaining({ messages: expectedMessages }),
+          }),
+        );
+        expect(onEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: expectedText,
+            content,
+            responseMessages: expectedMessages,
+          }),
+        );
+      });
+
+      it('should concatenate all text parts when no structured output text is supplied', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{"value":' },
+                { type: 'text', text: '"final"}' },
+              ],
+            },
+          }),
+          prompt: 'prompt',
+          output: Output.object({ schema: z.object({ value: z.string() }) }),
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe('{"value":"final"}');
+      });
+
+      it.each(['', '{"value":'])(
+        'should reject invalid selected text %j without falling back to valid content',
+        async structuredOutputText => {
+          await expect(
+            generateText({
+              model: new MockLanguageModelV4({
+                doGenerate: {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: '{"value":"draft"}' }],
+                  structuredOutputText,
+                },
+              }),
+              prompt: 'prompt',
+              output: Output.object({
+                schema: z.object({ value: z.string() }),
+              }),
+            }),
+          ).rejects.toMatchObject({
+            name: 'AI_NoObjectGeneratedError',
+            text: structuredOutputText,
+            cause: expect.any(JSONParseError),
+          });
+        },
+      );
+
+      it.each([
+        { name: 'default', output: undefined },
+        { name: 'text', output: Output.text() },
+      ])('should preserve all text for $name output', async ({ output }) => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: 'Commentary. ' },
+                { type: 'text', text: 'Final answer.' },
+              ],
+              structuredOutputText: 'Final answer.',
+            },
+          }),
+          prompt: 'prompt',
+          output,
+        });
+
+        expect(result.output).toBe('Commentary. Final answer.');
+        expect(result.text).toBe('Commentary. Final answer.');
+      });
+
+      it.each([undefined, '{"value":"final"}'])(
+        'should not reuse an earlier step selection when the final selection is %j',
+        async structuredOutputText => {
+          const result = await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: [
+                {
+                  ...dummyResponseValues,
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  content: [
+                    { type: 'text', text: '{"value":"earlier"}' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{}',
+                    },
+                  ],
+                  structuredOutputText: '{"value":"earlier"}',
+                },
+                {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: '{"value":"final"}' }],
+                  structuredOutputText,
+                },
+              ],
+            }),
+            prompt: 'prompt',
+            output: Output.object({ schema: z.object({ value: z.string() }) }),
+            tools: {
+              testTool: tool({
+                inputSchema: z.object({}),
+                execute: async () => 'tool result',
+              }),
+            },
+            stopWhen: isStepCount(2),
+          });
+
+          expect(result.output).toEqual({ value: 'final' });
+          expect(result.text).toBe('{"value":"final"}');
+          expect(result.steps).toHaveLength(2);
+          expect(result.steps[0].text).toBe('{"value":"earlier"}');
+          expect(result.toolResults[0].output).toBe('tool result');
+        },
+      );
     });
 
     describe('array output', () => {

@@ -197,9 +197,11 @@ tool when the task calls for it.
 ## Session Lifecycle
 
 Conversation state lives in the host-process runtime. On `detach`/`stop` the
-adapter persists the conversation history into the sandbox workspace
-(`.cline-harness/history.json` in the session working directory), so a future
-process can resume the session after the caller reattaches the sandbox. Because
+adapter persists the conversation history to
+`$HOME/.ai-sdk-harness/.agent-runs/<encoded-sessionId>/cline/history.json`,
+where `$HOME` belongs to the sandbox. This file is outside `sessionWorkDir`,
+and a future process can resume the session after the caller reattaches the
+sandbox and supplies the saved lifecycle state. Because
 the runtime is host-resident, suspended turns are rerun-continued from the
 persisted history rather than losslessly attached (same trade-off as the
 [Pi adapter](/providers/ai-sdk-harnesses/pi)).
