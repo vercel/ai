@@ -118,7 +118,9 @@ function convertJSONSchemaDefinition(
           result.nullable = true;
         }
       } else {
-        // Multiple non-null types: use anyOf
+        // Multiple non-null types: use anyOf. Type-specific keywords
+        // (items, format, ...) still land beside it, which Gemini rejects;
+        // splitting them per branch is not handled yet.
         result.anyOf = nonNullTypes.map(t => ({ type: t }));
         if (hasNull) {
           result.nullable = true;

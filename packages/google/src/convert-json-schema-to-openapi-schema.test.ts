@@ -888,6 +888,55 @@ it('should keep sibling keywords on a single nullable type', () => {
   });
 });
 
+it('should convert a nullable object type array with its properties', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      address: {
+        type: ['object', 'null'],
+        properties: { city: { type: ['string', 'null'] } },
+        required: ['city'],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual({
+    type: 'object',
+    properties: {
+      address: {
+        type: 'object',
+        nullable: true,
+        required: ['city'],
+        properties: { city: { type: 'string', nullable: true } },
+      },
+    },
+  });
+});
+
+it('should convert a single-element type array to a plain type', () => {
+  expect(
+    convertJSONSchemaToOpenAPISchema({
+      type: 'object',
+      properties: { name: { type: ['string'], minLength: 1 } },
+    }),
+  ).toEqual({
+    type: 'object',
+    properties: { name: { type: 'string', minLength: 1 } },
+  });
+});
+
+it('should convert a nullable type array with const', () => {
+  expect(
+    convertJSONSchemaToOpenAPISchema({
+      type: 'object',
+      properties: { fixed: { type: ['string', 'null'], const: 'a' } },
+    }),
+  ).toEqual({
+    type: 'object',
+    properties: { fixed: { type: 'string', nullable: true, enum: ['a'] } },
+  });
+});
+
 it('should handle type arrays with multiple non-null types plus null', () => {
   const input: JSONSchema7 = {
     type: 'object',
@@ -911,7 +960,7 @@ it('should handle type arrays with multiple non-null types plus null', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
-it('should convert type arrays without null to anyOf', () => {
+it('should convert multi-type arrays without null to anyOf', () => {
   const input: JSONSchema7 = {
     type: 'object',
     properties: {
