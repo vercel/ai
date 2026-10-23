@@ -1,12 +1,8 @@
 import {
   APICallError,
   UnsupportedFunctionalityError,
-<<<<<<< HEAD
-  type LanguageModelV3Prompt,
-=======
   type JSONSchema7,
-  type LanguageModelV4Prompt,
->>>>>>> e694a46a62 (fix(moonshotai): accept root unions of objects in tool and response schemas (#23867))
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
