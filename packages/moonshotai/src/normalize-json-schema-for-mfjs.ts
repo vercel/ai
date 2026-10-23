@@ -1,6 +1,9 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { isRecord } from '@ai-sdk/provider-utils';
 
+const ROOT_ERROR =
+  'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)';
+
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
 const SCHEMA_MAP_KEYS = [
   'properties',
@@ -34,8 +37,7 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
   if (typeof definition === 'boolean' || !isRecord(definition)) {
     if (isRoot) {
       throw new UnsupportedFunctionalityError({
-        functionality:
-          'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+        functionality: ROOT_ERROR,
       });
     }
     return definition;
@@ -50,8 +52,7 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
 
   if (isRoot && root.type !== 'object') {
     throw new UnsupportedFunctionalityError({
-      functionality:
-        'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+      functionality: ROOT_ERROR,
     });
   }
 
@@ -114,18 +115,46 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
   return result;
 }
 
+/**
+ * Every `anyOf`/`oneOf` on the root is a non-empty union of object schemas.
+ * Local `$ref`s (`#/$defs/X`, `#/definitions/X`) are resolved one hop. A
+ * nullable branch (`type: ['object', 'null']`) is not an object: Moonshot
+ * requires an object root, so such unions keep throwing.
+ */
 function isObjectUnion(definition: Record<string, unknown>): boolean {
-  return (['anyOf', 'oneOf'] as const).some(key => {
-    const branches = definition[key];
-    return (
-      Array.isArray(branches) &&
-      branches.length > 0 &&
-      branches.every(
-        branch =>
-          isRecord(branch) &&
-          (branch.type === 'object' ||
-            (branch.type === undefined && isRecord(branch.properties))),
-      )
-    );
-  });
+  const unions = (['anyOf', 'oneOf'] as const)
+    .map(key => definition[key])
+    .filter(value => value !== undefined);
+  return (
+    unions.length > 0 &&
+    unions.every(
+      branches =>
+        Array.isArray(branches) &&
+        branches.length > 0 &&
+        branches.every(branch => isObjectSchema(branch, definition)),
+    )
+  );
+}
+
+function isObjectSchema(
+  branch: unknown,
+  root: Record<string, unknown>,
+): boolean {
+  const resolved = resolveLocalRef(branch, root);
+  return (
+    isRecord(resolved) &&
+    (resolved.type === 'object' ||
+      (resolved.type === undefined && isRecord(resolved.properties)))
+  );
+}
+
+function resolveLocalRef(
+  branch: unknown,
+  root: Record<string, unknown>,
+): unknown {
+  if (!isRecord(branch) || typeof branch.$ref !== 'string') return branch;
+  const match = /^#\/(\$defs|definitions)\/([^/]+)$/.exec(branch.$ref);
+  if (match == null) return branch;
+  const defs = root[match[1]];
+  return isRecord(defs) ? defs[match[2]] : branch;
 }

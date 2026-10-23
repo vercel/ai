@@ -326,6 +326,53 @@ describe('root unions of objects', () => {
     });
   });
 
+  it('resolves local $ref branches', () => {
+    const schema = {
+      $defs: { City: city, Coords: coords },
+      anyOf: [{ $ref: '#/$defs/City' }, { $ref: '#/definitions/Coords' }],
+      definitions: { Coords: coords },
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual({
+      type: 'object',
+      ...schema,
+    });
+  });
+
+  it('throws for a non-local $ref branch', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, { $ref: 'https://example.com/coords.json' }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('requires every root union to be objects', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, coords],
+        oneOf: [city, { type: 'string' }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('throws for a nullable object branch', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, { type: ['object', 'null'], properties: {} }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('passes an object root with anyOf nested in allOf through unchanged', () => {
+    const schema = {
+      type: 'object',
+      allOf: [{ anyOf: [city, coords] }],
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual(schema);
+  });
+
   it('still throws for a root union with a non-object branch', () => {
     expect(() =>
       normalizeJsonSchemaForMFJS({ anyOf: [city, { type: 'string' }] }),
@@ -354,7 +401,7 @@ describe('root guard', () => {
 
   it('produces a clear error message', () => {
     expect(() => normalizeJsonSchemaForMFJS({ type: 'array' })).toThrow(
-      'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+      'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)',
     );
   });
 });

@@ -873,6 +873,32 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send root unions of objects with type object in response_format', async () => {
+      const city: JSONSchema7 = {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      };
+      const coords: JSONSchema7 = {
+        properties: { lat: { type: 'number' } },
+        required: ['lat'],
+      };
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'location',
+          schema: { anyOf: [city, coords] },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format.json_schema.schema).toStrictEqual({
+        type: 'object',
+        anyOf: [city, coords],
+      });
+    });
+
     it('should allow strict json schema validation to be disabled', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
