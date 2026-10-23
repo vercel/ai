@@ -109,8 +109,18 @@ function convertJSONSchemaDefinition(
       if (nonNullTypes.length === 0) {
         // Only null type
         result.type = 'null';
+      } else if (nonNullTypes.length === 1) {
+        // A single type stays a plain node so sibling keywords (items,
+        // format, ...) remain valid: Gemini rejects fields beside anyOf and
+        // items on a non-array node.
+        result.type = nonNullTypes[0];
+        if (hasNull) {
+          result.nullable = true;
+        }
       } else {
-        // One or more non-null types: always use anyOf
+        // Multiple non-null types: use anyOf. Type-specific keywords
+        // (items, format, ...) still land beside it, which Gemini rejects;
+        // splitting them per branch is not handled yet.
         result.anyOf = nonNullTypes.map(t => ({ type: t }));
         if (hasNull) {
           result.nullable = true;
