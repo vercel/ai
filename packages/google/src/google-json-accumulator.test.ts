@@ -192,18 +192,114 @@ describe('GoogleJSONAccumulator', () => {
       `);
     });
 
-    it('should skip args with no resolvable value', () => {
+    it('should record a value-less path as an empty object', () => {
       const accumulator = new GoogleJSONAccumulator();
       const result = accumulator.processPartialArgs([
         { jsonPath: '$.something' },
       ]);
 
-      expect(result).toMatchInlineSnapshot(`
+      expect(result).toEqual({
+        currentJSON: { something: {} },
+        textDelta: '{"something":{}',
+      });
+    });
+
+    it('should ignore a value-less root path', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      expect(accumulator.processPartialArgs([{ jsonPath: '$' }])).toEqual({
+        currentJSON: {},
+        textDelta: '',
+      });
+      expect(accumulator.processPartialArgs([{ jsonPath: '$[]' }])).toEqual({
+        currentJSON: {},
+        textDelta: '',
+      });
+      expect(accumulator.processPartialArgs([{ jsonPath: '$.$' }])).toEqual({
+        currentJSON: { $: {} },
+        textDelta: '{"$":{}',
+      });
+    });
+
+    it('should leave a streamed string in place when a value-less path closes it', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
-          "currentJSON": {},
-          "textDelta": "",
-        }
-      `);
+          jsonPath: '$.colorTemperature',
+          stringValue: 'warm',
+          willContinue: true,
+        },
+      ]);
+
+      const closed = accumulator.processPartialArgs([
+        { jsonPath: '$.colorTemperature' },
+      ]);
+
+      expect(closed).toEqual({
+        currentJSON: { colorTemperature: 'warm' },
+        textDelta: '',
+      });
+      expect(accumulator.finalize().finalJSON).toBe(
+        '{"colorTemperature":"warm"}',
+      );
+    });
+
+    it('should record a value-less [] path as an empty array', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
+        { jsonPath: '$.emptyArr[]' },
+      ]);
+
+      expect(result).toEqual({
+        currentJSON: { emptyArr: [] },
+        textDelta: '{"emptyArr":[]',
+      });
+    });
+
+    it('should keep array elements when the [] terminator arrives after them', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
+        { jsonPath: '$.tables[0]', stringValue: 'orders' },
+        { jsonPath: '$.tables[1]', stringValue: 'customers' },
+      ]);
+
+      const terminated = accumulator.processPartialArgs([
+        { jsonPath: '$.tables[]' },
+      ]);
+
+      expect(terminated.textDelta).toBe('');
+      expect(terminated.currentJSON).toEqual({
+        tables: ['orders', 'customers'],
+      });
+      expect(accumulator.finalize().finalJSON).toBe(
+        '{"tables":["orders","customers"]}',
+      );
+    });
+
+    it('should keep empty containers beside scalars', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      const deltas = [
+        accumulator.processPartialArgs([{ jsonPath: '$.id', stringValue: 'x' }])
+          .textDelta,
+        accumulator.processPartialArgs([{ jsonPath: '$.emptyArr[]' }])
+          .textDelta,
+        accumulator.processPartialArgs([{ jsonPath: '$.emptyObj' }]).textDelta,
+        accumulator.processPartialArgs([
+          { jsonPath: '$.emptyStr', stringValue: '' },
+        ]).textDelta,
+        accumulator.processPartialArgs([{ jsonPath: '$.nested.tags[]' }])
+          .textDelta,
+        accumulator.processPartialArgs([{ jsonPath: '$.zero', numberValue: 0 }])
+          .textDelta,
+        accumulator.processPartialArgs([{ jsonPath: '$.no', boolValue: false }])
+          .textDelta,
+      ];
+      const { finalJSON, closingDelta } = accumulator.finalize();
+
+      expect(`${deltas.join('')}${closingDelta}`).toBe(finalJSON);
+      expect(finalJSON).toBe(
+        '{"id":"x","emptyArr":[],"emptyObj":{},"emptyStr":"","nested":{"tags":[]},"zero":0,"no":false}',
+      );
     });
 
     it('should return empty textDelta for empty partialArgs array', () => {

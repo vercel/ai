@@ -51,28 +51,54 @@ export class GoogleJSONAccumulator {
     let delta = '';
 
     for (const arg of partialArgs) {
-      const rawPath = arg.jsonPath.replace(/^\$\./, '');
+      const isEmptyArray = arg.jsonPath.endsWith('[]');
+      const jsonPath = isEmptyArray ? arg.jsonPath.slice(0, -2) : arg.jsonPath;
+      const rawPath = jsonPath.replace(/^\$\./, '');
       if (!rawPath) continue;
 
       const segments = parsePath(rawPath);
+      if (segments.length === 0) continue;
 
       const existingValue = getNestedValue(this.accumulatedArgs, segments);
       const isStringContinuation =
-        arg.stringValue != null && existingValue !== undefined;
+        arg.stringValue != null && typeof existingValue === 'string';
 
       if (isStringContinuation) {
         const escaped = JSON.stringify(arg.stringValue).slice(1, -1);
         setNestedValue(
           this.accumulatedArgs,
           segments,
-          (existingValue as string) + arg.stringValue,
+          existingValue + arg.stringValue,
         );
         delta += escaped;
         continue;
       }
 
       const resolved = resolvePartialArgValue(arg);
-      if (resolved == null) continue;
+      if (resolved == null) {
+        // `$` and `$[]` are the root. `$.$` is a property named `$`.
+        if (jsonPath === '$') continue;
+
+        const leaf = segments[segments.length - 1];
+        const isEmptyObject =
+          !isEmptyArray &&
+          arg.willContinue !== true &&
+          typeof leaf === 'string';
+        if (existingValue !== undefined || (!isEmptyArray && !isEmptyObject)) {
+          continue;
+        }
+
+        const container: unknown[] | Record<string, never> = isEmptyArray
+          ? []
+          : {};
+        setNestedValue(this.accumulatedArgs, segments, container);
+        delta += this.emitNavigationTo(
+          segments,
+          arg,
+          isEmptyArray ? '[]' : '{}',
+        );
+        continue;
+      }
 
       setNestedValue(this.accumulatedArgs, segments, resolved.value);
       delta += this.emitNavigationTo(segments, arg, resolved.json);
