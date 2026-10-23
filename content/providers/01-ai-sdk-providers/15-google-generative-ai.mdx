@@ -1,32 +1,67 @@
 ---
 title: Google Generative AI
-description: Learn how to use Google Generative AI Provider.
+description: Learn how to use Google models through AI Gateway or the direct Google provider.
 ---
 
 # Google Generative AI Provider
 
-The [Google Generative AI](https://ai.google.dev) provider contains language and embedding model support for
-the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
+You can use [Google](https://ai.google.dev) models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended)
+or connect directly to the [Google APIs](https://ai.google.dev/api/rest) with `@ai-sdk/google`.
 
-## Setup
+```ts provider="google" model="google/gemini-4-argon" highlight="5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Google provider is available in the `@ai-sdk/google` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/google" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/google" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/google" dark />
-  </Tab>
+console.log(text);
+```
 
-  <Tab>
-    <Snippet text="bun add @ai-sdk/google" dark />
-  </Tab>
-</Tabs>
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings.
+AI Gateway provides access to Google and other providers through a single API key, with usage and cost tracking.
+Install the `ai` package:
+
+<InstallPackages packages="ai@6" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration
+and the [model catalog](https://vercel.com/ai-gateway/models?search=google) for available Google models.
+
+Google model options can be passed through `providerOptions.google` when using AI Gateway.
+Support depends on the model and the provider serving the request; see [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/google`
+
+For direct access to the Google APIs, install `ai` and `@ai-sdk/google`:
+
+<InstallPackages packages="ai@6 @ai-sdk/google@3" />
+
+Set your [Google API key](https://aistudio.google.com/apikey) in the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable:
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/google`.
+Use the direct provider for Google-specific APIs such as [`google.interactions(...)`](#interactions-api),
+or when you need to customize the Google connection with [`createGoogleGenerativeAI`](#provider-instance).
+
+<Note>
+  The following sections document the direct `@ai-sdk/google` provider,
+  including its model factories, tools, and settings. Gateway model and feature
+  availability can differ from the direct provider.
+</Note>
 
 ## Provider Instance
 
@@ -82,11 +117,11 @@ You can use the following optional settings to customize the Google Generative A
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `gemini-2.5-flash`.
+The first argument is the model id, e.g. `gemini-4-argon`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('gemini-2.5-flash');
+const model = google('gemini-4-argon');
 ```
 
 You can use Google Generative AI language models to generate text with the `generateText` function:
@@ -96,7 +131,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -121,7 +156,7 @@ You can pass them as an options argument:
 ```ts
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = google('gemini-2.5-flash');
+const model = google('gemini-4-argon');
 
 await generateText({
   model,
@@ -290,7 +325,7 @@ For Gemini 3 and later models, use the `thinkingLevel` parameter to control the 
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3.1-pro-preview');
+const model = google('gemini-4-argon');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -485,7 +520,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   messages: [
     {
       role: 'user',
@@ -512,7 +547,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   messages: [
     {
       role: 'user',
@@ -548,7 +583,7 @@ Google Generative AI supports both explicit and implicit caching to help reduce 
 
 #### Implicit Caching
 
-Gemini 2.5 models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you'll receive a 75% token discount on cached content.
+Gemini models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you can receive discounted pricing on cached input tokens.
 
 To maximize cache hits with implicit caching:
 
@@ -567,13 +602,13 @@ const baseContext =
   'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
 
 const { text: veggieLasagna } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google('gemini-4-argon'),
   prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
 });
 
 // Second request with same prefix - eligible for cache hit
 const { text: meatLasagna, providerMetadata } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google('gemini-4-argon'),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
@@ -601,7 +636,7 @@ console.log('Cached tokens:', providerMetadata.google);
 
 #### Explicit Caching
 
-For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
+For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models. Gemini 4 Argon supports implicit caching only, so this example uses `gemini-2.5-pro`. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
 
 ```ts
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
@@ -661,7 +696,7 @@ import { googleTools } from '@ai-sdk/google/internal';
 import { generateText } from 'ai';
 
 const { text, toolCalls, toolResults } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google('gemini-4-argon'),
   tools: { code_execution: google.tools.codeExecution({}) },
   prompt: 'Use python to calculate the 20th fibonacci number.',
 });
@@ -680,7 +715,7 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -794,7 +829,7 @@ const vertex = createVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex('gemini-4-argon'),
   tools: {
     enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
   },
@@ -817,7 +852,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google('gemini-4-argon'),
   tools: {
     file_search: google.tools.fileSearch({
       fileSearchStoreNames: [
@@ -847,7 +882,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
   tools: {
@@ -928,7 +963,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
   tools: {
@@ -955,7 +990,7 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   tools: {
     google_maps: google.tools.googleMaps({}),
   },
@@ -1021,7 +1056,7 @@ const vertex = createVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex('gemini-4-argon'),
   tools: {
     vertex_rag_store: vertex.tools.vertexRagStore({
       ragCorpus:
@@ -1194,7 +1229,7 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const { output } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-4-argon'),
   providerOptions: {
     google: {
       structuredOutputs: false,
@@ -1269,13 +1304,13 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'Hello, how are you?',
 });
 ```
 
 `google.interactions(...)` accepts a model ID string (e.g.
-`'gemini-2.5-flash'`, `'gemini-3-pro-preview'`), `{ agent: <name> }` to use
+`'gemini-4-argon'`, `'gemini-3-pro-preview'`), `{ agent: <name> }` to use
 a Gemini [agent preset](#agent-presets), or `{ managedAgent: <name> }` to
 invoke a [managed agent](#managed-agents) you created on Google's side.
 The returned model can be passed to `generateText` and `streamText` like
@@ -1302,7 +1337,7 @@ import {
 import { generateText } from 'ai';
 
 await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What color is the sky in one word?',
   providerOptions: {
     google: {
@@ -1463,7 +1498,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What are the three largest cities in Spain?',
 });
 
@@ -1472,7 +1507,7 @@ const interactionId = turn1.providerMetadata?.google?.interactionId as
   | undefined;
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What is the most famous landmark in the second one?',
   providerOptions: {
     google: { previousInteractionId: interactionId },
@@ -1492,7 +1527,7 @@ const messages: Array<ModelMessage> = [
 ];
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   messages,
   providerOptions: { google: { store: false } },
 });
@@ -1504,7 +1539,7 @@ messages.push({
 });
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   messages,
   providerOptions: { google: { store: false } },
 });
@@ -1535,7 +1570,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -1559,7 +1594,7 @@ const weatherTool = tool({
 });
 
 const { text, toolCalls } = await generateText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   tools: { getWeather: weatherTool },
   stopWhen: stepCountIs(5),
   prompt: 'What is the weather in San Francisco right now?',
@@ -1842,7 +1877,7 @@ import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: google.interactions('gemini-2.5-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'Hello, how are you?',
 });
 
