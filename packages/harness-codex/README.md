@@ -81,7 +81,12 @@ The adapter needs a sandbox session with an exposed port. The caller ends the
 harness session and sandbox separately.
 
 Codex subagent activity is surfaced as `raw` stream parts carrying the
-app-server notifications unchanged: `subAgentActivity` and `collabAgentToolCall`
-items from the main thread, and each subagent thread's turn, item, message,
-reasoning and token usage notifications. They do not add text, tool, step or
-usage parts to the main turn.
+app-server notifications unchanged. A subagent is announced by a
+`subAgentActivity` item (`agentThreadId`, multi-agent v2) or a
+`collabAgentToolCall` item (`receiverThreadIds`, multi-agent v1); its own
+thread's `turn/started`, `turn/completed`, `item/started`, `item/completed`,
+`item/agentMessage/delta`, `thread/tokenUsage/updated` and
+`thread/status/changed` notifications follow. Subagents are tracked across
+responses, nested subagents included. None of this adds text, tool, step or
+usage parts to the main turn. A subagent's calls to the host's own tools fail:
+the bridge rejects tool calls from subagent threads.

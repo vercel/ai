@@ -227,12 +227,34 @@ some Codex file mutations do not originate from a visible model-callable tool.
 ## Subagents
 
 When Codex starts subagents, their activity is surfaced as `raw` stream parts
-that carry the Codex app-server notification unchanged. The main thread's
-`subAgentActivity` and `collabAgentToolCall` items say when a subagent starts,
-is given a task or is waited on; `agentThreadId` names the subagent's thread.
-Each subagent's own `turn/*`, `item/*`, message, reasoning and token usage
-notifications follow, with that thread's `threadId`. They do not add text,
+that carry the Codex app-server notification unchanged. They do not add text,
 tool, step or usage parts to the main turn.
+
+A subagent is announced by an item on the thread that started it. Which item
+depends on the model's Codex multi-agent version:
+
+- v2: a `subAgentActivity` item, with `agentThreadId` (the subagent's thread),
+  `agentPath` and `kind` (`started`, `interacted` or `completed`).
+- v1: a `collabAgentToolCall` item for `spawnAgent`, `wait` and similar
+  calls, listing the subagent threads in `receiverThreadIds`.
+
+Their `item/started` and `item/completed` notifications are forwarded, followed
+by these notifications from each subagent's own thread, identified by
+`threadId`:
+
+- `turn/started` and `turn/completed`
+- `item/started` and `item/completed`
+- `item/agentMessage/delta`
+- `thread/tokenUsage/updated`
+- `thread/status/changed`
+
+Reasoning and command output deltas are left out; the completed item carries
+the full content. Subagents are tracked across responses: a subagent still
+running when a response ends is forwarded in the next one, starting with what
+it sent in between. Subagents started by a subagent are included.
+
+A subagent's calls to the host's own tools fail. The bridge rejects tool calls
+from subagent threads, so the subagent gets an error result.
 
 ## Known Limitations
 
