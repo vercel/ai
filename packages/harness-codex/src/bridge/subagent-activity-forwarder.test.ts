@@ -239,6 +239,35 @@ describe('createSubagentActivityForwarder', () => {
     ]);
   });
 
+  it("forwards a nested subagent announced in its parent's held notifications", () => {
+    const response = startResponse({});
+    const nestedStarted = subagentActivity({
+      threadId: subagentThreadId,
+      turnId: subagentTurnId,
+      agentThreadId: nestedSubagentThreadId,
+    });
+    const nestedTurnStarted = subagentTurnStarted({
+      threadId: nestedSubagentThreadId,
+    });
+    const nestedCommandCompleted = subagentCommandCompleted({
+      threadId: nestedSubagentThreadId,
+    });
+
+    response.receive(subagentTurnStarted());
+    response.receive(nestedStarted);
+    response.receive(nestedTurnStarted);
+    response.receive(subagentStarted());
+    response.receive(nestedCommandCompleted);
+
+    expect(response.rawValues()).toEqual([
+      subagentStarted(),
+      subagentTurnStarted(),
+      nestedStarted,
+      nestedTurnStarted,
+      nestedCommandCompleted,
+    ]);
+  });
+
   it('forwards a subagent spawned by a multi-agent v1 subagent (nested)', () => {
     const response = startResponse({});
     const spawnCompleted = collabAgentToolCall({
