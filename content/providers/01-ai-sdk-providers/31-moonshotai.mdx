@@ -288,7 +288,8 @@ custom model IDs retain it for forward compatibility.
 
 ### Reasoning Models
 
-Kimi K3 always reasons and supports `low`, `high`, and `max` reasoning effort.
+Kimi K3 and Kimi K3.1 Pro always reason and support `low`, `high`, and `max`
+reasoning effort.
 The default is `max`. You can configure the effort through provider options or
 the generic `reasoning` setting:
 
@@ -559,7 +560,7 @@ The following optional provider options are available for Moonshot AI language m
 
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
-  Reasoning effort for Kimi K3. Defaults to `'max'`. You can also use the
+  Reasoning effort for Kimi K3 and Kimi K3.1 Pro. Defaults to `'max'`. You can also use the
   generic `reasoning` setting. Portable `reasoning: 'max'` is sent directly;
   `minimal` maps to `low`, while `medium` and `high` map to `high`.
 
@@ -571,7 +572,8 @@ The following optional provider options are available for Moonshot AI language m
 - **thinking** _object_
 
   Configuration for Kimi K2.5 and K2.6. Kimi K2.7 accepts only `enabled`
-  because its thinking cannot be disabled. Kimi K3 does not accept this field.
+  because its thinking cannot be disabled. Kimi K3 and Kimi K3.1 Pro do not
+  accept this field.
   - **type** _'enabled' | 'disabled'_
 
     Whether to enable thinking mode. For Kimi K2.7 Code, only `'enabled'` is
@@ -625,6 +627,8 @@ but new applications should use Kimi K3, Kimi K2.7 Code, or Kimi K2.6.
 | `kimi-k2.7-code`                  | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
 | `kimi-k2.7-code-highspeed`        | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
 | `kimi-k3`                         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k3.1-pro`                   | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `kimi-k3.1-pro-highspeed`         | <Check />   | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   See the [Kimi model list](https://platform.kimi.ai/docs/models) and [model

@@ -164,6 +164,8 @@ export type GatewayModelId =
   | 'moonshotai/kimi-k2.7-code-highspeed'
   | 'moonshotai/kimi-k3'
   | 'moonshotai/kimi-k3-fast'
+  | 'moonshotai/kimi-k3.1-pro'
+  | 'moonshotai/kimi-k3.1-pro-highspeed'
   | 'morph/morph-v3-fast'
   | 'morph/morph-v3-large'
   | 'nvidia/nemotron-3-nano-30b-a3b'
