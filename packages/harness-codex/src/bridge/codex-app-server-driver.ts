@@ -15,6 +15,10 @@ import {
   type AppServerTurnResult,
 } from './create-app-server-event-handler';
 import type { CodexStepTracker } from './codex-step-tracker';
+import {
+  createSubagentActivityForwarder,
+  type SubagentActivityForwarder,
+} from './subagent-activity-forwarder';
 import type { CodexEvent } from './create-emit-stream-event';
 import { isDeepStrictEqual } from 'node:util';
 import {
@@ -57,12 +61,15 @@ export function createCodexAppServerRuntime(): {
   let loadedThreadId: string | undefined;
   let loadedConfig: Record<string, unknown> | undefined;
   let activeTurn: ActiveTurn | undefined;
+  // Lives as long as the loaded thread, so subagents can outlive a response.
+  let subagentActivityForwarder: SubagentActivityForwarder | undefined;
 
   const close = async (): Promise<void> => {
     const previous = client;
     client = undefined;
     loadedThreadId = undefined;
     loadedConfig = undefined;
+    subagentActivityForwarder = undefined;
     await previous?.close();
   };
 
@@ -100,7 +107,6 @@ export function createCodexAppServerRuntime(): {
     const handler = createAppServerEventHandler({
       stepTracker: options.stepTracker,
       emitStreamEvent: options.emitStreamEvent,
-      emitRawPart: rawValue => emit({ type: 'raw', rawValue }),
       emitWarning: turn.emitWarning,
       emitError: turn.emitError,
     });
@@ -128,7 +134,14 @@ export function createCodexAppServerRuntime(): {
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
-          if (client !== created || activeTurn == null) return;
+          if (client !== created) return;
+          // Subagent activity never reaches the main turn's handler.
+          if (
+            subagentActivityForwarder?.forwardIfSubagentActivity(notification)
+          ) {
+            return;
+          }
+          if (activeTurn == null) return;
           const params = asRecord(notification.params);
           if (
             notification.method === 'turn/started' &&
@@ -263,6 +276,9 @@ export function createCodexAppServerRuntime(): {
       }
     };
     let keepClient = false;
+    let responseSubagentActivityForwarder:
+      | SubagentActivityForwarder
+      | undefined;
     try {
       if (initialized) {
         await raceWithProcess({
@@ -329,9 +345,16 @@ export function createCodexAppServerRuntime(): {
           method: threadMethod,
         });
         loadedThreadId = currentTurn.threadId;
+        subagentActivityForwarder = createSubagentActivityForwarder({
+          mainThreadId: currentTurn.threadId,
+        });
       }
       handler.announceThread(currentTurn.threadId!);
       emit({ type: 'stream-start' });
+      responseSubagentActivityForwarder = subagentActivityForwarder;
+      responseSubagentActivityForwarder?.startForwardingToResponse({
+        emitRawPart: rawValue => emit({ type: 'raw', rawValue }),
+      });
       const turnResponse = await raceWithProcess({
         operation: runningClient.request({
           method: 'turn/start',
@@ -375,6 +398,7 @@ export function createCodexAppServerRuntime(): {
       }
       throw error;
     } finally {
+      responseSubagentActivityForwarder?.stopForwardingToResponse();
       turn.experimental_userMessages.close();
       stopSteering();
       removeAbortListener();

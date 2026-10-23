@@ -17,30 +17,6 @@ export type AppServerTurnResult = {
 
 type NativeToolName = 'apply_patch' | 'view_image';
 
-// Main-thread items about subagents, forwarded raw so hosts can render them.
-const RAW_SUBAGENT_ACTIVITY_ITEM_TYPES = new Set([
-  'subAgentActivity',
-  'collabAgentToolCall',
-]);
-
-// Notifications on a subagent's own thread that are forwarded raw. Command
-// output deltas stay out: the completed item already carries the output.
-const RAW_SUBAGENT_THREAD_METHODS = new Set([
-  'item/started',
-  'item/completed',
-  'item/agentMessage/delta',
-  'item/reasoning/summaryTextDelta',
-  'item/reasoning/summaryPartAdded',
-  'item/reasoning/textDelta',
-  'turn/started',
-  'turn/completed',
-  'thread/tokenUsage/updated',
-]);
-
-// Notifications a subagent thread sent before its subAgentActivity item, kept
-// per thread until that item arrives; past this many, later ones are dropped.
-const MAX_HELD_SUBAGENT_NOTIFICATIONS_PER_THREAD = 200;
-
 type NativeToolCall = {
   name: NativeToolName;
   resultEmitted: boolean;
@@ -50,13 +26,11 @@ type NativeToolCall = {
 export function createAppServerEventHandler({
   stepTracker,
   emitStreamEvent,
-  emitRawPart,
   emitWarning,
   emitError,
 }: {
   stepTracker: CodexStepTracker;
   emitStreamEvent: (event: CodexEvent) => void;
-  emitRawPart: (rawValue: CodexAppServerNotification) => void;
   emitWarning: BridgeTurn['emitWarning'];
   emitError: BridgeTurn['emitError'];
 }): {
@@ -67,14 +41,6 @@ export function createAppServerEventHandler({
 } {
   let activeThreadId: string | undefined;
   let activeTurnId: string | undefined;
-  // Subagent threads started or given a task in the active turn.
-  const knownSubagentThreadIds = new Set<string>();
-  // Codex announces a subagent with a main-thread item; anything its own thread
-  // sends first is held here and forwarded right after that item.
-  const heldNotificationsBySubagentThread = new Map<
-    string,
-    CodexAppServerNotification[]
-  >();
   let settled = false;
   let accumulatedUsage: UsageBreakdown = emptyUsageBreakdown();
   let lastCumulativeUsageKey: string | undefined;
@@ -89,45 +55,6 @@ export function createAppServerEventHandler({
     if (activeThreadId != null) return;
     activeThreadId = threadId;
     emitStreamEvent({ type: 'thread.started', thread_id: threadId });
-  };
-
-  const forwardSubagentActivityItem = ({
-    notification,
-    item,
-  }: {
-    notification: CodexAppServerNotification;
-    item: Record<string, unknown>;
-  }): void => {
-    emitRawPart(notification);
-    const subagentThreadId = item.agentThreadId;
-    // 'started' is a new subagent; 'interacted' is send_input giving one a task,
-    // which may be a subagent started in an earlier turn.
-    if (
-      item.type !== 'subAgentActivity' ||
-      (item.kind !== 'started' && item.kind !== 'interacted') ||
-      typeof subagentThreadId !== 'string' ||
-      subagentThreadId === activeThreadId ||
-      knownSubagentThreadIds.has(subagentThreadId)
-    ) {
-      return;
-    }
-    knownSubagentThreadIds.add(subagentThreadId);
-    const held = heldNotificationsBySubagentThread.get(subagentThreadId) ?? [];
-    heldNotificationsBySubagentThread.delete(subagentThreadId);
-    for (const heldNotification of held) emitRawPart(heldNotification);
-  };
-
-  const holdUntilSubagentAnnounced = ({
-    notification,
-    threadId,
-  }: {
-    notification: CodexAppServerNotification;
-    threadId: string;
-  }): void => {
-    const held = heldNotificationsBySubagentThread.get(threadId) ?? [];
-    if (held.length >= MAX_HELD_SUBAGENT_NOTIFICATIONS_PER_THREAD) return;
-    held.push(notification);
-    heldNotificationsBySubagentThread.set(threadId, held);
   };
 
   const handleItem = ({
@@ -238,51 +165,10 @@ export function createAppServerEventHandler({
       if (notification.method === 'thread/started') {
         const thread = asRecord(params?.thread);
         // A subagent's thread must never become the main thread.
-        if (
-          typeof thread?.id === 'string' &&
-          thread.parentThreadId == null &&
-          !knownSubagentThreadIds.has(thread.id)
-        ) {
+        if (typeof thread?.id === 'string' && thread.parentThreadId == null) {
           announceThread(thread.id);
         }
         return;
-      }
-      const threadId = params?.threadId;
-      if (
-        params != null &&
-        typeof threadId === 'string' &&
-        knownSubagentThreadIds.has(threadId) &&
-        RAW_SUBAGENT_THREAD_METHODS.has(notification.method)
-      ) {
-        // Forwarded unchanged; never touches the main turn's parts, steps,
-        // usage or completion.
-        emitRawPart(notification);
-        return;
-      }
-      if (
-        params != null &&
-        typeof threadId === 'string' &&
-        activeThreadId != null &&
-        threadId !== activeThreadId &&
-        RAW_SUBAGENT_THREAD_METHODS.has(notification.method)
-      ) {
-        holdUntilSubagentAnnounced({ notification, threadId });
-        return;
-      }
-      if (
-        (notification.method === 'item/started' ||
-          notification.method === 'item/completed') &&
-        params != null &&
-        matchesActiveTurn({ params, activeThreadId, activeTurnId })
-      ) {
-        const item = asRecord(params.item);
-        if (
-          typeof item?.type === 'string' &&
-          RAW_SUBAGENT_ACTIVITY_ITEM_TYPES.has(item.type)
-        ) {
-          forwardSubagentActivityItem({ notification, item });
-          return;
-        }
       }
       if (notification.method === 'turn/started') {
         const turn = asRecord(params?.turn);

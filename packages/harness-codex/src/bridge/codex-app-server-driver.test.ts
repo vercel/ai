@@ -796,6 +796,122 @@ describe('Codex app-server runtime lifecycle', () => {
     expect(server.clients).toHaveLength(1);
     await runtime.close();
   });
+
+  const subagentStarted = {
+    method: 'item/started',
+    params: {
+      item: {
+        type: 'subAgentActivity',
+        id: 'call_spawn',
+        kind: 'started',
+        agentThreadId: 'subagent-thread-1',
+        agentPath: '/root/helper_1',
+      },
+      threadId: 'thread-1',
+      turnId: 'turn-1',
+    },
+  };
+  const subagentTurnStarted = {
+    method: 'turn/started',
+    params: {
+      threadId: 'subagent-thread-1',
+      turn: { id: 'subagent-turn-1', status: 'inProgress' },
+    },
+  };
+  const subagentTurnCompleted = {
+    method: 'turn/completed',
+    params: {
+      threadId: 'subagent-thread-1',
+      turn: { id: 'subagent-turn-1', status: 'completed' },
+    },
+  };
+
+  async function runResponseThatStartsSubagent(
+    runtime: ReturnType<typeof createCodexAppServerRuntime>,
+  ) {
+    server.autoComplete = false;
+    const emitted: Array<Record<string, unknown>> = [];
+    const response = runtime.runTurn(
+      createOptions({ emit: event => emitted.push(event) }),
+    );
+    await vi.waitFor(() =>
+      expect(emitted).toContainEqual({ type: 'stream-start' }),
+    );
+    const client = server.clients[0]!;
+    client.onNotification({
+      method: 'turn/started',
+      params: { threadId: 'thread-1', turn: { id: 'turn-1' } },
+    });
+    client.onNotification(subagentStarted);
+    client.onNotification(subagentTurnStarted);
+    client.onNotification({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'completed' },
+      },
+    });
+    await response;
+    server.autoComplete = true;
+    return { client, emitted };
+  }
+
+  it('forwards a subagent that outlives its response when the next response starts', async () => {
+    const runtime = createCodexAppServerRuntime();
+    const first = await runResponseThatStartsSubagent(runtime);
+    const subagentCompleted = {
+      method: 'item/completed',
+      params: {
+        ...subagentStarted.params,
+        item: { ...subagentStarted.params.item, kind: 'completed' },
+      },
+    };
+
+    first.client.onNotification(subagentTurnCompleted);
+    first.client.onNotification(subagentCompleted);
+    first.client.onNotification({
+      method: 'turn/started',
+      params: { threadId: 'unknown-thread', turn: { id: 'unknown-turn' } },
+    });
+    const secondEmitted: Array<Record<string, unknown>> = [];
+    const second = createOptions({
+      threadId: 'thread-1',
+      emit: event => secondEmitted.push(event),
+    });
+    await runtime.runTurn(second);
+
+    expect(first.emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: subagentStarted },
+      { type: 'raw', rawValue: subagentTurnStarted },
+    ]);
+    expect(secondEmitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: subagentTurnCompleted },
+      { type: 'raw', rawValue: subagentCompleted },
+    ]);
+    expect(
+      second.emitStreamEvent.mock.calls.map(([event]) => event.type),
+    ).toEqual(['thread.started', 'turn.completed']);
+    await runtime.close();
+  });
+
+  it('forgets subagents when the thread restarts', async () => {
+    const runtime = createCodexAppServerRuntime();
+    const first = await runResponseThatStartsSubagent(runtime);
+
+    first.client.onNotification(subagentTurnCompleted);
+    const secondEmitted: Array<Record<string, unknown>> = [];
+    await runtime.runTurn(
+      createOptions({
+        start: { restartThread: true },
+        emit: event => secondEmitted.push(event),
+      }),
+    );
+
+    expect(secondEmitted).toEqual([{ type: 'stream-start' }]);
+    await runtime.close();
+  });
 });
 
 describe('Codex app-server sandbox configuration', () => {
