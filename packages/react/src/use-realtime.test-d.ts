@@ -23,6 +23,9 @@ expectTypeOf<{ session: string; protocols: string[] }>().not.toExtend<
 expectTypeOf<
   Experimental_UseRealtimeOptions['rtcDisconnectTimeoutMs']
 >().toEqualTypeOf<number | undefined>();
+expectTypeOf<Experimental_UseRealtimeOptions['playback']>().toEqualTypeOf<
+  boolean | { getPositionMs: () => number } | undefined
+>();
 
 expectTypeOf(realtime.session).toEqualTypeOf<
   Experimental_RealtimeSessionState | undefined

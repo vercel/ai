@@ -225,6 +225,19 @@ describe('client-delegated WebRTC sessions', () => {
     expect(session.snapshot.isPlaying).toBe(true);
   });
 
+  it('does not attach remote WebRTC audio to SDK playback when playback is disabled', async () => {
+    const session = create({ playback: false });
+    await session.connect({ capture: false });
+    const pc = FakePeerConnection.instances[0];
+
+    pc.ontrack?.({ streams: [browser.stream] });
+    await session.resumePlayback();
+
+    expect(browser.audio.srcObject).toBeNull();
+    expect(browser.audio.play).not.toHaveBeenCalled();
+    expect(session.snapshot.isPlaying).toBe(false);
+  });
+
   it('retains exact overlapping fragments separately from conversation turns with bounded history', async () => {
     const onEvent = vi.fn();
     const session = create({ maxEvents: 2, onEvent });

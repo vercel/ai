@@ -49,6 +49,20 @@ export type RealtimeSessionOptions = {
   rtcDisconnectTimeoutMs?: number;
   /** Continuous PCM only: pause at this budget until resumePlayback(). Default: 2s. */
   maxPlaybackBufferSeconds?: number;
+  /**
+   * Controls SDK-managed model audio playback.
+   *
+   * - `true` or omitted: play model audio through the SDK's default output.
+   * - `false`: disable SDK playback.
+   * - An object: disable SDK playback and report application-managed playback
+   *   progress for turn-based interruption handling.
+   */
+  playback?:
+    | boolean
+    | {
+        /** Milliseconds played for the current response audio item. */
+        getPositionMs: () => number;
+      };
   onToolCall?: (args: {
     toolCall: { toolCallId: string; toolName: string; args: unknown };
   }) => Promise<unknown> | unknown | undefined;
@@ -65,6 +79,7 @@ export abstract class AbstractRealtimeSession {
   private reducer: RealtimeEventReducer;
   private readonly sessionLifecycle: boolean;
   private readonly continuous: boolean;
+  private readonly usesBuiltInPlayback: boolean;
   private attempt?: RealtimeAttempt;
   private commands?: RealtimeCommandTracker;
   private publication = 0;
@@ -91,6 +106,8 @@ export abstract class AbstractRealtimeSession {
       capabilities?.startup === 'session-start' ||
       capabilities?.finalization === 'session-close';
     this.continuous = capabilities?.conversation === 'continuous';
+    this.usesBuiltInPlayback =
+      options.playback == null || options.playback === true;
     this.maxEvents = options.maxEvents ?? 500;
     if (!Number.isSafeInteger(this.maxEvents) || this.maxEvents < 1)
       throw new Error('maxEvents must be a positive integer');
@@ -267,6 +284,7 @@ export abstract class AbstractRealtimeSession {
         this.rtc = new BrowserRealtimeWebRTC({
           ...callbacks,
           disconnectTimeoutMs: this.options.rtcDisconnectTimeoutMs,
+          playback: this.usesBuiltInPlayback,
         });
         await this.rtc.connect({
           api: api.session,
@@ -284,6 +302,7 @@ export abstract class AbstractRealtimeSession {
           sessionConfig,
           sampleRate: this.options.sampleRate,
           maxPlaybackBufferSeconds: this.options.maxPlaybackBufferSeconds,
+          playback: this.usesBuiltInPlayback,
         });
         this.pcm.connect({
           url: api.websocket,
@@ -323,7 +342,8 @@ export abstract class AbstractRealtimeSession {
         if (url == null) throw new Error('Realtime WebSocket URL is missing');
         if (api.token != null && token == null)
           throw new Error('Realtime client-secret connection requires a token');
-        this.ensureAudio().ensurePlaybackContext();
+        if (this.usesBuiltInPlayback)
+          this.ensureAudio().ensurePlaybackContext();
         if (!current()) return;
         this.transport = new BrowserRealtimeTransport({
           ...callbacks,
@@ -704,9 +724,11 @@ export abstract class AbstractRealtimeSession {
     audio?.stopCapture();
   }
   stopPlayback(): void {
+    if (!this.usesBuiltInPlayback) return;
     (this.rtc ?? this.pcm ?? this.audio)?.stopPlayback();
   }
   async resumePlayback(): Promise<void> {
+    if (!this.usesBuiltInPlayback) return;
     await (this.rtc ?? this.pcm ?? this.audio)?.resumePlayback();
   }
   dispose(): void {
@@ -834,7 +856,7 @@ export abstract class AbstractRealtimeSession {
       this.handleReducerEffect(effect, attempt);
       if (!current()) return;
     }
-    if (event.type === 'audio-chunk')
+    if (event.type === 'audio-chunk' && this.usesBuiltInPlayback)
       (this.pcm ?? this.audio)?.playAudio(event.delta);
     if (!current()) return;
     if (event.type === 'response-done' && this.toolCallsInResponse.size > 0) {
@@ -877,13 +899,14 @@ export abstract class AbstractRealtimeSession {
     switch (effect.type) {
       case 'play-audio':
         this.currentResponseItemId = effect.itemId;
-        this.audio?.playAudio(effect.delta);
+        if (this.usesBuiltInPlayback) this.audio?.playAudio(effect.delta);
         break;
       case 'speech-started':
-        if (!this.continuous && this.state.isPlaying) {
-          const playedMs = this.audio?.getPlaybackOffsetMs() ?? 0;
+        if (!this.continuous) {
+          const playedMs = this.getPlaybackPositionMs();
+          if (playedMs == null) break;
           const itemId = this.currentResponseItemId;
-          this.audio?.stopPlayback();
+          if (this.usesBuiltInPlayback) this.audio?.stopPlayback();
           if (this.attempt !== attempt || !attempt.active) return;
           if (itemId != null && !attempt.closing && attempt.cause == null)
             this.sendEvent({
@@ -902,6 +925,27 @@ export abstract class AbstractRealtimeSession {
       case 'error':
         void this.reportError(effect.error, attempt);
         break;
+    }
+  }
+
+  private getPlaybackPositionMs(): number | undefined {
+    if (this.usesBuiltInPlayback)
+      return this.state.isPlaying
+        ? (this.audio?.getPlaybackOffsetMs() ?? 0)
+        : undefined;
+    const playback = this.options.playback;
+    if (playback === false || playback == null || playback === true)
+      return undefined;
+    try {
+      const positionMs = playback.getPositionMs();
+      if (!Number.isFinite(positionMs) || positionMs < 0)
+        throw new Error(
+          'Realtime playback position must be a non-negative finite number',
+        );
+      return positionMs;
+    } catch (error) {
+      void this.reportError(error, this.attempt);
+      return undefined;
     }
   }
 
