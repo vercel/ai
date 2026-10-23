@@ -639,6 +639,8 @@ describe('MoonshotAIChatLanguageModel', () => {
       'kimi-k2.7-code',
       'kimi-k2.7-code-highspeed',
       'kimi-k3',
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
     ] as const)(
       'should omit fixed sampling options and warn for %s',
       async modelId => {
@@ -844,29 +846,32 @@ describe('MoonshotAIChatLanguageModel', () => {
       );
     });
 
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
+    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should omit thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: {
+              thinking: { type: 'disabled' },
+              reasoningHistory: 'preserved',
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'thinking',
-      );
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'providerOptions',
-          details:
-            'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
-        },
-      ]);
-    });
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'thinking',
+        );
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'providerOptions',
+            details:
+              'Kimi K3 always reasons and does not accept providerOptions.moonshotai.thinking. The option has been omitted.',
+          },
+        ]);
+      },
+    );
 
     it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
       'should not disable thinking for %s',
