@@ -1,0 +1,96 @@
+---
+title: OpenAI OAuth
+description: Use an eligible ChatGPT account with the OpenAI OAuth community provider for AI SDK.
+---
+
+# OpenAI OAuth
+
+[`@goravjhabakh/openai-oauth`](https://www.npmjs.com/package/@goravjhabakh/openai-oauth) is a community provider for the AI SDK. It is not the official [`@ai-sdk/openai`](/providers/ai-sdk-providers/openai) provider.
+
+It authenticates with an eligible ChatGPT account through OpenAI's documented **Sign in with ChatGPT** OSS flow and sends requests to the public [Responses API](https://platform.openai.com/docs/api-reference/responses). It does not use private ChatGPT or Codex endpoints.
+
+> The OAuth flow is a preview for local and open-source use. It does not authorize hosted or commercial use; those uses require separate OpenAI approval. Confirm that your use complies with OpenAI's current terms and approval process.
+
+## Requirements
+
+- Node.js 20 or later
+- AI SDK 7
+- An eligible, consenting ChatGPT account
+- A local browser that can open the authorization URL
+
+## Installation
+
+<InstallPackages packages="@goravjhabakh/openai-oauth ai@^7" />
+
+## Provider Setup
+
+Create a provider with a stable host ID and a credential store. Generate the UUIDv4 once and persist it for an installation; do not use a bare UUID or commit the credential file.
+
+```ts
+import {
+  createOpenAIOAuth,
+  FileCredentialStore,
+} from '@goravjhabakh/openai-oauth';
+
+const openaiOAuth = createOpenAIOAuth({
+  agentName: 'My local app',
+  hostId: 'urn:uuid:550e8400-e29b-41d4-a716-446655440000',
+  credentialStore: new FileCredentialStore('./private/openai-oauth.json'),
+  credentialKey: 'default',
+  openAuthorizationUrl: async url => {
+    // Open url with your application's local browser launcher.
+  },
+});
+```
+
+Call `signIn()` explicitly before discovering models or generating text. It opens a temporary local callback listener and waits for browser consent:
+
+```ts
+await openaiOAuth.auth.signIn();
+```
+
+## Dynamic Model Discovery
+
+Discover models for the signed-in account rather than hard-coding a model ID. Listed models are account-specific and do not guarantee entitlement for every request.
+
+```ts
+const models = await openaiOAuth.auth.listModelCatalog();
+const model = openaiOAuth(models[0].id);
+```
+
+## `generateText`
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model,
+  prompt: 'Write a short greeting.',
+});
+```
+
+## `streamText`
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model,
+  prompt: 'Write a short greeting.',
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```
+
+## Supported Features
+
+Validated behavior includes OAuth sign-in, token refresh, account-aware model discovery, and `generateText()` and `streamText()` through the public Responses API. The provider always uses streaming Responses requests; `generateText()` aggregates the stream before returning.
+
+Advanced capabilities are currently validated only on `gpt-5.6-terra`: medium-effort reasoning, client-executed function tools, strict structured output with `Output.object()`, and user `image/png` or `text/plain` URL or inline file input. Other models, media types, tool forms, and runtime environments have not been validated.
+
+## Additional Resources
+
+- [`@goravjhabakh/openai-oauth` on npm](https://www.npmjs.com/package/@goravjhabakh/openai-oauth)
+- [`@goravjhabakh/openai-oauth` on GitHub](https://github.com/goravjhabakh/openai-oauth)
