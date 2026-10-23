@@ -48,6 +48,8 @@ export interface LangGraphEventState {
   emittedToolCallsByKey: Map<string, string>;
   /** Tracks source IDs already emitted to avoid duplicates across messages/values events */
   emittedSourceIds: Set<string>;
+  /** Assistant message IDs whose text was already emitted from update payloads */
+  emittedUpdateTextMessageIds: Set<string>;
 }
 
 /**
