@@ -1,5 +1,4 @@
 import {
-  isAbortError,
   validateTypes,
   withUserAgentSuffix,
   type Context,
@@ -17,6 +16,7 @@ import type { Output } from '../generate-text/output';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
+import { isCausedByAbort } from '../util/is-caused-by-abort';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import { notify } from '../util/notify';
 import type {
@@ -264,7 +264,7 @@ export class ToolLoopAgent<
       // generateText has no onError option, so report the error before it is
       // thrown. Aborts (with any reason) and timeouts are not reported, like in
       // streamText:
-      if (!isAbortOrTimeout(error) && !abortSignal?.aborted) {
+      if (!isCausedByAbort(error) && !abortSignal?.aborted) {
         await notify({ event: { error }, callbacks: this.settings.onError });
       }
       throw error;
@@ -328,14 +328,11 @@ export class ToolLoopAgent<
         onStepEnd ?? onStepFinish,
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+      onError: this.settings.onError,
       onAbort: this.settings.onAbort,
     };
 
     return await stream({
-      // only pass onError when it is set to keep the default error logging:
-      ...(this.settings.onError != null
-        ? { onError: this.settings.onError }
-        : {}),
       ...({
         ...preparedCall,
         ...callbackArgs,
@@ -343,20 +340,4 @@ export class ToolLoopAgent<
       } as unknown as Parameters<typeof stream>[0]),
     });
   }
-}
-
-// providers can wrap the abort or timeout error, e.g. as the cause of an API
-// call error:
-function isAbortOrTimeout(error: unknown): boolean {
-  let current = error;
-
-  for (let depth = 0; current != null && depth < 5; depth++) {
-    if (isAbortError(current)) {
-      return true;
-    }
-
-    current = (current as { cause?: unknown }).cause;
-  }
-
-  return false;
 }

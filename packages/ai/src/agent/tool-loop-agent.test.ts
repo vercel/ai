@@ -2353,6 +2353,59 @@ describe('ToolLoopAgent', () => {
       expect(onError).not.toHaveBeenCalled();
     });
 
+    it('should not call onError when a provider wraps an abort in stream()', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            abortController.abort();
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('aborted', 'AbortError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when a provider wraps a timeout in stream()', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: ({ abortSignal }) =>
+            new Promise((_, reject) => {
+              abortSignal?.addEventListener('abort', () =>
+                reject(
+                  new Error('Gateway request failed', {
+                    cause: abortSignal.reason,
+                  }),
+                ),
+              );
+            }),
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
     it('should not call onError when generate() is aborted with a custom reason', async () => {
       const onError = vi.fn();
       const abortController = new AbortController();
