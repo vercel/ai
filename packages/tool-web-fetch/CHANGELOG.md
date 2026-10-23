@@ -1,5 +1,15 @@
 # @ai-sdk/tool-web-fetch
 
+## 1.0.3
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 1.0.2
 
 ### Patch Changes
