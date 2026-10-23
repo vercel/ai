@@ -1,6 +1,7 @@
 import {
   APICallError,
   UnsupportedFunctionalityError,
+  type JSONSchema7,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
@@ -872,6 +873,32 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send root unions of objects with type object in response_format', async () => {
+      const city: JSONSchema7 = {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      };
+      const coords: JSONSchema7 = {
+        properties: { lat: { type: 'number' } },
+        required: ['lat'],
+      };
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'location',
+          schema: { anyOf: [city, coords] },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format.json_schema.schema).toStrictEqual({
+        type: 'object',
+        anyOf: [city, coords],
+      });
+    });
+
     it('should allow strict json schema validation to be disabled', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
@@ -1157,6 +1184,41 @@ describe('doGenerate', () => {
         },
         required: ['a'],
       });
+    });
+
+    it('should send root unions of objects with type object on the wire', async () => {
+      const city: JSONSchema7 = {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      };
+      const coords: JSONSchema7 = {
+        properties: { lat: { type: 'number' } },
+        required: ['lat'],
+      };
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'untyped',
+            inputSchema: { anyOf: [city, coords] },
+          },
+          {
+            type: 'function',
+            name: 'typed',
+            inputSchema: { type: 'object', anyOf: [city, coords] },
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      for (const tool of requestBody.tools) {
+        expect(tool.function.parameters).toStrictEqual({
+          type: 'object',
+          anyOf: [city, coords],
+        });
+      }
     });
 
     it('should extract tool calls and finish reason', async () => {
