@@ -177,6 +177,8 @@ describe('doGenerate', () => {
       'kimi-k2.7-code',
       'kimi-k2.7-code-highspeed',
       'kimi-k3',
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
     ] as const)(
       'should omit fixed sampling options and warn for %s',
       async modelId => {
@@ -650,28 +652,45 @@ describe('doGenerate', () => {
       ]);
     });
 
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
+    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should omit thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: {
+              thinking: { type: 'disabled' },
+              reasoningHistory: 'preserved',
+            },
           },
-        },
-      });
+        });
 
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('thinking');
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported',
-          feature: 'thinking',
-          details:
-            'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
-        },
-      ]);
-    });
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('thinking');
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'thinking',
+            details:
+              'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
+          },
+        ]);
+      },
+    );
+
+    it.each(['kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should map generic reasoning to reasoning_effort for %s',
+      async modelId => {
+        await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'high',
+        );
+      },
+    );
 
     it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
       'should not disable thinking for %s',
