@@ -155,6 +155,50 @@ describe('API routing', () => {
     ]);
   });
 
+  it('accepts OpenAI transcription options in providerOptions.azure', async () => {
+    const { provider, request } = setup();
+    const result = await provider.transcription('whisper-1').doGenerate({
+      ...input,
+      providerOptions: {
+        azure: { language: 'en', prompt: 'Names', temperature: 0.5 },
+      },
+    });
+    expect(request().body.get('language')).toBe('en');
+    expect(request().body.get('prompt')).toBe('Names');
+    expect(request().body.get('temperature')).toBe('0.5');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('lets providerOptions.azure take precedence over providerOptions.openai', async () => {
+    const { provider, request } = setup();
+    await provider.transcription('whisper-1').doGenerate({
+      ...input,
+      providerOptions: {
+        openai: { language: 'fr', prompt: 'Fallback' },
+        azure: { language: 'en' },
+      },
+    });
+    expect(request().body.get('language')).toBe('en');
+    expect(request().body.get('prompt')).toBe('Fallback');
+  });
+
+  it('warns about OpenAI-only options when routing to Speech API', async () => {
+    const { provider } = setup();
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: {
+        azure: { prompt: 'Custom Prompt' },
+      },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.azure.prompt',
+        details: 'This option requires the Azure OpenAI transcription API.',
+      },
+    ]);
+  });
+
   it.each([
     { api: 'invalid' },
     { timestamps: 'invalid' },
@@ -482,6 +526,29 @@ describe('streaming and serialization', () => {
       await provider.transcription('mai-transcribe-2').doStream!(options),
     ).toBe(result);
     expect(stream).toHaveBeenCalledWith(options);
+  });
+
+  it('delegates OpenAI streaming with options from providerOptions.azure', async () => {
+    const { provider } = setup();
+    const result = { stream: new ReadableStream() };
+    const stream = vi
+      .spyOn(OpenAITranscriptionModel.prototype, 'doStream')
+      .mockResolvedValue(result);
+    const options = {
+      audio: new ReadableStream<Uint8Array>(),
+      inputAudioFormat: { type: 'audio/pcm' as const, rate: 24000 },
+      providerOptions: { azure: { api: 'openai', language: 'en' } },
+    };
+    expect(
+      await provider.transcription('mai-transcribe-2').doStream!(options),
+    ).toBe(result);
+    expect(stream).toHaveBeenCalledWith({
+      ...options,
+      providerOptions: {
+        azure: { api: 'openai', language: 'en' },
+        openai: { language: 'en' },
+      },
+    });
   });
 
   it('rejects Speech streaming before sending audio', async () => {
