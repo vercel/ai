@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.69
+
+### Patch Changes
+
+- 2e83794: feat(elevenlabs): music, sound effects, and dialogue via the speech model
+
 ## 3.0.68
 
 ### Patch Changes
