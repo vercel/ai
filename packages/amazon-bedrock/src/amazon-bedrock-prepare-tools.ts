@@ -181,8 +181,12 @@ export async function prepareTools({
     preparedToolChoice = { type: 'auto' };
   }
 
+  // Anthropic models that accept forced tool use guarantee the named tool is
+  // called, so they keep every function tool. Other models only receive the
+  // named tool so they cannot call a different one.
   const filteredFunctionTools =
-    toolChoice?.type === 'tool'
+    toolChoice?.type === 'tool' &&
+    (!isAnthropicModel || rejectsForcedToolChoice)
       ? functionTools.filter(t => t.name === toolChoice.toolName)
       : functionTools;
 

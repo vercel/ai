@@ -1,5 +1,6 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import type {
+  LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -5217,59 +5218,127 @@ describe('doGenerate', () => {
     expect(requestBody.toolConfig.toolChoice).toBeUndefined();
   });
 
-  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
-    prepareJsonFixtureResponse('amazon-bedrock-text');
+  describe('named tool choice', () => {
+    const forcedToolChoiceTools: LanguageModelV4FunctionTool[] = [
+      {
+        type: 'function',
+        name: 'getWeatherByCity',
+        description: 'Get weather by city',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getCurrentWeather',
+        description: 'Get current weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+          required: ['location'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeatherForecast',
+        description: 'Get forecast',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            location: { type: 'string' },
+            days: { type: 'number' },
+          },
+          required: ['location', 'days'],
+          additionalProperties: false,
+        },
+      },
+    ];
 
-    await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'getWeatherByCity',
-          description: 'Get weather by city',
-          inputSchema: {
-            type: 'object',
-            properties: { city: { type: 'string' } },
-            required: ['city'],
-            additionalProperties: false,
+    it('should only send the forced tool for models that do not enforce a named tool choice', async () => {
+      server.urls[openaiGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
           },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         },
-        {
-          type: 'function',
-          name: 'getCurrentWeather',
-          description: 'Get current weather',
-          inputSchema: {
-            type: 'object',
-            properties: { location: { type: 'string' } },
-            required: ['location'],
-            additionalProperties: false,
-          },
-        },
-        {
-          type: 'function',
-          name: 'getWeatherForecast',
-          description: 'Get forecast',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              location: { type: 'string' },
-              days: { type: 'number' },
-            },
-            required: ['location', 'days'],
-            additionalProperties: false,
-          },
-        },
-      ],
-      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
-      prompt: TEST_PROMPT,
+      };
+
+      await openaiModel.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+        'getWeatherByCity',
+      );
+      expect(requestBody.toolConfig.toolChoice).toEqual({
+        tool: { name: 'getWeatherByCity' },
+      });
     });
 
-    const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.toolConfig.tools).toHaveLength(1);
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
-      'getWeatherByCity',
-    );
-    expect(requestBody.toolConfig.toolChoice).toEqual({
-      tool: { name: 'getWeatherByCity' },
+    it('should send every tool with the forced tool choice on Anthropic models', async () => {
+      prepareJsonFixtureResponse('amazon-bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.toolConfig.toolChoice).toEqual({
+        tool: { name: 'getWeatherByCity' },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.tool_choice,
+      ).toBeUndefined();
+    });
+
+    it('should send every tool with the Anthropic tool choice when parallel tool use is disabled', async () => {
+      prepareJsonFixtureResponse('amazon-bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            disableParallelToolUse: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.additionalModelRequestFields.tool_choice).toEqual({
+        type: 'tool',
+        name: 'getWeatherByCity',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.toolConfig.toolChoice).toBeUndefined();
     });
   });
 
