@@ -346,6 +346,36 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass languages and keywords when specified', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('whisper-1');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          languages: ['en', 'fr'],
+          keywords: ['recording', 'test'],
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "keywords[]": "test",
+        "languages[]": "fr",
+        "model": "whisper-1",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities[]": "segment",
+      }
+    `);
+  });
+
   it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
