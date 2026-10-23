@@ -224,6 +224,7 @@ export function createTelemetryDispatcher({
       onStepEnd == null && onStepFinish == null
         ? undefined
         : mergeCallbacks(onStepEnd, onStepFinish),
+    onStepError: mergeTelemetryCallback('onStepError'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),

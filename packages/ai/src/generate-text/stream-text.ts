@@ -105,8 +105,10 @@ import type {
   GenerateTextEndEvent,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
+  GenerateTextStepStartEvent,
 } from './generate-text-events';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import type {
@@ -366,6 +368,7 @@ type StreamTextOptions<
  * @param onToolExecutionEnd - Callback invoked after each tool execution completes.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepEnd - Callback that is called when each step (LLM call) ends, including intermediate steps.
+ * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk still ends the step with `onStepEnd`, and an abort or timeout ends it with `onAbort`.
  * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
@@ -470,6 +473,7 @@ function streamTextInternal<
   onEnd = onFinish,
   onAbort,
   onStepEnd,
+  onStepError,
   onStepFinish,
   onStart,
   experimental_onStart,
@@ -729,6 +733,16 @@ function streamTextInternal<
     >;
 
     /**
+     * Callback that is called when a step that started fails before it
+     * produces a step result. `onStepEnd` is not called for such a step.
+     */
+    onStepError?: GenerateTextOnStepErrorCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.
      *
      * @deprecated Use `onStepEnd` instead.
@@ -940,6 +954,7 @@ function streamTextInternal<
     onEnd,
     onAbort,
     onStepFinish: resolvedOnStepEnd,
+    onStepError,
     onStart: resolvedOnStart,
     onStepStart: resolvedOnStepStart,
     onLanguageModelCallStart: resolvedOnLanguageModelCallStart,
@@ -1341,6 +1356,7 @@ class DefaultStreamTextResult<
     onEnd,
     onAbort,
     onStepFinish,
+    onStepError,
     onStart,
     onStepStart,
     onLanguageModelCallStart,
@@ -1419,6 +1435,13 @@ class DefaultStreamTextResult<
       | GenerateTextOnStepFinishCallback<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
+        >;
+    onStepError:
+      | undefined
+      | GenerateTextOnStepErrorCallback<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>,
+          NoInfer<OUTPUT>
         >;
     onStart:
       | undefined
@@ -1537,6 +1560,30 @@ class DefaultStreamTextResult<
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     const errorsHandledForStreamRetry = new Set<unknown>();
 
+    // the step that has started but not ended and its last error that was not
+    // handled by a stream retry, reported to onStepError when the stream ends
+    // before the step produces a result:
+    let openStep:
+      | {
+          event: GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+          error?: unknown;
+        }
+      | undefined;
+
+    const notifyStepError = async (error: unknown) => {
+      if (openStep == null || abortSignal?.aborted) {
+        return;
+      }
+
+      const { event } = openStep;
+      openStep = undefined;
+
+      await notify({
+        event: { ...event, error },
+        callbacks: [onStepError, telemetryDispatcher.onStepError],
+      });
+    };
+
     const eventProcessor = new TransformStream<
       InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -1576,6 +1623,9 @@ class DefaultStreamTextResult<
           if (callbacksHandledForStreamRetry) {
             errorsHandledForStreamRetry.delete(part.error);
           } else {
+            if (openStep != null) {
+              openStep.error = error;
+            }
             await notify({
               event: { error },
               callbacks: async event => {
@@ -1759,6 +1809,8 @@ class DefaultStreamTextResult<
               providerMetadata: part.providerMetadata,
             });
 
+          openStep = undefined;
+
           await notify({
             event: currentStepResult,
             callbacks: [onStepFinish, telemetryDispatcher.onStepEnd],
@@ -1790,15 +1842,28 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
+          const noOutputError = new NoOutputGeneratedError({
+            message: 'No output generated. Check the stream for errors.',
+          });
+
+          // a step that started without producing a result has failed:
+          await notifyStepError(openStep?.error ?? noOutputError);
+
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
-              : (recordedNoOutputError ??
-                new NoOutputGeneratedError({
-                  message: 'No output generated. Check the stream for errors.',
-                }));
+              : (recordedNoOutputError ?? noOutputError);
+
+            // an incomplete model stream is not reported to telemetry by the
+            // stream itself, so report it here to close open spans:
+            if (recordedNoOutputError != null && !abortSignal?.aborted) {
+              await telemetryDispatcher.onError?.({
+                callId,
+                error: recordedNoOutputError,
+              });
+            }
 
             self.rejectResultPromises(error);
 
@@ -1997,6 +2062,8 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            // an erroring stream skips the event processor flush:
+            await notifyStepError(wrapGatewayError(error));
             await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
@@ -2566,30 +2633,33 @@ class DefaultStreamTextResult<
                     }
                     hasNotifiedStepStart = true;
 
+                    const stepStartEvent = {
+                      callId,
+                      provider: stepModel.provider,
+                      modelId: stepModel.modelId,
+                      stepNumber: recordedSteps.length,
+                      instructions: stepInstructions,
+                      messages: stepMessages,
+                      tools,
+                      toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                      activeTools:
+                        prepareStepResult?.activeTools ?? activeTools,
+                      toolOrder: stepToolOrder,
+                      steps: [...recordedSteps],
+                      providerOptions: stepProviderOptions,
+                      runtimeContext,
+                      toolsContext,
+                      output,
+                      promptMessages,
+                      stepTools,
+                      stepToolChoice,
+                    };
                     await notify({
-                      event: {
-                        callId,
-                        provider: stepModel.provider,
-                        modelId: stepModel.modelId,
-                        stepNumber: recordedSteps.length,
-                        instructions: stepInstructions,
-                        messages: stepMessages,
-                        tools,
-                        toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                        activeTools:
-                          prepareStepResult?.activeTools ?? activeTools,
-                        toolOrder: stepToolOrder,
-                        steps: [...recordedSteps],
-                        providerOptions: stepProviderOptions,
-                        runtimeContext,
-                        toolsContext,
-                        output,
-                        promptMessages,
-                        stepTools,
-                        stepToolChoice,
-                      },
+                      event: stepStartEvent,
                       callbacks: [onStepStart, telemetryDispatcher.onStepStart],
                     });
+
+                    openStep = { event: stepStartEvent };
                   },
                   _internal: {
                     now,
@@ -3280,6 +3350,8 @@ class DefaultStreamTextResult<
         }),
       );
     })().catch(async error => {
+      // report the failed step before the call error:
+      await notifyStepError(wrapGatewayError(error));
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
       markPromiseAsHandled(self._initialResponseMessages.promise);

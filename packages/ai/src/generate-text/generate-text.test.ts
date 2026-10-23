@@ -20,6 +20,7 @@ import {
   type ToolExecuteFunction,
   type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
+import { GatewayAuthenticationError } from '@ai-sdk/gateway';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   afterEach,
@@ -3936,6 +3937,185 @@ describe('generateText', () => {
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
     });
+  });
+
+  describe('options.onStepError', () => {
+    it('should be called when the provider call fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              throw providerError;
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          onStepStart,
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        ...onStepStart.mock.calls[0][0],
+        error: providerError,
+      });
+    });
+
+    it('should report the step that failed in a multi-step run', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      let responseCount = 0;
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              if (responseCount++ > 0) {
+                throw providerError;
+              }
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "value" }',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          prompt: 'test-input',
+          maxRetries: 0,
+          stopWhen: isStepCount(3),
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+    });
+
+    it('should not be called when the step completes', async () => {
+      const onStepError = vi.fn();
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+        onStepError,
+      });
+
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should be called with the same wrapped gateway error that is thrown', async () => {
+      const onStepError = vi.fn();
+
+      const error = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new GatewayAuthenticationError();
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onStepError,
+      }).catch(error => error);
+
+      expect(error.name).toBe('GatewayAuthenticationError');
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toBe(error);
+    });
+
+    it('should be called with the abort error when the call is aborted', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const abortController = new AbortController();
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              abortController.abort();
+              throw new DOMException('aborted', 'AbortError');
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          abortSignal: abortController.signal,
+          onStepEnd,
+          onStepError,
+        }),
+      ).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toMatchObject({
+        name: 'AbortError',
+      });
+    });
+
+    it.each([
+      ['total', { totalMs: 10 }],
+      ['step', { stepMs: 10 }],
+    ] as const)(
+      'should be called with the timeout error when the %s timeout is reached',
+      async (_, timeout) => {
+        const onStepError = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) =>
+              new Promise((_, reject) => {
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              }),
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          timeout,
+          onStepError,
+        });
+        const rejection = expect(result).rejects.toThrow();
+
+        await vi.advanceTimersByTimeAsync(10);
+        await rejection;
+
+        expect(onStepError).toHaveBeenCalledTimes(1);
+        expect(onStepError.mock.calls[0][0]).toMatchObject({
+          stepNumber: 0,
+          error: { name: 'TimeoutError' },
+        });
+      },
+    );
   });
 
   describe('options.onStepEnd stepNumber', () => {

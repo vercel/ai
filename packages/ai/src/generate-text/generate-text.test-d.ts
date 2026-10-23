@@ -466,6 +466,12 @@ describe('generateText types', () => {
             requestId: string;
           }>();
         },
+        onStepError: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
         onFinish: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
