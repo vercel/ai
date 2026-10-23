@@ -231,13 +231,13 @@ The speech model reports the ElevenLabs `output_format` it requested in
 Set `providerOptions.elevenlabs.inputs` to generate multi-speaker dialogue with
 the [Text-to-Dialogue API](https://elevenlabs.io/docs/api-reference/text-to-dialogue/convert)
 and an `eleven_v3` or `eleven_v4` model. Each input pairs a line of text with
-the voice that speaks it. The inputs replace `text` and `voice`, which are
-ignored with a warning.
+the voice that speaks it. The inputs replace `text` and `voice`: pass an empty
+`text`; a non-empty `text` or a `voice` is ignored with a warning.
 
 ```ts
 const result = await generateSpeech({
   model: elevenLabs.speech('eleven_v3'),
-  text: 'Knock knock',
+  text: '',
   providerOptions: {
     elevenlabs: {
       inputs: [

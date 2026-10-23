@@ -360,6 +360,34 @@ describe('ElevenLabsSpeechModel', () => {
       });
     });
 
+    it('should not warn about an empty text prompt', async () => {
+      prepareGenerationResponse(
+        'https://api.elevenlabs.io/v1/text-to-dialogue',
+      );
+
+      const result = await dialogueModel.doGenerate({
+        text: '',
+        providerOptions: { elevenlabs: { inputs } },
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should not warn about an empty text prompt beside a composition plan', async () => {
+      prepareGenerationResponse('https://api.elevenlabs.io/v1/music');
+
+      const result = await provider.speech('music_v2_5').doGenerate({
+        text: '',
+        providerOptions: { elevenlabs: { compositionPlan: { chunks: [] } } },
+      });
+
+      expect(result.warnings).toEqual([]);
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        composition_plan: { chunks: [] },
+        model_id: 'music_v2_5',
+      });
+    });
+
     it('should warn about and ignore options dialogue does not take', async () => {
       prepareGenerationResponse(
         'https://api.elevenlabs.io/v1/text-to-dialogue',
