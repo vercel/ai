@@ -19,6 +19,7 @@ describe('createAppServerEventHandler', () => {
         emitWarning: vi.fn(),
         emitError: vi.fn(),
       }),
+      emitRawPart: vi.fn(),
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
@@ -128,6 +129,7 @@ describe('createAppServerEventHandler', () => {
         emitWarning: vi.fn(),
         emitError: vi.fn(),
       }),
+      emitRawPart: vi.fn(),
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
@@ -571,6 +573,7 @@ function createNativeToolHarness() {
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     }),
+    emitRawPart: vi.fn(),
     emitWarning: vi.fn(),
     emitError: vi.fn(),
   });
@@ -621,4 +624,295 @@ function usageBreakdown({
     outputTokens: output,
     reasoningOutputTokens: 0,
   };
+}
+
+describe('createAppServerEventHandler subagents', () => {
+  // Thread, turn and item ids below come from a Codex 0.160.1 app-server run.
+  const mainThreadId = '01a15f6d-441e-76e1-a1b2-eb781287ad13';
+  const mainTurnId = '01a15f6d-442a-7883-b668-de597f006e7c';
+  const subagentThreadId = '01a15f6d-53c0-7663-bb4f-ca2c5d11bfc6';
+  const subagentTurnId = '01a15f6d-53c6-7a72-bbef-c33399a48cb5';
+  const subagentStarted = {
+    method: 'item/started',
+    params: {
+      item: {
+        type: 'subAgentActivity',
+        id: 'call_RtLbFlgyC3KdyNJ7Q2B3gIGM',
+        kind: 'started',
+        agentThreadId: subagentThreadId,
+        agentPath: '/root/helper_1',
+      },
+      threadId: mainThreadId,
+      turnId: mainTurnId,
+      startedAtMs: 1792602362822,
+    },
+  };
+  const waitStarted = {
+    method: 'item/started',
+    params: {
+      item: {
+        type: 'collabAgentToolCall',
+        id: 'call_NpQU6oohRtDTmUeOHqNWqVUi',
+        tool: 'wait',
+        status: 'inProgress',
+        senderThreadId: mainThreadId,
+        receiverThreadIds: [],
+        prompt: null,
+        model: null,
+        reasoningEffort: null,
+        agentsStates: {},
+      },
+      threadId: mainThreadId,
+      turnId: mainTurnId,
+      startedAtMs: 1792602365969,
+    },
+  };
+  const subagentCommandCompleted = {
+    method: 'item/completed',
+    params: {
+      item: {
+        type: 'commandExecution',
+        id: 'exec-0a0e5f94-a032-4a81-b78a-2b5d9111e6a9',
+        command: "/bin/zsh -lc 'wc -l < ./sample.txt'",
+        cwd: '/workspace',
+        processId: '83169',
+        source: 'unifiedExecStartup',
+        status: 'completed',
+        commandActions: [{ type: 'unknown', command: 'wc -l < ./sample.txt' }],
+        aggregatedOutput: '       7\n',
+        exitCode: 0,
+        durationMs: 0,
+      },
+      threadId: subagentThreadId,
+      turnId: subagentTurnId,
+      completedAtMs: 1792602365352,
+    },
+  };
+
+  it('forwards subAgentActivity and collabAgentToolCall items raw', () => {
+    const { emitted, handler } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+
+    handler.handle(subagentStarted);
+    handler.handle(waitStarted);
+
+    expect(emitted).toEqual([
+      { type: 'raw', rawValue: subagentStarted },
+      { type: 'raw', rawValue: waitStarted },
+    ]);
+  });
+
+  it("forwards a known subagent thread's notifications raw and nothing else", () => {
+    const { emitted, handler, getTurnUsage } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+    handler.handle(subagentStarted);
+    emitted.length = 0;
+
+    handler.handle(subagentCommandCompleted);
+    expect(emitted).toEqual([
+      { type: 'raw', rawValue: subagentCommandCompleted },
+    ]);
+
+    const subagentUsage = {
+      method: 'thread/tokenUsage/updated',
+      params: {
+        threadId: subagentThreadId,
+        turnId: subagentTurnId,
+        tokenUsage: {
+          total: usageBreakdown({ input: 12946, cached: 0, output: 33 }),
+          last: usageBreakdown({ input: 12946, cached: 0, output: 33 }),
+          modelContextWindow: 258400,
+        },
+      },
+    };
+    handler.handle(subagentUsage);
+    handler.handle({
+      method: 'turn/completed',
+      params: {
+        threadId: mainThreadId,
+        turn: { id: mainTurnId, status: 'completed' },
+      },
+    });
+
+    expect(emitted.filter(event => event.type !== 'raw')).toEqual([]);
+    expect(getTurnUsage()).toMatchObject({
+      inputTokens: { total: 0 },
+      outputTokens: { total: 0 },
+    });
+  });
+
+  it('still drops notifications from unknown threads', () => {
+    const { emitted, handler } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+
+    handler.handle(subagentCommandCompleted);
+    handler.handle({
+      method: 'turn/started',
+      params: {
+        threadId: subagentThreadId,
+        turn: { id: subagentTurnId, status: 'inProgress' },
+      },
+    });
+
+    expect(emitted).toEqual([]);
+  });
+
+  const subagentTurnStarted = {
+    method: 'turn/started',
+    params: {
+      threadId: subagentThreadId,
+      turn: { id: subagentTurnId, status: 'inProgress' },
+    },
+  };
+
+  it('forwards notifications a subagent sent before its started item right after that item', () => {
+    const { emitted, handler } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+
+    handler.handle(subagentTurnStarted);
+    handler.handle(subagentCommandCompleted);
+    handler.handle(subagentStarted);
+
+    expect(emitted).toEqual([
+      { type: 'raw', rawValue: subagentStarted },
+      { type: 'raw', rawValue: subagentTurnStarted },
+      { type: 'raw', rawValue: subagentCommandCompleted },
+    ]);
+  });
+
+  it('forwards a subagent from an earlier turn once send_input gives it a task (interacted)', () => {
+    const { emitted, handler } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+    // Codex 0.160.1 sends this main-thread item when send_input reaches a subagent.
+    const subagentInteracted = {
+      method: 'item/started',
+      params: {
+        item: {
+          type: 'subAgentActivity',
+          id: 'call_send_input',
+          kind: 'interacted',
+          agentThreadId: subagentThreadId,
+          agentPath: '/root/helper_1',
+        },
+        threadId: mainThreadId,
+        turnId: mainTurnId,
+      },
+    };
+
+    handler.handle(subagentInteracted);
+    handler.handle(subagentTurnStarted);
+
+    expect(emitted).toEqual([
+      { type: 'raw', rawValue: subagentInteracted },
+      { type: 'raw', rawValue: subagentTurnStarted },
+    ]);
+  });
+
+  it('a thread/started for another thread does not replace the main thread', () => {
+    const { emitted, handler } = createSubagentHarness({});
+
+    handler.handle({
+      method: 'thread/started',
+      params: {
+        thread: {
+          id: subagentThreadId,
+          forkedFromId: mainThreadId,
+          parentThreadId: mainThreadId,
+        },
+      },
+    });
+    handler.announceThread(mainThreadId);
+    handler.setTurnId(mainTurnId);
+    handler.handle(subagentStarted);
+
+    expect(emitted).toEqual([
+      { type: 'bridge-thread', threadId: mainThreadId },
+      { type: 'raw', rawValue: subagentStarted },
+    ]);
+  });
+
+  it("does not forward a subagent's command output deltas", () => {
+    const { emitted, handler } = createSubagentHarness({
+      mainThreadId,
+      mainTurnId,
+    });
+    handler.handle(subagentStarted);
+    emitted.length = 0;
+
+    handler.handle({
+      method: 'item/commandExecution/outputDelta',
+      params: {
+        threadId: subagentThreadId,
+        turnId: subagentTurnId,
+        itemId: 'exec-0a0e5f94-a032-4a81-b78a-2b5d9111e6a9',
+        delta: '       7\n',
+      },
+    });
+
+    expect(emitted).toEqual([]);
+  });
+
+  it('a plain thread/started still announces the main thread', () => {
+    const { emitted, handler } = createSubagentHarness({});
+
+    handler.handle({
+      method: 'thread/started',
+      params: {
+        thread: {
+          id: mainThreadId,
+          forkedFromId: null,
+          parentThreadId: null,
+        },
+      },
+    });
+    handler.setTurnId(mainTurnId);
+    handler.handle(subagentStarted);
+
+    expect(emitted).toEqual([
+      { type: 'bridge-thread', threadId: mainThreadId },
+      { type: 'raw', rawValue: subagentStarted },
+    ]);
+  });
+});
+
+function createSubagentHarness({
+  mainThreadId,
+  mainTurnId,
+}: {
+  mainThreadId?: string;
+  mainTurnId?: string;
+}) {
+  const emitted: Array<Record<string, unknown>> = [];
+  let turnUsage: Record<string, unknown> = defaultUsage();
+  const stepTracker = createCodexStepTracker({
+    send: event => emitted.push(event),
+  });
+  const handler = createAppServerEventHandler({
+    stepTracker,
+    emitStreamEvent: createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: usage => (turnUsage = usage),
+      setThreadId: () => {},
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    }),
+    emitRawPart: rawValue => emitted.push({ type: 'raw', rawValue }),
+    emitWarning: vi.fn(),
+    emitError: vi.fn(),
+  });
+  if (mainThreadId != null) handler.announceThread(mainThreadId);
+  if (mainTurnId != null) handler.setTurnId(mainTurnId);
+  emitted.length = 0;
+  return { emitted, handler, getTurnUsage: () => turnUsage };
 }

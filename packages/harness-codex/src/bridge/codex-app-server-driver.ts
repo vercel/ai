@@ -100,6 +100,7 @@ export function createCodexAppServerRuntime(): {
     const handler = createAppServerEventHandler({
       stepTracker: options.stepTracker,
       emitStreamEvent: options.emitStreamEvent,
+      emitRawPart: rawValue => emit({ type: 'raw', rawValue }),
       emitWarning: turn.emitWarning,
       emitError: turn.emitError,
     });
