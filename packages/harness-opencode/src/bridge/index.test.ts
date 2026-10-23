@@ -733,6 +733,127 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
+  it.each([
+    {
+      name: 'sends the tool call before an approval OpenCode asks for while the call is pending',
+      reportsRunning: true,
+    },
+    {
+      name: 'still sends an approval whose tool call is never reported',
+      reportsRunning: false,
+    },
+  ])('$name', async ({ reportsRunning }) => {
+    const emit = vi.fn();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Create notes.txt.',
+      permissionMode: 'allow-reads',
+    };
+    bridgeMock.turn = {
+      emit,
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(async () => ({ approved: true })),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    const toolPart = (status: string, input: Record<string, unknown>) => ({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          type: 'tool',
+          sessionID: 'session-1',
+          messageID: 'message-1',
+          callID: 'patch-call',
+          tool: 'apply_patch',
+          state: { status, input },
+        },
+      },
+    });
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      permission: { reply: permissionReplyMock },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              // The order OpenCode 1.18 uses: pending, permission, running.
+              yield toolPart('pending', {});
+              yield {
+                type: 'permission.asked',
+                properties: {
+                  id: 'edit-request',
+                  sessionID: 'session-1',
+                  permission: 'edit',
+                  patterns: ['notes.txt'],
+                  tool: { messageID: 'message-1', callID: 'patch-call' },
+                },
+              };
+              if (reportsRunning) {
+                yield toolPart('running', {
+                  patchText:
+                    '*** Begin Patch\n*** Add File: notes.txt\n+hi\n*** End Patch\n',
+                });
+              }
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    const sent = emit.mock.calls.map(([message]) => message);
+    const approvalIndex = sent.findIndex(
+      message =>
+        message.type === 'tool-approval-request' &&
+        message.toolCallId === 'patch-call',
+    );
+    const toolCallIndex = sent.findIndex(
+      message =>
+        message.type === 'tool-call' && message.toolCallId === 'patch-call',
+    );
+    expect(approvalIndex).toBeGreaterThanOrEqual(0);
+    const hostInputPauseIndex = sent.findIndex(
+      message =>
+        message.type === 'finish-step' &&
+        (message.finishReason as { raw?: string } | undefined)?.raw ===
+          'host-input',
+    );
+    if (reportsRunning) {
+      expect(toolCallIndex).toBeGreaterThanOrEqual(0);
+      expect(toolCallIndex).toBeLessThan(approvalIndex);
+      // The host is told the step waits for it only after it has the request.
+      expect(hostInputPauseIndex).toBeGreaterThan(approvalIndex);
+    } else {
+      expect(toolCallIndex).toBe(-1);
+    }
+  });
+
   it('passes headers to a direct provider', async () => {
     const userMessages = createUserMessages();
     bridgeMock.start = {
