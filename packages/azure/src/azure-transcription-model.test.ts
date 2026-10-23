@@ -155,6 +155,17 @@ describe('API routing', () => {
     ]);
   });
 
+  it('does not request verbose_json for a custom deployment when only a prompt is set', async () => {
+    const { provider, request } = setup();
+    await provider.transcription('custom-deployment').doGenerate({
+      ...input,
+      providerOptions: { openai: { prompt: 'Names' } },
+    });
+    expect(request().body.get('prompt')).toBe('Names');
+    expect(request().body.get('response_format')).toBeNull();
+    expect(request().body.getAll('timestamp_granularities[]')).toEqual([]);
+  });
+
   it.each([
     { api: 'invalid' },
     { timestamps: 'invalid' },

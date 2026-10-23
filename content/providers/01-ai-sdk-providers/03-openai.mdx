@@ -3523,7 +3523,7 @@ The following provider options are available:
   Additional information to include in the transcription response.
 
 - **responseFormat** _'json' | 'verbose_json' | 'diarized_json'_
-  The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
+  The format of the transcription response. `whisper-1` uses `verbose_json`, `gpt-4o-transcribe-diarize` defaults to `diarized_json`, and other `*-transcribe` models default to `json`. For other model IDs (e.g. custom deployment names), `verbose_json` is only requested by default when `timestampGranularities` is set.
 
 - **chunkingStrategy** _'auto' | object_
   Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.

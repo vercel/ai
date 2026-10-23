@@ -208,28 +208,46 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const isGpt4oTranscribeModel = [
-        'gpt-4o-transcribe',
-        'gpt-4o-mini-transcribe',
-      ].includes(this.modelId);
+      // the *-transcribe model family (including dated snapshots and
+      // gpt-transcribe) only supports json (or diarized_json):
+      const isTranscribeModel = this.modelId.includes('transcribe');
+
+      // timestampGranularities has a schema default, so check the raw options
+      // to see whether the caller actually asked for timestamps:
+      const timestampsRequested =
+        providerOptions?.openai?.timestampGranularities != null;
+
+      // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+      // prefer verbose_json to get segments for models that support it.
+      // For unknown model ids (e.g. custom deployment names), only request
+      // verbose_json when the caller asked for timestamps:
+      const responseFormat =
+        this.modelId === 'whisper-1'
+          ? 'verbose_json'
+          : (openAIOptions.responseFormat ??
+            (isDiarizationModel
+              ? 'diarized_json'
+              : isTranscribeModel
+                ? 'json'
+                : timestampsRequested
+                  ? 'verbose_json'
+                  : undefined));
 
       const transcriptionModelOptions = {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
-        // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
-        // prefer verbose_json to get segments for models that support it
+        // whisper-1 already has response_format set above:
         ...(this.modelId !== 'whisper-1' && {
-          response_format:
-            openAIOptions.responseFormat ??
-            (isDiarizationModel
-              ? 'diarized_json'
-              : isGpt4oTranscribeModel
-                ? 'json'
-                : 'verbose_json'),
+          response_format: responseFormat,
         }),
         temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        // timestamp granularities require verbose_json; only send the
+        // default when verbose_json is used:
+        timestamp_granularities:
+          timestampsRequested || responseFormat === 'verbose_json'
+            ? openAIOptions.timestampGranularities
+            : undefined,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
