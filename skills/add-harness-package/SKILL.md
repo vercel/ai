@@ -85,7 +85,7 @@ Required package basics:
 - dev dependencies matching existing harness packages
 - `"engines": { "node": ">=22" }`
 
-For bridge packages, add any bridge asset copy step required for files under `src/bridge/`.
+For bridge packages, add any bridge asset copy step required for files under `src/bridge/` (copy `src/bridge/pnpm-lock.yaml` to `dist/bridge/pnpm-lockfile.yaml` and reference `./bridge/pnpm-lockfile.yaml` in `createReadBridgeAsset`, because `pnpm pack` unconditionally excludes files named `pnpm-lock.yaml`).
 
 Bridge dependency rules (bridge-backed harnesses):
 
