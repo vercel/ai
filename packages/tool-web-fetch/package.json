@@ -37,7 +37,7 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "defuddle": "0.19.5",
     "linkedom": "^0.18.13",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "ai": "workspace:^"
