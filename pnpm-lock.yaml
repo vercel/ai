@@ -190,8 +190,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: 1.0.0-beta.11
-        version: 1.0.0-beta.11
+        specifier: 1.0.0-beta.12
+        version: 1.0.0-beta.12
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -5143,8 +5143,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: 1.0.0-beta.11
-        version: 1.0.0-beta.11(zod@4.4.3)
+        specifier: 1.0.0-beta.12
+        version: 1.0.0-beta.12(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -8854,8 +8854,8 @@ packages:
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
 
-  '@konsistent/convention@1.0.0-beta.11':
-    resolution: {integrity: sha512-lONY189+kpxSkZi2/022gc3QKghXwvWikCKQfmgWD2fh9fnIIWN/M/iVGCwg2OcdesYOc8ZhdRI7fDIt6gKQOw==}
+  '@konsistent/convention@1.0.0-beta.12':
+    resolution: {integrity: sha512-pb5GHUVWgEmqaS4EVIbD9E6+JOrYbtWJ+c4/xydvRj1lsvGwrJ3MgMVOuWCyhP7jFnsTUxJVASgB9ZRNYNy/0w==}
     engines: {node: '>=22.11.0'}
     hasBin: true
     peerDependencies:
@@ -19380,8 +19380,8 @@ packages:
     resolution: {integrity: sha512-3An0GCLDSR34tsCO4H8Tef8Pp2ngtaZDAZnsWJYelqXUK5wyiHvGItgK/xcSkmHLSTn1Jcho1mRQs2ehRzvKKw==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
 
-  konsistent@1.0.0-beta.11:
-    resolution: {integrity: sha512-INQnoeQMFQWjAHnqrZRYuovq6sjd2F/SSmqvlaSJqv0vnntUOFLiu6RfyrA/kmNLVXL8T1ksQ/sNcOGlwcgFiw==}
+  konsistent@1.0.0-beta.12:
+    resolution: {integrity: sha512-nQbpa53gOinXoKIpG/aliM+jrttdbI7wXIEhQZe2Bb+grqG/AcJtANouSebh0hOjx3wCrp/c23J6wc+tdUc3UQ==}
     engines: {node: '>=22.11.0'}
     hasBin: true
 
@@ -23771,11 +23771,6 @@ packages:
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -29888,11 +29883,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@1.0.0-beta.11(zod@4.4.3)':
+  '@konsistent/convention@1.0.0-beta.12(zod@4.4.3)':
     dependencies:
       citty: 0.2.2
       jiti: 2.7.0
       zod: 4.4.3
+
+  '@konsistent/convention@1.0.0-beta.12(zod@4.5.4)':
+    dependencies:
+      citty: 0.2.2
+      jiti: 2.7.0
+      zod: 4.5.4
 
   '@kwsites/file-exists@1.1.1(supports-color@10.2.2)':
     dependencies:
@@ -43766,16 +43767,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  konsistent@1.0.0-beta.11:
+  konsistent@1.0.0-beta.12:
     dependencies:
-      '@konsistent/convention': 1.0.0-beta.11(zod@4.4.3)
+      '@konsistent/convention': 1.0.0-beta.12(zod@4.5.4)
       citty: 0.2.2
       picocolors: 1.1.1
       picomatch: 4.0.7
       resolve.exports: 2.0.3
       tinyglobby: 0.2.17
-      typescript: 5.9.3
-      zod: 4.4.3
+      typescript: 5.8.3
+      zod: 4.5.4
 
   kuler@2.0.0: {}
 
@@ -49936,8 +49937,6 @@ snapshots:
   typescript@5.7.2: {}
 
   typescript@5.8.3: {}
-
-  typescript@5.9.3: {}
 
   typescript@6.0.3: {}
 
