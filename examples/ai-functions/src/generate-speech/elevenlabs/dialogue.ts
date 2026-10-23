@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateSpeech({
     model: elevenLabs.speech('eleven_v3'),
-    text: 'Knock knock',
+    text: '',
     providerOptions: {
       elevenlabs: {
         inputs: [
