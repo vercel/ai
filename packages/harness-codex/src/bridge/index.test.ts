@@ -276,6 +276,7 @@ describe('Codex bridge config', () => {
         agent_bridge_openai: {
           base_url: 'https://api.openai.com/v1',
           env_key: 'CODEX_API_KEY',
+          supports_standalone_web_search: true,
           supports_websockets: false,
         },
       },
@@ -295,6 +296,7 @@ describe('Codex bridge config', () => {
           "base_url": "https://api.openai.com/v1",
           "env_key": "CODEX_API_KEY",
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },
@@ -368,6 +370,7 @@ describe('Codex bridge config', () => {
             "x-tenant": "acme",
           },
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },
@@ -383,6 +386,54 @@ describe('Codex bridge config', () => {
     await import('./index');
 
     expect(state.appServerOptions[0]?.codexModel).toBe('openai/gpt-5.5');
+  });
+
+  test('enables standalone web search for direct OpenAI with a trailing slash', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1/';
+
+    await import('./index');
+
+    expect(
+      (
+        state.appServerOptions[0]?.codexConfig.model_providers as Record<
+          string,
+          Record<string, unknown>
+        >
+      )?.agent_bridge_openai?.supports_standalone_web_search,
+    ).toBe(true);
+  });
+
+  test('does not enable standalone web search for AI Gateway provider', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
+    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+
+    await import('./index');
+
+    expect(
+      (
+        state.appServerOptions[0]?.codexConfig.model_providers as Record<
+          string,
+          Record<string, unknown>
+        >
+      )?.agent_bridge_openai?.supports_standalone_web_search,
+    ).toBeUndefined();
+  });
+
+  test('does not enable standalone web search for custom non-OpenAI base URL', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://custom-proxy.example.com/v1';
+
+    await import('./index');
+
+    expect(
+      (
+        state.appServerOptions[0]?.codexConfig.model_providers as Record<
+          string,
+          Record<string, unknown>
+        >
+      )?.agent_bridge_openai?.supports_standalone_web_search,
+    ).toBeUndefined();
   });
 
   test('passes the requested JSON schema to app-server', async () => {

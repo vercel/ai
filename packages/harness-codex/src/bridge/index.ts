@@ -16,6 +16,12 @@ import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import { argv, env as procEnv, stdout } from 'node:process';
 
+const DIRECT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
+
+function isDirectOpenAiBaseUrl(url: string): boolean {
+  return url.replace(/\/+$/, '') === DIRECT_OPENAI_BASE_URL;
+}
+
 const args = parseArgs(argv.slice(2));
 const workdir = requireArg({ value: args.workdir, name: '--workdir' });
 const bridgeStateDir = requireArg({
@@ -140,6 +146,8 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
     codexConfig.model_supports_reasoning_summaries = true;
   }
   if (apiBaseUrl) {
+    const supportsStandaloneWebSearch =
+      !hasGatewayAuth && isDirectOpenAiBaseUrl(apiBaseUrl);
     codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
     codexConfig.model_providers = {
@@ -148,6 +156,9 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
         base_url: apiBaseUrl,
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
+        ...(supportsStandaloneWebSearch
+          ? { supports_standalone_web_search: true }
+          : {}),
         supports_websockets: false,
         ...(start.headers != null || (hasGatewayAuth && HARNESS_CLIENT_APP)
           ? {
