@@ -20,6 +20,7 @@ import {
   type ToolExecuteFunction,
   type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
+import { GatewayAuthenticationError } from '@ai-sdk/gateway';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   afterEach,
@@ -3865,6 +3866,25 @@ describe('generateText', () => {
       });
 
       expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should be called with the same wrapped gateway error that is thrown', async () => {
+      const onStepError = vi.fn();
+
+      const error = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new GatewayAuthenticationError();
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onStepError,
+      }).catch(error => error);
+
+      expect(error.name).toBe('GatewayAuthenticationError');
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toBe(error);
     });
 
     it('should be called with the abort error when the call is aborted', async () => {

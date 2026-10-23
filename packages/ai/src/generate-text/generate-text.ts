@@ -1666,15 +1666,17 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      const wrappedError = wrapGatewayError(error);
+
       // generateText has no onAbort, so aborts and timeouts also end the step here:
       if (openStep != null) {
         await notify({
-          event: { ...openStep, error: wrapGatewayError(error) },
+          event: { ...openStep, error: wrappedError },
           callbacks: [onStepError, telemetryDispatcher.onStepError],
         });
       }
       await telemetryDispatcher.onError?.({ callId, error });
-      throw wrapGatewayError(error);
+      throw wrappedError;
     }
   };
 

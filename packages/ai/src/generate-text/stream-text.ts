@@ -1842,23 +1842,19 @@ class DefaultStreamTextResult<
 
       async flush(controller) {
         try {
+          const noOutputError = new NoOutputGeneratedError({
+            message: 'No output generated. Check the stream for errors.',
+          });
+
           // a step that started without producing a result has failed:
-          await notifyStepError(
-            openStep?.error ??
-              new NoOutputGeneratedError({
-                message: 'No output generated. Check the stream for errors.',
-              }),
-          );
+          await notifyStepError(openStep?.error ?? noOutputError);
 
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
           if (recordedSteps.length === 0 || recordedNoOutputError != null) {
             const error = abortSignal?.aborted
               ? abortSignal.reason
-              : (recordedNoOutputError ??
-                new NoOutputGeneratedError({
-                  message: 'No output generated. Check the stream for errors.',
-                }));
+              : (recordedNoOutputError ?? noOutputError);
 
             // an incomplete model stream is not reported to telemetry by the
             // stream itself, so report it here to close open spans:
@@ -2656,12 +2652,12 @@ class DefaultStreamTextResult<
                       stepTools,
                       stepToolChoice,
                     };
-                    openStep = { event: stepStartEvent };
-
                     await notify({
                       event: stepStartEvent,
                       callbacks: [onStepStart, telemetryDispatcher.onStepStart],
                     });
+
+                    openStep = { event: stepStartEvent };
                   },
                   _internal: {
                     now,
