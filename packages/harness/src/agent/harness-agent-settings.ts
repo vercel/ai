@@ -71,8 +71,12 @@ export type HarnessAgentSandboxConfig = {
 
   /**
    * Called after each sandbox session is acquired and the session work
-   * directory exists, before the harness adapter starts. Runs for fresh and
-   * resumed sessions.
+   * directory exists. Runs for fresh and resumed sessions.
+   *
+   * For a harness adapter with a sandbox bootstrap recipe (such as Claude
+   * Code or Codex), it runs before the adapter starts. For any other adapter,
+   * it runs on the first file, exec, or spawn operation on the session's
+   * sandbox, so a session that never touches the sandbox never calls it.
    *
    * Use this to write per-session config, install lightweight tools, activate
    * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
