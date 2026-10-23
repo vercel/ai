@@ -23,7 +23,7 @@ export type GetVideoStatusResult =
  * schedule, or skip polling entirely when the start used `webhookUrl` and
  * your receiver fetches the result after the terminal notification arrives.
  *
- * @param model - The video model the operation was started on.
+ * @param modelArg - The video model the operation was started on.
  * @param operation - The opaque reference returned by `experimental_startVideo`.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
