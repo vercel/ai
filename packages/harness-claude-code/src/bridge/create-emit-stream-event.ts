@@ -114,6 +114,13 @@ export type ClaudeStreamEventState = {
   earlyFinishStepToolUseIds: Set<string>;
   emittedToolCallIds: Set<string>;
   /*
+   * Tool calls of a step that a host-input `finish-step` has closed. The host
+   * may end its stream at that boundary and continue the turn in a new stream
+   * that does not know these calls, so a later approval request for one of
+   * them must emit its `tool-call` again.
+   */
+  hostInputPausedToolCallIds: Set<string>;
+  /*
    * Claude reports each `tool_use` block of a response separately, and may
    * start executing a tool before the response finishes streaming. An early
    * `finish-step` is held back until the response ends, so it covers every
@@ -147,6 +154,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     hostInputWaitingToolUseIds: new Set(),
     earlyFinishStepToolUseIds: new Set(),
     emittedToolCallIds: new Set(),
+    hostInputPausedToolCallIds: new Set(),
     modelResponseStreaming: false,
   };
 }
@@ -643,6 +651,9 @@ function emitEarlyFinishStepIfReady({
   }
   for (const toolUseId of uncovered) {
     state.earlyFinishStepToolUseIds.add(toolUseId);
+  }
+  for (const toolUseId of state.pendingStepToolUseIds) {
+    state.hostInputPausedToolCallIds.add(toolUseId);
   }
   emit({
     type: 'finish-step',
