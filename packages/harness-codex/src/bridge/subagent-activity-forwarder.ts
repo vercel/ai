@@ -105,29 +105,26 @@ export function createSubagentActivityForwarder({
       return;
     }
     emitRawPart(notification);
-    // A newly announced thread's earlier notifications follow its announcement.
+    // A newly announced thread's earlier notifications follow its announcement,
+    // and can announce nested subagents themselves.
     for (const newThreadId of newThreadIds) {
       const held = heldUntilThreadAnnounced.get(newThreadId) ?? [];
       heldUntilThreadAnnounced.delete(newThreadId);
-      for (const heldNotification of held) emitRawPart(heldNotification);
+      for (const heldNotification of held) {
+        forwardOrHoldForNextResponse({
+          notification: heldNotification,
+          threadId: newThreadId,
+          item: findSubagentActivityItem(heldNotification),
+        });
+      }
     }
   };
 
   return {
     forwardIfSubagentActivity(notification) {
-      const params = asRecord(notification.params);
-      const threadId = params?.threadId;
+      const threadId = asRecord(notification.params)?.threadId;
       if (typeof threadId !== 'string') return false;
-      const item =
-        notification.method === 'item/started' ||
-        notification.method === 'item/completed'
-          ? asRecord(params?.item)
-          : undefined;
-      const subagentActivityItem =
-        typeof item?.type === 'string' &&
-        SUBAGENT_ACTIVITY_ITEM_TYPES.has(item.type)
-          ? item
-          : undefined;
+      const subagentActivityItem = findSubagentActivityItem(notification);
       if (threadId === mainThreadId) {
         // Forwarded whatever its turn: a subagent can outlive the response
         // that started it.
@@ -171,6 +168,22 @@ export function createSubagentActivityForwarder({
       heldUntilThreadAnnounced.clear();
     },
   };
+}
+
+function findSubagentActivityItem(
+  notification: CodexAppServerNotification,
+): Record<string, unknown> | undefined {
+  if (
+    notification.method !== 'item/started' &&
+    notification.method !== 'item/completed'
+  ) {
+    return undefined;
+  }
+  const item = asRecord(asRecord(notification.params)?.item);
+  return typeof item?.type === 'string' &&
+    SUBAGENT_ACTIVITY_ITEM_TYPES.has(item.type)
+    ? item
+    : undefined;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
