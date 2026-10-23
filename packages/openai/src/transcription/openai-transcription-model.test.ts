@@ -740,6 +740,158 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should reject streaming for whisper-1', async () => {
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([audioData]),
+        inputAudioFormat: { type: 'audio/wav' },
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+  });
+
+  it('should stream an uploaded file for gpt-transcribe', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.delta","delta":"Hi"}\n\n',
+        'data: {"type":"transcript.text.done","text":"Hi"}\n\n',
+      ],
+    };
+
+    const result = await provider.transcription('gpt-transcribe').doStream({
+      audio: convertArrayToReadableStream([audioData]),
+      inputAudioFormat: { type: 'audio/mpeg' },
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'transcript-delta',
+      delta: 'Hi',
+    });
+    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'Hi' });
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-transcribe');
+    expect(body?.stream).toBe('true');
+  });
+
+  it('should keep diarized segments when the stream has no text deltas', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.segment","id":"seg_001","start":0,"end":1.5,"text":"Hello from Alice.","speaker":"A"}\n\n',
+        'data: {"type":"transcript.text.segment","id":"seg_002","start":1.5,"end":3.2,"text":"Hello from Bob.","speaker":"B"}\n\n',
+      ],
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-transcribe-diarize')
+      .doStream({
+        audio: convertArrayToReadableStream([audioData]),
+        inputAudioFormat: { type: 'audio/mpeg' },
+      });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toEqual([
+      { type: 'stream-start', warnings: expect.any(Array) },
+      expect.objectContaining({ type: 'response-metadata' }),
+      {
+        type: 'transcript-final',
+        id: 'seg_001',
+        text: 'Hello from Alice.',
+        startSecond: 0,
+        endSecond: 1.5,
+        providerMetadata: { openai: { speaker: 'A' } },
+      },
+      {
+        type: 'transcript-final',
+        id: 'seg_002',
+        text: 'Hello from Bob.',
+        startSecond: 1.5,
+        endSecond: 3.2,
+        providerMetadata: { openai: { speaker: 'B' } },
+      },
+      {
+        type: 'finish',
+        text: 'Hello from Alice. Hello from Bob.',
+        segments: [
+          { text: 'Hello from Alice.', startSecond: 0, endSecond: 1.5 },
+          { text: 'Hello from Bob.', startSecond: 1.5, endSecond: 3.2 },
+        ],
+        providerMetadata: {
+          openai: {
+            segments: [
+              {
+                text: 'Hello from Alice.',
+                startSecond: 0,
+                endSecond: 1.5,
+                speaker: 'A',
+              },
+              {
+                text: 'Hello from Bob.',
+                startSecond: 1.5,
+                endSecond: 3.2,
+                speaker: 'B',
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-4o-transcribe-diarize');
+    expect(body?.stream).toBe('true');
+    expect(body?.response_format).toBe('diarized_json');
+  });
+
+  it('should stream an uploaded file for gpt-4o-transcribe', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.delta","delta":"Hello"}\n\n',
+        'data: {"type":"transcript.text.delta","delta":" world"}\n\n',
+        'data: {"type":"transcript.text.done","text":"Hello world","usage":{"type":"tokens","input_tokens":4,"output_tokens":2,"total_tokens":6}}\n\n',
+      ],
+    };
+
+    const result = await provider.transcription('gpt-4o-transcribe').doStream({
+      audio: convertArrayToReadableStream([audioData]),
+      inputAudioFormat: { type: 'audio/mpeg' },
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.map(part => part.type)).toEqual([
+      'stream-start',
+      'response-metadata',
+      'transcript-delta',
+      'transcript-delta',
+      'finish',
+    ]);
+    expect(parts[2]).toMatchObject({
+      type: 'transcript-delta',
+      delta: 'Hello',
+    });
+    expect(parts[3]).toMatchObject({
+      type: 'transcript-delta',
+      delta: ' world',
+    });
+    expect(parts[4]).toEqual({
+      type: 'finish',
+      text: 'Hello world',
+      segments: [],
+      usage: {
+        type: 'tokens',
+        input_tokens: 4,
+        output_tokens: 2,
+        total_tokens: 6,
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-4o-transcribe');
+    expect(body?.stream).toBe('true');
+  });
+
   it('should stream gpt-realtime-whisper using OpenAI realtime transcription', async () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);
