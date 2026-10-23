@@ -52,6 +52,7 @@ import {
   mergeAbortSignals,
   mergeCallbacks,
   mapWithConcurrency,
+  prepareRetries,
   prepareToolCallConcurrency,
   signToolApproval,
   standardizePrompt,
@@ -525,6 +526,12 @@ export type WorkflowAgentOptions<
     toolCallConcurrency?: number;
 
     /**
+     * Default `streamRetries` for every stream call on this agent.
+     * See `WorkflowAgentStreamOptions.streamRetries`.
+     */
+    streamRetries?: number;
+
+    /**
      * Optional telemetry configuration.
      */
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
@@ -777,6 +784,22 @@ export type WorkflowAgentOnFinishCallback<
 export type WorkflowAgentOnErrorCallback = (event: {
   error: unknown;
 }) => PromiseLike<void> | void;
+
+/**
+ * Result that a retry-capable `onError` callback returns to request a stream
+ * retry.
+ */
+export type WorkflowAgentOnErrorResult = { retry: true };
+
+/**
+ * Retry-capable callback that is set using the `onError` option.
+ */
+export type WorkflowAgentOnErrorRetryCallback = (event: {
+  error: unknown;
+}) =>
+  | PromiseLike<void | WorkflowAgentOnErrorResult>
+  | void
+  | WorkflowAgentOnErrorResult;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -1129,8 +1152,11 @@ export type WorkflowAgentCallOptions<
     /**
      * Callback that is invoked when an error occurs during streaming.
      * You can use it to log errors.
+     * Return `{ retry: true }` to retry the current model step after a
+     * provider error is received from the response stream when
+     * `streamRetries` is explicitly configured.
      */
-    onError?: WorkflowAgentOnErrorCallback;
+    onError?: WorkflowAgentOnErrorCallback | WorkflowAgentOnErrorRetryCallback;
 
     /**
      * Callback that is called when the LLM response and all request tool executions
@@ -1271,6 +1297,27 @@ export type WorkflowAgentStreamOptions<
   experimental_transform?:
     | StreamTextTransform<TTools>
     | Array<StreamTextTransform<TTools>>;
+
+  /**
+   * Maximum number of automatic retries for provider errors received after
+   * response streaming has started, either as error events or as a failed
+   * read of the response stream. Aborts and timeouts are not retried. Each
+   * retry reruns only the current model step as a new durable step. Completed earlier steps and their tool results
+   * are preserved.
+   *
+   * Every attempt starts with a `reset-step` chunk so UI consumers discard
+   * the failed attempt's partial output. Error chunks of retried attempts are
+   * not written to the `writable`. Provider-executed tool work cannot be
+   * undone and may repeat.
+   *
+   * Set to `0` to disable automatic retries while allowing `onError` to
+   * request one retry. When automatic retries are configured, `onError` can
+   * request at most one additional retry after they are exhausted. Omit this
+   * option to disable all stream retry behavior.
+   *
+   * @default 0 (stream retry behavior disabled when omitted)
+   */
+  streamRetries?: number;
 
   /**
    * Whether to send a 'finish' chunk to the writable stream when streaming completes.
@@ -1558,6 +1605,7 @@ export class WorkflowAgent<
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
   private toolCallConcurrency?: number;
+  private streamRetries?: number;
   private telemetry?: TelemetryOptions<TRuntimeContext, TBaseTools>;
   private runtimeContext?: TRuntimeContext;
   private toolsContext?: InferToolSetContext<TBaseTools>;
@@ -1607,6 +1655,7 @@ export class WorkflowAgent<
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
     this.toolCallConcurrency = options.toolCallConcurrency;
+    this.streamRetries = options.streamRetries;
     this.telemetry = options.telemetry;
     this.runtimeContext = options.runtimeContext;
     this.toolsContext = options.toolsContext;
@@ -1845,6 +1894,20 @@ export class WorkflowAgent<
     const toolCallConcurrency = prepareToolCallConcurrency(
       options.toolCallConcurrency ?? effectiveToolCallConcurrency,
     );
+    // Stream retries apply only to streamed model steps. Keep `undefined` when
+    // omitted so existing onError observers keep their current behavior.
+    const streamRetries =
+      mode === 'stream'
+        ? (options.streamRetries ?? this.streamRetries)
+        : undefined;
+    if (streamRetries !== undefined) {
+      prepareRetries({
+        maxRetries: streamRetries,
+        abortSignal: undefined,
+        parameter: 'streamRetries',
+        defaultMaxRetries: 0,
+      });
+    }
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       any,
@@ -1897,6 +1960,7 @@ export class WorkflowAgent<
       effectiveToolsContext,
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
+      streamRetries,
       effectiveStopWhenFromPrepare,
       effectiveActiveToolsFromPrepare,
       effectiveToolApprovalSecret,
@@ -1935,6 +1999,7 @@ export class WorkflowAgent<
       effectiveToolsContext,
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
+      streamRetries,
       effectiveStopWhenFromPrepare,
       effectiveActiveToolsFromPrepare,
       effectiveToolApprovalSecret,
@@ -2564,6 +2629,9 @@ export class WorkflowAgent<
       };
     }
 
+    // Model stream errors that onError already received while the iterator
+    // decided about stream retries.
+    const errorsHandledForStreamRetry = new Set<unknown>();
     const iterator = modelCallIterator({
       mode,
       include: options.include,
@@ -2600,6 +2668,16 @@ export class WorkflowAgent<
         | Array<StreamTextTransform<ToolSet>>
         | undefined,
       experimental_sandbox: sandbox,
+      streamRetries,
+      // With stream retries, the iterator calls onError for every model stream
+      // error, including the final one, because it decides about retries.
+      onStreamError:
+        streamRetries === undefined || options.onError == null
+          ? undefined
+          : async event => {
+              errorsHandledForStreamRetry.add(event.error);
+              return options.onError!(event);
+            },
     });
 
     // Track the final conversation messages from the iterator
@@ -3142,7 +3220,7 @@ export class WorkflowAgent<
         if (options.onAbort) {
           await options.onAbort({ steps });
         }
-      } else if (options.onError) {
+      } else if (options.onError && !errorsHandledForStreamRetry.has(error)) {
         // Call onError for non-abort errors (including tool execution errors)
         await options.onError({ error });
       }
@@ -3151,7 +3229,7 @@ export class WorkflowAgent<
     }
 
     if (hasTerminalError) {
-      if (options.onError) {
+      if (options.onError && !errorsHandledForStreamRetry.has(terminalError)) {
         await options.onError({ error: terminalError });
       }
       await telemetryDispatcher.onError?.(terminalError);

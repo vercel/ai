@@ -294,6 +294,25 @@ describe('WorkflowAgent types', () => {
     });
   });
 
+  it('accepts streamRetries in constructor and stream options', () => {
+    const agent = new WorkflowAgent({ model, streamRetries: 1 });
+
+    agent.stream({
+      prompt: 'hello',
+      streamRetries: 0,
+      onError: () => ({ retry: true }),
+    });
+    agent.stream({
+      prompt: 'hello',
+      onError: async () => {},
+    });
+    agent.generate({
+      prompt: 'hello',
+      // @ts-expect-error streamRetries only applies to streamed model calls
+      streamRetries: 1,
+    });
+  });
+
   it('includes signed approval requests in the durable stream type', () => {
     const part = {
       type: 'tool-approval-request',

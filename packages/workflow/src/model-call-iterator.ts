@@ -36,8 +36,10 @@ import { doGenerateStep } from './do-generate-step.js';
 import { doStreamStep } from './do-stream-step.js';
 import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import type {
+  ModelCallFinish,
   ModelCallStreamPart,
   ModelCallOptions,
+  ModelCallResult,
   ModelStopCondition,
   ParsedToolCall,
   ProviderExecutedToolResult,
@@ -58,6 +60,7 @@ import type {
   GenerationSettings,
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnErrorRetryCallback,
   WorkflowAgentOnStepEndCallback,
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
@@ -148,6 +151,8 @@ export async function* modelCallIterator({
   onStepFinish,
   onStepStart,
   onError,
+  onStreamError,
+  streamRetries,
   prepareStep,
   generationSettings,
   toolChoice,
@@ -176,6 +181,19 @@ export async function* modelCallIterator({
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: WorkflowAgentOnErrorCallback;
+  /**
+   * Called for every model stream error when `streamRetries` is configured.
+   * Returning `{ retry: true }` requests one more retry once the automatic
+   * stream retries are exhausted.
+   */
+  onStreamError?:
+    | WorkflowAgentOnErrorCallback
+    | WorkflowAgentOnErrorRetryCallback;
+  /**
+   * Maximum number of automatic retries for provider errors received after
+   * the model stream started. Omit to disable stream retries.
+   */
+  streamRetries?: number;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
@@ -237,6 +255,24 @@ export async function* modelCallIterator({
   }) as any;
   const dispatchTelemetryInStep =
     shouldDispatchModelCallTelemetryInStep(telemetry);
+  const dispatchLanguageModelCallEnd = (
+    step: StepResult<any, any>,
+    finish: ModelCallFinish | undefined,
+  ) =>
+    telemetryDispatcher.onLanguageModelCallEnd?.({
+      callId: step.callId,
+      provider: step.model?.provider ?? 'unknown',
+      modelId: step.model?.modelId ?? 'unknown',
+      finishReason: step.finishReason,
+      usage: step.usage,
+      content: step.content,
+      responseId: step.response.id,
+      ...(finish?.providerMetadata != null
+        ? { providerMetadata: finish.providerMetadata }
+        : {}),
+    });
+  const canRetryStreamViaOnError =
+    streamRetries !== undefined && onStreamError != null;
 
   while (!done) {
     // Check for abort signal
@@ -364,28 +400,30 @@ export async function* modelCallIterator({
       });
       const modelCallInfo = getModelInfo(currentModel);
 
-      await telemetryDispatcher.onLanguageModelCallStart?.({
-        callId: 'workflow-agent',
-        provider: modelCallInfo.provider,
-        modelId: modelCallInfo.modelId,
-        system: undefined,
-        messages: conversationPrompt as unknown as ModelMessage[],
-        tools:
-          serializedTools == null
-            ? undefined
-            : Object.values(serializedTools).map(tool => ({ ...tool })),
-        maxOutputTokens: currentGenerationSettings.maxOutputTokens,
-        temperature: currentGenerationSettings.temperature,
-        topP: currentGenerationSettings.topP,
-        topK: currentGenerationSettings.topK,
-        presencePenalty: currentGenerationSettings.presencePenalty,
-        frequencyPenalty: currentGenerationSettings.frequencyPenalty,
-        stopSequences: currentGenerationSettings.stopSequences,
-        seed: currentGenerationSettings.seed,
-        reasoning: currentGenerationSettings.reasoning,
-        providerOptions: currentGenerationSettings.providerOptions,
-        headers: currentGenerationSettings.headers,
-      } as never);
+      // Called for every model call attempt, including stream retries.
+      const dispatchLanguageModelCallStart = () =>
+        telemetryDispatcher.onLanguageModelCallStart?.({
+          callId: 'workflow-agent',
+          provider: modelCallInfo.provider,
+          modelId: modelCallInfo.modelId,
+          system: undefined,
+          messages: conversationPrompt as unknown as ModelMessage[],
+          tools:
+            serializedTools == null
+              ? undefined
+              : Object.values(serializedTools).map(tool => ({ ...tool })),
+          maxOutputTokens: currentGenerationSettings.maxOutputTokens,
+          temperature: currentGenerationSettings.temperature,
+          topP: currentGenerationSettings.topP,
+          topK: currentGenerationSettings.topK,
+          presencePenalty: currentGenerationSettings.presencePenalty,
+          frequencyPenalty: currentGenerationSettings.frequencyPenalty,
+          stopSequences: currentGenerationSettings.stopSequences,
+          seed: currentGenerationSettings.seed,
+          reasoning: currentGenerationSettings.reasoning,
+          providerOptions: currentGenerationSettings.providerOptions,
+          headers: currentGenerationSettings.headers,
+        } as never);
 
       const stepInputMessages = (mode === 'generate'
         ? [...conversationPrompt]
@@ -415,21 +453,101 @@ export async function* modelCallIterator({
             }
           : undefined,
       };
-      const modelCallResult =
-        mode === 'generate'
-          ? await doGenerateStep(
-              conversationPrompt,
-              currentModel,
-              serializedTools,
-              callOptions,
-            )
-          : await doStreamStep(
-              conversationPrompt,
-              currentModel,
-              writable,
-              serializedTools,
-              callOptions,
+      let automaticStreamRetryCount = 0;
+      let callbackStreamRetryCount = 0;
+      const callModel = async (): Promise<ModelCallResult> => {
+        await dispatchLanguageModelCallStart();
+
+        if (mode === 'generate') {
+          return doGenerateStep(
+            conversationPrompt,
+            currentModel,
+            serializedTools,
+            callOptions,
+          );
+        }
+
+        const canRetryStream =
+          streamRetries !== undefined &&
+          (automaticStreamRetryCount < streamRetries ||
+            (canRetryStreamViaOnError && callbackStreamRetryCount < 1));
+
+        return doStreamStep(
+          conversationPrompt,
+          currentModel,
+          writable,
+          serializedTools,
+          canRetryStream
+            ? { ...callOptions, canRetryStream: true }
+            : callOptions,
+        );
+      };
+
+      let modelCallResult = await callModel();
+
+      // Match streamText: with `streamRetries` configured, onError observes
+      // every model stream error and can request one more retry once the
+      // automatic retries are exhausted. Each retry runs as a new durable model
+      // step, which resets the UI step before streaming the new attempt.
+      if (mode === 'stream' && streamRetries !== undefined) {
+        while (!modelCallResult.aborted && 'terminalError' in modelCallResult) {
+          const onErrorResult = await onStreamError?.({
+            error: modelCallResult.terminalError,
+          });
+          const isStreamRetryable = modelCallResult.isStreamRetryable === true;
+          const automaticRetry =
+            isStreamRetryable && automaticStreamRetryCount < streamRetries;
+          const callbackRetry =
+            isStreamRetryable &&
+            !automaticRetry &&
+            canRetryStreamViaOnError &&
+            callbackStreamRetryCount < 1 &&
+            isStreamRetryRequest(onErrorResult);
+
+          if (!automaticRetry && !callbackRetry) {
+            if (
+              writable != null &&
+              modelCallResult.deferredStreamParts != null
+            ) {
+              await writeStreamParts(
+                writable,
+                modelCallResult.deferredStreamParts,
+              );
+            }
+            // A failed stream read propagates as before when not retried.
+            if (modelCallResult.isStreamReadError) {
+              throw modelCallResult.terminalError;
+            }
+            break;
+          }
+
+          if (automaticRetry) {
+            automaticStreamRetryCount++;
+          } else {
+            callbackStreamRetryCount++;
+          }
+
+          if (modelCallResult.finish != null) {
+            await dispatchLanguageModelCallEnd(
+              await buildModelStepResult(
+                modelCallResult.raw,
+                modelCallResult.toolCalls,
+                modelCallResult.finish,
+                modelCallResult.providerExecutedToolResults,
+                {
+                  tools: effectiveTools,
+                  stepNumber,
+                  runtimeContext: currentRuntimeContext,
+                  toolsContext: currentToolsContext,
+                },
+              ),
+              modelCallResult.finish,
             );
+          }
+
+          modelCallResult = await callModel();
+        }
+      }
 
       if (modelCallResult.aborted) {
         wasAborted = true;
@@ -507,18 +625,7 @@ export async function* modelCallIterator({
         },
       );
 
-      await telemetryDispatcher.onLanguageModelCallEnd?.({
-        callId: step.callId,
-        provider: step.model?.provider ?? 'unknown',
-        modelId: step.model?.modelId ?? 'unknown',
-        finishReason: step.finishReason,
-        usage: step.usage,
-        content: step.content,
-        responseId: step.response.id,
-        ...(finish?.providerMetadata != null
-          ? { providerMetadata: finish.providerMetadata }
-          : {}),
-      });
+      await dispatchLanguageModelCallEnd(step, finish);
 
       _isFirstIteration = false;
       stepNumber++;
@@ -852,6 +959,34 @@ async function repairToolCallInStep({
       message: error.message,
     }),
   });
+}
+
+function isStreamRetryRequest(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value != null &&
+    'retry' in value &&
+    value.retry === true
+  );
+}
+
+/**
+ * Write stream parts that the model step held back while a stream retry was
+ * still possible.
+ */
+async function writeStreamParts(
+  writable: WritableStream<ModelCallStreamPart<ToolSet>>,
+  parts: ModelCallStreamPart<ToolSet>[],
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const part of parts) {
+      await writer.write(part);
+    }
+  } finally {
+    writer.releaseLock();
+  }
 }
 
 async function writeDeferredToolCalls(

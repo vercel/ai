@@ -31,6 +31,7 @@ import {
   agentSignedToolApprovalIssueE2e,
   agentSignedToolApprovalResumeE2e,
   agentStreamErrorE2e,
+  agentStreamRetriesE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
@@ -106,6 +107,93 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       await expect(run.returnValue).resolves.toBe(
         'model-attempts=3;step-attempt=1',
       );
+    });
+
+    it('retries a model stream error part as a new durable step', async () => {
+      const run = await start(agentStreamRetriesE2e, [crypto.randomUUID(), 1]);
+      const chunksPromise = collectStream<{ type: string }>(run.readable);
+
+      await expect(run.returnValue).resolves.toMatchObject({
+        text: 'stream-attempts=2;step-attempt=1',
+        error: undefined,
+        finishReason: 'stop',
+        stepCount: 1,
+        callbackErrors: [
+          expect.objectContaining({ message: 'stream failed on attempt 1' }),
+        ],
+      });
+      const chunks = await chunksPromise;
+      expect(chunks.filter(chunk => chunk.type === 'reset-step')).toHaveLength(
+        2,
+      );
+      expect(chunks.filter(chunk => chunk.type === 'error')).toHaveLength(0);
+    });
+
+    it('retries a failed model stream read as a new durable step', async () => {
+      const run = await start(agentStreamRetriesE2e, [
+        crypto.randomUUID(),
+        1,
+        'read',
+      ]);
+      const chunksPromise = collectStream<{ type: string }>(run.readable);
+
+      await expect(run.returnValue).resolves.toMatchObject({
+        text: 'stream-attempts=2;step-attempt=1',
+        error: undefined,
+        finishReason: 'stop',
+        stepCount: 1,
+        callbackErrors: [
+          expect.objectContaining({
+            message: 'stream read failed on attempt 1',
+          }),
+        ],
+      });
+      const chunks = await chunksPromise;
+      expect(chunks.filter(chunk => chunk.type === 'reset-step')).toHaveLength(
+        2,
+      );
+    });
+
+    it('fails the run with the read error after stream retries are exhausted', async () => {
+      const run = await start(agentStreamRetriesE2e, [
+        crypto.randomUUID(),
+        5,
+        'read',
+      ]);
+
+      await expect(run.returnValue).rejects.toThrow(
+        'stream read failed on attempt 2',
+      );
+    });
+
+    it('writes the held-back error after stream retries are exhausted', async () => {
+      const run = await start(agentStreamRetriesE2e, [crypto.randomUUID(), 5]);
+      const chunksPromise = collectStream<{ type: string; error?: unknown }>(
+        run.readable,
+      );
+
+      const rv = await run.returnValue;
+      expect(rv).toMatchObject({
+        text: 'partial-attempt-2',
+        error: expect.objectContaining({
+          message: 'stream failed on attempt 2',
+        }),
+        finishReason: 'error',
+        stepCount: 1,
+      });
+      expect(rv.callbackErrors).toHaveLength(2);
+      const chunks = await chunksPromise;
+      expect(chunks.filter(chunk => chunk.type === 'reset-step')).toHaveLength(
+        2,
+      );
+      expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([
+        {
+          type: 'error',
+          error: expect.objectContaining({
+            message: 'stream failed on attempt 2',
+          }),
+        },
+      ]);
     });
 
     it('surfaces stream error data without retrying the model step', async () => {

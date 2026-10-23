@@ -509,6 +509,140 @@ describe('doStreamStep', () => {
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
   });
 
+  it('holds back a stream-retryable error part and the parts after it', async () => {
+    const terminal = new Error('retryable model error');
+    const streamedParts: Array<{ type: string }> = [];
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          { type: 'text-delta' as const, id: 'text-1', delta: 'partial' },
+          { type: 'error' as const, error: terminal },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'error' as const, raw: 'error' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 0, text: 0, reasoning: undefined },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          streamedParts.push(part);
+        },
+      }),
+      undefined,
+      { canRetryStream: true },
+    );
+
+    expect(streamedParts.map(part => part.type)).toEqual([
+      'reset-step',
+      'model-call-start',
+      'text-start',
+      'text-delta',
+    ]);
+    expect(result).toMatchObject({
+      terminalError: terminal,
+      isStreamRetryable: true,
+      finish: { finishReason: 'error' },
+    });
+    expect(
+      !result.aborted && result.deferredStreamParts?.map(part => part.type),
+    ).toEqual(['error', 'model-call-end']);
+  });
+
+  it('returns a failed model stream read as data when a stream retry is possible', async () => {
+    const readError = new Error('socket closed');
+    const parts: LanguageModelV4StreamPart[] = [
+      { type: 'stream-start', warnings: [] },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'partial' },
+    ];
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream<LanguageModelV4StreamPart>({
+          pull(controller) {
+            const part = parts.shift();
+            if (part != null) {
+              controller.enqueue(part);
+            } else {
+              controller.error(readError);
+            }
+          },
+        }),
+      }),
+    });
+
+    await expect(
+      doStreamStep(prompt, model, undefined, undefined, {
+        canRetryStream: true,
+      }),
+    ).resolves.toMatchObject({
+      terminalError: readError,
+      isStreamRetryable: true,
+      isStreamReadError: true,
+      raw: { content: [{ type: 'text', text: 'partial' }] },
+    });
+  });
+
+  it('throws a writable failure even when a stream retry is possible', async () => {
+    const writeError = new Error('client disconnected');
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+    });
+
+    await expect(
+      doStreamStep(
+        prompt,
+        model,
+        new WritableStream({
+          write() {
+            throw writeError;
+          },
+        }),
+        undefined,
+        { canRetryStream: true },
+      ),
+    ).rejects.toBe(writeError);
+  });
+
+  it('marks model stream errors as stream-retryable without deferring them by default', async () => {
+    const terminal = new Error('terminal model error');
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'error' as const, error: terminal },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({ write() {} }),
+    );
+
+    expect(result).toMatchObject({
+      terminalError: terminal,
+      isStreamRetryable: true,
+    });
+    expect(result).not.toHaveProperty('deferredStreamParts');
+  });
+
   it.each([
     {
       name: 'stream start only',

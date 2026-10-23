@@ -4217,6 +4217,158 @@ describe('streamText', () => {
       expect(await result.finishReason).toBe('error');
     });
 
+    it('should retry the current step after a failed read of the response stream', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? (() => {
+                    const parts: LanguageModelV4StreamPart[] = [
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'partial ' },
+                    ];
+                    // Fail the read only after the partial output was read.
+                    return new ReadableStream<LanguageModelV4StreamPart>({
+                      pull(controller) {
+                        const part = parts.shift();
+                        if (part != null) {
+                          controller.enqueue(part);
+                        } else {
+                          controller.error(new Error('socket closed'));
+                        }
+                      },
+                    });
+                  })()
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '2' },
+                    { type: 'text-delta', id: '2', delta: 'recovered' },
+                    { type: 'text-end', id: '2' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError,
+      });
+
+      expect(await convertAsyncIterableToArray(result.textStream)).toEqual([
+        'partial ',
+        'recovered',
+      ]);
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({
+        error: new Error('socket closed'),
+      });
+      expect(await result.text).toBe('recovered');
+      expect(await result.finishReason).toBe('stop');
+    });
+
+    it('should propagate a failed read after stream retries are exhausted', async () => {
+      let callCount = 0;
+      const onError = vi.fn();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const attempt = ++callCount;
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  queueMicrotask(() => {
+                    controller.error(new Error(`socket closed ${attempt}`));
+                  });
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        streamRetries: 1,
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(2);
+      expect(onError).toHaveBeenCalledTimes(2);
+      await expect(result.text).rejects.toThrow('socket closed 2');
+    });
+
+    it('should not retry a failed read without streamRetries', async () => {
+      let callCount = 0;
+      const onError = vi.fn().mockReturnValue({ retry: true });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callCount++;
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  queueMicrotask(() => {
+                    controller.error(new Error('socket closed'));
+                  });
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+      expect(onError).not.toHaveBeenCalled();
+      await expect(result.text).rejects.toThrow('socket closed');
+    });
+
+    it('should not retry a read that fails because the call was aborted', async () => {
+      let callCount = 0;
+      const abortController = new AbortController();
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            callCount++;
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  abortSignal?.addEventListener('abort', () => {
+                    controller.error(abortSignal.reason);
+                  });
+                  queueMicrotask(() => abortController.abort());
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        streamRetries: 2,
+        onError: () => ({ retry: true }),
+      });
+
+      await result.consumeStream();
+
+      expect(callCount).toBe(1);
+    });
+
     it('should emit a normal terminal error when a recovery call fails to start', async () => {
       let callCount = 0;
       const onError = vi.fn();

@@ -8,6 +8,7 @@ import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
   NoOutputGeneratedError,
+  ToolChoiceViolationError,
   wrapLanguageModel,
   type LanguageModel,
   type ToolSet,
@@ -250,17 +251,40 @@ async function streamModelStep(
   let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  let isStreamRetryable = false;
+  let isStreamReadError = false;
+  const deferredStreamParts: ModelCallStreamPart<ToolSet>[] = [];
+  const writeErrors = new Set<unknown>();
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
 
+  // When the workflow may retry this call, hold back the error part and
+  // everything after it. A reset can invalidate rendered output, but it cannot
+  // undo client callbacks triggered by an error chunk.
+  const writePart = async (part: ModelCallStreamPart<ToolSet>) => {
+    if (options?.canRetryStream && isStreamRetryable) {
+      deferredStreamParts.push(part);
+      return;
+    }
+
+    try {
+      await writer!.write(part);
+    } catch (error) {
+      writeErrors.add(error);
+      throw error;
+    }
+  };
+
   try {
     // A workflow step can be retried after already writing partial output.
     // Reset the current UI step before every attempt so a retry invalidates
     // chunks left behind by an earlier execution.
-    await writer?.write({ type: 'reset-step' });
+    if (writer) {
+      await writePart({ type: 'reset-step' });
+    }
 
     for await (const part of modelStream) {
       if (isOutputChunk(part)) {
@@ -452,10 +476,22 @@ async function streamModelStep(
           break;
       }
 
+      if (part.type === 'error' && !hasTerminalError) {
+        // Retain the first model error as step data. Throwing here would make
+        // the durable workflow runtime retry the model step and normalize the
+        // original value before WorkflowAgent can surface it. Continue
+        // consuming so the existing finish reason and usage are preserved.
+        terminalError = part.error;
+        hasTerminalError = true;
+        // Match streamText: every provider error part except a tool choice
+        // violation can be retried with `streamRetries`.
+        isStreamRetryable = !ToolChoiceViolationError.isInstance(part.error);
+      }
+
       // Write to writable in real-time
       if (writer) {
         if (part.type === 'tool-approval-request') {
-          await writer.write({
+          await writePart({
             type: 'tool-approval-request',
             approvalId: part.approvalId,
             toolCallId: part.toolCall.toolCallId,
@@ -476,17 +512,8 @@ async function streamModelStep(
             serializedTools?.[part.toolName]?.hasOwnValidator
           )
         ) {
-          await writer.write(part);
+          await writePart(part);
         }
-      }
-
-      if (part.type === 'error' && !hasTerminalError) {
-        // Retain the first model error as step data. Throwing here would make
-        // the durable workflow runtime retry the model step and normalize the
-        // original value before WorkflowAgent can surface it. Continue
-        // consuming so the existing finish reason and usage are preserved.
-        terminalError = part.error;
-        hasTerminalError = true;
       }
     }
   } catch (error) {
@@ -494,7 +521,16 @@ async function streamModelStep(
       return { aborted: true };
     }
 
-    throw error;
+    // Return a failed read of the opened model stream as data so the workflow
+    // can decide about a stream retry. Writable failures are not model errors.
+    if (!options?.canRetryStream || writeErrors.has(error)) {
+      throw error;
+    }
+
+    terminalError = error;
+    hasTerminalError = true;
+    isStreamRetryable = true;
+    isStreamReadError = true;
   } finally {
     writer?.releaseLock();
   }
@@ -528,6 +564,9 @@ async function streamModelStep(
     toolInputLifecycleEvents,
     repairedToolCallIds: [...repairedToolCallIds],
     ...(hasTerminalError ? { terminalError } : {}),
+    ...(isStreamRetryable ? { isStreamRetryable } : {}),
+    ...(isStreamReadError ? { isStreamReadError } : {}),
+    ...(deferredStreamParts.length > 0 ? { deferredStreamParts } : {}),
   };
 }
 

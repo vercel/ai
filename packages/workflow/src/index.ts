@@ -24,6 +24,8 @@ export {
   type WorkflowAgentOnAbortCallback,
   type WorkflowAgentOnEndCallback,
   type WorkflowAgentOnErrorCallback,
+  type WorkflowAgentOnErrorResult,
+  type WorkflowAgentOnErrorRetryCallback,
   type WorkflowAgentOnFinishCallback,
   type WorkflowAgentOnStepEndCallback,
   type WorkflowAgentOnStepFinishCallback,

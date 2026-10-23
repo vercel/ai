@@ -660,8 +660,8 @@ function streamTextInternal<
      * Callback that is invoked when an error occurs during streaming.
      * You can use it to log errors.
      * Return `{ retry: true }` to retry the current model step after a provider
-     * error is received from the response stream when `streamRetries` is
-     * explicitly configured.
+     * error is received from the response stream, or reading the response
+     * stream fails, when `streamRetries` is explicitly configured.
      * The stream processing will pause until the callback promise is resolved.
      */
     onError?:
@@ -671,8 +671,10 @@ function streamTextInternal<
 
     /**
      * Maximum number of automatic retries for provider errors received after
-     * response streaming has started. Each retry reruns only the current model
-     * step. Completed earlier steps and their tool results are preserved.
+     * response streaming has started, either as error events or as a failed
+     * read of the response stream. Aborts and timeouts are not retried. Each
+     * retry reruns only the current model step. Completed earlier steps and
+     * their tool results are preserved.
      *
      * Partial output from a failed attempt that was already emitted cannot be
      * retracted and remains in consumer-facing streams. It is excluded from
@@ -2611,8 +2613,8 @@ class DefaultStreamTextResult<
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
           let enqueueStreamRetryAttemptBoundary = false;
-          const shouldBufferToolParts =
-            streamRetries > 0 || canRetryStreamViaOnError;
+          const canRetryStream = streamRetries > 0 || canRetryStreamViaOnError;
+          const shouldBufferToolParts = canRetryStream;
 
           const languageModelStream = new ReadableStream<
             LanguageModelStreamPart<TOOLS> | StreamRetryAttemptBoundaryPart
@@ -2658,6 +2660,68 @@ class DefaultStreamTextResult<
                 openReasoningParts.clear();
               };
 
+              // Notifies onError about a model stream error and decides whether
+              // the current step is retried.
+              const shouldRetryStream = async (error: unknown) => {
+                const isToolChoiceViolation =
+                  ToolChoiceViolationError.isInstance(error);
+                let onErrorResult: unknown;
+                try {
+                  onErrorResult = await onError({ error });
+                } catch {}
+                const callbackRequestedRetry =
+                  canRetryStreamViaOnError &&
+                  typeof onErrorResult === 'object' &&
+                  onErrorResult != null &&
+                  'retry' in onErrorResult &&
+                  onErrorResult.retry === true;
+                const automaticRetry =
+                  !isToolChoiceViolation &&
+                  automaticStreamRetryCount < streamRetries;
+                const callbackRetry =
+                  !isToolChoiceViolation &&
+                  !automaticRetry &&
+                  callbackRequestedRetry &&
+                  callbackStreamRetryCount < 1;
+
+                if (automaticRetry) {
+                  automaticStreamRetryCount++;
+                } else if (callbackRetry) {
+                  callbackStreamRetryCount++;
+                }
+
+                return automaticRetry || callbackRetry;
+              };
+
+              // Starts the next model call attempt of the current step.
+              // Returns false when the attempt failed to start and the stream
+              // was closed with its error.
+              const startRetryAttempt = async () => {
+                bufferedAttemptParts = [];
+                closeOpenAttemptParts();
+
+                let retryLanguageModelCall: Awaited<
+                  ReturnType<typeof callLanguageModel>
+                >;
+                try {
+                  retryLanguageModelCall = await callLanguageModel();
+                } catch (retryError) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: retryError,
+                  });
+                  controller.close();
+                  return false;
+                }
+                request = retryLanguageModelCall.request;
+                response = retryLanguageModelCall.response;
+                languageModelStreamReader =
+                  retryLanguageModelCall.stream.getReader();
+                startFirstChunkTimeout();
+                enqueueStreamRetryAttemptBoundary = true;
+                return true;
+              };
+
               while (true) {
                 let result: ReadableStreamReadResult<
                   LanguageModelStreamPart<TOOLS>
@@ -2666,7 +2730,23 @@ class DefaultStreamTextResult<
                   result = await languageModelStreamReader.read();
                 } catch (error) {
                   clearModelOutputTimeouts();
-                  throw error;
+
+                  // A failed read of the opened response stream is retried
+                  // like a provider error part. Aborts, including timeouts,
+                  // end the call. When not retried, the error propagates as
+                  // before.
+                  if (
+                    !canRetryStream ||
+                    (isAbortError(error) && abortSignal?.aborted) ||
+                    !(await shouldRetryStream(wrapGatewayError(error)))
+                  ) {
+                    throw error;
+                  }
+
+                  if (!(await startRetryAttempt())) {
+                    return;
+                  }
+                  continue;
                 }
                 const { done, value } = result;
 
@@ -2733,63 +2813,19 @@ class DefaultStreamTextResult<
                   callbacks: onChunk,
                 });
                 const error = wrapGatewayError(value.error);
-                const isToolChoiceViolation =
-                  ToolChoiceViolationError.isInstance(error);
-                let onErrorResult: unknown;
-                try {
-                  onErrorResult = await onError({ error });
-                } catch {}
-                const callbackRequestedRetry =
-                  canRetryStreamViaOnError &&
-                  typeof onErrorResult === 'object' &&
-                  onErrorResult != null &&
-                  'retry' in onErrorResult &&
-                  onErrorResult.retry === true;
-                const automaticRetry =
-                  !isToolChoiceViolation &&
-                  automaticStreamRetryCount < streamRetries;
-                const callbackRetry =
-                  !isToolChoiceViolation &&
-                  !automaticRetry &&
-                  callbackRequestedRetry &&
-                  callbackStreamRetryCount < 1;
 
-                if (!automaticRetry && !callbackRetry) {
+                if (!(await shouldRetryStream(error))) {
                   flushBufferedAttemptParts();
                   errorsHandledForStreamRetry.add(value.error);
                   controller.enqueue(value);
                   return;
                 }
 
-                if (automaticRetry) {
-                  automaticStreamRetryCount++;
-                } else {
-                  callbackStreamRetryCount++;
-                }
-
                 await languageModelStreamReader.cancel(error);
-                bufferedAttemptParts = [];
-                closeOpenAttemptParts();
 
-                let retryLanguageModelCall: Awaited<
-                  ReturnType<typeof callLanguageModel>
-                >;
-                try {
-                  retryLanguageModelCall = await callLanguageModel();
-                } catch (retryError) {
-                  controller.enqueue({
-                    type: 'error',
-                    error: retryError,
-                  });
-                  controller.close();
+                if (!(await startRetryAttempt())) {
                   return;
                 }
-                request = retryLanguageModelCall.request;
-                response = retryLanguageModelCall.response;
-                languageModelStreamReader =
-                  retryLanguageModelCall.stream.getReader();
-                startFirstChunkTimeout();
-                enqueueStreamRetryAttemptBoundary = true;
               }
             },
             cancel(reason) {
