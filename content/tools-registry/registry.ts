@@ -751,4 +751,36 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'lfg-alarm',
+    name: 'LFG Alarm',
+    description:
+      "Let your agent ring a real alarm on a phone. Set, list and delete alarms that ring on the person's phone, and their friends', at a time or when something happens online (an event, a post, a price move, a webhook), with LFG Alarm's hosted tools. Or give the agent one ringPhone tool to get the person's attention when a long task is done.",
+    packageName: 'lfg-alarm',
+    tags: ['notifications', 'alarm', 'phone', 'mcp', 'human-in-the-loop'],
+    apiKeyEnvName: 'LFG_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add lfg-alarm',
+      npm: 'npm install lfg-alarm',
+      yarn: 'yarn add lfg-alarm',
+      bun: 'bun add lfg-alarm',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { lfgAlarmTools } from 'lfg-alarm/ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Wake me at 7 on weekdays with something upbeat. I am in London.',
+  tools: await lfgAlarmTools({
+    only: ['set_time_alarm', 'list_my_alarms', 'delete_alarm'],
+  }),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://lfg.gm/developers#ai-sdk',
+    apiKeyUrl: 'https://lfg.gm/app/settings',
+    websiteUrl: 'https://lfg.gm',
+    npmUrl: 'https://www.npmjs.com/package/lfg-alarm',
+  },
 ];
