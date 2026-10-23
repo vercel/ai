@@ -217,13 +217,20 @@ function mcpToModelOutput({
   input: unknown;
   output: unknown;
 }): ToolResultOutput {
-  const result = output as CallToolResult;
-
-  if (!('content' in result) || !Array.isArray(result.content)) {
-    return { type: 'json', value: result as JSONValue };
+  if (typeof output === 'string') {
+    return { type: 'text', value: output };
   }
 
-  const convertedContent = result.content.map(
+  if (
+    output == null ||
+    typeof output !== 'object' ||
+    !('content' in output) ||
+    !Array.isArray(output.content)
+  ) {
+    return { type: 'json', value: (output ?? null) as JSONValue };
+  }
+
+  const convertedContent = output.content.map(
     (part: { type: string; [key: string]: unknown }) => {
       if (part.type === 'text' && 'text' in part) {
         return { type: 'text' as const, text: part.text as string };

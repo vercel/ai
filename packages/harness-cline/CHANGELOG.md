@@ -1,5 +1,11 @@
 # @ai-sdk/harness-cline
 
+## 1.0.91
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
 ## 1.0.90
 
 ### Patch Changes

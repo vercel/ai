@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.70
+
+### Patch Changes
+
+- f29bea4: fix(elevenlabs): only warn about an ignored text prompt when it is non-empty
+
 ## 3.0.69
 
 ### Patch Changes
