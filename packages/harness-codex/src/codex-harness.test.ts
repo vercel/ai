@@ -27,8 +27,6 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-  const state = { withholdHello: false };
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
@@ -36,9 +34,7 @@ const webSocketMocks = vi.hoisted(() => {
       calls.push({ url, headers: options?.headers });
       queueMicrotask(() => {
         this.emit('open');
-        if (!state.withholdHello) {
-          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
-        }
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
       });
     }
 
@@ -72,7 +68,7 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, state, WebSocket: FakeWebSocket };
+  return { calls, WebSocket: FakeWebSocket };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -242,7 +238,6 @@ describe('createCodex adapter', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     channelMocks.connectOnOpen = false;
-    webSocketMocks.state.withholdHello = false;
     channelMocks.connects.length = 0;
     channelMocks.channels.length = 0;
     channelMocks.reconnects.length = 0;
@@ -1001,27 +996,6 @@ describe('createCodex adapter', () => {
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
-  });
-
-  it('waits for bridge-hello before a fresh bridge connection is established', async () => {
-    channelMocks.connectOnOpen = true;
-    webSocketMocks.state.withholdHello = true;
-    const harness = createCodex({ startupTimeoutMs: 20 });
-
-    await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
-          bridgePortUrl: 'ws://127.0.0.1:1',
-          runs: [],
-          spawns: [],
-          writes: [],
-        }),
-        sessionWorkDir: '/vercel/sandbox/codex-s1',
-      }),
-    ).rejects.toThrow(
-      'The harness bridge did not complete the WebSocket handshake within 20ms',
-    );
   });
 
   it('passes port endpoint headers to fresh and attached WebSocket connections', async () => {

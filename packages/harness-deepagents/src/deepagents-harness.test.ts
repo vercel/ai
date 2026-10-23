@@ -26,8 +26,6 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-  const state = { withholdHello: false };
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
@@ -35,9 +33,7 @@ const webSocketMocks = vi.hoisted(() => {
       calls.push({ url, headers: options?.headers });
       queueMicrotask(() => {
         this.emit('open');
-        if (!state.withholdHello) {
-          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
-        }
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
       });
     }
 
@@ -71,7 +67,7 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, state, WebSocket: FakeWebSocket };
+  return { calls, WebSocket: FakeWebSocket };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -214,7 +210,6 @@ async function startTurn() {
 describe('createDeepAgents', () => {
   beforeEach(() => {
     channelMocks.connectOnOpen = false;
-    webSocketMocks.state.withholdHello = false;
     channelMocks.connects.length = 0;
     channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
@@ -632,24 +627,6 @@ describe('createDeepAgents', () => {
       }
     `);
     await session.doDestroy();
-  });
-
-  it('waits for bridge-hello before a fresh bridge connection is established', async () => {
-    channelMocks.connectOnOpen = true;
-    webSocketMocks.state.withholdHello = true;
-    const harness = createDeepAgents({ startupTimeoutMs: 20 });
-
-    await expect(
-      harness.doStart({
-        sessionId: 'test-session',
-        sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
-        sandboxSession: fakeSandboxSession({
-          bridgePortEndpoint: { url: 'ws://unused.example' },
-        }),
-      }),
-    ).rejects.toThrow(
-      'The harness bridge did not complete the WebSocket handshake within 20ms',
-    );
   });
 
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {

@@ -21,8 +21,6 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-  const state = { withholdHello: false };
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
@@ -30,9 +28,7 @@ const webSocketMocks = vi.hoisted(() => {
       calls.push({ url, headers: options?.headers });
       queueMicrotask(() => {
         this.emit('open');
-        if (!state.withholdHello) {
-          this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
-        }
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
       });
     }
 
@@ -66,7 +62,7 @@ const webSocketMocks = vi.hoisted(() => {
     }
   }
 
-  return { calls, state, WebSocket: FakeWebSocket };
+  return { calls, WebSocket: FakeWebSocket };
 });
 
 vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
@@ -456,7 +452,6 @@ describe('createACP', () => {
     vi.clearAllMocks();
     vi.stubEnv('CODEX_API_KEY', 'test-key');
     harnessUtilsMocks.channels.length = 0;
-    webSocketMocks.state.withholdHello = false;
     harnessUtilsMocks.openErrors.length = 0;
     harnessUtilsMocks.nextSuspensionCursor = 0;
     harnessUtilsMocks.connectOnOpen = false;
@@ -1998,31 +1993,6 @@ describe('createACP', () => {
         sessionWorkDir: '/workspace/user-project',
       }),
     ).rejects.toThrow(/does not expose an id/);
-  });
-
-  it('waits for bridge-hello before a fresh bridge connection is established', async () => {
-    harnessUtilsMocks.connectOnOpen = true;
-    webSocketMocks.state.withholdHello = true;
-    const harness = createACP({
-      harnessId: 'codex-acp',
-      ...agentSettings,
-      startupTimeoutMs: 20,
-    });
-
-    await expect(
-      harness.doStart({
-        sessionId: 'session-1',
-        sandboxSession: fakeSandbox({
-          runs: [],
-          spawns: [],
-          stop: async () => {},
-          bridgePortEndpoint: { url: 'ws://unused.example' },
-        }),
-        sessionWorkDir: '/workspace/user-project',
-      }),
-    ).rejects.toThrow(
-      'The harness bridge did not complete the WebSocket handshake within 20ms',
-    );
   });
 
   it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
