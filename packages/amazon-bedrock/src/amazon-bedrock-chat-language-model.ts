@@ -502,7 +502,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
         // `between_tools` and (on some models) `disabled` thinking are only
         // accepted up to `high` effort; above that the API returns a 400.
-        const effort = amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+        // Effort can also come from raw `additionalModelRequestFields`.
+        const effort =
+          amazonBedrockOptions.reasoningConfig?.maxReasoningEffort ??
+          amazonBedrockOptions.additionalModelRequestFields?.output_config
+            ?.effort;
         if (
           (effort === 'xhigh' || effort === 'max') &&
           (sentThinkingType === 'between_tools' ||

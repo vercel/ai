@@ -9550,6 +9550,38 @@ describe('doGenerate', () => {
       ]);
     });
 
+    it('should lower raw output_config effort to high when thinking is disabled on models that reject higher effort', async () => {
+      server.urls[haiku55AnthropicGenerateUrl].response = simpleResponse;
+
+      const result = await haiku55AnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { type: 'disabled' },
+            additionalModelRequestFields: {
+              output_config: { effort: 'max' },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'maxReasoningEffort',
+          details:
+            "maxReasoningEffort 'max' is not supported by us.anthropic.claude-haiku-5-5 when thinking is disabled. The effort has been lowered to 'high'.",
+        },
+      ]);
+    });
+
     it('should handle reasoning "none" for OpenAI models', async () => {
       server.urls[openaiGenerateUrl].response = simpleResponse;
 
