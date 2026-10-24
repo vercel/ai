@@ -4,6 +4,11 @@ Package previews let contributors and agents install the packages built from a
 pull request before an npm release. A single bot comment on the PR shows progress,
 then links to the package browser and install commands when verification passes.
 
+These previews replace the npm snapshot release option previously available in
+`release.yml`. To test a PR, use the preview linked in its comment instead of
+manually dispatching a snapshot release or installing from npm's `snapshot` tag.
+The release workflow continues to publish regular npm releases.
+
 For external contributors, a maintainer must first approve the GitHub Actions CI
 run. **All CI jobs must pass** before the preview workflow creates a deployment
 or posts its first comment. Opening a PR alone does not deploy anything.

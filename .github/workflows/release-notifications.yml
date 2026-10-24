@@ -66,16 +66,3 @@ jobs:
         with:
           published-packages: ${{ steps.notification.outputs.published-packages }}
           pull-request-number: ${{ steps.notification.outputs.pull-request-number }}
-
-      - name: Notify snapshot release pull request
-        if: steps.notification.outputs.type == 'snapshot'
-        working-directory: .github/scripts/notify-released
-        run: |
-          npm install --no-save
-          node notify-snapshot.mjs
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
-          GITHUB_REF_NAME: ${{ github.event.workflow_run.head_branch }}
-          GITHUB_RUN_ID: ${{ github.event.workflow_run.id }}
-          SNAPSHOT_PACKAGES_DIRECTORY: ${{ github.workspace }}/.release-notification/packages
