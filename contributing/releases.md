@@ -33,6 +33,10 @@ Quick reference:
 
 ## Snapshot Releases
 
+For automatic tarball previews after approved PR CI passes, see
+[Pull request package previews](./package-previews.md). These previews can be
+installed directly by URL without publishing a snapshot to npm.
+
 For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
 
 Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
