@@ -74,7 +74,7 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
   }
 
   const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
-  const imgSrc = [
+  const resourceSrc = [
     "'self'",
     'data:',
     ...sanitizeCSPSources(csp.resourceDomains),
@@ -85,11 +85,11 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
     "default-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
-    "script-src 'unsafe-inline'",
-    "style-src 'unsafe-inline'",
+    `script-src 'unsafe-inline' ${resourceSrc.join(' ')}`,
+    `style-src 'unsafe-inline' ${resourceSrc.join(' ')}`,
     `connect-src ${connectSrc.join(' ')}`,
-    `img-src ${imgSrc.join(' ')}`,
-    `font-src ${imgSrc.join(' ')}`,
+    `img-src ${resourceSrc.join(' ')}`,
+    `font-src ${resourceSrc.join(' ')}`,
     `frame-src ${frameSrc.join(' ')}`,
   ].join('; ');
 }

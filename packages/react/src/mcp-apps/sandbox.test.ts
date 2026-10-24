@@ -14,6 +14,12 @@ describe('getMCPAppCSP', () => {
     });
 
     expect(csp).toContain("connect-src 'self' https://api.example.com");
+    expect(csp).toContain(
+      "script-src 'unsafe-inline' 'self' data: https://cdn.example.com",
+    );
+    expect(csp).toContain(
+      "style-src 'unsafe-inline' 'self' data: https://cdn.example.com",
+    );
     expect(csp).toContain("img-src 'self' data: https://cdn.example.com");
     expect(csp).toContain("frame-src 'self' https://frame.example.com");
   });
