@@ -197,10 +197,7 @@ export function TraceTimeline({
         <div className="overflow-x-auto">
           <div style={{ minWidth: labelWidth + 400 }}>
             {/* Time axis */}
-            <div
-              className="flex border-b border-border/50"
-              style={{ height: 22 }}
-            >
+            <div className="flex border-b border-border" style={{ height: 22 }}>
               <div
                 style={{ width: labelWidth, minWidth: labelWidth }}
                 className="shrink-0"
@@ -237,7 +234,7 @@ export function TraceTimeline({
               return (
                 <div
                   key={span.id}
-                  className={`flex items-center border-b border-border/30 transition-colors cursor-pointer ${
+                  className={`flex items-center border-b border-border transition-colors cursor-pointer ${
                     isSelected ? 'bg-accent' : 'hover:bg-accent/30'
                   }`}
                   style={{ height: ROW_HEIGHT }}
@@ -282,7 +279,7 @@ export function TraceTimeline({
                     {ticks.map((tick, i) => (
                       <div
                         key={i}
-                        className="absolute top-0 bottom-0 border-l border-border/20"
+                        className="absolute top-0 bottom-0 border-l border-border"
                         style={{
                           left: `${(tick.ms / totalDurationMs) * 100}%`,
                         }}
