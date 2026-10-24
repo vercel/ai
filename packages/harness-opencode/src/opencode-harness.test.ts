@@ -85,7 +85,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+    connect: (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -115,7 +118,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -129,11 +135,15 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     readonly connect: (options: {
       abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
 
     async open() {
       if (harnessUtilsMocks.connectOnOpen) {
-        await this.connect({ abortSignal: new AbortController().signal });
+        await this.connect({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
 
@@ -333,7 +343,7 @@ describe('createOpenCode adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/opencode-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it.each([

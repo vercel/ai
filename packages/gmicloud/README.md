@@ -6,31 +6,11 @@ The **GMI Cloud provider** for the [AI SDK](https://ai-sdk.dev/docs) contains la
 
 ## Setup
 
-The GMI Cloud provider is available in the `@ai-sdk/gmicloud` module. You can install it with
-
 ```bash
-npm i @ai-sdk/gmicloud
+npm i ai @ai-sdk/gmicloud
 ```
 
-## Provider Instance
-
-You can import the default provider instance `gmicloud` from `@ai-sdk/gmicloud`:
-
-```ts
-import { gmicloud } from '@ai-sdk/gmicloud';
-```
-
-The GMI Cloud API key is read from the `GMI_CLOUD_APIKEY` environment variable by default. For custom configuration, use `createGmicloud`:
-
-```ts
-import { createGmicloud } from '@ai-sdk/gmicloud';
-
-const gmicloud = createGmicloud({
-  apiKey: process.env.GMI_CLOUD_APIKEY ?? '',
-});
-```
-
-## Language Models
+## Usage
 
 ```ts
 import { gmicloud } from '@ai-sdk/gmicloud';
@@ -42,8 +22,4 @@ const { text } = await generateText({
 });
 ```
 
-GMI Cloud serves an evolving catalog of open-weight models over chat completions, so model ids are typed as `string`. Embedding and image models are not supported.
-
-## Error diagnostics
-
-GMI Cloud's edge reports a generic banner in `error.message` on rejections and nests the backend engine's diagnostic in `error.details`. This provider unwraps the nested diagnostic, so `AI_APICallError.message` carries the engine's reason (e.g. `The request is invalid: Invalid max_tokens value, the valid range of max_tokens is [1, 393216].`) instead of `Backend request failed with status 400`.
+See the [GMI Cloud Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/gmicloud) for more information.

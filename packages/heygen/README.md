@@ -4,11 +4,9 @@ The **[HeyGen provider](https://ai-sdk.dev/providers/ai-sdk-providers/heygen)** 
 
 ## Setup
 
-```sh
-npm install @ai-sdk/heygen
+```bash
+npm i ai @ai-sdk/heygen
 ```
-
-Set the `HEYGEN_API_KEY` environment variable or pass `apiKey` to `createHeyGen`.
 
 ## Usage
 
@@ -25,6 +23,4 @@ const { videos } = await generateVideo({
 });
 ```
 
-The provider implements asynchronous submission and status retrieval. The AI SDK handles polling when you call `generateVideo`.
-
-See the [provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/heygen) and [HeyGen API documentation](https://developers.heygen.com/docs/models/heygen-video) for supported inputs and options.
+See the [HeyGen Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/heygen) for more information.

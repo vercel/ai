@@ -21,13 +21,22 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -64,7 +73,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -87,7 +99,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -105,6 +120,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       if (harnessUtilsMocks.connectOnOpen) {
         await this.options.connect({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
