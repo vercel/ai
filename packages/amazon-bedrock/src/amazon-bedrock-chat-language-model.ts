@@ -186,6 +186,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsForcedToolUse,
+      rejectsThinkingDisabled,
+      rejectsThinkingDisabledAboveHighEffort,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -283,6 +286,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelFamily: this.config.modelFamily,
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
+
+    const isExplicitThinkingDisabled =
+      amazonBedrockOptions.reasoningConfig?.type === 'disabled';
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
@@ -448,6 +454,78 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
+      }
+    } else if (
+      isAnthropicModel &&
+      thinkingType === 'disabled' &&
+      amazonBedrockOptions.additionalModelRequestFields?.thinking == null
+    ) {
+      // `disabled` must be forwarded: some models (e.g. Sonnet 5) default
+      // thinking on, so omitting it would leave thinking enabled.
+      let sentThinkingType: 'disabled' | 'between_tools' | undefined =
+        'disabled';
+
+      // Some models always run adaptive thinking and reject `disabled` with a
+      // 400. Use `between_tools`, the lowest setting, when the model supports
+      // it, and otherwise drop the setting.
+      if (rejectsThinkingDisabled) {
+        if (supportsBetweenToolsThinking) {
+          sentThinkingType = 'between_tools';
+          // reasoning 'none' maps to `between_tools` silently, like the
+          // Anthropic provider; only an explicit `disabled` is a downgrade.
+          if (isExplicitThinkingDisabled) {
+            warnings.push({
+              type: 'unsupported',
+              feature: 'reasoningConfig',
+              details:
+                `thinking cannot be disabled for ${this.modelId}. ` +
+                `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+            });
+          }
+        } else {
+          sentThinkingType = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'reasoningConfig',
+            details:
+              `thinking cannot be disabled for ${this.modelId}; it always uses adaptive thinking. ` +
+              `The thinking setting has been removed. Lower 'maxReasoningEffort' to reduce thinking.`,
+          });
+        }
+      }
+
+      if (sentThinkingType != null) {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          thinking: { type: sentThinkingType },
+        };
+
+        // `between_tools` and (on some models) `disabled` thinking are only
+        // accepted up to `high` effort; above that the API returns a 400.
+        const effort = amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+        if (
+          (effort === 'xhigh' || effort === 'max') &&
+          (sentThinkingType === 'between_tools' ||
+            rejectsThinkingDisabledAboveHighEffort)
+        ) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'maxReasoningEffort',
+            details:
+              sentThinkingType === 'between_tools'
+                ? `maxReasoningEffort '${effort}' is not supported with 'between_tools' thinking. ` +
+                  `The effort has been lowered to 'high'.`
+                : `maxReasoningEffort '${effort}' is not supported by ${this.modelId} when thinking is disabled. ` +
+                  `The effort has been lowered to 'high'.`,
+          });
+          amazonBedrockOptions = {
+            ...amazonBedrockOptions,
+            reasoningConfig: {
+              ...amazonBedrockOptions.reasoningConfig,
+              maxReasoningEffort: 'high',
+            },
+          };
+        }
       }
     } else if (!isAnthropicModel) {
       if (amazonBedrockOptions.reasoningConfig?.budgetTokens != null) {
@@ -1703,7 +1781,31 @@ function resolveAmazonBedrockReasoningConfig({
     const capabilities = getModelCapabilities(modelId);
 
     if (reasoning === 'none') {
-      result.reasoningConfig = { type: 'disabled' };
+      if (
+        capabilities.rejectsThinkingDisabled &&
+        !capabilities.supportsBetweenToolsThinking
+      ) {
+        // Models that always run adaptive thinking cannot disable it. Use low
+        // effort to keep thinking short instead of sending a request that the
+        // API would reject. An explicit effort still wins.
+        const explicitEffort = reasoningConfig?.maxReasoningEffort;
+        if (explicitEffort == null) {
+          warnings.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              `reasoning 'none' is not supported by ${modelId}; it always uses adaptive thinking. ` +
+              `Using effort 'low' to minimize thinking instead.`,
+          });
+        }
+        result.reasoningConfig = {
+          maxReasoningEffort: explicitEffort ?? 'low',
+        };
+      } else {
+        // The thinking block maps this to `between_tools` on models that
+        // support it.
+        result.reasoningConfig = { type: 'disabled' };
+      }
     } else if (capabilities.supportsAdaptiveThinking) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
