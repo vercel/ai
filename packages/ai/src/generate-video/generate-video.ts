@@ -35,7 +35,10 @@ import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
-import { splitDataUrl } from '../prompt/split-data-url';
+import {
+  decodePercentEncodedContent,
+  splitDataUrl,
+} from '../prompt/split-data-url';
 
 export type GenerateVideoPrompt =
   | string
@@ -864,8 +867,13 @@ function normalizeImageData(
     }
 
     if (dataContent.startsWith('data:')) {
-      const { mediaType, base64Content } = splitDataUrl(dataContent);
-      const data = convertBase64ToUint8Array(base64Content ?? '');
+      const { mediaType, base64Content, isBase64 } = splitDataUrl(dataContent);
+      const data =
+        base64Content == null
+          ? convertBase64ToUint8Array('')
+          : isBase64
+            ? convertBase64ToUint8Array(base64Content)
+            : decodePercentEncodedContent(base64Content);
       return {
         type: 'file',
         mediaType: mediaType ?? detectFileMediaType(data, restrictToImages),
