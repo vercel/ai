@@ -116,6 +116,30 @@ cache, Vercel function, `vercel.json`, lifecycle hook, or generated script is
 executed on the credentialed publisher. Only default-branch tooling is trusted;
 changes to this tooling require maintainer review before merging.
 
+## Deployment authentication (rollout blocker)
+
+The current publisher expects the `TARBALLS_VERCEL_TOKEN` environment secret,
+which would be a persistent Vercel access token. **Do not provision that secret
+or enable previews.** Deployment authentication must use short-lived credentials
+before rollout.
+
+The intended flow is for the trusted `publish` job to request a GitHub Actions
+OIDC identity and exchange it for short-lived Vercel deployment credentials.
+The Vercel trust policy must restrict access to this repository, this workflow
+on `main`, the protected `tarballs` environment, and the dedicated `ai-tarballs`
+project. The exchange must authorize the publisher's project/environment checks,
+alias lookups, prebuilt upload, and alias assignment. Only the publishing job may
+request an OIDC identity; the runner executing PR code must remain unprivileged.
+
+Vercel's [October 2026 authentication update](https://vercel.com/blog/death-to-long-lived-static-credentials)
+describes API and CLI deployment OIDC support as being extended. The public
+[CLI authentication documentation](https://vercel.com/docs/cli/global-options#token)
+still documents access tokens for CI. Confirm the supported inbound GitHub OIDC
+exchange with the Vercel platform team before implementing it. Runtime OIDC
+federation and Trusted Sources access to protected deployments do not themselves
+authorize creating deployments or assigning aliases. Do not substitute a
+GitHub ID token for `VERCEL_TOKEN` without a supported exchange.
+
 ## Maintainer setup
 
 Keep `TARBALLS_ENABLED` unset or `false` until every step below is complete.
@@ -150,23 +174,23 @@ Keep `TARBALLS_ENABLED` unset or `false` until every step below is complete.
    to **`main`** using a custom branch policy; the `workflow_run` publisher runs on
    the default branch even for fork PRs. Additional environment reviewers are
    optional because the build and credentialed upload run on separate runners.
-5. In that environment, configure these variables and secret:
+5. In that environment, configure these variables:
 
-   | Kind     | Name                         | Value                                  |
-   | -------- | ---------------------------- | -------------------------------------- |
-   | Variable | `TARBALLS_VERCEL_ORG_ID`     | `vercel-labs` team ID                  |
-   | Variable | `TARBALLS_VERCEL_PROJECT_ID` | `ai-tarballs` project ID               |
-   | Secret   | `TARBALLS_VERCEL_TOKEN`      | A token with minimum deployment access |
+   | Name                         | Value                    |
+   | ---------------------------- | ------------------------ |
+   | `TARBALLS_VERCEL_ORG_ID`     | `vercel-labs` team ID    |
+   | `TARBALLS_VERCEL_PROJECT_ID` | `ai-tarballs` project ID |
 
-   Configure the token directly in GitHub; never commit it or put it in a PR
-   comment. Rotate it according to team policy. Vercel CLI is pinned in the
-   workflow; review and test version updates before enabling them.
-
-6. Merge the workflow/tooling to `main`, then set the **repository variable**
+6. Resolve the [deployment authentication blocker](#deployment-authentication-rollout-blocker),
+   configure the inbound trust policy, and verify that short-lived credentials
+   support every publisher operation. Remove the workflow's static secret
+   reference. Vercel CLI is pinned in the workflow; review and test version
+   updates before enabling them.
+7. Merge the workflow/tooling to `main`, then set the **repository variable**
    `TARBALLS_ENABLED=true`. `workflow_run` cannot bootstrap itself from this PR.
    Rerun **all jobs** of a test PR's CI after merge so that the context artifact
    and aggregate `test` result belong to the same attempt.
-7. Verify an external PR remains awaiting approval without a preview/comment;
+8. Verify an external PR remains awaiting approval without a preview/comment;
    approve CI and verify the preparing → ready comment and public npm/pnpm
    downloads. Also verify failed CI creates no deployment, and a new commit
    cannot reuse or overwrite an older commit's hostname.
