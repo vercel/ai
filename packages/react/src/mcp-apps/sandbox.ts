@@ -74,22 +74,24 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
   }
 
   const connectSrc = ["'self'", ...sanitizeCSPSources(csp.connectDomains)];
-  const imgSrc = [
-    "'self'",
-    'data:',
-    ...sanitizeCSPSources(csp.resourceDomains),
-  ];
+  const resourceDomains = sanitizeCSPSources(csp.resourceDomains);
+  const scriptSrc = ["'self'", "'unsafe-inline'", ...resourceDomains];
+  const styleSrc = ["'self'", "'unsafe-inline'", ...resourceDomains];
+  const imgSrc = ["'self'", 'data:', ...resourceDomains];
+  const fontSrc = ["'self'", 'data:', ...resourceDomains];
+  const mediaSrc = ["'self'", 'data:', ...resourceDomains];
   const frameSrc = ["'self'", ...sanitizeCSPSources(csp.frameDomains)];
 
   return [
     "default-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
-    "script-src 'unsafe-inline'",
-    "style-src 'unsafe-inline'",
+    `script-src ${scriptSrc.join(' ')}`,
+    `style-src ${styleSrc.join(' ')}`,
     `connect-src ${connectSrc.join(' ')}`,
     `img-src ${imgSrc.join(' ')}`,
-    `font-src ${imgSrc.join(' ')}`,
+    `font-src ${fontSrc.join(' ')}`,
+    `media-src ${mediaSrc.join(' ')}`,
     `frame-src ${frameSrc.join(' ')}`,
   ].join('; ');
 }

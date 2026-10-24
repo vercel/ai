@@ -14,8 +14,28 @@ describe('getMCPAppCSP', () => {
     });
 
     expect(csp).toContain("connect-src 'self' https://api.example.com");
+    expect(csp).toContain(
+      "script-src 'self' 'unsafe-inline' https://cdn.example.com",
+    );
+    expect(csp).toContain(
+      "style-src 'self' 'unsafe-inline' https://cdn.example.com",
+    );
     expect(csp).toContain("img-src 'self' data: https://cdn.example.com");
+    expect(csp).toContain("font-src 'self' data: https://cdn.example.com");
+    expect(csp).toContain("media-src 'self' data: https://cdn.example.com");
     expect(csp).toContain("frame-src 'self' https://frame.example.com");
+  });
+
+  it('allows loading scripts, styles, and media from resourceDomains (issue #23946)', () => {
+    const csp = getMCPAppCSP({
+      resourceDomains: ['https://esm.sh'],
+    });
+
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://esm.sh");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://esm.sh");
+    expect(csp).toContain("img-src 'self' data: https://esm.sh");
+    expect(csp).toContain("font-src 'self' data: https://esm.sh");
+    expect(csp).toContain("media-src 'self' data: https://esm.sh");
   });
 
   it("locks down base-uri and form-action to 'none'", () => {
@@ -47,8 +67,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('attacker.example');
     expect(csp).not.toContain('evil.example');
     expect(csp).not.toContain('script-src-elem');
-    // policy still has exactly its nine intended directives
-    expect(csp!.split(';')).toHaveLength(9);
+    // policy still has exactly its ten intended directives
+    expect(csp!.split(';')).toHaveLength(10);
     // untainted values are unaffected
     expect(csp).toContain('https://ok.example.com');
   });
@@ -64,7 +84,7 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('%2C');
     expect(csp).not.toContain(';b.example.com');
     expect(csp).toContain("connect-src 'self';");
-    expect(csp!.split(';')).toHaveLength(9);
+    expect(csp!.split(';')).toHaveLength(10);
   });
 
   it('drops match-all wildcards and quote characters', () => {
