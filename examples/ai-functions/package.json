@@ -67,6 +67,7 @@
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
+    "@ai-sdk/siliconflow": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tool-bash": "workspace:*",
     "@ai-sdk/tool-web-fetch": "workspace:*",
