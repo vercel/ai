@@ -7,7 +7,7 @@ import test from 'node:test';
 import { gzipSync } from 'node:zlib';
 import { comment, commentState, validate } from './github.mjs';
 import { assemble } from './site.mjs';
-import { context, hostname, integrity, installNames, packageFile, packagePath, packageUrl, previewVersion, rewriteManifest } from './shared.mjs';
+import { context, hostname, integrity, installCommand, installNames, packageFile, packagePath, packageUrl, previewVersion, rewriteManifest } from './shared.mjs';
 
 const c = {
   repository: 'vercel/ai', pr: 12345, branch: 'Fix/Provider_Options',
@@ -61,6 +61,8 @@ test('install commands include internal peers reached through runtime dependenci
     { name: '@ai-sdk/peer', dependencies: ['ai'], peers: [] },
   ] };
   assert.deepEqual(installNames(catalog, ['ai']), ['@ai-sdk/peer', 'ai']);
+  assert.match(installCommand(catalog, ['ai'], 'pnpm'), /^pnpm add --config.blockExoticSubdeps=false /);
+  assert(!installCommand(catalog, ['ai']).includes('blockExoticSubdeps'));
 });
 
 function apiFixture(mutate = () => {}) {

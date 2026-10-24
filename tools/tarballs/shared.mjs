@@ -98,7 +98,10 @@ export function installNames(catalog, selected) {
 
 export function installCommand(catalog, selected, manager = 'npm') {
   assert(['npm', 'pnpm'].includes(manager));
-  return `${manager} ${manager === 'npm' ? 'install' : 'add'} ${installNames(catalog, selected)
+  // pnpm 12 blocks transitive tarball URLs by default. Opt in for this one
+  // preview installation, without changing the consumer's persistent settings.
+  const options = manager === 'pnpm' ? '--config.blockExoticSubdeps=false ' : '';
+  return `${manager} ${manager === 'npm' ? 'install' : 'add'} ${options}${installNames(catalog, selected)
     .map(name => `${name}@${packageUrl(catalog.context, name)}`).join(' ')}`;
 }
 

@@ -1,7 +1,7 @@
 // Download and execute package code only on a runner without publishing tokens.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { context, hostname, installNames, integrity, packageFile, packageUrl, previewVersion, sameRevision } from './shared.mjs';
@@ -24,7 +24,7 @@ assert(sameRevision(context(catalog.context), c));
 assert.equal(catalog.origin, origin);
 const index = await fetch(origin, { redirect: 'error', signal: AbortSignal.timeout(60_000) });
 assert(index.ok && (await index.text()).includes('JSON catalog for agents'));
-const temp = await mkdtemp(join(tmpdir(), 'ai-tarballs-smoke-'));
+const temp = await realpath(await mkdtemp(join(tmpdir(), 'ai-tarballs-smoke-')));
 try {
   const names = new Set(catalog.packages.map(p => p.name));
   for (const pkg of catalog.packages) {
@@ -57,7 +57,7 @@ try {
     await writeFile(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies }));
     const args = manager === 'npm'
       ? ['install', '--ignore-scripts', '--no-audit', '--no-fund']
-      : ['install', '--ignore-scripts', '--store-dir', join(temp, 'store')];
+      : ['install', '--ignore-scripts', '--config.blockExoticSubdeps=false', '--store-dir', join(temp, 'store')];
     execFileSync(manager, args, { cwd: consumer, stdio: 'inherit' });
     // Check actual resolution, runtime imports, and dependency versions from
     // an isolated consumer outside the checked-out monorepo.

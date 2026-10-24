@@ -82,6 +82,7 @@ Head: <code>${c.headSha}</code><br>Packaged/tested merge: <code>${c.sha}</code><
 <p><a href="https://github.com/vercel/ai/actions/runs/${c.ciRunId}/attempts/${c.ciAttempt}">Passing CI</a> · <a href="/catalog.json">JSON catalog for agents</a></p>
 <h2>Try AI SDK with OpenAI</h2><pre>${h(installCommand(catalog, ['ai', '@ai-sdk/openai']))}</pre>
 <p>Each command includes the matching internal peer packages. Runtime dependencies use tarballs from this same preview.</p>
+<p>The pnpm command opts into transitive tarball URLs for this installation using <code>--config.blockExoticSubdeps=false</code>. Review the PR before running it; this does not change your persistent pnpm configuration.</p>
 <h2>Packages</h2><table><thead><tr><th>Package</th><th>Install</th></tr></thead><tbody>
 ${catalog.packages.map(pkg => `<tr><td><a href="${pkg.path}">${h(pkg.name)}</a><br><code>${pkg.version}</code></td><td><pre>${h(pkg.install.npm)}</pre><pre>${h(pkg.install.pnpm)}</pre></td></tr>`).join('\n')}
 </tbody></table></body></html>`;

@@ -22,6 +22,14 @@ Internal runtime and optional dependencies already point to the same preview, so
 installing a provider also installs its preview of `@ai-sdk/provider-utils` and
 `@ai-sdk/provider`. External dependencies retain their normal version ranges.
 
+pnpm 12 blocks transitive tarball URLs by default. The generated pnpm commands
+include `--config.blockExoticSubdeps=false` to allow the preview's internal tarball
+dependencies for that invocation. This also permits other transitive URL/git
+dependencies during that install, so review the PR and dependency changes first.
+It does not change persistent pnpm settings. Use the same flag for subsequent
+pnpm installs while consuming a preview, or use npm. Remove the preview dependencies
+when returning to released packages.
+
 For agents, fetch `<preview-origin>/catalog.json`. It contains the PR number,
 branch, head SHA, tested merge SHA, originating CI run and attempt, package names,
 versions, URLs, SHA-512 integrity values, sizes, dependency relationships, and
