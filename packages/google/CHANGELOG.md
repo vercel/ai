@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 4.0.105
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- bbe2bd1: fix(google): keep empty arrays and objects in tool-call input streamed with `streamFunctionCallArguments`
+
+  Vertex sends a value-less `partialArgs` entry for an empty container (e.g. `$.tags[]`), which was dropped, so `[]` and `{}` arguments went missing from the streamed tool-call input.
+
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 4.0.104
 
 ### Patch Changes
