@@ -177,6 +177,69 @@ describe('convertToLanguageModelV4FilePart', () => {
     });
   });
 
+  describe('non-base64 data URLs (RFC 2397)', () => {
+    it('percent-decodes a plain text data URL', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/plain,Hello%2C%20world!',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(new TextDecoder().decode(inner)).toBe('Hello, world!');
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('keeps content that contains commas (CSV)', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/csv,a,b,c%0A1,2,3',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('a,b,c\n1,2,3');
+      expect(result.mediaType).toBe('text/csv');
+    });
+
+    it('percent-decodes an SVG data URL', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe(
+        '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      );
+      expect(result.mediaType).toBe('image/svg+xml');
+    });
+
+    it('sends the actual bytes when non-base64 content looks like base64', () => {
+      const result = convertToLanguageModelV4FilePart('data:text/plain,abcd');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('abcd');
+    });
+
+    it('percent-decodes a non-base64 data URL passed as a URL instance', () => {
+      const result = convertToLanguageModelV4FilePart(
+        new URL('data:text/plain,Hello%2C%20world!'),
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('Hello, world!');
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('throws InvalidDataContentError for invalid percent-encoding', () => {
+      expect(() =>
+        convertToLanguageModelV4FilePart(new URL('data:text/plain,%zz')),
+      ).toThrow(/percent-encoding/);
+    });
+  });
+
   describe('legacy and tagged produce the same output', () => {
     it('{ type: "data", data: bytes } equals bare bytes', () => {
       const bytes = new Uint8Array([7, 8, 9]);

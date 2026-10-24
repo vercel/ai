@@ -35,7 +35,10 @@ import type {
   GenerateImageResult,
 } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { splitDataUrl } from '../prompt/split-data-url';
+import {
+  decodePercentEncodedContent,
+  splitDataUrl,
+} from '../prompt/split-data-url';
 
 const gatewayCostMetadataKeys = [
   'cost',
@@ -471,11 +474,13 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
 
   // Handle data URLs
   if (typeof dataContent === 'string' && dataContent.startsWith('data:')) {
-    const { mediaType: dataUrlMediaType, base64Content } =
+    const { mediaType: dataUrlMediaType, base64Content, isBase64 } =
       splitDataUrl(dataContent);
 
     if (base64Content != null) {
-      const uint8Data = convertBase64ToUint8Array(base64Content);
+      const uint8Data = isBase64
+        ? convertBase64ToUint8Array(base64Content)
+        : decodePercentEncodedContent(base64Content);
       return {
         type: 'file',
         data: uint8Data,
