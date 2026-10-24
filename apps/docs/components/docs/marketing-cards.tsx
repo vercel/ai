@@ -36,12 +36,6 @@ const quickstarts: {
     color: '000000',
   },
   {
-    title: 'Next.js Pages Router',
-    href: '/docs/getting-started/nextjs-pages-router',
-    logo: <LogoNextjs className="text-gray-1000" height={LOGO_SIZE} />,
-    color: '000000',
-  },
-  {
     title: 'SvelteKit',
     href: '/docs/getting-started/svelte',
     logo: <LogoSvelteKit className="text-[#FF3E00]" height={LOGO_SIZE} />,
