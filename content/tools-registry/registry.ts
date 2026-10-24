@@ -26,9 +26,9 @@ export const tools: Tool[] = [
     slug: 'serpkite',
     name: 'SerpKite',
     description:
-      'Google search and page extraction tools for AI agents. Search web results, news, maps and academic papers, or read public webpages as Markdown. Tools support Markdown, compact and structured JSON output.',
+      'Google search, page extraction, cited answers and deep research tools for AI agents. Search web results, news, maps and academic papers, read public webpages as Markdown or schema-shaped JSON, answer questions with citations, or run research tasks that return cited reports.',
     packageName: '@serpkite/ai-sdk',
-    tags: ['search', 'web', 'extraction'],
+    tags: ['search', 'web', 'extraction', 'research'],
     apiKeyEnvName: 'SERPKITE_API_KEY',
     installCommand: {
       pnpm: 'pnpm add @serpkite/ai-sdk ai zod',
