@@ -69,6 +69,21 @@ function isRealtimeTranscriptionModelId(modelId: string): boolean {
   );
 }
 
+/**
+ * GPT transcribe model family (`gpt-transcribe`, `gpt-4o-transcribe`,
+ * dated snapshots, and custom Azure deployment names that start with these
+ * prefixes) only supports the plain `json` response format and rejects
+ * `verbose_json` / `timestamp_granularities`. Prefix matching keeps dated
+ * snapshots and Azure deployments working (#23495).
+ */
+function isGptTranscribeModelId(modelId: string): boolean {
+  return (
+    modelId.startsWith('gpt-transcribe') ||
+    modelId.startsWith('gpt-4o-transcribe') ||
+    modelId.startsWith('gpt-4o-mini-transcribe')
+  );
+}
+
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   _internal?: {
     currentDate?: () => Date;
@@ -182,6 +197,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       schema: openAITranscriptionModelOptions,
     });
 
+    // The schema fills `temperature` and `timestampGranularities` with defaults,
+    // so compare against the raw caller options to know what was actually set (#23495).
+    const rawOpenAIOptions = providerOptions?.openai ?? {};
+
     // Create form data with base fields
     const formData = new FormData();
     const blob =
@@ -208,28 +227,42 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const isGpt4oTranscribeModel = [
-        'gpt-4o-transcribe',
-        'gpt-4o-mini-transcribe',
-      ].includes(this.modelId);
+      const isGptTranscribeModel = isGptTranscribeModelId(this.modelId);
+      // GPT transcribe models only support plain `json` output and reject
+      // `verbose_json` and `timestamp_granularities`; the schema defaults for
+      // temperature/granularities must not leak into their requests unless the
+      // caller actually set them (#23495).
+      const callerSetTimestampGranularities =
+        rawOpenAIOptions.timestampGranularities != null;
 
       const transcriptionModelOptions = {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
-        // prefer verbose_json to get segments for models that support it
+        // prefer verbose_json to get segments for models that support it;
+        // GPT transcribe models only support plain json and reject verbose_json,
+        // so leave the format unset and let the service choose unless the caller
+        // set one explicitly (#23495).
         ...(this.modelId !== 'whisper-1' && {
           response_format:
             openAIOptions.responseFormat ??
             (isDiarizationModel
               ? 'diarized_json'
-              : isGpt4oTranscribeModel
-                ? 'json'
+              : isGptTranscribeModel
+                ? undefined
                 : 'verbose_json'),
         }),
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        // The schema defaults temperature to 0; on GPT transcribe models that
+        // default would still be sent, so forward it only when the caller set it.
+        temperature: isGptTranscribeModel
+          ? rawOpenAIOptions.temperature
+          : openAIOptions.temperature,
+        timestamp_granularities: isGptTranscribeModel
+          ? callerSetTimestampGranularities
+            ? openAIOptions.timestampGranularities
+            : undefined
+          : openAIOptions.timestampGranularities,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
