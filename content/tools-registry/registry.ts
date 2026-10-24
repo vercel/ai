@@ -755,7 +755,7 @@ console.log(text);`,
     slug: 'webextract',
     name: 'WebExtract',
     description:
-      'Read any public URL and get clean Markdown plus fixed-schema JSON: article metadata, product and price (with variant and sale/regular price detail), and tables. Two tools: extractUrl and pageMarkdown. Free tier of 50 calls/day per IP with no key; prepaid API key or x402 pay-per-call in USDC for more. Respects robots.txt; failed fetches are not charged.',
+      'Read any public URL and get clean Markdown plus fixed-schema JSON: article metadata, product and price (with variant and sale/regular price detail), and tables. Two tools: extractUrl and pageMarkdown. Free tier of 20 calls/day per IP with no key; prepaid API key or x402 pay-per-call in USDC for more. Respects robots.txt; failed fetches are not charged.',
     packageName: '@webextract/ai-sdk',
     tags: ['web', 'extraction', 'scraping', 'markdown'],
     apiKeyEnvName: 'WEBEXTRACT_API_KEY',
