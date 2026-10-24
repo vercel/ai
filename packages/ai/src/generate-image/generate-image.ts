@@ -36,7 +36,7 @@ import type {
 } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import {
-  decodePercentEncodedContent,
+  decodeNonBase64DataUrlContent,
   splitDataUrl,
 } from '../prompt/split-data-url';
 
@@ -480,7 +480,7 @@ function toImageModelV4File(dataContent: DataContent): ImageModelV4File {
     if (base64Content != null) {
       const uint8Data = isBase64
         ? convertBase64ToUint8Array(base64Content)
-        : decodePercentEncodedContent(base64Content);
+        : decodeNonBase64DataUrlContent(base64Content, dataContent);
       return {
         type: 'file',
         data: uint8Data,

@@ -238,6 +238,58 @@ describe('convertToLanguageModelV4FilePart', () => {
         convertToLanguageModelV4FilePart(new URL('data:text/plain,%zz')),
       ).toThrow(/percent-encoding/);
     });
+
+    it('decodes percent-encoded bytes that are not valid UTF-8', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:application/octet-stream,%FF%00%80',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([0xff, 0x00, 0x80]);
+      expect(result.mediaType).toBe('application/octet-stream');
+    });
+
+    it('decodes percent-encoded bytes in a non-UTF-8 charset', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/plain;charset=iso-8859-1,caf%E9',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([0x63, 0x61, 0x66, 0xe9]);
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('decodes binary content such as a PNG signature', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:image/png,%89PNG%0D%0A%1A%0A',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      expect(result.mediaType).toBe('image/png');
+    });
+
+    it('encodes literal non-ASCII characters as UTF-8', () => {
+      const result = convertToLanguageModelV4FilePart('data:text/plain,你好');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('你好');
+    });
+
+    it('defaults an omitted media type to text/plain (RFC 2397)', () => {
+      const result = convertToLanguageModelV4FilePart('data:,Hello');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('Hello');
+      expect(result.mediaType).toBe('text/plain');
+    });
   });
 
   describe('legacy and tagged produce the same output', () => {

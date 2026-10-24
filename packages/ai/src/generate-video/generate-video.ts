@@ -36,7 +36,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
 import {
-  decodePercentEncodedContent,
+  decodeNonBase64DataUrlContent,
   splitDataUrl,
 } from '../prompt/split-data-url';
 
@@ -873,7 +873,7 @@ function normalizeImageData(
           ? convertBase64ToUint8Array('')
           : isBase64
             ? convertBase64ToUint8Array(base64Content)
-            : decodePercentEncodedContent(base64Content);
+            : decodeNonBase64DataUrlContent(base64Content, dataContent);
       return {
         type: 'file',
         mediaType: mediaType ?? detectFileMediaType(data, restrictToImages),

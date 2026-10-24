@@ -8,7 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidDataContentError } from './invalid-data-content-error';
 import {
-  decodePercentEncodedContent,
+  decodeNonBase64DataUrlContent,
   splitDataUrl,
 } from './split-data-url';
 
@@ -50,20 +50,14 @@ function convertUrlToFilePartData(
     // Data URLs without the ';base64' marker carry percent-encoded content
     // (RFC 2397). Decode it so providers receive the actual bytes instead of
     // misinterpreting the text as base64.
-    try {
-      return {
-        data: {
-          type: 'data',
-          data: decodePercentEncodedContent(base64Content),
-        },
-        mediaType,
-      };
-    } catch {
-      throw new InvalidDataContentError({
-        content: url,
-        message: `Invalid percent-encoding in data URL content ${url.toString()}`,
-      });
-    }
+    return {
+      data: {
+        type: 'data',
+        data: decodeNonBase64DataUrlContent(base64Content, url.toString()),
+      },
+      // RFC 2397 defaults an omitted media type to text/plain.
+      mediaType: mediaType === '' ? 'text/plain' : mediaType,
+    };
   }
 
   return {
