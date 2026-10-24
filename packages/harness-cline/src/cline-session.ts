@@ -189,7 +189,7 @@ function createClineAgentModel({
   settings: ClineSessionSettings;
   clientApp: string;
   modelId: string | undefined;
-}): { model: AgentModel; providerId: string } {
+}): { model: AgentModel; providerId: string; modelId: string | undefined } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
   const providerId = isAiGateway ? 'cline' : (settings.providerId ?? 'cline');
@@ -250,6 +250,15 @@ function createClineAgentModel({
   return {
     model,
     providerId,
+    /*
+     * The Cline gateway resolves an omitted model to the provider manifest's
+     * `defaultModelId`, which `listProviders()` reports with the same
+     * precedence (provider config, then built-in manifest, then first model).
+     */
+    modelId:
+      modelId ??
+      gateway.listProviders().find(provider => provider.id === providerId)
+        ?.defaultModelId,
   };
 }
 
@@ -717,7 +726,7 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(activeModelId ? { modelId: activeModelId } : {}),
+      ...(agentModel.modelId ? { modelId: agentModel.modelId } : {}),
     });
 
     acceptingUserMessages = true;

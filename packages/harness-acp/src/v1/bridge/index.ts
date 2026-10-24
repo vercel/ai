@@ -47,6 +47,7 @@ import {
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import { configureACPModel } from './model-mapping';
+import { resolveACPModelId } from './resolve-acp-model-id';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -90,6 +91,7 @@ let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
+let currentModelId: string | undefined;
 let activePermissionController:
   | ReturnType<typeof createACPPermissionController>
   | undefined;
@@ -220,12 +222,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   }
 
-  await configureACPModel({
+  const configuredModelId = await configureACPModel({
     agent: connection!.agent,
     sessionId: activeSession.sessionId,
     model: start.model,
     mapping: start.modelMapping,
   });
+  if (configuredModelId != null) currentModelId = configuredModelId;
 
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
@@ -258,7 +261,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       rejectCancellationFailure(cancellationFailureError);
     }
   };
-  turn.emit({ type: 'stream-start' });
+  const streamStartModelId = currentModelId ?? start.model;
+  turn.emit({
+    type: 'stream-start',
+    ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+  });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
     emitToolCallCandidate: ({ toolCall }) => {
@@ -370,6 +377,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         });
       }
       if (message.kind === 'session_update') {
+        if (message.update.sessionUpdate === 'config_option_update') {
+          currentModelId =
+            resolveACPModelId({
+              sessionState: message.update,
+              modelMapping: start.modelMapping,
+            }) ?? currentModelId;
+        }
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
@@ -712,6 +726,10 @@ async function ensureSession({
     throw error;
   }
   session = createdSession;
+  currentModelId = resolveACPModelId({
+    sessionState: createdSession.newSessionResponse,
+    modelMapping: start.modelMapping,
+  });
   initializationDiagnostic = createACPInitializationDiagnostic({
     initialization,
     sessionId: createdSession.sessionId,
