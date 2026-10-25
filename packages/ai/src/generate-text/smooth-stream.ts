@@ -200,6 +200,9 @@ export function smoothStream<TOOLS extends ToolSet>({
           providerMetadata = undefined;
         }
       },
+      flush(controller) {
+        flushBuffer(controller);
+      },
     });
   };
 }

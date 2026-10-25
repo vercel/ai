@@ -2509,5 +2509,49 @@ describe('smoothStream', () => {
       ]);
       expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
     });
+
+    it('should flush remaining buffered text when stream closes without trailing delimiter or text-end chunk', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-delta', id: '1', text: 'Hello ' },
+        { type: 'text-delta', id: '1', text: 'world' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const textDeltas = events.filter(
+        event => typeof event === 'object' && event.type === 'text-delta',
+      );
+      expect(textDeltas).toEqual([
+        { id: '1', text: 'Hello ', type: 'text-delta' },
+        { id: '1', text: 'world', type: 'text-delta' },
+      ]);
+    });
+
+    it('should flush remaining reasoning buffer when stream closes without trailing delimiter', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-delta', id: '1', text: 'Thinking ' },
+        { type: 'reasoning-delta', id: '1', text: 'deeply' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      const reasoningDeltas = events.filter(
+        event => typeof event === 'object' && event.type === 'reasoning-delta',
+      );
+      expect(reasoningDeltas).toEqual([
+        { id: '1', text: 'Thinking ', type: 'reasoning-delta' },
+        { id: '1', text: 'deeply', type: 'reasoning-delta' },
+      ]);
+    });
   });
 });
