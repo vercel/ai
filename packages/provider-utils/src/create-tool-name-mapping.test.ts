@@ -6,6 +6,69 @@ import { describe, expect, it } from 'vitest';
 import { createToolNameMapping } from './create-tool-name-mapping';
 
 describe('createToolNameMapping', () => {
+  const prototypeNames = [
+    '__proto__',
+    'constructor',
+    'toString',
+    'valueOf',
+    'hasOwnProperty',
+  ];
+
+  it.each(prototypeNames)(
+    'should return the unmapped name %s unchanged',
+    name => {
+      const mapping = createToolNameMapping({
+        tools: undefined,
+        providerToolNames: {},
+      });
+
+      expect(mapping.toProviderToolName(name)).toBe(name);
+      expect(mapping.toCustomToolName(name)).toBe(name);
+    },
+  );
+
+  it.each(prototypeNames)(
+    'should map the custom tool name %s to its provider name',
+    name => {
+      const mapping = createToolNameMapping({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.computer-use',
+            name,
+            args: {},
+          },
+        ],
+        providerToolNames: {
+          'anthropic.computer-use': 'computer_use',
+        },
+      });
+
+      expect(mapping.toProviderToolName(name)).toBe('computer_use');
+      expect(mapping.toCustomToolName('computer_use')).toBe(name);
+    },
+  );
+
+  it.each(prototypeNames)(
+    'should map the provider tool name %s to its custom name',
+    name => {
+      const mapping = createToolNameMapping({
+        tools: [
+          {
+            type: 'provider',
+            id: 'custom.tool',
+            name: 'custom-tool',
+            args: {},
+          },
+        ],
+        providerToolNames: { 'custom.tool': name },
+      });
+
+      expect(mapping.toProviderToolName('custom-tool')).toBe(name);
+      expect(mapping.toCustomToolName(name)).toBe('custom-tool');
+    },
+  );
+
   it('should create mappings for provider-defined tools', () => {
     const tools: Array<
       LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
