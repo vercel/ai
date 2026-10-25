@@ -3,8 +3,12 @@ import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
 const encoder = new TextEncoder();
 
-function fromBase64url(str: string) {
-  return convertBase64ToUint8Array(str);
+function fromBase64url(str: string): Uint8Array | undefined {
+  try {
+    return convertBase64ToUint8Array(str);
+  } catch {
+    return undefined;
+  }
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
@@ -93,37 +97,45 @@ export async function verifyToolApprovalSignature({
   toolName: string;
   input: unknown;
 }): Promise<boolean> {
-  const key = await importKey(secret);
-  const inputDigest = await hashCanonical(input);
   const sigBytes = fromBase64url(signature);
-
-  const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
-  if (await crypto.subtle.verify('HMAC', key, sigBytes, payload)) {
-    return true;
+  if (sigBytes == null) {
+    return false;
   }
 
-  // Backwards compatibility: accept a signature produced by the legacy
-  // newline-joined format, but only when no field contains the `\n` delimiter
-  // — the exact condition that made that format ambiguous. This keeps the
-  // retupling collision closed (the attack requires a newline in a field)
-  // while still verifying benign approvals signed by an older version, e.g. a
-  // pending approval that straddles an upgrade.
-  // TODO(#17494): remove in v8 (drop buildLegacyPayload and this fallback).
-  if (
-    !approvalId.includes('\n') &&
-    !toolCallId.includes('\n') &&
-    !toolName.includes('\n')
-  ) {
-    const legacyPayload = buildLegacyPayload(
-      approvalId,
-      toolCallId,
-      toolName,
-      inputDigest,
-    );
-    return crypto.subtle.verify('HMAC', key, sigBytes, legacyPayload);
-  }
+  try {
+    const key = await importKey(secret);
+    const inputDigest = await hashCanonical(input);
 
-  return false;
+    const payload = buildPayload(approvalId, toolCallId, toolName, inputDigest);
+    if (await crypto.subtle.verify('HMAC', key, sigBytes, payload)) {
+      return true;
+    }
+
+    // Backwards compatibility: accept a signature produced by the legacy
+    // newline-joined format, but only when no field contains the `\n` delimiter
+    // — the exact condition that made that format ambiguous. This keeps the
+    // retupling collision closed (the attack requires a newline in a field)
+    // while still verifying benign approvals signed by an older version, e.g. a
+    // pending approval that straddles an upgrade.
+    // TODO(#17494): remove in v8 (drop buildLegacyPayload and this fallback).
+    if (
+      !approvalId.includes('\n') &&
+      !toolCallId.includes('\n') &&
+      !toolName.includes('\n')
+    ) {
+      const legacyPayload = buildLegacyPayload(
+        approvalId,
+        toolCallId,
+        toolName,
+        inputDigest,
+      );
+      return await crypto.subtle.verify('HMAC', key, sigBytes, legacyPayload);
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export async function maybeSignApproval({
