@@ -721,8 +721,21 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               }
             }
 
+            // Response metadata event
+            if (chunk.type === 'response.created') {
+              controller.enqueue({
+                type: 'response-metadata',
+                id: chunk.response.id,
+                timestamp:
+                  chunk.response.created_at != null
+                    ? new Date(chunk.response.created_at * 1000)
+                    : undefined,
+                modelId: chunk.response.model,
+              });
+            }
+
             // Tool call events (single-shot tool-call when complete)
-            if (
+            else if (
               chunk.type === 'response.output_item.added' &&
               chunk.item.type === 'function_call'
             ) {
