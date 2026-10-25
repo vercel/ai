@@ -5,7 +5,11 @@ import {
   type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
+import {
+  convertToMistralChatMessages,
+  safeStringifyMistralToolOutput,
+  serializeMistralToolCallArguments,
+} from './convert-to-mistral-chat-messages';
 import type {
   MistralAssistantMessageContent,
   MistralToolMessage,
@@ -51,7 +55,10 @@ export function convertToMistralConversationInputs(
       inputs.push({
         type: 'function.result',
         tool_call_id: part.toolCallId,
-        result: typeof result === 'string' ? result : JSON.stringify(result),
+        result:
+          typeof result === 'string'
+            ? result
+            : safeStringifyMistralToolOutput(result),
       });
       return;
     }
@@ -120,7 +127,7 @@ export function convertToMistralConversationInputs(
                   arguments:
                     typeof args?.arguments === 'string'
                       ? args.arguments
-                      : JSON.stringify(part.input),
+                      : serializeMistralToolCallArguments(part.input),
                 });
                 executions.add(part.toolCallId);
               } else {
@@ -128,7 +135,7 @@ export function convertToMistralConversationInputs(
                   type: 'function.call',
                   tool_call_id: part.toolCallId,
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeMistralToolCallArguments(part.input),
                 });
               }
               break;
