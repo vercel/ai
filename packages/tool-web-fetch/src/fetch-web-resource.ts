@@ -161,7 +161,18 @@ export async function fetchWebResource({
     const location = response.headers.get('location');
     if (REDIRECT_STATUS_CODES.has(response.status) && location) {
       void cancelResponseBody(response);
-      currentUrl = new URL(location, currentUrl).toString();
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        // A malformed Location header is a server-side problem; surface it as
+        // a recoverable error instead of letting the TypeError escape the
+        // tool and abort the surrounding agent loop.
+        return {
+          type: 'error',
+          errorCode: 'network_error',
+          message: 'The server returned an invalid redirect Location header.',
+        };
+      }
       continue;
     }
 
