@@ -3,9 +3,30 @@ export function splitDataUrl(dataUrl: string): {
   base64Content: string | undefined;
 } {
   try {
-    const [header, base64Content] = dataUrl.split(',');
+    const firstCommaIndex = dataUrl.indexOf(',');
+    if (firstCommaIndex === -1) {
+      return {
+        mediaType: undefined,
+        base64Content: undefined,
+      };
+    }
+
+    const header = dataUrl.slice(0, firstCommaIndex);
+    const base64Content = dataUrl.slice(firstCommaIndex + 1);
+
+    const colonIndex = header.indexOf(':');
+    if (colonIndex === -1) {
+      return {
+        mediaType: undefined,
+        base64Content: undefined,
+      };
+    }
+
+    const mediaTypePart = header.slice(colonIndex + 1).split(';')[0].trim();
+    const mediaType = mediaTypePart === '' ? undefined : mediaTypePart;
+
     return {
-      mediaType: header.split(';')[0].split(':')[1],
+      mediaType,
       base64Content,
     };
   } catch {
