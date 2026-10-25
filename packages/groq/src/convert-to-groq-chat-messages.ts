@@ -9,6 +9,54 @@ import {
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 
+function serializeGroqToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(input, (_key, value) => {
+        if (typeof value === 'bigint') {
+          return value.toString();
+        }
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            return '[Circular]';
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
+}
+
+function safeStringifyGroqToolOutput(value: unknown): string {
+  try {
+    const seen = new WeakSet();
+    return JSON.stringify(value, (_key, val) => {
+      if (typeof val === 'bigint') {
+        return val.toString();
+      }
+      if (typeof val === 'object' && val !== null) {
+        if (seen.has(val)) {
+          return '[Circular]';
+        }
+        seen.add(val);
+      }
+      return val;
+    });
+  } catch {
+    return String(value);
+  }
+}
+
 export function convertToGroqChatMessages(
   prompt: LanguageModelV4Prompt,
 ): GroqChatPrompt {
@@ -102,7 +150,7 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeGroqToolCallArguments(part.input),
                 },
               });
               break;
@@ -139,7 +187,7 @@ export function convertToGroqChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = safeStringifyGroqToolOutput(output.value);
               break;
           }
 
