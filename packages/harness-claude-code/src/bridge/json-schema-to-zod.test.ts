@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod/v4';
 import {
   jsonSchemaToZodObject,
   type JsonSchemaObject,
@@ -421,4 +422,119 @@ describe('jsonSchemaToZodObject', () => {
       expect(jsonSchemaToZodObject(input).parse(value)).toEqual(value);
     },
   );
+
+  describe('limits and defaults', () => {
+    // The MCP server sends the tool schema to the model with this conversion.
+    function toToolJsonSchema(input: JsonSchemaObject) {
+      return z.toJSONSchema(jsonSchemaToZodObject(input), {
+        target: 'draft-7',
+        io: 'input',
+      });
+    }
+
+    it('keeps numeric, length, and item count limits in the tool schema', () => {
+      const jsonSchema = toToolJsonSchema({
+        type: 'object',
+        properties: {
+          limit: { type: 'integer', minimum: 1, maximum: 100 },
+          ratio: { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 1 },
+          query: { type: 'string', minLength: 1, maxLength: 200 },
+          ids: {
+            type: 'array',
+            items: { type: 'string' },
+            minItems: 1,
+            maxItems: 10,
+          },
+        },
+        required: ['limit', 'ratio', 'query', 'ids'],
+      });
+
+      expect(jsonSchema.properties).toMatchObject({
+        limit: { type: 'integer', minimum: 1, maximum: 100 },
+        ratio: { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 1 },
+        query: { type: 'string', minLength: 1, maxLength: 200 },
+        ids: { type: 'array', minItems: 1, maxItems: 10 },
+      });
+    });
+
+    it('keeps defaults and descriptions in the tool schema', () => {
+      const jsonSchema = toToolJsonSchema({
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'integer',
+            description: 'Page size.',
+            minimum: 1,
+            default: 20,
+          },
+          order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          cursor: { type: ['string', 'null'], default: null },
+        },
+      });
+
+      expect(jsonSchema.properties).toMatchObject({
+        limit: {
+          type: 'integer',
+          description: 'Page size.',
+          minimum: 1,
+          default: 20,
+        },
+        order: { default: 'desc' },
+        cursor: { default: null },
+      });
+    });
+
+    it('keeps limits on nested and nullable fields', () => {
+      const jsonSchema = toToolJsonSchema({
+        type: 'object',
+        properties: {
+          page: {
+            type: 'object',
+            properties: { size: { type: 'integer', maximum: 50 } },
+          },
+          offset: { type: ['integer', 'null'], minimum: 0 },
+        },
+      });
+
+      expect(jsonSchema.properties).toMatchObject({
+        page: { properties: { size: { type: 'integer', maximum: 50 } } },
+        offset: { anyOf: [{ type: 'integer', minimum: 0 }, { type: 'null' }] },
+      });
+    });
+
+    it('leaves validation and defaults to the host', () => {
+      const schema = jsonSchemaToZodObject({
+        type: 'object',
+        properties: {
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          query: { type: 'string', maxLength: 3 },
+        },
+      });
+
+      expect(schema.parse({ limit: 500, query: 'longer' })).toEqual({
+        limit: 500,
+        query: 'longer',
+      });
+      expect(schema.parse({})).toEqual({});
+      expect(schema.safeParse({ limit: 'many' }).success).toBe(false);
+    });
+
+    it('ignores non-numeric limit values', () => {
+      const jsonSchema = toToolJsonSchema({
+        type: 'object',
+        properties: {
+          value: {
+            type: 'number',
+            minimum: 0,
+            exclusiveMinimum: true as unknown as number,
+          },
+        },
+      });
+
+      expect(jsonSchema.properties?.value).toMatchObject({ minimum: 0 });
+      expect(jsonSchema.properties?.value).not.toHaveProperty(
+        'exclusiveMinimum',
+      );
+    });
+  });
 });

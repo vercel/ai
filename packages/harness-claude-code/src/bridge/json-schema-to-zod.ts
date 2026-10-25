@@ -14,7 +14,29 @@ export type JsonSchemaObject = {
   oneOf?: JsonSchemaObject[];
   anyOf?: JsonSchemaObject[];
   nullable?: boolean;
+  default?: unknown;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
 };
+
+// Limits the model should see in the tool schema. They are carried as
+// metadata instead of zod checks: the host validates the input itself.
+const LIMIT_KEYWORDS = [
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems',
+] as const;
 
 type ZodShape = Record<string, z.ZodTypeAny>;
 
@@ -59,9 +81,26 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
     zodForUnion(schema) ??
     zodForType(schema);
 
+  const limits = getLimits(schema);
+  if (limits) zType = zType.meta(limits);
   if (isNullable(schema)) zType = zType.nullable();
+  // The host fills in defaults, so the default is metadata as well.
+  if ('default' in schema) zType = zType.meta({ default: schema.default });
   if (schema.description) zType = zType.describe(schema.description);
   return zType;
+}
+
+function getLimits(
+  schema: JsonSchemaObject,
+): Record<string, number> | undefined {
+  const limits: Record<string, number> = {};
+  for (const keyword of LIMIT_KEYWORDS) {
+    const value = schema[keyword];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      limits[keyword] = value;
+    }
+  }
+  return Object.keys(limits).length > 0 ? limits : undefined;
 }
 
 function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {
