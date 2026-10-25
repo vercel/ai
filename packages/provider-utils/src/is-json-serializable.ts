@@ -8,6 +8,13 @@ import type { JSONValue } from '@ai-sdk/provider';
  * bigints, and non-plain objects such as class instances, dates, and regexes.
  */
 export function isJSONSerializable(value: unknown): value is JSONValue {
+  return checkJSONSerializable(value, new Set());
+}
+
+function checkJSONSerializable(
+  value: unknown,
+  ancestors: Set<unknown>,
+): boolean {
   if (value === null || value === undefined) return true;
 
   const type = typeof value;
@@ -15,14 +22,26 @@ export function isJSONSerializable(value: unknown): value is JSONValue {
   if (type === 'function' || type === 'symbol' || type === 'bigint')
     return false;
 
+  if (typeof value === 'object') {
+    if (ancestors.has(value)) {
+      return false;
+    }
+  }
+
   if (Array.isArray(value)) {
-    return value.every(isJSONSerializable);
+    ancestors.add(value);
+    const result = value.every(item => checkJSONSerializable(item, ancestors));
+    ancestors.delete(value);
+    return result;
   }
 
   if (Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.values(value as Record<string, unknown>).every(
-      isJSONSerializable,
+    ancestors.add(value);
+    const result = Object.values(value as Record<string, unknown>).every(item =>
+      checkJSONSerializable(item, ancestors),
     );
+    ancestors.delete(value);
+    return result;
   }
 
   return false;
