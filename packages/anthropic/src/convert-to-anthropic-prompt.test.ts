@@ -5122,6 +5122,91 @@ describe('cache control', () => {
       });
     });
 
+    it('should parse valid JSON string tool call input into an object', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: '{"city":"Paris","count":5}',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { city: 'Paris', count: 5 },
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should safely serialize tool results with BigInt and circular structures', async () => {
+      const circularValue: Record<string, unknown> = {
+        id: 9007199254740993n,
+      };
+      circularValue.self = circularValue;
+
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: circularValue,
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"id":"9007199254740993","self":"[Circular]"}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should set cache_control on last assistant message part with message cache control', async () => {
       const result = await convertToAnthropicPrompt({
         prompt: [
