@@ -22,6 +22,26 @@ export function convertUint8ArrayToBase64(array: Uint8Array): string {
   return btoa(chunks.join(''));
 }
 
+export function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    value instanceof Uint8Array ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'Uint8Array' ||
+        Object.prototype.toString.call(value) === '[object Uint8Array]'))
+  );
+}
+
+export function isArrayBuffer(value: unknown): value is ArrayBuffer {
+  return (
+    value instanceof ArrayBuffer ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'ArrayBuffer' ||
+        Object.prototype.toString.call(value) === '[object ArrayBuffer]'))
+  );
+}
+
 export function convertToBase64(value: string | Uint8Array): string {
-  return value instanceof Uint8Array ? convertUint8ArrayToBase64(value) : value;
+  return isUint8Array(value) ? convertUint8ArrayToBase64(value) : value;
 }

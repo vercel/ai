@@ -1,3 +1,4 @@
+import vm from 'node:vm';
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
@@ -14,6 +15,40 @@ describe('convertInlineFileDataToUint8Array', () => {
     expect(
       convertInlineFileDataToUint8Array({ type: 'data', data: bytes }),
     ).toBe(bytes);
+  });
+
+  it('converts cross-realm Uint8Array data', () => {
+    const realmBytes = vm.runInNewContext('new Uint8Array([1, 2, 3])');
+    expect(realmBytes instanceof Uint8Array).toBe(false);
+    expect(
+      convertInlineFileDataToUint8Array({
+        type: 'data',
+        data: realmBytes as unknown as Uint8Array,
+      }),
+    ).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('converts ArrayBuffer data', () => {
+    const buffer = new Uint8Array([1, 2, 3]).buffer;
+    expect(
+      convertInlineFileDataToUint8Array({
+        type: 'data',
+        data: buffer as unknown as Uint8Array,
+      }),
+    ).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('converts cross-realm ArrayBuffer data', () => {
+    const realmBuffer = vm.runInNewContext(
+      'new Uint8Array([1, 2, 3]).buffer',
+    );
+    expect(realmBuffer instanceof ArrayBuffer).toBe(false);
+    expect(
+      convertInlineFileDataToUint8Array({
+        type: 'data',
+        data: realmBuffer as unknown as Uint8Array,
+      }),
+    ).toEqual(new Uint8Array([1, 2, 3]));
   });
 
   it('decodes base64 string data', () => {

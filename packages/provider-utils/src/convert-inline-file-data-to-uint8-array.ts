@@ -1,6 +1,10 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import type { FilePart } from './types/content-part';
-import { convertBase64ToUint8Array } from './uint8-utils';
+import {
+  convertBase64ToUint8Array,
+  isArrayBuffer,
+  isUint8Array,
+} from './uint8-utils';
 
 type InlineFileData = Extract<
   FilePart['data'],
@@ -32,10 +36,16 @@ export function convertInlineFileDataToUint8Array(
   if (data.type === 'text') {
     return new TextEncoder().encode(data.text);
   }
-  if (data.data instanceof Uint8Array) {
-    return data.data;
+  if (isUint8Array(data.data)) {
+    return data.data instanceof Uint8Array
+      ? data.data
+      : new Uint8Array(
+          data.data.buffer,
+          data.data.byteOffset,
+          data.data.byteLength,
+        );
   }
-  if (data.data instanceof ArrayBuffer) {
+  if (isArrayBuffer(data.data)) {
     return new Uint8Array(data.data);
   }
   return convertBase64ToUint8Array(data.data);
