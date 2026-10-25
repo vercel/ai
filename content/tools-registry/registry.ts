@@ -554,6 +554,37 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
   },
   {
+    slug: 'search1api',
+    name: 'Search1API',
+    description:
+      'Search1API gives agents web search, news search, webpage reading, and agentic search. The model can choose the search engine (including GitHub, arXiv, Reddit, and YouTube), result count, included or excluded domains, and time range; settings passed in code act as defaults. Search queries and crawled URLs are sent to the Search1API service, and each call consumes credits from your Search1API account.',
+    packageName: '@search1api/ai-sdk',
+    tags: ['search', 'web', 'news', 'crawl', 'extraction'],
+    apiKeyEnvName: 'SEARCH1API_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @search1api/ai-sdk',
+      npm: 'npm install @search1api/ai-sdk',
+      yarn: 'yarn add @search1api/ai-sdk',
+      bun: 'bun add @search1api/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { search1apiTools } from '@search1api/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: search1apiTools({ only: ['search', 'crawl'] }),
+  stopWhen: isStepCount(10),
+  prompt:
+    'Search for the latest Next.js release, read the official announcement, and summarize the key changes. Cite the URL you read.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://s1.dev/docs/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.s1.dev',
+    websiteUrl: 'https://s1.dev',
+    npmUrl: 'https://www.npmjs.com/package/@search1api/ai-sdk',
+  },
+  {
     slug: 'nitrosend',
     name: 'Nitrosend',
     description:
