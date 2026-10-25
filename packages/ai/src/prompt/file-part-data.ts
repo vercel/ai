@@ -9,6 +9,26 @@ import {
 import { InvalidDataContentError } from './invalid-data-content-error';
 import { splitDataUrl } from './split-data-url';
 
+function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    value instanceof Uint8Array ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'Uint8Array' ||
+        Object.prototype.toString.call(value) === '[object Uint8Array]'))
+  );
+}
+
+function isArrayBuffer(value: unknown): value is ArrayBuffer {
+  return (
+    value instanceof ArrayBuffer ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'ArrayBuffer' ||
+        Object.prototype.toString.call(value) === '[object ArrayBuffer]'))
+  );
+}
+
 type TaggedFileData = Extract<FilePart['data'], { type: string }>;
 
 function isTaggedFileData(value: unknown): value is TaggedFileData {
@@ -58,10 +78,23 @@ function convertUrlStringToFilePartData(content: string): ConvertResult {
 }
 
 function convertInlineDataToFilePartData(content: DataContent): ConvertResult {
-  if (content instanceof Uint8Array) {
-    return { data: { type: 'data', data: content }, mediaType: undefined };
+  if (isUint8Array(content)) {
+    return {
+      data: {
+        type: 'data',
+        data:
+          content instanceof Uint8Array
+            ? content
+            : new Uint8Array(
+                content.buffer,
+                content.byteOffset,
+                content.byteLength,
+              ),
+      },
+      mediaType: undefined,
+    };
   }
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return {
       data: { type: 'data', data: new Uint8Array(content) },
       mediaType: undefined,
@@ -128,6 +161,10 @@ export function convertToLanguageModelV4FilePart(
     } catch {
       return convertInlineDataToFilePartData(content);
     }
+  }
+
+  if (isUint8Array(content) || isArrayBuffer(content)) {
+    return convertInlineDataToFilePartData(content);
   }
 
   if (isProviderReference(content)) {
