@@ -414,11 +414,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       version: '1.0.0',
     });
     for (const tool of start.tools) {
+      const hints = start.toolHints?.[tool.name];
       server.registerTool(
         tool.name,
         {
           description: tool.description ?? '',
           inputSchema: jsonSchemaToZodObject(tool.inputSchema),
+          ...(hints?.readOnly == null
+            ? {}
+            : { annotations: { readOnlyHint: hints.readOnly } }),
+          ...(hints?.alwaysLoad == null
+            ? {}
+            : { _meta: { 'anthropic/alwaysLoad': hints.alwaysLoad } }),
         },
         async (
           ...handlerArgs: [

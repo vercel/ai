@@ -39,6 +39,7 @@ const state = vi.hoisted(() => ({
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
   toolHandlers: new Map<string, ToolHandler>(),
+  toolConfigs: new Map<string, Record<string, unknown>>(),
   /** Per-test query factory; falls back to the `state.messages` generator. */
   createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
   /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
@@ -131,6 +132,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
       },
       handler: ToolHandler,
     ): void {
+      state.toolConfigs.set(name, config);
       state.toolHandlers.set(name, async (input, extra) =>
         handler(await config.inputSchema.parseAsync(input), extra),
       );
@@ -209,6 +211,7 @@ describe('Claude Code bridge configuration', () => {
     state.acceptedUserMessages = [];
     state.queryInputs = [];
     state.toolHandlers = new Map();
+    state.toolConfigs = new Map();
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -1042,6 +1045,35 @@ describe('Claude Code bridge configuration', () => {
         providerExecuted: false,
       },
     ]);
+  });
+
+  test('passes host tool hints to Claude Code as MCP annotations and _meta', async () => {
+    const inputSchema = { type: 'object', properties: {} };
+    state.start = {
+      ...state.start,
+      tools: [
+        { name: 'search', inputSchema },
+        { name: 'send', inputSchema },
+        { name: 'plain', inputSchema },
+      ],
+      toolHints: {
+        search: { readOnly: true, alwaysLoad: true },
+        send: { readOnly: false },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.toolConfigs.get('search')).toMatchObject({
+      annotations: { readOnlyHint: true },
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('send')).toMatchObject({
+      annotations: { readOnlyHint: false },
+    });
+    expect(state.toolConfigs.get('send')).not.toHaveProperty('_meta');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('annotations');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('_meta');
   });
 
   test('returns model-facing text and inline images as MCP content', async () => {

@@ -105,6 +105,11 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `toolHints`: Claude Code hints for host tools, keyed by tool name.
+  `readOnly: true` marks a tool without side effects, so Claude Code can run
+  its calls in parallel; calls to other host tools run one at a time.
+  `alwaysLoad: true` sends the tool's definition from the first request, even
+  when Claude Code's tool search defers MCP tools.
 - `maxTurns`: maximum internal turns before yielding.
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
