@@ -4,7 +4,10 @@ import {
   secureJsonParse,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
-import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import type {
+  HarnessV1ContinueTurnState,
+  HarnessV1StreamPart,
+} from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { z } from 'zod/v4';
 import { createFx } from './fx-harness';
@@ -223,16 +226,19 @@ describe('native libfx subscription engines', () => {
 
 function createParallelFixtureContext(input: {
   kind: 'custom' | 'builtin' | 'mixed';
+  fixtures?: string[];
 }) {
-  const fixtures = [0, 1].map(index =>
-    readFileSync(
-      new URL(
-        `./__fixtures__/gateway-parallel-${input.kind}-${index}.sse.txt`,
-        import.meta.url,
+  const fixtures =
+    input.fixtures ??
+    [0, 1].map(index =>
+      readFileSync(
+        new URL(
+          `./__fixtures__/gateway-parallel-${input.kind}-${index}.sse.txt`,
+          import.meta.url,
+        ),
+        'utf8',
       ),
-      'utf8',
-    ),
-  );
+    );
   const files = new Map<string, string>();
   const effects: string[] = [];
   const sandbox = {
@@ -280,7 +286,10 @@ function createParallelFixtureContext(input: {
         ? init.body
         : Buffer.from(init!.body as Uint8Array).toString('utf8'),
     );
-    const fixture = fixtures[requests.length - 1];
+    // A stop boundary can interrupt the final text response before it is saved.
+    const fixture = input.fixtures
+      ? fixtures[Math.min(requests.length - 1, fixtures.length - 1)]
+      : fixtures[requests.length - 1];
     if (!fixture) throw new Error('Unexpected model request.');
     return new Response(fixture);
   });
@@ -864,6 +873,91 @@ describe('parallel fx approvals', () => {
 });
 
 describe('stable fx continuation', () => {
+  it.each(['tool-call', 'text-start'] as const)(
+    'replays %s read ahead at a stopWhen boundary without repeating effects',
+    async nextEvent => {
+      const toolFixture = readFileSync(
+        new URL('./__fixtures__/gateway-0.sse.txt', import.meta.url),
+        'utf8',
+      );
+      const textFixture = readFileSync(
+        new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
+        'utf8',
+      );
+      const fixtures = [toolFixture.replace(/LIBFX_FIXTURE/g, 'PARIS')];
+      if (nextEvent === 'tool-call') {
+        fixtures.push(
+          toolFixture
+            .replace(/LIBFX_FIXTURE/g, 'TOKYO')
+            .replace(/toolu_01KswTwrpijqi88ffraLQVsY/g, 'second-bash'),
+        );
+      }
+      fixtures.push(textFixture);
+      const { sandbox, effects } = createParallelFixtureContext({
+        kind: 'builtin',
+        fixtures,
+      });
+      const agent = new HarnessAgent({
+        harness: createFx({
+          auth: { AI_GATEWAY_API_KEY: 'test-key' },
+          backend: 'native',
+        }),
+        model: 'anthropic/claude-haiku-4-5',
+        stopWhen: ({ steps }) => steps.length >= 1,
+      });
+      let continueFrom: HarnessV1ContinueTurnState | undefined;
+      let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
+      const eventTypes: string[] = [];
+      try {
+        for (let index = 0; index < fixtures.length; index++) {
+          session = await agent.createSession({
+            sandboxSession: sandbox,
+            sessionId: 'checkpoint-replay',
+            continueFrom,
+          });
+          const result = continueFrom
+            ? await agent.continueStream({ session })
+            : await agent.stream({ session, prompt: 'Run the commands.' });
+          for await (const part of result.stream) {
+            if (part.type === 'error') throw part.error;
+            if (
+              part.type === 'tool-call' ||
+              part.type === 'tool-result' ||
+              part.type === 'text-start' ||
+              part.type === 'text-delta' ||
+              part.type === 'text-end'
+            ) {
+              eventTypes.push(part.type);
+            }
+          }
+          if (index < fixtures.length - 1) {
+            expect(session.hasUnfinishedTurn()).toBe(true);
+            continueFrom = structuredClone(await session.suspendTurn());
+          } else {
+            expect(session.hasUnfinishedTurn()).toBe(false);
+          }
+        }
+        expect(eventTypes).toEqual([
+          'tool-call',
+          'tool-result',
+          ...(nextEvent === 'tool-call' ? ['tool-call', 'tool-result'] : []),
+          'text-start',
+          'text-delta',
+          'text-end',
+        ]);
+        expect(effects).toEqual(
+          nextEvent === 'tool-call'
+            ? ['printf PARIS', 'printf TOKYO']
+            : ['printf PARIS'],
+        );
+      } finally {
+        await session?.destroy();
+        vi.unstubAllGlobals();
+      }
+    },
+    30000,
+  );
+
   it.each(['gateway', 'codex', 'grok'] as const)(
     'maps parsed %s output and usage without repeating text on cold replay',
     async provider => {
