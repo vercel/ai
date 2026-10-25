@@ -56,7 +56,7 @@
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
     "ws": "^8.21.0",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
