@@ -19,6 +19,7 @@ import {
   type StreamRetryAttemptBoundaryPart,
 } from './stream-retry-attempt-boundary';
 import { maybeSignApproval } from './tool-approval-signature';
+import { createToolCallNotExecutedError } from './tool-call-not-executed';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
@@ -226,6 +227,17 @@ export function executeToolsFromStream<
 
           case 'model-call-end': {
             if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              // resolve the skipped tool calls so that they are not left pending:
+              for (const toolCall of toolCallsToExecute) {
+                controller.enqueue(
+                  createToolCallNotExecutedError({
+                    toolCall,
+                    tools,
+                    finishReason: chunk.finishReason,
+                  }),
+                );
+              }
+
               return;
             }
 
