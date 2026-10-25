@@ -81,6 +81,13 @@ export interface ModelCallOptions {
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
   /**
+   * Set when the workflow may retry the model call after a stream error. The
+   * step then holds back a stream-retryable error part and the parts after it
+   * instead of writing them, and returns a failed stream read as data instead
+   * of throwing it.
+   */
+  canRetryStream?: boolean;
+  /**
    * Set when the model step dispatches telemetry to globally registered
    * integrations, which are not available in the workflow body.
    */
@@ -235,4 +242,21 @@ export type ModelCallResult =
       repairedToolCallIds?: string[];
       /** Present when the model stream emitted an error part or generation failed. */
       terminalError?: unknown;
+      /**
+       * True when `terminalError` came from a provider error stream part or a
+       * failed stream read that `streamRetries` may retry. Computed inside the
+       * step because error class markers do not survive the step boundary.
+       */
+      isStreamRetryable?: boolean;
+      /**
+       * True when `terminalError` was thrown while reading the opened model
+       * stream. It must be rethrown when the model call is not retried.
+       */
+      isStreamReadError?: boolean;
+      /**
+       * Stream parts held back from the writable because of
+       * `canRetryStream`. They must be written when the model call is
+       * not retried.
+       */
+      deferredStreamParts?: ModelCallStreamPart<ToolSet>[];
     };

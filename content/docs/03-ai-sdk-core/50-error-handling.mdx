@@ -104,8 +104,10 @@ try {
 ## Retrying provider errors after streaming starts
 
 `maxRetries` retries failures that happen while starting a model call. To retry
-well-formed provider error events received after response streaming has begun,
-set `streamRetries`:
+provider errors received after response streaming has begun, set
+`streamRetries`. It covers well-formed provider error events and failed reads of
+the response stream, for example when the connection drops mid-response. Aborts
+and timeouts are not retried:
 
 ```ts highlight="7"
 import { streamText } from 'ai';
