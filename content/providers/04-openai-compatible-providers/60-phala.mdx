@@ -1,0 +1,90 @@
+---
+title: Phala
+description: Use the Phala OpenAI compatible API with the AI SDK.
+---
+
+# Phala Provider
+
+[Phala](https://phala.com) provides OpenAI-compatible confidential inference; listed models are served in TEEs (`is_tee` in the catalog), and `/v1/aci/attestation` attests the gateway. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Phala provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Phala, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_API_KEY,
+});
+```
+
+<Note>
+  You can create an API key under **Private AI** → **API Keys** in the Phala
+  dashboard. See the [Phala API
+  documentation](https://docs.phala.com/phala-cloud/confidential-ai/confidential-model/confidential-ai-api)
+  for details. Make sure to set the `PHALA_API_KEY` environment variable with
+  your API key.
+</Note>
+
+## Language Models
+
+You can create Phala models using a provider instance. The first argument is the model ID from the [public model catalog](https://inference.phala.com/v1/models), e.g. `z-ai/glm-5.3`.
+
+```ts
+const model = phala('z-ai/glm-5.3');
+```
+
+### Example
+
+You can use Phala language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_API_KEY,
+});
+
+const { text } = await generateText({
+  model: phala('moonshotai/kimi-k3'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+Phala language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_API_KEY,
+});
+
+const result = streamText({
+  model: phala('qwen/qwen3.8-27b'),
+  prompt: 'Write a short haiku about private inference.',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+You can use any supported chat `modelId` from the Phala model catalog. Refer to the [public model catalog](https://inference.phala.com/v1/models) for the full list and current availability.
