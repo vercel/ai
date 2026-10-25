@@ -1,40 +1,32 @@
 ---
 title: Next.js Pages Router
-description: Learn how to build your first agent with the AI SDK and Next.js Pages Router.
+description: Add an agent with a streaming chat interface to an existing Next.js Pages Router application.
 ---
 
-# Next.js Pages Router Quickstart
+# Next.js Pages Router Guide
 
-The AI SDK is a powerful TypeScript library designed to help developers build AI-powered applications.
+This guide shows how to add an agent with a streaming chat user interface to an existing Next.js Pages Router application.
 
-In this quickstart tutorial, you'll build a simple agent with a streaming chat user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the AI SDK in your own projects.
+<Note>
+  For new applications, we recommend the [Next.js App Router
+  quickstart](/docs/getting-started/nextjs-app-router).
+</Note>
 
 If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/foundations/streaming), you can optionally read these documents first.
 
 ## Prerequisites
 
-To follow this quickstart, you'll need:
+To follow this guide, you'll need:
 
+- An existing Next.js 13+ application using the Pages Router.
 - Node.js 22+ and pnpm installed on your local development machine.
 - A [Vercel AI Gateway](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
-## Setup Your Application
+## Set Up Your Application
 
-Start by creating a new Next.js application. This command will create a new directory named `my-ai-app` and set up a basic Next.js application inside it.
-
-<Note>
-  Be sure to select no when prompted to use the App Router. If you are looking
-  for the Next.js App Router quickstart guide, you can find it
-  [here](/docs/getting-started/nextjs-app-router).
-</Note>
-
-<Snippet text="pnpm create next-app@latest my-ai-app" />
-
-Navigate to the newly created directory:
-
-<Snippet text="cd my-ai-app" />
+Open a terminal in the root directory of your existing Next.js Pages Router application.
 
 ### Install dependencies
 
@@ -115,7 +107,7 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [community](/providers/community-providers) packages.
 
-This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
+This guide uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
 model: __MODEL__;
