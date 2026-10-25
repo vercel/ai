@@ -4062,6 +4062,7 @@ describe('runPrompt abort semantics', () => {
     await done;
 
     expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: expect.any(String),
       steps: [],
       reason,
@@ -4162,6 +4163,7 @@ describe('runPrompt abort semantics', () => {
     await done;
 
     expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: expect.any(String),
       steps: [],
       reason: expect.anything(),
