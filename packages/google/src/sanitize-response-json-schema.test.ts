@@ -63,3 +63,51 @@ it('replaces const with enum while preserving JSON Schema', () => {
     },
   });
 });
+
+it('replaces const with enum in allOf and definitions', () => {
+  const schema: JSONSchema7 = {
+    type: 'object',
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          kind: { type: 'string', const: 'dog' },
+        },
+      },
+    ],
+    definitions: {
+      Role: {
+        type: 'string',
+        const: 'admin',
+      },
+    },
+  };
+
+  expect(sanitizeResponseJsonSchema(schema)).toEqual({
+    type: 'object',
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          kind: { type: 'string', enum: ['dog'] },
+        },
+      },
+    ],
+    definitions: {
+      Role: {
+        type: 'string',
+        enum: ['admin'],
+      },
+    },
+  });
+});
+
+it('handles circular schemas without call stack overflow', () => {
+  const circularSchema: JSONSchema7 = {
+    type: 'object',
+    properties: {},
+  };
+  circularSchema.properties!.self = circularSchema;
+
+  expect(() => sanitizeResponseJsonSchema(circularSchema)).not.toThrow();
+});
