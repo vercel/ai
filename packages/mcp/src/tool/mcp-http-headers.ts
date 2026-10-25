@@ -44,6 +44,8 @@ export function getMCPToolHeaderBindings(
 
   const bindings: MCPToolHeaderBinding[] = [];
   const headerNames = new Set<string>();
+  const ancestors = new Set<object>();
+  const visitedUnreachable = new Set<object>();
   let error: string | undefined;
 
   const visit = (
@@ -51,58 +53,88 @@ export function getMCPToolHeaderBindings(
     path: string[],
     staticallyReachable: boolean,
   ): void => {
-    if (error != null || !isRecord(value)) {
+    if (error != null) {
       return;
     }
 
-    if ('x-mcp-header' in value) {
-      if (!staticallyReachable || path.length === 0) {
-        error = 'x-mcp-header is not on a statically reachable property';
+    if (Array.isArray(value)) {
+      if (ancestors.has(value)) {
         return;
       }
-
-      const headerName = value['x-mcp-header'];
-      if (
-        typeof headerName !== 'string' ||
-        !HTTP_TOKEN_PATTERN.test(headerName)
-      ) {
-        error = 'x-mcp-header must be a non-empty HTTP token';
-        return;
+      ancestors.add(value);
+      for (const item of value) {
+        visit(item, path, false);
       }
-
-      const normalizedHeaderName = headerName.toLowerCase();
-      if (headerNames.has(normalizedHeaderName)) {
-        error = `x-mcp-header value "${headerName}" is not unique`;
-        return;
-      }
-
-      const valueType = value.type;
-      if (
-        valueType !== 'boolean' &&
-        valueType !== 'integer' &&
-        valueType !== 'string'
-      ) {
-        error =
-          'x-mcp-header can only annotate boolean, integer, or string properties';
-        return;
-      }
-
-      headerNames.add(normalizedHeaderName);
-      bindings.push({ headerName, path, valueType });
+      ancestors.delete(value);
+      return;
     }
 
-    for (const [key, child] of Object.entries(value)) {
-      if (key === 'x-mcp-header') {
-        continue;
+    if (!isRecord(value)) {
+      return;
+    }
+
+    if (ancestors.has(value)) {
+      return;
+    }
+    if (!staticallyReachable) {
+      if (visitedUnreachable.has(value)) {
+        return;
+      }
+      visitedUnreachable.add(value);
+    }
+    ancestors.add(value);
+    try {
+      if ('x-mcp-header' in value) {
+        if (!staticallyReachable || path.length === 0) {
+          error = 'x-mcp-header is not on a statically reachable property';
+          return;
+        }
+
+        const headerName = value['x-mcp-header'];
+        if (
+          typeof headerName !== 'string' ||
+          !HTTP_TOKEN_PATTERN.test(headerName)
+        ) {
+          error = 'x-mcp-header must be a non-empty HTTP token';
+          return;
+        }
+
+        const normalizedHeaderName = headerName.toLowerCase();
+        if (headerNames.has(normalizedHeaderName)) {
+          error = `x-mcp-header value "${headerName}" is not unique`;
+          return;
+        }
+
+        const valueType = value.type;
+        if (
+          valueType !== 'boolean' &&
+          valueType !== 'integer' &&
+          valueType !== 'string'
+        ) {
+          error =
+            'x-mcp-header can only annotate boolean, integer, or string properties';
+          return;
+        }
+
+        headerNames.add(normalizedHeaderName);
+        bindings.push({ headerName, path, valueType });
       }
 
-      if (key === 'properties' && isRecord(child)) {
-        for (const [propertyName, propertySchema] of Object.entries(child)) {
-          visit(propertySchema, [...path, propertyName], staticallyReachable);
+      for (const [key, child] of Object.entries(value)) {
+        if (key === 'x-mcp-header') {
+          continue;
         }
-      } else {
-        visit(child, path, false);
+
+        if (key === 'properties' && isRecord(child)) {
+          for (const [propertyName, propertySchema] of Object.entries(child)) {
+            visit(propertySchema, [...path, propertyName], staticallyReachable);
+          }
+        } else {
+          visit(child, path, false);
+        }
       }
+    } finally {
+      ancestors.delete(value);
     }
   };
 
