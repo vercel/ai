@@ -18,6 +18,13 @@ describe('mediaTypeToExtension()', () => {
     // upper case
     ['AUDIO/MPEG', 'mp3'],
     ['AUDIO/MP3', 'mp3'],
+    // with parameters
+    ['audio/webm;codecs=opus', 'webm'],
+    ['audio/webm; codecs=opus', 'webm'],
+    ['audio/mpeg; codecs=opus', 'mp3'],
+    ['audio/ogg; codecs=opus', 'ogg'],
+    ['audio/wav; codecs=1', 'wav'],
+    [' audio/wav ; rate=16000 ', 'wav'],
     // invalid
     ['nope', ''],
   ])('should map %s to %s', (mediaType, expectedExtension) => {
