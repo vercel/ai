@@ -756,6 +756,21 @@ describe('createWebFetchTool', () => {
         await execute(webFetch, { url: 'https://example.com/' }),
       ).toMatchObject({ type: 'error', errorCode: 'too_many_redirects' });
     });
+
+    it('returns a recoverable error for an invalid redirect URL', async () => {
+      const fetch = createFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: 'http://[invalid' },
+          }),
+      );
+      const webFetch = createWebFetchTool({ fetch });
+
+      await expect(
+        execute(webFetch, { url: 'https://example.com/' }),
+      ).resolves.toMatchObject({ type: 'error', errorCode: 'network_error' });
+    });
   });
 
   describe('errors', () => {
