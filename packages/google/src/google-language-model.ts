@@ -324,6 +324,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
           maxBytes: config.downloadToolResultFiles.maxBytes,
+          fetch: config.fetch,
           supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;

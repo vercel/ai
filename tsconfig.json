@@ -91,6 +91,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/guarded-fetch"
+    },
+    {
       "path": "packages/harness-acp"
     },
     {

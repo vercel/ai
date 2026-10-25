@@ -51,6 +51,7 @@
         "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
+        "!packages/guarded-fetch",
         "!packages/harness",
         "!packages/harness-*",
         "!packages/langchain",

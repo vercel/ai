@@ -566,6 +566,9 @@ importers:
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../../packages/groq
+      '@ai-sdk/guarded-fetch':
+        specifier: workspace:*
+        version: link:../../packages/guarded-fetch
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../../packages/harness
@@ -3112,6 +3115,31 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/guarded-fetch:
+    dependencies:
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      undici:
+        specifier: ^7.30.1
+        version: 7.30.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   packages/harness:
     dependencies:
       '@ai-sdk/provider':
@@ -4222,9 +4250,6 @@ importers:
       eventsource-parser:
         specifier: ^3.0.8
         version: 3.0.8
-      undici:
-        specifier: ^7.29.0
-        version: 7.29.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -23812,6 +23837,10 @@ packages:
 
   undici@7.30.0:
     resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
+    engines: {node: '>=20.18.1'}
+
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   undici@8.10.2:
@@ -49878,6 +49907,8 @@ snapshots:
   undici@7.29.1: {}
 
   undici@7.30.0: {}
+
+  undici@7.30.1: {}
 
   undici@8.10.2: {}
 

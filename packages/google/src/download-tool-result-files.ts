@@ -3,6 +3,7 @@ import type {
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  type FetchFunction,
   detectMediaType,
   downloadBlob,
   isFullMediaType,
@@ -17,10 +18,12 @@ export async function downloadToolResultFiles(
   prompt: LanguageModelV4Prompt,
   {
     abortSignal,
+    fetch,
     maxBytes,
     supportedUrls = {},
   }: {
     abortSignal: AbortSignal | undefined;
+    fetch?: FetchFunction;
     maxBytes: number;
     supportedUrls?: Record<string, RegExp[]>;
   },
@@ -38,6 +41,7 @@ export async function downloadToolResultFiles(
                 ...part,
                 output: await downloadToolResultOutput(part.output, {
                   abortSignal,
+                  fetch,
                   maxBytes,
                   supportedUrls,
                 }),
@@ -63,6 +67,7 @@ export async function downloadToolResultFiles(
           ...part,
           output: await downloadToolResultOutput(part.output, {
             abortSignal,
+            fetch,
             maxBytes,
             supportedUrls,
           }),
@@ -83,10 +88,12 @@ async function downloadToolResultOutput(
   output: LanguageModelV4ToolResultOutput,
   {
     abortSignal,
+    fetch,
     maxBytes,
     supportedUrls,
   }: {
     abortSignal: AbortSignal | undefined;
+    fetch?: FetchFunction;
     maxBytes: number;
     supportedUrls: Record<string, RegExp[]>;
   },
@@ -116,6 +123,7 @@ async function downloadToolResultOutput(
 
     const blob = await downloadBlob(part.data.url.toString(), {
       abortSignal,
+      fetch,
       maxBytes,
     });
     const data = new Uint8Array(await blob.arrayBuffer());

@@ -243,6 +243,14 @@ try {
 }
 ```
 
+### DNS protection for audio downloads
+
+Default URL checks do not resolve DNS. On Node.js, pass a fetch transport from
+`@ai-sdk/guarded-fetch` through `download: createDownload({ fetch })` when audio
+URLs are untrusted. Reuse the transport and close it at application shutdown.
+See [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads)
+for configuration and network egress recommendations.
+
 ### Abort Signals and Timeouts
 
 `transcribe` accepts an optional `abortSignal` parameter of

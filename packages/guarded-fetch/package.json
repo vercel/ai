@@ -1,0 +1,63 @@
+{
+  "name": "@ai-sdk/guarded-fetch",
+  "version": "1.0.0",
+  "description": "Opt-in Node.js fetch transport with connection-time DNS validation for the AI SDK",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && tsdown",
+    "build:watch": "tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
+    "type-check": "tsc --build",
+    "test": "pnpm test:node",
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:watch": "vitest --config vitest.node.config.js"
+  },
+  "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
+    "undici": "^7.30.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/guarded-fetch"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  }
+}

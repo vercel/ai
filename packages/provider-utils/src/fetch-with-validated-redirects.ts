@@ -3,7 +3,6 @@ import { DownloadError } from './download-error';
 import type { FetchFunction } from './fetch-function';
 import { isBrowserRuntime } from './is-browser-runtime';
 import { isSameOrigin } from './is-same-origin';
-import { getDefaultDownloadFetch } from './safe-node-fetch';
 import { sanitizeRequestHeaders } from './sanitize-request-headers';
 import { validateDownloadUrl } from './validate-download-url';
 
@@ -14,22 +13,12 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
 // even when a server attaches a Location header.
 const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
-async function getValidatedFetch(
-  customFetch: FetchFunction | undefined,
-): Promise<FetchFunction> {
-  // Callers commonly pass globalThis.fetch through several abstraction
-  // layers. Preserve the DNS-pinned Node.js default in that case rather than
-  // accidentally treating it as an intentionally custom fetch.
-  return customFetch == null || customFetch === globalThis.fetch
-    ? await getDefaultDownloadFetch()
-    : customFetch;
-}
-
 /**
  * Fetches one validated URL without following redirects.
  *
- * On Node.js, the default fetch validates and pins DNS results at connect time.
- * An injected fetch is responsible for equivalent connect-time validation.
+ * Uses the supplied fetch or the runtime's global fetch. URL validation does
+ * not resolve DNS; inject a transport such as @ai-sdk/guarded-fetch on Node.js
+ * when connection-time DNS validation is needed.
  * Redirects are rejected by default. Callers using `redirect: 'manual'` must
  * validate the Location target before issuing another request.
  */
@@ -58,12 +47,7 @@ export async function fetchWithValidatedEndpoint({
     validateDownloadUrl(urlText);
   }
 
-  const fetch =
-    isTrusted && customFetch != null
-      ? customFetch
-      : isTrusted
-        ? globalThis.fetch
-        : await getValidatedFetch(customFetch);
+  const fetch = customFetch ?? globalThis.fetch;
 
   return await fetch(url, {
     ...init,
@@ -109,11 +93,8 @@ export async function fetchWithValidatedEndpoint({
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
  *
- * On Node.js, the default fetch resolves every hostname through a validating
- * lookup hook and passes those exact addresses to the connector, preventing
- * hostname-to-private-IP and DNS-rebinding bypasses. An injected fetch is
- * responsible for equivalent connect-time validation. Other runtimes should
- * constrain egress at the network layer when handling untrusted URLs.
+ * URL validation does not resolve DNS. Use @ai-sdk/guarded-fetch on Node.js
+ * for connection-time DNS validation, or enforce network egress restrictions.
  *
  * @throws DownloadError if a hop is unsafe, the redirect limit is exceeded, or
  * a redirect cannot be validated on a non-browser runtime.
@@ -165,12 +146,7 @@ export async function fetchWithValidatedRedirects({
       validateDownloadUrl(currentUrl);
     }
 
-    const fetch =
-      isTrustedHop && customFetch != null
-        ? customFetch
-        : isTrustedHop
-          ? globalThis.fetch
-          : await getValidatedFetch(customFetch);
+    const fetch = customFetch ?? globalThis.fetch;
 
     const response = await fetch(currentUrl, perHopInit('manual'));
 
