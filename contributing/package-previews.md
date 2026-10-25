@@ -74,6 +74,12 @@ remains linked with its SHA while a newer preview is preparing or has failed.
 Deployment retention in Vercel still applies: immutability does not guarantee
 indefinite availability.
 
+Retrying only the publisher reuses the immutable artifact ID exported by the
+successful pack job, even when GitHub increments the preview workflow attempt.
+If that artifact has expired (it is retained for three days), rerun all preview
+workflow jobs to rebuild it. CI and the current PR revision are checked again
+before any upload or alias reuse.
+
 ## How publishing works
 
 The design follows the static tarball previews in
