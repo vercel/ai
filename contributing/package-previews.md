@@ -131,14 +131,26 @@ project. The exchange must authorize the publisher's project/environment checks,
 alias lookups, prebuilt upload, and alias assignment. Only the publishing job may
 request an OIDC identity; the runner executing PR code must remain unprivileged.
 
-Vercel's [October 2026 authentication update](https://vercel.com/blog/death-to-long-lived-static-credentials)
-describes API and CLI deployment OIDC support as being extended. The public
-[CLI authentication documentation](https://vercel.com/docs/cli/global-options#token)
-still documents access tokens for CI. Confirm the supported inbound GitHub OIDC
-exchange with the Vercel platform team before implementing it. Runtime OIDC
-federation and Trusted Sources access to protected deployments do not themselves
-authorize creating deployments or assigning aliases. Do not substitute a
-GitHub ID token for `VERCEL_TOKEN` without a supported exchange.
+The integration to validate is a **Vercel CLI OIDC policy** on `vercel-labs`,
+which exchanges a GitHub identity for a short-lived Vercel access token with
+restricted project and command permissions. Vercel's public
+[BYOC GitHub Actions guide](https://vercel.com/docs/networking/bring-your-own-cloud/deploy-with-github-actions)
+documents CLI OIDC authentication and says to request enablement when unavailable
+on a team. That guide covers a different deployment flow; it does not establish
+that this publisher's prebuilt upload and custom alias operations are supported.
+
+Before replacing the secret reference, confirm team enablement and an
+authentication implementation usable from this public repository. Then verify
+the complete publisher flow with the restricted identity: project and environment
+checks, missing/existing alias lookups, prebuilt deployment through `READY`,
+custom alias assignment, and retry reuse. Successful token exchange alone is
+insufficient. Keep previews disabled until every operation works with short-lived
+credentials; do not fall back to a persistent token when one fails.
+
+Runtime OIDC federation, Trusted Sources access to protected deployments, and
+OIDC brokers that issue GitHub installation tokens do not authorize Vercel
+deployment API operations. Do not substitute a GitHub ID token for `VERCEL_TOKEN`
+without the supported Vercel exchange.
 
 ## Maintainer setup
 
