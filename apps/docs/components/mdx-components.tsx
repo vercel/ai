@@ -95,7 +95,11 @@ export const getMdxComponents = ({
       <PreviewSwitchProviders {...props} versionPrefix={versionPrefix} />
     ),
     QuickstartFrameworkCards: props => (
-      <QuickstartFrameworkCards {...props} resolveHref={resolveVersionedHref} />
+      <QuickstartFrameworkCards
+        {...props}
+        resolveHref={resolveVersionedHref}
+        versionPrefix={versionPrefix}
+      />
     ),
     Support: props => <Support {...props} resolveHref={resolveVersionedHref} />,
     VercelIcon: LogoIconVercelSvg,

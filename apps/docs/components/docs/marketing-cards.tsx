@@ -6,6 +6,7 @@ import {
 } from '@vercel/geistdocs/assets/icons';
 import { IconArrowUpRight } from '@vercel/geistdocs/assets/icons/icon-arrow-up-right';
 import { LogoNextjs, LogoSvelteKit } from '@vercel/geistdocs/assets/logos';
+import { LogoIconAngularSvg } from '@vercel/geistdocs/assets/logos/logo-icon-angular-svg';
 import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
 import {
@@ -25,6 +26,7 @@ const LOGO_SIZE = 64;
  */
 const quickstarts: {
   color: string;
+  currentVersionOnly?: boolean;
   href: string;
   logo: ReactNode;
   title: string;
@@ -62,6 +64,17 @@ const quickstarts: {
       </span>
     ),
     color: '72B954',
+  },
+  {
+    title: 'Angular',
+    href: '/docs/getting-started/angular',
+    logo: (
+      <span className="text-[#DD0031]">
+        <LogoIconAngularSvg size={LOGO_SIZE} />
+      </span>
+    ),
+    color: 'DD0031',
+    currentVersionOnly: true,
   },
 ];
 
@@ -164,20 +177,24 @@ const FrameworkCard = ({
 
 export const QuickstartFrameworkCards = ({
   resolveHref = href => href,
+  versionPrefix = '',
 }: {
   resolveHref?: ResolveHref;
+  versionPrefix?: string;
 }) => (
   <div className="not-prose grid grid-cols-1 gap-4 sm:grid-cols-2">
-    {quickstarts.map(({ color, href, logo, title }) => (
-      <FrameworkCard
-        color={color}
-        href={resolveHref(href)}
-        key={title}
-        title={title}
-      >
-        {logo}
-      </FrameworkCard>
-    ))}
+    {quickstarts
+      .filter(({ currentVersionOnly }) => !currentVersionOnly || !versionPrefix)
+      .map(({ color, href, logo, title }) => (
+        <FrameworkCard
+          color={color}
+          href={resolveHref(href)}
+          key={title}
+          title={title}
+        >
+          {logo}
+        </FrameworkCard>
+      ))}
   </div>
 );
 
