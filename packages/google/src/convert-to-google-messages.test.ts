@@ -1796,6 +1796,86 @@ describe('parallel tool calls', () => {
       thoughtSignature: undefined,
     });
   });
+
+  it('should parse JSON string input into args object for functionCall', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: '{"city":"berlin","units":"metric"}',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        id: 'call1',
+        args: { city: 'berlin', units: 'metric' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should handle circular references in tool-result without recursion error', async () => {
+    const cyclicObj: any = { status: 'ok' };
+    cyclicObj.self = cyclicObj;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'inspectData',
+            toolCallId: 'call_cycle',
+            output: { type: 'json', value: cyclicObj },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call_cycle',
+        name: 'inspectData',
+        response: {
+          name: 'inspectData',
+          content: cyclicObj,
+        },
+      },
+    });
+  });
+
+  it('should handle circular references and BigInt with $ref in tool-result safely', async () => {
+    const cyclicSchema: any = { $ref: '#/components/schemas/Item', count: 100n };
+    cyclicSchema.self = cyclicSchema;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: cyclicSchema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"count":"100"');
+    expect(content).toContain('"self":"[Circular]"');
+  });
 });
 
 describe('tool results with thought signatures', () => {

@@ -66,18 +66,26 @@ function convertUrlToolResultPart(
   };
 }
 
-function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
-  if (Array.isArray(value)) {
-    return value.some(containsJSONSchemaReference);
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
   }
 
-  if (typeof value !== 'object' || value === null) {
+  if (seen.has(value)) {
     return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
   }
 
   return Object.entries(value).some(
     ([key, nestedValue]) =>
-      key === '$ref' || containsJSONSchemaReference(nestedValue),
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
   );
 }
 
@@ -87,7 +95,27 @@ function serializeFunctionResponseContent(
   // Google reserves { $ref: displayName } in structured function responses for
   // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
   // result to preserve it without triggering Google's reference handling.
-  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+  if (containsJSONSchemaReference(value)) {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (_key, val) => {
+        if (typeof val === 'bigint') {
+          return (val as bigint).toString();
+        }
+        if (typeof val === 'object' && val !== null) {
+          if (seen.has(val)) {
+            return '[Circular]';
+          }
+          seen.add(val);
+        }
+        return val;
+      });
+    } catch {
+      return String(value);
+    }
+  }
+
+  return value;
 }
 
 /*
@@ -575,7 +603,10 @@ export function convertToGoogleMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args:
+                        typeof part.input === 'string'
+                          ? (secureJsonParse(part.input) ?? part.input)
+                          : part.input,
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };
