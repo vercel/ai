@@ -28,6 +28,54 @@ describe('validateJSONRPCMessage', () => {
       id: 1,
       result: { tools: [] },
     });
+
+    expect(
+      mcp.validateJSONRPCMessage({
+        jsonrpc: '2.0',
+        id: null,
+        result: { tools: [] },
+      }),
+    ).toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      result: { tools: [] },
+    });
+  });
+
+  it('validates JSON-RPC error responses with null or omitted id', () => {
+    expect(
+      mcp.validateJSONRPCMessage({
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32700,
+          message: 'Parse error',
+        },
+      }),
+    ).toEqual({
+      jsonrpc: '2.0',
+      id: null,
+      error: {
+        code: -32700,
+        message: 'Parse error',
+      },
+    });
+
+    expect(
+      mcp.validateJSONRPCMessage({
+        jsonrpc: '2.0',
+        error: {
+          code: -32600,
+          message: 'Invalid Request',
+        },
+      }),
+    ).toEqual({
+      jsonrpc: '2.0',
+      error: {
+        code: -32600,
+        message: 'Invalid Request',
+      },
+    });
   });
 
   it('rejects invalid JSON-RPC messages', () => {
