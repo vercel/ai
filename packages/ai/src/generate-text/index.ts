@@ -68,6 +68,7 @@ export {
   streamTextLowMemory as experimental_streamTextLowMemory,
   type StreamTextEndEvent,
   type StreamTextInclude,
+  type StreamTextOnAbortCallback,
   type StreamTextOnChunkCallback,
   type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
