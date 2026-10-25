@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/guarded-fetch': patch
+'@ai-sdk/guarded-fetch': major
 '@ai-sdk/provider-utils': patch
 ---
 

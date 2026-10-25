@@ -40,6 +40,8 @@ export class AzureMaiImageModel implements ImageModelV4 {
       url: (path: string) => string;
       headers: () => Record<string, string | undefined>;
       fetch?: FetchFunction;
+      /** Transport for untrusted file URLs, without provider authentication. */
+      downloadFetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
   ) {}
@@ -110,7 +112,13 @@ export class AzureMaiImageModel implements ImageModelV4 {
     const images =
       files != null && files.length > 0
         ? await Promise.all(
-            files.map(file => fileToBlob(file, abortSignal, this.config.fetch)),
+            files.map(file =>
+              fileToBlob(
+                file,
+                abortSignal,
+                this.config.downloadFetch ?? this.config.fetch,
+              ),
+            ),
           )
         : undefined;
 

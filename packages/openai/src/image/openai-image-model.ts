@@ -29,6 +29,8 @@ import {
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  /** Transport for untrusted file URLs, without provider authentication. */
+  downloadFetch?: FetchFunction;
   imageInputCapabilities?: {
     supportsFileInputs: boolean | undefined;
     supportsMaskInputs: boolean | undefined;
@@ -166,13 +168,17 @@ export class OpenAIImageModel implements ImageModelV4 {
                   )
                 : downloadBlob(file.url, {
                     abortSignal,
-                    fetch: this.config.fetch,
+                    fetch: this.config.downloadFetch ?? this.config.fetch,
                   }),
             ),
           ),
           mask:
             mask != null
-              ? await fileToBlob(mask, abortSignal, this.config.fetch)
+              ? await fileToBlob(
+                  mask,
+                  abortSignal,
+                  this.config.downloadFetch ?? this.config.fetch,
+                )
               : undefined,
           n,
           size,
