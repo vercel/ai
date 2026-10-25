@@ -91,12 +91,12 @@ app.post('/api/chat', async (req, res) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('Chat API listening on http://localhost:3000');
+app.listen(3000, '127.0.0.1', () => {
+  console.log('Chat API listening on http://127.0.0.1:3000');
 });
 ```
 
-This creates a `POST /api/chat` endpoint. Let's take a look at what happens when it receives a request:
+The server listens on `127.0.0.1` to keep the development API local to your machine. This creates a `POST /api/chat` endpoint. Let's take a look at what happens when it receives a request:
 
 1. `express.json()` parses the request body, which contains the conversation's `UIMessage` objects.
 2. [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) converts those UI messages to the format expected by the model.
@@ -110,7 +110,7 @@ Create `proxy.conf.json` in your project root:
 ```json filename="proxy.conf.json"
 {
   "/api/**": {
-    "target": "http://localhost:3000"
+    "target": "http://127.0.0.1:3000"
   }
 }
 ```
@@ -303,8 +303,8 @@ app.post('/api/chat', async (req, res) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('Chat API listening on http://localhost:3000');
+app.listen(3000, '127.0.0.1', () => {
+  console.log('Chat API listening on http://127.0.0.1:3000');
 });
 ```
 
