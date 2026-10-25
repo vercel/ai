@@ -1054,11 +1054,13 @@ describe('Claude Code bridge configuration', () => {
       tools: [
         { name: 'search', inputSchema },
         { name: 'send', inputSchema },
+        { name: 'load', inputSchema },
         { name: 'plain', inputSchema },
       ],
       toolHints: {
         search: { readOnly: true, alwaysLoad: true },
         send: { readOnly: false },
+        load: { alwaysLoad: true },
       },
     };
 
@@ -1072,6 +1074,10 @@ describe('Claude Code bridge configuration', () => {
       annotations: { readOnlyHint: false },
     });
     expect(state.toolConfigs.get('send')).not.toHaveProperty('_meta');
+    expect(state.toolConfigs.get('load')).toMatchObject({
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('load')).not.toHaveProperty('annotations');
     expect(state.toolConfigs.get('plain')).not.toHaveProperty('annotations');
     expect(state.toolConfigs.get('plain')).not.toHaveProperty('_meta');
   });

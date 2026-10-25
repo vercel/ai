@@ -103,10 +103,11 @@ export type ClaudeCodeHarnessSettings = {
    *
    * - `readOnly`: the tool has no side effects. Claude Code can run read-only
    *   tool calls in parallel, and runs each call to any other host tool on
-   *   its own.
-   * - `alwaysLoad`: Claude Code's tool search defers MCP tools until the
-   *   model looks them up; this sends the tool's definition from the first
-   *   request instead.
+   *   its own. It also allows read-only tools in plan mode, so mark only
+   *   tools that change nothing.
+   * - `alwaysLoad`: when Claude Code's tool search is on, it defers MCP tools
+   *   until the model looks them up; this sends the tool's definition from
+   *   the first request instead.
    */
   readonly toolHints?: Readonly<
     Record<
