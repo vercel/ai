@@ -5,15 +5,28 @@ export type JsonSchemaObject = {
   description?: string;
   properties?: Record<string, JsonSchemaObject>;
   required?: string[];
+  additionalProperties?: boolean | JsonSchemaObject;
   items?: JsonSchemaObject;
   nullable?: boolean;
 };
 
 // Convert a host tool's JSON Schema to a zod object for LangChain's `tool()`.
 export function jsonSchemaToZodObject(input: unknown) {
-  const schema =
-    input && typeof input === 'object' ? (input as JsonSchemaObject) : {};
-  return z.object(toZodShape(schema));
+  const schema = isJsonSchemaObject(input) ? input : {};
+  return toZodObject(schema);
+}
+
+function toZodObject(schema: JsonSchemaObject) {
+  const object = z.object(toZodShape(schema));
+  if (schema.additionalProperties === false) return object;
+
+  // JSON Schema allows additional properties by default, but a plain zod
+  // object strips them before the tool runs.
+  return object.catchall(
+    isJsonSchemaObject(schema.additionalProperties)
+      ? toZodType(schema.additionalProperties)
+      : z.unknown(),
+  );
 }
 
 function toZodShape(schema: JsonSchemaObject): Record<string, z.ZodTypeAny> {
@@ -50,7 +63,7 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
       zType = z.array(toZodType(schema.items));
       break;
     case 'object':
-      zType = z.object(toZodShape(schema));
+      zType = toZodObject(schema);
       break;
     case 'null':
       zType = z.null();
@@ -59,6 +72,17 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
       zType = z.any();
   }
   if (schema.description) zType = zType.describe(schema.description);
-  if (schema.nullable) zType = zType.nullable();
+  if (isNullable(schema)) zType = zType.nullable();
   return zType;
+}
+
+function isNullable(schema: JsonSchemaObject): boolean {
+  return (
+    schema.nullable === true ||
+    (Array.isArray(schema.type) && schema.type.includes('null'))
+  );
+}
+
+function isJsonSchemaObject(input: unknown): input is JsonSchemaObject {
+  return input != null && typeof input === 'object' && !Array.isArray(input);
 }
