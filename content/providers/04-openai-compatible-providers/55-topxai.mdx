@@ -50,7 +50,7 @@ header. `includeUsage: true` requests usage information in streaming responses.
 Create a language model by passing a TopxAI model ID to the provider instance:
 
 ```ts
-const model = topxai('kimi-k3');
+const model = topxai('kimi-k3.1-pro');
 ```
 
 ### Example
@@ -69,7 +69,7 @@ const topxai = createOpenAICompatible({
 });
 
 const { text } = await generateText({
-  model: topxai('kimi-k3'),
+  model: topxai('kimi-k3.1-pro'),
   prompt: 'Explain what an API gateway does in one sentence.',
 });
 
@@ -89,8 +89,12 @@ Completions endpoint:
 | OpenAI    | `gpt-6-astra`, `gpt-6.1-sol`                               |
 | xAI       | `grok-4.7`                                                 |
 | Zhipu AI  | `GLM-5.3-Abliterated`                                      |
-| Moonshot  | `kimi-k3`                                                  |
-| DeepSeek  | `deepseek-flash`, `deepseek-v4-pro`                        |
+| Moonshot  | `kimi-k3.1-pro`                                            |
+| DeepSeek  | `deepseek-flash-Abliterated`                               |
+
+`GLM-5.3-Abliterated` and `deepseek-flash-Abliterated` are private
+deployments. Retired IDs such as `kimi-k3`, `deepseek-flash`, and
+`deepseek-v4-pro` are rejected; they are not upgrade aliases.
 
 The available models and the routes enabled for a key can change. Use the
 authenticated [`GET /v1/models`](https://ai.topxea.com/v1/models) endpoint or
@@ -105,7 +109,7 @@ Supported capabilities depend on the selected model and include:
 - text generation and streaming;
 - tool calling, including multi-step tool use with `stopWhen`;
 - reasoning content and reasoning token usage for reasoning models such as
-  `deepseek-flash`; and
+  `deepseek-flash-Abliterated`; and
 - structured output for models that support JSON Schema.
 
 To send JSON Schema structured-output requests, enable
