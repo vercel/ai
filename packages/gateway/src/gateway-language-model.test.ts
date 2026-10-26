@@ -220,6 +220,20 @@ describe('GatewayLanguageModel', () => {
       expect(fetchCallArgs[1].signal).toBeUndefined();
     });
 
+    it.each(['AbortError', 'TimeoutError'])(
+      'should preserve %s without wrapping it in a gateway error',
+      async name => {
+        const error = new DOMException('Request interrupted.', name);
+        const fetch = vi.fn().mockRejectedValue(error);
+
+        // A cancelled call never received a response; wrapping it would
+        // report an invented, retryable 500.
+        await expect(
+          createTestModel({ fetch }).doGenerate({ prompt: TEST_PROMPT }),
+        ).rejects.toBe(error);
+      },
+    );
+
     it('should include o11y headers in the request', async () => {
       prepareJsonResponse({ content: { type: 'text', text: 'Hello, World!' } });
 
@@ -844,6 +858,21 @@ describe('GatewayLanguageModel', () => {
       const fetchCallArgs = mockFetch.mock.calls[0];
       expect(fetchCallArgs[1].signal).toBeUndefined();
     });
+
+    it.each(['AbortError', 'TimeoutError'])(
+      'should preserve %s without wrapping it in a gateway error for streaming',
+      async name => {
+        const error = new DOMException('Request interrupted.', name);
+        const fetch = vi.fn().mockRejectedValue(error);
+
+        await expect(
+          createTestModel({ fetch }).doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toBe(error);
+      },
+    );
 
     it('should include o11y headers in the streaming request', async () => {
       prepareStreamResponse({
