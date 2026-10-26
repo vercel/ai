@@ -23,6 +23,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
@@ -1199,6 +1200,23 @@ export class OpenTelemetry implements Telemetry {
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     this.onStepEnd(event);
+  }
+
+  onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    if (state.inferenceSpan) {
+      recordErrorOnSpan(state.inferenceSpan, event.error);
+      state.inferenceSpan.end();
+      state.inferenceSpan = undefined;
+      state.inferenceContext = undefined;
+    }
+
+    recordErrorOnSpan(state.stepSpan, event.error);
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
   }
 
   onEnd(

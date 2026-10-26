@@ -2000,6 +2000,31 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out. `onStepEnd` is not called for such a step. For aborts and timeouts, `error` is the abort or timeout error, or a provider error that has it as its `cause`.',
+      properties: [
+        {
+          type: 'GenerateTextStepErrorEvent',
+          parameters: [
+            {
+              name: '...GenerateTextStepStartEvent',
+              type: 'GenerateTextStepStartEvent',
+              description:
+                'All properties of the `onStepStart` event of the step that failed, such as `callId`, `stepNumber`, `steps`, `messages`, `runtimeContext`, and `toolsContext`.',
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that ended the step.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,

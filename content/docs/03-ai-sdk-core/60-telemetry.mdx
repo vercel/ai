@@ -439,6 +439,12 @@ export function myIntegration(): Telemetry {
       description: 'Called when a step (LLM call) completes.',
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a step that started fails before it produces a step result. Use it to close step-level spans. The call then ends with `onError`.',
+    },
+    {
       name: 'onEmbedEnd',
       type: '(event: EmbeddingModelCallEndEvent) => void | PromiseLike<void>',
       description: 'Called when an individual embedding model call completes.',

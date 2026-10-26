@@ -16,8 +16,10 @@ import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
+  GenerateTextStepStartEvent,
 } from './generate-text-events';
 import type { Output } from './output';
 import { DefaultStepResult, type StepResult } from './step-result';
@@ -40,6 +42,7 @@ export type RestrictedTelemetryDispatcher<
   | 'onStepStart'
   | 'onStepEnd'
   | 'onStepFinish'
+  | 'onStepError'
   | 'onEnd'
   | 'onAbort'
   | 'onToolExecutionStart'
@@ -50,6 +53,7 @@ export type RestrictedTelemetryDispatcher<
   onStepEnd: GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+  onStepError: GenerateTextOnStepErrorCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   onEnd: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
   onAbort?: GenerateTextOnAbortCallback<TOOLS, RUNTIME_CONTEXT>;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
@@ -116,6 +120,29 @@ export function createRestrictedTelemetryDispatcher<
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
 
+  const restrictStepStartEvent = <
+    EVENT extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+  >(
+    event: EVENT,
+  ) => ({
+    ...event,
+    runtimeContext: filterIncludedContext({
+      context: event.runtimeContext,
+      includeContext: includeRuntimeContext,
+    }),
+    steps: event.steps.map(step =>
+      restrictStepResult({
+        step,
+        includeRuntimeContext,
+        includeToolsContext,
+      }),
+    ),
+    toolsContext: filterToolsContext({
+      toolsContext: event.toolsContext,
+      includeToolsContext,
+    }),
+  });
+
   return {
     ...telemetryDispatcher,
     onStart: event =>
@@ -131,24 +158,7 @@ export function createRestrictedTelemetryDispatcher<
         }),
       }),
     onStepStart: event =>
-      telemetryDispatcher.onStepStart?.({
-        ...event,
-        runtimeContext: filterIncludedContext({
-          context: event.runtimeContext,
-          includeContext: includeRuntimeContext,
-        }),
-        steps: event.steps.map(step =>
-          restrictStepResult({
-            step,
-            includeRuntimeContext,
-            includeToolsContext,
-          }),
-        ),
-        toolsContext: filterToolsContext({
-          toolsContext: event.toolsContext,
-          includeToolsContext,
-        }),
-      }),
+      telemetryDispatcher.onStepStart?.(restrictStepStartEvent(event)),
     onStepEnd: event =>
       telemetryDispatcher.onStepEnd?.(
         restrictStepResult({
@@ -165,6 +175,8 @@ export function createRestrictedTelemetryDispatcher<
           includeToolsContext,
         }),
       ),
+    onStepError: event =>
+      telemetryDispatcher.onStepError?.(restrictStepStartEvent(event)),
     onEnd: event =>
       telemetryDispatcher.onEnd?.(
         ((restrictedSteps: StepResult<TOOLS, Context>[]) => {

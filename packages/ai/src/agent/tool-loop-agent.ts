@@ -16,7 +16,9 @@ import type { Output } from '../generate-text/output';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
+import { isCausedByAbort } from '../util/is-caused-by-abort';
 import { mergeCallbacks } from '../util/merge-callbacks';
+import { notify } from '../util/notify';
 import type {
   Agent,
   AgentCallParameters,
@@ -96,6 +98,8 @@ export class ToolLoopAgent<
       | 'onToolExecutionEnd'
       | 'onStepEnd'
       | 'onStepFinish'
+      | 'onError'
+      | 'onAbort'
       | 'onEnd'
       | 'onFinish'
     > &
@@ -122,6 +126,8 @@ export class ToolLoopAgent<
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
+      onError: _settingsOnError,
+      onAbort: _settingsOnAbort,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
@@ -248,11 +254,21 @@ export class ToolLoopAgent<
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
-    return await generate({
-      ...preparedCall,
-      ...callbackArgs,
-      headers: this.agentHeaders(preparedCall),
-    } as unknown as Parameters<typeof generate>[0]);
+    try {
+      return await generate({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof generate>[0]);
+    } catch (error) {
+      // generateText has no onError option, so report the error before it is
+      // thrown. Aborts (with any reason) and timeouts are not reported, like in
+      // streamText:
+      if (!isCausedByAbort(error) && !abortSignal?.aborted) {
+        await notify({ event: { error }, callbacks: this.settings.onError });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -312,6 +328,8 @@ export class ToolLoopAgent<
         onStepEnd ?? onStepFinish,
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+      onError: this.settings.onError,
+      onAbort: this.settings.onAbort,
     };
 
     return await stream({
