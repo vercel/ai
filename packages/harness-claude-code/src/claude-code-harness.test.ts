@@ -13,6 +13,7 @@ import type { z } from 'zod/v4';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const debugHooks: Array<unknown> = [];
 const subscribedEventTypes: string[] = [];
 const channelListeners = new Map<
   string,
@@ -91,15 +92,18 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     constructor({
       connect,
       reconnect,
+      onDebug,
     }: {
       connect: (options: {
         abortSignal: AbortSignal;
         reason: 'open' | 'reconnect';
       }) => Promise<unknown>;
       reconnect?: unknown;
+      onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
+      debugHooks.push(onDebug);
     }
 
     async open(opts?: { resume?: boolean }): Promise<void> {
@@ -313,6 +317,7 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    debugHooks.length = 0;
     subscribedEventTypes.length = 0;
     channelListeners.clear();
     connectOnOpen = false;
@@ -977,6 +982,32 @@ describe('createClaudeCode adapter', () => {
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(reconnects).toEqual([reconnect, reconnect]);
+    await attachedSession.doDetach();
+  });
+
+  it('forwards channel debug events for fresh and attached sessions', async () => {
+    const onDebug = vi.fn();
+    const harness = createClaudeCode({ onDebug });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(debugHooks).toEqual([onDebug, onDebug]);
     await attachedSession.doDetach();
   });
 
