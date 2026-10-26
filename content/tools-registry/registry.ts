@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'apiverve',
+    name: 'APIVerve',
+    description:
+      'Give your agent about 380 ready-to-use APIs through one key: validate emails and phone numbers, look up IPs, DNS records and SSL certificates, get exchange rates, and search and call any API in the APIVerve catalog by id.',
+    packageName: '@apiverve/ai-sdk',
+    tags: ['validation', 'lookup', 'data', 'apis'],
+    apiKeyEnvName: 'APIVERVE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @apiverve/ai-sdk',
+      npm: 'npm install @apiverve/ai-sdk',
+      yarn: 'yarn add @apiverve/ai-sdk',
+      bun: 'bun add @apiverve/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { apiverveTools } from '@apiverve/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Is jane@gmial.com a deliverable address, and where is 8.8.8.8?',
+  tools: apiverveTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.apiverve.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://dashboard.apiverve.com',
+    websiteUrl: 'https://apiverve.com',
+    npmUrl: 'https://www.npmjs.com/package/@apiverve/ai-sdk',
+  },
 ];
