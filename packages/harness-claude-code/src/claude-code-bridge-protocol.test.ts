@@ -91,6 +91,22 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
+  it('keeps strict MCP config and the budget limit on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        strictMcpConfig: true,
+        maxBudgetUsd: 0.5,
+      }),
+    ).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
   it('accepts a start message', () => {
     expect(() =>
       inboundMessageSchema.parse({
