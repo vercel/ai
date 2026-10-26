@@ -703,6 +703,8 @@ when an enabled type or budget is supplied. Omitting portable reasoning or using
 
 Both `reasoning: 'none'` and `reasoningConfig: { type: 'disabled' }` explicitly
 send `thinking: { type: 'disabled' }` for Anthropic models that support it.
+For Claude 3.5 and earlier, the provider omits `thinking` because these models
+do not support the field.
 Models that require thinking use `between_tools` when supported, or adaptive
 thinking otherwise. For the adaptive fallback, portable `reasoning: 'none'`
 uses explicit `maxReasoningEffort`, then raw `output_config.effort`, and defaults

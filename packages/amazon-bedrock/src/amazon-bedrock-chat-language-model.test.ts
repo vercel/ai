@@ -3184,7 +3184,7 @@ describe('doStream', () => {
   });
 
   it.each(['portable', 'explicit'] as const)(
-    'should send disabled thinking in streams for %s configuration',
+    'should omit disabled thinking on Claude 3 in streams for %s configuration',
     async source => {
       setupMockEventStreamHandler();
       const { stream } = await model.doStream({
@@ -3200,9 +3200,7 @@ describe('doStream', () => {
 
       const parts = await convertReadableStreamToArray(stream);
       const body = await server.calls[0].requestBodyJson;
-      expect(body.additionalModelRequestFields).toEqual({
-        thinking: { type: 'disabled' },
-      });
+      expect(body.additionalModelRequestFields).toBeUndefined();
       expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
     },
   );
@@ -9246,7 +9244,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should handle reasoning "none" for Anthropic models', async () => {
+    it('should omit thinking for reasoning "none" on Claude 3', async () => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
 
       await model.doGenerate({
@@ -9255,9 +9253,9 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'disabled',
-      });
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
     });
 
     it('should handle reasoning "none" for OpenAI models', async () => {
@@ -9307,11 +9305,16 @@ describe('disabled Anthropic thinking', () => {
     return { body: await server.calls[0].requestBodyJson, warnings };
   }
 
-  it.each(['portable', 'explicit'] as const)(
-    'should send disabled thinking for %s configuration',
-    async source => {
+  it.each([
+    [anthropicModelId, 'explicit', false],
+    [legacyAnthropic37ModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'explicit', true],
+  ] as const)(
+    'should serialize disabled thinking only when supported by %s (%s configuration)',
+    async (reasoningModelId, source, supportsThinking) => {
       const { body, warnings } = await request(
-        sonnet5AnthropicModelId,
+        reasoningModelId,
         source === 'portable'
           ? { reasoning: 'none' }
           : {
@@ -9321,9 +9324,9 @@ describe('disabled Anthropic thinking', () => {
             },
       );
 
-      expect(body.additionalModelRequestFields).toEqual({
-        thinking: { type: 'disabled' },
-      });
+      expect(body.additionalModelRequestFields).toEqual(
+        supportsThinking ? { thinking: { type: 'disabled' } } : undefined,
+      );
       expect(warnings).toEqual([]);
     },
   );

@@ -311,7 +311,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
 
     if (isAnthropicModel && thinkingType === 'disabled') {
-      if (rejectsThinkingDisabled) {
+      if (
+        /claude-(?:instant|v?2|3-(?:5-)?(?:haiku|sonnet|opus))(?=[-.:]|$)/.test(
+          this.modelId,
+        )
+      ) {
+        // Claude 3.5 and earlier do not accept a thinking field, even disabled.
+        thinkingType = undefined;
+      } else if (rejectsThinkingDisabled) {
         thinkingType = supportsBetweenToolsThinking
           ? 'between_tools'
           : 'adaptive';
