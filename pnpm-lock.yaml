@@ -707,6 +707,9 @@ importers:
       '@ai-sdk/zai':
         specifier: workspace:*
         version: link:../../packages/zai
+      '@anthropic-ai/sdk':
+        specifier: 0.129.0
+        version: 0.129.0(zod@3.25.76)
       '@basetenlabs/performance-client':
         specifier: 0.0.10
         version: 0.0.10
