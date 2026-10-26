@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'shapelessai',
+    name: 'ShapelessAI',
+    description:
+      'ShapelessAI lets your agent post to social media: list the accounts a user connected (X, LinkedIn, Instagram, TikTok, YouTube, Threads, Bluesky, Facebook and more), schedule a post into the next free queue slot, at a set time or right away, and read back each post\'s status and live URL. Posting asks for approval by default.',
+    packageName: 'shapelessai-ai-sdk',
+    tags: ['social-media', 'scheduling', 'publishing'],
+    apiKeyEnvName: 'SHAPELESSAI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add shapelessai-ai-sdk',
+      npm: 'npm install shapelessai-ai-sdk',
+      yarn: 'yarn add shapelessai-ai-sdk',
+      bun: 'bun add shapelessai-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { shapelessaiTools } from 'shapelessai-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: shapelessaiTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Schedule "We just shipped dark mode" to my LinkedIn in the next free slot.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://shapelessai.com/docs/ai-sdk',
+    apiKeyUrl: 'https://shapelessai.com/studio/api-keys',
+    websiteUrl: 'https://shapelessai.com',
+    npmUrl: 'https://www.npmjs.com/package/shapelessai-ai-sdk',
+  },
 ];
