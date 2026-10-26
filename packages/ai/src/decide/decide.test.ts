@@ -12,6 +12,7 @@ import { UnsupportedModelVersionError } from '../error/unsupported-model-version
 import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { experimental_decide as decide } from '../index';
+import { VERSION } from '../version';
 
 const questions = {
   topic: {
@@ -779,6 +780,7 @@ describe('telemetry', () => {
     ).rejects.toBe(error);
 
     expect(onError).toHaveBeenCalledWith({
+      aiVersion: VERSION,
       callId: 'test-call-id',
       error,
     });

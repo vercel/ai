@@ -285,7 +285,8 @@ console.log('REASONING:', result.reasoningText);
 console.log('ANSWER:', result.text);
 ```
 
-So far, Mistral only supports `'high'` and `'none'` as effort levels.
+Most Mistral reasoning models support `'high'` and `'none'` as effort levels, so other levels are mapped to `'high'`.
+GLM-5.3 models (`zai-glm-5-3`, `zai-glm-5-3-flash`, `zai-glm-5`, `zai-glm-latest`) support `'low'`, `'high'`, and `'max'` and cannot disable reasoning: `minimal` and `low` are mapped to `'low'`, `medium` and `high` to `'high'`, `xhigh` and `max` to `'max'`, and `'none'` to `'low'` with a warning.
 
 ### Example
 

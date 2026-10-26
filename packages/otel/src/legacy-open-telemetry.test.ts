@@ -928,6 +928,23 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records error on the step span and keeps the root span open', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      const error = new Error('step failed');
+      otelIntegration.onStepError!({ ...makeStepStartEvent(), error } as any);
+
+      const [rootSpan, stepSpan] = tracer.spans;
+      expect(stepSpan.recordException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'step failed' }),
+      );
+      expect(stepSpan.end).toHaveBeenCalled();
+      expect(rootSpan.end).not.toHaveBeenCalled();
+    });
+  });
+
   describe('onError', () => {
     it('records error on root span and ends it', () => {
       otelIntegration.onStart!(makeOnStartEvent());
