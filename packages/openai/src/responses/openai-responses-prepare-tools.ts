@@ -44,6 +44,7 @@ export async function prepareResponsesTools({
   toolNameMapping,
   customProviderToolNames,
   supportsAsyncToolCalling = true,
+  providerOptionsName = 'openai',
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
@@ -54,6 +55,7 @@ export async function prepareResponsesTools({
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
   supportsAsyncToolCalling?: boolean;
+  providerOptionsName?: string;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -125,9 +127,8 @@ export async function prepareResponsesTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
-        const openaiOptions = tool.providerOptions?.openai as
-          | OpenAIToolOptions
-          | undefined;
+        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
+          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
         const openaiFunctionTool = prepareFunctionTool({
           tool,
           options: openaiOptions,
