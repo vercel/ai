@@ -422,22 +422,8 @@ describe('Speech errors', () => {
     ).rejects.toMatchObject({ statusCode: 401, message: 'Access denied' });
   });
 
-  it('maps the Envoy protocol-error 502 for unknown voices to a non-retryable 400', async () => {
-    const body =
-      'upstream connect error or disconnect/reset before headers. reset reason: protocol error';
-    const { provider } = setup({}, () => new Response(body, { status: 502 }));
-    await expect(
-      provider.speech('mai-voice-2.1').doGenerate({ text: 'Hi', voice: 'x' }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      isRetryable: false,
-      message:
-        'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.',
-      responseBody: body,
-    });
-  });
-
   it.each([
+    'upstream connect error or disconnect/reset before headers. reset reason: protocol error',
     'upstream connect error or disconnect/reset before headers. reset reason: connection termination',
     'unavailable',
   ])('keeps 502 responses retryable (%s)', async body => {
