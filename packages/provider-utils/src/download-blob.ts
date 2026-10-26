@@ -14,7 +14,7 @@ import {
  * @param options - Optional settings for the download.
  * @param options.maxBytes - Maximum allowed download size in bytes. Defaults to 100 MiB.
  * @param options.abortSignal - An optional abort signal to cancel the download.
- * @param options.fetch - Fetch transport, e.g. @ai-sdk/guarded-fetch for DNS validation on Node.js.
+ * @param options.fetch - Fetch transport, e.g. guarded-fetch for DNS validation on Node.js.
  * @returns A Promise that resolves to the downloaded Blob.
  *
  * @throws DownloadError if the download fails or exceeds maxBytes.

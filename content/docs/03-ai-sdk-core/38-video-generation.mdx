@@ -34,7 +34,7 @@ const uint8Array = video.uint8Array; // Uint8Array video data
 
 Video providers can return download and polling URLs, and reference inputs can
 also contain URLs supplied by users. When your server fetches these URLs, use
-`@ai-sdk/guarded-fetch` on Node.js unless the destinations are controlled by your
+`guarded-fetch` on Node.js unless the destinations are controlled by your
 application or your fetch implementation or network egress policy already
 provides equivalent SSRF protection. Default URL checks do not resolve DNS.
 

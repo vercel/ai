@@ -10,9 +10,9 @@ Some language models that support vision capabilities accept images as part of t
 
 <Note type="warning">
   If the image URL comes from a user, model, or external service, protect any
-  server-side download with `@ai-sdk/guarded-fetch` on Node.js unless your
-  application controls the destination or already enforces equivalent SSRF
-  protection. Configure `experimental_download` as shown in [Secure URL
+  server-side download with `guarded-fetch` on Node.js unless your application
+  controls the destination or already enforces equivalent SSRF protection.
+  Configure `experimental_download` as shown in [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#core-file-downloads). Fetches
   inside custom tools need their own guarded transport.
 </Note>

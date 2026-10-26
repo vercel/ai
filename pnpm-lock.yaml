@@ -566,9 +566,6 @@ importers:
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../../packages/groq
-      '@ai-sdk/guarded-fetch':
-        specifier: workspace:*
-        version: link:../../packages/guarded-fetch
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../../packages/harness
@@ -761,6 +758,9 @@ importers:
       google-auth-library:
         specifier: ^9.15.1
         version: 9.15.1(encoding@0.1.13)(supports-color@8.1.1)
+      guarded-fetch:
+        specifier: ^0.1.6
+        version: 0.1.6
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
@@ -3114,31 +3114,6 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
-
-  packages/guarded-fetch:
-    dependencies:
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
-      undici:
-        specifier: ^7.30.1
-        version: 7.30.1
-    devDependencies:
-      '@types/node':
-        specifier: 22.19.19
-        version: 22.19.19
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
-      '@vercel/ai-tsdown-config':
-        specifier: workspace:*
-        version: link:../../tools/tsdown-config
-      tsdown:
-        specifier: ^0.23.0
-        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
 
   packages/harness:
     dependencies:
@@ -18222,6 +18197,10 @@ packages:
     resolution: {integrity: sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==}
     engines: {node: '>=14.0.0'}
 
+  guarded-fetch@0.1.6:
+    resolution: {integrity: sha512-l7cf1Rk7WOrZ8pEq2RtgO2zctc5gFmk9YUfw5lmjIVFh19pMWOxux5gUPVAZnqU4Y36gUfWmjN3upqjoWWeXdg==}
+    engines: {node: '>=20.19'}
+
   gzip-size@7.0.0:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -18665,6 +18644,10 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
+
+  ipaddr.js@2.2.0:
+    resolution: {integrity: sha512-Ag3wB2o37wslZS19hZqorUnrnzSkpOVy+IiiDEiTqNubEYpYuHWIf6K4psgN2ZWKExS4xhVCrRVfb/wfW8fWJA==}
+    engines: {node: '>= 10'}
 
   ipaddr.js@2.4.0:
     resolution: {integrity: sha512-9VGk3HGanVE6JoZXHiCpnGy5X0jYDnN4EA4lntFPj+1vIWlFhIylq2CrrCOJH9EAhc5CYhq18F2Av2tgoAPsYQ==}
@@ -23837,10 +23820,6 @@ packages:
 
   undici@7.30.0:
     resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
-    engines: {node: '>=20.18.1'}
-
-  undici@7.30.1:
-    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   undici@8.10.2:
@@ -42093,6 +42072,11 @@ snapshots:
       - encoding
       - supports-color
 
+  guarded-fetch@0.1.6:
+    dependencies:
+      ipaddr.js: 2.2.0
+      undici: 7.30.0
+
   gzip-size@7.0.0:
     dependencies:
       duplexer: 0.1.2
@@ -42708,6 +42692,8 @@ snapshots:
   ip-address@10.7.3: {}
 
   ipaddr.js@1.9.1: {}
+
+  ipaddr.js@2.2.0: {}
 
   ipaddr.js@2.4.0: {}
 
@@ -49907,8 +49893,6 @@ snapshots:
   undici@7.29.1: {}
 
   undici@7.30.0: {}
-
-  undici@7.30.1: {}
 
   undici@8.10.2: {}
 

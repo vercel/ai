@@ -17,7 +17,7 @@ const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
  * Fetches one validated URL without following redirects.
  *
  * Uses the supplied fetch or the runtime's global fetch. URL validation does
- * not resolve DNS; inject a transport such as @ai-sdk/guarded-fetch on Node.js
+ * not resolve DNS; inject a transport such as guarded-fetch on Node.js
  * when connection-time DNS validation is needed.
  * Redirects are rejected by default. Callers using `redirect: 'manual'` must
  * validate the Location target before issuing another request.
@@ -93,7 +93,7 @@ export async function fetchWithValidatedEndpoint({
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
  *
- * URL validation does not resolve DNS. Use @ai-sdk/guarded-fetch on Node.js
+ * URL validation does not resolve DNS. Use guarded-fetch on Node.js
  * for connection-time DNS validation, or enforce network egress restrictions.
  *
  * @throws DownloadError if a hop is unsafe, the redirect limit is exceeded, or

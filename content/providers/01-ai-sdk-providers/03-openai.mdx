@@ -3297,7 +3297,7 @@ OpenAI's `gpt-image-*` models support powerful image editing capabilities. Pass 
   OpenAI. For URLs supplied by users, models, or external services, configure
   `createOpenAI({ fetch: createGuardedFetch() })` on Node.js unless your
   application controls the destinations or already enforces equivalent SSRF
-  protection. Import `createGuardedFetch` from `@ai-sdk/guarded-fetch`, reuse the
+  protection. Import `createGuardedFetch` from `guarded-fetch`, reuse the
   transport, and close it at application shutdown. Default URL checks do not
   resolve DNS. See [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).

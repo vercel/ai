@@ -10,9 +10,9 @@ The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight
 
 <Note type="warning">
   If remote MCP URLs come from users or external configuration, use
-  `@ai-sdk/guarded-fetch` through the built-in transport's `fetch` option in a
-  Node.js route unless your application controls the destinations or already
-  enforces equivalent SSRF protection. The localhost endpoints below are
+  `guarded-fetch` through the built-in transport's `fetch` option in a Node.js
+  route unless your application controls the destinations or already enforces
+  equivalent SSRF protection. The localhost endpoints below are
   developer-controlled examples; never derive trusted private origins from user
   input. See [Securing remote server
   URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls).

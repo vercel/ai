@@ -9,4 +9,4 @@
 '@ai-sdk/topaz': patch
 ---
 
-Update download test setup to use the runtime fetch transport after moving opt-in DNS validation to `@ai-sdk/guarded-fetch`.
+Update download test setup to use the runtime fetch transport after moving opt-in DNS validation to `guarded-fetch`.

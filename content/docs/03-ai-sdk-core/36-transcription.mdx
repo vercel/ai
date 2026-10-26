@@ -246,7 +246,7 @@ try {
 ### DNS protection for audio downloads
 
 Default URL checks do not resolve DNS. On Node.js, pass a fetch transport from
-`@ai-sdk/guarded-fetch` through `download: createDownload({ fetch })` when audio
+`guarded-fetch` through `download: createDownload({ fetch })` when audio
 URLs are untrusted, unless your application controls the destinations or your
 fetch implementation or network egress policy already provides equivalent SSRF
 protection. A provider's `fetch` setting does not configure this core audio

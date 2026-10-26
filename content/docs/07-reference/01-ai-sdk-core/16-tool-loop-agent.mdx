@@ -47,8 +47,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
 <Note type="warning">
   URLs supplied by users, models, or tools remain untrusted when an agent
   downloads them. On Node.js, configure `experimental_download` with a transport
-  from `@ai-sdk/guarded-fetch` unless your application controls the destinations
-  or already enforces equivalent SSRF protection. Provider downloads and fetches
+  from `guarded-fetch` unless your application controls the destinations or
+  already enforces equivalent SSRF protection. Provider downloads and fetches
   inside custom tools need their own transport configuration. See [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
 </Note>

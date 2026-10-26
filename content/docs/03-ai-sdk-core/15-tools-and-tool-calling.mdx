@@ -1451,7 +1451,7 @@ tool-result URLs and sends their contents as inline data.
 
 <Note type="warning">
   File URLs returned by tools or selected by a model are untrusted inputs. When
-  your server downloads them, use `@ai-sdk/guarded-fetch` on Node.js unless your
+  your server downloads them, use `guarded-fetch` on Node.js unless your
   application controls the destinations or already enforces equivalent SSRF
   protection. Configure the downloading provider's `fetch` option for provider
   downloads, such as Vertex tool-result files. Core prompt downloads and custom

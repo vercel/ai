@@ -20,7 +20,7 @@ checks inspect the URL and literal IP addresses; they do not resolve DNS.
 runtime's global `fetch`, including on Node.js. A public-looking hostname can
 still resolve to a private address, and DNS rebinding is not blocked by the
 default transport. For applications that fetch untrusted URLs, use
-[`@ai-sdk/guarded-fetch`](#opt-in-dns-protection-on-nodejs) on Node.js and/or
+[`guarded-fetch`](#opt-in-dns-protection-on-nodejs) on Node.js and/or
 restrict outbound traffic at the network layer. The core SDK does not depend
 on Undici.
 
@@ -31,7 +31,7 @@ MiniMax, Kling AI, and ByteDance video polling use this protected path.
 
 ## When to use a guarded transport
 
-Use `@ai-sdk/guarded-fetch` on Node.js whenever your server fetches URLs supplied
+Use `guarded-fetch` on Node.js whenever your server fetches URLs supplied
 by users, models, tools, or external services, unless the destinations are
 controlled by your application or your fetch implementation or network egress
 policy already provides equivalent SSRF protection. This includes prompt image
@@ -124,14 +124,14 @@ is still validated before the redirected request is sent.
 Install the optional transport:
 
 ```sh
-npm install @ai-sdk/guarded-fetch
+npm install guarded-fetch
 ```
 
 Pass it to providers that fetch untrusted URLs:
 
 ```ts
 import { createFal } from '@ai-sdk/fal';
-import { createGuardedFetch } from '@ai-sdk/guarded-fetch';
+import { createGuardedFetch } from 'guarded-fetch';
 import { generateImage } from 'ai';
 
 const fetch = createGuardedFetch();
@@ -167,7 +167,7 @@ validate each redirect hop. When calling the transport directly, use
 sanitization. The transport alone does not isolate credentials or limit response
 sizes.
 
-This package requires Node.js 22.13 or later. It is not intended for browsers,
+This package requires Node.js 20.19 or later. It is not intended for browsers,
 Bun, Deno, Cloudflare Workers, or framework edge runtimes. Use a transport
 supported by your runtime or enforce network egress restrictions there.
 
@@ -196,7 +196,7 @@ it to the batch `experimental_download` hook:
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
-import { createGuardedFetch } from '@ai-sdk/guarded-fetch';
+import { createGuardedFetch } from 'guarded-fetch';
 import { createDownload, generateText } from 'ai';
 
 const fetch = createGuardedFetch();

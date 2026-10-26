@@ -74,7 +74,7 @@ function formatErrorCode(error: unknown): string {
  *
  * Redirects are followed manually so that every hop is checked against the
  * domain filter and the private-address guard before it is requested. On
- * Node.js, inject @ai-sdk/guarded-fetch for additional connection-time DNS
+ * Node.js, inject guarded-fetch for additional connection-time DNS
  * validation. The default transport uses the runtime's global fetch.
  */
 export async function fetchWebResource({

@@ -367,10 +367,10 @@ const result = await generateText({
 
 <Note type="warning">
   When your server downloads image or file URLs supplied by users, models, or
-  tools, use `@ai-sdk/guarded-fetch` on Node.js unless your application controls
-  the destinations or already provides equivalent SSRF protection through its
-  fetch implementation or network egress policy. Default URL checks do not
-  resolve DNS. Configure `experimental_download` as shown in [Secure URL
+  tools, use `guarded-fetch` on Node.js unless your application controls the
+  destinations or already provides equivalent SSRF protection through its fetch
+  implementation or network egress policy. Default URL checks do not resolve
+  DNS. Configure `experimental_download` as shown in [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#core-file-downloads); a
   provider's `fetch` setting alone does not protect core prompt downloads. URLs
   passed directly to the model are fetched by the provider instead.

@@ -1,5 +1,5 @@
 import { createFal } from '@ai-sdk/fal';
-import { createGuardedFetch } from '@ai-sdk/guarded-fetch';
+import { createGuardedFetch } from 'guarded-fetch';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';

@@ -110,7 +110,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
   The provider downloads generated images from URLs returned by Fal. On Node.js,
   configure `createFal({ fetch: createGuardedFetch() })` unless your application
   controls the destinations or already enforces equivalent SSRF protection.
-  Import `createGuardedFetch` from `@ai-sdk/guarded-fetch`, reuse the transport,
+  Import `createGuardedFetch` from `guarded-fetch`, reuse the transport,
   and close it at application shutdown. Default URL checks do not resolve DNS.
   Reference image URLs passed through to Fal are fetched by Fal, outside the
   local transport. See [Secure URL

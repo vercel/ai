@@ -23,7 +23,7 @@ Use cases for intercepting requests include:
 
 A fetch wrapper that logs requests, adds authentication, or retries failures
 does not provide SSRF protection. When your server fetches URLs supplied by
-users, models, tools, or external services, use `@ai-sdk/guarded-fetch` on Node.js
+users, models, tools, or external services, use `guarded-fetch` on Node.js
 unless your application controls the destinations or already enforces equivalent
 protection through its fetch implementation or network egress policy. URL checks
 and a separate DNS lookup before fetch do not prevent DNS rebinding.

@@ -58,8 +58,8 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 <Note type="warning">
   For server-side downloads of URLs supplied by users, models, or tools, use
-  `@ai-sdk/guarded-fetch` on Node.js unless the destinations are controlled by
-  your application or equivalent SSRF protection is already enforced. Configure
+  `guarded-fetch` on Node.js unless the destinations are controlled by your
+  application or equivalent SSRF protection is already enforced. Configure
   `experimental_download` as a `'use step'` function, creating the guarded
   transport inside the step instead of passing it across workflow boundaries.
   Consume the download and close the transport before the step returns. Provider

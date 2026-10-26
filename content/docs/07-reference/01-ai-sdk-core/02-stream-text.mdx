@@ -43,9 +43,9 @@ retain the content their contracts require.
 
 <Note type="warning">
   For server-side prompt downloads of URLs supplied by users, models, or tools,
-  use `@ai-sdk/guarded-fetch` on Node.js unless the destinations are controlled
-  by your application or equivalent SSRF protection is already enforced.
-  Configure `experimental_download` using the [core file download
+  use `guarded-fetch` on Node.js unless the destinations are controlled by your
+  application or equivalent SSRF protection is already enforced. Configure
+  `experimental_download` using the [core file download
   example](/docs/advanced/secure-url-fetching#core-file-downloads). A provider's
   `fetch` setting alone does not protect these downloads, and default URL checks
   do not resolve DNS.

@@ -129,7 +129,7 @@ The default download transport uses the configured fetch or the runtime's global
 fetch. URL checks do not resolve DNS: public-looking hostnames resolving to
 private addresses and DNS rebinding are outside the default protection.
 
-Recommend `createGuardedFetch()` from `@ai-sdk/guarded-fetch` for applications
+Recommend `createGuardedFetch()` from `guarded-fetch` for applications
 fetching URLs supplied by users, models, tools, or external services on Node.js,
 unless the application controls the destinations or already enforces equivalent
 SSRF protection. Authentication alone does not make a user-supplied URL trusted.

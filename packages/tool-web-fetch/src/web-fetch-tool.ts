@@ -251,7 +251,7 @@ function validatePositiveInteger({
  *
  * Requests are GET only, without cookies or credentials. Every hop, including
  * redirects, is checked against the domain filter and private IP literals are
- * blocked. For DNS validation on Node.js, inject @ai-sdk/guarded-fetch.
+ * blocked. For DNS validation on Node.js, inject guarded-fetch.
  *
  * @param allowedDomains - Only allow fetching from these domains and their
  * subdomains. Cannot be combined with `blockedDomains`.
@@ -265,7 +265,7 @@ function validatePositiveInteger({
  * @param maxBytes - Maximum response size in bytes. Defaults to 10 MiB.
  * @param timeout - Timeout in milliseconds for fetching each URL, including
  * redirects. Defaults to 30,000.
- * @param fetch - Custom fetch implementation, e.g. @ai-sdk/guarded-fetch on
+ * @param fetch - Custom fetch implementation, e.g. guarded-fetch on
  * Node.js for connection-time DNS validation. Defaults to global fetch.
  * @param defuddleOptions - Options for the defuddle content extractor used for
  * HTML pages, e.g. `contentSelector` to choose the main content element.

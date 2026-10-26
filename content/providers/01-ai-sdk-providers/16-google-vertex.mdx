@@ -815,7 +815,7 @@ for older Gemini models or MIME types outside the list above.
 <Note type="warning">
   HTTP(S) tool-result URLs can be influenced by users, models, or external tools.
   On Node.js, configure `createGoogleVertex({ fetch: createGuardedFetch() })`
-  with `createGuardedFetch` from `@ai-sdk/guarded-fetch`, unless the destinations
+  with `createGuardedFetch` from `guarded-fetch`, unless the destinations
   are controlled by your application or your transport or network egress policy
   already provides equivalent SSRF protection. Default URL checks do not resolve
   DNS. Reuse the transport and close it at application shutdown. See [Secure URL

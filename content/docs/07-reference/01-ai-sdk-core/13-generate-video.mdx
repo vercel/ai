@@ -39,7 +39,7 @@ console.log(videos);
 
 <Note type="warning">
   When downloading videos from URLs returned by a provider, use `download:
-  createDownload({fetch})` with `@ai-sdk/guarded-fetch` on Node.js unless your
+  createDownload({fetch})` with `guarded-fetch` on Node.js unless your
   application controls the destinations or already provides equivalent SSRF
   protection. Configure provider requests separately through the provider's
   `fetch` option. See [Secure URL
@@ -175,7 +175,7 @@ console.log(videos);
       type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits and an optional fetch transport (e.g. `createDownload({ fetch })` with `@ai-sdk/guarded-fetch` on Node.js). For size limits, use e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+        'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits and an optional fetch transport (e.g. `createDownload({ fetch })` with `guarded-fetch` on Node.js). For size limits, use e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
     },
     {
       name: 'poll',

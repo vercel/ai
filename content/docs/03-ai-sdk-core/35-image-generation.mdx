@@ -302,7 +302,7 @@ use a guarded transport for these downloads unless the destinations are
 controlled by your application or your fetch implementation or network egress
 policy already provides equivalent SSRF protection. Configure the provider with
 `fetch: createGuardedFetch()` from
-`@ai-sdk/guarded-fetch` to validate DNS results when connecting. Reuse the
+`guarded-fetch` to validate DNS results when connecting. Reuse the
 transport and close it at application shutdown. See
 [Secure URL Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs)
 for an example and network egress recommendations.

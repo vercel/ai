@@ -16,8 +16,8 @@ The server route uses `convertToModelMessages` to handle the conversion from `UI
 
 <Note type="warning">
   Image URLs received from the client are untrusted, even when the user is
-  authenticated. When the server downloads them, use `@ai-sdk/guarded-fetch` in
-  the Node.js route unless your application controls the destinations or already
+  authenticated. When the server downloads them, use `guarded-fetch` in the
+  Node.js route unless your application controls the destinations or already
   provides equivalent SSRF protection. Configure `streamText`'s
   `experimental_download` hook using the [core file download
   example](/docs/advanced/secure-url-fetching#core-file-downloads). Neither the
