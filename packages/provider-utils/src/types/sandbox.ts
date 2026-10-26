@@ -27,6 +27,18 @@ type SandboxProcessOptions = {
   abortSignal?: AbortSignal;
 };
 
+export type SandboxSpawnOptions = SandboxProcessOptions & {
+  stdin?: boolean;
+};
+
+export type SandboxSpawnOptionsWithStdin = SandboxProcessOptions & {
+  stdin: true;
+};
+
+export type SandboxSpawnOptionsWithoutStdin = SandboxProcessOptions & {
+  stdin?: false;
+};
+
 /**
  * Options for reading a file from the sandbox.
  */
@@ -160,10 +172,21 @@ export type SandboxSession = {
    *
    * `run` is conceptually a thin wrapper over this primitive: spawn,
    * collect both streams to strings, await `wait()`, return the result.
+   *
+   * Set `stdin` to `true` to keep standard input open and expose a writable
+   * stream on the returned handle. Implementations that do not support writable
+   * stdin must reject before starting the command. When omitted or `false`,
+   * standard input is closed and the handle has no `stdin` property.
    */
-  readonly spawn: (
-    options: SandboxProcessOptions,
-  ) => PromiseLike<SandboxProcess>;
+  readonly spawn: {
+    (
+      options: SandboxSpawnOptionsWithStdin,
+    ): PromiseLike<WritableSandboxProcess>;
+    (options: SandboxSpawnOptionsWithoutStdin): PromiseLike<SandboxProcess>;
+    (
+      options: SandboxSpawnOptions,
+    ): PromiseLike<SandboxProcess | WritableSandboxProcess>;
+  };
 
   /**
    * Run a command in the sandbox.
@@ -214,4 +237,12 @@ export type SandboxProcess = {
    * Terminate the process. Idempotent.
    */
   kill(): PromiseLike<void>;
+};
+
+export type WritableSandboxProcess = SandboxProcess & {
+  /**
+   * Stream of bytes written to the process's standard input. Closing the stream
+   * delivers EOF after pending writes without terminating the process.
+   */
+  readonly stdin: WritableStream<Uint8Array>;
 };
