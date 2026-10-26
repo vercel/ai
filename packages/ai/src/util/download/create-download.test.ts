@@ -24,3 +24,36 @@ it('forwards the fetch transport, abort signal, and download size limit', async 
     }),
   );
 });
+
+it('acts as an experimental_download function when called with a batch', async () => {
+  const fetch = vi.fn().mockResolvedValue(
+    new Response('Hello World', {
+      headers: { 'content-type': 'text/plain' },
+    }),
+  );
+  const download = createDownload({ fetch });
+
+  const results = await download([
+    {
+      url: new URL('https://files.example.com/supported'),
+      isUrlSupportedByModel: true,
+    },
+    {
+      url: new URL('https://files.example.com/unsupported'),
+      isUrlSupportedByModel: false,
+    },
+  ]);
+
+  expect(results).toEqual([
+    null,
+    {
+      data: new TextEncoder().encode('Hello World'),
+      mediaType: 'text/plain',
+    },
+  ]);
+  expect(fetch).toHaveBeenCalledOnce();
+  expect(fetch).toHaveBeenCalledWith(
+    'https://files.example.com/unsupported',
+    expect.anything(),
+  );
+});

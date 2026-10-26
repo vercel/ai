@@ -190,9 +190,10 @@ origins.
 ### Core file downloads
 
 A provider's `fetch` option applies to requests made by that provider. Core file
-downloads have separate hooks. For transcription and video downloads, use
-`download: createDownload({ fetch })`. For `generateText` and `streamText`, adapt
-it to the batch `experimental_download` hook:
+downloads have separate hooks that all accept the function returned by
+`createDownload({ fetch })`: the `download` option of `transcribe` and
+`experimental_generateVideo`, and the `experimental_download` option of
+`generateText` and `streamText`:
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
@@ -218,12 +219,7 @@ try {
         ],
       },
     ],
-    experimental_download: requests =>
-      Promise.all(
-        requests.map(({ url, isUrlSupportedByModel }) =>
-          isUrlSupportedByModel ? null : download({ url }),
-        ),
-      ),
+    experimental_download: download,
   });
   console.log(result.text);
 } finally {
