@@ -11,6 +11,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
+import { joinBetasWithOAuthBeta } from '../anthropic-oauth-beta';
 import {
   anthropicSkillResponseSchema,
   anthropicSkillVersionResponseSchema,
@@ -33,8 +34,11 @@ export class AnthropicSkills implements SkillsV4 {
   constructor(private readonly config: AnthropicSkillsConfig) {}
 
   private async getHeaders(): Promise<Record<string, string | undefined>> {
-    return combineHeaders(await resolve(this.config.headers), {
-      'anthropic-beta': 'skills-2025-10-02',
+    const configHeaders = await resolve(this.config.headers);
+    return combineHeaders(configHeaders, {
+      'anthropic-beta': joinBetasWithOAuthBeta(configHeaders, [
+        'skills-2025-10-02',
+      ]),
     });
   }
 

@@ -12,7 +12,6 @@ import {
   generateId,
   loadApiKey,
   loadOptionalSetting,
-  normalizeHeaders,
   validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -23,15 +22,17 @@ import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
+import { OAUTH_BETA } from './anthropic-oauth-beta';
 import { anthropicTools } from './anthropic-tools';
+import {
+  createWorkloadIdentityTokenCache,
+  loadWorkloadIdentitySettings,
+} from './anthropic-workload-identity';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com';
 const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
-
-/** Beta required on requests authenticated with an OAuth access token. */
-const OAUTH_BETA = 'oauth-2025-04-20';
 
 function normalizeBaseURL(baseURL: string | undefined): string | undefined {
   const baseURLWithoutTrailingSlash = withoutTrailingSlash(
@@ -114,6 +115,11 @@ export interface AnthropicProviderSettings {
    * request, e.g. from workload identity federation. The function should cache
    * the token and refresh it before it expires. Requests that use it also
    * send the `oauth-2025-04-20` beta header.
+   *
+   * Without `apiKey`, `authToken` or `ANTHROPIC_API_KEY`, the provider uses
+   * workload identity federation when `ANTHROPIC_FEDERATION_RULE_ID`,
+   * `ANTHROPIC_ORGANIZATION_ID` and `ANTHROPIC_IDENTITY_TOKEN_FILE` (or
+   * `ANTHROPIC_IDENTITY_TOKEN`) are set.
    */
   authToken?: string | (() => PromiseLike<string>);
 
@@ -166,24 +172,53 @@ export function createAnthropic(
     });
   }
 
-  const getHeaders = async () => {
-    const authHeaders: Record<string, string> = options.authToken
-      ? {
-          Authorization: `Bearer ${
-            typeof options.authToken === 'function'
-              ? await options.authToken()
-              : options.authToken
-          }`,
-        }
-      : {
-          'x-api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'ANTHROPIC_API_KEY',
-            description: 'Anthropic',
-          }),
-        };
+  const getWorkloadIdentityToken = createWorkloadIdentityTokenCache({
+    baseURL,
+    fetch: options.fetch,
+  });
 
-    return withUserAgentSuffix(
+  // OAuth access tokens come from an `authToken` function, or from workload
+  // identity federation when no other credential is set.
+  const getOAuthToken = (): (() => PromiseLike<string>) | undefined => {
+    if (typeof options.authToken === 'function') {
+      return options.authToken;
+    }
+
+    if (
+      options.authToken ||
+      options.apiKey != null ||
+      loadOptionalSetting({
+        settingValue: undefined,
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+      })
+    ) {
+      return undefined;
+    }
+
+    const workloadIdentitySettings = loadWorkloadIdentitySettings();
+
+    return workloadIdentitySettings == null
+      ? undefined
+      : () => getWorkloadIdentityToken(workloadIdentitySettings);
+  };
+
+  const getHeaders = async () => {
+    const oauthToken = getOAuthToken();
+
+    const authHeaders: Record<string, string> =
+      oauthToken != null
+        ? { Authorization: `Bearer ${await oauthToken()}` }
+        : typeof options.authToken === 'string' && options.authToken !== ''
+          ? { Authorization: `Bearer ${options.authToken}` }
+          : {
+              'x-api-key': loadApiKey({
+                apiKey: options.apiKey,
+                environmentVariableName: 'ANTHROPIC_API_KEY',
+                description: 'Anthropic',
+              }),
+            };
+
+    const headers = withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
@@ -191,39 +226,24 @@ export function createAnthropic(
       },
       `ai-sdk-anthropic/${VERSION}`,
     );
+
+    if (
+      oauthToken != null &&
+      !headers['anthropic-beta']?.includes(OAUTH_BETA)
+    ) {
+      headers['anthropic-beta'] = [headers['anthropic-beta'], OAUTH_BETA]
+        .filter(Boolean)
+        .join(',');
+    }
+
+    return headers;
   };
-
-  // The OAuth beta is added after all header merging, so endpoint-specific
-  // anthropic-beta values (files, skills, batches) cannot replace it. Only
-  // requests that carry the token get it; off-origin hops drop credentials.
-  const fetch: FetchFunction | undefined =
-    typeof options.authToken === 'function'
-      ? async (input, init) => {
-          const headers = normalizeHeaders(init?.headers);
-
-          if (headers.authorization != null) {
-            const betas = (headers['anthropic-beta'] ?? '')
-              .split(',')
-              .map(beta => beta.trim())
-              .filter(beta => beta !== '');
-
-            if (!betas.includes(OAUTH_BETA)) {
-              headers['anthropic-beta'] = [...betas, OAUTH_BETA].join(',');
-            }
-          }
-
-          return (options.fetch ?? globalThis.fetch)(input, {
-            ...init,
-            headers,
-          });
-        }
-      : options.fetch;
 
   const languageModelConfig = {
     provider: providerName,
     baseURL,
     headers: getHeaders,
-    fetch,
+    fetch: options.fetch,
     generateId: options.generateId ?? generateId,
     supportedUrls: () => supportedUrls,
   };
@@ -244,7 +264,7 @@ export function createAnthropic(
       provider: `${providerName.replace('.messages', '')}.skills`,
       baseURL,
       headers: getHeaders,
-      fetch,
+      fetch: options.fetch,
     });
 
   const provider = function (modelId: AnthropicModelId) {
@@ -283,7 +303,7 @@ export function createAnthropic(
       provider: providerName,
       baseURL,
       headers: getHeaders,
-      fetch,
+      fetch: options.fetch,
     });
 
   provider.skills = createSkills;

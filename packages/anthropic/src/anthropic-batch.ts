@@ -44,6 +44,7 @@ import {
   type AnthropicStopDetails,
 } from './anthropic-api';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { joinBetasWithOAuthBeta } from './anthropic-oauth-beta';
 import {
   createCitationSource,
   AnthropicLanguageModel,
@@ -460,13 +461,10 @@ export class AnthropicBatch implements BatchV4<{
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(
-      normalizeHeaders(await this.getBatchHeaders(headers)),
-      {
-        'anthropic-beta':
-          betas.size > 0 ? Array.from(betas).join(',') : undefined,
-      },
-    );
+    const batchHeaders = normalizeHeaders(await this.getBatchHeaders(headers));
+    return combineHeaders(batchHeaders, {
+      'anthropic-beta': joinBetasWithOAuthBeta(batchHeaders, betas),
+    });
   }
 
   private async getBatchHeaders(

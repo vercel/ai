@@ -224,8 +224,8 @@ describe('anthropic provider - authentication', () => {
       const [, requestOptions] = fetchMock.mock.calls[0]!;
       expect(requestOptions.headers['anthropic-beta'].split(',')).toEqual([
         'provider-beta',
-        'request-beta',
         'oauth-2025-04-20',
+        'request-beta',
       ]);
     });
 
@@ -300,6 +300,152 @@ describe('anthropic provider - authentication', () => {
         'Bearer test-auth-token',
       );
       expect(requestOptions.headers['anthropic-beta']).toBe('oauth-2025-04-20');
+    });
+  });
+
+  describe('workload identity federation environment variables', () => {
+    const createFederationFetchMock = ({ expiresIn = 3600 } = {}) => {
+      let exchanges = 0;
+      return vi.fn().mockImplementation(async (url: string) =>
+        url.endsWith('/oauth/token')
+          ? Response.json({
+              access_token: `sk-ant-oat01-${++exchanges}`,
+              token_type: 'Bearer',
+              expires_in: expiresIn,
+            })
+          : createSuccessfulResponse(),
+      );
+    };
+
+    const exchangeCalls = (fetchMock: ReturnType<typeof vi.fn>) =>
+      fetchMock.mock.calls.filter(([url]) => url.endsWith('/oauth/token'));
+
+    beforeEach(() => {
+      vi.stubEnv('ANTHROPIC_API_KEY', undefined);
+      vi.stubEnv('ANTHROPIC_FEDERATION_RULE_ID', 'fdrl_test');
+      vi.stubEnv(
+        'ANTHROPIC_ORGANIZATION_ID',
+        '00000000-0000-0000-0000-000000000000',
+      );
+      vi.stubEnv('ANTHROPIC_SERVICE_ACCOUNT_ID', 'svac_test');
+      vi.stubEnv('ANTHROPIC_WORKSPACE_ID', 'wrkspc_test');
+      vi.stubEnv('ANTHROPIC_IDENTITY_TOKEN', 'identity-jwt');
+      vi.stubEnv('ANTHROPIC_IDENTITY_TOKEN_FILE', undefined);
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.useRealTimers();
+    });
+
+    it('exchanges the identity token and reuses the access token', async () => {
+      const fetchMock = createFederationFetchMock();
+      const model = createAnthropic({ fetch: fetchMock })(
+        'claude-3-haiku-20240307',
+      );
+
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      await model.doGenerate({ prompt: TEST_PROMPT });
+
+      const exchanges = exchangeCalls(fetchMock);
+      expect(exchanges).toHaveLength(1);
+      const [exchangeUrl, exchangeRequest] = exchanges[0]!;
+      expect(exchangeUrl).toBe('https://api.anthropic.com/v1/oauth/token');
+      expect(exchangeRequest.headers['anthropic-beta']).toBe(
+        'oauth-2025-04-20,oidc-federation-2026-04-01',
+      );
+      expect(JSON.parse(exchangeRequest.body)).toEqual({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: 'identity-jwt',
+        federation_rule_id: 'fdrl_test',
+        organization_id: '00000000-0000-0000-0000-000000000000',
+        service_account_id: 'svac_test',
+        workspace_id: 'wrkspc_test',
+      });
+
+      const messageRequests = fetchMock.mock.calls.filter(([url]) =>
+        url.endsWith('/messages'),
+      );
+      expect(messageRequests).toHaveLength(2);
+      for (const [, requestOptions] of messageRequests) {
+        expect(requestOptions.headers.authorization).toBe(
+          'Bearer sk-ant-oat01-1',
+        );
+        expect(requestOptions.headers['x-api-key']).toBeUndefined();
+        expect(requestOptions.headers['anthropic-beta']).toBe(
+          'oauth-2025-04-20',
+        );
+      }
+    });
+
+    it('exchanges a new identity token shortly before the access token expires', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const fetchMock = createFederationFetchMock({ expiresIn: 600 });
+      const model = createAnthropic({ fetch: fetchMock })(
+        'claude-3-haiku-20240307',
+      );
+
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      vi.advanceTimersByTime(560_000);
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      expect(exchangeCalls(fetchMock)).toHaveLength(1);
+
+      vi.advanceTimersByTime(20_000);
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      expect(exchangeCalls(fetchMock)).toHaveLength(2);
+      const [, lastRequest] = fetchMock.mock.calls.at(-1)!;
+      expect(lastRequest.headers.authorization).toBe('Bearer sk-ant-oat01-2');
+    });
+
+    it('shares one exchange between concurrent requests', async () => {
+      const fetchMock = createFederationFetchMock();
+      const model = createAnthropic({ fetch: fetchMock })(
+        'claude-3-haiku-20240307',
+      );
+
+      await Promise.all([
+        model.doGenerate({ prompt: TEST_PROMPT }),
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ]);
+
+      expect(exchangeCalls(fetchMock)).toHaveLength(1);
+    });
+
+    it('reads the identity token from ANTHROPIC_IDENTITY_TOKEN_FILE', async () => {
+      const { mkdtemp, writeFile } = await import('node:fs/promises');
+      const { tmpdir } = await import('node:os');
+      const { join } = await import('node:path');
+      const tokenFile = join(
+        await mkdtemp(join(tmpdir(), 'anthropic-')),
+        'token',
+      );
+      await writeFile(tokenFile, 'file-identity-jwt\n');
+      vi.stubEnv('ANTHROPIC_IDENTITY_TOKEN_FILE', tokenFile);
+
+      const fetchMock = createFederationFetchMock();
+      await createAnthropic({ fetch: fetchMock })(
+        'claude-3-haiku-20240307',
+      ).doGenerate({ prompt: TEST_PROMPT });
+
+      const [, exchangeRequest] = exchangeCalls(fetchMock)[0]!;
+      expect(JSON.parse(exchangeRequest.body).assertion).toBe(
+        'file-identity-jwt',
+      );
+    });
+
+    it('prefers ANTHROPIC_API_KEY', async () => {
+      vi.stubEnv('ANTHROPIC_API_KEY', 'env-api-key');
+      const fetchMock = createFederationFetchMock();
+
+      await createAnthropic({ fetch: fetchMock })(
+        'claude-3-haiku-20240307',
+      ).doGenerate({ prompt: TEST_PROMPT });
+
+      expect(exchangeCalls(fetchMock)).toHaveLength(0);
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers['x-api-key']).toBe('env-api-key');
+      expect(requestOptions.headers.authorization).toBeUndefined();
+      expect(requestOptions.headers['anthropic-beta']).toBeUndefined();
     });
   });
 

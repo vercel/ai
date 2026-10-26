@@ -124,8 +124,16 @@ You can use the following optional settings to customize the Anthropic provider 
 With [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation),
 your workload exchanges an OIDC token from its identity provider for a short-lived Anthropic access token
 instead of using a static API key.
-You can exchange and cache the token with the `@anthropic-ai/sdk` credential helpers
-and pass it as an `authToken` function:
+
+When no `apiKey`, `authToken` or `ANTHROPIC_API_KEY` is set, the provider reads the same environment variables as the Anthropic SDKs.
+It exchanges the identity token, caches the access token, and exchanges a new identity token shortly before the access token expires:
+
+- `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID` (required)
+- `ANTHROPIC_IDENTITY_TOKEN_FILE` (Node.js only, read on every exchange) or `ANTHROPIC_IDENTITY_TOKEN` (required)
+- `ANTHROPIC_SERVICE_ACCOUNT_ID` and `ANTHROPIC_WORKSPACE_ID` (optional)
+
+To configure federation in code instead, pass an `authToken` function,
+e.g. with the `@anthropic-ai/sdk` credential helpers:
 
 ```ts
 import { createAnthropic } from '@ai-sdk/anthropic';
@@ -151,8 +159,6 @@ const anthropic = createAnthropic({
   authToken: () => tokenCache.getToken(),
 });
 ```
-
-`TokenCache` reuses the access token until it is close to expiring, then exchanges a new identity token.
 
 ## Language Models
 
