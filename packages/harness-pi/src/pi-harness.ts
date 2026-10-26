@@ -7,7 +7,11 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import {
+  piLifecycleStateSchema,
+  type PiLifecycleData,
+} from './pi-lifecycle-state';
+import type { SessionStorage } from './pi-session-storage';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -37,6 +41,11 @@ export type PiHarnessSettings = {
    * this replaces Pi's file-backed auth.json credential storage.
    */
   readonly credentials?: PiCredentialStore;
+  /**
+   * Caller-provided append-only log for the Pi session (see `SessionStorage`).
+   * Without it, the lifecycle state holds the whole session.
+   */
+  readonly sessionStorage?: SessionStorage;
   /**
    * Whether a suspended turn may reuse its live Pi session in this process.
    * Disable this in stateless or multi-replica applications so every request
@@ -213,10 +222,10 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: true,
-    lifecycleStateSchema: piResumeStateSchema,
+    lifecycleStateSchema: piLifecycleStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
+      const resumeData = lifecycleState?.data as PiLifecycleData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -254,6 +263,9 @@ export function createPi(
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
           ...(settings.resources ? { resources: settings.resources } : {}),
+          ...(settings.sessionStorage
+            ? { sessionStorage: settings.sessionStorage }
+            : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
@@ -261,10 +273,13 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.sessionFileName
-          ? { resumeSessionFileName: resumeData.sessionFileName }
-          : {}),
-        ...(resumeData?.pendingToolBatch
+        ...(resumeData?.leafId
+          ? { resumeLeafId: resumeData.leafId }
+          : resumeData?.entries
+            ? { resumeEntries: resumeData.entries }
+            : {}),
+        ...((resumeData?.leafId || resumeData?.entries) &&
+        resumeData.pendingToolBatch
           ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),
         ...(startOpts.abortSignal

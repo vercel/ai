@@ -10,9 +10,9 @@ export interface PiPathMapper {
   /** Sandbox roots rejected by every native file tool. */
   readonly deniedSandboxRoots: ReadonlyArray<string>;
   /**
-   * Translate a tool path (relative to `sandboxWorkDir`, or an absolute
-   * sandbox path) to a normalized sandbox path. Throws if the path would
-   * escape the workspace and configured writable roots.
+   * Translate a tool path (relative to `sandboxWorkDir`, absolute, or
+   * `~`-prefixed) to a normalized sandbox path. Throws if the path is inside a
+   * denied root or outside the workspace and writable roots.
    */
   toSandboxPath(inputPath: string): string;
   /**
