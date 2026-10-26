@@ -115,6 +115,37 @@ describe('standardizePrompt', () => {
     }).rejects.toThrow(InvalidPromptError);
   });
 
+  it('should throw InvalidPromptError for an invalid message', async () => {
+    await expect(
+      standardizePrompt({
+        messages: [{ role: 'assistant', content: 42 } as any],
+      }),
+    ).rejects.toThrow(InvalidPromptError);
+  });
+
+  it('should not re-validate a message object that already passed validation', async () => {
+    const message = { role: 'user' as const, content: 'Hello' };
+    await standardizePrompt({ messages: [message] });
+
+    // a second call that re-validated the object would now throw:
+    (message as { content: unknown }).content = 42;
+
+    await expect(
+      standardizePrompt({ messages: [message] }),
+    ).resolves.toMatchObject({ messages: [message] });
+  });
+
+  it('should validate a new message appended to an already validated history', async () => {
+    const history = [{ role: 'user' as const, content: 'Hello' }];
+    await standardizePrompt({ messages: history });
+
+    await expect(
+      standardizePrompt({
+        messages: [...history, { role: 'assistant', content: 42 } as any],
+      }),
+    ).rejects.toThrow(InvalidPromptError);
+  });
+
   it('should support SystemModelMessage instructions', async () => {
     const result = await standardizePrompt({
       instructions: {
