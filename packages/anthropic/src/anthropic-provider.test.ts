@@ -179,6 +179,127 @@ describe('anthropic provider - authentication', () => {
         'Bearer test-auth-token',
       );
       expect(requestOptions.headers['x-api-key']).toBeUndefined();
+      expect(requestOptions.headers['anthropic-beta']).toBeUndefined();
+    });
+  });
+
+  describe('authToken function', () => {
+    it('resolves the token for each request and adds the OAuth beta', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockImplementation(async () => createSuccessfulResponse());
+      let token = 'token-1';
+      const provider = createAnthropic({
+        authToken: async () => token,
+        fetch: fetchMock,
+      });
+      const model = provider('claude-3-haiku-20240307');
+
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      token = 'token-2';
+      await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const [, firstRequest] = fetchMock.mock.calls[0]!;
+      const [, secondRequest] = fetchMock.mock.calls[1]!;
+      expect(firstRequest.headers.authorization).toBe('Bearer token-1');
+      expect(secondRequest.headers.authorization).toBe('Bearer token-2');
+      expect(firstRequest.headers['x-api-key']).toBeUndefined();
+      expect(firstRequest.headers['anthropic-beta']).toBe('oauth-2025-04-20');
+    });
+
+    it('keeps other betas alongside the OAuth beta', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        authToken: async () => 'test-auth-token',
+        headers: { 'anthropic-beta': 'provider-beta' },
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+        headers: { 'anthropic-beta': 'request-beta' },
+      });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers['anthropic-beta'].split(',')).toEqual([
+        'provider-beta',
+        'request-beta',
+        'oauth-2025-04-20',
+      ]);
+    });
+
+    it('adds the OAuth beta to file uploads', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({
+          id: 'file_123',
+          type: 'file',
+          filename: 'test.txt',
+          mime_type: 'text/plain',
+          size_bytes: 3,
+          created_at: '2025-04-14T12:00:00Z',
+        }),
+      );
+      const provider = createAnthropic({
+        authToken: async () => 'test-auth-token',
+        fetch: fetchMock,
+      });
+
+      await provider.files().uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'text/plain',
+        providerOptions: {},
+      });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'Bearer test-auth-token',
+      );
+      expect(requestOptions.headers['anthropic-beta']).toBe(
+        'files-api-2025-04-14,oauth-2025-04-20',
+      );
+    });
+
+    it('adds the OAuth beta when starting a batch', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({
+          id: 'msgbatch_123',
+          type: 'message_batch',
+          processing_status: 'in_progress',
+          request_counts: {
+            processing: 1,
+            succeeded: 0,
+            errored: 0,
+            canceled: 0,
+            expired: 0,
+          },
+          results_url: null,
+          created_at: '2025-04-14T12:00:00Z',
+          expires_at: '2025-04-15T12:00:00Z',
+          ended_at: null,
+        }),
+      );
+      const provider = createAnthropic({
+        authToken: async () => 'test-auth-token',
+        fetch: fetchMock,
+      });
+
+      await provider.experimental_batch().doStartBatch({
+        requests: [
+          {
+            id: 'request-1',
+            type: 'text',
+            modelId: 'claude-3-haiku-20240307',
+            options: { prompt: TEST_PROMPT },
+          },
+        ],
+      });
+
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'Bearer test-auth-token',
+      );
+      expect(requestOptions.headers['anthropic-beta']).toBe('oauth-2025-04-20');
     });
   });
 

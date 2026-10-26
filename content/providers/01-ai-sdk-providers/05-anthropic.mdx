@@ -97,11 +97,16 @@ You can use the following optional settings to customize the Anthropic provider 
   It defaults to the `ANTHROPIC_API_KEY` environment variable.
   Only one of `apiKey` or `authToken` is required.
 
-- **authToken** _string_
+- **authToken** _string | () =&gt; PromiseLike&lt;string&gt;_
 
   Auth token that is being sent using the `Authorization: Bearer` header.
   It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
   Only one of `apiKey` or `authToken` is required.
+
+  Pass a function to resolve a short-lived OAuth access token before each request,
+  e.g. from [workload identity federation](#workload-identity-federation).
+  The function should cache the token and refresh it before it expires.
+  Requests that use it also send the `oauth-2025-04-20` beta header.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -113,6 +118,41 @@ You can use the following optional settings to customize the Anthropic provider 
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+### Workload Identity Federation
+
+With [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation),
+your workload exchanges an OIDC token from its identity provider for a short-lived Anthropic access token
+instead of using a static API key.
+You can exchange and cache the token with the `@anthropic-ai/sdk` credential helpers
+and pass it as an `authToken` function:
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { identityTokenFromFile } from '@anthropic-ai/sdk/lib/credentials/identity-token';
+import { oidcFederationProvider } from '@anthropic-ai/sdk/lib/credentials/oidc-federation';
+import { TokenCache } from '@anthropic-ai/sdk/lib/credentials/token-cache';
+
+const tokenCache = new TokenCache(
+  oidcFederationProvider({
+    identityTokenProvider: identityTokenFromFile(
+      '/var/run/secrets/anthropic.com/token',
+    ),
+    federationRuleId: 'fdrl_...',
+    organizationId: '00000000-0000-0000-0000-000000000000',
+    serviceAccountId: 'svac_...',
+    workspaceId: 'wrkspc_...',
+    baseURL: 'https://api.anthropic.com',
+    fetch,
+  }),
+);
+
+const anthropic = createAnthropic({
+  authToken: () => tokenCache.getToken(),
+});
+```
+
+`TokenCache` reuses the access token until it is close to expiring, then exchanges a new identity token.
 
 ## Language Models
 
