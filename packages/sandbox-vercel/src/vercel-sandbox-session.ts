@@ -3,6 +3,10 @@ import {
   extractLines,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess as SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
+  type Experimental_WritableSandboxProcess as WritableSandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
@@ -56,29 +60,83 @@ export class VercelSandboxSession implements SandboxSession {
     };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<WritableSandboxProcess>;
+  spawn(options: SpawnOptionsWithoutStdin): Promise<SandboxProcess>;
+  spawn(
+    options: SpawnOptions,
+  ): Promise<SandboxProcess | WritableSandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<SandboxProcess | WritableSandboxProcess> {
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
       args: ['-c', command],
       detached: true,
+      ...(stdin === true ? { stdin: true } : {}),
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
-    return createSandboxProcess(live, abortSignal);
+    const process = createSandboxProcess({ command: live, abortSignal });
+    if (stdin !== true) return process;
+
+    let removeAbortListener = () => {};
+    let stdinCleanup: Promise<void> | undefined;
+    const cleanupStdin = () => {
+      removeAbortListener();
+      return (stdinCleanup ??= live.closeStdin());
+    };
+
+    return {
+      ...process,
+      stdin: new WritableStream<Uint8Array>({
+        start(controller) {
+          const onAbort = () => {
+            controller.error(abortSignal?.reason);
+            /*
+             * EOF cleanup must not use the aborted signal. Its failure must
+             * not replace the abort reason exposed by the stream.
+             */
+            void cleanupStdin().catch(() => {});
+          };
+          removeAbortListener = () =>
+            abortSignal?.removeEventListener('abort', onAbort);
+          if (abortSignal?.aborted) {
+            onAbort();
+          } else {
+            abortSignal?.addEventListener('abort', onAbort, { once: true });
+          }
+        },
+        async write(chunk) {
+          try {
+            await live.writeStdin(chunk, { abortSignal });
+          } catch (error) {
+            void cleanupStdin().catch(() => {});
+            throw error;
+          }
+        },
+        async close() {
+          try {
+            await live.closeStdin({ abortSignal });
+          } catch (error) {
+            void cleanupStdin().catch(() => {});
+            throw error;
+          } finally {
+            removeAbortListener();
+          }
+        },
+        abort() {
+          return cleanupStdin();
+        },
+      }),
+    };
   }
 
   async readFile({
@@ -198,10 +256,13 @@ export class VercelSandboxSession implements SandboxSession {
   }
 }
 
-function createSandboxProcess(
-  command: Command,
-  abortSignal: AbortSignal | undefined,
-): SandboxProcess {
+function createSandboxProcess({
+  command,
+  abortSignal,
+}: {
+  command: Command;
+  abortSignal?: AbortSignal;
+}): SandboxProcess {
   const encoder = new TextEncoder();
   const controllers: {
     stdout?: ReadableStreamDefaultController<Uint8Array>;
