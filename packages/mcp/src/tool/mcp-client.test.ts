@@ -1,5 +1,6 @@
 import type * as McpTransportModule from './mcp-transport';
 import type { MCPTransport } from './mcp-transport';
+import type { Tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
@@ -1145,6 +1146,49 @@ describe('MCPClient', () => {
         },
       }
     `);
+  });
+
+  it.each([
+    { output: 'Hello world', expected: { type: 'text', value: 'Hello world' } },
+    { output: '', expected: { type: 'text', value: '' } },
+    { output: 7, expected: { type: 'json', value: 7 } },
+    { output: 0, expected: { type: 'json', value: 0 } },
+    { output: true, expected: { type: 'json', value: true } },
+    { output: false, expected: { type: 'json', value: false } },
+    { output: null, expected: { type: 'json', value: null } },
+    { output: undefined, expected: { type: 'json', value: null } },
+  ])(
+    'should convert non-object output $output via toModelOutput',
+    async ({ output, expected }) => {
+      client = await createMCPClient({ transport: new MockMCPTransport() });
+      const tools = await client.tools();
+      const tool: Tool = tools['mock-tool'];
+
+      expect(
+        await tool.toModelOutput!({ toolCallId: '1', input: {}, output }),
+      ).toEqual(expected);
+    },
+  );
+
+  it('should convert a string returned by a wrapped MCP execute function', async () => {
+    client = await createMCPClient({ transport: new MockMCPTransport() });
+    const tools = await client.tools();
+    const originalTool: Tool = tools['mock-tool'];
+    const executionOptions = { messages: [], toolCallId: '1', context: {} };
+    const wrappedTool = {
+      ...originalTool,
+      execute: async () =>
+        JSON.stringify(await originalTool.execute!({}, executionOptions)),
+    };
+
+    const output = await wrappedTool.execute();
+
+    expect(output).toBe(
+      '{"content":[{"type":"text","text":"Mock tool call result"}],"isError":false}',
+    );
+    expect(
+      await wrappedTool.toModelOutput!({ toolCallId: '1', input: {}, output }),
+    ).toEqual({ type: 'text', value: output });
   });
 
   it('should expose _meta field from MCP tool definition', async () => {
@@ -2425,6 +2469,35 @@ describe('MCPClient', () => {
   });
 
   describe('outputSchema support', () => {
+    it('should convert a scalar returned by execute with an outputSchema', async () => {
+      client = await createMCPClient({
+        transport: new MockMCPTransport({
+          toolCallResults: {
+            'mock-tool': { content: [{ type: 'text', text: '7' }] },
+          },
+        }),
+      });
+      const tools = await client.tools({
+        schemas: {
+          'mock-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.number(),
+          },
+        },
+      });
+      const tool: Tool = tools['mock-tool'];
+
+      const output = await tool.execute!(
+        {},
+        { messages: [], toolCallId: '1', context: {} },
+      );
+
+      expect(output).toBe(7);
+      expect(
+        await tool.toModelOutput!({ toolCallId: '1', input: {}, output }),
+      ).toEqual({ type: 'json', value: 7 });
+    });
+
     it('should return typed output when outputSchema is provided with structuredContent', async () => {
       const mockTransport = new MockMCPTransport({
         overrideTools: [

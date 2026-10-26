@@ -464,6 +464,14 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         ...(moonshotOptions.promptCacheKey != null && {
           prompt_cache_key: moonshotOptions.promptCacheKey,
         }),
+        ...(moonshotOptions.promptCacheOptions != null && {
+          prompt_cache_options: {
+            mode: moonshotOptions.promptCacheOptions.mode ?? 'implicit',
+            ...(moonshotOptions.promptCacheOptions.ttl != null && {
+              ttl: moonshotOptions.promptCacheOptions.ttl,
+            }),
+          },
+        }),
         ...(moonshotOptions.safetyIdentifier != null && {
           safety_identifier: moonshotOptions.safetyIdentifier,
         }),
@@ -532,6 +540,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       usage: convertMoonshotAIChatUsage(responseBody.usage),
       providerMetadata: {
         [this.providerOptionsName]: {
+          ...extractCacheWriteTokensByTtl(responseHeaders),
           ...(choice.logprobs != null && { logprobs: choice.logprobs }),
           ...(responseBody.object != null && {
             responseObject: responseBody.object,
@@ -769,6 +778,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
               usage: convertMoonshotAIChatUsage(topLevelUsage ?? choiceUsage),
               providerMetadata: {
                 [providerOptionsName]: {
+                  ...extractCacheWriteTokensByTtl(responseHeaders),
                   ...(contentLogprobs.length > 0 && {
                     logprobs: { content: contentLogprobs },
                   }),
@@ -790,4 +800,26 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function extractCacheWriteTokensByTtl(
+  headers: Record<string, string | undefined> | undefined,
+): { cacheWriteTokens?: { ttl5m: number; ttl1h: number } } {
+  const ttl5m = parseTokenCountHeader(
+    headers?.['msh-usage-cache-write-tokens-5m'],
+  );
+  const ttl1h = parseTokenCountHeader(
+    headers?.['msh-usage-cache-write-tokens-1h'],
+  );
+  if (ttl5m == null && ttl1h == null) {
+    return {};
+  }
+  return { cacheWriteTokens: { ttl5m: ttl5m ?? 0, ttl1h: ttl1h ?? 0 } };
+}
+
+function parseTokenCountHeader(value: string | undefined): number | undefined {
+  if (value == null || !/^\d+$/.test(value.trim())) {
+    return undefined;
+  }
+  return Number(value.trim());
 }

@@ -1738,8 +1738,14 @@ async function generateTextInternal<
         (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
       ) {
         const outputSpecification = output ?? text();
+        // Select the structured output without changing the complete response
+        // content, text, or messages exposed to callers.
+        const textForOutput =
+          (await outputSpecification.responseFormat)?.type === 'json'
+            ? (currentModelResponse!.structuredOutputText ?? lastStep.text)
+            : lastStep.text;
         resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: lastStep.text },
+          { text: textForOutput },
           {
             response: lastStep.response,
             usage: lastStep.usage,

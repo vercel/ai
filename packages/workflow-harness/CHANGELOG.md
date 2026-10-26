@@ -1,5 +1,26 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.164
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+
+## 1.0.163
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
 ## 1.0.161
 
 ### Patch Changes

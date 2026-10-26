@@ -1,5 +1,27 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.71
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.70
+
+### Patch Changes
+
+- f29bea4: fix(elevenlabs): only warn about an ignored text prompt when it is non-empty
+
+## 3.0.69
+
+### Patch Changes
+
+- 2e83794: feat(elevenlabs): music, sound effects, and dialogue via the speech model
+
 ## 3.0.68
 
 ### Patch Changes

@@ -1,5 +1,32 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.78
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness-acp@1.0.103
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+- @ai-sdk/harness-acp@1.0.102
+
+## 1.0.76
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+- @ai-sdk/harness-acp@1.0.101
+
 ## 1.0.75
 
 ### Patch Changes

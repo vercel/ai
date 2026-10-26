@@ -1,5 +1,27 @@
 # @ai-sdk/gateway
 
+## 4.0.126
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.125
+
+### Patch Changes
+
+- a706678: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
+## 4.0.124
+
+### Patch Changes
+
+- 1bf6d85: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.123
 
 ### Patch Changes

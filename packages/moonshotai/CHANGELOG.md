@@ -1,5 +1,23 @@
 # @ai-sdk/moonshotai
 
+## 3.0.78
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.77
+
+### Patch Changes
+
+- a706678: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+- e694a46: fix(moonshotai): accept root unions of objects (including local `$ref` branches) in tool and response schemas, and keep a root `type: "object"` beside `anyOf`
+- fce7a32: feat(provider/moonshotai): support prompt cache options and report cache write tokens
+
 ## 3.0.76
 
 ### Patch Changes

@@ -5,7 +5,6 @@ import {
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
   type HarnessV1DebugConfig,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1PortEndpoint,
   type HarnessV1PromptControl,
   type HarnessV1Session,
@@ -18,6 +17,7 @@ import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge'
 import {
   applyCredentialForwarding,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   createBridgeErrorHandler,
   createBridgeStartupError,
   resolveSandboxCredentialEnvironment,
@@ -26,12 +26,14 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeInstructions,
   writeSkills,
   type SandboxChannelReconnectOptions,
@@ -209,18 +211,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: portOverride,
-        portEndpoint: portEndpointOverride,
-        harnessId: settings.harnessId,
+        sandboxId,
+        portOverride,
+        portEndpointOverride,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw unsupported({
-          harnessId: settings.harnessId,
-          message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
-        });
-      }
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
       const lifecycleState = continueFrom ?? startOptions.resumeFrom;
@@ -398,19 +395,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         }
         if (coords != null) {
           try {
-            const endpoint = await resolveBridgeEndpoint({
+            const attachEndpoint = await resolveBridgeEndpoint({
               sandboxSession,
-              override: portEndpointOverride,
               port: coords.port,
-              harnessId: settings.harnessId,
-            });
-            const attachEndpoint = withBridgeToken({
-              endpoint,
+              portEndpointOverride,
               token: coords.token,
             });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: ({ abortSignal }) =>
-                openWebSocket({ ...attachEndpoint, abortSignal }),
+              connect: createBridgeWebSocketConnect({
+                endpoint: attachEndpoint,
+                webSocketConstructor: WebSocket,
+              }),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
@@ -578,8 +573,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const port = resolveBridgePort({
         sandboxSession,
-        override: portOverride,
-        harnessId: settings.harnessId,
+        portOverride,
       });
       const token =
         settings.mintBridgeToken == null
@@ -663,16 +657,19 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: portEndpointOverride,
         port: boundPort,
-        harnessId: settings.harnessId,
+        portEndpointOverride,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: ({ abortSignal }) =>
-          openWebSocket({ ...bridgeEndpoint, abortSignal }),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOptions.abortSignal,
+        }),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
@@ -909,131 +906,6 @@ function requireResolvedEnvironmentValue({
     throw new Error(`ACP resolved environment value ${name} is unavailable.`);
   }
   return value;
-}
-
-function resolveBridgePort({
-  sandboxSession,
-  override,
-  harnessId,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-  harnessId: string;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw unsupported({
-    harnessId,
-    message:
-      `The ${harnessId} ACP harness needs a TCP port exposed by the sandbox. ` +
-      'Create the sandbox with `ports: [<port>]` or configure the harness `port`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-  harnessId,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-  harnessId: string;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw unsupported({
-      harnessId,
-      message: `The ${harnessId} ACP harness requires an explicit \`port\` when using a basic sandbox session.`,
-    });
-  }
-  if (portEndpoint == null) {
-    throw unsupported({
-      harnessId,
-      message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-  harnessId,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-  harnessId: string;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw unsupported({
-    harnessId,
-    message: `The ${harnessId} ACP harness requires an explicit \`portEndpoint\` when using a basic sandbox session.`,
-  });
-}
-
-function openWebSocket({
-  url,
-  headers,
-  abortSignal,
-}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    if (abortSignal.aborted) {
-      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
-      return;
-    }
-
-    const ws = new WebSocket(url, {
-      headers: headers == null ? undefined : { ...headers },
-    });
-
-    let settled = false;
-    const cleanup = () => {
-      abortSignal.removeEventListener('abort', onAbort);
-      ws.off('open', onOpen);
-      ws.off('error', onError);
-    };
-    const rejectWithCleanup = (error: unknown) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      ws.once('error', () => {});
-      try {
-        ws.terminate();
-      } catch {
-        try {
-          ws.close();
-        } catch {
-          // best-effort
-        }
-      }
-      reject(error);
-    };
-    const onOpen = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(ws);
-    };
-    const onError = (error: Error) => {
-      rejectWithCleanup(error);
-    };
-    const onAbort = () =>
-      rejectWithCleanup(
-        abortSignal.reason ?? new Error('WebSocket connection aborted'),
-      );
-
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-  });
 }
 
 function restoreColdACPSession({
@@ -1779,7 +1651,8 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
-            ...(model == null ? {} : { model, modelMapping }),
+            ...(model == null ? {} : { model }),
+            modelMapping,
             ...(options.responseFormat == null
               ? {}
               : { responseFormat: options.responseFormat }),
@@ -1849,10 +1722,8 @@ function createSession({
             permissionModeMapping: turnStartConfig.permissionModeMapping,
             ...(turnStartConfig.model == null
               ? {}
-              : {
-                  model: turnStartConfig.model,
-                  modelMapping: turnStartConfig.modelMapping,
-                }),
+              : { model: turnStartConfig.model }),
+            modelMapping,
             ...(turnStartConfig.responseFormat == null
               ? {}
               : { responseFormat: turnStartConfig.responseFormat }),

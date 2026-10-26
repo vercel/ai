@@ -1,5 +1,27 @@
 # @ai-sdk/vue
 
+## 4.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 4.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
 ## 4.0.150
 
 ### Patch Changes

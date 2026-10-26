@@ -1,5 +1,25 @@
 # @ai-sdk/code-mode
 
+## 1.0.110
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 1.0.109
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.108
+
+### Patch Changes
+
+- ai@7.0.151
+
 ## 1.0.107
 
 ### Patch Changes
