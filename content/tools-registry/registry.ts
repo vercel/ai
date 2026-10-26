@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'arcmira',
+    name: 'Arcmira: YouTube Transcript Search',
+    description:
+      'Search indexed YouTube and podcast transcripts for timestamped passages, quotes and mentions. Resolve people and channels, then return source-linked passages for research and clip discovery.',
+    packageName: '@arcmira/ai-sdk',
+    tags: ['search', 'youtube', 'transcripts', 'podcasts'],
+    apiKeyEnvName: 'ARCMIRA_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @arcmira/ai-sdk',
+      npm: 'npm install @arcmira/ai-sdk',
+      yarn: 'yarn add @arcmira/ai-sdk',
+      bun: 'bun add @arcmira/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createArcmiraTools } from '@arcmira/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: createArcmiraTools({ apiKey: process.env.ARCMIRA_API_KEY }),
+  prompt:
+    'Find three passages about vibe coding from indexed YouTube videos. Include the quote, channel, video title and timestamped source link for each.',
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://arcmira.github.io/integrations/ai-sdk/',
+    apiKeyUrl: 'https://arcmira.com/docs/authentication',
+    websiteUrl: 'https://arcmira.com',
+    npmUrl: 'https://www.npmjs.com/package/@arcmira/ai-sdk',
+  },
 ];
