@@ -89,7 +89,8 @@ class ProtocolDiscoveryTransport implements MCPTransport {
       | 'modern'
       | 'legacy'
       | 'silent'
-      | 'unsupported' = 'modern',
+      | 'unsupported'
+      | 'unsupported-negotiable' = 'modern',
     private readonly includeToolListResultType = true,
   ) {}
 
@@ -134,6 +135,22 @@ class ProtocolDiscoveryTransport implements MCPTransport {
             data: {
               requested: LATEST_PROTOCOL_VERSION,
               supported: ['2099-01-01'],
+            },
+          },
+        });
+        return;
+      }
+
+      if (this.discoveryBehavior === 'unsupported-negotiable') {
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: {
+            code: -32022,
+            message: 'Unsupported protocol version',
+            data: {
+              requested: LATEST_PROTOCOL_VERSION,
+              supported: ['2025-06-18', '2025-11-25'],
             },
           },
         });
@@ -3441,6 +3458,35 @@ describe('MCPClient', () => {
           'method' in message ? message.method : undefined,
         ),
       ).toEqual(['server/discover']);
+    });
+
+    it('should fall back to initialize when discovery returns -32022 with a supported version', async () => {
+      const transport = new ProtocolDiscoveryTransport(
+        'unsupported-negotiable',
+      );
+
+      client = await createMCPClient({ transport });
+      await client.listTools();
+
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual([
+        'server/discover',
+        'initialize',
+        'notifications/initialized',
+        'tools/list',
+      ]);
+
+      const initializeRequest = transport.sentMessages.find(
+        message => 'method' in message && message.method === 'initialize',
+      );
+      expect(
+        initializeRequest != null && 'params' in initializeRequest
+          ? initializeRequest.params?.protocolVersion
+          : undefined,
+      ).toBe('2025-11-25');
     });
 
     it('should require resultType from modern servers', async () => {
