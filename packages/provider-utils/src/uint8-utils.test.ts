@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
@@ -27,6 +27,63 @@ describe('convertUint8ArrayToBase64', () => {
 
     expect(result).toHaveLength(bytes.length);
     expect(result.every((byte, index) => byte === bytes[index])).toBe(true);
+  });
+
+  it('encodes a subarray with a nonzero byte offset', () => {
+    const bytes = new Uint8Array([0, 72, 101, 108, 108, 111, 0]).subarray(1, 6);
+
+    expect(convertUint8ArrayToBase64(bytes)).toBe('SGVsbG8=');
+  });
+
+  it('round-trips all byte values', () => {
+    const bytes = createBytes(256);
+
+    expect(convertBase64ToUint8Array(convertUint8ArrayToBase64(bytes))).toEqual(
+      bytes,
+    );
+  });
+
+  describe('when Buffer is available', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('encodes with Buffer without copying the input', () => {
+      const from = vi.spyOn(globalThis.Buffer, 'from');
+      const bytes = createBytes(10).subarray(2, 8);
+
+      convertUint8ArrayToBase64(bytes);
+
+      expect(from).toHaveBeenCalledWith(bytes.buffer, 2, 6);
+    });
+  });
+
+  describe('when Buffer is unavailable', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('encodes with the chunked fallback', () => {
+      const bytes = createBytes(10_000).subarray(3);
+      const expected = convertUint8ArrayToBase64(bytes);
+      vi.stubGlobal('Buffer', undefined);
+
+      expect(convertUint8ArrayToBase64(new Uint8Array())).toBe('');
+      expect(
+        convertUint8ArrayToBase64(
+          new Uint8Array([0, 72, 101, 108, 108, 111, 0]).subarray(1, 6),
+        ),
+      ).toBe('SGVsbG8=');
+      expect(convertUint8ArrayToBase64(bytes)).toBe(expected);
+    });
+
+    it('encodes with the chunked fallback when Buffer has no from function', () => {
+      vi.stubGlobal('Buffer', {});
+
+      expect(
+        convertUint8ArrayToBase64(new Uint8Array([72, 101, 108, 108, 111])),
+      ).toBe('SGVsbG8=');
+    });
   });
 });
 
