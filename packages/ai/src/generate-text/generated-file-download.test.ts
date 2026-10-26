@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { createDownload } from '../util/download/create-download';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
 
@@ -149,4 +150,82 @@ describe('generated file downloads', () => {
       else await settled;
     },
   );
+
+  describe('experimental_download', () => {
+    it.each(['generate', 'stream'] as const)(
+      'downloads %s file URLs through the configured download function instead of global fetch',
+      async mode => {
+        const fetch = vi.fn();
+        vi.stubGlobal('fetch', fetch);
+        const download = vi.fn(async (requests: Array<{ url: URL }>) =>
+          requests.map(() => ({
+            data: new TextEncoder().encode('Hello World'),
+            mediaType: 'text/plain',
+          })),
+        );
+
+        const options = {
+          model: createModel(),
+          prompt: 'image',
+          experimental_download: download,
+        };
+        const files =
+          mode === 'generate'
+            ? (await generateText(options)).files
+            : await streamText(options).files;
+
+        expect(files[0].uint8Array).toEqual(
+          new TextEncoder().encode('Hello World'),
+        );
+        // The prompt has no URLs, so its batch is empty.
+        expect(download.mock.calls).toEqual([
+          [[]],
+          [
+            [
+              {
+                url: new URL('https://example.com/generated.txt'),
+                isUrlSupportedByModel: false,
+              },
+            ],
+          ],
+        ]);
+        expect(fetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('uses the fetch transport of createDownload for generated file URLs', async () => {
+      const globalFetch = vi.fn();
+      vi.stubGlobal('fetch', globalFetch);
+      const fetch = vi.fn(async () => new Response('Hello World'));
+
+      const result = await generateText({
+        model: createModel(),
+        prompt: 'image',
+        experimental_download: createDownload({ fetch }),
+      });
+
+      expect(result.files[0].uint8Array).toEqual(
+        new TextEncoder().encode('Hello World'),
+      );
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(
+        'https://example.com/generated.txt',
+        expect.objectContaining({ redirect: 'manual' }),
+      );
+      expect(globalFetch).not.toHaveBeenCalled();
+    });
+
+    it('rejects a null result for a generated file URL', async () => {
+      await expect(
+        generateText({
+          model: createModel(),
+          prompt: 'image',
+          experimental_download: async requests => requests.map(() => null),
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_DownloadError',
+        url: 'https://example.com/generated.txt',
+        message: expect.stringContaining('returned null'),
+      });
+    });
+  });
 });

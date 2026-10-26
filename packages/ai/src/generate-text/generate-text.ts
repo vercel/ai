@@ -392,9 +392,12 @@ export async function generateText<
     experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
-     * Custom download function to use for URLs.
+     * Custom download function to use for URLs in the prompt and for
+     * generated file URLs returned by the model.
      *
-     * By default, files are downloaded if the model does not support the URL for the given media type.
+     * By default, prompt files are downloaded if the model does not support
+     * the URL for the given media type. Generated file URLs are always
+     * downloaded; returning `null` for them is an error.
      */
     experimental_download?: DownloadFunction | undefined;
 
@@ -1136,6 +1139,7 @@ export async function generateText<
                 toolApprovalRequests: [],
                 toolApprovalResponses: [],
                 tools,
+                download,
                 abortSignal: mergedAbortSignal,
                 generatedFileDataCache,
               });
@@ -1467,6 +1471,7 @@ export async function generateText<
                 toolApprovalRequests: Object.values(toolApprovalRequests),
                 toolApprovalResponses,
                 tools,
+                download,
                 abortSignal: mergedAbortSignal,
                 generatedFileDataCache,
               });

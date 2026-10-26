@@ -227,18 +227,14 @@ try {
 }
 ```
 
-Generated file URLs returned by `generateText` and `streamText` use the global
-fetch; they do not use the provider's fetch or the input download hook. To cover
-those downloads, install the guarded transport at application startup:
+`experimental_download` also handles generated file URLs returned by the model
+(for example image URLs from an image-generation response), so the same hook
+covers both prompt downloads and generated-file downloads. Without it, those
+downloads use the runtime's global fetch.
 
-```ts
-const fetch = createGuardedFetch();
-globalThis.fetch = fetch;
-// Reuse it for the process lifetime and await fetch.close() during shutdown.
-```
-
-This also affects other libraries using global fetch. It replaces runtime or
-framework fetch behavior, so use network egress controls if that is unsuitable.
+Do not replace `globalThis.fetch` with the guarded transport: it rejects
+automatic redirects and private addresses for every library in the process,
+including framework-internal requests.
 
 URLs passed through to a model are fetched by that service and are outside the
 local transport's control. Custom tools and other application fetches also need
