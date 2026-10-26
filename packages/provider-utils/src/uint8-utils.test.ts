@@ -56,6 +56,14 @@ describe('convertUint8ArrayToBase64', () => {
 
       expect(from).toHaveBeenCalledWith(bytes.buffer, 2, 6);
     });
+
+    it('throws for a Uint8Array backed by a detached ArrayBuffer', () => {
+      const buffer = new ArrayBuffer(8);
+      const bytes = new Uint8Array(buffer);
+      structuredClone(buffer, { transfer: [buffer] });
+
+      expect(() => convertUint8ArrayToBase64(bytes)).toThrow(TypeError);
+    });
   });
 
   describe('when Buffer is unavailable', () => {
