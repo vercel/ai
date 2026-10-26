@@ -144,12 +144,13 @@ download and polling helpers, including `downloadBlob`. Otherwise applications
 cannot apply their chosen transport to those requests. Pass the underlying
 configured transport, not an API wrapper that adds credentials to every request;
 the URL helpers must remain in control of which origins receive credentials.
-Core file downloads have separate hooks; `createDownload({ fetch })` can be used
-directly or adapted to `experimental_download`.
+Core file downloads (prompt files, generated files, transcription audio, and
+video results) go through `createDownload({ fetch })`, which users pass as the
+`download` or `experimental_download` option.
 
-The optional package may depend on `provider-utils`; core and providers must not
-import it or depend on Undici for the default download path. The user-facing
-configuration and limitations live in
+Core and providers must not import `guarded-fetch` or depend on Undici for the
+default download path; the transport is the application's choice. The
+user-facing configuration and limitations live in
 [Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).
 
 ## Settings inserted into generated hostnames
