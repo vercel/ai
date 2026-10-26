@@ -689,6 +689,37 @@ The code interpreter tool can be configured with:
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
 
+#### Tool Search Tool
+
+The Azure OpenAI provider supports [tool search](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/tool-search) through the `azure.tools.toolSearch` tool.
+Tool search lets the model load deferred tools only when it needs them. It requires `gpt-5.4` or later.
+Mark the tools to defer with `deferLoading: true`:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: azure('gpt-6.1-sol'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: stepCountIs(5),
+  tools: {
+    toolSearch: azure.tools.toolSearch(),
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 64 }),
+      providerOptions: {
+        azure: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+`azure.tools.toolSearch` accepts the same options as [`openai.tools.toolSearch`](/providers/ai-sdk-providers/openai#tool-search), including client-executed tool search and namespaces.
+
 #### PDF support
 
 The Azure OpenAI provider supports reading PDF files.
