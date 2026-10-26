@@ -75,6 +75,7 @@ export async function POST(req: Request) {
           });
 
           const compacted = await compactMessages({
+            strategy: 'summarize',
             // Remove prior scratch reasoning before summarizing the conversation.
             messages: pruneMessages({ messages, reasoning: 'all' }),
             checkpoint,

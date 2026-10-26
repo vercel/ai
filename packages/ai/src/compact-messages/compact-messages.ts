@@ -177,7 +177,7 @@ export async function compactMessages(
 
     abortSignal?.throwIfAborted();
     const result =
-      options.strategy !== undefined
+      typeof options.strategy === 'function'
         ? await options.strategy([...messages], strategyContext)
         : await defaultCompaction(options, strategyContext, {
             measureCandidate,
@@ -194,7 +194,7 @@ export async function compactMessages(
     }
     await validateCheckpoint(result.messages, result.checkpoint);
     if (
-      options.strategy !== undefined &&
+      typeof options.strategy === 'function' &&
       result.checkpoint !== undefined &&
       (options.checkpoint === undefined ||
         result.checkpoint.version !== options.checkpoint.version ||
@@ -247,7 +247,7 @@ export async function compactMessages(
         // input calibration even when the custom result changes the history.
         inputTokensAfter = measureCandidate(
           result.messages,
-          options.strategy === undefined && summarized && compacted,
+          options.strategy === 'summarize' && summarized && compacted,
         );
       } catch (error) {
         if (
@@ -280,7 +280,7 @@ export async function compactMessages(
       originalMessages.has(serializeMessages([message])),
     );
     if (
-      options.strategy !== undefined &&
+      typeof options.strategy === 'function' &&
       measurement === 'estimated' &&
       inputTokensAfter !== undefined &&
       (result.measurement === undefined || onlyRetainedMessages)
@@ -395,8 +395,9 @@ function validateOptions(options: CompactMessagesOptions): void {
   ) {
     invalid('maxRecentTokens and oversizedUserMessage require a token target.');
   }
-  if (strategy !== undefined) {
-    if (typeof strategy !== 'function') invalid('strategy must be a function.');
+  if (strategy !== 'summarize' && typeof strategy !== 'function')
+    invalid('strategy must be "summarize" or a custom strategy function.');
+  if (typeof strategy === 'function') {
     for (const key of [
       'keepRecentMessages',
       'maxRecentTokens',

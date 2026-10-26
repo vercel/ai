@@ -89,7 +89,8 @@ export type CompactMessagesOptions = SharedCompactionOptions &
   CompactionBudget &
   (
     | ({
-        strategy?: never;
+        /** Explicitly select the built-in history summarization strategy. */
+        strategy: 'summarize';
         keepRecentMessages?: number;
         maxToolResultCharacters?: number;
       } & (
