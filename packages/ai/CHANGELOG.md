@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- c8e8866: Add `aiVersion` to telemetry events so tracing-channel subscribers and telemetry integrations can identify the emitting `ai` package version, including in bundled applications and applications with multiple SDK versions.
+- 1cf95c6: add experimental steering to generateText, streamText and ToolLoopAgent
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/gateway@4.0.127
+
 ## 7.0.153
 
 ### Patch Changes

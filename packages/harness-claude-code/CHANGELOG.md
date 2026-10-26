@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.169
+
+### Patch Changes
+
+- 39aae54: fix(harness): ensure harness adapters always resolve the model used
+- a15b2a9: add onDebug setting to observe bridge connection events
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
 ## 1.0.168
 
 ### Patch Changes
