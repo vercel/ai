@@ -31,6 +31,16 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
       language: z.string().optional(),
 
       /**
+       * An optional array of language codes to guide transcription.
+       */
+      languages: z.array(z.string()).optional(),
+
+      /**
+       * An optional array of keywords to guide transcription context.
+       */
+      keywords: z.array(z.string()).optional(),
+
+      /**
        * An optional text to guide the model's style or continue a previous audio segment.
        */
       prompt: z.string().optional(),
