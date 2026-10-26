@@ -173,8 +173,21 @@ export async function convertToAmazonBedrockChatMessages(
 
   let documentCounter = 0;
   const generateDocumentName = () => `document-${++documentCounter}`;
-  const getDocumentName = (filename: string | undefined) =>
-    (filename && sanitizeDocumentName(filename)) || generateDocumentName();
+  // Bedrock rejects requests that contain duplicate document names:
+  const usedDocumentNames = new Set<string>();
+  const getDocumentName = (filename: string | undefined) => {
+    const baseName =
+      (filename && sanitizeDocumentName(filename)) || generateDocumentName();
+
+    let name = baseName;
+    for (let suffix = 2; usedDocumentNames.has(name); suffix++) {
+      const suffixText = ` (${suffix})`;
+      name = `${baseName.slice(0, 200 - suffixText.length).trim()}${suffixText}`;
+    }
+
+    usedDocumentNames.add(name);
+    return name;
+  };
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
