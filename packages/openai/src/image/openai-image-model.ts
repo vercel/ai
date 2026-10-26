@@ -15,6 +15,7 @@ import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -28,6 +29,8 @@ import {
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  /** Transport for untrusted file URLs, without provider authentication. */
+  downloadFetch?: FetchFunction;
   imageInputCapabilities?: {
     supportsFileInputs: boolean | undefined;
     supportsMaskInputs: boolean | undefined;
@@ -163,10 +166,20 @@ export class OpenAIImageModel implements ImageModelV4 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url, { abortSignal }),
+                : downloadBlob(file.url, {
+                    abortSignal,
+                    fetch: this.config.downloadFetch ?? this.config.fetch,
+                  }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
+          mask:
+            mask != null
+              ? await fileToBlob(
+                  mask,
+                  abortSignal,
+                  this.config.downloadFetch ?? this.config.fetch,
+                )
+              : undefined,
           n,
           size,
           quality: openaiOptions.quality,
@@ -350,11 +363,12 @@ type OpenAIImageEditInput = {
 async function fileToBlob(
   file: ImageModelV4File | undefined,
   abortSignal: AbortSignal | undefined,
+  fetch: FetchFunction | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url, { abortSignal });
+    return downloadBlob(file.url, { abortSignal, fetch });
   }
 
   const data =

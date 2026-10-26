@@ -1,5 +1,6 @@
 import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
+import type { FetchFunction } from './fetch-function';
 import { fetchUntrustedUrl } from './fetch-untrusted-url';
 import {
   readResponseWithSizeLimit,
@@ -13,18 +14,24 @@ import {
  * @param options - Optional settings for the download.
  * @param options.maxBytes - Maximum allowed download size in bytes. Defaults to 100 MiB.
  * @param options.abortSignal - An optional abort signal to cancel the download.
+ * @param options.fetch - Fetch transport, e.g. guarded-fetch for DNS validation on Node.js.
  * @returns A Promise that resolves to the downloaded Blob.
  *
  * @throws DownloadError if the download fails or exceeds maxBytes.
  */
 export async function downloadBlob(
   url: string,
-  options?: { maxBytes?: number; abortSignal?: AbortSignal },
+  options?: {
+    maxBytes?: number;
+    abortSignal?: AbortSignal;
+    fetch?: FetchFunction;
+  },
 ): Promise<Blob> {
   try {
     const response = await fetchUntrustedUrl({
       url,
       abortSignal: options?.abortSignal,
+      fetch: options?.fetch,
     });
 
     if (!response.ok) {

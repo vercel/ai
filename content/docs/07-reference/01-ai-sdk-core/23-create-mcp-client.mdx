@@ -28,6 +28,16 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
 
 ## API Signature
 
+<Note type="warning">
+  For user-configured remote MCP server URLs, pass a transport from
+  `guarded-fetch` through `transport.fetch` on Node.js unless your application
+  controls the destinations or already enforces equivalent SSRF protection. The
+  built-in HTTP and SSE transports also use this fetch for OAuth requests. Keep
+  redirects disabled and approve server and discovered authorization server
+  destinations before sending credentials. See [Securing remote server
+  URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls).
+</Note>
+
 ### Parameters
 
 <PropertiesTable
@@ -195,7 +205,7 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                       type: 'FetchFunction',
                       isOptional: true,
                       description:
-                        'Optional custom fetch implementation to use for HTTP requests. Useful for runtimes that need a request-local fetch.',
+                        'Optional custom fetch implementation for built-in HTTP/SSE transport and OAuth requests. On Node.js, use guarded-fetch for untrusted server URLs unless equivalent SSRF protection is already enforced. Also useful for runtimes that need a request-local fetch.',
                     },
                   ],
                 },

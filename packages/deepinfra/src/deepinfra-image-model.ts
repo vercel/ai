@@ -114,8 +114,13 @@ export class DeepInfraImageModel implements ImageModelV4 {
           {
             model: this.modelId,
             prompt,
-            image: await Promise.all(files.map(file => fileToBlob(file))),
-            mask: mask != null ? await fileToBlob(mask) : undefined,
+            image: await Promise.all(
+              files.map(file => fileToBlob(file, this.config.fetch)),
+            ),
+            mask:
+              mask != null
+                ? await fileToBlob(mask, this.config.fetch)
+                : undefined,
             n,
             size,
             ...deepInfraOptions,
@@ -228,9 +233,12 @@ type DeepInfraFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
+async function fileToBlob(
+  file: ImageModelV4File,
+  fetch: FetchFunction | undefined,
+): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { fetch });
   }
 
   const data =

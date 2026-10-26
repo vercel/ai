@@ -95,6 +95,7 @@
     "effect": "3.21.3",
     "eventsource": "^4.1.0",
     "google-auth-library": "^9.15.1",
+    "guarded-fetch": "^0.1.6",
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",

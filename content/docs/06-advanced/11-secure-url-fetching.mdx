@@ -1,6 +1,6 @@
 ---
 title: Secure URL Fetching
-description: How the AI SDK protects server-side fetches of URLs returned by model providers, and how to harden your deployment further.
+description: Protect server-side requests to URLs supplied by users, models, tools, and external services.
 ---
 
 # Secure URL Fetching
@@ -13,29 +13,55 @@ able to tamper with the response) could point it at an internal address such as
 a cloud-metadata endpoint (`http://169.254.169.254/…`), a private host
 (`http://10.0.0.5/…`), or `localhost`.
 
-To prevent that, the SDK validates every response-supplied URL before fetching
-it. This happens automatically inside the provider packages — you don't need to
-configure anything.
+The SDK validates response-supplied URLs before fetching them. These automatic
+checks inspect the URL and literal IP addresses; they do not resolve DNS.
+
+**DNS protection is opt-in.** The SDK uses your configured `fetch` or the
+runtime's global `fetch`, including on Node.js. A public-looking hostname can
+still resolve to a private address, and DNS rebinding is not blocked by the
+default transport. For applications that fetch untrusted URLs, use
+[`guarded-fetch`](#opt-in-dns-protection-on-nodejs) on Node.js and/or
+restrict outbound traffic at the network layer. The core SDK does not depend
+on Undici.
 
 For authenticated task-status polling, providers can construct the first URL
 from the configured API endpoint. The SDK trusts that configured origin for the
 initial request, but manually follows and validates every redirect away from it.
 MiniMax, Kling AI, and ByteDance video polling use this protected path.
 
+## When to use a guarded transport
+
+Use `guarded-fetch` on Node.js whenever your server fetches URLs supplied
+by users, models, tools, or external services, unless the destinations are
+controlled by your application or your fetch implementation or network egress
+policy already provides equivalent SSRF protection. This includes prompt image
+and file URLs, remote chat attachments, tool-result files, generated media
+downloads, and user-configured remote MCP servers.
+
+Authentication alone does not make a user-supplied URL trusted. A URL selected
+by a model or extracted from a document is still untrusted input. Trust the
+destination only when your application controls where the request can go. A URL
+syntax check or a separate DNS lookup before calling fetch does not provide
+connection-time DNS protection.
+
+Configure the transport at the request's actual download point: provider
+`fetch` settings apply to provider requests, while [core file
+downloads](#core-file-downloads) use separate hooks. Configure built-in
+[MCP transports](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls) through
+`transport.fetch`; custom tools and transports need their own fetch
+configuration. URLs passed directly to a model provider are fetched by that
+service, outside your server's transport.
+
 ## What the SDK protects against
 
 When the SDK fetches a URL taken from a provider response, it:
 
-- **Rejects private, loopback, and link-local targets** — IPv4 (`10/8`,
+- **Rejects private, loopback, and link-local IP literals** — IPv4 (`10/8`,
   `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, CGNAT, multicast, …) and the
   equivalent IPv6 ranges, plus `localhost`, `.local`, `.localhost`, and
   `.internal` hostnames. Non-`http(s)` schemes are rejected too.
 - **Re-validates every redirect hop** — a URL that passes but then redirects to
   an internal address is blocked; the redirect is never followed blindly.
-- **Validates DNS at connection time on Node.js** — every resolved address is
-  checked, and the socket is pinned to the validated DNS result so DNS
-  rebinding cannot introduce a different address between validation and
-  connection.
 - **Strips risky request headers** — proxy-forwarding, cloud-metadata, and
   cookie headers are removed before the request.
 - **Drops credentials across origins** — caller headers (`Authorization`,
@@ -88,75 +114,149 @@ pass `credentialedOrigin` when fetching response-supplied URLs with credentials.
 
 URLs that are same-origin with the provider endpoint **you configured** (e.g. a
 custom `baseURL` pointing at a self-hosted or `localhost` deployment) are
-exempt from these checks — they target exactly the host you told the SDK to
-talk to. This also applies to task-status polling. Any redirect off that origin
+exempt from the SDK's URL checks — they target exactly the host you told the SDK to
+talk to. When using `createGuardedFetch`, also add that origin to its
+`trustedOrigins` option to allow private addresses. This also applies to task-status polling. Any redirect off that origin
 is still validated before the redirected request is sent.
 
-## DNS validation across runtimes
+## Opt-in DNS protection on Node.js
 
-On Node.js, the default validated download fetch uses `node:dns` and an
-`undici` connector hook to validate every resolved address at connection time.
-The connector uses those exact results, closing both hostname-to-private-IP and
-DNS-rebinding bypasses.
+Install the optional transport:
 
-Wrapping or replacing global `fetch` does not disable this protection: the
-default Node.js download transport is independent of global `fetch`.
-
-Bun, Deno, Cloudflare Workers, and framework edge runtimes use their platform
-fetch, even when they expose a Node-compatible `process` object.
-
-If you explicitly inject a custom `fetch`, it is responsible for equivalent DNS
-validation and connection pinning. Other runtimes do not expose Node's
-DNS/socket hooks, so server deployments on those runtimes should restrict
-network egress to private, loopback, link-local, and cloud-metadata ranges.
-
-## Hardening your deployment
-
-If your server fetches provider-supplied URLs and you want to close the DNS
-gaps, use one (ideally both) of these:
-
-### 1. Restrict outbound egress at the network layer
-
-Deny your server's network egress to `169.254.0.0/16`, RFC-1918 ranges, and
-loopback. This is the most robust control and is independent of application
-code.
-
-### 2. Harden an injected `fetch`
-
-The Node.js default is already pinned. If you explicitly inject a custom
-`fetch`, back it with an `undici`
-`Agent` whose `connect.lookup` validates the resolved IP and lets the socket
-connect only to a safe address — closing both the hostname-to-private and the
-DNS-rebinding windows:
-
-```ts
-import { Agent, fetch as undiciFetch } from 'undici';
-import { lookup } from 'node:dns';
-
-// Your own check that returns true for private/loopback/link-local addresses.
-declare function isUnsafeAddress(ip: string): boolean;
-
-const safeLookup: typeof lookup = (hostname, options, callback) => {
-  lookup(hostname, options as any, (err, address, family) => {
-    if (!err && typeof address === 'string' && isUnsafeAddress(address)) {
-      callback(new Error(`Refusing to connect to ${address}`), '', 0);
-      return;
-    }
-    (callback as any)(err, address, family);
-  });
-};
-
-const safeDispatcher = new Agent({ connect: { lookup: safeLookup } });
-
-const safeFetch: typeof fetch = (input, init) =>
-  undiciFetch(input, { ...init, dispatcher: safeDispatcher }) as any;
+```sh
+npm install guarded-fetch
 ```
+
+Pass it to providers that fetch untrusted URLs:
 
 ```ts
 import { createFal } from '@ai-sdk/fal';
+import { createGuardedFetch } from 'guarded-fetch';
+import { generateImage } from 'ai';
 
-const fal = createFal({ fetch: safeFetch });
+const fetch = createGuardedFetch();
+const fal = createFal({ fetch });
+
+try {
+  const result = await generateImage({
+    model: fal.image('fal-ai/flux/schnell'),
+    prompt: 'A blue cat in Kyoto',
+  });
+  console.log(result.images);
+} finally {
+  await fetch.close();
+}
 ```
 
-The SDK's URL validation and your custom fetch's connect-time pinning are
-complementary — keep both.
+The transport checks every IPv4 and IPv6 address returned by DNS inside the
+connector. If any result falls in a range rejected by the SDK's URL validator,
+it rejects the request. The connector uses those same checked results to open
+the socket, preventing a second DNS resolution between checking and connecting.
+It also validates literal-IP URLs, which do not invoke DNS lookup.
+
+`createGuardedFetch()` returns a fetch function with a `close(): Promise<void>`
+method. Reuse one instance across requests and close it at application shutdown,
+after consuming or cancelling all response bodies. The example closes it after
+one operation. It uses its own Undici fetch and agents; global fetch wrappers,
+framework fetch caching, and global dispatcher configuration do not apply.
+
+Automatic redirects are disabled: `redirect: 'follow'` (including the fetch
+default) is treated as `'error'`. The SDK's download helpers use `'manual'` and
+validate each redirect hop. When calling the transport directly, use
+`fetchUntrustedUrl({ url, fetch })` for the SDK's redirect handling and header
+sanitization. The transport alone does not isolate credentials or limit response
+sizes.
+
+This package requires Node.js 20.19 or later. It is not intended for browsers,
+Bun, Deno, Cloudflare Workers, or framework edge runtimes. Use a transport
+supported by your runtime or enforce network egress restrictions there.
+
+### Trusted private endpoints
+
+When connecting to a configured private provider, explicitly allow its origin:
+
+```ts
+const baseURL = 'http://127.0.0.1:8000';
+const fetch = createGuardedFetch({ trustedOrigins: [baseURL] });
+```
+
+Only exact origins (scheme, hostname, and port) match; paths in entries are
+ignored. Every path on a trusted origin bypasses both URL target and DNS
+validation. This option does not allow other subdomains, ports, or redirect
+destinations. Never derive it from provider responses, model output, or user
+input. The provider's `baseURL` alone does not configure the transport's trusted
+origins.
+
+### Core file downloads
+
+A provider's `fetch` option applies to requests made by that provider. Core file
+downloads have separate hooks. For transcription and video downloads, use
+`download: createDownload({ fetch })`. For `generateText` and `streamText`, adapt
+it to the batch `experimental_download` hook:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { createGuardedFetch } from 'guarded-fetch';
+import { createDownload, generateText } from 'ai';
+
+const fetch = createGuardedFetch();
+const openai = createOpenAI({ fetch });
+const download = createDownload({ fetch, maxBytes: 20 * 1024 * 1024 });
+
+try {
+  const result = await generateText({
+    model: openai('gpt-4.1'),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://example.com/report.pdf'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ],
+    experimental_download: requests =>
+      Promise.all(
+        requests.map(({ url, isUrlSupportedByModel }) =>
+          isUrlSupportedByModel ? null : download({ url }),
+        ),
+      ),
+  });
+  console.log(result.text);
+} finally {
+  await fetch.close();
+}
+```
+
+Generated file URLs returned by `generateText` and `streamText` use the global
+fetch; they do not use the provider's fetch or the input download hook. To cover
+those downloads, install the guarded transport at application startup:
+
+```ts
+const fetch = createGuardedFetch();
+globalThis.fetch = fetch;
+// Reuse it for the process lifetime and await fetch.close() during shutdown.
+```
+
+This also affects other libraries using global fetch. It replaces runtime or
+framework fetch behavior, so use network egress controls if that is unsuitable.
+
+URLs passed through to a model are fetched by that service and are outside the
+local transport's control. Custom tools and other application fetches also need
+their own transport configuration.
+
+## Restrict outbound egress at the network layer
+
+Network egress controls are the broadest protection: they cover requests made by
+all libraries and runtimes. Enforce them at the workload's network boundary,
+such as an outbound proxy, firewall, or container/network policy. Block access
+to private, loopback, link-local, and cloud-metadata destinations over both IPv4
+and IPv6, except explicitly required internal services. An inbound web
+application firewall does not control outbound requests.
+
+The SDK's URL checks and an optional guarded transport provide additional
+application-level controls. They cannot enforce your deployment's routing,
+proxy behavior, or organization-specific definition of a private network.

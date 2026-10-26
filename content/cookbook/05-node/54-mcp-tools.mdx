@@ -8,6 +8,15 @@ tags: ['node', 'tool use', 'agent', 'mcp']
 
 The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight client that exposes a `tools` method for retrieving tools from a MCP server. After use, the client should always be closed to release resources.
 
+<Note type="warning">
+  If remote MCP URLs come from users or external configuration, use
+  `guarded-fetch` through the built-in transport's `fetch` option unless your
+  application controls the destinations or already enforces equivalent SSRF
+  protection. The localhost endpoints below are developer-controlled examples;
+  never derive trusted private origins from user input. See [Securing remote
+  server URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls).
+</Note>
+
 If you prefer to use the official transports (optional), install the official Model Context Protocol TypeScript SDK.
 
 <Snippet text="pnpm install @modelcontextprotocol/sdk" />

@@ -1156,6 +1156,17 @@ MAI-Image models use the [MAI image API](#mai-image) instead.
 const model = azure.image('your-dalle-deployment-name');
 ```
 
+<Note type="warning">
+  When Azure image models download remote reference images or masks, protect
+  URLs supplied by users, models, or external services with
+  `createAzure({ fetch: createGuardedFetch() })` on Node.js unless your
+  application controls the destinations or already enforces equivalent SSRF
+  protection. This also applies to MAI-Image reference downloads. Import
+  `createGuardedFetch` from `guarded-fetch`, reuse the transport, and close
+  it at application shutdown. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` when generating the image:
 
 ```ts

@@ -6,6 +6,7 @@ import {
   fetchUntrustedUrl,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from '../../version';
 
@@ -15,6 +16,7 @@ import { VERSION } from '../../version';
  * @param url - The URL to download from.
  * @param maxBytes - Maximum allowed download size in bytes. Defaults to 100 MiB.
  * @param abortSignal - An optional abort signal to cancel the download.
+ * @param fetch - An optional fetch transport.
  * @returns The downloaded data and media type.
  *
  * @throws DownloadError if the download fails or exceeds maxBytes.
@@ -23,10 +25,12 @@ export const download = async ({
   url,
   maxBytes,
   abortSignal,
+  fetch,
 }: {
   url: URL;
   maxBytes?: number;
   abortSignal?: AbortSignal;
+  fetch?: FetchFunction;
 }) => {
   const urlText = url.toString();
   try {
@@ -40,6 +44,7 @@ export const download = async ({
       url: urlText,
       headers,
       abortSignal,
+      fetch,
     });
 
     if (!response.ok) {

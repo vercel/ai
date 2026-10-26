@@ -1206,6 +1206,18 @@ export default function Page() {
 
 You can also send files as objects along with a message. This can be useful for sending pre-uploaded files or data URLs.
 
+<Note type="warning">
+  Treat HTTP(S) attachment URLs received from the client as untrusted, including
+  those submitted by authenticated users. If the server downloads them, use
+  `guarded-fetch` on Node.js unless the destinations are controlled by your
+  application or equivalent SSRF protection is already enforced. Configure the
+  server's `experimental_download` hook on `streamText` or `generateText`, as
+  shown in [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads). The
+  client-side `useChat` fetch option does not protect server-side attachment
+  downloads.
+</Note>
+
 ```tsx filename="app/page.tsx"
 'use client';
 

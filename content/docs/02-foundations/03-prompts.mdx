@@ -262,6 +262,10 @@ const result = await generateText({
 
 ##### Example: Image URL (string)
 
+For untrusted image URLs, configure a [guarded download
+transport](#custom-download-function-experimental) before downloading them on
+your server.
+
 ```ts highlight="8-12"
 const result = await generateText({
   model: __MODEL__,
@@ -306,6 +310,9 @@ User messages can include file parts. A file can be one of the following:
   - `URL` object, e.g. `new URL('https://example.com/some.pdf')`
 
 You need to specify the MIME type of the file you are sending.
+
+The same [URL download protections](#custom-download-function-experimental)
+apply when your server downloads remote file parts.
 
 ##### Example: PDF file from Buffer
 
@@ -357,6 +364,17 @@ const result = await generateText({
 ```
 
 #### Custom Download Function (Experimental)
+
+<Note type="warning">
+  When your server downloads image or file URLs supplied by users, models, or
+  tools, use `guarded-fetch` on Node.js unless your application controls the
+  destinations or already provides equivalent SSRF protection through its fetch
+  implementation or network egress policy. Default URL checks do not resolve
+  DNS. Configure `experimental_download` as shown in [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads); a
+  provider's `fetch` setting alone does not protect core prompt downloads. URLs
+  passed directly to the model are fetched by the provider instead.
+</Note>
 
 You can use custom download functions to implement throttling, retries, authentication, caching, and more.
 

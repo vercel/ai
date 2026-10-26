@@ -114,6 +114,7 @@ describe('google-vertex-provider-base', () => {
         downloadToolResultFiles: {
           maxBytes: 20 * 1024 * 1024,
           supportsGoogleCloudStorageUrls: true,
+          fetch: undefined,
         },
       }),
     );
@@ -535,6 +536,7 @@ describe('google-vertex-provider-base', () => {
         {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
           "downloadToolResultFiles": {
+            "fetch": undefined,
             "maxBytes": 7340032,
             "supportsGoogleCloudStorageUrls": true,
           },
@@ -559,6 +561,7 @@ describe('google-vertex-provider-base', () => {
         {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
           "downloadToolResultFiles": {
+            "fetch": undefined,
             "maxBytes": 7340032,
             "supportsGoogleCloudStorageUrls": true,
           },

@@ -10,6 +10,15 @@ Some language models that support vision capabilities accept images as part of t
 
 ## URL
 
+<Note type="warning">
+  If you replace the example URL with one supplied by a user, model, or external
+  service, protect any server-side download with `guarded-fetch` on Node.js
+  unless your application controls the destination or already enforces
+  equivalent SSRF protection. Configure `experimental_download` as shown in
+  [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+  Provider fetch settings alone do not cover core prompt downloads.
+</Note>
+
 ```ts file='index.ts'
 import { generateText } from 'ai';
 

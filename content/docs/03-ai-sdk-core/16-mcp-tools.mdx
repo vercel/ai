@@ -31,6 +31,45 @@ with `server/discover` and automatically falls back to the legacy
 `initialize` handshake for older servers. Custom transports can opt into this
 negotiation with `supportsProtocolVersionDiscovery: true`.
 
+### Securing remote server URLs
+
+When an application accepts MCP server URLs from users or external configuration,
+use `guarded-fetch` on Node.js unless the destinations are controlled by
+your application or your fetch implementation or network egress policy already
+provides equivalent SSRF protection. Authentication alone does not make a
+user-supplied URL trusted. Rejecting redirects does not prevent a hostname from
+resolving to a private address.
+
+Pass the guarded transport through `transport.fetch` on the built-in HTTP or SSE
+transport. The built-in transports also use that fetch implementation for OAuth
+metadata and token requests:
+
+```ts
+import { createGuardedFetch } from 'guarded-fetch';
+import { createMCPClient } from '@ai-sdk/mcp';
+
+const fetch = createGuardedFetch();
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://mcp.example.com/mcp',
+    fetch,
+    redirect: 'error',
+  },
+});
+
+// Reuse the client and transport. At application shutdown, close the MCP
+// client first, then await fetch.close() after all requests have finished.
+```
+
+Only send credentials to approved server destinations. When using OAuth,
+continue to [validate discovered authorization server URLs](#oauth-authorization-server-validation);
+a guarded transport checks network destinations, not which services may receive
+your credentials. Official SDK and custom transports need equivalent protection
+in their own fetch configuration. See [Secure URL
+Fetching](/docs/advanced/secure-url-fetching) for runtime requirements, private
+endpoint configuration, and network egress controls.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -49,8 +88,8 @@ const mcpClient = await createMCPClient({
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
 
-    // optional: allow redirect responses (default is 'error' to prevent SSRF)
-    redirect: 'follow',
+    // Reject redirects; DNS protection requires a guarded fetch or egress policy.
+    redirect: 'error',
   },
 });
 ```
@@ -135,8 +174,8 @@ const mcpClient = await createMCPClient({
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
 
-    // optional: allow redirect responses (default is 'error' to prevent SSRF)
-    redirect: 'follow',
+    // Reject redirects; DNS protection requires a guarded fetch or egress policy.
+    redirect: 'error',
   },
 });
 ```
