@@ -7,6 +7,9 @@ import { pipeline } from 'node:stream/promises';
 import {
   extractLines,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
 } from '@ai-sdk/provider-utils';
 import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
@@ -67,18 +70,22 @@ export class LocalSandboxSession implements SandboxSession {
     return { exitCode, stdout, stderr };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<never>;
+  spawn(
+    options: SpawnOptionsWithoutStdin,
+  ): Promise<Experimental_SandboxProcess>;
+  spawn(options: SpawnOptions): Promise<Experimental_SandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
+    if (stdin === true) {
+      throw new Error('LocalSandboxSession does not support writable stdin.');
+    }
 
     if (env != null && Object.keys(env).length > 0) {
       throw new Error('LocalSandboxSession does not support the `env` option.');
