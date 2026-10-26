@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.77
+
+### Patch Changes
+
+- 14d4542: support low and max reasoning effort for GLM-5.3 models
+
 ## 3.0.76
 
 ### Patch Changes
