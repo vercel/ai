@@ -24,7 +24,7 @@ export function getOpenAILanguageModelCapabilities(
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
-  const supportsNoneReasoningEffort =
+  const isGpt6OrLaterModelWithNoneEffort =
     modelId === 'gpt-6-sol' ||
     modelId === 'gpt-6-luna' ||
     modelId === 'gpt-6.1-terra';
@@ -51,7 +51,7 @@ export function getOpenAILanguageModelCapabilities(
   // GPT-5.1 through GPT-5.x, GPT-6 Sol/Luna, and GPT-6.1 Terra support
   // temperature, topP, and logProbs when reasoningEffort is none.
   const supportsNonReasoningParameters =
-    supportsNoneReasoningEffort ||
+    isGpt6OrLaterModelWithNoneEffort ||
     (!isGpt6OrLaterModel &&
       gptVersion != null &&
       (gptVersion.major > 5 ||
@@ -64,7 +64,7 @@ export function getOpenAILanguageModelCapabilities(
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
     supportsAsyncToolCalling: isGpt6OrLaterModel,
-    supportedReasoningEfforts: supportsNoneReasoningEffort
+    supportedReasoningEfforts: isGpt6OrLaterModelWithNoneEffort
       ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       : isGpt6OrLaterModel
         ? ['low', 'medium', 'high', 'xhigh', 'max']
