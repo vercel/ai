@@ -105,6 +105,17 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Maximum milliseconds Claude waits for an answer to an `AskUserQuestion`
+   * question before the question fails. Unset means the Claude Code default.
+   */
+  readonly questionTimeoutMs?: number;
+  /**
+   * Moves per-session sections (working directory, memory, git status) out of
+   * the Claude Code system prompt and into the first user message, so the
+   * system prompt can be cached across sessions.
+   */
+  readonly excludeDynamicSections?: boolean;
+  /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
    */
@@ -1058,6 +1069,8 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            questionTimeoutMs: settings.questionTimeoutMs,
+            excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1228,6 +1241,8 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        questionTimeoutMs: settings.questionTimeoutMs,
+        excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1266,6 +1281,8 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  questionTimeoutMs,
+  excludeDynamicSections,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1293,6 +1310,8 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  questionTimeoutMs: number | undefined;
+  excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1570,6 +1589,10 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+        ...(excludeDynamicSections !== undefined
+          ? { excludeDynamicSections }
+          : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1641,6 +1664,10 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+          ...(excludeDynamicSections !== undefined
+            ? { excludeDynamicSections }
+            : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),

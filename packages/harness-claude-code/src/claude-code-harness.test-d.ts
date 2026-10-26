@@ -101,6 +101,20 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
+  test('createClaudeCode accepts question timeout and dynamic section settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.questionTimeoutMs).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(settings.excludeDynamicSections).toEqualTypeOf<
+      boolean | undefined
+    >();
+  });
+
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
     const settings: ClaudeCodeHarnessSettings = {
       reconnect: {

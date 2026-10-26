@@ -91,6 +91,22 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
+  it('keeps the question timeout and excludeDynamicSections on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        questionTimeoutMs: 600_000,
+        excludeDynamicSections: true,
+      }),
+    ).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+  });
+
   it('accepts a start message', () => {
     expect(() =>
       inboundMessageSchema.parse({

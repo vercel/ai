@@ -106,6 +106,12 @@ Settings:
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `maxTurns`: maximum internal turns before yielding.
+- `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
+  to an `AskUserQuestion` question before the question fails. Defaults to the
+  Claude Code default.
+- `excludeDynamicSections`: moves per-session sections (working directory,
+  memory, git status) out of the Claude Code system prompt into the first user
+  message, so the system prompt can be cached across sessions.
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
