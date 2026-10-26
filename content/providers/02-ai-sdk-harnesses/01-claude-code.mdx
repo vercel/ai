@@ -125,6 +125,11 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
+- `onDebug`: callback for bridge connection lifecycle events:
+  `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
+  means the connection is closed for good, so a host that caches idle sessions
+  can detach and reattach before sending the next prompt. The `cause` of a
+  failed reconnect can contain connection details, so avoid logging it as is.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
