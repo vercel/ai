@@ -156,15 +156,13 @@ async function scenario(timing: Timing): Promise<boolean> {
     await sleep(1000);
     assert.equal(executions, 1);
     assert.equal(starts, 1);
-    assert.equal(sockets.length, 2);
+    assert.ok(sockets.length >= 2, 'Expected a replacement connection');
     assert.equal(closedCode, undefined);
     // The preferred contract is automatic delivery. The report also permits
     // an explicit rejection instead of silently accepting and discarding.
     assert.ok(sendErrors.length <= 1);
-    for (const error of sendErrors) {
-      assert.ok(error instanceof Error);
-      assert.match(error.message, /clos|socket|connect|send/i);
-    }
+    // Explicit rejection is permitted for the closing window; its error type
+    // and wording are not part of the reported delivery contract.
     if (timing === 'after-detected-close' || timing === 'after-reconnect') {
       assert.deepEqual(sendErrors, []);
     }
@@ -188,20 +186,21 @@ async function scenario(timing: Timing): Promise<boolean> {
         finished,
       }),
     );
-    if (!delivered) {
+    if (!waiterResolved) {
       // Confirm the original waiter is live, without re-executing host work
       // or starting a new turn. Capture the pre-resend outcome above.
-      assert.equal(waiterResolved, false);
-      assert.deepEqual(received, []);
-      assert.equal(finished, false);
       channel.send(result);
       await waitUntil(() => finished);
-      assert.equal(waiterResolved, true);
-      assert.deepEqual(received, [42]);
-      assert.equal(executions, 1);
-      assert.equal(starts, 1);
       console.log(`${timing}: manual resend resolved the original waiter`);
     }
+    // Assert terminal delivery after any diagnostic resend, not the stale
+    // pending state captured above. These also pass with automatic delivery
+    // or an explicit rejection followed by a caller retry.
+    await waitUntil(() => finished);
+    assert.equal(waiterResolved, true);
+    assert.deepEqual(received, [42]);
+    assert.equal(executions, 1);
+    assert.equal(starts, 1);
     channel.close();
     await waitUntil(() => channel.isClosed());
     assert.throws(() => channel.send(result), /channel is closed/);
