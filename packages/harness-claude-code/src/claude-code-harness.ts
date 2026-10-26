@@ -109,11 +109,6 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxBudgetUsd?: number;
   /**
-   * Absolute paths of directories Claude can access in addition to the session
-   * working directory.
-   */
-  readonly additionalDirectories?: ReadonlyArray<string>;
-  /**
    * Only use the MCP servers configured with `mcpServers`, and ignore any other
    * MCP configuration such as a project `.mcp.json` or user settings.
    */
@@ -1064,7 +1059,6 @@ export function createClaudeCode(
             proc: undefined,
             maxTurns: settings.maxTurns,
             maxBudgetUsd: settings.maxBudgetUsd,
-            additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
@@ -1236,7 +1230,6 @@ export function createClaudeCode(
         proc,
         maxTurns: settings.maxTurns,
         maxBudgetUsd: settings.maxBudgetUsd,
-        additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
@@ -1277,7 +1270,6 @@ function createSession({
   proc,
   maxTurns,
   maxBudgetUsd,
-  additionalDirectories,
   strictMcpConfig,
   agentProgressSummaries,
   forwardSubagentText,
@@ -1307,7 +1299,6 @@ function createSession({
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
   maxBudgetUsd: number | undefined;
-  additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
@@ -1587,9 +1578,6 @@ function createSession({
         model: promptOpts.model,
         maxTurns,
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
-        ...(additionalDirectories !== undefined
-          ? { additionalDirectories: [...additionalDirectories] }
-          : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
@@ -1663,9 +1651,6 @@ function createSession({
           model: continueOpts.model,
           maxTurns,
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
-          ...(additionalDirectories !== undefined
-            ? { additionalDirectories: [...additionalDirectories] }
-            : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }

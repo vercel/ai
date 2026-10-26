@@ -1170,9 +1170,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends additional directories, strict MCP config, and the budget limit to the bridge', async () => {
+  it('sends strict MCP config and the budget limit to the bridge', async () => {
     const harness = createClaudeCode({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1194,7 +1193,6 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1345,9 +1343,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends additional directories, strict MCP config, and the budget limit when rerunning a continued turn', async () => {
+  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
     const harness = createClaudeCode({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1374,7 +1371,6 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
       continue: true,
@@ -1383,9 +1379,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends additional directories, strict MCP config, and the budget limit after attaching', async () => {
+  it('sends strict MCP config and the budget limit after attaching', async () => {
     const harness = createClaudeCode({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1415,7 +1410,6 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });

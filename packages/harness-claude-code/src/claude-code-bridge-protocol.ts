@@ -38,7 +38,6 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
   maxBudgetUsd: z.number().optional(),
-  additionalDirectories: z.array(z.string()).optional(),
   strictMcpConfig: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),
   forwardSubagentText: z.boolean().optional(),

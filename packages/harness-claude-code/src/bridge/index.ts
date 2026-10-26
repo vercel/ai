@@ -573,9 +573,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.maxBudgetUsd !== undefined
         ? { maxBudgetUsd: start.maxBudgetUsd }
         : {}),
-      ...(start.additionalDirectories !== undefined
-        ? { additionalDirectories: start.additionalDirectories }
-        : {}),
       ...(start.strictMcpConfig !== undefined
         ? { strictMcpConfig: start.strictMcpConfig }
         : {}),

@@ -91,19 +91,17 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
-  it('keeps additional directories, strict MCP config, and the budget limit on a start message', () => {
+  it('keeps strict MCP config and the budget limit on a start message', () => {
     expect(
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
         tools: [],
         thinking: { type: 'adaptive', display: 'summarized' },
-        additionalDirectories: ['/vercel/sandbox/shared'],
         strictMcpConfig: true,
         maxBudgetUsd: 0.5,
       }),
     ).toMatchObject({
-      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
