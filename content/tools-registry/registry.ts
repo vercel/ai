@@ -768,9 +768,14 @@ console.log(text);`,
     codeExample: `import { generateText, isStepCount } from 'ai';
 import { createArcmiraTools } from '@arcmira/ai-sdk';
 
+const apiKey = process.env.ARCMIRA_API_KEY;
+if (!apiKey) {
+  throw new Error('Set ARCMIRA_API_KEY before running this example.');
+}
+
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
-  tools: createArcmiraTools({ apiKey: process.env.ARCMIRA_API_KEY }),
+  tools: createArcmiraTools({ apiKey }),
   prompt:
     'Find three passages about vibe coding from indexed YouTube videos. Include the quote, channel, video title and timestamped source link for each.',
   stopWhen: isStepCount(3),
