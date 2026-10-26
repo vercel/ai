@@ -13,6 +13,7 @@ import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { experimental_decide as decide } from '../index';
 import { VERSION } from '../version';
+import type { DecisionStatePart } from './decision-state';
 
 const questions = {
   topic: {
@@ -286,6 +287,24 @@ describe('input validation', () => {
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(doDecide).not.toHaveBeenCalled();
   });
+
+  const outOfOrder: DecisionStatePart[] = [];
+  outOfOrder[2] = { type: 'text', text: 'third' };
+  const deleted: DecisionStatePart[] = [
+    { type: 'text', text: 'first' },
+    { type: 'json', value: {} },
+  ];
+  delete deleted[0];
+  it.each([new Array(2), outOfOrder, deleted].map(state => [state]))(
+    'rejects state parts with array holes %j before I/O',
+    async state => {
+      const { model, doDecide } = setup();
+      await expect(
+        decide({ model, state: state as never, questions }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(doDecide).not.toHaveBeenCalled();
+    },
+  );
 
   it('allows repeated JSON references without treating them as cycles', async () => {
     const shared = { text: 'hello' };

@@ -30,7 +30,7 @@ function isSerializableJSON(
   if (ancestors.has(value)) return false;
   ancestors.add(value);
   const valid = Array.isArray(value)
-    ? Array.from({ length: value.length }, (_, index) => index).every(
+    ? Array.from(value.keys()).every(
         index => index in value && isSerializableJSON(value[index], ancestors),
       )
     : Object.values(value).every(item => isSerializableJSON(item, ancestors));
@@ -53,6 +53,13 @@ export function validateDecisionInput({
   state: DecisionState;
   questions: Readonly<Record<string, DecisionQuestion>>;
 }) {
+  if (
+    Array.isArray(state) &&
+    Array.from(state.keys()).some(index => !(index in state))
+  ) {
+    invalidInput('state', state, 'state parts must not contain array holes');
+  }
+
   const stateJSON = Array.isArray(state)
     ? state.flatMap(part => (part.type === 'json' ? [part.value] : []))
     : state;
