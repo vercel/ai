@@ -44,7 +44,7 @@ import {
   type AnthropicStopDetails,
 } from './anthropic-api';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { joinBetasWithOAuthBeta } from './anthropic-oauth-beta';
+import { withOAuthBeta } from './anthropic-oauth-beta';
 import {
   createCitationSource,
   AnthropicLanguageModel,
@@ -461,21 +461,23 @@ export class AnthropicBatch implements BatchV4<{
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    const batchHeaders = normalizeHeaders(await this.getBatchHeaders(headers));
-    return combineHeaders(batchHeaders, {
-      'anthropic-beta': joinBetasWithOAuthBeta(batchHeaders, betas),
-    });
+    const batchHeaders = await this.getBatchHeaders(headers);
+    return withOAuthBeta(
+      batchHeaders,
+      combineHeaders(normalizeHeaders(batchHeaders), {
+        'anthropic-beta':
+          betas.size > 0 ? Array.from(betas).join(',') : undefined,
+      }),
+    );
   }
 
   private async getBatchHeaders(
     headers: Record<string, string | undefined> | undefined,
   ) {
-    return combineHeaders(
-      this.options.config.headers
-        ? await resolve(this.options.config.headers)
-        : undefined,
-      headers,
-    );
+    const configHeaders = this.options.config.headers
+      ? await resolve(this.options.config.headers)
+      : undefined;
+    return withOAuthBeta(configHeaders, combineHeaders(configHeaders, headers));
   }
 }
 

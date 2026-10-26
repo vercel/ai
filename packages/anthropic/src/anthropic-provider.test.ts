@@ -2,8 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   InvalidArgumentError,
+  type LanguageModelV4,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { WORKFLOW_SERIALIZE } from '@ai-sdk/provider-utils';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -230,7 +232,7 @@ describe('anthropic provider - authentication', () => {
     });
 
     it('adds the OAuth beta to file uploads', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
+      const fetchMock = vi.fn().mockImplementation(async () =>
         Response.json({
           id: 'file_123',
           type: 'file',
@@ -250,13 +252,23 @@ describe('anthropic provider - authentication', () => {
         mediaType: 'text/plain',
         providerOptions: {},
       });
+      await provider.files().uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'text/plain',
+        providerOptions: {},
+        headers: { 'Anthropic-Beta': 'upload-beta' },
+      });
 
       const [, requestOptions] = fetchMock.mock.calls[0]!;
+      const [, requestOptionsWithBeta] = fetchMock.mock.calls[1]!;
       expect(requestOptions.headers.authorization).toBe(
         'Bearer test-auth-token',
       );
       expect(requestOptions.headers['anthropic-beta']).toBe(
         'files-api-2025-04-14,oauth-2025-04-20',
+      );
+      expect(requestOptionsWithBeta.headers['anthropic-beta']).toBe(
+        'upload-beta,oauth-2025-04-20',
       );
     });
 
@@ -293,6 +305,7 @@ describe('anthropic provider - authentication', () => {
             options: { prompt: TEST_PROMPT },
           },
         ],
+        headers: { 'anthropic-beta': 'call-beta' },
       });
 
       const [, requestOptions] = fetchMock.mock.calls[0]!;
@@ -446,6 +459,37 @@ describe('anthropic provider - authentication', () => {
       expect(requestOptions.headers['x-api-key']).toBe('env-api-key');
       expect(requestOptions.headers.authorization).toBeUndefined();
       expect(requestOptions.headers['anthropic-beta']).toBeUndefined();
+    });
+  });
+
+  describe('workflow serialization', () => {
+    const serialize = (model: LanguageModelV4) =>
+      (
+        model.constructor as unknown as {
+          [WORKFLOW_SERIALIZE](model: LanguageModelV4): {
+            config: { headers?: Record<string, string> };
+          };
+        }
+      )[WORKFLOW_SERIALIZE](model);
+
+    it('serializes the headers of a static apiKey', () => {
+      const model = createAnthropic({ apiKey: 'test-api-key' })(
+        'claude-3-haiku-20240307',
+      );
+
+      expect(serialize(model).config.headers).toMatchObject({
+        'x-api-key': 'test-api-key',
+      });
+    });
+
+    it('rejects an authToken function', () => {
+      const model = createAnthropic({
+        authToken: async () => 'test-auth-token',
+      })('claude-3-haiku-20240307');
+
+      expect(() => serialize(model)).toThrow(
+        'Cannot serialize asynchronous model options.',
+      );
     });
   });
 

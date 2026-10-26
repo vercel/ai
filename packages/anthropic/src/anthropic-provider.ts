@@ -22,7 +22,7 @@ import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
-import { OAUTH_BETA } from './anthropic-oauth-beta';
+import { appendOAuthBeta } from './anthropic-oauth-beta';
 import { anthropicTools } from './anthropic-tools';
 import {
   createWorkloadIdentityTokenCache,
@@ -202,23 +202,8 @@ export function createAnthropic(
       : () => getWorkloadIdentityToken(workloadIdentitySettings);
   };
 
-  const getHeaders = async () => {
-    const oauthToken = getOAuthToken();
-
-    const authHeaders: Record<string, string> =
-      oauthToken != null
-        ? { Authorization: `Bearer ${await oauthToken()}` }
-        : typeof options.authToken === 'string' && options.authToken !== ''
-          ? { Authorization: `Bearer ${options.authToken}` }
-          : {
-              'x-api-key': loadApiKey({
-                apiKey: options.apiKey,
-                environmentVariableName: 'ANTHROPIC_API_KEY',
-                description: 'Anthropic',
-              }),
-            };
-
-    const headers = withUserAgentSuffix(
+  const createHeaders = (authHeaders: Record<string, string>) =>
+    withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
@@ -227,16 +212,28 @@ export function createAnthropic(
       `ai-sdk-anthropic/${VERSION}`,
     );
 
-    if (
-      oauthToken != null &&
-      !headers['anthropic-beta']?.includes(OAUTH_BETA)
-    ) {
-      headers['anthropic-beta'] = [headers['anthropic-beta'], OAUTH_BETA]
-        .filter(Boolean)
-        .join(',');
+  // Synchronous unless an OAuth token has to be resolved: workflow
+  // serialization resolves the headers synchronously.
+  const getHeaders = () => {
+    const oauthToken = getOAuthToken();
+
+    if (oauthToken != null) {
+      return Promise.resolve(oauthToken()).then(token =>
+        appendOAuthBeta(createHeaders({ Authorization: `Bearer ${token}` })),
+      );
     }
 
-    return headers;
+    return createHeaders(
+      typeof options.authToken === 'string' && options.authToken !== ''
+        ? { Authorization: `Bearer ${options.authToken}` }
+        : {
+            'x-api-key': loadApiKey({
+              apiKey: options.apiKey,
+              environmentVariableName: 'ANTHROPIC_API_KEY',
+              description: 'Anthropic',
+            }),
+          },
+    );
   };
 
   const languageModelConfig = {
