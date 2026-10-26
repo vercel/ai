@@ -570,6 +570,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.maxBudgetUsd !== undefined
+        ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.additionalDirectories !== undefined
+        ? { additionalDirectories: start.additionalDirectories }
+        : {}),
+      ...(start.strictMcpConfig !== undefined
+        ? { strictMcpConfig: start.strictMcpConfig }
+        : {}),
       ...(start.agentProgressSummaries !== undefined
         ? { agentProgressSummaries: start.agentProgressSummaries }
         : {}),

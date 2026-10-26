@@ -104,6 +104,21 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Maximum estimated spend in USD for each Claude query. When it is exceeded,
+   * the query stops and the turn ends with an error. Unset means no limit.
+   */
+  readonly maxBudgetUsd?: number;
+  /**
+   * Absolute paths of directories Claude can access in addition to the session
+   * working directory.
+   */
+  readonly additionalDirectories?: ReadonlyArray<string>;
+  /**
+   * Only use the MCP servers configured with `mcpServers`, and ignore any other
+   * MCP configuration such as a project `.mcp.json` or user settings.
+   */
+  readonly strictMcpConfig?: boolean;
+  /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
    */
@@ -1048,6 +1063,9 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            maxBudgetUsd: settings.maxBudgetUsd,
+            additionalDirectories: settings.additionalDirectories,
+            strictMcpConfig: settings.strictMcpConfig,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1217,6 +1235,9 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        maxBudgetUsd: settings.maxBudgetUsd,
+        additionalDirectories: settings.additionalDirectories,
+        strictMcpConfig: settings.strictMcpConfig,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1255,6 +1276,9 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  maxBudgetUsd,
+  additionalDirectories,
+  strictMcpConfig,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1282,6 +1306,9 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  maxBudgetUsd: number | undefined;
+  additionalDirectories: ReadonlyArray<string> | undefined;
+  strictMcpConfig: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1559,6 +1586,11 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(additionalDirectories !== undefined
+          ? { additionalDirectories: [...additionalDirectories] }
+          : {}),
+        ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1630,6 +1662,11 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(additionalDirectories !== undefined
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
+          ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),
