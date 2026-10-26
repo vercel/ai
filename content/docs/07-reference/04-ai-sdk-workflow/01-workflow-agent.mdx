@@ -56,17 +56,6 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 ## Constructor
 
-<Note type="warning">
-  For server-side downloads of URLs supplied by users, models, or tools, use
-  `guarded-fetch` on Node.js unless the destinations are controlled by your
-  application or equivalent SSRF protection is already enforced. Configure
-  `experimental_download` as a `'use step'` function, creating the guarded
-  transport inside the step instead of passing it across workflow boundaries.
-  Consume the download and close the transport before the step returns. Provider
-  requests and custom tool fetches need separate configuration; see [Secure URL
-  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
-</Note>
-
 ### Parameters
 
 <PropertiesTable
@@ -145,7 +134,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Default custom download function for URLs. Default URL checks do not resolve DNS; use a guarded transport for untrusted URLs unless equivalent SSRF protection is already enforced. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow and create any fetch transport inside the step rather than passing it across workflow boundaries. Per-stream values override this default. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',
@@ -648,7 +637,7 @@ const result = await agent.stream({
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Custom download function for fetching files/URLs. Default URL checks do not resolve DNS; use a guarded transport for untrusted URLs unless equivalent SSRF protection is already enforced. Mark the function with 'use step' when used in a workflow.",
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',

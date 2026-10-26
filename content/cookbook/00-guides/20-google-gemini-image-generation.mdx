@@ -49,15 +49,6 @@ Here are some key points to remember:
 
 ## Editing Images
 
-<Note type="warning">
-  When your server downloads input image URLs supplied by users or external
-  services, use `guarded-fetch` on Node.js unless your application controls the
-  destinations or already enforces equivalent SSRF protection. Configure
-  `generateText`'s `experimental_download` hook as shown in [Secure URL
-  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads). URLs passed
-  directly to Google are fetched by Google, outside the local transport.
-</Note>
-
 Gemini 3.1 Flash Image excels at editing existing images with natural language instructions. You can add elements, modify styles, or transform images while maintaining their core characteristics:
 
 ```ts

@@ -366,14 +366,11 @@ const result = await generateText({
 #### Custom Download Function (Experimental)
 
 <Note type="warning">
-  When your server downloads image or file URLs supplied by users, models, or
-  tools, use `guarded-fetch` on Node.js unless your application controls the
-  destinations or already provides equivalent SSRF protection through its fetch
-  implementation or network egress policy. Default URL checks do not resolve
-  DNS. Configure `experimental_download` as shown in [Secure URL
-  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads); a
-  provider's `fetch` setting alone does not protect core prompt downloads. URLs
-  passed directly to the model are fetched by the provider instead.
+  The default download only validates the URL itself; it does not check what a
+  hostname resolves to. When your server downloads URLs supplied by users,
+  models, or tools on Node.js, pass a `guarded-fetch` transport via
+  `experimental_download: createDownload({fetch})`. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
 </Note>
 
 You can use custom download functions to implement throttling, retries, authentication, caching, and more.

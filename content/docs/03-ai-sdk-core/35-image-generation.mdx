@@ -297,15 +297,9 @@ try {
 ## URL download protection
 
 Some image providers return URLs that the SDK downloads, and image editing can
-also download URL inputs. Default URL checks do not resolve DNS. On Node.js,
-use a guarded transport for these downloads unless the destinations are
-controlled by your application or your fetch implementation or network egress
-policy already provides equivalent SSRF protection. Configure the provider with
-`fetch: createGuardedFetch()` from
-`guarded-fetch` to validate DNS results when connecting. Reuse the
-transport and close it at application shutdown. See
-[Secure URL Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs)
-for an example and network egress recommendations.
+download URL inputs. These downloads use the provider's `fetch` option; on
+Node.js, pass a `guarded-fetch` transport there to validate DNS results. See
+[Secure URL Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
 
 ## Image Middleware
 

@@ -8,16 +8,6 @@ tags: ['next', 'tool use', 'agent', 'mcp']
 
 The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight client that exposes a `tools` method for retrieving tools from a MCP server. After use, the client should always be closed to release resources.
 
-<Note type="warning">
-  If remote MCP URLs come from users or external configuration, use
-  `guarded-fetch` through the built-in transport's `fetch` option in a Node.js
-  route unless your application controls the destinations or already enforces
-  equivalent SSRF protection. The localhost endpoints below are
-  developer-controlled examples; never derive trusted private origins from user
-  input. See [Securing remote server
-  URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls).
-</Note>
-
 ## Server
 
 Let's create a route handler for `/api/completion` that will generate text based on the input prompt and MCP tools that can be called at any time during a generation. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.

@@ -32,17 +32,10 @@ const uint8Array = video.uint8Array; // Uint8Array video data
 
 ## URL download protection
 
-Video providers can return download and polling URLs, and reference inputs can
-also contain URLs supplied by users. When your server fetches these URLs, use
-`guarded-fetch` on Node.js unless the destinations are controlled by your
-application or your fetch implementation or network egress policy already
-provides equivalent SSRF protection. Default URL checks do not resolve DNS.
-
-Pass the guarded transport to the provider's `fetch` option for provider
-requests. Configure `download: createDownload({ fetch })` separately for the
-core video download. Reuse the transport and close it at application shutdown.
-URLs passed directly to a provider are fetched by that service. See [Secure URL
-Fetching](/docs/advanced/secure-url-fetching#core-file-downloads) for configuration.
+Provider polling requests use the provider's `fetch` option; the final video
+download uses the `download` option. For untrusted URLs on Node.js, pass a
+`guarded-fetch` transport to both (`download: createDownload({ fetch })`). See
+[Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
 
 ## Settings
 

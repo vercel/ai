@@ -26,14 +26,6 @@ console.log(transcript);
 
 ## API Signature
 
-<Note type="warning">
-  When `audio` is an untrusted URL, use `download: createDownload({fetch})` with
-  `guarded-fetch` on Node.js unless your application controls the destination or
-  already provides equivalent SSRF protection. Configuring only the provider's
-  `fetch` option does not protect this core download. See [Secure URL
-  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
-</Note>
-
 ### Parameters
 
 <PropertiesTable
@@ -84,7 +76,7 @@ console.log(transcript);
       type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Custom download function for fetching audio from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits and an optional fetch transport (e.g. `createDownload({ fetch })` with `guarded-fetch` on Node.js). For size limits, use e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+        'Custom download function for fetching audio from URLs. Use `createDownload()` from `ai` to create a download function with a custom size limit (e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`) or fetch transport (e.g. `createDownload({ fetch })` with `guarded-fetch` on Node.js for untrusted URLs). Default: built-in download with 2 GiB limit.',
     },
   ]}
 />

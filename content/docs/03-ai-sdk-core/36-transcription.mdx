@@ -245,14 +245,10 @@ try {
 
 ### DNS protection for audio downloads
 
-Default URL checks do not resolve DNS. On Node.js, pass a fetch transport from
-`guarded-fetch` through `download: createDownload({ fetch })` when audio
-URLs are untrusted, unless your application controls the destinations or your
-fetch implementation or network egress policy already provides equivalent SSRF
-protection. A provider's `fetch` setting does not configure this core audio
-download. Reuse the transport and close it at application shutdown.
-See [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads)
-for configuration and network egress recommendations.
+The audio download uses the `download` option, not the provider's `fetch`. For
+untrusted audio URLs on Node.js, pass a `guarded-fetch` transport via
+`download: createDownload({ fetch })`. See [Secure URL
+Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
 
 ### Abort Signals and Timeouts
 

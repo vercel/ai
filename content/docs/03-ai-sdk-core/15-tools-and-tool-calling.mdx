@@ -1450,12 +1450,9 @@ models with supported image and document MIME types. It downloads HTTP(S)
 tool-result URLs and sends their contents as inline data.
 
 <Note type="warning">
-  File URLs returned by tools or selected by a model are untrusted inputs. When
-  your server downloads them, use `guarded-fetch` on Node.js unless your
-  application controls the destinations or already enforces equivalent SSRF
-  protection. Configure the downloading provider's `fetch` option for provider
-  downloads, such as Vertex tool-result files. Core prompt downloads and custom
-  tool fetches need separate configuration; see [Secure URL
+  File URLs returned by tools are untrusted input. To validate DNS results when
+  the provider downloads them on Node.js, pass a `guarded-fetch` transport as
+  the provider's `fetch` option. See [Secure URL
   Fetching](/docs/advanced/secure-url-fetching).
 </Note>
 

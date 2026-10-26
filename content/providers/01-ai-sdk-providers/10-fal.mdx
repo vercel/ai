@@ -107,13 +107,9 @@ You can create Fal image models using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 <Note type="warning">
-  The provider downloads generated images from URLs returned by Fal. On Node.js,
-  configure `createFal({ fetch: createGuardedFetch() })` unless your application
-  controls the destinations or already enforces equivalent SSRF protection.
-  Import `createGuardedFetch` from `guarded-fetch`, reuse the transport,
-  and close it at application shutdown. Default URL checks do not resolve DNS.
-  Reference image URLs passed through to Fal are fetched by Fal, outside the
-  local transport. See [Secure URL
+  The provider downloads generated images from URLs returned by Fal using the
+  `fetch` option of `createFal`. On Node.js, pass a `guarded-fetch` transport
+  there to validate DNS results. See [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
 </Note>
 

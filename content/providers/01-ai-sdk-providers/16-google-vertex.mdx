@@ -813,14 +813,11 @@ HTTP(S) tool-result files are downloaded and sent as inline data, subject to
 for older Gemini models or MIME types outside the list above.
 
 <Note type="warning">
-  HTTP(S) tool-result URLs can be influenced by users, models, or external tools.
-  On Node.js, configure `createGoogleVertex({ fetch: createGuardedFetch() })`
-  with `createGuardedFetch` from `guarded-fetch`, unless the destinations
-  are controlled by your application or your transport or network egress policy
-  already provides equivalent SSRF protection. Default URL checks do not resolve
-  DNS. Reuse the transport and close it at application shutdown. See [Secure URL
+  HTTP(S) tool-result files are downloaded using the `fetch` option of
+  `createGoogleVertex`; the Vertex API key is not sent to those hosts. For
+  untrusted URLs on Node.js, pass a `guarded-fetch` transport there. Direct
+  `gs://` references are fetched by Vertex instead. See [Secure URL
   Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
-  Direct `gs://` references are fetched by Vertex, outside the local transport.
 </Note>
 
 ### Cached Content

@@ -22,19 +22,9 @@ Use cases for intercepting requests include:
 ## Preserving URL download protection
 
 A fetch wrapper that logs requests, adds authentication, or retries failures
-does not provide SSRF protection. When your server fetches URLs supplied by
-users, models, tools, or external services, use `guarded-fetch` on Node.js
-unless your application controls the destinations or already enforces equivalent
-protection through its fetch implementation or network egress policy. URL checks
-and a separate DNS lookup before fetch do not prevent DNS rebinding.
-
-Wrap the guarded transport for logging or other middleware, and preserve the
-request's abort signal and redirect mode. Only attach credentials to explicitly
-approved destinations. Provider fetch settings apply to provider requests;
-core prompt downloads use `experimental_download`, and transcription and video
-downloads use `download: createDownload({ fetch })`. See [Secure URL
-Fetching](/docs/advanced/secure-url-fetching) for the configuration examples,
-runtime requirements, and connection-pool lifecycle.
+does not provide SSRF protection. If the wrapped fetch is used to download
+untrusted URLs on Node.js, wrap a `guarded-fetch` transport instead of the
+global fetch, and preserve the request's abort signal and redirect mode. See [Secure URL Fetching](/docs/advanced/secure-url-fetching).
 
 ## Example
 
