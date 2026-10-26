@@ -6,7 +6,7 @@ import {
   createUIMessageStreamResponse,
   generateText,
   isStepCount,
-  measureContext,
+  pruneMessages,
   tool,
   ToolLoopAgent,
   toUIMessageStream,
@@ -58,22 +58,15 @@ export async function POST(req: Request) {
         reasoning: 'low',
         maxOutputTokens: 1_024,
         stopWhen: isStepCount(5),
-        prepareStep: async ({ messages, instructions, stepNumber }) => {
+        prepareStep: async ({ messages, stepNumber }) => {
           history = [...messages];
           log(`Step ${stepNumber}: message history`, messages);
-          // A deliberately small demo trigger, independent of token-estimation accuracy.
+          // A small message-count threshold makes compaction easy to see as you chat.
           if (messages.length < 8) return;
 
-          const measured = await measureContext({
-            model,
-            instructions,
-            tools,
-            messages,
-          });
           const eventId = `compaction-${stepNumber}`;
           log('Compaction starting', {
             messageCount: messages.length,
-            estimatedInputTokens: measured.inputTokens,
           });
           writer.write({
             type: 'data-compaction',
@@ -82,16 +75,11 @@ export async function POST(req: Request) {
           });
 
           const compacted = await compactMessages({
-            messages,
+            // Remove prior scratch reasoning before summarizing the conversation.
+            messages: pruneMessages({ messages, reasoning: 'all' }),
             checkpoint,
-            context: measured,
-            // Halve the rewritable history; instructions and tools stay fixed.
-            targetInputTokens:
-              measured.fixedInputTokens +
-              Math.ceil((measured.inputTokens - measured.fixedInputTokens) / 2),
             keepRecentMessages: 2,
             summarize: {
-              maxInputTokens: 6_000,
               maxOutputTokens: 1_024,
               execute: ({ system, ...input }) =>
                 generateText({
@@ -106,8 +94,6 @@ export async function POST(req: Request) {
           history = compacted.messages;
           checkpoint = compacted.checkpoint;
           log('Compaction complete: new history', {
-            estimatedInputTokensBefore: compacted.inputTokensBefore,
-            estimatedInputTokensAfter: compacted.inputTokensAfter,
             messages: history,
             checkpoint,
           });
@@ -118,8 +104,6 @@ export async function POST(req: Request) {
               status: 'complete',
               beforeMessages: messages.length,
               afterMessages: history.length,
-              beforeTokens: measured.inputTokens,
-              afterTokens: compacted.inputTokensAfter,
             },
           });
           return { messages: history };

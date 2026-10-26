@@ -12,8 +12,6 @@ export type CompactionChatMessage = UIMessage<
       status: 'running' | 'complete';
       beforeMessages: number;
       afterMessages?: number;
-      beforeTokens?: number;
-      afterTokens?: number;
     };
     context: ConversationState;
   }

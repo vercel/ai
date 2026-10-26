@@ -33,9 +33,8 @@ export type CompactionMediaDescriber = (
   part: FilePart | ImagePart | ReasoningFilePart,
 ) => string | undefined;
 
-export interface CompactionSummarizer {
-  /** Includes summary instructions, framing, previous checkpoint and transcript. */
-  maxInputTokens: number;
+export type CompactionSummarizer = {
+  /** Forwarded to the executor, which must enforce the model's output limit. */
   maxOutputTokens: number;
   execute(input: {
     system: string;
@@ -43,7 +42,18 @@ export interface CompactionSummarizer {
     maxOutputTokens: number;
     abortSignal?: AbortSignal;
   }): Promise<{ text: string; usage?: LanguageModelUsage }>;
-}
+} & (
+  | {
+      /** Includes summary instructions, framing, previous checkpoint and transcript. */
+      maxInputTokens: number;
+      /** Counts the complete request for the summary model, including framing. */
+      countTokens: (input: {
+        system: string;
+        messages: readonly ModelMessage[];
+      }) => number;
+    }
+  | { maxInputTokens?: never; countTokens?: never }
+);
 
 interface SharedCompactionOptions {
   messages: readonly ModelMessage[];
@@ -51,8 +61,6 @@ interface SharedCompactionOptions {
   checkpoint?: CompactionCheckpoint;
   /** Omit to infer the last user message outside the checkpoint; null disables inference. */
   currentUserMessageIndex?: number | null;
-  /** Deterministic, finite, nonnegative message estimate. Fractions are rounded up. */
-  estimateTokens?: (messages: readonly ModelMessage[]) => number;
   createMessage?: (
     message: ModelMessage,
     purpose: 'checkpoint' | 'continuation',
@@ -63,29 +71,47 @@ interface SharedCompactionOptions {
   onUsage?: (usage: LanguageModelUsage) => void | Promise<void>;
 }
 
+type CompactionBudget =
+  | {
+      context: CompactionMeasurement;
+      /** Whole-request input limit, already reserving room for generation output. */
+      targetInputTokens: number;
+      /** Counts history, including message framing. Must be deterministic and finite. */
+      countTokens: (messages: readonly ModelMessage[]) => number;
+    }
+  | {
+      context?: UnmeasuredCompactionContext;
+      targetInputTokens?: never;
+      countTokens?: (messages: readonly ModelMessage[]) => number;
+    };
+
 export type CompactMessagesOptions = SharedCompactionOptions &
+  CompactionBudget &
   (
-    | {
-        context: CompactionMeasurement;
-        /** Whole-request input limit, already reserving room for generation output. */
-        targetInputTokens: number;
+    | ({
         strategy?: never;
         keepRecentMessages?: number;
-        maxRecentTokens?: number;
         maxToolResultCharacters?: number;
-        /** summarize-middle is lossy, including attachments that cannot fit. */
-        oversizedUserMessage?: 'summarize-middle' | 'error';
-      }
-    | ({
+      } & (
+        | {
+            targetInputTokens: number;
+            maxRecentTokens?: number;
+            /** summarize-middle is lossy, including attachments that cannot fit. */
+            oversizedUserMessage?: 'summarize-middle' | 'error';
+          }
+        | {
+            targetInputTokens?: never;
+            maxRecentTokens?: never;
+            oversizedUserMessage?: never;
+          }
+      ))
+    | {
         strategy: CompactionStrategy;
         keepRecentMessages?: never;
         maxRecentTokens?: never;
         maxToolResultCharacters?: never;
         oversizedUserMessage?: never;
-      } & (
-        | { context: CompactionMeasurement; targetInputTokens: number }
-        | { context: UnmeasuredCompactionContext; targetInputTokens?: never }
-      ))
+      }
   );
 
 export type CompactionStrategyContext = (
@@ -96,13 +122,14 @@ export type CompactionStrategyContext = (
   currentUserMessageIndex: number | null;
   reason: 'automatic' | 'manual' | 'overflow';
   abortSignal?: AbortSignal;
-  estimateTokens(messages: readonly ModelMessage[]): number;
+  /** Uses the supplied counter; throws MEASUREMENT_UNAVAILABLE if none was supplied. */
+  countTokens(messages: readonly ModelMessage[]): number;
   createMessage(
     message: ModelMessage,
     purpose: 'checkpoint' | 'continuation',
   ): ModelMessage;
   describeMedia?: CompactionMediaDescriber;
-  /** Enforces summary budgets and records returned usage exactly once. */
+  /** Checks the optional summary input budget and records returned usage exactly once. */
   summarize?: (input: {
     system: string;
     messages: ModelMessage[];

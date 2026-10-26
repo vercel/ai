@@ -78,13 +78,6 @@ export default function CompactionChat() {
                       <>
                         Context compacted: {part.data.beforeMessages} →{' '}
                         {part.data.afterMessages} messages.
-                        {part.data.beforeTokens != null &&
-                          part.data.afterTokens != null && (
-                            <div>
-                              Estimated input tokens: {part.data.beforeTokens} →{' '}
-                              {part.data.afterTokens}.
-                            </div>
-                          )}
                       </>
                     )}
                   </div>

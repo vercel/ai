@@ -2,11 +2,6 @@ import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { addLanguageModelUsage, type LanguageModelUsage } from '../types/usage';
 import { CompactionError } from './compaction-error';
 import { defaultCompaction } from './default-compaction';
-import {
-  compactionRequestOverheadTokens,
-  estimateMessageTokens,
-  estimateTextTokens,
-} from './measure-context';
 import type {
   CompactMessagesOptions,
   CompactionResult,
@@ -22,8 +17,8 @@ import {
 
 /**
  * Replace rewritable history after the caller decides to compact. No automatic
- * trigger, model resolution, persistence or retry is performed. Local estimates
- * are approximate; reserve generation output and safety margins in the target.
+ * trigger, model resolution, persistence or retry is performed. Token budgets
+ * require caller-supplied counting; no token size is inferred from content.
  */
 export async function compactMessages(
   options: CompactMessagesOptions,
@@ -31,7 +26,7 @@ export async function compactMessages(
   let usage: LanguageModelUsage | undefined;
   try {
     validateOptions(options);
-    const { messages, context, targetInputTokens, abortSignal } = options;
+    const { messages, context = {}, targetInputTokens, abortSignal } = options;
     abortSignal?.throwIfAborted();
     if (!(await isValidMessages(messages))) {
       throw new CompactionError({
@@ -55,10 +50,17 @@ export async function compactMessages(
       });
     }
 
-    const estimateTokens = (input: readonly ModelMessage[]) => {
+    const countTokens = (input: readonly ModelMessage[]) => {
       abortSignal?.throwIfAborted();
-      const count = (options.estimateTokens ?? estimateMessageTokens)(input);
-      validateCount(count, 'estimateTokens result');
+      if (options.countTokens === undefined) {
+        throw new CompactionError({
+          code: 'MEASUREMENT_UNAVAILABLE',
+          message:
+            'Token measurement requires an explicit countTokens callback.',
+        });
+      }
+      const count = options.countTokens(input);
+      validateCount(count, 'countTokens result');
       return Math.ceil(count);
     };
     const original = serializeMessages(messages);
@@ -73,16 +75,14 @@ export async function compactMessages(
           message: 'Whole-request measurement requires fixedInputTokens.',
         });
       }
-      const estimated = context.fixedInputTokens + estimateTokens(candidate);
+      const estimated = context.fixedInputTokens + countTokens(candidate);
       if (rewritten || context.inputTokens === undefined)
         return Math.ceil(estimated);
       // Pruning only earns the estimated reduction actually made. Switching to
       // a smaller local estimate must not make an unchanged provider request fit.
       const excess = Math.max(
         0,
-        context.inputTokens -
-          context.fixedInputTokens -
-          estimateTokens(messages),
+        context.inputTokens - context.fixedInputTokens - countTokens(messages),
       );
       return Math.ceil(estimated + excess);
     };
@@ -122,7 +122,7 @@ export async function compactMessages(
       currentUserMessageIndex,
       reason: options.reason ?? 'automatic',
       abortSignal,
-      estimateTokens,
+      countTokens,
       createMessage,
       describeMedia: options.describeMedia,
       recordUsage,
@@ -140,18 +140,16 @@ export async function compactMessages(
                   message: 'Invalid summary prompt.',
                 });
               }
-              const inputTokens =
-                compactionRequestOverheadTokens +
-                estimateTokens([
-                  { role: 'system', content: input.system },
-                  ...input.messages,
-                ]);
-              if (inputTokens > summarize.maxInputTokens) {
-                throw new CompactionError({
-                  code: 'SUMMARY_INPUT_TOO_LARGE',
-                  message:
-                    'The complete summary request exceeds summarize.maxInputTokens.',
-                });
+              if (summarize.maxInputTokens !== undefined) {
+                const inputTokens = summarize.countTokens(input);
+                validateCount(inputTokens, 'summarize.countTokens result');
+                if (Math.ceil(inputTokens) > summarize.maxInputTokens) {
+                  throw new CompactionError({
+                    code: 'SUMMARY_INPUT_TOO_LARGE',
+                    message:
+                      'The complete summary request exceeds summarize.maxInputTokens.',
+                  });
+                }
               }
               abortSignal?.throwIfAborted();
               const result = await summarize.execute({
@@ -172,9 +170,8 @@ export async function compactMessages(
                   message: 'The summary executor returned no text.',
                 });
               }
-              const text = fitSummary(result.text, summarize.maxOutputTokens);
               summarized = true;
-              return { ...result, text };
+              return result;
             },
     } as CompactionStrategyContext;
 
@@ -330,33 +327,6 @@ export async function compactMessages(
   }
 }
 
-function fitSummary(text: string, maxTokens: number): string {
-  if (estimateTextTokens(text) <= maxTokens) return text;
-  const notice = '\n[Summary shortened.]';
-  let low = 0;
-  let high = text.length;
-  let fitted = '';
-  while (low <= high) {
-    const length = Math.floor((low + high) / 2);
-    const end =
-      length > 0 && /[\uD800-\uDBFF]/.test(text[length - 1])
-        ? length - 1
-        : length;
-    const candidate = text.slice(0, end) + notice;
-    if (estimateTextTokens(candidate) <= maxTokens) {
-      fitted = candidate;
-      low = length + 1;
-    } else high = length - 1;
-  }
-  if (fitted.length === 0) {
-    throw new CompactionError({
-      code: 'TARGET_NOT_REACHED',
-      message: 'The summary output budget cannot hold a usable summary.',
-    });
-  }
-  return fitted;
-}
-
 function validateCount(value: number, name: string, positive = false): void {
   if (
     typeof value !== 'number' ||
@@ -375,13 +345,14 @@ function validateOptions(options: CompactMessagesOptions): void {
   const invalid = (message: string): never => {
     throw new CompactionError({ code: 'INVALID_OPTIONS', message });
   };
+  if (options == null || !Array.isArray(options.messages))
+    invalid('messages are required.');
   if (
-    options == null ||
-    !Array.isArray(options.messages) ||
-    options.context == null
+    options.context !== undefined &&
+    (options.context === null || typeof options.context !== 'object')
   )
-    invalid('messages and context are required.');
-  const { context, targetInputTokens, strategy, summarize } = options;
+    invalid('context must be an object.');
+  const { context = {}, targetInputTokens, strategy, summarize } = options;
   for (const name of [
     'inputTokens',
     'fixedInputTokens',
@@ -407,13 +378,23 @@ function validateOptions(options: CompactMessagesOptions): void {
       context.fixedInputTokens === undefined
     )
       invalid('A numeric target requires inputTokens and fixedInputTokens.');
+    if (options.countTokens === undefined) {
+      throw new CompactionError({
+        code: 'MEASUREMENT_UNAVAILABLE',
+        message: 'A numeric target requires an explicit countTokens callback.',
+      });
+    }
     if (
       context.contextWindowTokens !== undefined &&
       targetInputTokens > context.contextWindowTokens
     )
       invalid('targetInputTokens exceeds contextWindowTokens.');
-  } else if (strategy === undefined)
-    invalid('The default algorithm requires targetInputTokens.');
+  } else if (
+    options.maxRecentTokens !== undefined ||
+    options.oversizedUserMessage !== undefined
+  ) {
+    invalid('maxRecentTokens and oversizedUserMessage require a token target.');
+  }
   if (strategy !== undefined) {
     if (typeof strategy !== 'function') invalid('strategy must be a function.');
     for (const key of [
@@ -448,7 +429,7 @@ function validateOptions(options: CompactMessagesOptions): void {
   )
     invalid('Unknown compaction reason.');
   for (const key of [
-    'estimateTokens',
+    'countTokens',
     'createMessage',
     'describeMedia',
     'onUsage',
@@ -459,7 +440,18 @@ function validateOptions(options: CompactMessagesOptions): void {
   if (summarize !== undefined) {
     if (summarize === null || typeof summarize.execute !== 'function')
       invalid('summarize.execute must be a function.');
-    validateCount(summarize.maxInputTokens, 'summarize.maxInputTokens', true);
+    if (summarize.maxInputTokens !== undefined) {
+      validateCount(summarize.maxInputTokens, 'summarize.maxInputTokens', true);
+      if (typeof summarize.countTokens !== 'function') {
+        throw new CompactionError({
+          code: 'MEASUREMENT_UNAVAILABLE',
+          message:
+            'summarize.maxInputTokens requires a summary-model countTokens callback.',
+        });
+      }
+    } else if (summarize.countTokens !== undefined) {
+      invalid('summarize.countTokens requires summarize.maxInputTokens.');
+    }
     validateCount(summarize.maxOutputTokens, 'summarize.maxOutputTokens', true);
   }
 }
