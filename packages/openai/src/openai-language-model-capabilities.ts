@@ -24,7 +24,10 @@ export function getOpenAILanguageModelCapabilities(
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
-  const isGpt6SolOrLuna = modelId === 'gpt-6-sol' || modelId === 'gpt-6-luna';
+  const isGpt6OrLaterModelWithNoneEffort =
+    modelId === 'gpt-6-sol' ||
+    modelId === 'gpt-6-luna' ||
+    modelId === 'gpt-6.1-terra';
 
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
@@ -59,7 +62,7 @@ export function getOpenAILanguageModelCapabilities(
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
     supportsAsyncToolCalling: isGpt6OrLaterModel,
-    supportedReasoningEfforts: isGpt6SolOrLuna
+    supportedReasoningEfforts: isGpt6OrLaterModelWithNoneEffort
       ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       : isGpt6OrLaterModel
         ? ['low', 'medium', 'high', 'xhigh', 'max']
