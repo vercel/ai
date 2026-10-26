@@ -7,6 +7,8 @@ description: Learn how to use Lanseq with the AI SDK.
 
 The [Lanseq](https://api.lanseq.cloud/docs) provider connects the AI SDK to Lanseq's OpenAI-compatible inference API. The provider package is a thin wrapper around the official `@ai-sdk/openai-compatible` provider.
 
+[Lanseq](https://lanseq.cloud) builds multi-model inference infrastructure. This package connects to its real-time API. Batch Execution is a separate integration path, and Preflight Intelligence is in development for model selection and execution planning; neither is exposed by this provider package.
+
 The initial qualified production model is `qwen3.8-27b-int4`.
 
 ## Setup
@@ -120,5 +122,5 @@ The qualified endpoint supports streaming, usage accounting, tool/function calli
 ## Additional Resources
 
 - [Lanseq API documentation](https://api.lanseq.cloud/docs)
-- [Lanseq AI SDK provider](https://github.com/CHYYX/ai-sdk-provider-lanseq)
+- [Lanseq AI SDK provider](https://github.com/Lanseqcloud/ai-sdk-provider-lanseq)
 - [npm package](https://www.npmjs.com/package/@lanseq/ai-sdk-provider)
