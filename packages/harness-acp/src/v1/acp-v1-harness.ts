@@ -1651,7 +1651,8 @@ function createSession({
             builtinTools,
             permissionMode,
             permissionModeMapping,
-            ...(model == null ? {} : { model, modelMapping }),
+            ...(model == null ? {} : { model }),
+            modelMapping,
             ...(options.responseFormat == null
               ? {}
               : { responseFormat: options.responseFormat }),
@@ -1721,10 +1722,8 @@ function createSession({
             permissionModeMapping: turnStartConfig.permissionModeMapping,
             ...(turnStartConfig.model == null
               ? {}
-              : {
-                  model: turnStartConfig.model,
-                  modelMapping: turnStartConfig.modelMapping,
-                }),
+              : { model: turnStartConfig.model }),
+            modelMapping,
             ...(turnStartConfig.responseFormat == null
               ? {}
               : { responseFormat: turnStartConfig.responseFormat }),

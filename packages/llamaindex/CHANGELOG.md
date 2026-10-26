@@ -1,5 +1,13 @@
 # @ai-sdk/llamaindex
 
+## 3.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
 ## 3.0.152
 
 ### Patch Changes

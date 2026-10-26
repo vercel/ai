@@ -20,6 +20,7 @@ import {
   normalizeGitHubHost,
   resolveGitHubCopilotSubscriptionEnvironment,
 } from './github-copilot-subscription';
+import { withGitHubCopilotGatewayModel } from './github-copilot-gateway-model';
 import { VERSION } from './version';
 
 declare const __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__: string;
@@ -37,6 +38,7 @@ const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
 ]);
 const GITHUB_OAUTH_TOKEN_BODY_LENGTH = 36;
 const GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER = 'aisdkhc';
+const GITHUB_COPILOT_GATEWAY_MODEL = 'openai/gpt-5.5';
 
 export type GitHubCopilotAuthenticationMode = ACPAuthenticationMode;
 
@@ -258,7 +260,7 @@ export function createGitHubCopilot(
     ...Object.keys(settings.mcpServers ?? {}).map(name => `${name}-`),
   ];
 
-  return createACP({
+  const harness = createACP({
     version: 'v1',
     harnessId: 'github-copilot',
     clientApp: GITHUB_COPILOT_CLIENT_APP,
@@ -463,7 +465,7 @@ export function createGitHubCopilot(
             $source: 'gateway-api-key',
           },
           COPILOT_PROVIDER_WIRE_API: 'responses',
-          COPILOT_MODEL: 'openai/gpt-5.5',
+          COPILOT_MODEL: GITHUB_COPILOT_GATEWAY_MODEL,
           COPILOT_PROVIDER_HEADERS: {
             $source: 'client-app',
             prefix: 'x-client-app: ',
@@ -489,6 +491,11 @@ export function createGitHubCopilot(
     startupTimeoutMs: settings.startupTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
+  });
+
+  return withGitHubCopilotGatewayModel({
+    harness,
+    gatewayModel: GITHUB_COPILOT_GATEWAY_MODEL,
   });
 }
 

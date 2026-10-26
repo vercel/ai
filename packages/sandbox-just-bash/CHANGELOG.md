@@ -1,5 +1,15 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.164
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 1.0.163
 
 ### Patch Changes
