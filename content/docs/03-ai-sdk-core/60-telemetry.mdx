@@ -319,14 +319,21 @@ context across provider calls and tool executions.
 import { tracingChannel } from 'node:diagnostics_channel';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  type InferTelemetryEvent,
   type TelemetryTracingChannelMessage,
 } from 'ai';
 
 tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
   start(message) {
-    const telemetryMessage = message as TelemetryTracingChannelMessage;
+    const telemetryMessage = message as TelemetryTracingChannelMessage<
+      InferTelemetryEvent<unknown>
+    >;
 
-    if (telemetryMessage.type === 'onStart') {
+    if (
+      telemetryMessage.type === 'generateText' ||
+      telemetryMessage.type === 'streamText'
+    ) {
+      console.log('AI SDK version:', telemetryMessage.event.aiVersion);
       // Inspect telemetryMessage.event and forward it to your provider.
     }
   },
