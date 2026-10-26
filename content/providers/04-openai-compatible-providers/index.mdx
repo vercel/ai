@@ -70,6 +70,16 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+  The same fetch is used to download remote input images for image editing.
+
+  <Note>
+    When passing a `guarded-fetch` transport here for untrusted image URLs, a
+    `baseURL` on a private or local network (e.g. `http://localhost:11434/v1`
+    for a self-hosted server) is rejected as well, since the transport checks
+    every request it sends. Add that origin to its `trustedOrigins` option. See
+    [Secure URL
+    Fetching](/docs/advanced/secure-url-fetching#trusted-private-endpoints).
+  </Note>
 
 - **includeUsage** _boolean_
 
