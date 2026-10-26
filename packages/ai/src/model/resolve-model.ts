@@ -1,0 +1,293 @@
+import { gateway } from '@ai-sdk/gateway';
+import {
+  NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type EmbeddingModelV4,
+  type Experimental_SpeechTranslationModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
+import { UnsupportedModelVersionError } from '../error';
+import type { EmbeddingModel } from '../types/embedding-model';
+import type { LanguageModel } from '../types/language-model';
+import type { SpeechModel } from '../types/speech-model';
+import type { SpeechTranslationModel } from '../types/speech-translation-model';
+import type { TranscriptionModel } from '../types/transcription-model';
+import { asEmbeddingModelV4 } from './as-embedding-model-v4';
+import { asImageModelV4 } from './as-image-model-v4';
+import { asLanguageModelV4 } from './as-language-model-v4';
+import { asRerankingModelV4 } from './as-reranking-model-v4';
+import { asSpeechModelV4 } from './as-speech-model-v4';
+import { asTranscriptionModelV4 } from './as-transcription-model-v4';
+import { asVideoModelV4 } from './as-video-model-v4';
+import { asProviderV4 } from './as-provider-v4';
+import type { ImageModel } from '../types/image-model';
+import type { RerankingModel } from '../types/reranking-model';
+import type { VideoModel } from '../types/video-model';
+
+export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
+  if (typeof model === 'string') {
+    return getGlobalProvider().languageModel(model);
+  }
+
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asLanguageModelV4(model);
+}
+
+export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {
+  if (typeof model === 'string') {
+    return getGlobalProvider().embeddingModel(model);
+  }
+
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asEmbeddingModelV4(model);
+}
+
+export function resolveTranscriptionModel(
+  model: TranscriptionModel,
+): TranscriptionModelV4 | undefined {
+  if (typeof model === 'string') {
+    return getGlobalProvider().transcriptionModel?.(model);
+  }
+
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asTranscriptionModelV4(model);
+}
+
+export function resolveSpeechTranslationModel(
+  model: SpeechTranslationModel,
+): Experimental_SpeechTranslationModelV4 {
+  if (typeof model === 'string') {
+    // Use raw global provider because speechTranslationModel is experimental
+    // and not part of the ProviderV4 interface
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // TODO AI SDK v7
+    // @ts-expect-error - speechTranslationModel support is experimental
+    const speechTranslationModel = provider.speechTranslationModel;
+
+    if (!speechTranslationModel) {
+      throw new Error(
+        'The default provider does not support speech translation models. ' +
+          'Please pass a provider model instance that implements the experimental speech translation model specification.',
+      );
+    }
+
+    return speechTranslationModel(model);
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
+}
+
+export function resolveSpeechModel(
+  model: SpeechModel,
+): SpeechModelV4 | undefined {
+  if (typeof model === 'string') {
+    return getGlobalProvider().speechModel?.(model);
+  }
+
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asSpeechModelV4(model);
+}
+
+export function resolveImageModel(model: ImageModel): ImageModelV4 {
+  if (typeof model === 'string') {
+    return getGlobalProvider().imageModel(model);
+  }
+
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asImageModelV4(model);
+}
+
+export function resolveVideoModel(
+  model: VideoModel,
+): Experimental_VideoModelV4 {
+  if (typeof model === 'string') {
+    // Use raw global provider because videoModel is experimental
+    // and not part of the ProviderV4 interface
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // TODO AI SDK v7
+    // @ts-expect-error - videoModel support is experimental
+    const videoModel = provider.videoModel;
+
+    if (!videoModel) {
+      throw new Error(
+        'The default provider does not support video models. ' +
+          'Please use a Experimental_VideoModelV4 object from a provider (e.g., vertex.video("model-id")).',
+      );
+    }
+
+    return videoModel(model);
+  }
+
+  if (!['v4', 'v3'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asVideoModelV4(model);
+}
+
+export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
+  if (typeof model === 'string') {
+    const provider = getGlobalProvider();
+    const rerankingModel = provider.rerankingModel;
+
+    if (!rerankingModel) {
+      throw new Error(
+        'The default provider does not support reranking models. ' +
+          'Please use a RerankingModel object from a provider (e.g., gateway.rerankingModel("model-id")).',
+      );
+    }
+
+    return rerankingModel(model);
+  }
+
+  if (
+    model.specificationVersion !== 'v4' &&
+    model.specificationVersion !== 'v3'
+  ) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asRerankingModelV4(model);
+}
+
+export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
+  if (typeof model === 'string') {
+    // Use the original provider so experimental methods and their receiver survive.
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as DecisionProvider;
+
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    if (typeof factory !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'decisionModel',
+        message:
+          'The default provider does not support decision models. ' +
+          'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
+      });
+    }
+
+    const resolvedModel = factory.call(provider, model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'decisionModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
+  if ('doDecide' in model) {
+    return model;
+  }
+
+  const legacyModel = model;
+  return {
+    specificationVersion: legacyModel.specificationVersion,
+    provider: legacyModel.provider,
+    modelId: legacyModel.modelId,
+    supportedQuestionTypes: legacyModel.supportedQuestionTypes,
+    doDecide: options => legacyModel.doEvaluate(options),
+  };
+}
+
+function getGlobalProvider(): ProviderV4 {
+  const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+  return asProviderV4(provider);
+}
+
+/** Internal adapter for deprecated provider factories. */
+export function asEvaluationModel(model: DecisionModelV4): DecisionModelV4 & {
+  doEvaluate: DecisionModelV4['doDecide'];
+} {
+  if ('doEvaluate' in model && typeof model.doEvaluate === 'function') {
+    return model as DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
+  }
+  return {
+    specificationVersion: model.specificationVersion,
+    provider: model.provider,
+    modelId: model.modelId,
+    supportedQuestionTypes: model.supportedQuestionTypes,
+    doDecide: options => model.doDecide(options),
+    doEvaluate: options => model.doDecide(options),
+  };
+}

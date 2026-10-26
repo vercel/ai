@@ -1,0 +1,63 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
+  "compilerOptions": {
+    "stripInternal": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "types": [
+      "@types/node"
+    ],
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsdown.config.ts",
+    "internal.d.ts",
+    "test.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../amazon-bedrock"
+    },
+    {
+      "path": "../deepseek"
+    },
+    {
+      "path": "../gateway"
+    },
+    {
+      "path": "../google"
+    },
+    {
+      "path": "../groq"
+    },
+    {
+      "path": "../huggingface"
+    },
+    {
+      "path": "../moonshotai"
+    },
+    {
+      "path": "../openai"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
+    },
+    {
+      "path": "../xai"
+    }
+  ]
+}

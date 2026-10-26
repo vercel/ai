@@ -1,0 +1,32 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
+  "compilerOptions": {
+    "stripInternal": true,
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsdown.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../mcp"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+import {
+  parseJsonEventStream,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+  type ParseResult,
+} from '@ai-sdk/provider-utils';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
+import {
+  uiMessageChunkSchema,
+  type UIMessageChunk,
+} from '../ui-message-stream/ui-message-chunks';
+import { consumeStream } from '../util/consume-stream';
+import { createUIApiCallError } from './create-ui-api-call-error';
+import { processTextStream } from './process-text-stream';
+import { VERSION } from '../version';
+
+// use function to allow for mocking in tests:
+const getOriginalFetch = () => fetch;
+
+export async function callCompletionApi({
+  api,
+  prompt,
+  credentials,
+  headers,
+  body,
+  streamProtocol = 'data',
+  setCompletion,
+  setLoading,
+  setError,
+  setAbortController,
+  getAbortController,
+  onFinish,
+  onError,
+  fetch = getOriginalFetch(),
+}: {
+  api: string;
+  prompt: string;
+  credentials: RequestCredentials | undefined;
+  headers: HeadersInit | undefined;
+  body: Record<string, any>;
+  streamProtocol: 'data' | 'text' | undefined;
+  setCompletion: (completion: string) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: Error | undefined) => void;
+  setAbortController: (abortController: AbortController | null) => void;
+  getAbortController?: () => AbortController | null | undefined;
+  onFinish: ((prompt: string, completion: string) => void) | undefined;
+  onError: ((error: Error) => void) | undefined;
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+}) {
+  const abortController = new AbortController();
+  const isCurrentRequest = () =>
+    getAbortController == null || getAbortController() === abortController;
+
+  try {
+    setLoading(true);
+    setError(undefined);
+
+    setAbortController(abortController);
+
+    // Empty the completion immediately.
+    setCompletion('');
+
+    const response = await fetch(api, {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt,
+        ...body,
+      }),
+      credentials,
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
+      signal: abortController.signal,
+    }).catch(err => {
+      throw err;
+    });
+
+    if (!response.ok) {
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
+    }
+
+    if (!response.body) {
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
+    }
+
+    let result = '';
+
+    switch (streamProtocol) {
+      case 'text': {
+        await processTextStream({
+          stream: response.body,
+          onTextPart: chunk => {
+            result += chunk;
+            if (isCurrentRequest()) {
+              setCompletion(result);
+            }
+          },
+        });
+        break;
+      }
+      case 'data': {
+        await consumeStream({
+          stream: parseJsonEventStream({
+            stream: response.body,
+            schema: uiMessageChunkSchema,
+          }).pipeThrough(
+            new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
+              async transform(part) {
+                if (!part.success) {
+                  throw part.error;
+                }
+
+                const streamPart = part.value;
+                if (streamPart.type === 'text-delta') {
+                  result += streamPart.delta;
+                  if (isCurrentRequest()) {
+                    setCompletion(result);
+                  }
+                } else if (streamPart.type === 'error') {
+                  throw new UIMessageStreamError({
+                    chunkType: 'error',
+                    chunkId: '',
+                    message: streamPart.errorText,
+                  });
+                }
+              },
+            }),
+          ),
+          onError: error => {
+            throw error;
+          },
+        });
+        break;
+      }
+      default: {
+        const exhaustiveCheck: never = streamProtocol;
+        throw new InvalidArgumentError({
+          parameter: 'streamProtocol',
+          value: exhaustiveCheck,
+          message: `Unknown stream protocol: ${exhaustiveCheck}`,
+        });
+      }
+    }
+
+    if (onFinish) {
+      onFinish(prompt, result);
+    }
+
+    return result;
+  } catch (err) {
+    // Ignore abort errors as they are expected.
+    if ((err as any).name === 'AbortError') {
+      return null;
+    }
+
+    if (err instanceof Error) {
+      if (onError) {
+        onError(err);
+      }
+    }
+
+    if (isCurrentRequest()) {
+      setError(err as Error);
+    }
+  } finally {
+    // A newer request may have started while this one was settling.
+    if (isCurrentRequest()) {
+      setAbortController(null);
+      setLoading(false);
+    }
+  }
+}

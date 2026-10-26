@@ -1,0 +1,19 @@
+import ChatIdProvider from '@/components/chat-id-provider';
+import ClineHarnessChat from '@/components/cline-harness-chat';
+
+export const metadata = {
+  title: 'Cline — Basic',
+};
+
+const STORAGE_KEY = 'harness-cline-basic-chat-id';
+
+export default function HarnessClinePage() {
+  return (
+    <ChatIdProvider storageKey={STORAGE_KEY}>
+      <ClineHarnessChat
+        apiRoute="/api/harness/cline/basic"
+        exampleLabel="Basic"
+      />
+    </ChatIdProvider>
+  );
+}
