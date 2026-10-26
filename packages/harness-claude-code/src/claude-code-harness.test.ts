@@ -1448,6 +1448,110 @@ describe('createClaudeCode adapter', () => {
     await attachedSession.doDestroy();
   });
 
+  it('sends the question timeout and excludeDynamicSections to the bridge', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends the question timeout and excludeDynamicSections when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+      continue: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends the question timeout and excludeDynamicSections after attaching', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello again',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+
+    await attachedSession.doDestroy();
+  });
+
   it('writes standard Claude skill files and enables their names on start', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const runs: string[] = [];
