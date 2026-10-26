@@ -413,6 +413,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
       outputSchemaToolNames,
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
