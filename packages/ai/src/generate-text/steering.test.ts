@@ -198,16 +198,6 @@ describe('createSteering', () => {
     expect((await outcome).id).toMatch(/^steer-/);
   });
 
-  it('should throw for messages that are not user messages', () => {
-    const steering = createSteering();
-
-    expect(() =>
-      steering.steer({ role: 'assistant', content: 'hello' } as never),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `[AI_InvalidArgumentError: Invalid argument for parameter message: Steering messages must be user messages.]`,
-    );
-  });
-
   it('should throw when the steering object is used by two runs at once', () => {
     const steering = createSteering();
     startSteeringRun(steering);

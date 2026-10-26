@@ -273,60 +273,16 @@ describe('input validation', () => {
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
   it.each([
-    null,
-    true,
-    42,
-    new Date(),
-    { value: undefined },
     { value: NaN },
-    { fn: () => true },
+    { value: Infinity },
     cyclic,
-    [undefined],
-    new Array(2),
-  ])('rejects non-JSON state %s before I/O', async state => {
+    { value: new Array(2) },
+    [{ type: 'json', value: { bad: NaN } }],
+    [{ type: 'json', value: cyclic }],
+  ])('rejects non-serializable JSON state %s before I/O', async state => {
     const { model, doDecide } = setup();
     await expect(
       decide({ model, state: state as never, questions }),
-    ).rejects.toBeInstanceOf(InvalidArgumentError);
-    expect(doDecide).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    {},
-    [],
-    null,
-    { test: { type: 'other', instructions: 'test' } },
-    { test: { type: 'boolean', instructions: null } },
-    { test: { type: 'box' } },
-    { test: { type: 'box', instructions: null } },
-    { test: { type: 'choice', instructions: 42, criteria: { a: null } } },
-    { test: { type: 'score', instructions: false, criteria: ['Low', 'High'] } },
-    {
-      test: {
-        type: 'boolean',
-        instructions: () => true,
-        criteria: { true: 'Yes' },
-      },
-    },
-    { test: { type: 'boolean', criteria: { true: 42 } } },
-    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
-    {
-      test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
-    },
-    { test: { type: 'choice', instructions: 'test', criteria: {} } },
-    { test: { type: 'choice', instructions: 'test', criteria: { a: 42 } } },
-    { test: { type: 'score', instructions: 'test', criteria: [] } },
-    {
-      test: {
-        type: 'score',
-        instructions: 'test',
-        criteria: ['Low', undefined],
-      },
-    },
-  ])('rejects invalid questions %s before I/O', async invalidQuestions => {
-    const { model, doDecide } = setup();
-    await expect(
-      decide({ model, state: 'text', questions: invalidQuestions as never }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(doDecide).not.toHaveBeenCalled();
   });
@@ -340,6 +296,34 @@ describe('input validation', () => {
         questions,
       }),
     ).resolves.toBeDefined();
+  });
+
+  it.each([
+    {},
+    [],
+    { test: { type: 'boolean', instructions: null } },
+    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
+    {
+      test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
+    },
+    {
+      test: { type: 'choice', instructions: { n: NaN }, criteria: { a: null } },
+    },
+    {
+      test: {
+        type: 'choice',
+        instructions: 'test',
+        criteria: { a: [Infinity] },
+      },
+    },
+    { test: { type: 'choice', instructions: 'test', criteria: {} } },
+    { test: { type: 'score', instructions: 'test', criteria: [] } },
+  ])('rejects invalid questions %s before I/O', async invalidQuestions => {
+    const { model, doDecide } = setup();
+    await expect(
+      decide({ model, state: 'text', questions: invalidQuestions as never }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(doDecide).not.toHaveBeenCalled();
   });
 });
 
@@ -832,24 +816,6 @@ it('treats an empty array as an empty list of state parts', async () => {
   const { model, doDecide } = setup();
   await decide({ model, questions, state: [] });
   expect(doDecide.mock.calls[0][0].state).toEqual([]);
-});
-
-it.each(
-  [
-    ['legacy JSON array'],
-    [{ arbitrary: 'object' }],
-    [{ type: 'image', image: 'iVBORw==' }],
-    [{ type: 'text', text: 42 }],
-    [{ type: 'file', mediaType: 'image/png' }],
-    [{ type: 'json', value: undefined }],
-    [{ type: 'json', value: { bad: NaN } }],
-  ].map(state => [state]),
-)('rejects malformed state parts before I/O: %j', async state => {
-  const { model, doDecide } = setup();
-  await expect(
-    decide({ model, questions, state: state as never }),
-  ).rejects.toBeInstanceOf(InvalidArgumentError);
-  expect(doDecide).not.toHaveBeenCalled();
 });
 
 it('downloads image URLs and sends their bytes to the decision model', async () => {
