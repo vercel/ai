@@ -3290,6 +3290,64 @@ describe('runPrompt host tool generator results', () => {
     ]);
   });
 
+  test('passes a denied custom tool call to the model as a denial, not to the tool toModelOutput', async () => {
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => ({ content: [{ text: '72' }] }),
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value: output.content.map(part => part.text).join('\n'),
+      }),
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          result: { type: 'execution-denied', reason: 'weather disabled' },
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: {
+        weather: { type: 'denied', reason: 'weather disabled' },
+      },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    const toolResults = (await result.responseMessages).flatMap(message =>
+      message.role === 'tool'
+        ? message.content.filter(part => part.type === 'tool-result')
+        : [],
+    );
+    expect(toolResults).toContainEqual(
+      expect.objectContaining({
+        toolCallId: 'c1',
+        output: { type: 'execution-denied', reason: 'weather disabled' },
+      }),
+    );
+  });
+
   test('emits one final result after approved pending custom tool execution', async () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];

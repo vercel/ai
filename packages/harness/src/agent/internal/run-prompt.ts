@@ -657,6 +657,16 @@ export function runPrompt<
             toolCallId: submission.toolCallId,
             output,
           });
+        } else if (isExecutionDenied(submission.output)) {
+          // A denial has no tool output, so the tool's own toModelOutput must
+          // not see it. Store the denial as the model output, as `ai` does.
+          result.setToolModelOutput({
+            toolCallId: submission.toolCallId,
+            output: {
+              type: 'execution-denied',
+              reason: submission.output.reason,
+            },
+          });
         }
         if (!input.isTurnSuspending?.()) {
           if (!settledHostToolCallIds.has(submission.toolCallId)) {
@@ -1868,3 +1878,14 @@ function promptToText(prompt: HarnessV1Prompt): string {
 
 // keep import bound so unused-but-needed type stays cited
 export type _ContentPartMarker<T extends ToolSet> = ContentPart<T>;
+
+function isExecutionDenied(
+  output: unknown,
+): output is { type: 'execution-denied'; reason?: string } {
+  return (
+    typeof output === 'object' &&
+    output != null &&
+    'type' in output &&
+    output.type === 'execution-denied'
+  );
+}
