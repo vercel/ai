@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.132
+
+### Patch Changes
+
+- 766eebd: add azure.tools.toolSearch and support azure provider options on responses function tools
+
 ## 3.0.131
 
 ### Patch Changes
