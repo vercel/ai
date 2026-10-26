@@ -738,8 +738,8 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0(valibot@1.1.0(typescript@6.0.3))
       '@vercel/sandbox':
-        specifier: ^3.0.0
-        version: 3.1.0
+        specifier: ^3.9.0
+        version: 3.9.0
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
