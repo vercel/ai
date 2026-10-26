@@ -44,6 +44,15 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
 ## Constructor
 
+<Note type="warning">
+  URLs supplied by users, models, or tools remain untrusted when an agent
+  downloads them. On Node.js, configure `experimental_download` with a transport
+  from `@ai-sdk/guarded-fetch` unless your application controls the destinations
+  or already enforces equivalent SSRF protection. Provider downloads and fetches
+  inside custom tools need their own transport configuration. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+</Note>
+
 ### Parameters
 
 <PropertiesTable
@@ -584,7 +593,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction | undefined',
       isOptional: true,
       description:
-        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
+        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type. Default URL checks do not resolve DNS; use a guarded transport for untrusted URLs unless equivalent SSRF protection is already enforced.',
     },
     {
       name: 'maxOutputTokens',

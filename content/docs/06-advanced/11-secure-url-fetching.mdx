@@ -1,6 +1,6 @@
 ---
 title: Secure URL Fetching
-description: How the AI SDK protects server-side fetches of URLs returned by model providers, and how to harden your deployment further.
+description: Protect server-side requests to URLs supplied by users, models, tools, and external services.
 ---
 
 # Secure URL Fetching
@@ -28,6 +28,29 @@ For authenticated task-status polling, providers can construct the first URL
 from the configured API endpoint. The SDK trusts that configured origin for the
 initial request, but manually follows and validates every redirect away from it.
 MiniMax, Kling AI, and ByteDance video polling use this protected path.
+
+## When to use a guarded transport
+
+Use `@ai-sdk/guarded-fetch` on Node.js whenever your server fetches URLs supplied
+by users, models, tools, or external services, unless the destinations are
+controlled by your application or your fetch implementation or network egress
+policy already provides equivalent SSRF protection. This includes prompt image
+and file URLs, remote chat attachments, tool-result files, generated media
+downloads, and user-configured remote MCP servers.
+
+Authentication alone does not make a user-supplied URL trusted. A URL selected
+by a model or extracted from a document is still untrusted input. Trust the
+destination only when your application controls where the request can go. A URL
+syntax check or a separate DNS lookup before calling fetch does not provide
+connection-time DNS protection.
+
+Configure the transport at the request's actual download point: provider
+`fetch` settings apply to provider requests, while [core file
+downloads](#core-file-downloads) use separate hooks. Configure built-in
+[MCP transports](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls) through
+`transport.fetch`; custom tools and transports need their own fetch
+configuration. URLs passed directly to a model provider are fetched by that
+service, outside your server's transport.
 
 ## What the SDK protects against
 

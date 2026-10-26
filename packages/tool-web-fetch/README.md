@@ -1,6 +1,6 @@
 # AI SDK Web Fetch Tool
 
-A first-party, provider-independent web fetch tool for the [AI SDK](https://ai-sdk.dev/docs).
+A first-party, provider-independent web fetch tool for the [AI SDK](https://ai-sdk.dev/docs). Use a [guarded transport or equivalent egress protection](https://ai-sdk.dev/docs/advanced/secure-url-fetching#when-to-use-a-guarded-transport) when fetching untrusted URLs on your server.
 
 ## Setup
 

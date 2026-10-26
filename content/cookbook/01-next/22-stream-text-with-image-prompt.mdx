@@ -14,6 +14,17 @@ Vision models such as GPT-6 Astra can process both text and images. In this exam
 
 The server route uses `convertToModelMessages` to handle the conversion from `UIMessage`s to model messages, which automatically handles multimodal content including images.
 
+<Note type="warning">
+  Image URLs received from the client are untrusted, even when the user is
+  authenticated. When the server downloads them, use `@ai-sdk/guarded-fetch` in
+  the Node.js route unless your application controls the destinations or already
+  provides equivalent SSRF protection. Configure `streamText`'s
+  `experimental_download` hook using the [core file download
+  example](/docs/advanced/secure-url-fetching#core-file-downloads). Neither the
+  client's `useChat` fetch nor the provider's fetch setting protects this core
+  download. On edge runtimes, use equivalent runtime or network egress controls.
+</Note>
+
 ```tsx filename='app/api/chat/route.ts' highlight="16,20-22"
 import {
   convertToModelMessages,

@@ -37,6 +37,15 @@ console.log(videos);
 
 ## API Signature
 
+<Note type="warning">
+  When downloading videos from URLs returned by a provider, use `download:
+  createDownload({fetch})` with `@ai-sdk/guarded-fetch` on Node.js unless your
+  application controls the destinations or already provides equivalent SSRF
+  protection. Configure provider requests separately through the provider's
+  `fetch` option. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+</Note>
+
 ### Parameters
 
 <PropertiesTable

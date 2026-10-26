@@ -130,16 +130,22 @@ fetch. URL checks do not resolve DNS: public-looking hostnames resolving to
 private addresses and DNS rebinding are outside the default protection.
 
 Recommend `createGuardedFetch()` from `@ai-sdk/guarded-fetch` for applications
-fetching untrusted URLs on Node.js. It validates all DNS results inside an
-Undici connector and passes those same results to the socket. Applications can
+fetching URLs supplied by users, models, tools, or external services on Node.js,
+unless the application controls the destinations or already enforces equivalent
+SSRF protection. Authentication alone does not make a user-supplied URL trusted.
+The transport validates all DNS results inside an Undici connector and passes
+those same results to the socket. A separate DNS lookup before calling fetch
+does not protect the connection from a subsequent DNS change. Applications can
 instead (or additionally) enforce network egress restrictions. Other server
 runtimes need equivalent platform or transport controls.
 
 Always propagate `this.config.fetch` (or the equivalent provider setting) into
 download and polling helpers, including `downloadBlob`. Otherwise applications
-cannot apply their chosen transport to those requests. Core file downloads
-have separate hooks; `createDownload({ fetch })` can be used directly or adapted
-to `experimental_download`.
+cannot apply their chosen transport to those requests. Pass the underlying
+configured transport, not an API wrapper that adds credentials to every request;
+the URL helpers must remain in control of which origins receive credentials.
+Core file downloads have separate hooks; `createDownload({ fetch })` can be used
+directly or adapted to `experimental_download`.
 
 The optional package may depend on `provider-utils`; core and providers must not
 import it or depend on Undici for the default download path. The user-facing

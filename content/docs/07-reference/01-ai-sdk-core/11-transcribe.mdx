@@ -26,6 +26,14 @@ console.log(transcript);
 
 ## API Signature
 
+<Note type="warning">
+  When `audio` is an untrusted URL, use `download: createDownload({fetch})` with
+  `@ai-sdk/guarded-fetch` on Node.js unless your application controls the
+  destination or already provides equivalent SSRF protection. Configuring only
+  the provider's `fetch` option does not protect this core download. See [Secure
+  URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+</Note>
+
 ### Parameters
 
 <PropertiesTable

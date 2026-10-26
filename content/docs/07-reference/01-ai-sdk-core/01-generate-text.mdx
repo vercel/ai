@@ -33,6 +33,16 @@ To see `generateText` in action, check out [these examples](#examples).
 
 ## API Signature
 
+<Note type="warning">
+  For server-side prompt downloads of URLs supplied by users, models, or tools,
+  use `@ai-sdk/guarded-fetch` on Node.js unless the destinations are controlled
+  by your application or equivalent SSRF protection is already enforced.
+  Configure `experimental_download` using the [core file download
+  example](/docs/advanced/secure-url-fetching#core-file-downloads). A provider's
+  `fetch` setting alone does not protect these downloads, and default URL checks
+  do not resolve DNS.
+</Note>
+
 ### Parameters
 
 <PropertiesTable
@@ -850,7 +860,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
       isOptional: true,
       description:
-        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Default URL checks do not resolve DNS; use a guarded transport for untrusted URLs unless equivalent SSRF protection is already enforced. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
       name: 'include',

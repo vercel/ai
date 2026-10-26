@@ -314,7 +314,9 @@ private and reserved addresses such as `localhost` and cloud metadata
 endpoints when they appear as IP literals or blocked local hostnames. The
 default transport does not validate DNS results. On Node.js, inject
 `@ai-sdk/guarded-fetch` to block hostnames resolving to private addresses and
-DNS rebinding:
+DNS rebinding, unless your application controls the destinations or already
+enforces equivalent SSRF protection through its fetch implementation or network
+egress policy. URLs selected by a model remain untrusted:
 
 ```ts
 import { createGuardedFetch } from '@ai-sdk/guarded-fetch';
