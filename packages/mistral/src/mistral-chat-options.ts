@@ -27,6 +27,11 @@ export type MistralChatModelId =
   | 'magistral-small-latest'
   | 'magistral-medium-2509'
   | 'magistral-small-2509'
+  // low, high, and max reasoning effort models
+  | 'zai-glm-5'
+  | 'zai-glm-5-3'
+  | 'zai-glm-5-3-flash'
+  | 'zai-glm-latest'
   | (string & {});
 
 export const mistralLanguageModelOptions = lazySchema(() =>
@@ -69,8 +74,11 @@ export const mistralLanguageModelOptions = lazySchema(() =>
        *
        * - `'high'`: Enable reasoning
        * - `'none'`: Disable reasoning
+       * - `'low'`, `'max'`: Lowest and highest reasoning effort for models that
+       *   support them, e.g. `zai-glm-5-3`, which accepts `'low'`, `'high'`, and
+       *   `'max'` but not `'none'`
        */
-      reasoningEffort: z.enum(['high', 'none']).optional(),
+      reasoningEffort: z.enum(['high', 'none', 'low', 'max']).optional(),
     }),
   ),
 );

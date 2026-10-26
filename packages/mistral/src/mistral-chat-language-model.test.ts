@@ -794,6 +794,27 @@ describe('doGenerate', () => {
       ]
     `);
   });
+  describe('reasoning_effort', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it.each(['none', 'low', 'high', 'max'] as const)(
+      'should send provider reasoning_effort %s',
+      async reasoningEffort => {
+        await provider.chat('zai-glm-5-3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: reasoningEffort,
+        });
+      },
+    );
+  });
 });
 
 describe('doStream', () => {
