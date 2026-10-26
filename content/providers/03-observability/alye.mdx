@@ -1,0 +1,26 @@
+---
+title: Alye
+description: LLM observability with Alye.
+---
+
+# Alye Observability
+
+[Alye](https://www.alye.ai) provides LLM observability for monitoring model-call costs, latency, tokens, and errors.
+
+## OpenTelemetry
+
+Alye documents an OpenTelemetry ingestion endpoint for applications that already emit compatible GenAI spans.
+
+Configure the exporter using the environment variables below:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.alye.ai/ingest
+OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+OTEL_EXPORTER_OTLP_HEADERS="x-api-key=YOUR_ALYE_API_KEY"
+```
+
+Replace `YOUR_ALYE_API_KEY` with your Alye API key. Keep the key secret and never commit it to source control.
+
+Before using this configuration with the AI SDK, verify that the telemetry exporter produces a format Alye accepts.
+
+See the [Alye OpenTelemetry documentation](https://www.alye.ai/docs#otel) for details.
