@@ -9,6 +9,7 @@ const SCHEMA_MAP_KEYS = [
   'properties',
   'patternProperties',
   '$defs',
+  'definitions',
   'dependentSchemas',
 ] as const;
 const SCHEMA_SINGLE_KEYS = [
