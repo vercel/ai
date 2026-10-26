@@ -1,10 +1,31 @@
 import { expectTypeOf } from 'vitest';
 import type { HarnessV1SandboxTemplate } from '@ai-sdk/harness';
 import type {
+  Experimental_SandboxProcess as SandboxProcess,
+  Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
+import type {
   VercelNativeSandboxSession,
   VercelNetworkSandboxSessionCreateOptions,
   VercelNetworkSandboxSessionResumeOptions,
 } from './vercel-sandbox';
+import type { VercelSandboxSession } from './vercel-sandbox-session';
+
+declare const session: VercelSandboxSession;
+declare const stdin: boolean;
+
+const unsupported = session.spawn({ command: 'cat', stdin: true });
+const regular = session.spawn({ command: 'cat' });
+const disabled = session.spawn({ command: 'cat', stdin: false });
+const dynamic = session.spawn({ command: 'cat', stdin });
+
+expectTypeOf<VercelSandboxSession>().toExtend<SandboxSession>();
+expectTypeOf<Awaited<typeof unsupported>>().toBeNever();
+expectTypeOf<Awaited<typeof regular>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof disabled>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof dynamic>>().toEqualTypeOf<SandboxProcess>();
+expectTypeOf<Awaited<typeof regular>>().not.toHaveProperty('stdin');
+expectTypeOf<Awaited<typeof disabled>>().not.toHaveProperty('stdin');
 
 type Options = VercelNetworkSandboxSessionCreateOptions;
 

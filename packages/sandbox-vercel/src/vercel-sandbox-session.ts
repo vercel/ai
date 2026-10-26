@@ -3,6 +3,9 @@ import {
   extractLines,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess as SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
@@ -56,18 +59,20 @@ export class VercelSandboxSession implements SandboxSession {
     };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<never>;
+  spawn(options: SpawnOptionsWithoutStdin): Promise<SandboxProcess>;
+  spawn(options: SpawnOptions): Promise<SandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<SandboxProcess> {
     abortSignal?.throwIfAborted();
+    if (stdin === true) {
+      throw new Error('Vercel Sandbox does not support writable stdin.');
+    }
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
