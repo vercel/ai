@@ -74,6 +74,26 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'prompt validation (%s)',
+  method => {
+    it('should include the content of an unexpected system message in the error', async () => {
+      await expect(
+        model[method]({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'system', content: 'misplaced system message' },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidPromptError',
+        message:
+          'Invalid prompt: Unexpected system message in prompt: misplaced system message',
+      });
+    });
+  },
+);
+
 describe('doGenerate', () => {
   it('should extract text response', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {

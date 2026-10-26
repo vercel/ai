@@ -46,6 +46,7 @@ import {
   waitForBridgeReady,
   writeSkills,
   type BridgeHello,
+  type SandboxChannelDebugEvent,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
@@ -149,6 +150,14 @@ export type ClaudeCodeHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * Called with bridge connection lifecycle events: reconnect attempts,
+   * successful reconnects, and `reconnect-failed` once the connection is
+   * closed for good. Hosts that cache idle sessions can use it to reattach
+   * before sending the next prompt. The `cause` of a failed reconnect can
+   * contain connection details, so avoid logging it as is.
+   */
+  readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -1028,6 +1037,7 @@ export function createClaudeCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
+            onDebug: settings.onDebug,
           });
           const finishListenerAttachment = isContinue
             ? attachChannel.beginListenerAttachment()
@@ -1191,6 +1201,7 @@ export function createClaudeCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
+        onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
