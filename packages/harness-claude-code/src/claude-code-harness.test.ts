@@ -1201,6 +1201,36 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends strict MCP config and the budget limit to the bridge', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+
+    await session.doDestroy();
+  });
+
   it('sends configured MCP servers to the bridge', async () => {
     const mcpServers = {
       context7: { type: 'http', url: 'https://mcp.context7.com/mcp' },
@@ -1342,6 +1372,80 @@ describe('createClaudeCode adapter', () => {
     expect(lastStart()).toMatchObject({ env, continue: true });
 
     await session.doDestroy();
+  });
+
+  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+      continue: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends strict MCP config and the budget limit after attaching', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello again',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+
+    await attachedSession.doDestroy();
   });
 
   it('sends the question timeout and excludeDynamicSections to the bridge', async () => {

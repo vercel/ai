@@ -105,7 +105,11 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
+  MCP configuration, such as a project `.mcp.json` or user settings.
 - `maxTurns`: maximum internal turns before yielding.
+- `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
+  is exceeded, the query stops and the turn ends with an error.
 - `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
   to an `AskUserQuestion` question before the question fails. Defaults to the
   Claude Code default.

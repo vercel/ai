@@ -1,5 +1,13 @@
 # @ai-sdk/mistral
 
+## 4.0.73
+
+### Patch Changes
+
+- 28e30cd: support low and max reasoning effort for GLM-5.3 models
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 4.0.72
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.79
+
+### Patch Changes
+
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 3.0.78
 
 ### Patch Changes
