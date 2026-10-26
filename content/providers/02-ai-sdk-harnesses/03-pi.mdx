@@ -112,8 +112,37 @@ Settings:
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
+- `resources`: skills in the sandbox that Pi lists to the model. See
+  [Project Resources](#project-resources).
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
+
+## Project Resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md`, or project skills on the host or
+in the sandbox. Put project context in `instructions`, and list skills that
+already exist in the sandbox through `resources`:
+
+```ts
+const harness = createPi({
+  resources: {
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+- `skills`: skills listed to the model by name and description. The file at
+  `filePath` must already exist in the sandbox, because the model reads it with
+  the `read` tool. Pi's read-only file tools can read the skill's directory.
+
+Skills passed to `HarnessAgent` are written into the sandbox on each turn and
+do not need an entry here.
 
 ## File Tool Paths
 
@@ -140,7 +169,8 @@ const harness = createPi({
   refuses, even inside the workspace or a readable root. Both requested paths
   and denied roots are resolved in the sandbox, so symlinks pointing to or from
   a denied root are refused. Configured roots are resolved again for each file
-  operation; canonical denied roots captured at session startup remain denied.
+  operation; canonical denied roots captured before the first native file tool
+  runs remain denied.
   `find` and `grep` prune exact denied paths without following directory symlinks,
   and `ls` hides directly denied entries. Other directories with the same name
   remain accessible.
@@ -206,7 +236,9 @@ Extension factories execute in the host Node.js process with access to the host
 environment, so only pass factories you trust. This setting enables only the
 factories you explicitly provide. Filesystem extension discovery remains
 disabled, including user, project, and settings-based extensions. Themes and
-prompt templates also remain disabled.
+prompt templates also remain disabled. The host has no copy of the sandbox
+workspace, so an extension reads project files through the `sandboxSession` it
+receives.
 
 ## Session Reattachment
 
