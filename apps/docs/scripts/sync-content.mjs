@@ -36,10 +36,10 @@ const versions = [
   { id: "v7", ref: null },
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v6", ref: "0fb3a2241334c3e9df9aa15c86cb26c1cee9ba3a" },
+  { id: "v6", ref: "718ee0b7886f35a74f232c05f3f7637f32728b1f" },
   // Update this SHA explicitly when stable v5 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v5", ref: "239ea3a151f81aa55b78d8eeca5fd20555730de5" },
+  { id: "v5", ref: "5ecbd1f0a1ff41b8fadfebf2cbf56aa6208846e2" },
 ];
 
 /** Content families to sync. */

@@ -1,4 +1,6 @@
 export type GatewayDecisionModelId =
+  | 'baseten/elephant-1'
+  | 'baseten/mammoth-1'
   | 'convaiinnovations/laya'
   | 'convaiinnovations/laya-free'
   | 'liquid/d1'

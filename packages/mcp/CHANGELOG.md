@@ -1,5 +1,33 @@
 # @ai-sdk/mcp
 
+## 2.0.84
+
+### Patch Changes
+
+- 84d7880: Fix MCP tool output conversion throwing on primitive or nullish results returned by output schemas or execute wrappers. Convert strings to text and normalize undefined outputs to JSON null while preserving MCP content conversion.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 2.0.81
 
 ### Patch Changes

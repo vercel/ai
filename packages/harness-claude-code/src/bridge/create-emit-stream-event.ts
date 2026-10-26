@@ -194,7 +194,14 @@ export function createEmitStreamEvent({
     // Emit `stream-start` once, on the first message, carrying the model the
     // CLI resolved to (the `system`/`init` message reports it — this is the
     // default model when none was configured).
-    if (!streamStarted) {
+    /*
+     * `command_lifecycle` frames are skipped here. The CLI's stdin reader
+     * forwards them (e.g. `queued` and `started` for the prompt) straight to
+     * the output stream, independently of the engine that yields
+     * `system`/`init` at the start of each turn, so they can arrive before
+     * `init`. They produce no stream parts.
+     */
+    if (!streamStarted && type !== 'command_lifecycle') {
       const initModel =
         type === 'system' &&
         msg.subtype === 'init' &&

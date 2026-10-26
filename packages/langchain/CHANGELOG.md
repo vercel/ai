@@ -1,5 +1,46 @@
 # @ai-sdk/langchain
 
+## 3.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 3.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 3.0.150
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+
+## 3.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 3.0.148
 
 ### Patch Changes

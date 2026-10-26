@@ -3,11 +3,15 @@
 The OpenCode harness connects `HarnessAgent` to OpenCode through a sandboxed
 bridge.
 
-## Native OpenCode configuration
+-> **Note**: This package is experimental.
 
-Use `openCodeConfig` to pass native OpenCode settings that do not have a
-dedicated adapter option. For example, OpenCode supports selecting a model for
-an individual agent:
+## Setup
+
+```bash
+npm i @ai-sdk/harness @ai-sdk/harness-opencode @ai-sdk/sandbox-vercel
+```
+
+## Usage
 
 ```ts
 import { createOpenCode } from '@ai-sdk/harness-opencode';
@@ -23,19 +27,4 @@ const adapter = createOpenCode({
 });
 ```
 
-Adapter-managed settings take precedence when the same key is present in
-`openCodeConfig`. Agent-local `permission` and deprecated `tools` settings are
-ignored so they cannot bypass harness permissions or built-in tool filtering.
-
-## Compaction events
-
-Native automatic and manual compaction emit a `compaction` stream part on
-completion. Internal summary text is available on that part, rather than
-streamed as assistant answer text. Summary model usage is preserved.
-
-With `includeRawChunks` enabled, `opencode.compaction` raw events expose
-`messageId` and `status` (`started` or `failed`). Successful completion uses
-the normalized `compaction` part, whose `harnessMetadata.opencode.messageId`
-identifies the same operation.
-
-See the AI SDK documentation for usage.
+See the [OpenCode harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/opencode) for more information.

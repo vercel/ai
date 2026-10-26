@@ -413,6 +413,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
       outputSchemaToolNames,
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
@@ -926,6 +927,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
+    let structuredOutputText: string | undefined;
+
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
@@ -1086,6 +1089,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'message': {
+          // Parse only the last final answer for JSON output, while preserving
+          // every message and its metadata in the generated content.
+          if (
+            options.responseFormat?.type === 'json' &&
+            part.phase === 'final_answer'
+          ) {
+            structuredOutputText = part.content
+              .map(contentPart => contentPart.text)
+              .join('');
+          }
+
           for (const contentPart of part.content) {
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
@@ -1516,6 +1530,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       content,
+      ...(structuredOutputText !== undefined && { structuredOutputText }),
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,

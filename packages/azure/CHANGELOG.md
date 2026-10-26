@@ -1,5 +1,39 @@
 # @ai-sdk/azure
 
+## 4.0.110
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/openai@4.0.102
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/deepseek@3.0.73
+
+## 4.0.109
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/deepseek@3.0.72
+  - @ai-sdk/openai@4.0.101
+
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+  - @ai-sdk/openai@4.0.100
+  - @ai-sdk/deepseek@3.0.71
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 4.0.107
 
 ### Patch Changes

@@ -1955,6 +1955,12 @@ const result = await generateText({
 });
 ```
 
+For non-streaming JSON output with `generateText`, when a response contains
+messages marked with `phase: 'final_answer'`, the SDK parses only the last such
+message into `result.output`. This prevents commentary or repeated final answers
+from being joined into invalid JSON. The returned `text`, `content`, response
+messages, and token usage still include the complete response as before.
+
 #### Typed providerMetadata in Text Parts
 
 When using the OpenAI Responses API, the SDK attaches OpenAI-specific metadata to output parts via `providerMetadata`.
