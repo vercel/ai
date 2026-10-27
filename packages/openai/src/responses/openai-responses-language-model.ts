@@ -1009,11 +1009,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-<<<<<<< HEAD
-            result: mapWebSearchOutput(part.action),
-=======
             ...mapWebSearchResult(part),
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
           });
 
           break;
@@ -1776,11 +1772,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-<<<<<<< HEAD
-                  result: mapWebSearchOutput(value.item.action),
-=======
                   ...mapWebSearchResult(value.item),
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -2686,8 +2678,6 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-<<<<<<< HEAD
-=======
 export function mapWebSearchResult({
   action,
   status,
@@ -2702,7 +2692,6 @@ export function mapWebSearchResult({
     : { isError: true, result: { status } };
 }
 
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {

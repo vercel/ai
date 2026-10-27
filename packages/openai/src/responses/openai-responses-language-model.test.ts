@@ -4604,8 +4604,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
@@ -4665,7 +4663,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       },
     );
 
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
     describe('web search sources schema resilience', () => {
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -7873,8 +7870,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
     describe.each([true, false])(
       'streaming web search status with action: %s',
       withAction => {
@@ -7948,7 +7943,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       },
     );
 
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
     describe('web search tool', () => {
       it('should stream web search results (sources, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-web-search-tool.1');

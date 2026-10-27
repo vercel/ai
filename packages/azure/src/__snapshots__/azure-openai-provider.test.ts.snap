@@ -1093,125 +1093,6 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
     "type": "tool-result",
   },
   {
-    "id": "id-0",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.nbcnews.com/",
-  },
-  {
-    "id": "id-1",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.cnn.com/",
-  },
-  {
-    "id": "id-2",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.cbsnews.com/",
-  },
-  {
-    "id": "id-3",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB",
-  },
-  {
-    "id": "id-4",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://abcnews.com/",
-  },
-  {
-    "id": "id-5",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.nbcnews.com/latest-stories",
-  },
-  {
-    "id": "id-6",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://news.google.com/",
-  },
-  {
-    "id": "id-7",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.washingtonpost.com/",
-  },
-  {
-<<<<<<< HEAD
-=======
-    "citations": [
-      {
-        "endIndex": 453,
-        "source": {
-          "id": "https://www.nbcnews.com/",
-          "sourceType": "url",
-          "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
-          "type": "source",
-          "url": "https://www.nbcnews.com/",
-        },
-        "startIndex": 417,
-      },
-      {
-        "endIndex": 482,
-        "source": {
-          "id": "https://www.cnn.com/",
-          "sourceType": "url",
-          "title": "Breaking News, Latest News and Videos | CNN",
-          "type": "source",
-          "url": "https://www.cnn.com/",
-        },
-        "startIndex": 455,
-      },
-      {
-        "endIndex": 520,
-        "source": {
-          "id": "https://www.cbsnews.com/",
-          "sourceType": "url",
-          "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
-          "type": "source",
-          "url": "https://www.cbsnews.com/",
-        },
-        "startIndex": 484,
-      },
-      {
-        "endIndex": 565,
-        "source": {
-          "id": "https://news.google.com/",
-          "sourceType": "url",
-          "title": "Google News - Headlines",
-          "type": "source",
-          "url": "https://news.google.com/",
-        },
-        "startIndex": 526,
-      },
-      {
-        "endIndex": 1055,
-        "source": {
-          "id": "https://abcnews.com/",
-          "sourceType": "url",
-          "title": "ABC News - Breaking News, Latest News and Videos",
-          "type": "source",
-          "url": "https://abcnews.com/",
-        },
-        "startIndex": 1023,
-      },
-      {
-        "endIndex": 2154,
-        "source": {
-          "id": "https://www.washingtonpost.com/",
-          "sourceType": "url",
-          "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
-          "type": "source",
-          "url": "https://www.washingtonpost.com/",
-        },
-        "startIndex": 2100,
-      },
-    ],
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
     "providerMetadata": {
       "azure": {
         "annotations": [
@@ -1282,6 +1163,48 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
 
 These stories highlight ongoing global political shifts, electoral battles in the U.S. and Israel, and security concerns internationally. For more in-depth reading, please refer to the cited news sources.",
     "type": "text",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
+    "type": "source",
+    "url": "https://www.nbcnews.com/",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "title": "Breaking News, Latest News and Videos | CNN",
+    "type": "source",
+    "url": "https://www.cnn.com/",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
+    "type": "source",
+    "url": "https://www.cbsnews.com/",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "title": "Google News - Headlines",
+    "type": "source",
+    "url": "https://news.google.com/",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "title": "ABC News - Breaking News, Latest News and Videos",
+    "type": "source",
+    "url": "https://abcnews.com/",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
+    "type": "source",
+    "url": "https://www.washingtonpost.com/",
   },
 ]
 `;
@@ -5968,54 +5891,6 @@ exports[`responses > doStream > web search preview tool > should stream web sear
     "type": "tool-result",
   },
   {
-    "id": "id-0",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.nbcnews.com/",
-  },
-  {
-    "id": "id-1",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.cnn.com/",
-  },
-  {
-    "id": "id-2",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.cbsnews.com/",
-  },
-  {
-    "id": "id-3",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB",
-  },
-  {
-    "id": "id-4",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://abcnews.com/",
-  },
-  {
-    "id": "id-5",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.nbcnews.com/latest-stories",
-  },
-  {
-    "id": "id-6",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://news.google.com/",
-  },
-  {
-    "id": "id-7",
-    "sourceType": "url",
-    "type": "source",
-    "url": "https://www.washingtonpost.com/",
-  },
-  {
     "id": "msg_0d2f27550f7252c9006ae0f4e2cf408193882e4587babec7ad",
     "providerMetadata": {
       "azure": {
@@ -6490,97 +6365,56 @@ If",
     "type": "text-delta",
   },
   {
-<<<<<<< HEAD
     "id": "id-0",
     "sourceType": "url",
-    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
     "type": "source",
-    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+    "url": "https://www.nbcnews.com/",
   },
   {
-    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
-=======
-    "citations": [
-      {
-        "endIndex": 641,
-        "source": {
-          "id": "https://www.nbcnews.com/",
-          "sourceType": "url",
-          "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
-          "type": "source",
-          "url": "https://www.nbcnews.com/",
-        },
-        "startIndex": 605,
-      },
-      {
-        "endIndex": 670,
-        "source": {
-          "id": "https://www.cnn.com/",
-          "sourceType": "url",
-          "title": "Breaking News, Latest News and Videos | CNN",
-          "type": "source",
-          "url": "https://www.cnn.com/",
-        },
-        "startIndex": 643,
-      },
-      {
-        "endIndex": 708,
-        "source": {
-          "id": "https://www.cbsnews.com/",
-          "sourceType": "url",
-          "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
-          "type": "source",
-          "url": "https://www.cbsnews.com/",
-        },
-        "startIndex": 672,
-      },
-      {
-        "endIndex": 749,
-        "source": {
-          "id": "https://news.google.com/",
-          "sourceType": "url",
-          "title": "Google News - Headlines",
-          "type": "source",
-          "url": "https://news.google.com/",
-        },
-        "startIndex": 710,
-      },
-      {
-        "endIndex": 1395,
-        "source": {
-          "id": "https://abcnews.com/",
-          "sourceType": "url",
-          "title": "ABC News - Breaking News, Latest News and Videos",
-          "type": "source",
-          "url": "https://abcnews.com/",
-        },
-        "startIndex": 1363,
-      },
-      {
-        "endIndex": 1724,
-        "source": {
-          "id": "https://www.npr.org/",
-          "sourceType": "url",
-          "title": "NPR",
-          "type": "source",
-          "url": "https://www.npr.org/",
-        },
-        "startIndex": 1697,
-      },
-      {
-        "endIndex": 2270,
-        "source": {
-          "id": "https://www.washingtonpost.com/",
-          "sourceType": "url",
-          "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
-          "type": "source",
-          "url": "https://www.washingtonpost.com/",
-        },
-        "startIndex": 2216,
-      },
-    ],
+    "id": "id-1",
+    "sourceType": "url",
+    "title": "Breaking News, Latest News and Videos | CNN",
+    "type": "source",
+    "url": "https://www.cnn.com/",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
+    "type": "source",
+    "url": "https://www.cbsnews.com/",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "title": "Google News - Headlines",
+    "type": "source",
+    "url": "https://news.google.com/",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "title": "ABC News - Breaking News, Latest News and Videos",
+    "type": "source",
+    "url": "https://abcnews.com/",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "title": "NPR",
+    "type": "source",
+    "url": "https://www.npr.org/",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
+    "type": "source",
+    "url": "https://www.washingtonpost.com/",
+  },
+  {
     "id": "msg_0d2f27550f7252c9006ae0f4e2cf408193882e4587babec7ad",
->>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
     "providerMetadata": {
       "azure": {
         "annotations": [
