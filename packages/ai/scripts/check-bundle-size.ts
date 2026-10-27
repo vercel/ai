@@ -4,6 +4,7 @@ import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
+// Native step compaction adds ~4 KiB to the named generateText bundle.
 const LIMIT = 620 * 1024;
 
 interface BundleResult {
@@ -55,7 +56,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 296 * 1024
           : LIMIT,
   };
 }
@@ -103,7 +104,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 296 * 1024
           : LIMIT,
   };
 }

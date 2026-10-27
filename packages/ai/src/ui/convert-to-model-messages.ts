@@ -21,6 +21,7 @@ import {
   isReasoningUIPart,
   isTextUIPart,
   isToolUIPart,
+  type CompactionUIPart,
   type CustomContentUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
@@ -35,14 +36,18 @@ import {
 } from './ui-messages';
 import { isToolPartFromUnavailableTool } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+import { resolveUIMessageCompaction } from './resolve-ui-message-compaction';
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
+ * The latest applicable compaction record replaces its covered UI history;
+ * messages and parts added after that boundary are converted normally.
  *
  * @param messages - The UI messages to convert.
  * @param options.tools - The tools to use.
  * @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
  * @param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
+ * @param options.onCompactionApplied - Called with the validated compaction record selected for this conversion, if any.
  *
  * @returns An array of ModelMessages.
  */
@@ -51,12 +56,22 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
+    onCompactionApplied?: (
+      compaction: CompactionUIPart,
+    ) => void | PromiseLike<void>;
     convertDataPart?: (
       part: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
     ) => TextPart | FilePart | undefined;
   },
 ): Promise<ModelMessage[]> {
-  const modelMessages: ModelMessage[] = [];
+  const projection = await resolveUIMessageCompaction(messages, {
+    ignoreIncompleteToolCalls: options?.ignoreIncompleteToolCalls,
+  });
+  const modelMessages: ModelMessage[] = projection.context;
+  messages = projection.messages;
+  if (projection.appliedCompaction != null) {
+    await options?.onCompactionApplied?.(projection.appliedCompaction);
+  }
 
   warnIfUIMessageHasDeprecatedRawInput(messages);
 

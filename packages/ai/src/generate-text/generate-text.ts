@@ -16,6 +16,9 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolChoiceViolationError } from '../error';
+import type { CompactionCheckpoint } from '../compact-messages/types';
+import { resolveStepCompaction } from '../compact-messages/resolve-step-compaction';
+import { validateCheckpoint } from '../compact-messages/validate-compaction';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -300,6 +303,7 @@ async function generateTextInternal<
     toolOrder,
     toolCallConcurrency,
     prepareStep,
+    compactionCheckpoint,
     experimental_repairToolCall,
     repairToolCall = experimental_repairToolCall,
     experimental_refineToolInput: refineToolInput,
@@ -451,6 +455,9 @@ async function generateTextInternal<
        * Optional function that you can use to provide different settings for a step.
        */
       prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+      /** Checkpoint for compacted history supplied in prompt or messages. */
+      compactionCheckpoint?: CompactionCheckpoint;
 
       /**
        * A function that attempts to repair a tool call that failed to parse.
@@ -733,6 +740,7 @@ async function generateTextInternal<
     messages,
     allowSystemInMessages,
   } as Prompt);
+  await validateCheckpoint(initialPrompt.messages, compactionCheckpoint);
 
   const callId = generateCallId();
 
@@ -1037,6 +1045,9 @@ async function generateTextInternal<
                 instructions: instructionsForNextStep,
                 initialInstructions: initialPrompt.instructions,
                 messages: stepInputMessages,
+                ...(compactionCheckpoint === undefined
+                  ? {}
+                  : { compactionCheckpoint }),
                 initialMessages,
                 responseMessages: accumulatedResponseMessages,
                 ...(steeringMessages.length > 0
@@ -1046,6 +1057,13 @@ async function generateTextInternal<
                 toolsContext,
                 experimental_sandbox: sandbox,
               });
+
+              const stepCompaction = await resolveStepCompaction({
+                messages: stepInputMessages,
+                checkpoint: compactionCheckpoint,
+                prepareStepResult,
+              });
+              compactionCheckpoint = stepCompaction.checkpoint;
 
               const stepSandbox =
                 prepareStepResult?.experimental_sandbox ?? sandbox;
@@ -1102,7 +1120,7 @@ async function generateTextInternal<
                 stepToolChoice.type === 'none' ? undefined : executionTools;
 
               const stepMessages = appendToolCallerMessages({
-                messages: prepareStepResult?.messages ?? stepInputMessages,
+                messages: stepCompaction.messages,
                 toolCallerMessages,
               });
 

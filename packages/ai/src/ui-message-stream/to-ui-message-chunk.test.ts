@@ -33,6 +33,15 @@ const file: GeneratedFile = {
 };
 
 describe('toUIMessageChunk', () => {
+  it('leaves model compaction events to the stateful UI stream converter', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'compaction',
+        messages: [{ role: 'user', content: 'Summary' }],
+      }),
+    ).toBeUndefined();
+  });
+
   it('maps text parts and preserves provider metadata', () => {
     expect(
       toUIMessageChunk({

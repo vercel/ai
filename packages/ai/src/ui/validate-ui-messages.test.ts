@@ -17,6 +17,30 @@ import {
 } from 'vitest';
 
 describe('validateUIMessages', () => {
+  it('preserves a built-in compaction record without a custom data schema', async () => {
+    const messages = [
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'compaction',
+            version: 1,
+            replaces: {
+              messageId: 'user-1',
+              messageCount: 1,
+              partCount: 1,
+              digest: '0'.repeat(64),
+            },
+            messages: [{ role: 'user', content: 'Summarized context' }],
+          },
+        ],
+      },
+    ];
+
+    await expect(validateUIMessages({ messages })).resolves.toEqual(messages);
+  });
+
   beforeEach(() => {
     globalThis.AI_SDK_LOG_WARNINGS = false;
   });

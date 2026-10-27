@@ -39,6 +39,14 @@ export async function POST(request: Request) {
 }
 ```
 
+## Context Compaction
+
+When a `ToolLoopAgent` returns a `compactMessages` result as `prepareStep.compaction`, this helper automatically emits a built-in compaction record at the correct UI boundary. `useChat` retains the record alongside the visible messages.
+
+Keep sending and persisting the full UI conversation. On the next request, the helper reconstructs the replacement context plus later content and restores the checkpoint for `prepareStep`. The route only needs its normal `agent`, `uiMessages`, and optional persistence callback.
+
+See [Compact Agent Context](/cookbook/guides/agent-context-compaction) for a complete example.
+
 ## Parameters
 
 <PropertiesTable

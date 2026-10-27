@@ -47,6 +47,7 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { DownloadFunction } from '../util/download/download-function';
 import type { AgentCallParameters } from './agent';
+import type { CompactionCheckpoint } from '../compact-messages/types';
 
 /**
  * Configuration options for an agent.
@@ -473,6 +474,7 @@ export type ToolLoopAgentSettings<
       > &
         Omit<Prompt, 'system'> & {
           toolsContext: InferToolSetContext<TOOLS>;
+          compactionCheckpoint?: CompactionCheckpoint;
         }
     >;
   };

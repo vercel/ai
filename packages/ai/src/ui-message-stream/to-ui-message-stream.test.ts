@@ -6,7 +6,9 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
-import type { UIMessage } from '../ui/ui-messages';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import type { CompactionUIPart, UIMessage } from '../ui/ui-messages';
+import { readUIMessageStream } from './read-ui-message-stream';
 import { toUIMessageStream } from './to-ui-message-stream';
 
 const testUsage: LanguageModelUsage = {
@@ -43,7 +45,363 @@ const testStep: TextStreamPart<{}> & { type: 'finish-step' } = {
   providerMetadata: undefined,
 };
 
+const testCompaction: CompactionUIPart = {
+  type: 'compaction',
+  version: 1,
+  replaces: {
+    messageId: 'user-1',
+    messageCount: 1,
+    partCount: 1,
+    digest: '0'.repeat(64),
+  },
+  messages: [{ role: 'user', content: 'Summarized context' }],
+};
+
 describe('toUIMessageStream', () => {
+  it('resolves ordered model compaction events against completed UI tool steps without callbacks', async () => {
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Original question' }],
+      },
+    ];
+    const chunks: unknown[] = [];
+    const snapshots = await convertReadableStreamToArray(
+      readUIMessageStream({
+        stream: toUIMessageStream({
+          originalMessages,
+          stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+            { type: 'start' },
+            {
+              type: 'compaction',
+              messages: [{ role: 'user', content: 'Initial summary' }],
+            },
+            { type: 'start-step', request: {}, warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'lookup',
+              input: {},
+              dynamic: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'lookup',
+              input: {},
+              output: 'Result',
+              dynamic: true,
+            },
+            { ...testStep, finishReason: 'tool-calls' },
+            {
+              type: 'compaction',
+              messages: [
+                { role: 'user', content: 'Summary including lookup result' },
+              ],
+            },
+            { type: 'start-step', request: {}, warnings: [] },
+            { type: 'text-start', id: 'answer' },
+            { type: 'text-delta', id: 'answer', text: 'Final answer' },
+            { type: 'text-end', id: 'answer' },
+            testStep,
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              rawFinishReason: 'stop',
+              totalUsage: testUsage,
+            },
+          ]),
+        }).pipeThrough(
+          new TransformStream({
+            transform(chunk, controller) {
+              chunks.push(chunk);
+              controller.enqueue(chunk);
+            },
+          }),
+        ),
+        terminateOnError: true,
+      }),
+    );
+    const response = snapshots.at(-1)!;
+    const records = response.parts.filter(part => part.type === 'compaction');
+
+    expect(response.id).not.toBe('');
+    expect(records).toHaveLength(2);
+    expect(records[0].replaces).toMatchObject({
+      messageId: 'user-1',
+      messageCount: 1,
+      partCount: 1,
+    });
+    expect(records[1].replaces).toMatchObject({
+      messageId: response.id,
+      messageCount: 2,
+      partCount: 3,
+    });
+    expect(response.parts).toContainEqual(
+      expect.objectContaining({
+        type: 'dynamic-tool',
+        state: 'output-available',
+        output: 'Result',
+      }),
+    );
+    expect(chunks).not.toContainEqual(
+      expect.objectContaining({ type: 'compaction-context' }),
+    );
+    expect(
+      await convertToModelMessages(
+        JSON.parse(JSON.stringify([...originalMessages, response])),
+      ),
+    ).toEqual([
+      { role: 'user', content: 'Summary including lookup result' },
+      { role: 'assistant', content: [{ type: 'text', text: 'Final answer' }] },
+    ]);
+  });
+
+  it('uses the existing assistant ID when automatic compaction continues a response', async () => {
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Question' }],
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Previous answer', state: 'done' }],
+      },
+    ];
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        originalMessages,
+        onEnd,
+        stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+          { type: 'start' },
+          {
+            type: 'compaction',
+            messages: [{ role: 'user', content: 'Continued summary' }],
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+      }),
+    );
+
+    expect(chunks[0]).toEqual({ type: 'start', messageId: 'assistant-1' });
+    expect(chunks[1]).toMatchObject({
+      type: 'compaction',
+      replaces: { messageId: 'assistant-1', messageCount: 2, partCount: 1 },
+    });
+    expect(onEnd.mock.calls[0][0].messages).toHaveLength(2);
+    expect(onEnd.mock.calls[0][0].responseMessage.parts).toHaveLength(2);
+  });
+
+  it('requires original UI history for an automatic compaction event', async () => {
+    await expect(
+      convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+            { type: 'start' },
+            {
+              type: 'compaction',
+              messages: [{ role: 'user', content: 'Summary' }],
+            },
+          ]),
+        }),
+      ),
+    ).rejects.toThrow(
+      'Automatic UI compaction requires the original UI messages.',
+    );
+  });
+
+  it.each([undefined, () => 'shared-response'])(
+    'requires the current assistant snapshot when automatic compaction suppresses start',
+    async generateMessageId => {
+      await expect(
+        convertReadableStreamToArray(
+          toUIMessageStream({
+            originalMessages: [
+              {
+                id: 'user-1',
+                role: 'user',
+                parts: [{ type: 'text', text: 'Question' }],
+              },
+            ],
+            sendStart: false,
+            generateMessageId,
+            stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+              { type: 'start' },
+              {
+                type: 'compaction',
+                messages: [{ role: 'user', content: 'Summary' }],
+              },
+            ]),
+          }),
+        ),
+      ).rejects.toThrow(
+        'Automatic UI compaction with sendStart disabled requires originalMessages to end with the current assistant message, including every previously emitted part.',
+      );
+    },
+  );
+
+  it('compacts a suppressed-start continuation using all previously emitted outer parts', async () => {
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Question' }],
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          { type: 'data-status', data: { status: 'reading' } },
+          { type: 'text', text: 'Outer response text', state: 'done' },
+        ],
+      },
+    ];
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        originalMessages,
+        sendStart: false,
+        onEnd,
+        stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+          { type: 'start' },
+          {
+            type: 'compaction',
+            messages: [
+              { role: 'user', content: 'Summary including outer response' },
+            ],
+          },
+          { type: 'start-step', request: {}, warnings: [] },
+          { type: 'text-start', id: 'answer' },
+          { type: 'text-delta', id: 'answer', text: 'Inner response text' },
+          { type: 'text-end', id: 'answer' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+      }),
+    );
+
+    expect(chunks[0]).toMatchObject({
+      type: 'compaction',
+      replaces: { messageId: 'assistant-1', messageCount: 2, partCount: 2 },
+    });
+    const messages = onEnd.mock.calls[0][0].messages;
+    expect(messages[1].parts.slice(0, 2)).toEqual(originalMessages[1].parts);
+    expect(await convertToModelMessages(messages)).toEqual([
+      { role: 'user', content: 'Summary including outer response' },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Inner response text' }],
+      },
+    ]);
+    expect(originalMessages[1].parts).toHaveLength(2);
+  });
+
+  it('cancels the source while tracking automatic compaction state', async () => {
+    const cancel = vi.fn();
+    const reader = toUIMessageStream({
+      originalMessages: [
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Question' }],
+        },
+      ],
+      stream: new ReadableStream<TextStreamPart<{}>>({
+        start(controller) {
+          controller.enqueue({ type: 'start' });
+          controller.enqueue({
+            type: 'compaction',
+            messages: [{ role: 'user', content: 'Summary' }],
+          });
+        },
+        cancel,
+      }),
+    }).getReader();
+
+    await reader.read();
+    expect((await reader.read()).value).toMatchObject({ type: 'compaction' });
+    await reader.cancel('stop');
+    await vi.waitFor(() => expect(cancel).toHaveBeenCalledWith('stop'));
+  });
+
+  it('emits compaction after start and includes it in persisted response messages', async () => {
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+          { type: 'start' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', text: 'Answer' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+        generateMessageId: () => 'assistant-1',
+        compaction: testCompaction,
+        onEnd,
+      }),
+    );
+
+    expect(chunks.slice(0, 3)).toEqual([
+      { type: 'start', messageId: 'assistant-1' },
+      testCompaction,
+      { type: 'text-start', id: 'text-1' },
+    ]);
+    expect(chunks.filter(chunk => chunk.type === 'compaction')).toHaveLength(1);
+    expect(onEnd.mock.calls[0][0].responseMessage.parts).toEqual([
+      testCompaction,
+      expect.objectContaining({ type: 'text', text: 'Answer' }),
+    ]);
+  });
+
+  it('emits compaction before response content when start is disabled', async () => {
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream<TextStreamPart<{}>>([
+          { type: 'start' },
+          { type: 'start-step', request: {}, warnings: [] },
+        ]),
+        compaction: testCompaction,
+        sendStart: false,
+      }),
+    );
+
+    expect(chunks).toEqual([testCompaction, { type: 'start-step' }]);
+  });
+
+  it('retains a compaction record when the source stream has no content', async () => {
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream<TextStreamPart<{}>>([]),
+        compaction: testCompaction,
+        onEnd,
+      }),
+    );
+
+    expect(chunks).toEqual([testCompaction]);
+    expect(onEnd.mock.calls[0][0].responseMessage.parts).toEqual([
+      testCompaction,
+    ]);
+  });
+
   it('includes finish-step metadata in the snapshot before forwarding the boundary', async () => {
     const onStepEnd = vi.fn();
     const onEnd = vi.fn();

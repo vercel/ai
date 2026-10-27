@@ -8,6 +8,10 @@ import type {
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { Instructions } from '../prompt';
+import type {
+  CompactionCheckpoint,
+  CompactionResult,
+} from '../compact-messages/types';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
@@ -67,6 +71,9 @@ export type PrepareStepFunction<
    * If you return a `messages` override, those messages carry forward to later steps.
    */
   messages: Array<ModelMessage>;
+
+  /** Checkpoint describing the current compacted history, when available. */
+  compactionCheckpoint?: CompactionCheckpoint;
 
   /**
    * The initial messages that were passed into generateText or streamText.
@@ -159,6 +166,13 @@ export type PrepareStepResult<
        * for this step. The override carries forward to later steps.
        */
       messages?: Array<ModelMessage>;
+
+      /**
+       * Apply compactMessages output as the next model history and carry its
+       * checkpoint forward. Streaming calls emit a compaction event for UI
+       * persistence when the history changed. Cannot be combined with messages.
+       */
+      compaction?: CompactionResult;
 
       /**
        * Tool context.

@@ -7,11 +7,13 @@ import {
 import { jsonValueSchema } from '../types/json-value';
 import type { FinishReason } from '../types/language-model';
 import type {
+  CompactionUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
+import { compactionUIPartSchema } from '../ui/ui-message-compaction';
 import type { ValueOf } from '../util/value-of';
 import { z, type ZodType } from '../util/zod';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
@@ -24,6 +26,7 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 export const uiMessageChunkSchema = lazySchema(() =>
   zodSchema<UIMessageChunk>(
     z.union([
+      compactionUIPartSchema,
       z.looseObject({
         type: z.literal('text-start'),
         id: z.string(),
@@ -237,6 +240,7 @@ export type UIMessageChunk<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
 > =
+  | CompactionUIPart
   | {
       type: 'text-start';
       id: string;

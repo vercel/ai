@@ -1,36 +1,18 @@
 'use client';
 
-import type {
-  CompactionChatMessage,
-  ConversationState,
-} from '@/app/api/chat/compact-messages/types';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 export default function CompactionChat() {
-  // The model's compacted context is separate from the full visible transcript.
-  const contextRef = useRef<ConversationState>({ messages: [] });
   const [text, setText] = useState('');
   const [transport] = useState(
     () =>
-      new DefaultChatTransport<CompactionChatMessage>({
+      new DefaultChatTransport({
         api: '/api/chat/compact-messages',
-        prepareSendMessagesRequest: ({ messages }) => ({
-          body: {
-            message: messages.at(-1),
-            context: contextRef.current,
-          },
-        }),
       }),
   );
-  const { messages, sendMessage, status, error, stop } =
-    useChat<CompactionChatMessage>({
-      transport,
-      onData: part => {
-        if (part.type === 'data-context') contextRef.current = part.data;
-      },
-    });
+  const { messages, sendMessage, status, error, stop } = useChat({ transport });
   const busy = status === 'submitted' || status === 'streaming';
 
   return (
@@ -61,30 +43,14 @@ export default function CompactionChat() {
                 );
               }
 
-              if (part.type === 'data-compaction') {
+              if (part.type === 'compaction') {
                 return (
                   <div
                     key={index}
                     role="status"
                     className="p-3 my-2 text-sm bg-amber-50 border border-amber-300 rounded"
                   >
-                    {part.data.status === 'running' ? (
-                      busy && message.id === messages.at(-1)?.id ? (
-                        <>Compacting {part.data.beforeMessages} messages…</>
-                      ) : (
-                        <>Compaction interrupted.</>
-                      )
-                    ) : part.data.status === 'skipped' ? (
-                      <>
-                        Compaction skipped: context was unchanged (
-                        {part.data.afterMessages} messages).
-                      </>
-                    ) : (
-                      <>
-                        Context compacted: {part.data.beforeMessages} →{' '}
-                        {part.data.afterMessages} messages.
-                      </>
-                    )}
+                    Context compacted. Your earlier messages remain visible.
                   </div>
                 );
               }

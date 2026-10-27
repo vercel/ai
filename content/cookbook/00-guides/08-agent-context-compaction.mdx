@@ -1,185 +1,145 @@
 ---
 title: Compact Agent Context
-description: Learn how to compact agent context by mutating message state between steps with prepareStep.
+description: Compact model context between agent steps while preserving the complete UI conversation.
 tags: ['agent', 'context', 'compaction', 'prepareStep']
 ---
 
 # Compact Agent Context
 
-In this guide, you will learn how to compact an agent's context by returning a new `messages` array from `prepareStep`.
+Return a `compaction` result from `prepareStep` to replace the model's growing history. The SDK carries the replacement and checkpoint into later steps. When you stream the agent to `useChat`, it also stores a built-in compaction record alongside the visible messages.
 
-The example uses `pruneMessages`, a built-in helper that removes selected messages and message parts. You can use any compaction logic you want. The core behavior is that `prepareStep` can mutate the message state that later steps receive.
+Your application continues persisting one complete UI conversation. The next request reconstructs the model context from the latest applicable record and the messages added afterward.
 
-## Start With a Growing Agent Loop
+## Compact in prepareStep
 
-Agents that call tools can build up large message histories. Each tool call and tool result becomes part of the context for the next step.
+You choose when to compact and how to produce the replacement. This example triggers after 20 model messages and uses the built-in summarization strategy:
 
-This example uses a tool that returns long results:
-
-```ts
-import { ToolLoopAgent, isStepCount, tool } from 'ai';
-import { z } from 'zod';
+```ts filename="agent.ts"
+import { compactMessages, generateText, isStepCount, ToolLoopAgent } from 'ai';
 __PROVIDER_IMPORT__;
 
-const readDocument = tool({
-  description: 'Read a document by name',
-  inputSchema: z.object({
-    name: z.string(),
-  }),
-  execute: async ({ name }) => {
+const model = __MODEL__;
+
+export const agent = new ToolLoopAgent({
+  model,
+  instructions: 'Help the user research and compare project documents.',
+  tools: { readDocument },
+  stopWhen: isStepCount(10),
+  prepareStep: async ({ messages, compactionCheckpoint }) => {
+    if (messages.length <= 20) return;
+
     return {
-      name,
-      text: await loadLargeDocument(name),
+      compaction: await compactMessages({
+        messages,
+        checkpoint: compactionCheckpoint,
+        strategy: 'summarize',
+        keepRecentMessages: 4,
+        summarize: {
+          maxOutputTokens: 2_000,
+          execute: ({ system, ...input }) =>
+            generateText({ model, instructions: system, ...input }),
+        },
+      }),
     };
   },
 });
-
-const agent = new ToolLoopAgent({
-  model: __MODEL__,
-  tools: {
-    readDocument,
-  },
-  stopWhen: isStepCount(10),
-});
-
-const result = await agent.generate({
-  prompt: 'Read the project documents and summarize the migration plan.',
-});
 ```
 
-This works, but the message list grows after each tool call. If the agent reads several large documents, later steps may send old tool results that the model no longer needs in full.
+`readDocument` represents an application tool that returns document content. Each tool call and result grows the history used by the next step. Choose a trigger that fits your application's context budget; the message-count threshold above makes the flow easy to follow.
 
-## Add a Compaction Trigger
+`compactionCheckpoint` identifies an existing summary in the current model history. Pass it to `compactMessages` so later compactions can update that summary. The SDK updates the checkpoint when it applies the returned result. Return `compaction` instead of a separate `messages` override for this operation.
 
-You decide when compaction should happen.
+## Preserve Compaction Across Chat Requests
 
-This example uses a simple token estimate:
+Use the normal agent UI response helper:
+
+```ts filename="app/api/chat/route.ts"
+import { createAgentUIStreamResponse } from 'ai';
+import { agent } from './agent';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return createAgentUIStreamResponse({
+    agent,
+    uiMessages: messages,
+    abortSignal: req.signal,
+    onEnd: ({ messages }) => saveConversation(messages),
+  });
+}
+```
+
+`saveConversation` represents your existing persistence function. Save the entire UI message array, including the built-in `compaction` parts. The client keeps its ordinary `useChat` configuration and sends the full history through the normal transport.
+
+The SDK handles the transition between the two views of the conversation:
+
+1. `prepareStep` returns the compaction result, which becomes the model history for this and later steps.
+2. The ordered stream carries the compaction result to UI conversion.
+3. UI conversion captures the boundary after the completed content it replaces and creates a built-in compaction record.
+4. `useChat` retains that record alongside the original visible messages.
+5. On the next request, `createAgentUIStreamResponse` restores the replacement context and its checkpoint, then appends later UI content.
+
+This also works when compaction occurs between tool steps in one assistant response. The SDK captures the part boundary within that message; subsequent parts are included in the next model request. The route does not need to synchronize model steps with UI snapshots or manage a separate context store.
+
+`createAgentUIStream` provides the same behavior when you need a UI stream instead of a `Response`.
+
+## Use Core Functions
+
+`generateText` and `streamText` support the same `prepareStep` result:
 
 ```ts
-import type { ModelMessage } from 'ai';
+prepareStep: async ({ messages, compactionCheckpoint }) => {
+  if (messages.length <= 20) return;
 
-const COMPACT_AFTER_TOKENS = 100_000;
-
-const estimateTokens = (messages: ModelMessage[]) => {
-  return JSON.stringify(messages).length / 4;
+  return {
+    compaction: await compactMessages({
+      messages,
+      checkpoint: compactionCheckpoint,
+      strategy: compactHistory,
+    }),
+  };
 };
 ```
 
-Use a real tokenizer or provider usage data if you need tighter accounting. The exact trigger does not matter for the pattern.
+Here, `compactHistory` is an application-defined strategy. The SDK applies its validated replacement through `compactMessages` and carries the resulting checkpoint into subsequent steps.
 
-## Compact Messages in prepareStep
+For core UI streaming, pass the original UI messages as `originalMessages` to `toUIMessageStream` or `result.toUIMessageStreamResponse`. UI conversion requires them to create compaction records at the correct boundaries; an automatic compaction event without this history causes a stream error. The agent UI helpers supply this history and restore prior checkpoints automatically.
 
-`prepareStep` runs before each model step. It receives the `messages` that will be sent to the model for that step.
+## Advanced: Custom Streams and Manual Records
 
-When you return a new `messages` array, the SDK uses it for the current step and as the base for following steps.
-
-```ts
-import {
-  ToolLoopAgent,
-  isStepCount,
-  pruneMessages,
-  tool,
-  type ModelMessage,
-} from 'ai';
-import { z } from 'zod';
-__PROVIDER_IMPORT__;
-
-const COMPACT_AFTER_TOKENS = 100_000;
-
-const estimateTokens = (messages: ModelMessage[]) => {
-  return JSON.stringify(messages).length / 4;
-};
-
-const readDocument = tool({
-  description: 'Read a document by name',
-  inputSchema: z.object({
-    name: z.string(),
-  }),
-  execute: async ({ name }) => {
-    return {
-      name,
-      text: await loadLargeDocument(name),
-    };
-  },
-});
-
-const agent = new ToolLoopAgent({
-  model: __MODEL__,
-  tools: {
-    readDocument,
-  },
-  stopWhen: isStepCount(10),
-  prepareStep: ({ messages }) => {
-    if (estimateTokens(messages) > COMPACT_AFTER_TOKENS) {
-      return {
-        messages: pruneMessages({
-          messages,
-          reasoning: 'all',
-          toolCalls: 'before-last-3-messages',
-          emptyMessages: 'remove',
-        }),
-      };
-    }
-  },
-});
-
-const result = await agent.generate({
-  prompt: 'Read the project documents and summarize the migration plan.',
-});
-```
-
-`pruneMessages` is only one way to compact. You can replace it with your own logic when you need a different message shape.
-
-## Understand What Persists
-
-The `messages` parameter is the loop's current message state. If `prepareStep` returns `messages`, that changed list persists into later steps. New assistant and tool response messages are appended as the loop continues.
-
-If you want to build a step from the original input plus the model responses so far, use `initialMessages` and `responseMessages`:
+Use [`createUIMessageCompaction`](/docs/reference/ai-sdk-ui/create-ui-message-compaction) when compaction happens outside `prepareStep`, such as before a core call or inside a custom stream:
 
 ```ts
-prepareStep: ({ initialMessages, responseMessages, stepNumber }) => {
-  if (stepNumber > 0) {
-    return {
-      messages: [...initialMessages, ...responseMessages.slice(-10)],
-    };
-  }
-};
-```
-
-This is useful when you do not want previous `messages` overrides to be the starting point for the next step.
-
-## Use the Same Pattern With Core Functions
-
-The same `prepareStep` behavior works with `generateText` and `streamText`:
-
-```ts
-import { generateText, isStepCount, pruneMessages } from 'ai';
-__PROVIDER_IMPORT__;
-
-const result = await generateText({
-  model: __MODEL__,
-  prompt: 'Read the project documents and summarize the migration plan.',
-  tools: {
-    readDocument,
-  },
-  stopWhen: isStepCount(10),
-  prepareStep: ({ messages }) => {
-    if (estimateTokens(messages) > COMPACT_AFTER_TOKENS) {
-      return {
-        messages: pruneMessages({
-          messages,
-          reasoning: 'all',
-          toolCalls: 'before-last-3-messages',
-          emptyMessages: 'remove',
-        }),
-      };
-    }
-  },
+const compaction = await createUIMessageCompaction({
+  messages: uiMessages,
+  replacementMessages: result.messages,
+  checkpoint: result.checkpoint,
 });
+
+writer.write(compaction);
 ```
+
+The `compaction` option on `toUIMessageStream` and `result.toUIMessageStreamResponse` can also emit a manually created record at the beginning of the stream. Supply the exact UI prefix represented by the replacement. To identify a boundary inside an assistant message, pass a snapshot ending at the last covered part.
+
+When merging a core stream with `sendStart: false`, automatic compaction requires `originalMessages` to end with a complete snapshot of the current assistant message. Include every part already emitted by the surrounding stream, including custom data and text parts. Matching only the response ID is insufficient. Without a continuation snapshot, automatic compaction raises a stream error; an incomplete snapshot produces a record that cannot match the full conversation. The normal `createAgentUIStreamResponse` flow handles its UI history automatically.
+
+For a custom server integration, [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages#compaction-records) selects the latest applicable record automatically. Its optional, awaited `onCompactionApplied` callback exposes that record's checkpoint when you need to restore it yourself. The agent UI helpers handle this internally.
+
+A plain `prepareStep.messages` override continues to change the loop's message state and clears its current checkpoint, but does not create a compaction record. Use `prepareStep.compaction` when the replacement should persist in the UI conversation. Returning both `messages` and `compaction` is invalid.
+
+## Edits and Persistence
+
+Each record contains the replacement model context, its optional checkpoint, and a fingerprint of the UI prefix it replaces. The replacement can include recent model messages as well as a summary; the prefix is replaced once, so those retained messages are not duplicated.
+
+On later requests, conversion searches records from newest to oldest. Editing earlier text, changing a covered tool result, or removing messages can invalidate a record. Conversion then uses an earlier applicable record or the complete visible history. Regeneration that removes the assistant message containing a record also removes that record.
+
+Records are prepared for JSON persistence, including media URLs and binary content. Keep them intact in the stored UI messages. The fingerprint detects stale history; it is not a signature. Applications that require authoritative server context should load the stored conversation or verify submitted records against it. The replacement context is sent to the client, so it must contain only information the client may receive.
+
+Compaction reduces the history sent to the model. The complete UI conversation remains available for rendering, persistence, and transport.
 
 ## Learn More
 
 - [Loop Control](/docs/agents/loop-control) for `prepareStep` with agents
-- [Tools and Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling#preparestep-callback) for `prepareStep` with AI SDK Core
-- [`pruneMessages`](/docs/reference/ai-sdk-ui/prune-messages) for built-in message pruning options
+- [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) for agent chat routes
+- [`createUIMessageCompaction`](/docs/reference/ai-sdk-ui/create-ui-message-compaction) for custom stream integrations
+- [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) for model-history projection

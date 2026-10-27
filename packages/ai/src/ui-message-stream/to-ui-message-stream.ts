@@ -1,11 +1,18 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import {
+  generateId as generateIdFunc,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from '../generate-text/stream-text-result';
 import type { UIMessage } from '../ui/ui-messages';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
+import {
+  handleUIMessageStreamFinish,
+  type UIMessageStreamInputChunk,
+} from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import { toUIMessageChunk } from './to-ui-message-chunk';
@@ -29,6 +36,7 @@ export function toUIMessageStream<
   onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
   messageMetadata,
   originalMessages,
+  compaction,
   generateMessageId,
   onStepEnd,
   onStepFinish,
@@ -42,6 +50,7 @@ export function toUIMessageStream<
 > {
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
   let hasFatalFailure = false;
+  let pendingCompaction = compaction;
 
   const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
     if (
@@ -60,13 +69,10 @@ export function toUIMessageStream<
     outcome = { status: 'failed', error };
   };
 
-  const responseMessageId =
-    generateMessageId != null
-      ? getResponseUIMessageId({
-          originalMessages,
-          responseMessageId: generateMessageId,
-        })
-      : undefined;
+  const responseMessageId = getResponseUIMessageId({
+    originalMessages,
+    responseMessageId: generateMessageId ?? generateIdFunc,
+  });
 
   const sourceReader = stream.getReader();
   let sourceReaderReleased = false;
@@ -116,10 +122,45 @@ export function toUIMessageStream<
   });
 
   const uiMessageChunkStream = sourceStream.pipeThrough(
-    new TransformStream({
+    new TransformStream<
+      TextStreamPart<TOOLS>,
+      UIMessageStreamInputChunk<UI_MESSAGE>
+    >({
       transform: async (part, controller) => {
         try {
           const messageMetadataValue = messageMetadata?.({ part });
+
+          if (part.type === 'compaction') {
+            if (originalMessages == null || originalMessages.length === 0) {
+              throw new InvalidArgumentError({
+                parameter: 'originalMessages',
+                value: originalMessages,
+                message:
+                  'Automatic UI compaction requires the original UI messages.',
+              });
+            }
+            if (!sendStart && originalMessages.at(-1)?.role !== 'assistant') {
+              throw new InvalidArgumentError({
+                parameter: 'sendStart',
+                value: sendStart,
+                message:
+                  'Automatic UI compaction with sendStart disabled requires originalMessages to end with the current assistant message, including every previously emitted part.',
+              });
+            }
+
+            controller.enqueue({
+              type: 'compaction-context',
+              messages: part.messages,
+              checkpoint: part.checkpoint,
+            });
+            if (messageMetadataValue != null) {
+              controller.enqueue({
+                type: 'message-metadata',
+                messageMetadata: messageMetadataValue,
+              });
+            }
+            return;
+          }
 
           const uiMessageChunk = toUIMessageChunk(part, {
             tools,
@@ -132,8 +173,20 @@ export function toUIMessageStream<
             responseMessageId,
           });
 
+          // A start chunk can reset replay state, so the record must follow it.
+          // Without a start chunk, emit the record before any response content.
+          if (pendingCompaction != null && uiMessageChunk?.type !== 'start') {
+            controller.enqueue(pendingCompaction);
+            pendingCompaction = undefined;
+          }
+
           if (uiMessageChunk != null && part.type !== 'finish-step') {
             controller.enqueue(uiMessageChunk);
+          }
+
+          if (pendingCompaction != null) {
+            controller.enqueue(pendingCompaction);
+            pendingCompaction = undefined;
           }
 
           // start and finish events already include metadata in the converted
@@ -166,6 +219,11 @@ export function toUIMessageStream<
           throw error;
         }
       },
+      flush(controller) {
+        if (pendingCompaction != null) {
+          controller.enqueue(pendingCompaction);
+        }
+      },
     }),
   );
 
@@ -173,6 +231,7 @@ export function toUIMessageStream<
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
+    processCompaction: originalMessages != null,
     onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
     onError,

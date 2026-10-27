@@ -9,6 +9,7 @@ import {
 } from './process-ui-message-stream';
 import {
   isToolUIPart,
+  type CompactionUIPart,
   type InferUIMessageData,
   type UIMessage,
 } from './ui-messages';
@@ -62,6 +63,65 @@ describe('processUIMessageStream', () => {
       },
     });
   };
+
+  it.each([false, true])(
+    'retains compaction records alongside ordinary parts with replay=%s',
+    async replay => {
+      const compaction: CompactionUIPart = {
+        type: 'compaction',
+        version: 1,
+        replaces: {
+          messageId: 'user-1',
+          messageCount: 1,
+          partCount: 1,
+          digest: '0'.repeat(64),
+        },
+        messages: [{ role: 'user', content: 'Summarized context' }],
+      };
+      const onData = vi.fn();
+      state = createStreamingUIMessageState({
+        messageId: 'assistant-1',
+        lastMessage: replay
+          ? {
+              id: 'assistant-1',
+              role: 'assistant',
+              parts: [compaction, { type: 'text', text: 'Previous answer' }],
+            }
+          : undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'assistant-1' },
+            compaction,
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Answer' },
+            { type: 'text-end', id: 'text-1' },
+          ]),
+          runUpdateMessageJob,
+          resetStateOnFirstMessageStart: replay,
+          onData,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        compaction,
+        expect.objectContaining({
+          type: 'text',
+          text: 'Answer',
+          state: 'done',
+        }),
+      ]);
+      expect(writeCalls).toContainEqual({
+        message: expect.objectContaining({ parts: [compaction] }),
+      });
+      expect(onData).not.toHaveBeenCalled();
+    },
+  );
 
   describe('replay start', () => {
     it.each(['msg-123', undefined])(

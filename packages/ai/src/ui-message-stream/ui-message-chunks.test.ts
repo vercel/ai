@@ -16,6 +16,51 @@ function createEventStream(value: unknown): ReadableStream<Uint8Array> {
 }
 
 describe('uiMessageChunkSchema', () => {
+  it('accepts built-in compaction records over SSE', async () => {
+    const chunk = {
+      type: 'compaction',
+      version: 1,
+      replaces: {
+        messageId: 'user-1',
+        messageCount: 1,
+        partCount: 1,
+        digest: '0'.repeat(64),
+      },
+      messages: [{ role: 'user', content: 'Summarized context' }],
+    };
+
+    expect(
+      await convertReadableStreamToArray(
+        parseJsonEventStream({
+          stream: createEventStream(chunk),
+          schema: uiMessageChunkSchema,
+        }),
+      ),
+    ).toEqual([{ success: true, value: chunk, rawValue: chunk }]);
+  });
+
+  it.each([0, -1, 1.5])(
+    'rejects an invalid compaction message count of %s',
+    async messageCount => {
+      await expect(
+        validateTypes({
+          schema: uiMessageChunkSchema,
+          value: {
+            type: 'compaction',
+            version: 1,
+            replaces: {
+              messageId: 'user-1',
+              messageCount,
+              partCount: 1,
+              digest: '0'.repeat(64),
+            },
+            messages: [],
+          },
+        }),
+      ).rejects.toBeInstanceOf(TypeValidationError);
+    },
+  );
+
   it('accepts interrupted finish chunks over SSE', async () => {
     const chunk = { type: 'finish', finishReason: 'interrupted' };
 

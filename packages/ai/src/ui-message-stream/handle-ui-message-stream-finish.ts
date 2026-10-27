@@ -4,6 +4,9 @@ import {
   type StreamingUIMessageState,
   type UIMessageStreamWriteOptions,
 } from '../ui/process-ui-message-stream';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
+import type { CompactionCheckpoint } from '../compact-messages/types';
+import { createUIMessageCompaction } from '../ui/create-ui-message-compaction';
 import type { UIMessage } from '../ui/ui-messages';
 import type { ErrorHandler } from '../util/error-handler';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
@@ -11,6 +14,23 @@ import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-ca
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+
+/** Internal event resolved against UI state before it reaches the wire. */
+type UIMessageStreamCompaction = {
+  type: 'compaction-context';
+  messages: ModelMessage[];
+  checkpoint?: CompactionCheckpoint;
+};
+
+export type UIMessageStreamInputChunk<UI_MESSAGE extends UIMessage> =
+  | InferUIMessageChunk<UI_MESSAGE>
+  | UIMessageStreamCompaction;
+
+function isCompactionContextChunk(chunk: {
+  type: string;
+}): chunk is UIMessageStreamCompaction {
+  return chunk.type === 'compaction-context';
+}
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -22,8 +42,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   onError,
   stream,
   getOutcome,
+  processCompaction = false,
 }: {
-  stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
+  stream: ReadableStream<UIMessageStreamInputChunk<UI_MESSAGE>>;
+  /** Track UI state to resolve ordered model compaction events. */
+  processCompaction?: boolean;
 
   /**
    * The message ID to use for the response message.
@@ -83,8 +106,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
-      InferUIMessageChunk<UI_MESSAGE>,
-      InferUIMessageChunk<UI_MESSAGE>
+      UIMessageStreamInputChunk<UI_MESSAGE>,
+      UIMessageStreamInputChunk<UI_MESSAGE>
     >({
       transform(chunk, controller) {
         try {
@@ -120,8 +143,12 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   const resolvedOnEnd = onEnd ?? onFinish;
 
-  if (resolvedOnEnd == null && resolvedOnStepEnd == null) {
-    return idInjectedStream;
+  if (
+    !processCompaction &&
+    resolvedOnEnd == null &&
+    resolvedOnStepEnd == null
+  ) {
+    return idInjectedStream as ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
   }
 
   const state = createStreamingUIMessageState<UI_MESSAGE>({
@@ -199,10 +226,29 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     }
   };
 
-  return processUIMessageStream<UI_MESSAGE>({
+  return processUIMessageStream<
+    UI_MESSAGE,
+    UIMessageStreamInputChunk<UI_MESSAGE>
+  >({
     stream: idInjectedStream,
     runUpdateMessageJob,
     onError,
+    transformChunk: async ({ chunk, state }) => {
+      if (!isCompactionContextChunk(chunk)) return chunk as UIMessageChunk;
+
+      const isContinuation = state.message.id === lastMessage?.id;
+      const history = isContinuation
+        ? [...originalMessages.slice(0, -1), state.message]
+        : state.message.parts.length > 0
+          ? [...originalMessages, state.message]
+          : originalMessages;
+
+      return createUIMessageCompaction({
+        messages: history,
+        replacementMessages: chunk.messages,
+        checkpoint: chunk.checkpoint,
+      });
+    },
   }).pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,
