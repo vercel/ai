@@ -744,35 +744,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-<<<<<<< HEAD
             toolName: webSearchToolName ?? 'web_search',
-            result: mapWebSearchOutput(part.action),
-=======
-            toolName: toolNameMapping.toCustomToolName(
-              webSearchToolName ?? 'web_search',
-            ),
             ...mapWebSearchResult(part),
-          });
-
-          break;
-        }
-
-        case 'mcp_call': {
-          const toolCallId =
-            part.approval_request_id != null
-              ? (approvalRequestIdToDummyToolCallIdFromPrompt[
-                  part.approval_request_id
-                ] ?? part.id)
-              : part.id;
-
-          const toolName = `mcp.${part.name}`;
-
-          content.push({
-            type: 'tool-call',
-            toolCallId,
-            toolName,
-            input: part.arguments,
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
             providerExecuted: true,
           });
 
@@ -1185,16 +1158,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-<<<<<<< HEAD
                   toolName: webSearchToolName ?? 'web_search',
-                  result: mapWebSearchOutput(value.item.action),
-                  providerExecuted: true,
-=======
-                  toolName: toolNameMapping.toCustomToolName(
-                    webSearchToolName ?? 'web_search',
-                  ),
                   ...mapWebSearchResult(value.item),
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1634,18 +1600,7 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
-<<<<<<< HEAD
-=======
-function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
-  return !(
-    chunk.type === 'response.created' ||
-    chunk.type === 'response.failed' ||
-    chunk.type === 'error' ||
-    chunk.type === 'unknown_chunk'
-  );
-}
-
-export function mapWebSearchResult({
+function mapWebSearchResult({
   action,
   status,
 }: {
@@ -1653,13 +1608,12 @@ export function mapWebSearchResult({
   status: string;
 }):
   | { isError: true; result: { status: string } }
-  | { result: InferSchema<typeof webSearchOutputSchema> } {
+  | { result: InferValidator<typeof webSearchOutputSchema> } {
   return status === 'completed'
     ? { result: mapWebSearchOutput(action) }
     : { isError: true, result: { status } };
 }
 
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferValidator<typeof webSearchOutputSchema> {

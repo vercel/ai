@@ -257,9 +257,6 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
     "providerExecuted": true,
     "result": {
       "action": {
-        "queries": [
-          "top news stories today",
-        ],
         "query": "top news stories today",
         "type": "search",
       },
@@ -298,85 +295,14 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_015f6a6b41cacae400691daacb83288193836c60a7c57507fd",
-    "toolName": "web_search_preview",
-    "type": "tool-result",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_015f6a6b41cacae400691daacdbd0081938887c66406662377",
-    "toolName": "web_search_preview",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "query": "major news stories November 19, 2025",
-        "type": "search",
-      },
-    },
-    "toolCallId": "ws_015f6a6b41cacae400691daacdbd0081938887c66406662377",
-=======
     "toolCallId": "ws_07630a2aea58432e006ae0f4da43ac819598dbc092045bb135",
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
     "toolName": "web_search_preview",
     "type": "tool-result",
   },
   {
     "providerMetadata": {
       "azure": {
-<<<<<<< HEAD
-        "itemId": "msg_015f6a6b41cacae400691daacf3e70819397c7d2d5d05e1605",
-=======
-        "annotations": [
-          {
-            "end_index": 453,
-            "start_index": 417,
-            "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
-            "type": "url_citation",
-            "url": "https://www.nbcnews.com/",
-          },
-          {
-            "end_index": 482,
-            "start_index": 455,
-            "title": "Breaking News, Latest News and Videos | CNN",
-            "type": "url_citation",
-            "url": "https://www.cnn.com/",
-          },
-          {
-            "end_index": 520,
-            "start_index": 484,
-            "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
-            "type": "url_citation",
-            "url": "https://www.cbsnews.com/",
-          },
-          {
-            "end_index": 565,
-            "start_index": 526,
-            "title": "Google News - Headlines",
-            "type": "url_citation",
-            "url": "https://news.google.com/",
-          },
-          {
-            "end_index": 1055,
-            "start_index": 1023,
-            "title": "ABC News - Breaking News, Latest News and Videos",
-            "type": "url_citation",
-            "url": "https://abcnews.com/",
-          },
-          {
-            "end_index": 2154,
-            "start_index": 2100,
-            "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
-            "type": "url_citation",
-            "url": "https://www.washingtonpost.com/",
-          },
-        ],
         "itemId": "msg_07630a2aea58432e006ae0f4dbb68c819598cead62ed251416",
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
       },
     },
     "text": "Here is a summary of the top news stories today from multiple major news sources:
@@ -3369,9 +3295,6 @@ exports[`responses > web search preview tool > should stream web search preview 
     "providerExecuted": true,
     "result": {
       "action": {
-        "queries": [
-          "top news stories today",
-        ],
         "query": "top news stories today",
         "type": "search",
       },
@@ -3998,51 +3921,23 @@ If",
     "type": "text-end",
   },
   {
-    "error": [AI_JSONParseError: JSON parsing failed: Text: .
-Error message: Unexpected end of JSON input],
-    "type": "error",
-  },
-  {
-    "finishReason": "error",
+    "finishReason": "stop",
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0d2f27550f7252c9006ae0f4e0cf8c8193913da232d7164885",
         "serviceTier": "default",
+        "usage": {
+          "cacheWriteTokens": 0,
+        },
       },
     },
     "type": "finish",
     "usage": {
-<<<<<<< HEAD
       "cachedInputTokens": 0,
-      "inputTokens": 5093,
-      "outputTokens": 369,
+      "inputTokens": 5434,
+      "outputTokens": 619,
       "reasoningTokens": 0,
-      "totalTokens": 5462,
-=======
-      "inputTokens": {
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "noCache": 5434,
-        "total": 5434,
-      },
-      "outputTokens": {
-        "reasoning": 0,
-        "text": 619,
-        "total": 619,
-      },
-      "raw": {
-        "input_tokens": 5434,
-        "input_tokens_details": {
-          "cache_write_tokens": 0,
-          "cached_tokens": 0,
-        },
-        "output_tokens": 619,
-        "output_tokens_details": {
-          "reasoning_tokens": 0,
-        },
-        "total_tokens": 6053,
-      },
->>>>>>> 84a22318da (Backport: fix(openai): report unfinished web searches as tool errors (#24126))
+      "totalTokens": 6053,
     },
   },
 ]
