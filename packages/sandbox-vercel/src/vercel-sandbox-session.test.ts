@@ -23,7 +23,10 @@ function makeMockCommand(options: {
   exitCode?: number;
 }) {
   const entries = options.logs ?? [];
-  const wait = vi.fn(async () => ({ exitCode: options.exitCode ?? 0 }));
+  const wait = vi.fn(async (waitOptions?: { signal?: AbortSignal }) => {
+    waitOptions?.signal?.throwIfAborted();
+    return { exitCode: options.exitCode ?? 0 };
+  });
   const kill = vi.fn(async () => {});
   const writeStdin = vi.fn(
     async (_data: Uint8Array, _options?: { abortSignal?: AbortSignal }) => {},
@@ -387,8 +390,8 @@ describe('VercelSandboxSession', () => {
         await activeWriter.abort(reason);
 
         expect(spies.writeStdin).not.toHaveBeenCalled();
-        expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith();
-        expect(spies.kill).not.toHaveBeenCalled();
+        expect(spies.closeStdin).not.toHaveBeenCalled();
+        expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
         expect(spies.wait).not.toHaveBeenCalled();
       },
     );
@@ -429,7 +432,41 @@ describe('VercelSandboxSession', () => {
         new Uint8Array([1]),
         { abortSignal: ac.signal },
       );
-      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith();
+      expect(spies.closeStdin).not.toHaveBeenCalled();
+      expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
+    });
+
+    it('cancels an in-flight close on signal abortion without retrying EOF', async () => {
+      const { handle, spies } = makeMockCommand({});
+      spies.closeStdin.mockImplementationOnce(
+        options =>
+          new Promise<void>((_resolve, reject) => {
+            const signal = options!.abortSignal!;
+            signal.addEventListener('abort', () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+      const ac = new AbortController();
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+        command: 'cat',
+        stdin: true,
+        abortSignal: ac.signal,
+      });
+      const writer = proc.stdin.getWriter();
+      const reason = new Error('input cancelled');
+      const closed = expect(writer.closed).rejects.toBe(reason);
+      const close = expect(writer.close()).rejects.toBe(reason);
+      await vi.waitFor(() => expect(spies.closeStdin).toHaveBeenCalledOnce());
+
+      ac.abort(reason);
+
+      await Promise.all([close, closed]);
+      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith({
+        abortSignal: ac.signal,
+      });
+      expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
     });
 
     it('handles signal abortion while the command is starting', async () => {
@@ -447,12 +484,23 @@ describe('VercelSandboxSession', () => {
       });
 
       await expect(proc.stdin.getWriter().closed).rejects.toBe(reason);
-      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith();
+      expect(spies.closeStdin).not.toHaveBeenCalled();
+      expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
     });
 
-    it('preserves the abort reason if EOF cleanup fails', async () => {
+    it('preserves the abort reason if killing fails and allows an explicit retry', async () => {
       const { handle, spies } = makeMockCommand({});
-      spies.closeStdin.mockRejectedValueOnce(new Error('command exited'));
+      spies.kill.mockRejectedValueOnce(new Error('kill failed'));
+      spies.wait.mockImplementationOnce(
+        options =>
+          new Promise((_resolve, reject) => {
+            options!.signal!.addEventListener(
+              'abort',
+              () => reject(new Error('wait cancelled')),
+              { once: true },
+            );
+          }),
+      );
       baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
       const ac = new AbortController();
       const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
@@ -463,20 +511,26 @@ describe('VercelSandboxSession', () => {
       const writer = proc.stdin.getWriter();
       const reason = new Error('input cancelled');
       const closed = expect(writer.closed).rejects.toBe(reason);
+      const finished = expect(proc.wait()).rejects.toBe(reason);
 
       ac.abort(reason);
 
-      await closed;
+      await Promise.all([closed, finished]);
       await expect(writer.write(new Uint8Array([1]))).rejects.toBe(reason);
-      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith();
+      expect(spies.closeStdin).not.toHaveBeenCalled();
+      expect(spies.wait).toHaveBeenCalledExactlyOnceWith({ signal: ac.signal });
+      expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
+      await proc.kill();
+      expect(spies.kill).toHaveBeenCalledTimes(2);
     });
 
-    it.each(['close', 'abort', 'write failure'])(
-      'removes the abort listener after %s',
+    it.each(['close', 'abort', 'write failure', 'close failure'])(
+      'removes only the stdin abort listener after %s',
       async operation => {
         const { handle, spies } = makeMockCommand({});
         baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
         const ac = new AbortController();
+        const addEventListener = vi.spyOn(ac.signal, 'addEventListener');
         const removeEventListener = vi.spyOn(ac.signal, 'removeEventListener');
         const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
           command: 'cat',
@@ -491,22 +545,37 @@ describe('VercelSandboxSession', () => {
           const closed = expect(writer.closed).rejects.toBe(reason);
           if (operation === 'abort') {
             await writer.abort(reason);
-          } else {
+          } else if (operation === 'write failure') {
             spies.writeStdin.mockRejectedValueOnce(reason);
             await expect(writer.write(new Uint8Array([1]))).rejects.toBe(
               reason,
             );
+          } else {
+            spies.closeStdin.mockRejectedValueOnce(reason);
+            await expect(writer.close()).rejects.toBe(reason);
           }
           await closed;
         }
 
+        expect(addEventListener).toHaveBeenCalledTimes(2);
+        const [processListener, stdinListener] =
+          addEventListener.mock.calls.map(([, listener]) => listener);
         expect(removeEventListener).toHaveBeenCalledWith(
           'abort',
-          expect.any(Function),
+          stdinListener,
+        );
+        expect(removeEventListener).not.toHaveBeenCalledWith(
+          'abort',
+          processListener,
         );
         const closeCalls = spies.closeStdin.mock.calls.length;
         ac.abort();
         expect(spies.closeStdin).toHaveBeenCalledTimes(closeCalls);
+        expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
+        expect(removeEventListener).toHaveBeenCalledWith(
+          'abort',
+          processListener,
+        );
       },
     );
 
@@ -529,7 +598,7 @@ describe('VercelSandboxSession', () => {
       await closed;
 
       expect(spies.writeStdin).toHaveBeenCalledTimes(1);
-      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith();
+      expect(spies.closeStdin).not.toHaveBeenCalled();
       expect(spies.kill).not.toHaveBeenCalled();
     });
 
@@ -547,15 +616,14 @@ describe('VercelSandboxSession', () => {
 
       await expect(writer.close()).rejects.toBe(error);
       await closed;
-      expect(spies.closeStdin.mock.calls).toEqual([
-        [{ abortSignal: undefined }],
-        [],
-      ]);
+      expect(spies.closeStdin).toHaveBeenCalledExactlyOnceWith({
+        abortSignal: undefined,
+      });
       expect(spies.kill).not.toHaveBeenCalled();
     });
 
     it.each(['write', 'close'])(
-      'does not delay or replace a %s failure with EOF cleanup',
+      'preserves a %s failure after signal abortion without sending EOF again',
       async operation => {
         const { handle, spies } = makeMockCommand({});
         const error = new Error(`${operation} failed`);
@@ -564,11 +632,6 @@ describe('VercelSandboxSession', () => {
         } else {
           spies.closeStdin.mockRejectedValueOnce(error);
         }
-        let rejectCleanup!: (error: Error) => void;
-        spies.closeStdin.mockImplementationOnce(
-          () =>
-            new Promise<void>((_resolve, reject) => (rejectCleanup = reject)),
-        );
         baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
         const ac = new AbortController();
         const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
@@ -586,17 +649,17 @@ describe('VercelSandboxSession', () => {
         ).rejects.toBe(error);
         await closed;
 
-        const expectedCalls = operation === 'write' ? 1 : 2;
+        const expectedCalls = operation === 'write' ? 0 : 1;
         expect(spies.closeStdin).toHaveBeenCalledTimes(expectedCalls);
-        expect(spies.closeStdin).toHaveBeenLastCalledWith();
-        rejectCleanup(new Error('EOF cleanup failed'));
+        expect(spies.kill).not.toHaveBeenCalled();
         ac.abort();
         await expect(writer.write(new Uint8Array([2]))).rejects.toBe(error);
         expect(spies.closeStdin).toHaveBeenCalledTimes(expectedCalls);
+        expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
       },
     );
 
-    it('propagates EOF cleanup failures from explicit stdin abortion', async () => {
+    it('propagates EOF failures from explicit stdin abortion', async () => {
       const { handle, spies } = makeMockCommand({});
       const error = new Error('EOF cleanup failed');
       spies.closeStdin.mockRejectedValueOnce(error);
@@ -696,6 +759,131 @@ describe('VercelSandboxSession', () => {
       await proc.kill();
       expect(spies.kill).toHaveBeenCalledOnce();
     });
+
+    it.each([undefined, false, true])(
+      'kills the running process and cancels wait and logs when stdin is %s',
+      async stdin => {
+        const { handle, spies } = makeMockCommand({});
+        const ac = new AbortController();
+        spies.wait.mockImplementationOnce(
+          options =>
+            new Promise((_resolve, reject) => {
+              options!.signal!.addEventListener(
+                'abort',
+                () => reject(new Error('wait cancelled')),
+                { once: true },
+              );
+            }),
+        );
+        spies.logs.mockImplementationOnce(async function* () {
+          yield await new Promise<MockLogEntry>((_resolve, reject) => {
+            ac.signal.addEventListener(
+              'abort',
+              () => reject(ac.signal.reason),
+              {
+                once: true,
+              },
+            );
+          });
+        });
+        baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+        const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'cat',
+          ...(stdin === undefined ? {} : { stdin }),
+          abortSignal: ac.signal,
+        });
+        const reason = new Error('process cancelled');
+        const stdout = expect(collect(proc.stdout)).rejects.toBe(reason);
+        const stderr = expect(collect(proc.stderr)).rejects.toBe(reason);
+        const closed =
+          'stdin' in proc
+            ? expect(proc.stdin.getWriter().closed).rejects.toBe(reason)
+            : undefined;
+        expect(spies.wait).not.toHaveBeenCalled();
+        const finished = expect(proc.wait()).rejects.toBe(reason);
+
+        ac.abort(reason);
+
+        await Promise.all([stdout, stderr, closed, finished]);
+        expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
+        expect(spies.closeStdin).not.toHaveBeenCalled();
+        expect(spies.wait).toHaveBeenCalledExactlyOnceWith({
+          signal: ac.signal,
+        });
+      },
+    );
+
+    it.each([undefined, false])(
+      'kills a command aborted during startup when stdin is %s',
+      async stdin => {
+        const { handle, spies } = makeMockCommand({});
+        const ac = new AbortController();
+        const reason = new Error('startup cancelled');
+        baseSandbox.spies.runCommand.mockImplementationOnce(async () => {
+          ac.abort(reason);
+          return handle;
+        });
+        const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'sleep 10',
+          ...(stdin === undefined ? {} : { stdin }),
+          abortSignal: ac.signal,
+        });
+
+        expect(spies.kill).toHaveBeenCalledExactlyOnceWith();
+        expect(spies.closeStdin).not.toHaveBeenCalled();
+        await expect(proc.wait()).rejects.toBe(reason);
+      },
+    );
+
+    it.each<'wait' | 'kill'>(['wait', 'kill'])(
+      'removes the process abort listener after successful %s',
+      async operation => {
+        const { handle, spies } = makeMockCommand({});
+        baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+        const ac = new AbortController();
+        const addEventListener = vi.spyOn(ac.signal, 'addEventListener');
+        const removeEventListener = vi.spyOn(ac.signal, 'removeEventListener');
+        const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'sleep 10',
+          abortSignal: ac.signal,
+        });
+        const [[, listener]] = addEventListener.mock.calls;
+
+        await proc[operation]();
+
+        expect(removeEventListener).toHaveBeenCalledWith('abort', listener);
+        const killCalls = spies.kill.mock.calls.length;
+        ac.abort();
+        expect(spies.kill).toHaveBeenCalledTimes(killCalls);
+      },
+    );
+
+    it.each<'wait' | 'kill'>(['wait', 'kill'])(
+      'keeps process cancellation active after failed %s',
+      async operation => {
+        const { handle, spies } = makeMockCommand({});
+        const error = new Error(`${operation} failed`);
+        spies[operation].mockRejectedValueOnce(error);
+        baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+        const ac = new AbortController();
+        const addEventListener = vi.spyOn(ac.signal, 'addEventListener');
+        const removeEventListener = vi.spyOn(ac.signal, 'removeEventListener');
+        const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'sleep 10',
+          abortSignal: ac.signal,
+        });
+        const [[, listener]] = addEventListener.mock.calls;
+
+        await expect(proc[operation]()).rejects.toBe(error);
+
+        expect(removeEventListener).not.toHaveBeenCalledWith('abort', listener);
+        const killCalls = spies.kill.mock.calls.length;
+        ac.abort();
+        expect(spies.kill).toHaveBeenCalledTimes(killCalls + 1);
+        expect(spies.kill).toHaveBeenLastCalledWith();
+        expect(removeEventListener).toHaveBeenCalledWith('abort', listener);
+      },
+    );
 
     it('pre-aborted signal causes wait() to reject', async () => {
       const { handle } = makeMockCommand({});

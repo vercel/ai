@@ -235,6 +235,18 @@ function createSandboxProcess({
     },
   });
 
+  const removeAbortListener = () =>
+    abortSignal?.removeEventListener('abort', onAbort);
+  const onAbort = () => {
+    removeAbortListener();
+    void command.kill().catch(() => {});
+  };
+  if (abortSignal?.aborted) {
+    onAbort();
+  } else {
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
+  }
+
   const drained = (async () => {
     try {
       const iterator = abortSignal
@@ -257,15 +269,22 @@ function createSandboxProcess({
     stdout,
     stderr,
     async wait(): Promise<{ exitCode: number }> {
-      const finished = await command.wait();
-      await drained;
-      if (abortSignal?.aborted) {
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
+      try {
+        const finished = await (abortSignal
+          ? command.wait({ signal: abortSignal })
+          : command.wait());
+        removeAbortListener();
+        await drained;
+        abortSignal?.throwIfAborted();
+        return { exitCode: finished.exitCode };
+      } catch (error) {
+        abortSignal?.throwIfAborted();
+        throw error;
       }
-      return { exitCode: finished.exitCode };
     },
     async kill(): Promise<void> {
       await command.kill();
+      removeAbortListener();
     },
   };
 }
@@ -278,21 +297,12 @@ function createStdinStream({
   abortSignal?: AbortSignal;
 }): WritableStream<Uint8Array> {
   let removeAbortListener = () => {};
-  let stdinCleanup: Promise<void> | undefined;
-  const cleanupStdin = () => {
-    removeAbortListener();
-    return (stdinCleanup ??= command.closeStdin());
-  };
 
   return new WritableStream<Uint8Array>({
     start(controller) {
       const onAbort = () => {
+        removeAbortListener();
         controller.error(abortSignal?.reason);
-        /*
-         * EOF cleanup must not use the aborted signal. Its failure must
-         * not replace the abort reason exposed by the stream.
-         */
-        void cleanupStdin().catch(() => {});
       };
       removeAbortListener = () =>
         abortSignal?.removeEventListener('abort', onAbort);
@@ -306,22 +316,24 @@ function createStdinStream({
       try {
         await command.writeStdin(chunk, { abortSignal });
       } catch (error) {
-        void cleanupStdin().catch(() => {});
+        /*
+         * A failed write may have delivered only part of the input. Sending
+         * EOF could make the process treat that truncated input as complete.
+         */
+        removeAbortListener();
         throw error;
       }
     },
     async close() {
       try {
         await command.closeStdin({ abortSignal });
-      } catch (error) {
-        void cleanupStdin().catch(() => {});
-        throw error;
       } finally {
         removeAbortListener();
       }
     },
     abort() {
-      return cleanupStdin();
+      removeAbortListener();
+      return command.closeStdin();
     },
   });
 }
