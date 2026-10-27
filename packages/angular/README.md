@@ -1,4 +1,4 @@
-# AI SDK: Angular
+# AI SDK - Angular integration
 
 Angular UI components for the AI SDK, built with Angular signals. The package includes `Chat`, `Completion`, and `StructuredObject` for streaming chat, text generation, and structured data.
 

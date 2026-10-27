@@ -1,4 +1,4 @@
-# AI SDK TUI
+# AI SDK - TUI
 
 Run local or remote AI SDK agents in a terminal UI.
 

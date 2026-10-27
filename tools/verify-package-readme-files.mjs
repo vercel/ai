@@ -69,9 +69,12 @@ function validateReadme({ file, source }) {
 
   if (
     h1Headings.length !== 1 ||
-    h1Headings[0]?.lineIndex !== 0
+    h1Headings[0]?.lineIndex !== 0 ||
+    !lines[0]?.startsWith('# AI SDK - ')
   ) {
-    errors.push('must have exactly one H1, on the first line');
+    errors.push(
+      'must have exactly one H1 on the first line beginning "# AI SDK - "',
+    );
   }
 
   const h2Order = h2Headings.map(heading => heading.text);
