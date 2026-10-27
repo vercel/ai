@@ -214,6 +214,9 @@
       "path": "../../packages/tool-bash"
     },
     {
+      "path": "../../packages/tool-fs"
+    },
+    {
       "path": "../../packages/tool-web-fetch"
     },
     {
