@@ -2241,6 +2241,56 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records error on step and chat spans and keeps the root span open for onEnd', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+
+      integration.onStepError!({
+        ...makeStepStartEvent(),
+        error: new Error('step failed'),
+      } as any);
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": false,
+            "name": "invoke_agent gpt-4",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+        ]
+      `);
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(tracer.spans[0].ended).toBe(true);
+      expect(tracer.spans[0].status).toBeUndefined();
+    });
+  });
+
   describe('onError', () => {
     it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());

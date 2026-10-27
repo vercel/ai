@@ -254,10 +254,8 @@ const errorSchema = lazySchema(() =>
   ),
 );
 
-// Azure Speech answers invalid requests (style or output format) with an empty
-// 400 body. Unknown voices or styles reset the connection with an Envoy 502
-// whose reason is `protocol error`; that is a client input error, so it is
-// reported as a non-retryable 400. Other 502s stay retryable.
+// Azure Speech answers invalid requests (unknown voice, unsupported style, or
+// output format) with an empty 400 body.
 const failedResponseHandler: ResponseHandler<APICallError> = async ({
   response,
   url,
@@ -269,17 +267,11 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
     text: responseBody,
     schema: errorSchema,
   });
-  const isVoiceReset =
-    response.status === 502 &&
-    responseBody.includes('reset reason: protocol error');
-
   const message = parsed.success
     ? parsed.value.error.message
-    : isVoiceReset
-      ? 'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.'
-      : response.status === 400
-        ? 'Azure Speech request failed with status 400. Check the voice name, style, and output format.'
-        : `Azure Speech request failed with status ${response.status}.`;
+    : response.status === 400
+      ? 'Azure Speech request failed with status 400. Check the voice name, style, and output format.'
+      : `Azure Speech request failed with status ${response.status}.`;
 
   return {
     responseHeaders,
@@ -287,10 +279,9 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
       message,
       url,
       requestBodyValues,
-      statusCode: isVoiceReset ? 400 : response.status,
+      statusCode: response.status,
       responseHeaders,
       responseBody,
-      isRetryable: isVoiceReset ? false : undefined,
     }),
   };
 };

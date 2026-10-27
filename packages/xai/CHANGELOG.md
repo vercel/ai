@@ -1,5 +1,21 @@
 # @ai-sdk/xai
 
+## 5.0.32
+
+### Patch Changes
+
+- 0eb8de6: fix(xai): stop emitting each citation twice when streaming responses with web or X search
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 5.0.30
 
 ### Patch Changes

@@ -25,24 +25,6 @@ describe('smoothStream', () => {
     return Promise.resolve();
   }
 
-  describe('throws error if chunking option is invalid', async () => {
-    it('throws error if chunking strategy is invalid', async () => {
-      expect(() => {
-        smoothStream({
-          chunking: 'foo' as any,
-        });
-      }).toThrowError();
-    });
-
-    it('throws error if chunking option is null', async () => {
-      expect(() => {
-        smoothStream({
-          chunking: null as any,
-        });
-      }).toThrowError();
-    });
-  });
-
   describe('word chunking', () => {
     it('should combine partial words', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([

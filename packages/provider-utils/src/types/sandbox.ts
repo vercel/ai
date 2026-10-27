@@ -27,10 +27,24 @@ type SandboxProcessOptions = {
   abortSignal?: AbortSignal;
 };
 
+export type SandboxRunOptions = SandboxProcessOptions;
+
+export type SandboxSpawnOptions = SandboxProcessOptions & {
+  stdin?: boolean;
+};
+
+export type SandboxSpawnOptionsWithStdin = SandboxProcessOptions & {
+  stdin: true;
+};
+
+export type SandboxSpawnOptionsWithoutStdin = SandboxProcessOptions & {
+  stdin?: false;
+};
+
 /**
  * Options for reading a file from the sandbox.
  */
-type ReadFileOptions = {
+export type SandboxReadFileOptions = {
   /**
    * Path of the file to read.
    */
@@ -40,6 +54,26 @@ type ReadFileOptions = {
    * Signal that can be used to abort the read.
    */
   abortSignal?: AbortSignal;
+};
+
+export type SandboxReadBinaryFileOptions = SandboxReadFileOptions;
+
+export type SandboxReadTextFileOptions = SandboxReadFileOptions & {
+  /**
+   * Text encoding used to decode the file bytes. Defaults to `"utf-8"`.
+   */
+  encoding?: string;
+
+  /**
+   * 1-based inclusive start line. Defaults to 1.
+   */
+  startLine?: number;
+
+  /**
+   * 1-based inclusive end line. When past the file's line count, the read
+   * returns through EOF without error.
+   */
+  endLine?: number;
 };
 
 /**
@@ -63,6 +97,19 @@ type WriteFileOptions<CONTENT> = {
   abortSignal?: AbortSignal;
 };
 
+export type SandboxWriteFileOptions = WriteFileOptions<
+  ReadableStream<Uint8Array>
+>;
+
+export type SandboxWriteBinaryFileOptions = WriteFileOptions<Uint8Array>;
+
+export type SandboxWriteTextFileOptions = WriteFileOptions<string> & {
+  /**
+   * Text encoding used to encode the string to bytes. Defaults to `"utf-8"`.
+   */
+  encoding?: string;
+};
+
 /**
  * Sandbox session that can execute commands and read/write files.
  */
@@ -83,7 +130,7 @@ export type SandboxSession = {
    * to stream bytes.
    */
   readonly readFile: (
-    options: ReadFileOptions,
+    options: SandboxReadFileOptions,
   ) => PromiseLike<ReadableStream<Uint8Array> | null>;
 
   /**
@@ -91,7 +138,7 @@ export type SandboxSession = {
    * file does not exist.
    */
   readonly readBinaryFile: (
-    options: ReadFileOptions,
+    options: SandboxReadBinaryFileOptions,
   ) => PromiseLike<Uint8Array | null>;
 
   /**
@@ -102,23 +149,7 @@ export type SandboxSession = {
    * returns through EOF without error.
    */
   readonly readTextFile: (
-    options: ReadFileOptions & {
-      /**
-       * Text encoding used to decode the file bytes. Defaults to `"utf-8"`.
-       */
-      encoding?: string;
-
-      /**
-       * 1-based inclusive start line. Defaults to 1.
-       */
-      startLine?: number;
-
-      /**
-       * 1-based inclusive end line. When past the file's line count, the read
-       * returns through EOF without error.
-       */
-      endLine?: number;
-    },
+    options: SandboxReadTextFileOptions,
   ) => PromiseLike<string | null>;
 
   /**
@@ -128,16 +159,14 @@ export type SandboxSession = {
    * This is the lowest-level write primitive; prefer `writeBinaryFile` or
    * `writeTextFile` when the full content is already materialized in memory.
    */
-  readonly writeFile: (
-    options: WriteFileOptions<ReadableStream<Uint8Array>>,
-  ) => PromiseLike<void>;
+  readonly writeFile: (options: SandboxWriteFileOptions) => PromiseLike<void>;
 
   /**
    * Write one file to the sandbox from raw bytes. Creates parent directories
    * recursively and overwrites any existing file.
    */
   readonly writeBinaryFile: (
-    options: WriteFileOptions<Uint8Array>,
+    options: SandboxWriteBinaryFileOptions,
   ) => PromiseLike<void>;
 
   /**
@@ -146,12 +175,7 @@ export type SandboxSession = {
    * existing file.
    */
   readonly writeTextFile: (
-    options: WriteFileOptions<string> & {
-      /**
-       * Text encoding used to encode the string to bytes. Defaults to `"utf-8"`.
-       */
-      encoding?: string;
-    },
+    options: SandboxWriteTextFileOptions,
   ) => PromiseLike<void>;
 
   /**
@@ -160,15 +184,26 @@ export type SandboxSession = {
    *
    * `run` is conceptually a thin wrapper over this primitive: spawn,
    * collect both streams to strings, await `wait()`, return the result.
+   *
+   * Set `stdin` to `true` to keep standard input open and expose a writable
+   * stream on the returned handle. Implementations that do not support writable
+   * stdin must reject before starting the command. When omitted or `false`,
+   * standard input is closed and the handle has no `stdin` property.
    */
-  readonly spawn: (
-    options: SandboxProcessOptions,
-  ) => PromiseLike<SandboxProcess>;
+  readonly spawn: {
+    (
+      options: SandboxSpawnOptionsWithStdin,
+    ): PromiseLike<WritableSandboxProcess>;
+    (options: SandboxSpawnOptionsWithoutStdin): PromiseLike<SandboxProcess>;
+    (
+      options: SandboxSpawnOptions,
+    ): PromiseLike<SandboxProcess | WritableSandboxProcess>;
+  };
 
   /**
    * Run a command in the sandbox.
    */
-  readonly run: (options: SandboxProcessOptions) => PromiseLike<{
+  readonly run: (options: SandboxRunOptions) => PromiseLike<{
     /**
      * Exit code returned by the command.
      */
@@ -214,4 +249,12 @@ export type SandboxProcess = {
    * Terminate the process. Idempotent.
    */
   kill(): PromiseLike<void>;
+};
+
+export type WritableSandboxProcess = SandboxProcess & {
+  /**
+   * Stream of bytes written to the process's standard input. Closing the stream
+   * delivers EOF after pending writes without terminating the process.
+   */
+  readonly stdin: WritableStream<Uint8Array>;
 };

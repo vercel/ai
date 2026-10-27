@@ -250,8 +250,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(9d079a418e5441368883501342c95a36)
       '@vercel/geistdocs':
-        specifier: 2.12.3
-        version: 2.12.3(ff29671d4d6f0a1a40ba4e0433ea6a4a)
+        specifier: 2.13.1
+        version: 2.13.1(ff29671d4d6f0a1a40ba4e0433ea6a4a)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.48.1)(lucide-react@0.555.0(react@19.2.6))(next@16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -707,6 +707,9 @@ importers:
       '@ai-sdk/zai':
         specifier: workspace:*
         version: link:../../packages/zai
+      '@anthropic-ai/sdk':
+        specifier: 0.129.0
+        version: 0.129.0(zod@3.25.76)
       '@basetenlabs/performance-client':
         specifier: 0.0.10
         version: 0.0.10
@@ -738,8 +741,8 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0(valibot@1.1.0(typescript@6.0.3))
       '@vercel/sandbox':
-        specifier: ^3.0.0
-        version: 3.1.0
+        specifier: ^3.9.0
+        version: 3.9.0
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -829,8 +832,8 @@ importers:
         specifier: 21.2.24
         version: 21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/compiler@21.2.24)(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)))
       '@angular/router':
-        specifier: 21.2.24
-        version: 21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
+        specifier: 21.2.25
+        version: 21.2.25(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -1102,7 +1105,7 @@ importers:
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.19.15
-        version: 1.19.15(hono@4.13.7)
+        version: 1.19.15(hono@4.13.11)
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -1110,8 +1113,8 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       hono:
-        specifier: 4.13.7
-        version: 4.13.7
+        specifier: 4.13.11
+        version: 4.13.11
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -1130,7 +1133,7 @@ importers:
         version: link:../../packages/openai
       '@modelcontextprotocol/node':
         specifier: ^2.0.0
-        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.7)
+        version: 2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.11)
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.1
         version: 1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76)
@@ -2688,13 +2691,13 @@ importers:
         version: link:../provider
       '@hono/node-server':
         specifier: ^1.19.15
-        version: 1.19.15(hono@4.13.7)
+        version: 1.19.15(hono@4.13.11)
       ai:
         specifier: workspace:*
         version: link:../ai
       hono:
-        specifier: ^4.13.7
-        version: 4.13.7
+        specifier: ^4.13.11
+        version: 4.13.11
     devDependencies:
       '@radix-ui/react-collapsible':
         specifier: ^1.1.12
@@ -4542,8 +4545,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       '@vercel/sandbox':
-        specifier: ^2.0.1 || ^3.0.0
-        version: 3.1.0
+        specifier: ^3.9.0
+        version: 3.9.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -5592,13 +5595,13 @@ packages:
       '@angular/animations':
         optional: true
 
-  '@angular/router@21.2.24':
-    resolution: {integrity: sha512-E72AvyTRGv5rDa/SlfSztThJ+9SemjnblzB9jTb8LJOFPo7u4GlfytvRE8DnxwmTfnlZcA6Sr10zlSDnL4pmyw==}
+  '@angular/router@21.2.25':
+    resolution: {integrity: sha512-85ZwJCBEpaXBmezusZLlgW2JzEEByzerlWT34I6IK/ZN4AKG8m2B/vlbTkKmHuzCOGWx1L7xFtPg/URkGGKwSA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
     peerDependencies:
-      '@angular/common': 21.2.24
-      '@angular/core': 21.2.24
-      '@angular/platform-browser': 21.2.24
+      '@angular/common': 21.2.25
+      '@angular/core': 21.2.25
+      '@angular/platform-browser': 21.2.25
       rxjs: ^6.5.3 || ^7.4.0
 
   '@antfu/install-pkg@1.1.0':
@@ -14518,9 +14521,16 @@ packages:
   '@vercel/cli-config@0.2.3':
     resolution: {integrity: sha512-Ggh0Wmi92TUkUexmSUPkkDtvJmbjUr7IvF5T3FkSsWrXXs3GFzOujfxFpECdJZpux1JG4SWDv9BT4w++TDgD6A==}
 
+  '@vercel/cli-config@0.3.1':
+    resolution: {integrity: sha512-sISbygqlFXYb8qfPu/+2Cf/A8IjrlAuZePdag3EDQr2PRA455s7UZtl9Ro674CWsB/saBRmz3jEkw0YsQs8OoQ==}
+
   '@vercel/cli-exec@1.0.1':
     resolution: {integrity: sha512-g9XerViJ/paZujufXYcu5XYI2vU2rtB4sgdpjUHde5RnOkdmpu0ngH46LCFGHoPXO/C+qDPSczIHIRN+8Q2YKQ==}
     engines: {node: '>= 18'}
+
+  '@vercel/detect-agent@1.2.5':
+    resolution: {integrity: sha512-0krENrjuitlW8s6TJu0MlqCevyCU7K7JK63jZAf7xZ6n17tx+vUEwzHT3sTxawtwZxaW21hu+oFUpoOrm49FsQ==}
+    engines: {node: '>=14'}
 
   '@vercel/functions@3.6.0':
     resolution: {integrity: sha512-Xj68JYqqJwtqFWJN7EWmFN7MOiUjv5whjw48UEKqQbg8r7hRkhuJhncTU0ba3jJCh/wxEuLWckrtsKcrHQraxw==}
@@ -14543,8 +14553,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.12.3':
-    resolution: {integrity: sha512-PpOOJt0e5JGWHjXeR6Odm/WdWy2TiyETjLX8BxWycFEj1t1WYvBxqq2MbmYSo6DeumHzIYUFbFO7BtWa1+/0nA==}
+  '@vercel/geistdocs@2.13.1':
+    resolution: {integrity: sha512-xnt2dwZjK7B0ons4JGlJ458dDvt44/fv5KSIrwbCBY2JY1VUcmjKc+L6FWIrGUng2VbXOLNlss0Qvr3yndWR9g==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -14579,6 +14589,10 @@ packages:
     resolution: {integrity: sha512-FGNvVZ5pgX9FaBqkPt6VkYFZ6bWAMDzYi7nxW+1Xt+Z4fn5PuTULVwsxjKc+0uKhysyWBQmvsmM50Oh6C2/oMA==}
     engines: {node: '>= 20'}
 
+  '@vercel/oidc@4.0.0':
+    resolution: {integrity: sha512-ko6ATeRUlHZMB5hLFdC7+/Q1dI2f3NX3gZHxtpALdkxurwjD5HFHGWYF+4o+4SF0E47jg6KzcHknmRpHcKgJ5A==}
+    engines: {node: '>= 20'}
+
   '@vercel/otel@1.10.0':
     resolution: {integrity: sha512-bv1FXbFZlFbB89vyA2P9/kr6eZ42bMtXgqBJpgi+8yOrZU8rkg9wMi0TL//AgAf/qKtaryDm1sbCnkLHgCI3PQ==}
     engines: {node: '>=18'}
@@ -14602,6 +14616,9 @@ packages:
 
   '@vercel/sandbox@3.1.0':
     resolution: {integrity: sha512-z124E4rsmNpwGtTnLImiYzEXk972bWniQyhlvkEt35UtwKTdfBAFXcNG2OvqYqwzAsdQaP3B7teQ2pqA9B5Viw==}
+
+  '@vercel/sandbox@3.9.0':
+    resolution: {integrity: sha512-l02jAULYqPdfKCnGr6Eyd58OfTXNmL1ffvNOwwsAtgiN+PuI6zhySpvtm0hnMoWQ3fIbhnSG7SRqoUuwx6XvDg==}
 
   '@vimeo/player@2.29.0':
     resolution: {integrity: sha512-9JjvjeqUndb9otCCFd0/+2ESsLk7VkDE6sxOBy9iy2ukezuQbplVRi+g9g59yAurKofbmTi/KcKxBGO/22zWRw==}
@@ -17758,15 +17775,6 @@ packages:
   fn.name@1.1.0:
     resolution: {integrity: sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==}
 
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-
   follow-redirects@1.16.1:
     resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
     engines: {node: '>=4.0'}
@@ -18218,8 +18226,8 @@ packages:
   handle-thing@2.0.1:
     resolution: {integrity: sha512-9Qn4yBxelxoh2Ow62nP+Ka/kMnOXRi8BXnRaUwezLNhqelnN49xKz4F/dPP8OYLxLxq6JDtZb2i9XznUQbNPTg==}
 
-  handlebars@4.7.9:
-    resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
+  handlebars@4.7.10:
+    resolution: {integrity: sha512-P5VJMVM7qgBn6vjXMw8WG9uVI+ncf2pi72j4de4yz5ZULLj2RGqLYaKOYGsgyrViQ0tePOVlN1tDCCXXtFqXKg==}
     engines: {node: '>=0.4.7'}
     hasBin: true
 
@@ -18329,8 +18337,8 @@ packages:
   hls.js@1.6.16:
     resolution: {integrity: sha512-VSIRpLfRwlAAdGL4wiTucx2ScRipo0ed1FBatWkyt832jC4CReKstga6yIhYVwGu9LOBjuX9wzmRMeQdBJtzEA==}
 
-  hono@4.13.7:
-    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
+  hono@4.13.11:
+    resolution: {integrity: sha512-/SMX/RQNJn7oNmFwH6DtwDqcrzZU2otm1FD6OJe2cWF6cfy/F8hq0XVBv7xW3FTJshRQwuBnXHDq2kNsdZnshg==}
     engines: {node: '>=16.9.0'}
 
   hookable@5.5.3:
@@ -22787,11 +22795,15 @@ packages:
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
-  sonner@2.0.7:
-    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+  sonner@2.0.8:
+    resolution: {integrity: sha512-UM/ByIoFra8yzV75n1o0Puu0bw5U/9UNnDacrJNspekBewIfsQ3D6ez1nvlWpt7aTsO6rujQtifBpycwIivqlg==}
     peerDependencies:
+      '@types/react': ^18.0.0 || ^19.0.0
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   sort-keys-length@1.0.1:
     resolution: {integrity: sha512-GRbEOUqCxemTAk/b32F2xa8wDTs+Z1QHOkbhJDQTvv/6G3ZkbJ+frYWsTcc7cBB3Fu4wy4XlLCuNtJuMn7Gsvw==}
@@ -25476,7 +25488,7 @@ snapshots:
       '@angular/core': 21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)
       tslib: 2.8.1
 
-  '@angular/router@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
+  '@angular/router@21.2.25(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@21.2.24(@angular/common@21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)':
     dependencies:
       '@angular/common': 21.2.24(@angular/core@21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
       '@angular/core': 21.2.24(@angular/compiler@21.2.24)(rxjs@7.8.2)(zone.js@0.15.1)
@@ -28620,22 +28632,22 @@ snapshots:
   '@harperfast/extended-iterable@1.0.3':
     optional: true
 
-  '@hono/node-server@1.19.15(hono@4.13.7)':
+  '@hono/node-server@1.19.15(hono@4.13.11)':
     dependencies:
-      hono: 4.13.7
+      hono: 4.13.11
 
-  '@hono/node-ws@1.3.1(@hono/node-server@1.19.15(hono@4.13.7))(hono@4.13.7)':
+  '@hono/node-ws@1.3.1(@hono/node-server@1.19.15(hono@4.13.11))(hono@4.13.11)':
     dependencies:
-      '@hono/node-server': 1.19.15(hono@4.13.7)
-      hono: 4.13.7
+      '@hono/node-server': 1.19.15(hono@4.13.11)
+      hono: 4.13.11
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@hono/zod-validator@0.7.6(hono@4.13.7)(zod@4.5.4)':
+  '@hono/zod-validator@0.7.6(hono@4.13.11)(zod@4.5.4)':
     dependencies:
-      hono: 4.13.7
+      hono: 4.13.11
       zod: 4.5.4
 
   '@iarna/toml@3.0.0': {}
@@ -29906,9 +29918,9 @@ snapshots:
   '@langchain/langgraph-api@1.2.1(8824b60609e178dd120c1ab3ed40d808)':
     dependencies:
       '@babel/code-frame': 7.29.0
-      '@hono/node-server': 1.19.15(hono@4.13.7)
-      '@hono/node-ws': 1.3.1(@hono/node-server@1.19.15(hono@4.13.7))(hono@4.13.7)
-      '@hono/zod-validator': 0.7.6(hono@4.13.7)(zod@4.5.4)
+      '@hono/node-server': 1.19.15(hono@4.13.11)
+      '@hono/node-ws': 1.3.1(@hono/node-server@1.19.15(hono@4.13.11))(hono@4.13.11)
+      '@hono/zod-validator': 0.7.6(hono@4.13.11)(zod@4.5.4)
       '@langchain/core': 1.2.3(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.21.3)(zod@3.25.76))(ws@8.21.3)
       '@langchain/langgraph': 1.4.15(@langchain/core@1.2.3(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.21.3)(zod@3.25.76))(ws@8.21.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@3.25.76)
       '@langchain/langgraph-checkpoint': 1.0.2(@langchain/core@1.2.3(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.21.3)(zod@3.25.76))(ws@8.21.3))
@@ -29919,7 +29931,7 @@ snapshots:
       dedent: 1.7.2
       dotenv: 16.6.1
       exit-hook: 4.0.0
-      hono: 4.13.7
+      hono: 4.13.11
       langsmith: 0.10.8(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.21.3)(zod@3.25.76))(ws@8.21.3)
       open: 10.2.0
       semver: 7.8.5
@@ -30328,16 +30340,16 @@ snapshots:
     dependencies:
       zod: 4.5.4
 
-  '@modelcontextprotocol/node@2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.7)':
+  '@modelcontextprotocol/node@2.0.0(@modelcontextprotocol/server@2.0.0)(hono@4.13.11)':
     dependencies:
-      '@hono/node-server': 1.19.15(hono@4.13.7)
+      '@hono/node-server': 1.19.15(hono@4.13.11)
       '@modelcontextprotocol/server': 2.0.0
     optionalDependencies:
-      hono: 4.13.7
+      hono: 4.13.11
 
   '@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.3.6)':
     dependencies:
-      '@hono/node-server': 1.19.15(hono@4.13.7)
+      '@hono/node-server': 1.19.15(hono@4.13.11)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -30347,7 +30359,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.2.1(supports-color@10.2.2)
       express-rate-limit: 8.7.0(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)
-      hono: 4.13.7
+      hono: 4.13.11
       jose: 6.2.12
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -30361,7 +30373,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.15(hono@4.13.7)
+      '@hono/node-server': 1.19.15(hono@4.13.11)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -30371,7 +30383,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.2.1(supports-color@10.2.2)
       express-rate-limit: 8.7.0(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)
-      hono: 4.13.7
+      hono: 4.13.11
       jose: 6.2.12
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -30385,7 +30397,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.4.3)':
     dependencies:
-      '@hono/node-server': 1.19.15(hono@4.13.7)
+      '@hono/node-server': 1.19.15(hono@4.13.11)
       ajv: 8.20.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -30395,7 +30407,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.2.1(supports-color@10.2.2)
       express-rate-limit: 8.7.0(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)
-      hono: 4.13.7
+      hono: 4.13.11
       jose: 6.2.12
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -36776,9 +36788,16 @@ snapshots:
       xdg-app-paths: 5.5.1
       zod: 4.1.11
 
+  '@vercel/cli-config@0.3.1':
+    dependencies:
+      xdg-app-paths: 5.1.0
+      zod: 4.1.11
+
   '@vercel/cli-exec@1.0.1':
     dependencies:
       execa: 5.1.1
+
+  '@vercel/detect-agent@1.2.5': {}
 
   '@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.78)':
     dependencies:
@@ -36815,7 +36834,7 @@ snapshots:
       ws: 8.21.3
     optional: true
 
-  '@vercel/geistdocs@2.12.3(ff29671d4d6f0a1a40ba4e0433ea6a4a)':
+  '@vercel/geistdocs@2.13.1(ff29671d4d6f0a1a40ba4e0433ea6a4a)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0
@@ -36853,7 +36872,7 @@ snapshots:
       remark-mdx: 3.1.1(supports-color@10.2.2)
       remark-parse: 11.0.0(supports-color@10.2.2)
       remark-stringify: 11.0.0
-      sonner: 2.0.7(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      sonner: 2.0.8(@types/react@19.2.18)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       streamdown: 2.5.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
       tailwind-merge: 3.6.0
       tailwindcss: 4.3.0
@@ -36939,6 +36958,12 @@ snapshots:
       '@vercel/cli-exec': 1.0.1
       jose: 5.10.0
 
+  '@vercel/oidc@4.0.0':
+    dependencies:
+      '@vercel/cli-config': 0.3.1
+      '@vercel/cli-exec': 1.0.1
+      jose: 5.10.0
+
   '@vercel/otel@1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.1)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.1)(supports-color@10.2.2))(@opentelemetry/resources@1.28.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@1.30.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.1))':
     dependencies:
       '@opentelemetry/api': 1.9.1
@@ -36982,6 +37007,25 @@ snapshots:
       undici: 7.29.0
       xdg-app-paths: 5.1.0
       zod: 4.4.3
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - react-native-b4a
+
+  '@vercel/sandbox@3.9.0':
+    dependencies:
+      '@vercel/detect-agent': 1.2.5
+      '@vercel/oidc': 4.0.0
+      '@workflow/serde': 4.1.0-beta.2
+      async-retry: 1.3.3
+      jose: 6.2.3
+      jsonlines: 0.1.1
+      lru-cache: 10.4.3
+      ms: 2.1.3
+      picocolors: 1.1.1
+      tar-stream: 3.1.7
+      undici: 7.30.0
+      xdg-app-paths: 5.1.0
+      zod: 4.5.4
     transitivePeerDependencies:
       - bare-abort-controller
       - react-native-b4a
@@ -41453,10 +41497,6 @@ snapshots:
 
   fn.name@1.1.0: {}
 
-  follow-redirects@1.16.0(debug@4.4.3(supports-color@10.2.2)):
-    optionalDependencies:
-      debug: 4.4.3(supports-color@10.2.2)
-
   follow-redirects@1.16.1(debug@4.4.3(supports-color@10.2.2)):
     optionalDependencies:
       debug: 4.4.3(supports-color@10.2.2)
@@ -42102,7 +42142,7 @@ snapshots:
 
   handle-thing@2.0.1: {}
 
-  handlebars@4.7.9:
+  handlebars@4.7.10:
     dependencies:
       minimist: 1.2.8
       neo-async: 2.6.2
@@ -42309,7 +42349,7 @@ snapshots:
 
   hls.js@1.6.16: {}
 
-  hono@4.13.7: {}
+  hono@4.13.11: {}
 
   hookable@5.5.3: {}
 
@@ -42435,7 +42475,7 @@ snapshots:
   http-proxy@1.18.1(debug@4.4.3(supports-color@10.2.2)):
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@10.2.2))
+      follow-redirects: 1.16.1(debug@4.4.3(supports-color@10.2.2))
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -48653,10 +48693,12 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  sonner@2.0.7(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+  sonner@2.0.8(@types/react@19.2.18)(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
     dependencies:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
+    optionalDependencies:
+      '@types/react': 19.2.18
 
   sort-keys-length@1.0.1:
     dependencies:
@@ -49604,7 +49646,7 @@ snapshots:
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
-      handlebars: 4.7.9
+      handlebars: 4.7.10
       jest: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@6.0.3))
       json5: 2.2.3
       lodash.memoize: 4.1.2

@@ -1,5 +1,25 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.166
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 269f4c0: feat(sandbox-vercel): support `stdin` arg on `spawn()` by updating to latest SDK
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
 ## 1.0.164
 
 ### Patch Changes

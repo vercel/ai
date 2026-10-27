@@ -72,6 +72,16 @@ const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
   'voxtral-small-latest',
 ]);
 
+// GLM-5.3 models accept only low, high, and max reasoning effort and cannot
+// disable reasoning. Omitting reasoning_effort uses max.
+// https://docs.mistral.ai/studio/conversations/reasoning (2026-10-26)
+const modelsWithLowHighMaxReasoningEffort = new Set<MistralChatModelId>([
+  'zai-glm-5',
+  'zai-glm-5-3',
+  'zai-glm-5-3-flash',
+  'zai-glm-latest',
+]);
+
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -143,21 +153,49 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
+      const supportsLowHighMax = modelsWithLowHighMaxReasoningEffort.has(
+        this.modelId,
+      );
+
+      if (
+        options.reasoningEffort == null &&
+        reasoning === 'none' &&
+        supportsLowHighMax
+      ) {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+        });
+      }
+
       resolvedReasoningEffort =
         options.reasoningEffort ??
         (isCustomReasoning(reasoning)
           ? reasoning === 'none'
-            ? 'none'
+            ? supportsLowHighMax
+              ? 'low'
+              : 'none'
             : mapReasoningToProviderEffort({
                 reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
+                effortMap: supportsLowHighMax
+                  ? {
+                      minimal: 'low',
+                      low: 'low',
+                      medium: 'high',
+                      high: 'high',
+                      xhigh: 'max',
+                      max: 'max',
+                    }
+                  : {
+                      minimal: 'high',
+                      low: 'high',
+                      medium: 'high',
+                      high: 'high',
+                      xhigh: 'high',
+                      max: 'high',
+                    },
                 warnings,
               })
           : undefined);

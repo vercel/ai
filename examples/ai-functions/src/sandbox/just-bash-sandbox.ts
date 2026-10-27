@@ -1,7 +1,17 @@
 import { isAbsolute, join } from 'node:path';
 import {
   extractLines,
+  type Experimental_SandboxRunOptions as RunOptions,
+  type Experimental_SandboxReadFileOptions as ReadFileOptions,
+  type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
+  type Experimental_SandboxReadTextFileOptions as ReadTextFileOptions,
+  type Experimental_SandboxWriteFileOptions as WriteFileOptions,
+  type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
+  type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
 } from '@ai-sdk/provider-utils';
 import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
@@ -23,17 +33,7 @@ export class JustBashSandboxSession implements SandboxSession {
       : join(this.sandbox.bashEnvInstance.getCwd(), path);
   }
 
-  async run({
-    command,
-    workingDirectory,
-    env,
-    abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }) {
+  async run({ command, workingDirectory, env, abortSignal }: RunOptions) {
     const proc = await this.spawn({
       command,
       workingDirectory,
@@ -50,18 +50,22 @@ export class JustBashSandboxSession implements SandboxSession {
     return { exitCode, stdout, stderr };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<never>;
+  spawn(
+    options: SpawnOptionsWithoutStdin,
+  ): Promise<Experimental_SandboxProcess>;
+  spawn(options: SpawnOptions): Promise<Experimental_SandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
+    if (stdin === true) {
+      throw new Error('just-bash does not support writable stdin.');
+    }
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
@@ -78,10 +82,7 @@ export class JustBashSandboxSession implements SandboxSession {
   async readFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<ReadableStream<Uint8Array> | null> {
+  }: ReadFileOptions): Promise<ReadableStream<Uint8Array> | null> {
     abortSignal?.throwIfAborted();
     const resolved = this.resolvePath(path);
     try {
@@ -103,11 +104,7 @@ export class JustBashSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: ReadableStream<Uint8Array>;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteFileOptions): Promise<void> {
     abortSignal?.throwIfAborted();
     const bytes = await collectStream(content);
     abortSignal?.throwIfAborted();
@@ -120,10 +117,7 @@ export class JustBashSandboxSession implements SandboxSession {
   async readBinaryFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<Uint8Array | null> {
+  }: ReadBinaryFileOptions): Promise<Uint8Array | null> {
     const stream = await this.readFile({ path, abortSignal });
     if (stream == null) return null;
     return collectStream(stream);
@@ -133,11 +127,7 @@ export class JustBashSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: Uint8Array;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteBinaryFileOptions): Promise<void> {
     await this.writeFile({
       path,
       content: bytesToStream(content),
@@ -151,13 +141,7 @@ export class JustBashSandboxSession implements SandboxSession {
     startLine,
     endLine,
     abortSignal,
-  }: {
-    path: string;
-    encoding?: string;
-    startLine?: number;
-    endLine?: number;
-    abortSignal?: AbortSignal;
-  }): Promise<string | null> {
+  }: ReadTextFileOptions): Promise<string | null> {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
@@ -169,12 +153,7 @@ export class JustBashSandboxSession implements SandboxSession {
     content,
     encoding = 'utf-8',
     abortSignal,
-  }: {
-    path: string;
-    content: string;
-    encoding?: string;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteTextFileOptions): Promise<void> {
     const bytes = Buffer.from(content, encoding as BufferEncoding);
     await this.writeBinaryFile({
       path,
