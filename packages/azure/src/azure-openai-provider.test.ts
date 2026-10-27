@@ -1815,7 +1815,20 @@ describe('responses', () => {
           ],
         });
       });
+<<<<<<< HEAD
       it('should stream web search preview results include', async () => {
+=======
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
+>>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -2317,9 +2330,24 @@ describe('responses', () => {
             },
           ],
         });
+<<<<<<< HEAD
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+=======
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
+>>>>>>> 436374eb36 (fix(openai): report unfinished web searches as tool errors (#24121))
       });
     });
 
