@@ -32,6 +32,14 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+      // Lenient: an unexpected usage shape must not fail the transcription.
+      usage: z
+        .object({
+          type: z.string().nullish(),
+          seconds: z.number().nullish(),
+        })
+        .nullish()
+        .catch(undefined),
     }),
   ),
 );

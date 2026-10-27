@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.133
+
+### Patch Changes
+
+- 90fad7b: feat(openai): add GPT-6.1 Terra model support
+- 529492f: Fix `gpt-transcribe` REST transcription. Requests with OpenAI provider options now use `response_format: 'json'` for `gpt-transcribe` and dated `gpt-4o-mini-transcribe` snapshots, which reject `verbose_json`. `durationInSeconds` is read from `usage.seconds` when a duration-billed response has no top-level `duration`.
+
 ## 3.0.132
 
 ### Patch Changes

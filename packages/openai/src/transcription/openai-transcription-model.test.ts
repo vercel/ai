@@ -236,6 +236,96 @@ describe('doGenerate', () => {
     expect(multipart3!.file.size).toBe(40169);
   });
 
+  it.each([
+    'gpt-4o-mini-transcribe-2025-03-20',
+    'gpt-4o-mini-transcribe-2025-12-15',
+  ])(
+    'should request json for dated %s snapshots when provider options are set',
+    async modelId => {
+      prepareJsonFixtureResponse('openai-transcription');
+
+      await provider.transcription(modelId).doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { openai: { language: 'en' } },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: modelId,
+        response_format: 'json',
+      });
+    },
+  );
+
+  it('should request json for gpt-transcribe when provider options are set', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { openai: { language: 'en' } },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'gpt-transcribe',
+      response_format: 'json',
+    });
+  });
+
+  it('should read the duration from duration usage when the response has no duration', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(37);
+  });
+
+  it('should prefer the response duration over duration usage', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        duration: 36.71,
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('whisper-1').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(36.71);
+  });
+
+  it('should ignore token usage and malformed usage', async () => {
+    for (const usage of [
+      { type: 'tokens', input_tokens: 14, output_tokens: 45 },
+      { type: 'duration', seconds: 'thirty' },
+    ]) {
+      server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+        type: 'json-value',
+        body: { text: 'Hello from the Vercel AI SDK!', usage },
+      };
+
+      const result = await provider
+        .transcription('gpt-4o-transcribe')
+        .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      expect(result.text).toBe('Hello from the Vercel AI SDK!');
+      expect(result.durationInSeconds).toBeUndefined();
+    }
+  });
+
   it('should work when no words, language, or duration are returned', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'json-value',
