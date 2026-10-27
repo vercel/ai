@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 24057,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-24057.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-24057.ts",
+    "packages/harness/src/agent/internal/denied-tool-output.reproduction.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "DENIED_TOOL_TURN_INCOMPLETE: answer streamed but denied host tool prevented clean completion"
+  }
+}
