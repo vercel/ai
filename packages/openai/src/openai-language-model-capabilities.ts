@@ -2,15 +2,23 @@ import type {
   LanguageModelV4CallOptions,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
-  isCustomReasoning,
-  mapReasoningToProviderEffort,
-} from '@ai-sdk/provider-utils';
+import { mapReasoningToProviderEffort } from '@ai-sdk/provider-utils';
 
 type OpenAIReasoningEffort = Exclude<
   LanguageModelV4CallOptions['reasoning'],
   'provider-default' | undefined
 >;
+
+// Unknown model families send the reasoning value directly.
+const ALL_OPENAI_REASONING_EFFORTS: readonly OpenAIReasoningEffort[] = [
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+];
 
 export type OpenAILanguageModelCapabilities = {
   isReasoningModel: boolean;
@@ -133,22 +141,13 @@ export function resolveOpenAIReasoningEffort({
   supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
   warnings: SharedV4Warning[];
 }): string | undefined {
-  if (providerReasoningEffort != null) {
-    return providerReasoningEffort;
-  }
-
-  if (!isCustomReasoning(reasoning)) {
-    return undefined;
-  }
-
-  if (supportedReasoningEfforts == null) {
-    return reasoning;
-  }
-
   return mapReasoningToProviderEffort({
     reasoning,
+    providerOptionsEffort: providerReasoningEffort,
     effortMap: Object.fromEntries(
-      supportedReasoningEfforts.map(effort => [effort, effort]),
+      (supportedReasoningEfforts ?? ALL_OPENAI_REASONING_EFFORTS).map(
+        effort => [effort, effort],
+      ),
     ),
     warnings,
   });

@@ -157,17 +157,14 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
         this.modelId,
       );
 
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? mapReasoningToProviderEffort({
-              reasoning,
-              effortMap: supportsLowHighMax
-                ? { low: 'low', high: 'high', max: 'max' }
-                : { none: 'none', high: 'high' },
-              warnings,
-            })
-          : undefined);
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: supportsLowHighMax
+          ? { low: 'low', high: 'high', max: 'max' }
+          : { none: 'none', high: 'high' },
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',

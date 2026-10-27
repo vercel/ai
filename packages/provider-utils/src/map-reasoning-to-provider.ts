@@ -29,6 +29,10 @@ export function isCustomReasoning(
 /**
  * Maps a top-level reasoning value to a provider-specific effort string.
  *
+ * A `providerOptionsEffort` (the reasoning effort set in provider options) is
+ * returned unchanged. Otherwise, `undefined` and `'provider-default'` return
+ * `undefined`, and other reasoning values are mapped with the effort map.
+ *
  * The effort map should only contain the values that the model supports. An
  * unsupported value maps to the next lower supported level, or the next higher
  * one if there is no lower level. `'none'` is never used as a fallback, so an
@@ -37,17 +41,31 @@ export function isCustomReasoning(
  * Pushes a compatibility warning if the effort that is sent differs from the
  * requested value, or an unsupported warning if the effort map is empty.
  *
- * @returns The mapped effort string, or `undefined` if the effort map is empty.
+ * @returns The provider options effort, the mapped effort string, or
+ *   `undefined` if no effort should be sent.
  */
-export function mapReasoningToProviderEffort<T extends string>({
+export function mapReasoningToProviderEffort<
+  T extends string,
+  P extends string = never,
+>({
   reasoning,
   effortMap,
+  providerOptionsEffort,
   warnings,
 }: {
-  reasoning: ReasoningLevel | 'none';
+  reasoning: LanguageModelV4CallOptions['reasoning'];
   effortMap: Partial<Record<ReasoningLevel | 'none', T>>;
+  providerOptionsEffort?: P | null;
   warnings: SharedV4Warning[];
-}): T | undefined {
+}): T | P | undefined {
+  if (providerOptionsEffort != null) {
+    return providerOptionsEffort;
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
   // indexOf is -1 for 'none', so every level is a higher fallback.
   const index = REASONING_LEVELS.indexOf(reasoning as ReasoningLevel);
   const level = [

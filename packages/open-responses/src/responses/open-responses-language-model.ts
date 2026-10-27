@@ -17,7 +17,6 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createProviderStreamError,
-  isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -336,24 +335,21 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       schema: openResponsesLanguageModelOptions,
     });
 
-    const resolvedReasoningEffort =
-      openResponsesOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning)
-        ? mapReasoningToProviderEffort({
-            reasoning,
-            // The Open Responses efforts, plus 'max', which is passed through
-            // so that compatible servers can interpret it.
-            effortMap: {
-              none: 'none',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-              max: 'max',
-            },
-            warnings,
-          })
-        : undefined);
+    const resolvedReasoningEffort = mapReasoningToProviderEffort({
+      reasoning,
+      providerOptionsEffort: openResponsesOptions?.reasoningEffort,
+      // The Open Responses efforts, plus 'max', which is passed through so
+      // that compatible servers can interpret it.
+      effortMap: {
+        none: 'none',
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      },
+      warnings,
+    });
 
     return {
       body: {

@@ -154,6 +154,43 @@ describe('mapReasoningToProviderEffort', () => {
       },
     ]);
   });
+  it('returns the provider options effort unchanged', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'xhigh',
+      effortMap: { low: 'low', high: 'high' },
+      providerOptionsEffort: 'turbo',
+      warnings,
+    });
+    expect(result).toBe('turbo');
+    expect(warnings).toEqual([]);
+  });
+
+  it('maps the reasoning value when the provider options effort is null', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'high',
+      effortMap,
+      providerOptionsEffort: null,
+      warnings,
+    });
+    expect(result).toBe('high');
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([undefined, 'provider-default'] as const)(
+    'returns undefined with no warning for %s reasoning',
+    reasoning => {
+      const warnings: SharedV4Warning[] = [];
+      const result = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap,
+        warnings,
+      });
+      expect(result).toBeUndefined();
+      expect(warnings).toEqual([]);
+    },
+  );
 });
 
 describe('isCustomReasoning', () => {

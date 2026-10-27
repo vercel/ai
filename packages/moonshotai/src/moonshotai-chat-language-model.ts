@@ -271,15 +271,12 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
         }
         // Kimi K3 reasoning cannot be disabled, so reasoning 'none' maps to
         // the lowest effort.
-        reasoningEffort =
-          requestedReasoningEffort ??
-          (isCustomReasoning(reasoning)
-            ? mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: moonshotReasoningEffortMap,
-                warnings: allWarnings,
-              })
-            : undefined);
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          providerOptionsEffort: requestedReasoningEffort,
+          effortMap: moonshotReasoningEffortMap,
+          warnings: allWarnings,
+        });
         break;
       }
       case 'kimi-k2.7': {
