@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.90
+
+### Patch Changes
+
+- 63bf860: Support synchronous and asynchronous `authToken` providers so applications can use refreshable credentials, including Anthropic workload identity federation helpers for inference. Resolve tokens before each request while preserving existing authentication headers and beta-header behavior.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
 ## 4.0.89
 
 ### Patch Changes

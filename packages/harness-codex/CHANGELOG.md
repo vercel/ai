@@ -1,5 +1,15 @@
 # @ai-sdk/harness-codex
 
+## 1.0.168
+
+### Patch Changes
+
+- 68db1af: fix(harness-codex): enable web search for Responses Lite models when using OpenAI API key or subscription auth
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
 ## 1.0.167
 
 ### Patch Changes
