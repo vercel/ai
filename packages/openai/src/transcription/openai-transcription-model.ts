@@ -213,6 +213,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe'].includes(
           this.modelId,
         ) ||
+        this.modelId.startsWith('gpt-4o-mini-transcribe-') ||
         this.modelId === 'gpt-transcribe' ||
         this.modelId.startsWith('gpt-transcribe-');
 
