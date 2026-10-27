@@ -865,13 +865,13 @@ describe('doStream', () => {
   });
 
   it.each([
-    'gpt-live-transcribe',
-    'gpt-live-transcribe-2026-01-01',
-    'gpt-transcribe',
-    'gpt-transcribe-2026-01-01',
+    ['gpt-live-transcribe', true],
+    ['gpt-live-transcribe-2026-01-01', true],
+    ['gpt-transcribe', false],
+    ['gpt-transcribe-2026-01-01', false],
   ])(
     'should stream %s and send the language hint as a languages list',
-    async modelId => {
+    async (modelId, supportsDelay) => {
       MockWebSocket.instances = [];
       const model = new OpenAITranscriptionModel(modelId, {
         provider: 'test-provider',
@@ -906,7 +906,7 @@ describe('doStream', () => {
               transcription: {
                 model: modelId,
                 languages: ['en'],
-                delay: 'low',
+                ...(supportsDelay && { delay: 'low' }),
               },
               turn_detection: null,
             },
@@ -919,10 +919,23 @@ describe('doStream', () => {
         item_id: 'item-1',
         transcript: 'Hello',
       });
-      await expect(partsPromise).resolves.toContainEqual({
+      const parts = await partsPromise;
+      expect(parts).toContainEqual({
         type: 'transcript-final',
         id: 'item-1',
         text: 'Hello',
+      });
+      expect(parts[0]).toEqual({
+        type: 'stream-start',
+        warnings: supportsDelay
+          ? []
+          : [
+              {
+                type: 'unsupported',
+                feature: 'providerOptions.openai.streaming.delay',
+                details: `OpenAI streaming transcription with ${modelId} does not support delay.`,
+              },
+            ],
       });
     },
   );
