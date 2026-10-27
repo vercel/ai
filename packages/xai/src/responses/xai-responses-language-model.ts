@@ -449,9 +449,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
-      ...(response.service_tier != null && {
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
         providerMetadata: {
-          xai: { serviceTier: response.service_tier },
+          xai: {
+            ...(response.usage?.cost_in_usd_ticks != null && {
+              costInUsdTicks: response.usage.cost_in_usd_ticks,
+            }),
+            ...(response.service_tier != null && {
+              serviceTier: response.service_tier,
+            }),
+          },
         },
       }),
       request: { body },
@@ -500,6 +508,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     let hasFunctionCall = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -691,6 +700,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
+                costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
               serviceTier = response.service_tier ?? undefined;
@@ -1050,8 +1060,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...(serviceTier != null && {
-                providerMetadata: { xai: { serviceTier } },
+              ...((costInUsdTicks != null || serviceTier != null) && {
+                providerMetadata: {
+                  xai: {
+                    ...(costInUsdTicks != null && { costInUsdTicks }),
+                    ...(serviceTier != null && { serviceTier }),
+                  },
+                },
               }),
             });
           },

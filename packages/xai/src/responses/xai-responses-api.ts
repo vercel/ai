@@ -304,6 +304,7 @@ export const xaiResponsesUsageSchema = () =>
         .optional(),
       num_sources_used: z.number().optional(),
       num_server_side_tools_used: z.number().optional(),
+      cost_in_usd_ticks: z.number().nullish(),
     })
     .catchall(z.json());
 
