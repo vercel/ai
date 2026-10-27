@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 24056,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-24056.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-24056.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Gateway cancellation was not preserved:"
+  }
+}
