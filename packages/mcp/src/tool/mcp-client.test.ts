@@ -20,7 +20,11 @@ import {
   type Configuration,
   type InitializeResult,
 } from './types';
-import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
+import type {
+  JSONRPCError,
+  JSONRPCMessage,
+  JSONRPCRequest,
+} from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -91,6 +95,14 @@ class ProtocolDiscoveryTransport implements MCPTransport {
       | 'silent'
       | 'unsupported' = 'modern',
     private readonly includeToolListResultType = true,
+    private readonly discoveryError: JSONRPCError['error'] = {
+      code: -32022,
+      message: 'Unsupported protocol version',
+      data: {
+        requested: LATEST_PROTOCOL_VERSION,
+        supported: ['2099-01-01'],
+      },
+    },
   ) {}
 
   async start(): Promise<void> {}
@@ -128,14 +140,7 @@ class ProtocolDiscoveryTransport implements MCPTransport {
         this.onmessage?.({
           jsonrpc: '2.0',
           id: message.id,
-          error: {
-            code: -32022,
-            message: 'Unsupported protocol version',
-            data: {
-              requested: LATEST_PROTOCOL_VERSION,
-              supported: ['2099-01-01'],
-            },
-          },
+          error: this.discoveryError,
         });
         return;
       }
@@ -3426,21 +3431,134 @@ describe('MCPClient', () => {
       ).toEqual(['server/discover', 'initialize', 'notifications/initialized']);
     });
 
-    it('should not fall back for a recognized modern protocol error', async () => {
-      const transport = new ProtocolDiscoveryTransport('unsupported');
+    it.each([
+      { supported: [LATEST_LEGACY_PROTOCOL_VERSION, '2025-06-18'] },
+      { supported: ['2025-06-18'] },
+    ])(
+      'should explain how to opt into legacy initialization for advertised versions $supported',
+      async ({ supported }) => {
+        const discoveryError = {
+          code: -32022,
+          message: 'Unsupported protocol version',
+          data: { requested: LATEST_PROTOCOL_VERSION, supported },
+        };
+        const transport = new ProtocolDiscoveryTransport(
+          'unsupported',
+          true,
+          discoveryError,
+        );
+
+        const error = await createMCPClient({ transport }).catch(
+          error => error,
+        );
+
+        expect(error).toBeInstanceOf(MCPClientError);
+        expect(error.message).toContain(
+          `rejected protocol version ${LATEST_PROTOCOL_VERSION}`,
+        );
+        for (const version of supported) {
+          expect(error.message).toContain(version);
+        }
+        expect(error.message).toContain('protocolVersionDiscovery: false');
+        expect(error.message).toContain('legacy');
+        expect(error.code).toBe(discoveryError.code);
+        expect(error.data).toBe(discoveryError.data);
+        expect(error.cause).toBeInstanceOf(MCPClientError);
+        expect(error.cause).toMatchObject(discoveryError);
+        expect(error.cause.cause).toBe(discoveryError);
+        expect(
+          transport.sentMessages.map(message =>
+            'method' in message ? message.method : undefined,
+          ),
+        ).toEqual(['server/discover']);
+      },
+    );
+
+    it.each([
+      { name: 'missing data', data: undefined },
+      { name: 'null data', data: null },
+      { name: 'missing supported versions', data: {} },
+      {
+        name: 'non-array supported versions',
+        data: { supported: '2025-06-18' },
+      },
+      {
+        name: 'non-string supported versions',
+        data: { supported: ['2025-06-18', null] },
+      },
+      { name: 'empty supported versions', data: { supported: [] } },
+      {
+        name: 'no mutually supported versions',
+        data: { supported: ['2099-01-01'] },
+      },
+      {
+        name: 'the rejected modern version is supported',
+        data: { supported: [LATEST_PROTOCOL_VERSION, '2025-06-18'] },
+      },
+    ])('should preserve a version error with $name', async ({ data }) => {
+      const discoveryError = {
+        code: -32022,
+        message: 'Unsupported protocol version',
+        data,
+      };
+      const transport = new ProtocolDiscoveryTransport(
+        'unsupported',
+        true,
+        discoveryError,
+      );
 
       await expect(createMCPClient({ transport })).rejects.toMatchObject({
-        code: -32022,
-        data: {
-          requested: LATEST_PROTOCOL_VERSION,
-          supported: ['2099-01-01'],
-        },
+        ...discoveryError,
+        cause: discoveryError,
       });
       expect(
         transport.sentMessages.map(message =>
           'method' in message ? message.method : undefined,
         ),
       ).toEqual(['server/discover']);
+    });
+
+    it.each([-32020, -32021])(
+      'should preserve modern protocol error %s even when legacy versions are advertised',
+      async code => {
+        const discoveryError = {
+          code,
+          message: 'Modern protocol error',
+          data: { supported: ['2025-06-18'] },
+        };
+        const transport = new ProtocolDiscoveryTransport(
+          'unsupported',
+          true,
+          discoveryError,
+        );
+
+        await expect(createMCPClient({ transport })).rejects.toMatchObject({
+          ...discoveryError,
+          cause: discoveryError,
+        });
+        expect(
+          transport.sentMessages.map(message =>
+            'method' in message ? message.method : undefined,
+          ),
+        ).toEqual(['server/discover']);
+      },
+    );
+
+    it('should skip discovery and initialize when protocolVersionDiscovery is false', async () => {
+      const transport = new ProtocolDiscoveryTransport('unsupported', false);
+
+      client = await createMCPClient({
+        transport,
+        protocolVersionDiscovery: false,
+      });
+      await expect(client.listTools()).resolves.toEqual({ tools: [] });
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['initialize', 'notifications/initialized', 'tools/list']);
     });
 
     it('should require resultType from modern servers', async () => {
