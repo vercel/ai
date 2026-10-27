@@ -76,6 +76,12 @@ export async function defaultCompaction(
   }
   if (messages.length === 0) return { messages: [] };
 
+  const { required, retain, nativeIndexes } = createRetentionPlan(
+    conversation,
+    current?.index,
+    options.keepCurrentTurn,
+  );
+  const requiredIndexes = new Set(required.map(({ index }) => index));
   if (ctx.reason !== 'manual' && !needsCurrentClipping) {
     // Preserve fresh tool evidence until an assistant has consumed it.
     const lastAssistant = messages.findLastIndex(
@@ -84,7 +90,8 @@ export async function defaultCompaction(
     const pruned = messages.map((message, index) =>
       index < lastAssistant &&
       !inCheckpoint(index, checkpoint) &&
-      !(options.keepCurrentTurn && current != null && index >= current.index)
+      !requiredIndexes.has(index) &&
+      !nativeIndexes.has(index)
         ? shortenToolResults(message, toolCharacters, ctx)
         : message,
     );
@@ -93,14 +100,8 @@ export async function defaultCompaction(
     }
   }
 
-  const required = getRequiredEntries(
-    conversation,
-    current?.index,
-    options.keepCurrentTurn,
-  );
-  const requiredIndexes = new Set(required.map(({ index }) => index));
   const opaqueIndexes = new Set(
-    getRequiredEntries(conversation, current?.index, false).map(
+    retain(required.filter(({ message }) => hasNativeContent(message))).map(
       ({ index }) => index,
     ),
   );
@@ -149,7 +150,9 @@ export async function defaultCompaction(
 
   let tail = await selectRecent(
     conversation.map(entry =>
-      entry.index === current?.index || requiredIndexes.has(entry.index)
+      entry.index === current?.index ||
+      requiredIndexes.has(entry.index) ||
+      nativeIndexes.has(entry.index)
         ? entry
         : {
             ...entry,
@@ -164,12 +167,14 @@ export async function defaultCompaction(
     helpers,
     required,
     opaqueIndexes,
+    retain,
   );
   let minimumTail = mergeRetained(
     tail,
     required,
     current?.index,
     minimumCurrent,
+    retain,
   );
   for (let start = 1; start <= tail.length; start++) {
     const reduced = mergeRetained(
@@ -177,6 +182,7 @@ export async function defaultCompaction(
       required,
       current?.index,
       minimumCurrent,
+      retain,
     );
     if (await helpers.isValidMessages(compose('…', reduced)))
       minimumTail = reduced;
@@ -190,7 +196,7 @@ export async function defaultCompaction(
   if (ctx.summarize == null || options.summarize == null)
     throw summaryRequired();
   const prompt = prepareSummaryPrompt(
-    conversation.filter(({ message }) => !hasNativeContent(message)),
+    conversation,
     previousCheckpoint,
     options.summarize,
     ctx,
@@ -210,7 +216,9 @@ export async function defaultCompaction(
   // Fit the generated summary before sacrificing recent evidence.
   if (!fitSummary()) {
     tail = tail.map(entry =>
-      entry.index === current?.index || requiredIndexes.has(entry.index)
+      entry.index === current?.index ||
+      requiredIndexes.has(entry.index) ||
+      nativeIndexes.has(entry.index)
         ? entry
         : {
             ...entry,
@@ -230,6 +238,7 @@ export async function defaultCompaction(
           required,
           current?.index,
           retainedCurrent,
+          retain,
         );
         if (!(await helpers.isValidMessages(compose('…', reduced)))) continue;
         tail = reduced;
@@ -257,11 +266,17 @@ export async function defaultCompaction(
         fits(
           compose(
             summary,
-            mergeRetained(tail, required, current?.index, request),
+            mergeRetained(tail, required, current?.index, request, retain),
           ),
         ),
     );
-    tail = mergeRetained(tail, required, current?.index, retainedCurrent);
+    tail = mergeRetained(
+      tail,
+      required,
+      current?.index,
+      retainedCurrent,
+      retain,
+    );
   }
   const candidate = compose(summary, tail);
   candidate[systems.length] = ctx.createMessage(
@@ -292,7 +307,7 @@ async function countOnlyCompaction(
   const current = conversation.find(
     ({ index }) => index === ctx.currentUserMessageIndex,
   );
-  const required = getRequiredEntries(
+  const { required, retain } = createRetentionPlan(
     conversation,
     current?.index,
     options.keepCurrentTurn,
@@ -306,6 +321,7 @@ async function countOnlyCompaction(
     required,
     current?.index,
     current?.message as UserModelMessage | undefined,
+    retain,
   );
   while (
     start > 0 &&
@@ -320,6 +336,7 @@ async function countOnlyCompaction(
       required,
       current?.index,
       current?.message as UserModelMessage | undefined,
+      retain,
     );
   }
   const retainedIndexes = new Set(tail.map(({ index }) => index));
@@ -388,7 +405,7 @@ function splitHistory(options: DefaultOptions) {
   };
 }
 
-function getRequiredEntries(
+function createRetentionPlan(
   entries: IndexedMessage[],
   currentIndex: number | undefined,
   keepCurrentTurn: boolean | undefined,
@@ -396,21 +413,20 @@ function getRequiredEntries(
   const required = new Set(
     entries
       .filter(
-        ({ index, message }) =>
-          hasNativeContent(message) ||
-          (keepCurrentTurn === true &&
-            currentIndex != null &&
-            index > currentIndex),
+        ({ index }) =>
+          keepCurrentTurn === true &&
+          currentIndex != null &&
+          index > currentIndex,
       )
       .map(({ index }) => index),
   );
-  if (required.size === 0) return [];
-
-  // Native state can share a message with a call, result or approval. Retain
-  // the connected exchange in either direction without keeping unrelated steps.
+  // Retain complete exchanges only when one of their messages is selected.
+  // Completed native exchanges outside the window can then be summarized.
   const dependencies = new Map<number, Set<number>>();
   const calls = new Map<string, number>();
   const approvals = new Map<string, number>();
+  const pendingCalls = new Map<string, number>();
+  const originals = new Map(entries.map(entry => [entry.index, entry]));
   const link = (index: number, dependency: number | undefined) => {
     if (dependency == null) return;
     for (const [from, to] of [
@@ -428,9 +444,11 @@ function getRequiredEntries(
       switch (part.type) {
         case 'tool-call':
           calls.set(part.toolCallId, index);
+          if (!part.providerExecuted) pendingCalls.set(part.toolCallId, index);
           break;
         case 'tool-result':
           link(index, calls.get(part.toolCallId));
+          pendingCalls.delete(part.toolCallId);
           break;
         case 'tool-approval-request':
           link(index, calls.get(part.toolCallId));
@@ -442,15 +460,31 @@ function getRequiredEntries(
       }
     }
   }
-  const pending = [...required];
-  for (let position = 0; position < pending.length; position++) {
-    for (const index of dependencies.get(pending[position]) ?? []) {
-      if (required.has(index)) continue;
-      required.add(index);
-      pending.push(index);
+  for (const index of pendingCalls.values()) required.add(index);
+
+  const retain = (selected: IndexedMessage[]): IndexedMessage[] => {
+    const retained = new Map(selected.map(entry => [entry.index, entry]));
+    const pending = [...retained.keys()];
+    for (let position = 0; position < pending.length; position++) {
+      for (const index of dependencies.get(pending[position]) ?? []) {
+        if (retained.has(index)) continue;
+        retained.set(index, originals.get(index)!);
+        pending.push(index);
+      }
     }
-  }
-  return entries.filter(({ index }) => required.has(index));
+    return [...retained.values()].sort((a, b) => a.index - b.index);
+  };
+  return {
+    required: retain(entries.filter(({ index }) => required.has(index))),
+    // Protect selected native exchanges from partial rewriting without forcing
+    // completed exchanges outside the retained window to survive compaction.
+    nativeIndexes: new Set(
+      retain(entries.filter(({ message }) => hasNativeContent(message))).map(
+        ({ index }) => index,
+      ),
+    ),
+    retain,
+  };
 }
 
 function mergeRetained(
@@ -458,13 +492,16 @@ function mergeRetained(
   required: IndexedMessage[],
   currentIndex: number | undefined,
   current: UserModelMessage | undefined,
+  retain: (entries: IndexedMessage[]) => IndexedMessage[],
 ) {
   const merged = new Map(entries.map(entry => [entry.index, entry]));
   for (const entry of required) merged.set(entry.index, entry);
-  return withCurrent(
-    [...merged.values()].sort((a, b) => a.index - b.index),
-    currentIndex,
-    current,
+  return retain(
+    withCurrent(
+      [...merged.values()].sort((a, b) => a.index - b.index),
+      currentIndex,
+      current,
+    ),
   );
 }
 
@@ -676,15 +713,7 @@ function hasNativeToolOutput(output: ToolResultOutput): boolean {
   if (output.type === 'content') {
     return output.value.some(value => value.type === 'custom');
   }
-  return (
-    output.type === 'json' &&
-    output.value != null &&
-    typeof output.value === 'object' &&
-    !Array.isArray(output.value) &&
-    'type' in output.value &&
-    (output.value.type === 'encrypted_code_execution_result' ||
-      output.value.type === 'advisor_redacted_result')
-  );
+  return hasOpaqueToolOutput(output);
 }
 
 function withCurrent(
@@ -716,6 +745,7 @@ async function selectRecent(
   helpers: Helpers,
   required: IndexedMessage[],
   opaqueIndexes: Set<number>,
+  retain: (entries: IndexedMessage[]) => IndexedMessage[],
 ): Promise<IndexedMessage[]> {
   const preferredStart = Math.max(0, entries.length - keepRecentMessages);
   // Move the boundary back first when the preferred suffix starts inside an exchange.
@@ -723,9 +753,13 @@ async function selectRecent(
   while (
     start > 0 &&
     !(await helpers.isValidMessages(
-      mergeRetained(entries.slice(start), required, currentIndex, current).map(
-        entry => entry.message,
-      ),
+      mergeRetained(
+        entries.slice(start),
+        required,
+        currentIndex,
+        current,
+        retain,
+      ).map(entry => entry.message),
     ))
   ) {
     ctx.abortSignal?.throwIfAborted();
@@ -738,6 +772,7 @@ async function selectRecent(
       required,
       currentIndex,
       current,
+      retain,
     );
     const messages = candidate.map(entry => entry.message);
     const recent = candidate
@@ -964,14 +999,16 @@ function renderMessage(
   limit: number,
   ctx: CompactionStrategyContext,
 ): string {
-  if (hasNativeContent(message)) throw unsupportedContent();
   if (typeof message.content === 'string')
     return `${message.role}: ${clipText(message.content, limit)}`;
   const content = message.content
     .map(part => {
       switch (part.type) {
         case 'text':
-          return clipText(part.text, limit);
+          return message.role === 'assistant' &&
+            part.providerOptions?.anthropic?.type === 'compaction'
+            ? '[Opaque provider compaction state omitted]'
+            : clipText(part.text, limit);
         case 'reasoning':
         case 'reasoning-file':
           return undefined;
@@ -987,7 +1024,7 @@ function renderMessage(
         case 'tool-approval-response':
           return `Tool approval response (${part.approvalId}): ${part.approved ? 'approved' : 'denied'}`;
         case 'custom':
-          throw unsupportedContent();
+          return '[Opaque provider content omitted]';
       }
     })
     .filter(value => value != null && value.length > 0)
@@ -1002,6 +1039,8 @@ function renderOutput(
   limit: number,
   ctx: CompactionStrategyContext,
 ): string {
+  if (hasOpaqueToolOutput(output))
+    return '[Opaque provider tool result omitted]';
   switch (output.type) {
     case 'text':
     case 'error-text':
@@ -1016,6 +1055,8 @@ function renderOutput(
         output.value
           .map(part => {
             if (part.type === 'text') return clipText(part.text, 2_000);
+            if (part.type === 'custom')
+              return '[Opaque provider content omitted]';
             if (part.type === 'file') return `[${describeMedia(part, ctx)}]`;
             if (part.type === 'file-url' || part.type === 'image-url')
               return /^data:/i.test(part.url)
@@ -1034,6 +1075,18 @@ function renderOutput(
         Math.min(limit, 2_000),
       );
   }
+}
+
+function hasOpaqueToolOutput(output: ToolResultOutput): boolean {
+  return (
+    (output.type === 'json' || output.type === 'error-json') &&
+    output.value != null &&
+    typeof output.value === 'object' &&
+    !Array.isArray(output.value) &&
+    'type' in output.value &&
+    (output.value.type === 'encrypted_code_execution_result' ||
+      output.value.type === 'advisor_redacted_result')
+  );
 }
 
 function describeMedia(

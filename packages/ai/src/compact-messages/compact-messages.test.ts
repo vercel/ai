@@ -26,6 +26,135 @@ const countTokens = (messages: readonly ModelMessage[]) =>
   );
 
 describe('compactMessages', () => {
+  it.each(['count', 'tokens'] as const)(
+    'summarizes old native history while retaining the recent exchange (%s)',
+    async mode => {
+      const exchange = (id: string, payload: string): ModelMessage[] => [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: id,
+              toolName: 'search',
+              input: {},
+              providerExecuted: true,
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test.native',
+              providerOptions: { test: { payload } },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: id,
+              toolName: 'search',
+              output: { type: 'text', value: `Readable evidence from ${id}` },
+            },
+          ],
+        },
+      ];
+      const recent = exchange('recent', 'retained-state');
+      const messages: ModelMessage[] = [
+        { role: 'user', content: 'Compare the search results.' },
+        ...exchange('old', 'secret-state'.repeat(300)),
+        ...recent,
+      ];
+      const counter = (input: readonly ModelMessage[]) =>
+        JSON.stringify(input).length;
+      const execute = vi.fn(async (input: { messages: ModelMessage[] }) => {
+        const transcript = JSON.stringify(input.messages);
+        expect(transcript).toContain('Readable evidence from old');
+        expect(transcript).not.toContain('secret-state');
+        return summarize.execute();
+      });
+      const options = {
+        strategy: 'summarize' as const,
+        messages,
+        keepRecentMessages: 1,
+        summarize: { ...summarize, execute },
+      };
+      const result = await compactMessages(
+        mode === 'tokens'
+          ? {
+              ...options,
+              context: { inputTokens: counter(messages), fixedInputTokens: 0 },
+              targetInputTokens: 2_000,
+              countTokens: counter,
+            }
+          : options,
+      );
+      expect(execute).toHaveBeenCalledOnce();
+      expect(result.messages).toHaveLength(4);
+      expect(result.messages.slice(-2)).toEqual(recent);
+      expect(result.messages[1]).toEqual(messages[0]);
+      expect(result.checkpoint).toBeDefined();
+      if (mode === 'tokens')
+        expect(result.inputTokensAfter).toBeLessThanOrEqual(2_000);
+    },
+  );
+
+  it.each([true, false])(
+    'honors current-turn retention (%s) without dropping pending calls',
+    async keepCurrentTurn => {
+      const native: ModelMessage = {
+        role: 'assistant',
+        content: [{ type: 'custom', kind: 'test.native' }],
+      };
+      const pending: ModelMessage = {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'pending',
+            toolName: 'read',
+            input: {},
+          },
+        ],
+      };
+      const result = await compactMessages({
+        strategy: 'summarize',
+        messages: [
+          { role: 'user', content: 'Continue working.' },
+          native,
+          pending,
+        ],
+        keepRecentMessages: 0,
+        keepCurrentTurn,
+        summarize,
+      });
+      expect(result.messages).toContainEqual(pending);
+      expect(result.messages.includes(native)).toBe(keepCurrentTurn);
+    },
+  );
+
+  it('rejects a custom strategy that removes an unresolved tool call', async () => {
+    await expect(
+      compactMessages({
+        messages: [
+          { role: 'user', content: 'Read a file.' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'pending',
+                toolName: 'read',
+                input: {},
+              },
+            ],
+          },
+        ],
+        strategy: async () => ({ messages: [] }),
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_MESSAGES' });
+  });
+
   it('compacts completed work within a turn while preserving the recent reasoning/tool exchange', async () => {
     const exchange = (id: string): ModelMessage[] => [
       {

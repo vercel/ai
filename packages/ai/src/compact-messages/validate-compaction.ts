@@ -193,15 +193,18 @@ export function hasValidToolExchanges(
     }
   }
 
-  // A history may end at a pending tool/approval boundary. Never move an
-  // unresolved call across a later user message or detach a response from it.
+  // A history may end at a pending tool/approval boundary. Keep every unresolved
+  // call unchanged, without moving it across a later user message.
   return (
     allowedPendingToolCalls === undefined ||
-    [...pending].every(([id, call]) => allowedPendingToolCalls.get(id) === call)
+    (pending.size === allowedPendingToolCalls.size &&
+      [...pending].every(
+        ([id, call]) => allowedPendingToolCalls.get(id) === call,
+      ))
   );
 }
 
-/** Pending calls may survive compaction, but completed calls cannot become pending. */
+/** Pending calls must survive compaction, and completed calls cannot become pending. */
 export function getPendingToolCalls(
   messages: readonly ModelMessage[],
 ): Map<string, string> {
