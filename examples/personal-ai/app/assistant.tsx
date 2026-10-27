@@ -96,6 +96,7 @@ export default function Assistant() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [providerStatus, setProviderStatus] = useState<ProviderStatus>();
   const [configurationError, setConfigurationError] = useState<string>();
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string>();
   const [plans, setPlans] = useState<TaskPlan[]>([]);
   const [completed, setCompleted] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -121,6 +122,35 @@ export default function Assistant() {
     transport,
   });
   const busy = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => {
+    let active = true;
+    if (!error) {
+      setRequestErrorMessage(undefined);
+      return;
+    }
+
+    const resolveErrorMessage = async () => {
+      const parsed = await safeParseJSON({ text: error.message });
+      if (!active) return;
+      if (
+        parsed.success &&
+        typeof parsed.value === 'object' &&
+        parsed.value !== null &&
+        'error' in parsed.value &&
+        typeof parsed.value.error === 'string'
+      ) {
+        setRequestErrorMessage(parsed.value.error);
+      } else {
+        setRequestErrorMessage(error.message);
+      }
+    };
+    void resolveErrorMessage();
+
+    return () => {
+      active = false;
+    };
+  }, [error]);
 
   useEffect(() => {
     let active = true;
@@ -450,10 +480,15 @@ export default function Assistant() {
                 )}
                 {(error || configurationError) && (
                   <div className="error-card">
-                    <strong>That didn’t work.</strong>
-                    <p>{configurationError || error?.message}</p>
+                    <strong>
+                      {configurationError ||
+                      requestErrorMessage?.includes('API_KEY')
+                        ? 'Provider setup needed'
+                        : 'That didn’t work.'}
+                    </strong>
+                    <p>{configurationError || requestErrorMessage}</p>
                     <span>
-                      Check your provider key in settings and try again.
+                      Add a valid provider key in settings, then try again.
                     </span>
                   </div>
                 )}
