@@ -2214,6 +2214,80 @@ describe('doStream', () => {
     },
   );
 
+  it.each([
+    {
+      scenario: 'the connection closes',
+      finalChunks: [],
+    },
+    {
+      scenario: '[DONE] is received',
+      finalChunks: ['data: [DONE]\n\n'],
+    },
+  ])(
+    'should not emit a tool call with partial arguments when $scenario mid tool call without a finish reason',
+    async ({ finalChunks }) => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call_truncated","type":"function","function":{"name":"test-tool","arguments":""}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"value\\":\\"Spark"}}]},"finish_reason":null}]}\n\n`,
+          ...finalChunks,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(event => event.type === 'tool-input-delta'),
+      ).toStrictEqual([
+        {
+          type: 'tool-input-delta',
+          id: 'call_truncated',
+          delta: '{"value":"Spark',
+        },
+      ]);
+
+      // The stream was cut off, so the arguments are incomplete and must not
+      // be surfaced as a finished tool call.
+      expect(events.filter(event => event.type === 'tool-call')).toStrictEqual(
+        [],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    },
+  );
+
   it('should handle empty string role in delta chunks', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
