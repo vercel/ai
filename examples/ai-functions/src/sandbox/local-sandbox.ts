@@ -1,11 +1,13 @@
 import { spawn } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, readdir, stat, unlink } from 'node:fs/promises';
 import { isAbsolute, join, dirname } from 'node:path';
 import { Readable, type Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   extractLines,
+  type Experimental_SandboxDirectoryEntry,
+  type Experimental_SandboxFileStat,
   type Experimental_SandboxRunOptions as RunOptions,
   type Experimental_SandboxReadFileOptions as ReadFileOptions,
   type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
@@ -13,6 +15,9 @@ import {
   type Experimental_SandboxWriteFileOptions as WriteFileOptions,
   type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
   type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
+  type Experimental_SandboxStatOptions as StatOptions,
+  type Experimental_SandboxListDirectoryOptions as ListDirectoryOptions,
+  type Experimental_SandboxDeleteFileOptions as DeleteFileOptions,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSpawnOptions as SpawnOptions,
   type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
@@ -89,7 +94,7 @@ export class LocalSandboxSession implements SandboxSession {
     }
 
     const child = spawn('bash', ['-c', command], {
-      cwd: workingDirectory ?? this.rootDirectory,
+      cwd: this.resolvePath(workingDirectory ?? this.rootDirectory),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -218,6 +223,63 @@ export class LocalSandboxSession implements SandboxSession {
       content: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength),
       abortSignal,
     });
+  }
+
+  async stat({
+    path,
+    abortSignal,
+  }: StatOptions): Promise<Experimental_SandboxFileStat | null> {
+    abortSignal?.throwIfAborted();
+    try {
+      const stats = await stat(this.resolvePath(path));
+      return {
+        type: stats.isFile()
+          ? 'file'
+          : stats.isDirectory()
+            ? 'directory'
+            : 'other',
+        size: stats.size,
+      };
+    } catch (error: any) {
+      if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return null;
+      throw error;
+    }
+  }
+
+  async listDirectory({
+    path,
+    abortSignal,
+  }: ListDirectoryOptions): Promise<Array<Experimental_SandboxDirectoryEntry> | null> {
+    abortSignal?.throwIfAborted();
+    try {
+      const entries = await readdir(this.resolvePath(path), {
+        withFileTypes: true,
+      });
+      return entries.map(entry => ({
+        name: entry.name,
+        type: entry.isSymbolicLink()
+          ? 'symlink'
+          : entry.isFile()
+            ? 'file'
+            : entry.isDirectory()
+              ? 'directory'
+              : 'other',
+      }));
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  async deleteFile({ path, abortSignal }: DeleteFileOptions): Promise<boolean> {
+    abortSignal?.throwIfAborted();
+    try {
+      await unlink(this.resolvePath(path));
+      return true;
+    } catch (error: any) {
+      if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') return false;
+      throw error;
+    }
   }
 
   get description() {

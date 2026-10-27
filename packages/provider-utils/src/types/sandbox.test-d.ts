@@ -10,6 +10,9 @@ import type {
   Experimental_SandboxWriteFileOptions,
   Experimental_SandboxWriteBinaryFileOptions,
   Experimental_SandboxWriteTextFileOptions,
+  Experimental_SandboxStatOptions,
+  Experimental_SandboxListDirectoryOptions,
+  Experimental_SandboxDeleteFileOptions,
 } from '../index';
 import type {
   SandboxSession,
@@ -24,6 +27,9 @@ import type {
   SandboxWriteFileOptions,
   SandboxWriteBinaryFileOptions,
   SandboxWriteTextFileOptions,
+  SandboxStatOptions,
+  SandboxListDirectoryOptions,
+  SandboxDeleteFileOptions,
   WritableSandboxProcess,
 } from './sandbox';
 
@@ -35,6 +41,9 @@ test('sandbox method options are exported experimentally', () => {
   expectTypeOf<Experimental_SandboxWriteFileOptions>().toEqualTypeOf<SandboxWriteFileOptions>();
   expectTypeOf<Experimental_SandboxWriteBinaryFileOptions>().toEqualTypeOf<SandboxWriteBinaryFileOptions>();
   expectTypeOf<Experimental_SandboxWriteTextFileOptions>().toEqualTypeOf<SandboxWriteTextFileOptions>();
+  expectTypeOf<Experimental_SandboxStatOptions>().toEqualTypeOf<SandboxStatOptions>();
+  expectTypeOf<Experimental_SandboxListDirectoryOptions>().toEqualTypeOf<SandboxListDirectoryOptions>();
+  expectTypeOf<Experimental_SandboxDeleteFileOptions>().toEqualTypeOf<SandboxDeleteFileOptions>();
 });
 
 test('SandboxSession methods use their named options types', () => {
@@ -59,6 +68,15 @@ test('SandboxSession methods use their named options types', () => {
   expectTypeOf<
     Parameters<SandboxSession['writeTextFile']>[0]
   >().toEqualTypeOf<SandboxWriteTextFileOptions>();
+  expectTypeOf<
+    Parameters<SandboxSession['stat']>[0]
+  >().toEqualTypeOf<SandboxStatOptions>();
+  expectTypeOf<
+    Parameters<SandboxSession['listDirectory']>[0]
+  >().toEqualTypeOf<SandboxListDirectoryOptions>();
+  expectTypeOf<
+    Parameters<SandboxSession['deleteFile']>[0]
+  >().toEqualTypeOf<SandboxDeleteFileOptions>();
 });
 
 test('run options preserve command fields without stdin', () => {
@@ -84,6 +102,9 @@ test('file read options preserve path, signal, and text fields', () => {
       endLine?: number;
     }
   >();
+  expectTypeOf<SandboxStatOptions>().toEqualTypeOf<SandboxReadFileOptions>();
+  expectTypeOf<SandboxListDirectoryOptions>().toEqualTypeOf<SandboxReadFileOptions>();
+  expectTypeOf<SandboxDeleteFileOptions>().toEqualTypeOf<SandboxReadFileOptions>();
 });
 
 test('file write options preserve their payload types and text encoding', () => {

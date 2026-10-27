@@ -1,6 +1,8 @@
 import { posix } from 'node:path';
 import {
   extractLines,
+  type Experimental_SandboxDirectoryEntry as SandboxDirectoryEntry,
+  type Experimental_SandboxFileStat as SandboxFileStat,
   type Experimental_SandboxRunOptions as RunOptions,
   type Experimental_SandboxReadFileOptions as ReadFileOptions,
   type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
@@ -8,6 +10,9 @@ import {
   type Experimental_SandboxWriteFileOptions as WriteFileOptions,
   type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
   type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
+  type Experimental_SandboxStatOptions as StatOptions,
+  type Experimental_SandboxListDirectoryOptions as ListDirectoryOptions,
+  type Experimental_SandboxDeleteFileOptions as DeleteFileOptions,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess as SandboxProcess,
   type Experimental_SandboxSpawnOptions as SpawnOptions,
@@ -16,6 +21,50 @@ import {
   type Experimental_WritableSandboxProcess as WritableSandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
+
+// Exit code the path scripts below use to report that a path does not exist.
+const NOT_FOUND_EXIT_CODE = 3;
+
+// Exit code the path scripts below use to report that a path has the wrong
+// type for the operation.
+const WRONG_TYPE_EXIT_CODE = 4;
+
+// The path is passed as `$1` so it is never interpolated into the script.
+// The scripts only use bash builtins, `rm`, and `stat`. `stat -c` is supported
+// by GNU coreutils, BusyBox, and toybox; `stat -f` is the BSD fallback.
+const STAT_SCRIPT = `
+[ -e "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+if [ -f "$1" ]; then type=file; elif [ -d "$1" ]; then type=directory; else type=other; fi
+size=$(stat -L -c %s -- "$1" 2>/dev/null || stat -L -f %z -- "$1") || exit 1
+printf '%s %s' "$type" "$size"
+`;
+
+const LIST_DIRECTORY_SCRIPT = `
+if [ ! -d "$1" ]; then
+  [ -e "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+  echo "Not a directory" >&2
+  exit ${WRONG_TYPE_EXIT_CODE}
+fi
+cd -- "$1" || exit 1
+shopt -s dotglob nullglob
+for name in *; do
+  if [ -L "$name" ]; then type=symlink
+  elif [ -f "$name" ]; then type=file
+  elif [ -d "$name" ]; then type=directory
+  else type=other
+  fi
+  printf '%s %s\\0' "$type" "$name"
+done
+`;
+
+const DELETE_FILE_SCRIPT = `
+if [ -d "$1" ] && [ ! -L "$1" ]; then
+  echo "Is a directory" >&2
+  exit ${WRONG_TYPE_EXIT_CODE}
+fi
+[ -e "$1" ] || [ -L "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+rm -f -- "$1"
+`;
 
 /**
  * `Experimental_SandboxSession` implementation backed by a `@vercel/sandbox`
@@ -34,6 +83,14 @@ export class VercelSandboxSession implements SandboxSession {
     ].join('\n');
   }
 
+  // Vercel Sandbox resolves a relative `cwd` against `/` instead of the
+  // session's working directory, which relative file paths resolve against.
+  private resolveWorkingDirectory(workingDirectory: string): string {
+    return posix.isAbsolute(workingDirectory)
+      ? workingDirectory
+      : posix.join(this.sandbox.currentSession().cwd, workingDirectory);
+  }
+
   async run({
     command,
     workingDirectory,
@@ -49,7 +106,9 @@ export class VercelSandboxSession implements SandboxSession {
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
       args: ['-c', command],
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(workingDirectory !== undefined
+        ? { cwd: this.resolveWorkingDirectory(workingDirectory) }
+        : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
@@ -85,7 +144,9 @@ export class VercelSandboxSession implements SandboxSession {
       args: ['-c', command],
       detached: true,
       ...(stdin === true ? { stdin: true } : {}),
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(workingDirectory !== undefined
+        ? { cwd: this.resolveWorkingDirectory(workingDirectory) }
+        : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
@@ -188,6 +249,89 @@ export class VercelSandboxSession implements SandboxSession {
       ),
       abortSignal,
     });
+  }
+
+  async stat({
+    path,
+    abortSignal,
+  }: StatOptions): Promise<SandboxFileStat | null> {
+    const { exitCode, stdout, stderr } = await this.runPathScript({
+      script: STAT_SCRIPT,
+      path,
+      abortSignal,
+    });
+    if (exitCode === NOT_FOUND_EXIT_CODE) return null;
+    if (exitCode !== 0) {
+      throw new Error(`Failed to stat ${path}: ${stderr.trim()}`);
+    }
+    const [type, size] = stdout.split(' ');
+    return {
+      type: type as SandboxFileStat['type'],
+      size: Number(size),
+    };
+  }
+
+  async listDirectory({
+    path,
+    abortSignal,
+  }: ListDirectoryOptions): Promise<Array<SandboxDirectoryEntry> | null> {
+    const { exitCode, stdout, stderr } = await this.runPathScript({
+      script: LIST_DIRECTORY_SCRIPT,
+      path,
+      abortSignal,
+    });
+    if (exitCode === NOT_FOUND_EXIT_CODE) return null;
+    if (exitCode !== 0) {
+      throw new Error(`Failed to list ${path}: ${stderr.trim()}`);
+    }
+    return stdout
+      .split('\0')
+      .filter(record => record !== '')
+      .map(record => {
+        const separator = record.indexOf(' ');
+        return {
+          name: record.slice(separator + 1),
+          type: record.slice(0, separator) as SandboxDirectoryEntry['type'],
+        };
+      });
+  }
+
+  async deleteFile({ path, abortSignal }: DeleteFileOptions): Promise<boolean> {
+    const { exitCode, stderr } = await this.runPathScript({
+      script: DELETE_FILE_SCRIPT,
+      path,
+      abortSignal,
+    });
+    if (exitCode === NOT_FOUND_EXIT_CODE) return false;
+    if (exitCode === WRONG_TYPE_EXIT_CODE) {
+      throw new Error(`Cannot delete ${path}: it is a directory.`);
+    }
+    if (exitCode !== 0) {
+      throw new Error(`Failed to delete ${path}: ${stderr.trim()}`);
+    }
+    return true;
+  }
+
+  private async runPathScript({
+    script,
+    path,
+    abortSignal,
+  }: {
+    script: string;
+    path: string;
+    abortSignal?: AbortSignal;
+  }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    abortSignal?.throwIfAborted();
+    const finished = await this.sandbox.runCommand({
+      cmd: 'bash',
+      args: ['-c', script, 'bash', path],
+      ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
+    });
+    const [stdout, stderr] = await Promise.all([
+      finished.stdout(),
+      finished.stderr(),
+    ]);
+    return { exitCode: finished.exitCode, stdout, stderr };
   }
 }
 

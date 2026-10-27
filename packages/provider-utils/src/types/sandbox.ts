@@ -42,23 +42,25 @@ export type SandboxSpawnOptionsWithoutStdin = SandboxProcessOptions & {
 };
 
 /**
- * Options for reading a file from the sandbox.
+ * Options for reading, inspecting, or deleting one path in the sandbox.
  */
-export type SandboxReadFileOptions = {
+type PathOptions = {
   /**
-   * Path of the file to read.
+   * Path to operate on.
    */
   path: string;
 
   /**
-   * Signal that can be used to abort the read.
+   * Signal that can be used to abort the operation.
    */
   abortSignal?: AbortSignal;
 };
 
-export type SandboxReadBinaryFileOptions = SandboxReadFileOptions;
+export type SandboxReadFileOptions = PathOptions;
 
-export type SandboxReadTextFileOptions = SandboxReadFileOptions & {
+export type SandboxReadBinaryFileOptions = PathOptions;
+
+export type SandboxReadTextFileOptions = PathOptions & {
   /**
    * Text encoding used to decode the file bytes. Defaults to `"utf-8"`.
    */
@@ -74,6 +76,44 @@ export type SandboxReadTextFileOptions = SandboxReadFileOptions & {
    * returns through EOF without error.
    */
   endLine?: number;
+};
+
+export type SandboxStatOptions = PathOptions;
+
+export type SandboxListDirectoryOptions = PathOptions;
+
+export type SandboxDeleteFileOptions = PathOptions;
+
+/**
+ * Information about a file or directory in the sandbox, returned by
+ * `SandboxSession.stat`. Symbolic links are followed.
+ */
+export type SandboxFileStat = {
+  /**
+   * Type of the path. `other` covers devices, sockets, and named pipes.
+   */
+  type: 'file' | 'directory' | 'other';
+
+  /**
+   * Size in bytes.
+   */
+  size: number;
+};
+
+/**
+ * Entry in a directory listing, returned by `SandboxSession.listDirectory`.
+ */
+export type SandboxDirectoryEntry = {
+  /**
+   * Name of the entry, without the directory path.
+   */
+  name: string;
+
+  /**
+   * Type of the entry. Symbolic links are reported as `symlink` and not
+   * followed. `other` covers devices, sockets, and named pipes.
+   */
+  type: 'file' | 'directory' | 'symlink' | 'other';
 };
 
 /**
@@ -112,6 +152,13 @@ export type SandboxWriteTextFileOptions = WriteFileOptions<string> & {
 
 /**
  * Sandbox session that can execute commands and read/write files.
+ *
+ * Relative paths in every method, including the `workingDirectory` option of
+ * `run` and `spawn`, resolve against the same base directory: the directory
+ * that `run` and `spawn` start in when no `workingDirectory` is given. The
+ * base directory does not change for the lifetime of the session; changing
+ * the directory inside a command, e.g. with `cd`, only affects that command.
+ * Absolute paths are used as is.
  */
 export type SandboxSession = {
   /**
@@ -125,9 +172,8 @@ export type SandboxSession = {
    * Read one file from the sandbox as a stream of bytes. Resolves to `null`
    * when the file does not exist.
    *
-   * Relative path handling is implementation-defined. This is the lowest-level
-   * read primitive; prefer `readBinaryFile` or `readTextFile` unless you need
-   * to stream bytes.
+   * This is the lowest-level read primitive; prefer `readBinaryFile` or
+   * `readTextFile` unless you need to stream bytes.
    */
   readonly readFile: (
     options: SandboxReadFileOptions,
@@ -154,7 +200,8 @@ export type SandboxSession = {
 
   /**
    * Write one file to the sandbox from a stream of bytes. Creates parent
-   * directories recursively and overwrites any existing file.
+   * directories recursively and overwrites any existing file. Rejects when the
+   * path is a directory.
    *
    * This is the lowest-level write primitive; prefer `writeBinaryFile` or
    * `writeTextFile` when the full content is already materialized in memory.
@@ -163,7 +210,8 @@ export type SandboxSession = {
 
   /**
    * Write one file to the sandbox from raw bytes. Creates parent directories
-   * recursively and overwrites any existing file.
+   * recursively and overwrites any existing file. Rejects when the path is a
+   * directory.
    */
   readonly writeBinaryFile: (
     options: SandboxWriteBinaryFileOptions,
@@ -172,11 +220,38 @@ export type SandboxSession = {
   /**
    * Write one file to the sandbox from a string, encoded using the requested
    * encoding. Creates parent directories recursively and overwrites any
-   * existing file.
+   * existing file. Rejects when the path is a directory.
    */
   readonly writeTextFile: (
     options: SandboxWriteTextFileOptions,
   ) => PromiseLike<void>;
+
+  /**
+   * Get information about a file or directory. Symbolic links are followed.
+   * Resolves to `null` when the path does not exist.
+   */
+  readonly stat: (
+    options: SandboxStatOptions,
+  ) => PromiseLike<SandboxFileStat | null>;
+
+  /**
+   * List the entries of one directory, without descending into
+   * subdirectories. The order of entries is unspecified. Resolves to `null`
+   * when the directory does not exist and rejects when the path is not a
+   * directory.
+   */
+  readonly listDirectory: (
+    options: SandboxListDirectoryOptions,
+  ) => PromiseLike<Array<SandboxDirectoryEntry> | null>;
+
+  /**
+   * Delete one file. A symbolic link is deleted itself, not its target.
+   * Resolves to `true` when the file was deleted and `false` when it does not
+   * exist. Rejects when the path is a directory.
+   */
+  readonly deleteFile: (
+    options: SandboxDeleteFileOptions,
+  ) => PromiseLike<boolean>;
 
   /**
    * Spawn a long-running process in the sandbox. Returns immediately with a

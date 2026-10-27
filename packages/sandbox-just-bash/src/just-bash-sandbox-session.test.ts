@@ -53,6 +53,17 @@ describe('JustBashSandboxSession', () => {
       expect(result.stdout.trim()).toBe('/tmp/cwd-test');
     });
 
+    it('resolves a relative workingDirectory against the sandbox cwd', async () => {
+      await sandbox.run({ command: 'mkdir -p /work/sub' });
+
+      const result = await sandbox.run({
+        command: 'pwd',
+        workingDirectory: 'sub',
+      });
+
+      expect(result.stdout.trim()).toBe('/work/sub');
+    });
+
     it('makes per-command environment variables available', async () => {
       const workDir = '/tmp/env test';
       const value = 'value with spaces and "$(shell syntax)"';
@@ -158,6 +169,95 @@ describe('JustBashSandboxSession', () => {
       const stream = await sandbox.readFile({ path: '/work/streamed.txt' });
       expect(stream).not.toBeNull();
       expect(await collect(stream!)).toBe('streamed');
+    });
+  });
+
+  describe('path methods', () => {
+    beforeEach(async () => {
+      await sandbox.writeTextFile({ path: '/work/file.txt', content: 'hello' });
+      await sandbox.writeTextFile({
+        path: '/work/dir/nested.txt',
+        content: '',
+      });
+      await sandbox.run({
+        command: 'ln -s /work/file.txt file-link && ln -s /work/dir dir-link',
+      });
+    });
+
+    it('stat returns the type and size of a file', async () => {
+      expect(await sandbox.stat({ path: 'file.txt' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('stat returns directory for a directory', async () => {
+      expect(await sandbox.stat({ path: '/work/dir' })).toEqual({
+        type: 'directory',
+        size: expect.any(Number),
+      });
+    });
+
+    it('stat follows symbolic links', async () => {
+      expect(await sandbox.stat({ path: 'file-link' })).toEqual({
+        type: 'file',
+        size: 5,
+      });
+    });
+
+    it('stat returns null for a missing path', async () => {
+      expect(await sandbox.stat({ path: 'missing.txt' })).toBeNull();
+      expect(await sandbox.stat({ path: 'file.txt/child' })).toBeNull();
+    });
+
+    it('listDirectory lists entries with their types', async () => {
+      const entries = await sandbox.listDirectory({ path: '.' });
+
+      expect(entries?.sort((a, b) => a.name.localeCompare(b.name))).toEqual([
+        { name: 'dir', type: 'directory' },
+        { name: 'dir-link', type: 'symlink' },
+        { name: 'file-link', type: 'symlink' },
+        { name: 'file.txt', type: 'file' },
+      ]);
+    });
+
+    it('listDirectory returns null for a missing directory', async () => {
+      expect(await sandbox.listDirectory({ path: 'missing' })).toBeNull();
+    });
+
+    it('listDirectory rejects for a file', async () => {
+      await expect(
+        sandbox.listDirectory({ path: 'file.txt' }),
+      ).rejects.toThrow();
+    });
+
+    it('writeTextFile rejects for a directory and keeps its contents', async () => {
+      await expect(
+        sandbox.writeTextFile({ path: 'dir', content: 'x' }),
+      ).rejects.toThrow('it is a directory');
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('deleteFile deletes a file', async () => {
+      expect(await sandbox.deleteFile({ path: 'file.txt' })).toBe(true);
+      expect(await sandbox.stat({ path: 'file.txt' })).toBeNull();
+    });
+
+    it('deleteFile returns false for a missing file', async () => {
+      expect(await sandbox.deleteFile({ path: 'missing.txt' })).toBe(false);
+    });
+
+    it('deleteFile rejects for a directory', async () => {
+      await expect(sandbox.deleteFile({ path: 'dir' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('deleteFile deletes a symbolic link to a directory but not the directory', async () => {
+      expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
+      expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
     });
   });
 
