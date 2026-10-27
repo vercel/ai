@@ -208,6 +208,40 @@ describe('runBridge', () => {
     expect(observed.output).toBe('OK');
   });
 
+  it('resolves an approval that arrived before the adapter requested it', async () => {
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        turn.emit({ type: 'ready' });
+        await turn.requestToolResult('after-approval');
+        const decision = await turn.requestToolApproval('call-1');
+        turn.emit({ type: 'approval-observed', decision });
+        turn.emit({ type: 'finish' });
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(f => f.type === 'bridge-hello');
+    client.send({ type: 'start' });
+    await client.waitFor(f => f.type === 'ready');
+    client.send({
+      type: 'tool-approval-response',
+      approvalId: 'call-1',
+      approved: false,
+      reason: 'Not now',
+    });
+    client.send({
+      type: 'tool-result',
+      toolCallId: 'after-approval',
+      output: 'OK',
+    });
+    const observed = await client.waitFor(f => f.type === 'approval-observed');
+    expect(observed.decision).toMatchInlineSnapshot(`
+      {
+        "approved": false,
+        "reason": "Not now",
+      }
+    `);
+  });
+
   it('acknowledges a user message after the adapter accepts it', async () => {
     let releaseTurn!: () => void;
     const turnReleased = new Promise<void>(resolve => {

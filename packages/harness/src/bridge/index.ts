@@ -268,7 +268,9 @@ export interface BridgeTurn {
   /**
    * Register interest in a host approval decision and resolve when the matching
    * `tool-approval-response` arrives. The adapter emits the
-   * `tool-approval-request` event itself using the same `approvalId`.
+   * `tool-approval-request` event itself using the same `approvalId`. A
+   * response that arrived before the request was registered resolves it
+   * immediately.
    */
   requestToolApproval(
     approvalId: string,
@@ -550,6 +552,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
     string,
     (response: { approved: boolean; reason?: string }) => void
   >();
+  const bufferedToolApprovals = new Map<
+    string,
+    { approved: boolean; reason?: string }
+  >();
 
   // ─── persistence (best-effort meta + start config) ──────────────────
   const writeBridgeMeta = async (state: BridgeState): Promise<void> => {
@@ -809,10 +815,16 @@ export async function runBridge<TStart extends { type: 'start' }>(
               });
             });
           },
-          requestToolApproval: approvalId =>
-            new Promise(resolve => {
+          requestToolApproval: approvalId => {
+            const buffered = bufferedToolApprovals.get(approvalId);
+            if (buffered != null) {
+              bufferedToolApprovals.delete(approvalId);
+              return Promise.resolve(buffered);
+            }
+            return new Promise(resolve => {
               pendingToolApprovals.set(approvalId, resolve);
-            }),
+            });
+          },
           experimental_userMessages: userMessages,
           abortSignal: turnAbort.signal,
           firstTurn,
@@ -887,6 +899,11 @@ export async function runBridge<TStart extends { type: 'start' }>(
         if (resolver) {
           pendingToolApprovals.delete(msg.approvalId);
           resolver({ approved: msg.approved, reason: msg.reason });
+        } else {
+          bufferedToolApprovals.set(msg.approvalId, {
+            approved: msg.approved,
+            reason: msg.reason,
+          });
         }
         return;
       }
