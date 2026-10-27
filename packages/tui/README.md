@@ -1,9 +1,8 @@
-# AI SDK TUI
+# AI SDK - TUI
 
-Run local or remote AI SDK agents in a terminal UI.
-
-`@ai-sdk/tui` provides a full-screen interface with streaming output,
-tool cards, approvals, markdown rendering, scrollback, and a pinned prompt.
+Run local or remote AI SDK agents in a terminal UI. `@ai-sdk/tui` provides a
+full-screen interface with streaming output, tool cards, approvals, markdown
+rendering, scrollback, and a pinned prompt.
 
 ## Setup
 
