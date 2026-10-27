@@ -366,9 +366,83 @@ describe('doGenerate', () => {
     expect(rest).toMatchInlineSnapshot(`
       {
         "model": "gpt-4o-transcribe",
-        "response_format": "json",
-        "temperature": "0",
         "timestamp_granularities[]": "word",
+      }
+    `);
+  });
+
+  it('should not inject verbose_json or timestamp_granularities for gpt-transcribe when a prompt is set (#23495)', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('gpt-transcribe');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          prompt: 'A spoken recording.',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-transcribe",
+        "prompt": "A spoken recording.",
+      }
+    `);
+  });
+
+  it('should not inject verbose_json for dated gpt-4o-transcribe snapshots', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('gpt-4o-mini-transcribe-2025-12-15');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          prompt: 'A spoken recording.',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-4o-mini-transcribe-2025-12-15",
+        "prompt": "A spoken recording.",
+      }
+    `);
+  });
+
+  it('should keep verbose_json for whisper models that support it', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('whisper-1');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          prompt: 'A spoken recording.',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "model": "whisper-1",
+        "prompt": "A spoken recording.",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities[]": "segment",
       }
     `);
   });
@@ -452,8 +526,6 @@ describe('doGenerate', () => {
         "chunking_strategy": "auto",
         "model": "gpt-4o-transcribe-diarize",
         "response_format": "json",
-        "temperature": "0",
-        "timestamp_granularities[]": "segment",
       }
     `);
   });
