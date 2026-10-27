@@ -18,6 +18,9 @@ GOOGLE_GENERATIVE_AI_API_KEY=...
 ANTHROPIC_API_KEY=...
 ```
 
+For Google Gemini, `GEMINI_API_KEY` is also accepted as an alternative to
+`GOOGLE_GENERATIVE_AI_API_KEY`.
+
 Then start the app:
 
 ```bash

@@ -641,7 +641,7 @@ export default function Assistant() {
                     <span className={`provider-dot ${id}`} />
                     <span className="provider-details">
                       <strong>{item.name}</strong>
-                      <code>{item.keyName}</code>
+                      <code>{item.keyNames.join(' or ')}</code>
                     </span>
                     <span
                       className={`connection-status ${connected ? 'connected' : ''}`}

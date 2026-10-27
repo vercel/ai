@@ -13,6 +13,7 @@ import {
   isAssistantMode,
   isModelForProvider,
   isProviderId,
+  getProviderApiKey,
   providers,
 } from '@/lib/providers';
 
@@ -68,15 +69,16 @@ export async function POST(request: Request) {
   }
 
   const provider = providers[providerValue];
-  const apiKey = process.env[provider.keyName];
-  if (!apiKey) {
+  const credentials = getProviderApiKey(providerValue);
+  if (!credentials) {
     return Response.json(
       {
-        error: `Add ${provider.keyName} to examples/personal-ai/.env.local, then restart the app.`,
+        error: `Add ${provider.keyNames.join(' or ')} to examples/personal-ai/.env.local, then restart the app.`,
       },
       { status: 503 },
     );
   }
+  const { value: apiKey } = credentials;
 
   let languageModel;
   let tools;

@@ -7,8 +7,10 @@ export async function GET() {
         id,
         {
           name: provider.name,
-          keyName: provider.keyName,
-          configured: Boolean(process.env[provider.keyName]),
+          keyName: provider.keyNames.join(' or '),
+          configured: provider.keyNames.some(keyName =>
+            Boolean(process.env[keyName]),
+          ),
         },
       ]),
     ),
