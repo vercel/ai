@@ -1127,6 +1127,30 @@ describe('Claude Code bridge configuration', () => {
       });
     });
 
+    test('reports the cumulative cost of the resumed query instead of adding the deferred one', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield { ...deferredResult('call-1'), total_cost_usd: 0.05 };
+            return;
+          }
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: 'done',
+            total_cost_usd: 0.08,
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'finish')?.harnessMetadata,
+      ).toMatchObject({ 'claude-code': { costUsd: 0.08 } });
+    });
+
     test('reports other calls deferred in the same message as not run', async () => {
       state.requestToolApproval = async () => ({ approved: true });
       state.createQuery = args =>

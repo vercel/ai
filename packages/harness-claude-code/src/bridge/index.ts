@@ -771,7 +771,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
-  let costUsdBeforeQuery = 0;
 
   /*
    * Claude Code ended the turn at a call that needs host approval. Every other
@@ -922,7 +921,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
         if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
         if (typeof msg.total_cost_usd === 'number') {
-          costUsdBeforeQuery += msg.total_cost_usd;
+          totalCostUsd = msg.total_cost_usd;
         }
         deferredToolUseId = msg.deferred_tool_use.id;
         requestDeferredApproval({
@@ -957,7 +956,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
-            totalCostUsd = costUsdBeforeQuery + msg.total_cost_usd;
+            totalCostUsd = msg.total_cost_usd;
           }
           if (
             start.responseFormat?.type === 'json' &&
