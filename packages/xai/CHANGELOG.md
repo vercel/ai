@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.146
+
+### Patch Changes
+
+- 7b79338: expose costInUsdTicks in responses provider metadata
+
 ## 3.0.145
 
 ### Patch Changes
