@@ -751,4 +751,32 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: '10ml-perfume-finder',
+    name: '10ML Perfume Finder',
+    description:
+      'Free perfume and fragrance API for AI agents: search 6,000+ perfumes, get note pyramids and accords, find similar scents and alternatives, and explain notes and houses, from the 10ML Fragrance Index. Read-only, no API key.',
+    packageName: '@10ml/ai-sdk-perfume',
+    tags: ['perfume', 'fragrance', 'search', 'recommendations'],
+    installCommand: {
+      pnpm: 'pnpm add @10ml/ai-sdk-perfume',
+      npm: 'npm install @10ml/ai-sdk-perfume',
+      yarn: 'yarn add @10ml/ai-sdk-perfume',
+      bun: 'bun add @10ml/ai-sdk-perfume',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { perfumeTools } from '@10ml/ai-sdk-perfume';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  tools: perfumeTools(),
+  stopWhen: isStepCount(5),
+  prompt: 'I love Baccarat Rouge 540. Suggest two alternatives from other houses and say how close each one is.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://10ml.com/perfume-mcp-server',
+    websiteUrl: 'https://10ml.com/perfume-mcp-server',
+    npmUrl: 'https://www.npmjs.com/package/@10ml/ai-sdk-perfume',
+  },
 ];
