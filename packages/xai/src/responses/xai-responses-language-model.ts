@@ -285,18 +285,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           feature: 'reasoning',
           details: `reasoning "${reasoning}" is not supported by this model.`,
         });
-      } else if (reasoning === 'none') {
-        resolvedReasoningEffort = 'none';
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            none: 'none',
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
-            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            ...(modelId === 'grok-4.6' && { xhigh: 'xhigh' as const }),
           },
           warnings,
         });

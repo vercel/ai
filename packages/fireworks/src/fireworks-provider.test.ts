@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
+import type { SharedV4Warning } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -250,13 +251,45 @@ describe('FireworksProvider', () => {
       });
     });
 
-    it('should map max reasoning effort to high', () => {
+    it.each([
+      ['none', 'none', false],
+      ['minimal', 'low', true],
+      ['medium', 'medium', false],
+      ['xhigh', 'high', true],
+      ['max', 'high', true],
+    ] as const)(
+      'should map top-level reasoning %s to reasoning_effort %s',
+      (reasoning, effort, hasWarning) => {
+        const provider = createFireworks();
+        provider.chatModel('test-model');
+
+        const constructorCall =
+          OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+        const mapReasoning = constructorCall[1].mapReasoning!;
+        const warnings: SharedV4Warning[] = [];
+
+        expect(mapReasoning({ reasoning, warnings })).toBe(effort);
+        expect(warnings).toStrictEqual(
+          hasWarning
+            ? [
+                {
+                  type: 'compatibility',
+                  feature: 'reasoning',
+                  details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${effort}".`,
+                },
+              ]
+            : [],
+        );
+      },
+    );
+
+    it('should pass through provider reasoning_effort values unchanged', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const transformRequestBody = constructorCall[1].transformRequestBody;
+      const transformRequestBody = constructorCall[1].transformRequestBody!;
 
       expect(
         transformRequestBody({
@@ -267,7 +300,7 @@ describe('FireworksProvider', () => {
       ).toEqual({
         model: 'test-model',
         messages: [],
-        reasoning_effort: 'high',
+        reasoning_effort: 'max',
       });
     });
 
@@ -360,50 +393,6 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         service_tier: 'priority',
-      });
-    });
-
-    it('should remap reasoning_effort xhigh to high', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'xhigh',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'high',
-      });
-    });
-
-    it('should remap reasoning_effort minimal to low', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'minimal',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'low',
       });
     });
 

@@ -12,6 +12,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  mapReasoningToProviderEffort,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -147,7 +148,19 @@ export function createFireworks(
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
       supportsStructuredOutputs: true,
-      transformRequestBody: (args, warnings) => {
+      // Fireworks supports none, low, medium, and high reasoning efforts.
+      mapReasoning: ({ reasoning, warnings }) =>
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            none: 'none',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          warnings,
+        }),
+      transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
@@ -160,31 +173,11 @@ export function createFireworks(
           reasoningHistory: __,
           promptCacheKey: ___,
           serviceTier: ____,
-          reasoning_effort,
           ...rest
         } = args;
 
-        // Fireworks supports low, medium, and high reasoning levels.
-        const mappedReasoningEffort =
-          reasoning_effort === 'minimal'
-            ? 'low'
-            : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
-              ? 'high'
-              : reasoning_effort;
-
-        if (mappedReasoningEffort !== reasoning_effort) {
-          warnings?.push({
-            type: 'compatibility',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning_effort}" is not directly supported by this model. mapped to effort "${mappedReasoningEffort}".`,
-          });
-        }
-
         return {
           ...rest,
-          ...(reasoning_effort != null && {
-            reasoning_effort: mappedReasoningEffort,
-          }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,
           }),

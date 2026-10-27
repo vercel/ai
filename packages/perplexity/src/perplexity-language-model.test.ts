@@ -431,6 +431,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('maps top-level none reasoning to the lowest effort with a warning', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      reasoning: { effort: 'minimal' },
+    });
+    expect(result.warnings).toContainEqual({
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'reasoning "none" is not directly supported by this model. mapped to effort "minimal".',
+    });
+  });
+
   it('rejects invalid provider options', async () => {
     await expect(
       model.doGenerate({

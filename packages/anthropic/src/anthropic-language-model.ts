@@ -3652,6 +3652,13 @@ function resolveAnthropicReasoningConfig({
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
     if (supportsBetweenToolsThinking) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; thinking cannot be disabled. ` +
+          `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+      });
       return { thinking: { type: 'between_tools' } };
     }
 
@@ -3676,11 +3683,10 @@ function resolveAnthropicReasoningConfig({
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: {
-        minimal: 'low' as const,
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
         max: 'max' as const,
       },
       warnings,
@@ -3697,9 +3703,6 @@ function resolveAnthropicReasoningConfig({
     maxReasoningBudget: maxOutputTokensForModel,
     warnings,
   });
-  if (budgetTokens == null) {
-    return undefined;
-  }
   return { thinking: { type: 'enabled', budgetTokens } };
 }
 

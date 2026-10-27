@@ -1078,9 +1078,9 @@ describe('doGenerate', () => {
       it.each([
         ['minimal', 'low'],
         ['low', 'low'],
-        ['medium', 'high'],
+        ['medium', 'low'],
         ['high', 'high'],
-        ['xhigh', 'max'],
+        ['xhigh', 'high'],
         ['max', 'max'],
       ] as const)(
         'should map reasoning %s to reasoning_effort %s',

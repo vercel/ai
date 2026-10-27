@@ -63,12 +63,86 @@ describe('mapReasoningToProviderEffort', () => {
     ]);
   });
 
-  it('returns undefined with unsupported warning for key missing from effortMap', () => {
+  it('maps an unsupported level to the next lower supported level', () => {
     const warnings: SharedV4Warning[] = [];
-    const partialEffortMap = { medium: 'medium' as const };
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'xhigh',
+      effortMap: { low: 'low', medium: 'medium', high: 'high', max: 'max' },
+      warnings,
+    });
+    expect(result).toBe('high');
+    expect(warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+      },
+    ]);
+  });
+
+  it('maps to the next higher supported level when no lower level is supported', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'minimal',
+      effortMap: { low: 'low', high: 'high' },
+      warnings,
+    });
+    expect(result).toBe('low');
+    expect(warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      },
+    ]);
+  });
+
+  it('does not round a reasoning level down to "none"', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'minimal',
+      effortMap: { none: 'none', low: 'low', high: 'high' },
+      warnings,
+    });
+    expect(result).toBe('low');
+  });
+
+  it('maps "none" directly when supported', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'none',
+      effortMap: { none: 'none', low: 'low' },
+      warnings,
+    });
+    expect(result).toBe('none');
+    expect(warnings).toEqual([]);
+  });
+
+  it('maps an unsupported "none" to the lowest supported level', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderEffort({
+      reasoning: 'none',
+      effortMap: { low: 'low', medium: 'medium', high: 'high' },
+      warnings,
+    });
+    expect(result).toBe('low');
+    expect(warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+      },
+    ]);
+  });
+
+  it('returns undefined with unsupported warning for an empty effortMap', () => {
+    const warnings: SharedV4Warning[] = [];
     const result = mapReasoningToProviderEffort({
       reasoning: 'high',
-      effortMap: partialEffortMap,
+      effortMap: {},
       warnings,
     });
     expect(result).toBeUndefined();
@@ -184,7 +258,7 @@ describe('mapReasoningToProviderBudget', () => {
     expect(warnings).toEqual([]);
   });
 
-  it('returns undefined with unsupported warning for key missing from custom budgetPercentages', () => {
+  it('uses the default percentage for a level missing from custom budgetPercentages', () => {
     const warnings: SharedV4Warning[] = [];
     const result = mapReasoningToProviderBudget({
       reasoning: 'high',
@@ -193,12 +267,26 @@ describe('mapReasoningToProviderBudget', () => {
       budgetPercentages: { medium: 0.5 },
       warnings,
     });
-    expect(result).toBeUndefined();
+    expect(result).toBe(38400);
+    expect(warnings).toEqual([]);
+  });
+
+  it('maps "none" to the minimum reasoning budget', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderBudget({
+      reasoning: 'none',
+      maxOutputTokens: 64000,
+      maxReasoningBudget: 64000,
+      minReasoningBudget: 128,
+      warnings,
+    });
+    expect(result).toBe(128);
     expect(warnings).toEqual([
       {
-        type: 'unsupported',
+        type: 'compatibility',
         feature: 'reasoning',
-        details: 'reasoning "high" is not supported by this model.',
+        details:
+          'reasoning "none" is not supported by this model. mapped to the minimum reasoning budget of 128 tokens.',
       },
     ]);
   });

@@ -8577,10 +8577,10 @@ describe('doGenerate', () => {
       ).toBe('high');
     });
 
-    it('should map reasoning "xhigh" to effort "max" for newer Anthropic models', async () => {
+    it('should map reasoning "xhigh" to effort "high" for newer Anthropic models without xhigh effort', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
-      await newerAnthropicModel.doGenerate({
+      const result = await newerAnthropicModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'xhigh',
       });
@@ -8591,7 +8591,13 @@ describe('doGenerate', () => {
       });
       expect(
         requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('max');
+      ).toBe('high');
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+      });
     });
 
     it('should map reasoning "max" directly for newer Anthropic models', async () => {
@@ -8659,7 +8665,29 @@ describe('doGenerate', () => {
       ).toBe(1024);
     });
 
-    it.each(['medium', 'max'] as const)(
+    it('should map reasoning "max" to reasoning_effort "high" for OpenAI gpt-oss models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      const result = await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'high',
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+        },
+      ]);
+    });
+
+    it.each(['medium'] as const)(
       'should map reasoning "%s" directly to reasoning_effort for OpenAI gpt-oss models',
       async reasoning => {
         server.urls[openaiGenerateUrl].response = simpleResponse;
@@ -9229,18 +9257,100 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should handle reasoning "none" for OpenAI models', async () => {
-      server.urls[openaiGenerateUrl].response = simpleResponse;
+    it('should map reasoning "none" to the lowest effort for Anthropic models that cannot disable thinking', async () => {
+      server.urls[opus55AnthropicGenerateUrl].response = simpleResponse;
 
-      await openaiModel.doGenerate({
+      const result = await opus55AnthropicModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+      });
       expect(
-        requestBody.additionalModelRequestFields?.reasoning_effort,
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('low');
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+      });
+    });
+
+    it('should send reasoning "none" directly for OpenAI models with unknown reasoning efforts', async () => {
+      server.urls[usOpenaiGenerateUrl].response = simpleResponse;
+      const usOpenaiModel = new AmazonBedrockChatLanguageModel(
+        usOpenaiModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          fetch: fakeFetchWithAuth,
+          generateId: () => 'test-id',
+        },
+      );
+
+      const result = await usOpenaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning).toEqual({
+        effort: 'none',
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should disable reasoning for Nova 2 models with reasoning "none"', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      // Nova 2 reasoning is disabled unless a reasoning effort is sent.
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
       ).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn for reasoning "none" on models without reasoning configuration', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'reasoning' }),
+      );
+    });
+
+    it('should map reasoning "none" to the lowest effort for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      const result = await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+      });
     });
   });
 });

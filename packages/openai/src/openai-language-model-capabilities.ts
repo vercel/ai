@@ -1,3 +1,17 @@
+import type {
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
+} from '@ai-sdk/provider-utils';
+
+type OpenAIReasoningEffort = Exclude<
+  LanguageModelV4CallOptions['reasoning'],
+  'provider-default' | undefined
+>;
+
 export type OpenAILanguageModelCapabilities = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -5,7 +19,11 @@ export type OpenAILanguageModelCapabilities = {
   supportsPriorityProcessing: boolean;
   supportsConfigurationUpdate: boolean;
   supportsAsyncToolCalling: boolean;
-  supportedReasoningEfforts: readonly string[] | undefined;
+  /**
+   * Reasoning efforts supported by the model family, or `undefined` when they
+   * are not known.
+   */
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -95,4 +113,43 @@ function getGptVersion(modelId: string):
     minor: match[2] == null ? undefined : Number(match[2]),
     variant: match[3],
   };
+}
+
+/**
+ * Resolves the reasoning effort to send to OpenAI.
+ *
+ * A reasoning effort from provider options is sent unchanged. Otherwise the
+ * top-level reasoning value is mapped to the closest effort that the model
+ * family supports, or sent directly when the supported efforts are not known.
+ */
+export function resolveOpenAIReasoningEffort({
+  providerReasoningEffort,
+  reasoning,
+  supportedReasoningEfforts,
+  warnings,
+}: {
+  providerReasoningEffort: string | null | undefined;
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
+  warnings: SharedV4Warning[];
+}): string | undefined {
+  if (providerReasoningEffort != null) {
+    return providerReasoningEffort;
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
+  if (supportedReasoningEfforts == null) {
+    return reasoning;
+  }
+
+  return mapReasoningToProviderEffort({
+    reasoning,
+    effortMap: Object.fromEntries(
+      supportedReasoningEfforts.map(effort => [effort, effort]),
+    ),
+    warnings,
+  });
 }

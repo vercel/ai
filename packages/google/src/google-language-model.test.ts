@@ -5185,13 +5185,13 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "low"', async () => {
+      it('should map reasoning "none" to thinkingLevel "low" with compatibility warning', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini3Model.doGenerate({
+        const { warnings } = await gemini3Model.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -5200,6 +5200,12 @@ describe('doGenerate', () => {
           generationConfig: {
             thinkingConfig: { thinkingLevel: 'low' },
           },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
         });
       });
 
@@ -5460,13 +5466,37 @@ describe('doGenerate', () => {
       const gemini25ProModel = provider.chat('gemini-2.5-pro');
       const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
 
-      it('should map reasoning "none" to thinkingBudget 0', async () => {
+      it('should map reasoning "none" to the minimum thinkingBudget for Gemini 2.5 Pro', async () => {
         server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini25ProModel.doGenerate({
+        const { warnings } = await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 128 },
+          },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not supported by this model. mapped to the minimum reasoning budget of 128 tokens.',
+        });
+      });
+
+      it('should map reasoning "none" to thinkingBudget 0 for models that can disable thinking', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25FlashLiteModel.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });

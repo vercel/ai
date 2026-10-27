@@ -159,20 +159,11 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       resolvedReasoningEffort =
         options.reasoningEffort ??
         (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
-                warnings,
-              })
+          ? mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: { none: 'none', high: 'high' },
+              warnings,
+            })
           : undefined);
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
