@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 5.0.70
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+
+## 5.0.69
+
+### Patch Changes
+
+- e64ed82: use native Buffer base64 encoding when available. encoding a `Uint8Array` backed by a detached `ArrayBuffer` now throws a `TypeError` in runtimes with `Buffer` instead of returning an empty string
+
 ## 5.0.68
 
 ### Patch Changes

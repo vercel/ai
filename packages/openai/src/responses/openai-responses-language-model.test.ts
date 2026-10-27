@@ -5181,7 +5181,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             server.urls['https://api.openai.com/v1/responses'].response = {
@@ -9204,7 +9204,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'streaming web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             const item = {

@@ -4695,6 +4695,84 @@ describe('XaiResponsesLanguageModel', () => {
           title: 'example',
         });
       });
+
+      it('should not emit streamed citations again from output_item.done', async () => {
+        const annotation = {
+          type: 'url_citation',
+          url: 'https://example.com',
+          title: 'example',
+        };
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.annotation.added',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            annotation_index: 0,
+            annotation,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello',
+                  annotations: [annotation],
+                },
+              ],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts.filter(part => part.type === 'source')).toEqual([
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'id-0',
+            url: 'https://example.com',
+            title: 'example',
+          },
+        ]);
+      });
     });
 
     describe('cost_in_usd_ticks streaming', () => {
