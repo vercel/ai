@@ -745,7 +745,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            result: mapWebSearchOutput(part.action),
+            ...mapWebSearchResult(part),
             providerExecuted: true,
           });
 
@@ -1159,7 +1159,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: webSearchToolName ?? 'web_search',
-                  result: mapWebSearchOutput(value.item.action),
+                  ...mapWebSearchResult(value.item),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1598,6 +1598,20 @@ function isErrorChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
+}
+
+function mapWebSearchResult({
+  action,
+  status,
+}: {
+  action?: OpenAIResponsesWebSearchAction | null;
+  status: string;
+}):
+  | { isError: true; result: { status: string } }
+  | { result: InferValidator<typeof webSearchOutputSchema> } {
+  return status === 'completed'
+    ? { result: mapWebSearchOutput(action) }
+    : { isError: true, result: { status } };
 }
 
 function mapWebSearchOutput(

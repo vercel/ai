@@ -3618,6 +3618,120 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
   });
 
+  describe.each([true, false])(
+    'web search status with action: %s',
+    withAction => {
+      const tools = [
+        {
+          type: 'provider-defined' as const,
+          id: 'openai.web_search' as const,
+          name: 'search',
+          args: {},
+        },
+      ];
+      const item = (status: string) => ({
+        type: 'web_search_call',
+        id: 'ws_test',
+        status,
+        ...(withAction ? { action: { type: 'search', query: 'AI SDK' } } : {}),
+      });
+      const response = {
+        id: 'resp_test',
+        created_at: 1,
+        model: 'gpt-4.1',
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+
+      it.each(['failed', 'incomplete', 'searching'])(
+        'should mark %s web searches as tool errors',
+        async status => {
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'json-value',
+            body: { ...response, output: [item(status)] },
+          };
+
+          const result = await createModel('gpt-4.1').doGenerate({
+            prompt: TEST_PROMPT,
+            tools,
+          });
+
+          expect(result.content).toMatchObject([
+            {
+              type: 'tool-call',
+              toolCallId: 'ws_test',
+              toolName: 'search',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'ws_test',
+              toolName: 'search',
+              isError: true,
+              result: { status },
+            },
+          ]);
+        },
+      );
+
+      it.each(['failed', 'incomplete', 'searching'])(
+        'should mark streamed %s web searches as tool errors',
+        async status => {
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'stream-chunks',
+            chunks: [
+              { type: 'response.created', response },
+              {
+                type: 'response.output_item.added',
+                output_index: 0,
+                item: { ...item(status), status: 'in_progress' },
+              },
+              {
+                type: 'response.output_item.done',
+                output_index: 0,
+                item: item(status),
+              },
+              { type: 'response.completed', response },
+            ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+          };
+
+          const { stream } = await createModel('gpt-4.1').doStream({
+            prompt: TEST_PROMPT,
+            tools,
+          });
+          const chunks = await convertReadableStreamToArray(stream);
+
+          expect(
+            chunks.filter(chunk => chunk.type === 'tool-result'),
+          ).toMatchObject([
+            {
+              type: 'tool-result',
+              toolCallId: 'ws_test',
+              toolName: 'search',
+              isError: true,
+              result: { status },
+            },
+          ]);
+        },
+      );
+
+      it('should keep completed web searches as tool results', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: { ...response, output: [item('completed')] },
+        };
+
+        const result = await createModel('gpt-4.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+
+        expect(
+          result.content.find(part => part.type === 'tool-result'),
+        ).not.toHaveProperty('isError');
+      });
+    },
+  );
+
   describe('doStream', () => {
     it('should stream text deltas', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
