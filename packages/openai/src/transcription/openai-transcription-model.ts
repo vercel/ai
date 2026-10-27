@@ -208,10 +208,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const isGpt4oTranscribeModel = [
-        'gpt-4o-transcribe',
-        'gpt-4o-mini-transcribe',
-      ].includes(this.modelId);
+      // These models reject verbose_json and only return json or text:
+      const isJsonOnlyModel =
+        ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe'].includes(
+          this.modelId,
+        ) ||
+        this.modelId === 'gpt-transcribe' ||
+        this.modelId.startsWith('gpt-transcribe-');
 
       const transcriptionModelOptions = {
         include: openAIOptions.include,
@@ -224,7 +227,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
             openAIOptions.responseFormat ??
             (isDiarizationModel
               ? 'diarized_json'
-              : isGpt4oTranscribeModel
+              : isJsonOnlyModel
                 ? 'json'
                 : 'verbose_json'),
         }),
@@ -344,7 +347,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         })) ??
         [],
       language,
-      durationInSeconds: response.duration ?? undefined,
+      // Duration-billed json responses report the duration only in `usage`:
+      durationInSeconds:
+        response.duration ??
+        (response.usage?.type === 'duration' &&
+        typeof response.usage.seconds === 'number'
+          ? response.usage.seconds
+          : undefined),
       warnings,
       ...(response.usage != null && { usage: response.usage }),
       response: {
