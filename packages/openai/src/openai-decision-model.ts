@@ -4,6 +4,8 @@ import {
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4Input as DecisionModelV4Input,
+  type JSONObject,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -148,6 +150,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       body: {
         model: this.modelId,
         safety_identifier: openaiOptions?.safetyIdentifier,
+        prompt_cache_key: openaiOptions?.promptCacheKey,
         input: [
           {
             role: 'user',
@@ -155,10 +158,9 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
               if (part.type === 'text')
                 return { type: 'input_text', text: part.text };
               if (part.type === 'json')
-                return {
-                  type: 'input_text',
-                  text: JSON.stringify(part.value),
-                };
+                return isInputJsonData(part.value)
+                  ? { type: 'input_json', data: part.value }
+                  : { type: 'input_text', text: JSON.stringify(part.value) };
               if (part.data.type !== 'data') {
                 throw new UnsupportedFunctionalityError({
                   functionality: `OpenAI decision file input: ${part.mediaType} (${part.data.type})`,
@@ -323,7 +325,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
           ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
           : []),
         ...Object.keys(providerOptions?.openai ?? {})
-          .filter(option => option !== 'safetyIdentifier')
+          .filter(option => !SUPPORTED_PROVIDER_OPTIONS.has(option))
           .map(option => ({
             type: 'unsupported' as const,
             feature: `providerOptions.openai.${option}`,
@@ -351,6 +353,21 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
   }
 }
 
+const SUPPORTED_PROVIDER_OPTIONS = new Set([
+  'safetyIdentifier',
+  'promptCacheKey',
+]);
+
 function toText(input: DecisionModelV4Input): string {
   return typeof input === 'string' ? input : JSON.stringify(input);
+}
+
+function isInputJsonData(value: JSONValue): value is JSONObject | JSONObject[] {
+  return Array.isArray(value)
+    ? value.length > 0 && value.every(isJSONObject)
+    : isJSONObject(value);
+}
+
+function isJSONObject(value: JSONValue): value is JSONObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

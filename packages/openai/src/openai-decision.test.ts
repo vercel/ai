@@ -174,7 +174,7 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
     input: [
       {
         role: 'user',
-        content: [{ type: 'input_text', text: '{"ticket":["charged twice"]}' }],
+        content: [{ type: 'input_json', data: { ticket: ['charged twice'] } }],
       },
     ],
     questions: [
@@ -204,6 +204,49 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
       },
     ],
   });
+});
+
+it.each([
+  {
+    value: [{ charge: 49 }, { charge: 49 }],
+    part: { type: 'input_json', data: [{ charge: 49 }, { charge: 49 }] },
+  },
+  { value: [], part: { type: 'input_text', text: '[]' } },
+  {
+    value: [{ charge: 49 }, 49],
+    part: { type: 'input_text', text: '[{"charge":49},49]' },
+  },
+  {
+    value: 'charged twice',
+    part: { type: 'input_text', text: '"charged twice"' },
+  },
+  { value: null, part: { type: 'input_text', text: 'null' } },
+])(
+  'sends JSON state natively only when it is an object or array of objects: $value',
+  async ({ value, part }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([part]);
+  },
+);
+
+it('sends promptCacheKey without warning and omits it when unset', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({
+    ...options,
+    providerOptions: { openai: { promptCacheKey: 'tenant-42' } },
+  });
+  expect(result.warnings).toEqual([]);
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toMatchObject({
+    prompt_cache_key: 'tenant-42',
+  });
+
+  await model.doDecide(options);
+  expect(JSON.parse(fetch.mock.calls[1][1]?.body as string)).not.toHaveProperty(
+    'prompt_cache_key',
+  );
 });
 
 it('warns about unsupported Responses options without sending them', async () => {
