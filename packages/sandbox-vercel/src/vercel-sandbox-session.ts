@@ -85,58 +85,12 @@ export class VercelSandboxSession implements SandboxSession {
     });
 
     const process = createSandboxProcess({ command: live, abortSignal });
-    if (stdin !== true) return process;
-
-    let removeAbortListener = () => {};
-    let stdinCleanup: Promise<void> | undefined;
-    const cleanupStdin = () => {
-      removeAbortListener();
-      return (stdinCleanup ??= live.closeStdin());
-    };
-
-    return {
-      ...process,
-      stdin: new WritableStream<Uint8Array>({
-        start(controller) {
-          const onAbort = () => {
-            controller.error(abortSignal?.reason);
-            /*
-             * EOF cleanup must not use the aborted signal. Its failure must
-             * not replace the abort reason exposed by the stream.
-             */
-            void cleanupStdin().catch(() => {});
-          };
-          removeAbortListener = () =>
-            abortSignal?.removeEventListener('abort', onAbort);
-          if (abortSignal?.aborted) {
-            onAbort();
-          } else {
-            abortSignal?.addEventListener('abort', onAbort, { once: true });
-          }
-        },
-        async write(chunk) {
-          try {
-            await live.writeStdin(chunk, { abortSignal });
-          } catch (error) {
-            void cleanupStdin().catch(() => {});
-            throw error;
-          }
-        },
-        async close() {
-          try {
-            await live.closeStdin({ abortSignal });
-          } catch (error) {
-            void cleanupStdin().catch(() => {});
-            throw error;
-          } finally {
-            removeAbortListener();
-          }
-        },
-        abort() {
-          return cleanupStdin();
-        },
-      }),
-    };
+    return stdin === true
+      ? {
+          ...process,
+          stdin: createStdinStream({ command: live, abortSignal }),
+        }
+      : process;
   }
 
   async readFile({
@@ -314,6 +268,62 @@ function createSandboxProcess({
       await command.kill();
     },
   };
+}
+
+function createStdinStream({
+  command,
+  abortSignal,
+}: {
+  command: Command;
+  abortSignal?: AbortSignal;
+}): WritableStream<Uint8Array> {
+  let removeAbortListener = () => {};
+  let stdinCleanup: Promise<void> | undefined;
+  const cleanupStdin = () => {
+    removeAbortListener();
+    return (stdinCleanup ??= command.closeStdin());
+  };
+
+  return new WritableStream<Uint8Array>({
+    start(controller) {
+      const onAbort = () => {
+        controller.error(abortSignal?.reason);
+        /*
+         * EOF cleanup must not use the aborted signal. Its failure must
+         * not replace the abort reason exposed by the stream.
+         */
+        void cleanupStdin().catch(() => {});
+      };
+      removeAbortListener = () =>
+        abortSignal?.removeEventListener('abort', onAbort);
+      if (abortSignal?.aborted) {
+        onAbort();
+      } else {
+        abortSignal?.addEventListener('abort', onAbort, { once: true });
+      }
+    },
+    async write(chunk) {
+      try {
+        await command.writeStdin(chunk, { abortSignal });
+      } catch (error) {
+        void cleanupStdin().catch(() => {});
+        throw error;
+      }
+    },
+    async close() {
+      try {
+        await command.closeStdin({ abortSignal });
+      } catch (error) {
+        void cleanupStdin().catch(() => {});
+        throw error;
+      } finally {
+        removeAbortListener();
+      }
+    },
+    abort() {
+      return cleanupStdin();
+    },
+  });
 }
 
 function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
