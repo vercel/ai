@@ -245,6 +245,51 @@ describe('VercelSandboxSession', () => {
       baseSandbox = makeMockSandbox();
     });
 
+    it('rejects writable stdin before starting a command', async () => {
+      const session = new VercelSandboxSession(baseSandbox.sandbox);
+
+      await expect(
+        session.spawn({ command: 'cat', stdin: true }),
+      ).rejects.toThrow('Vercel Sandbox does not support writable stdin.');
+      expect(baseSandbox.spies.runCommand).not.toHaveBeenCalled();
+    });
+
+    it.each([undefined, false])(
+      'spawns without writable stdin when stdin is %s',
+      async stdin => {
+        const { handle } = makeMockCommand({ exitCode: 0 });
+        baseSandbox.spies.runCommand.mockResolvedValueOnce(handle);
+
+        const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'echo hello',
+          ...(stdin === undefined ? {} : { stdin }),
+        });
+
+        expect(proc).not.toHaveProperty('stdin');
+        expect(baseSandbox.spies.runCommand).toHaveBeenCalledExactlyOnceWith({
+          cmd: 'bash',
+          args: ['-c', 'echo hello'],
+          detached: true,
+        });
+        expect(await proc.wait()).toEqual({ exitCode: 0 });
+      },
+    );
+
+    it('preserves the abort reason before checking stdin support', async () => {
+      const ac = new AbortController();
+      const reason = new Error('cancelled');
+      ac.abort(reason);
+
+      await expect(
+        new VercelSandboxSession(baseSandbox.sandbox).spawn({
+          command: 'cat',
+          stdin: true,
+          abortSignal: ac.signal,
+        }),
+      ).rejects.toBe(reason);
+      expect(baseSandbox.spies.runCommand).not.toHaveBeenCalled();
+    });
+
     it('streams stdout and stderr from logs() and resolves wait()', async () => {
       const { handle } = makeMockCommand({
         logs: [

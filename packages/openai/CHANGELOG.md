@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.103
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 4.0.102
 
 ### Patch Changes

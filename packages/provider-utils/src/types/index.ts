@@ -34,6 +34,10 @@ export type { ProviderReference } from './provider-reference';
 export type {
   SandboxSession as Experimental_SandboxSession,
   SandboxProcess as Experimental_SandboxProcess,
+  SandboxSpawnOptions as Experimental_SandboxSpawnOptions,
+  SandboxSpawnOptionsWithStdin as Experimental_SandboxSpawnOptionsWithStdin,
+  SandboxSpawnOptionsWithoutStdin as Experimental_SandboxSpawnOptionsWithoutStdin,
+  WritableSandboxProcess as Experimental_WritableSandboxProcess,
 } from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {

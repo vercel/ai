@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 5.0.30
 
 ### Patch Changes

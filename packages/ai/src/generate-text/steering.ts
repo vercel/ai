@@ -135,14 +135,6 @@ class DefaultSteering implements Steering {
         ? { role: 'user', content: message }
         : message;
 
-    if (userMessage.role !== 'user') {
-      throw new InvalidArgumentError({
-        parameter: 'message',
-        value: message,
-        message: 'Steering messages must be user messages.',
-      });
-    }
-
     const outcome =
       this.state === 'ended'
         ? Promise.resolve<SteeringOutcome>({
