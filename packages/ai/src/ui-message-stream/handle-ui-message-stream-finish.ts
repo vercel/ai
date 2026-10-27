@@ -233,22 +233,24 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     stream: idInjectedStream,
     runUpdateMessageJob,
     onError,
-    transformChunk: async ({ chunk, state }) => {
-      if (!isCompactionContextChunk(chunk)) return chunk as UIMessageChunk;
+    transformChunk: processCompaction
+      ? async ({ chunk, state }) => {
+          if (!isCompactionContextChunk(chunk)) return chunk as UIMessageChunk;
 
-      const isContinuation = state.message.id === lastMessage?.id;
-      const history = isContinuation
-        ? [...originalMessages.slice(0, -1), state.message]
-        : state.message.parts.length > 0
-          ? [...originalMessages, state.message]
-          : originalMessages;
+          const isContinuation = state.message.id === lastMessage?.id;
+          const history = isContinuation
+            ? [...originalMessages.slice(0, -1), state.message]
+            : state.message.parts.length > 0
+              ? [...originalMessages, state.message]
+              : originalMessages;
 
-      return createUIMessageCompaction({
-        messages: history,
-        replacementMessages: chunk.messages,
-        checkpoint: chunk.checkpoint,
-      });
-    },
+          return createUIMessageCompaction({
+            messages: history,
+            replacementMessages: chunk.messages,
+            checkpoint: chunk.checkpoint,
+          });
+        }
+      : undefined,
   }).pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,
