@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 2.0.138
+
+### Patch Changes
+
+- 1ff7951: fix(openai): report unfinished web searches as tool errors
+- 1ff7951: Report failed and incomplete web searches as tool errors instead of successful tool results in OpenAI Responses API calls.
+
 ## 2.0.137
 
 ### Patch Changes
