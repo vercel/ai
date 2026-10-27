@@ -45,6 +45,7 @@ export const piSessionEventSchema = z.looseObject({
   input: z.unknown().optional(),
   result: z.unknown().optional(),
   content: z.unknown().optional(),
+  structuredContent: z.unknown().optional(),
   isError: z.boolean().optional(),
   // Compaction events (`compaction_start` / `compaction_end`). `result` (a
   // `CompactionResult`) rides the shared `result` field above; `reason`
