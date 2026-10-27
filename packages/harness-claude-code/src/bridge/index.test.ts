@@ -36,6 +36,7 @@ const state = vi.hoisted(() => ({
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
+  steeringGate: undefined as Promise<void> | undefined,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
   toolHandlers: new Map<string, ToolHandler>(),
@@ -160,6 +161,7 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
           close: () => {},
           [Symbol.asyncIterator]: async function* () {
             if (!state.steering) return;
+            await state.steeringGate;
             yield {
               messageId: 'steering-message-1',
               text: 'Actually, Paris, Texas.',
@@ -206,6 +208,7 @@ describe('Claude Code bridge configuration', () => {
       thinking: { type: 'disabled' },
     };
     state.steering = false;
+    state.steeringGate = undefined;
     state.acceptedUserMessages = [];
     state.queryInputs = [];
     state.toolHandlers = new Map();
@@ -947,6 +950,233 @@ describe('Claude Code bridge configuration', () => {
       ).toEqual(['first', 'second']);
     },
   );
+
+  describe('deferred approvals', () => {
+    type Hook = (
+      input: Record<string, unknown>,
+      toolUseID: string,
+    ) => Promise<unknown>;
+    type CanUseTool = (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => Promise<unknown>;
+
+    const approvalHook = (args: QueryArgs) =>
+      (
+        args.options.hooks as {
+          PreToolUse: Array<{ matcher?: string; hooks: Hook[] }>;
+        }
+      ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+    const bash = { tool_name: 'Bash', tool_input: { command: 'pwd' } };
+    const deferredResult = (id: string) => ({
+      type: 'result',
+      subtype: 'success',
+      result: '',
+      terminal_reason: 'tool_deferred',
+      deferred_tool_use: { id, name: 'Bash', input: { command: 'pwd' } },
+    });
+
+    beforeEach(() => {
+      state.start = { ...state.start, permissionMode: 'allow-reads' };
+    });
+
+    test('defers a call that needs approval and resumes it after the host answers', async () => {
+      const hookOutputs: unknown[] = [];
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          yield { type: 'system', subtype: 'init', session_id: 'session-1' };
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          if (state.queryArgs.length === 1) {
+            yield deferredResult('call-1');
+            return;
+          }
+          hookOutputs.push(
+            await (args.options.canUseTool as CanUseTool)(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: 'call-1' },
+            ),
+          );
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "defer",
+            },
+          },
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "allow",
+            },
+          },
+          {
+            "behavior": "allow",
+            "toolUseID": "call-1",
+            "updatedInput": {
+              "command": "pwd",
+            },
+          },
+        ]
+      `);
+      expect(state.queryArgs[1]?.options.resume).toBe('session-1');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['call-1']);
+    });
+
+    test('resumes a call the previous bridge deferred without asking the host again', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({
+        approved: false,
+        reason: 'Not now',
+      });
+      const hookOutputs: unknown[] = [];
+      state.createQuery = args =>
+        (async function* () {
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options.resume).toBe('session-1');
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "Not now",
+            },
+          },
+        ]
+      `);
+      expect(
+        state.emitted.filter(event => event.type === 'tool-approval-request'),
+      ).toEqual([]);
+    });
+
+    test('keeps continuing the workdir thread when the previous bridge named no conversation', async () => {
+      state.start = {
+        ...state.start,
+        continue: true,
+        deferredToolUseId: 'call-1',
+      };
+      state.firstTurn = true;
+      state.createQuery = () =>
+        (async function* () {
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+      expect(state.queryArgs[0]?.options.resume).toBeUndefined();
+    });
+
+    test('hands a steering message that arrives during the approval to the resumed query', async () => {
+      let releaseSteering!: () => void;
+      state.steering = true;
+      state.steeringGate = new Promise(resolve => {
+        releaseSteering = resolve;
+      });
+      state.requestToolApproval = async () => {
+        releaseSteering();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return { approved: true };
+      };
+      let resumedInput: unknown;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          if (state.queryArgs.length === 1) {
+            await input.next();
+            void input.next();
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          resumedInput = await Promise.race([
+            input.next().then(next => next.value),
+            new Promise(resolve => setTimeout(() => resolve('none'), 50)),
+          ]);
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(resumedInput).toMatchObject({
+        message: { content: [{ text: 'Actually, Paris, Texas.' }] },
+      });
+    });
+
+    test('reports other calls deferred in the same message as not run', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            yield {
+              type: 'assistant',
+              message: {
+                content: ['call-1', 'call-2'].map(id => ({
+                  type: 'tool_use',
+                  id,
+                  name: 'Bash',
+                  input: { command: 'pwd' },
+                })),
+              },
+            };
+            await approvalHook(args)(bash, 'call-1');
+            await approvalHook(args)(bash, 'call-2');
+            yield deferredResult('call-2');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(
+          event =>
+            event.type === 'tool-result' ||
+            event.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "isError": true,
+            "result": "Claude Code can wait for only one approval at a time, so this call did not run.",
+            "toolCallId": "call-1",
+            "toolName": "bash",
+            "type": "tool-result",
+          },
+          {
+            "approvalId": "call-2",
+            "toolCallId": "call-2",
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
+    });
+  });
 
   test('allows ListAgents without approval in allow-reads mode', async () => {
     state.start = {

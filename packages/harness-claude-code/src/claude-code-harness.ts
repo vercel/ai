@@ -1266,6 +1266,15 @@ export function createClaudeCode(
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
+        ...(respawnStrategy === 'rerun'
+          ? {
+              deferredToolUseId: (
+                startOpts.continueFrom ?? startOpts.resumeFrom?.continueFrom
+              )?.pendingToolApprovals?.find(
+                approval => approval.kind === 'builtin',
+              )?.toolCallId,
+            }
+          : {}),
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -1308,6 +1317,7 @@ function createSession({
   continueOnFirstPrompt,
   resumeSessionId,
   rerunContinue,
+  deferredToolUseId,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -1344,6 +1354,12 @@ function createSession({
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
+  /**
+   * Built-in tool call the previous bridge deferred while it waited for host
+   * approval. The respawned bridge resumes it once the host answers instead
+   * of starting a new turn.
+   */
+  deferredToolUseId?: string;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
@@ -1707,6 +1723,7 @@ function createSession({
           ...(lastClaudeSessionId
             ? { resumeSessionId: lastClaudeSessionId }
             : { continue: true }),
+          ...(deferredToolUseId != null ? { deferredToolUseId } : {}),
         });
       }
 
