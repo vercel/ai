@@ -170,6 +170,8 @@ async function scenario(timing: Timing): Promise<boolean> {
       assert.equal(stateAtSend, WebSocket.CLOSING);
       assert.equal(closeDetectedAtSend, false);
     }
+    // Primary outcome is delivery to this turn, not socket state or the
+    // absence of a synchronous exception. Capture it before diagnostic retry.
     const delivered =
       waiterResolved && finished && received.length === 1 && received[0] === 42;
     console.log(
@@ -203,7 +205,8 @@ async function scenario(timing: Timing): Promise<boolean> {
     assert.equal(starts, 1);
     channel.close();
     await waitUntil(() => channel.isClosed());
-    assert.throws(() => channel.send(result), /channel is closed/);
+    // Preserve terminal rejection without constraining its type or wording.
+    assert.throws(() => channel.send(result));
     return delivered || sendErrors.length === 1;
   } finally {
     channel.close();

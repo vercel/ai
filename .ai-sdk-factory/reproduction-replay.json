@@ -1,8 +1,8 @@
 {
   "version": 2,
   "issueId": 23317,
-  "expectationRevision": 2,
-  "supersedesReproductionCommitSha": "9d4a46caace39f2c4e30e2e33dc2e70ad964416d",
+  "expectationRevision": 3,
+  "supersedesReproductionCommitSha": "04ff7527d37704a208c1d88123d5ea028564f166",
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23317.ts",
   "artifactPaths": [
     "examples/ai-functions/src/reproduction/issue-23317.ts"
