@@ -145,12 +145,15 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
-        response_format: [
-          'gpt-4o-transcribe',
-          'gpt-4o-mini-transcribe',
-        ].includes(this.modelId)
-          ? 'json'
-          : 'verbose_json',
+        // gpt-4o(-mini)-transcribe and gpt-transcribe reject verbose_json:
+        response_format:
+          ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe'].includes(
+            this.modelId,
+          ) ||
+          this.modelId === 'gpt-transcribe' ||
+          this.modelId.startsWith('gpt-transcribe-')
+            ? 'json'
+            : 'verbose_json',
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };
@@ -219,7 +222,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
         })) ??
         [],
       language,
-      durationInSeconds: response.duration ?? undefined,
+      // Duration-billed json responses report the duration only in `usage`:
+      durationInSeconds:
+        response.duration ??
+        (response.usage?.type === 'duration'
+          ? (response.usage.seconds ?? undefined)
+          : undefined),
       warnings,
       response: {
         timestamp: currentDate,
