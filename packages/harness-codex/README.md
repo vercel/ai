@@ -1,6 +1,6 @@
 # AI SDK - Codex Harness
 
-`HarnessV1` adapter backed by the [Codex CLI](https://www.npmjs.com/package/@openai/codex). The adapter runs Codex app-server inside a sandbox and communicates with it over JSON-RPC. A bridge process connects app-server to the host over a WebSocket on a sandbox-proxied loopback port.
+`HarnessV1` adapter backed by the [Codex CLI](https://www.npmjs.com/package/@openai/codex). The adapter runs Codex app-server inside a sandbox and communicates with it over JSON-RPC.
 
 -> **Note**: This package is experimental.
 

@@ -2,4 +2,6 @@
 '@ai-sdk/openai': patch
 ---
 
-Fix `gpt-transcribe` REST transcription. Requests with OpenAI provider options now use `response_format: 'json'` for `gpt-transcribe` and dated `gpt-4o-mini-transcribe` snapshots, which reject `verbose_json`. `durationInSeconds` is read from `usage.seconds` when a duration-billed response has no top-level `duration`.
+fix(openai): read transcription duration from `usage` for duration-billed `json` responses
+
+`durationInSeconds` now falls back to `usage.seconds` when `usage.type` is `duration` and the response has no top-level `duration` (e.g. `gpt-transcribe` with the default `json` response format).
