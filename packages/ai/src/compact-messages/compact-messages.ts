@@ -171,15 +171,18 @@ export async function compactMessages(
               // prevents accepting its result.
               if (result?.usage !== undefined) await recordUsage(result.usage);
               abortSignal?.throwIfAborted();
-              if (result?.finishReason !== 'stop') {
+              if (
+                result?.finishReason !== undefined &&
+                result.finishReason !== 'stop'
+              ) {
                 throw new CompactionError({
                   code: 'SUMMARY_INCOMPLETE',
                   message:
-                    'Summary execution must complete with finishReason "stop".',
+                    'Summary execution returned a finishReason other than "stop".',
                 });
               }
               if (
-                typeof result.text !== 'string' ||
+                typeof result?.text !== 'string' ||
                 result.text.trim().length === 0
               ) {
                 throw new CompactionError({

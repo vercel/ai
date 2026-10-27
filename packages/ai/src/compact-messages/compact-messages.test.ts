@@ -110,6 +110,25 @@ describe('compactMessages', () => {
     expect(result.inputTokensAfter).toBeLessThanOrEqual(500);
   });
 
+  it('accepts a summary without a finish reason', async () => {
+    const result = await compactMessages({
+      strategy: 'summarize',
+      messages: [
+        { role: 'user', content: 'Earlier task' },
+        { role: 'assistant', content: 'Earlier answer' },
+        { role: 'user', content: 'Continue' },
+      ],
+      keepRecentMessages: 0,
+      summarize: {
+        maxOutputTokens: 100,
+        execute: async () => ({ text: 'Completed earlier work.' }),
+      },
+    });
+    expect(result.compacted).toBe(true);
+    expect(result.messages[0].content).toContain('Completed earlier work.');
+    expect(result.checkpoint).toBeDefined();
+  });
+
   it('rejects a truncated summary while exposing its billed usage', async () => {
     const usage = { ...createNullLanguageModelUsage(), outputTokens: 100 };
     const onUsage = vi.fn();

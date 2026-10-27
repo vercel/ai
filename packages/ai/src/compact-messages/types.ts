@@ -51,12 +51,12 @@ export type CompactionMediaDescriber = (
 
 /**
  * Output of a summary model call, checked before it becomes a checkpoint.
- * Only nonempty text with a 'stop' finish reason is accepted. Reported usage is
- * recorded even when the summary is rejected as incomplete.
+ * Nonempty text is required; a finish reason, when reported, must be 'stop'.
+ * Reported usage is recorded even when the summary is rejected as incomplete.
  */
 type CompactionSummary = {
   text: string;
-  finishReason: FinishReason;
+  finishReason?: FinishReason;
   usage?: LanguageModelUsage;
 };
 
