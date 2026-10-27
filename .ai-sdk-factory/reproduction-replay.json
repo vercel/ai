@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 23475,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23475.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23475.ts",
+    "packages/sandbox-vercel/src/__fixtures__/issue-23475.json",
+    "packages/sandbox-vercel/src/issue-23475.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE-23475: persistent:false template sandbox wrote an unwanted stop snapshot"
+  }
+}
