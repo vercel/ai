@@ -177,6 +177,109 @@ sandbox adapter; just-bash resolves them against its default directory. With an
 explicit working directory, use absolute paths to read files from that directory.
 The same session provides other file operations.
 
+## Filesystem Tools
+
+`experimental_createFsTools` creates tools that let agents read, write, edit,
+delete, list, and search files: `read`, `write`, `edit`, `deleteFile`, `list`,
+`glob`, and `grep`. The tools operate on the `Experimental_SandboxSession`
+passed as `experimental_sandbox` to `generateText`, `streamText`, or an agent.
+Use `@ai-sdk/sandbox-just-bash` for an in-memory environment,
+`@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
+
+### Installation
+
+<InstallPackages packages="ai @ai-sdk/tool-fs @ai-sdk/sandbox-just-bash" />
+
+Requires Node.js 22.13 or newer.
+
+### Usage
+
+```ts
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
+import { experimental_createFsTools as createFsTools } from '@ai-sdk/tool-fs';
+import { isStepCount, ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: createFsTools(),
+  stopWhen: isStepCount(20),
+});
+
+const session = await createJustBashNetworkSandboxSession();
+
+try {
+  const sandbox = session.restricted();
+  await sandbox.writeTextFile({
+    path: 'src/math.ts',
+    content: 'export const add = (a: number, b: number) => a - b;\n',
+  });
+
+  const result = await agent.generate({
+    prompt: 'Fix the bug in src/math.ts.',
+    experimental_sandbox: sandbox,
+  });
+
+  console.log(result.text);
+} finally {
+  await session.destroy();
+}
+```
+
+The tools do not hold a sandbox, so you can create them once and use them with
+a different sandbox for each request. Executing a tool without
+`experimental_sandbox` throws an error.
+
+To use a subset of the tools, pick them from the returned object, for example
+`const { read, list, glob, grep } = createFsTools()` for read-only access.
+Require approval for destructive tools with `toolApproval`:
+
+```ts
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: createFsTools(),
+  toolApproval: { write: 'user-approval', deleteFile: 'user-approval' },
+});
+```
+
+### Tools
+
+| Tool         | Input                                                                             | Description                                                                                                                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read`       | `{ path, offset?, limit? }`                                                       | Reads a text file with line numbers, up to 2,000 lines per call. `offset` is the 1-based line to start from. Images, PDFs, audio, and video are returned to the model as files. Other binary files are described by size. |
+| `write`      | `{ path, content }`                                                               | Writes a file, creating parent directories.                                                                                                                                                                               |
+| `edit`       | `{ path, oldString, newString, replaceAll? }`                                     | Replaces `oldString`, which must occur once unless `replaceAll` is set. Keeps the file's line endings and byte order mark.                                                                                                |
+| `deleteFile` | `{ path }`                                                                        | Deletes a file. Directories cannot be deleted.                                                                                                                                                                            |
+| `list`       | `{ path? }`                                                                       | Lists one directory, without descending into subdirectories.                                                                                                                                                              |
+| `glob`       | `{ pattern, path? }`                                                              | Finds files by glob pattern. Patterns without a slash match file names at any depth.                                                                                                                                      |
+| `grep`       | `{ pattern, path?, glob?, ignoreCase?, literal?, context?, outputMode?, limit? }` | Searches file contents. `outputMode` is `content` (`path:line:text`), `files`, or `count`.                                                                                                                                |
+
+Expected failures, such as a missing file or an `oldString` that does not
+match, are returned as results so the model can recover. When `oldString` does
+not match exactly, `edit` retries while ignoring whitespace at line ends, and
+then while also treating typographic quotes, dashes, and spaces as ASCII.
+
+`glob` and `grep` run commands in the sandbox. They use ripgrep when the
+sandbox has it, which skips files ignored by `.gitignore`. Otherwise they fall
+back to `find` and `grep`, which skip only `.git` and `node_modules` and may
+return lines in a different order. Patterns use ripgrep syntax; the fallback
+uses Perl-compatible regular expressions when `grep` supports them.
+
+### Options
+
+`experimental_createFsTools()` accepts an optional options object:
+
+| Option             | Type     | Description                                                                                                                                                                 |
+| ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workingDirectory` | `string` | Directory that relative paths from the model resolve against, and the default directory for `list`, `glob`, and `grep`. Can be relative to the sandbox's working directory. |
+| `maxFileSize`      | `number` | Maximum size in bytes of files that `read` and `edit` load. Defaults to 10 MiB.                                                                                             |
+| `maxReadLength`    | `number` | Maximum characters of text `read` returns per call. Defaults to `50000`.                                                                                                    |
+| `maxResults`       | `number` | Default maximum number of results `glob` and `grep` return. Defaults to `100`.                                                                                              |
+| `timeout`          | `number` | Timeout per tool execution in milliseconds. Defaults to `30000`.                                                                                                            |
+
+The sandbox controls which files the tools can access. Paths are not
+restricted to `workingDirectory`; absolute paths and `..` reach any file the
+sandbox allows.
+
 ## Web Fetch Tool
 
 `experimental_createWebFetchTool` lets agents read web pages and documents by URL.
