@@ -449,17 +449,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
-<<<<<<< HEAD
-      ...(response.service_tier != null && {
-        providerMetadata: {
-          xai: { serviceTier: response.service_tier },
-=======
-      ...(response.usage?.cost_in_usd_ticks != null && {
+      ...((response.usage?.cost_in_usd_ticks != null ||
+        response.service_tier != null) && {
         providerMetadata: {
           xai: {
-            costInUsdTicks: response.usage.cost_in_usd_ticks,
+            ...(response.usage?.cost_in_usd_ticks != null && {
+              costInUsdTicks: response.usage.cost_in_usd_ticks,
+            }),
+            ...(response.service_tier != null && {
+              serviceTier: response.service_tier,
+            }),
           },
->>>>>>> a0b0a0cb47 (feat(provider/xai): expose costInUsdTicks in responses provider metadata (#13371))
         },
       }),
       request: { body },
@@ -506,13 +506,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let hasFunctionCall = false;
-<<<<<<< HEAD
     let usage: LanguageModelV3Usage | undefined = undefined;
     let serviceTier: string | undefined = undefined;
-=======
-    let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
->>>>>>> a0b0a0cb47 (feat(provider/xai): expose costInUsdTicks in responses provider metadata (#13371))
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -1064,17 +1060,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-<<<<<<< HEAD
-              ...(serviceTier != null && {
-                providerMetadata: { xai: { serviceTier } },
-=======
-              ...(costInUsdTicks != null && {
+              ...((costInUsdTicks != null || serviceTier != null) && {
                 providerMetadata: {
                   xai: {
-                    costInUsdTicks,
+                    ...(costInUsdTicks != null && { costInUsdTicks }),
+                    ...(serviceTier != null && { serviceTier }),
                   },
                 },
->>>>>>> a0b0a0cb47 (feat(provider/xai): expose costInUsdTicks in responses provider metadata (#13371))
               }),
             });
           },

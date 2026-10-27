@@ -179,6 +179,30 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
 
+      it('should expose cost_in_usd_ticks alongside serviceTier', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            cost_in_usd_ticks: 113500,
+          },
+          service_tier: 'priority',
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          xai: { costInUsdTicks: 113500, serviceTier: 'priority' },
+        });
+      });
+
       it('should not include providerMetadata when cost_in_usd_ticks is missing', async () => {
         prepareJsonResponse({
           id: 'resp_123',
@@ -3661,6 +3685,41 @@ describe('XaiResponsesLanguageModel', () => {
           type: 'finish',
           providerMetadata: {
             xai: { costInUsdTicks: 113500 },
+          },
+        });
+      });
+
+      it('should expose cost_in_usd_ticks alongside serviceTier', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 5,
+                cost_in_usd_ticks: 113500,
+              },
+              service_tier: 'priority',
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: { costInUsdTicks: 113500, serviceTier: 'priority' },
           },
         });
       });
