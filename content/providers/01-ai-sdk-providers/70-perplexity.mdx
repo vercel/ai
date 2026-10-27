@@ -242,6 +242,7 @@ console.log(result.providerMetadata);
 //   perplexity: {
 //     usage: { citationTokens: null, numSearchQueries: 1 },
 //     images: null,
+//     searchQueries: ['latest quantum computing developments'],
 //     cost: { totalCost: 0.006, currency: 'USD', ... },
 //     toolCalls: { search_web: { invocation: 1 } },
 //   },
@@ -310,6 +311,8 @@ The response metadata includes:
 
 - `usage`: `citationTokens` (always `null` for Agent API responses) and the
   number of search queries
+- `searchQueries`: The web search queries Perplexity ran, in order and without
+  duplicates, or `null` when no web search ran
 - `cost`: Token, tool, and total costs returned by Perplexity
 - `toolCalls`: Invocation counts grouped by native tool
 - `images`: Always `null`; the Agent API does not return Sonar image results
