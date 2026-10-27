@@ -145,11 +145,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
-        // gpt-4o(-mini)-transcribe and gpt-transcribe reject verbose_json:
+        // gpt-4o(-mini)-transcribe (incl. snapshots) and gpt-transcribe reject verbose_json:
         response_format:
           ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe'].includes(
             this.modelId,
           ) ||
+          this.modelId.startsWith('gpt-4o-mini-transcribe-') ||
           this.modelId === 'gpt-transcribe' ||
           this.modelId.startsWith('gpt-transcribe-')
             ? 'json'
