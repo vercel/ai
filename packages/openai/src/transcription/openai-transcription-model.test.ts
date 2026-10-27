@@ -619,6 +619,58 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should read the duration from duration usage when the response has no duration', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        languages: [{ code: 'en' }],
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(37);
+  });
+
+  it('should prefer the response duration over duration usage', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        duration: 36.71,
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('whisper-1').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(36.71);
+  });
+
+  it('should not read a duration from token usage', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        usage: { type: 'tokens', input_tokens: 14, output_tokens: 45 },
+      },
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-transcribe')
+      .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+    expect(result.durationInSeconds).toBeUndefined();
+  });
+
   it('should work when no words, language, or duration are returned', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'json-value',

@@ -364,7 +364,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         })) ??
         [],
       language,
-      durationInSeconds: response.duration ?? undefined,
+      // Duration-billed json responses report the duration only in `usage`:
+      durationInSeconds:
+        response.duration ??
+        (response.usage?.type === 'duration' &&
+        typeof response.usage.seconds === 'number'
+          ? response.usage.seconds
+          : undefined),
       warnings,
       ...(response.usage != null && { usage: response.usage }),
       response: {
