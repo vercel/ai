@@ -4,7 +4,7 @@ import type {
   ModelMessage,
   ReasoningFilePart,
 } from '@ai-sdk/provider-utils';
-import type { LanguageModel } from '../types/language-model';
+import type { FinishReason, LanguageModel } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 
 export interface UnmeasuredCompactionContext {
@@ -33,6 +33,12 @@ export type CompactionMediaDescriber = (
   part: FilePart | ImagePart | ReasoningFilePart,
 ) => string | undefined;
 
+type CompactionSummary = {
+  text: string;
+  finishReason: FinishReason;
+  usage?: LanguageModelUsage;
+};
+
 export type CompactionSummarizer = {
   /** Forwarded to the executor, which must enforce the model's output limit. */
   maxOutputTokens: number;
@@ -41,7 +47,7 @@ export type CompactionSummarizer = {
     messages: ModelMessage[];
     maxOutputTokens: number;
     abortSignal?: AbortSignal;
-  }): Promise<{ text: string; usage?: LanguageModelUsage }>;
+  }): Promise<CompactionSummary>;
 } & (
   | {
       /** Includes summary instructions, framing, previous checkpoint and transcript. */
@@ -92,6 +98,8 @@ export type CompactMessagesOptions = SharedCompactionOptions &
         /** Explicitly select the built-in history summarization strategy. */
         strategy: 'summarize';
         keepRecentMessages?: number;
+        /** Retain the entire current turn in addition to the preferred recent count. Defaults to false. */
+        keepCurrentTurn?: boolean;
         maxToolResultCharacters?: number;
       } & (
         | {
@@ -109,6 +117,7 @@ export type CompactMessagesOptions = SharedCompactionOptions &
     | {
         strategy: CompactionStrategy;
         keepRecentMessages?: never;
+        keepCurrentTurn?: never;
         maxRecentTokens?: never;
         maxToolResultCharacters?: never;
         oversizedUserMessage?: never;
@@ -134,7 +143,7 @@ export type CompactionStrategyContext = (
   summarize?: (input: {
     system: string;
     messages: ModelMessage[];
-  }) => Promise<{ text: string; usage?: LanguageModelUsage }>;
+  }) => Promise<CompactionSummary>;
   /** Report private model calls; do not report ctx.summarize calls again. */
   recordUsage(usage: LanguageModelUsage): Promise<void>;
 };

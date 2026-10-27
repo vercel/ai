@@ -36,7 +36,9 @@ type Helpers = {
     startIndex: number,
     messageCount: number,
   ): Promise<CompactionCheckpoint>;
-  isValidMessages(messages: readonly ModelMessage[]): Promise<boolean>;
+  isValidMessages(
+    messages: readonly ModelMessage[],
+  ): boolean | Promise<boolean>;
 };
 
 /** The built-in, bounded progression from pruning to one checkpoint rewrite. */
@@ -49,21 +51,17 @@ export async function defaultCompaction(
     return countOnlyCompaction(options, ctx, helpers);
   }
 
-  const { messages, checkpoint, targetInputTokens } = options;
-  const fixedInputTokens = options.context.fixedInputTokens;
-  const historyBudget = targetInputTokens - fixedInputTokens;
+  const { messages, targetInputTokens, checkpoint } = options;
+  const { conversation, systems, previousCheckpoint } = splitHistory(options);
+  if (conversation.length === 0 && checkpoint == null) {
+    return { messages: [...messages] };
+  }
+  const historyBudget = targetInputTokens - options.context.fixedInputTokens;
   const recentBudget = Math.min(
     options.maxRecentTokens ?? 20_000,
     historyBudget / 2,
   );
   const toolCharacters = options.maxToolResultCharacters ?? 2_000;
-  const isCheckpoint = (index: number) =>
-    checkpoint != null &&
-    index >= checkpoint.startIndex &&
-    index < checkpoint.startIndex + checkpoint.messageCount;
-  const conversation = messages
-    .map((message, index) => ({ message, index }))
-    .filter(({ index }) => !isCheckpoint(index));
   const current = conversation.find(
     ({ index }) => index === ctx.currentUserMessageIndex,
   );
@@ -71,25 +69,23 @@ export async function defaultCompaction(
   const needsCurrentClipping =
     originalCurrent != null &&
     ctx.countTokens([originalCurrent]) > recentBudget;
-
   if (needsCurrentClipping && options.oversizedUserMessage === 'error') {
     throw targetError(
       'The current user request exceeds the retained recent-content budget.',
     );
   }
-
-  if (messages.length === 0) {
-    return { messages: [] };
-  }
+  if (messages.length === 0) return { messages: [] };
 
   if (ctx.reason !== 'manual' && !needsCurrentClipping) {
-    // A tool result still waiting for an assistant response is fresh evidence.
+    // Preserve fresh tool evidence until an assistant has consumed it.
     const lastAssistant = messages.findLastIndex(
       message => message.role === 'assistant',
     );
     const pruned = messages.map((message, index) =>
-      index < lastAssistant && !isCheckpoint(index)
-        ? shortenToolResults(message, toolCharacters)
+      index < lastAssistant &&
+      !inCheckpoint(index, checkpoint) &&
+      !(options.keepCurrentTurn && current != null && index >= current.index)
+        ? shortenToolResults(message, toolCharacters, ctx)
         : message,
     );
     if (helpers.measureCandidate(pruned) <= targetInputTokens) {
@@ -97,18 +93,23 @@ export async function defaultCompaction(
     }
   }
 
-  ctx.abortSignal?.throwIfAborted();
-
-  // Opaque provider state requires a strategy that understands how to replace it.
-  // In particular, never turn encrypted provider context into ordinary summary text.
-  if (conversation.some(({ message }) => hasCustomContent(message))) {
-    throw new CompactionError({
-      code: 'MEASUREMENT_UNAVAILABLE',
-      message:
-        'The default summarizer cannot replace opaque custom parts. Supply a custom compaction strategy.',
-    });
-  }
-
+  const required = getRequiredEntries(
+    conversation,
+    current?.index,
+    options.keepCurrentTurn,
+  );
+  const requiredIndexes = new Set(required.map(({ index }) => index));
+  const opaqueIndexes = new Set(
+    getRequiredEntries(conversation, current?.index, false).map(
+      ({ index }) => index,
+    ),
+  );
+  const fitFailure = () =>
+    opaqueIndexes.size > 0
+      ? unsupportedContent()
+      : targetError(
+          'The replacement history cannot fit while preserving the current task and required messages.',
+        );
   let retainedCurrent =
     originalCurrent == null
       ? undefined
@@ -118,9 +119,6 @@ export async function defaultCompaction(
           ctx,
           options.oversizedUserMessage,
         );
-
-  // Annotate a preflight template for counters that inspect framework metadata.
-  // The final text is annotated again after fitting, before its last validation.
   const checkpointTemplate = ctx.createMessage(
     { role: 'user', content: checkpointPrefix + '…' },
     'checkpoint',
@@ -130,7 +128,12 @@ export async function defaultCompaction(
       ...checkpointTemplate,
       content: checkpointPrefix + text,
     }) as ModelMessage;
-  const minimumCheckpoint = checkpointMessage('…');
+  // System instructions retain their role and source order ahead of the new history.
+  const compose = (text: string, entries: IndexedMessage[]) => [
+    ...systems,
+    checkpointMessage(text),
+    ...entries.map(({ message }) => message),
+  ];
   const minimumCurrent =
     retainedCurrent == null
       ? undefined
@@ -143,47 +146,14 @@ export async function defaultCompaction(
             'summarize-middle',
             true,
           );
-  const minimumCandidate = [
-    minimumCheckpoint,
-    ...(minimumCurrent == null ? [] : [minimumCurrent]),
-  ];
-  if (helpers.measureCandidate(minimumCandidate, true) > targetInputTokens) {
-    throw targetError(
-      'The minimum checkpoint and current request cannot fit the target.',
-    );
-  }
-
-  if (ctx.summarize == null || options.summarize == null) {
-    throw new CompactionError({
-      code: 'SUMMARY_REQUIRED',
-      message: 'This history needs summarization. Supply the summarize option.',
-    });
-  }
-
-  const prompt = prepareSummaryPrompt(
-    conversation,
-    checkpoint == null
-      ? []
-      : messages.slice(
-          checkpoint.startIndex,
-          checkpoint.startIndex + checkpoint.messageCount,
-        ),
-    options.summarize,
-    ctx,
-  );
-
-  // There is exactly one logical summary operation. Everything below fits locally.
-  const summaryResult = await ctx.summarize(prompt);
-  ctx.abortSignal?.throwIfAborted();
-  let summary = summaryResult.text;
 
   let tail = await selectRecent(
     conversation.map(entry =>
-      entry.index === current?.index
+      entry.index === current?.index || requiredIndexes.has(entry.index)
         ? entry
         : {
             ...entry,
-            message: shortenToolResults(entry.message, toolCharacters),
+            message: shortenToolResults(entry.message, toolCharacters, ctx),
           },
     ),
     current?.index,
@@ -192,202 +162,325 @@ export async function defaultCompaction(
     recentBudget,
     ctx,
     helpers,
+    required,
+    opaqueIndexes,
   );
-  const makeCandidate = () => [
-    checkpointMessage(summary!),
-    ...tail.map(({ message }) => message),
-  ];
-  let candidate = makeCandidate();
+  let minimumTail = mergeRetained(
+    tail,
+    required,
+    current?.index,
+    minimumCurrent,
+  );
+  for (let start = 1; start <= tail.length; start++) {
+    const reduced = mergeRetained(
+      tail.slice(start),
+      required,
+      current?.index,
+      minimumCurrent,
+    );
+    if (await helpers.isValidMessages(compose('…', reduced)))
+      minimumTail = reduced;
+  }
+  if (
+    helpers.measureCandidate(compose('…', minimumTail), true) >
+    targetInputTokens
+  )
+    throw fitFailure();
 
-  const fits = (value: readonly ModelMessage[]) =>
-    helpers.measureCandidate(value, true) <= targetInputTokens;
+  if (ctx.summarize == null || options.summarize == null)
+    throw summaryRequired();
+  const prompt = prepareSummaryPrompt(
+    conversation.filter(({ message }) => !hasNativeContent(message)),
+    previousCheckpoint,
+    options.summarize,
+    ctx,
+  );
+  const summaryResult = await ctx.summarize(prompt);
+  ctx.abortSignal?.throwIfAborted();
+  let summary = summaryResult.text;
+  const fits = (candidate: readonly ModelMessage[]) =>
+    helpers.measureCandidate(candidate, true) <= targetInputTokens;
+  const fitSummary = () => {
+    const fitted = fitString(summary, text => fits(compose(text, tail)));
+    if (fitted == null) return false;
+    summary = fitted;
+    return true;
+  };
 
-  if (!fits(candidate)) {
+  // Fit the generated summary before sacrificing recent evidence.
+  if (!fitSummary()) {
     tail = tail.map(entry =>
-      entry.index === current?.index
+      entry.index === current?.index || requiredIndexes.has(entry.index)
         ? entry
         : {
             ...entry,
             message: shortenToolResults(
               entry.message,
               Math.floor(toolCharacters / 2),
+              ctx,
             ),
           },
     );
-    candidate = makeCandidate();
-  }
-
-  // Remove optional source messages only at boundaries accepted by shared validation.
-  for (let start = 1; !fits(candidate) && start <= tail.length; start++) {
-    ctx.abortSignal?.throwIfAborted();
-    const reduced = withCurrent(
-      tail.slice(start),
-      current?.index,
-      retainedCurrent,
-    );
-    if (
-      await helpers.isValidMessages([
-        minimumCheckpoint,
-        ...reduced.map(({ message }) => message),
-      ])
-    ) {
-      candidate = [
-        checkpointMessage(summary),
-        ...reduced.map(({ message }) => message),
-      ];
-      if (fits(candidate) || start === tail.length) {
+    if (!fitSummary()) {
+      const originalTail = tail;
+      for (let start = 1; start <= originalTail.length; start++) {
+        ctx.abortSignal?.throwIfAborted();
+        const reduced = mergeRetained(
+          originalTail.slice(start),
+          required,
+          current?.index,
+          retainedCurrent,
+        );
+        if (!(await helpers.isValidMessages(compose('…', reduced)))) continue;
         tail = reduced;
-        break;
+        if (fitSummary()) break;
       }
     }
   }
 
-  if (!fits(candidate)) {
-    const fitted = fitString(summary, text =>
-      fits([checkpointMessage(text), ...tail.map(({ message }) => message)]),
-    );
-    if (fitted != null) {
-      summary = fitted;
-      candidate = makeCandidate();
-    }
-  }
-
   if (
-    !fits(candidate) &&
+    !fits(compose(summary, tail)) &&
     retainedCurrent != null &&
     options.oversizedUserMessage !== 'error'
   ) {
-    // The task is mandatory, but its text/media may be shortened under the chosen policy.
-    tail = withCurrent([], current?.index, retainedCurrent);
-    summary =
-      fitString(summary, text =>
-        fits([
-          checkpointMessage(text),
-          ...(minimumCurrent == null ? [] : [minimumCurrent]),
-        ]),
-      ) ?? '…';
-    const currentBudget = Math.min(
-      recentBudget,
-      targetInputTokens -
-        fixedInputTokens -
-        ctx.countTokens([checkpointMessage(summary)]),
-    );
+    // Reserve the smallest checkpoint first, then maximize the continuing request.
+    // Never regrow the summary at the expense of the task being continued.
+    summary = clipText(summary, 1);
+    tail = minimumTail;
     retainedCurrent = fitCurrentRequest(
       originalCurrent!,
-      currentBudget,
+      recentBudget,
       ctx,
       'summarize-middle',
+      false,
+      request =>
+        fits(
+          compose(
+            summary,
+            mergeRetained(tail, required, current?.index, request),
+          ),
+        ),
     );
-    tail = withCurrent([], current?.index, retainedCurrent);
-    candidate = makeCandidate();
+    tail = mergeRetained(tail, required, current?.index, retainedCurrent);
   }
-
-  candidate = [
-    ctx.createMessage(
-      { role: 'user', content: candidate[0].content as string },
-      'checkpoint',
-    ),
-    ...candidate.slice(1),
-  ];
+  const candidate = compose(summary, tail);
+  candidate[systems.length] = ctx.createMessage(
+    { role: 'user', content: checkpointPrefix + summary },
+    'checkpoint',
+  );
   const inputTokens = helpers.measureCandidate(candidate, true);
   if (
     inputTokens > targetInputTokens ||
     !(await helpers.isValidMessages(candidate))
-  ) {
-    throw targetError(
-      'The replacement history cannot fit the target while preserving the current task and valid tool exchanges.',
-    );
-  }
+  )
+    throw fitFailure();
   return {
     messages: candidate,
-    checkpoint: await helpers.createCheckpoint(candidate, 0, 1),
+    checkpoint: await helpers.createCheckpoint(candidate, systems.length, 1),
     measurement: { inputTokens, source: 'estimated' },
   };
 }
 
-/** Retain complete recent turns without making any claim about their token cost. */
+/** Retain a valid recent suffix without making a numeric size claim. */
 async function countOnlyCompaction(
   options: DefaultOptions,
   ctx: CompactionStrategyContext,
   helpers: Helpers,
 ): Promise<CompactionStrategyResult> {
   const { messages, checkpoint } = options;
-  const conversation = messages
-    .map((message, index) => ({ message, index }))
-    .filter(
-      ({ index }) =>
-        checkpoint == null ||
-        index < checkpoint.startIndex ||
-        index >= checkpoint.startIndex + checkpoint.messageCount,
-    );
+  const { conversation, systems, previousCheckpoint } = splitHistory(options);
+  const current = conversation.find(
+    ({ index }) => index === ctx.currentUserMessageIndex,
+  );
+  const required = getRequiredEntries(
+    conversation,
+    current?.index,
+    options.keepCurrentTurn,
+  );
   let start = Math.max(
     0,
     conversation.length - (options.keepRecentMessages ?? 10),
   );
-  const currentPosition = conversation.findIndex(
-    ({ index }) => index === ctx.currentUserMessageIndex,
+  let tail = mergeRetained(
+    conversation.slice(start),
+    required,
+    current?.index,
+    current?.message as UserModelMessage | undefined,
   );
-  if (currentPosition >= 0) start = Math.min(start, currentPosition);
-
-  // Count is a preference: preserve the entire current turn and expand to include
-  // any originating tool calls or approval exchanges needed by its suffix.
   while (
     start > 0 &&
-    !(await helpers.isValidMessages(
-      conversation.slice(start).map(({ message }) => message),
-    ))
+    !(await helpers.isValidMessages([
+      ...systems,
+      ...tail.map(({ message }) => message),
+    ]))
   ) {
     ctx.abortSignal?.throwIfAborted();
-    start--;
+    tail = mergeRetained(
+      conversation.slice(--start),
+      required,
+      current?.index,
+      current?.message as UserModelMessage | undefined,
+    );
   }
-  const older = conversation.slice(0, start);
+  const retainedIndexes = new Set(tail.map(({ index }) => index));
+  const older = conversation.filter(({ index }) => !retainedIndexes.has(index));
   if (older.length === 0 && (checkpoint == null || ctx.reason !== 'manual')) {
     return { messages: [...messages], checkpoint };
   }
-
-  if (older.some(({ message }) => hasCustomContent(message))) {
-    throw new CompactionError({
-      code: 'MEASUREMENT_UNAVAILABLE',
-      message:
-        'The default summarizer cannot replace opaque custom parts. Supply a custom compaction strategy.',
-    });
-  }
-  if (ctx.summarize == null || options.summarize == null) {
-    throw new CompactionError({
-      code: 'SUMMARY_REQUIRED',
-      message: 'This history needs summarization. Supply the summarize option.',
-    });
-  }
+  if (ctx.summarize == null || options.summarize == null)
+    throw summaryRequired();
   const prompt = prepareSummaryPrompt(
     older.map(entry => ({
       ...entry,
       message: shortenToolResults(
         entry.message,
         options.maxToolResultCharacters ?? 2_000,
+        ctx,
       ),
     })),
-    checkpoint == null
-      ? []
-      : messages.slice(
-          checkpoint.startIndex,
-          checkpoint.startIndex + checkpoint.messageCount,
-        ),
+    previousCheckpoint,
     options.summarize,
     ctx,
   );
   const summary = await ctx.summarize(prompt);
   ctx.abortSignal?.throwIfAborted();
   const candidate = [
+    ...systems,
     ctx.createMessage(
       { role: 'user', content: checkpointPrefix + summary.text },
       'checkpoint',
     ),
-    ...conversation.slice(start).map(({ message }) => message),
+    ...tail.map(({ message }) => message),
   ];
   return {
     messages: candidate,
-    checkpoint: await helpers.createCheckpoint(candidate, 0, 1),
+    checkpoint: await helpers.createCheckpoint(candidate, systems.length, 1),
   };
+}
+
+function inCheckpoint(
+  index: number,
+  checkpoint: CompactionCheckpoint | undefined,
+): boolean {
+  return (
+    checkpoint != null &&
+    index >= checkpoint.startIndex &&
+    index < checkpoint.startIndex + checkpoint.messageCount
+  );
+}
+
+function splitHistory(options: DefaultOptions) {
+  const entries = options.messages
+    .map((message, index) => ({ message, index }))
+    .filter(({ index }) => !inCheckpoint(index, options.checkpoint));
+  return {
+    systems: entries
+      .filter(({ message }) => message.role === 'system')
+      .map(({ message }) => message),
+    conversation: entries.filter(({ message }) => message.role !== 'system'),
+    previousCheckpoint:
+      options.checkpoint == null
+        ? []
+        : options.messages.slice(
+            options.checkpoint.startIndex,
+            options.checkpoint.startIndex + options.checkpoint.messageCount,
+          ),
+  };
+}
+
+function getRequiredEntries(
+  entries: IndexedMessage[],
+  currentIndex: number | undefined,
+  keepCurrentTurn: boolean | undefined,
+) {
+  const required = new Set(
+    entries
+      .filter(
+        ({ index, message }) =>
+          hasNativeContent(message) ||
+          (keepCurrentTurn === true &&
+            currentIndex != null &&
+            index > currentIndex),
+      )
+      .map(({ index }) => index),
+  );
+  if (required.size === 0) return [];
+
+  // Native state can share a message with a call, result or approval. Retain
+  // the connected exchange in either direction without keeping unrelated steps.
+  const dependencies = new Map<number, Set<number>>();
+  const calls = new Map<string, number>();
+  const approvals = new Map<string, number>();
+  const link = (index: number, dependency: number | undefined) => {
+    if (dependency == null) return;
+    for (const [from, to] of [
+      [index, dependency],
+      [dependency, index],
+    ]) {
+      const linked = dependencies.get(from) ?? new Set<number>();
+      linked.add(to);
+      dependencies.set(from, linked);
+    }
+  };
+  for (const { index, message } of entries) {
+    if (typeof message.content === 'string') continue;
+    for (const part of message.content) {
+      switch (part.type) {
+        case 'tool-call':
+          calls.set(part.toolCallId, index);
+          break;
+        case 'tool-result':
+          link(index, calls.get(part.toolCallId));
+          break;
+        case 'tool-approval-request':
+          link(index, calls.get(part.toolCallId));
+          approvals.set(part.approvalId, index);
+          break;
+        case 'tool-approval-response':
+          link(index, approvals.get(part.approvalId));
+          break;
+      }
+    }
+  }
+  const pending = [...required];
+  for (let position = 0; position < pending.length; position++) {
+    for (const index of dependencies.get(pending[position]) ?? []) {
+      if (required.has(index)) continue;
+      required.add(index);
+      pending.push(index);
+    }
+  }
+  return entries.filter(({ index }) => required.has(index));
+}
+
+function mergeRetained(
+  entries: IndexedMessage[],
+  required: IndexedMessage[],
+  currentIndex: number | undefined,
+  current: UserModelMessage | undefined,
+) {
+  const merged = new Map(entries.map(entry => [entry.index, entry]));
+  for (const entry of required) merged.set(entry.index, entry);
+  return withCurrent(
+    [...merged.values()].sort((a, b) => a.index - b.index),
+    currentIndex,
+    current,
+  );
+}
+
+function unsupportedContent() {
+  return new CompactionError({
+    code: 'UNSUPPORTED_CONTENT',
+    message:
+      'Native or custom provider content cannot be preserved within this compaction. Supply a custom strategy.',
+  });
+}
+
+function summaryRequired() {
+  return new CompactionError({
+    code: 'SUMMARY_REQUIRED',
+    message: 'This history needs summarization. Supply the summarize option.',
+  });
 }
 
 function targetError(message: string) {
@@ -469,9 +562,10 @@ function fitString(
 function shortenToolResults(
   message: ModelMessage,
   maxCharacters: number,
+  ctx: CompactionStrategyContext,
 ): ModelMessage {
   if (
-    hasOpaqueProviderOptions(message) ||
+    hasNativeContent(message) ||
     typeof message.content === 'string' ||
     (message.role !== 'assistant' && message.role !== 'tool')
   )
@@ -480,7 +574,10 @@ function shortenToolResults(
     ...message,
     content: message.content.map(part =>
       part.type === 'tool-result'
-        ? { ...part, output: shortenToolOutput(part.output, maxCharacters) }
+        ? {
+            ...part,
+            output: shortenToolOutput(part.output, maxCharacters, ctx),
+          }
         : part,
     ),
   } as ModelMessage;
@@ -489,6 +586,7 @@ function shortenToolResults(
 function shortenToolOutput(
   output: ToolResultOutput,
   maxCharacters: number,
+  ctx: CompactionStrategyContext,
 ): ToolResultOutput {
   switch (output.type) {
     case 'text':
@@ -506,23 +604,26 @@ function shortenToolOutput(
           };
     }
     case 'content': {
-      const textCount = output.value.filter(
-        part => part.type === 'text',
-      ).length;
+      const partBudget = Math.floor(
+        maxCharacters / Math.max(1, output.value.length),
+      );
       return {
         ...output,
-        value: output.value.map(part =>
-          part.type === 'text'
-            ? {
-                ...part,
-                text: clipText(
-                  part.text,
-                  Math.floor(maxCharacters / textCount),
-                  0.5,
-                ),
-              }
-            : part,
-        ),
+        value: output.value
+          .map(part =>
+            part.type === 'text'
+              ? { ...part, text: clipText(part.text, partBudget, 0.5) }
+              : part.type === 'custom'
+                ? part
+                : mediaOmissionPart(
+                    part,
+                    clipText(
+                      `[Attachment omitted: ${renderOutput({ type: 'content', value: [part] }, 500, ctx)}]`,
+                      partBudget,
+                    ),
+                  ),
+          )
+          .filter(part => part.type !== 'text' || part.text.length > 0),
       };
     }
     default:
@@ -530,49 +631,59 @@ function shortenToolOutput(
   }
 }
 
-function hasCustomContent(message: ModelMessage): boolean {
+// Media options describe the removed media payload and must not follow it onto
+// text parts; unrelated application metadata remains attached to the omission.
+function mediaOmissionPart(part: object, text: string) {
+  const mediaFields = new Set([
+    'type',
+    'data',
+    'image',
+    'url',
+    'fileId',
+    'providerReference',
+    'mediaType',
+    'filename',
+    'providerOptions',
+  ]);
+  return {
+    ...Object.fromEntries(
+      Object.entries(part).filter(([key]) => !mediaFields.has(key)),
+    ),
+    type: 'text' as const,
+    text,
+  };
+}
+
+/** Recognize native representations by their documented part discriminators. */
+function hasNativeContent(message: ModelMessage): boolean {
   return (
-    hasOpaqueProviderOptions(message) ||
-    (typeof message.content !== 'string' &&
-      message.content.some(
-        part =>
-          part.type === 'custom' ||
-          (part.type === 'tool-result' &&
-            part.output.type === 'content' &&
-            part.output.value.some(value => value.type === 'custom')),
-      ))
+    typeof message.content !== 'string' &&
+    message.content.some(
+      part =>
+        part.type === 'custom' ||
+        (message.role === 'assistant' &&
+          part.type === 'text' &&
+          part.providerOptions?.anthropic?.type === 'compaction') ||
+        (part.type === 'tool-result' &&
+          // Assistant-role results are provider-managed and may contain opaque
+          // state even when their output uses the ordinary JSON representation.
+          (message.role === 'assistant' || hasNativeToolOutput(part.output))),
+    )
   );
 }
 
-function hasOpaqueProviderOptions(message: ModelMessage): boolean {
-  const seen = new Set<object>();
-  const hasOpaque = (value: unknown): boolean => {
-    if (value == null || typeof value !== 'object') return false;
-    if (seen.has(value)) return true;
-    seen.add(value);
-    const opaque = Object.entries(value).some(
-      ([key, child]) =>
-        (/encrypted|redacted|compaction/i.test(key) && child != null) ||
-        hasOpaque(child),
-    );
-    seen.delete(value);
-    return opaque;
-  };
-  if (hasOpaque(message.providerOptions)) return true;
-  if (typeof message.content === 'string') return false;
-  return message.content.some(
-    part =>
-      hasOpaque('providerOptions' in part ? part.providerOptions : undefined) ||
-      (part.type === 'tool-result' &&
-        (hasOpaque(
-          'providerOptions' in part.output
-            ? part.output.providerOptions
-            : undefined,
-        ) ||
-          (part.output.type === 'content' &&
-            part.output.value.some(value =>
-              hasOpaque(value.providerOptions),
-            )))),
+function hasNativeToolOutput(output: ToolResultOutput): boolean {
+  if (output.type === 'content') {
+    return output.value.some(value => value.type === 'custom');
+  }
+  return (
+    output.type === 'json' &&
+    output.value != null &&
+    typeof output.value === 'object' &&
+    !Array.isArray(output.value) &&
+    'type' in output.value &&
+    (output.value.type === 'encrypted_code_execution_result' ||
+      output.value.type === 'advisor_redacted_result')
   );
 }
 
@@ -603,6 +714,8 @@ async function selectRecent(
   recentBudget: number,
   ctx: CompactionStrategyContext,
   helpers: Helpers,
+  required: IndexedMessage[],
+  opaqueIndexes: Set<number>,
 ): Promise<IndexedMessage[]> {
   const preferredStart = Math.max(0, entries.length - keepRecentMessages);
   // Move the boundary back first when the preferred suffix starts inside an exchange.
@@ -610,7 +723,7 @@ async function selectRecent(
   while (
     start > 0 &&
     !(await helpers.isValidMessages(
-      withCurrent(entries.slice(start), currentIndex, current).map(
+      mergeRetained(entries.slice(start), required, currentIndex, current).map(
         entry => entry.message,
       ),
     ))
@@ -620,16 +733,25 @@ async function selectRecent(
   }
   for (; start <= entries.length; start++) {
     ctx.abortSignal?.throwIfAborted();
-    const candidate = withCurrent(entries.slice(start), currentIndex, current);
+    const candidate = mergeRetained(
+      entries.slice(start),
+      required,
+      currentIndex,
+      current,
+    );
     const messages = candidate.map(entry => entry.message);
+    const recent = candidate
+      .filter(({ index }) => !opaqueIndexes.has(index))
+      .map(({ message }) => message);
     if (
-      ctx.countTokens(messages) <= recentBudget &&
+      ctx.countTokens(recent) <= recentBudget &&
       (await helpers.isValidMessages(messages))
     )
       return candidate;
   }
+  if (opaqueIndexes.size > 0) throw unsupportedContent();
   throw targetError(
-    'The retained current request cannot fit a valid recent-history window.',
+    'The retained current request and required messages cannot fit a valid recent-history window.',
   );
 }
 
@@ -639,16 +761,18 @@ function fitCurrentRequest(
   ctx: CompactionStrategyContext,
   policy: DefaultOptions['oversizedUserMessage'],
   minimum = false,
+  fitsWithContext?: (message: UserModelMessage) => boolean,
 ): UserModelMessage {
-  if (!minimum && ctx.countTokens([message]) <= budget) return message;
+  const fits = (candidate: UserModelMessage) =>
+    ctx.countTokens([candidate]) <= budget &&
+    (fitsWithContext?.(candidate) ?? true);
+  if (!minimum && fits(message)) return message;
   if (policy === 'error')
     throw targetError(
       'The current user request exceeds the retained recent-content budget.',
     );
   let working = message;
   const attachments = new WeakMap<object, string>();
-  const fits = (candidate: UserModelMessage) =>
-    ctx.countTokens([candidate]) <= budget;
   const minimumText = (value: UserModelMessage) =>
     clipUserText(value, 13, attachments);
 
@@ -664,13 +788,7 @@ function fitCurrentRequest(
       ctx.abortSignal?.throwIfAborted();
       const description = describeMedia(part, ctx);
       const text = `[Attachment omitted: ${description}]`;
-      if (part.type === 'file') {
-        const { data: _data, ...metadata } = part;
-        content[index] = { ...metadata, type: 'text', text };
-      } else {
-        const { image: _image, ...metadata } = part;
-        content[index] = { ...metadata, type: 'text', text };
-      }
+      content[index] = mediaOmissionPart(part, text);
       attachments.set(content[index], description);
       working = { ...message, content: [...content] };
       if (!minimum && fits(minimumText(working))) break;
@@ -736,35 +854,37 @@ function clipUserText(
   let marked = false;
   return {
     ...message,
-    content: message.content.map(part => {
-      if (part.type !== 'text') return part;
-      const description = attachments.get(part);
-      if (description != null) {
-        return {
-          ...part,
-          text:
-            maxCharacters < 30
-              ? '[Attachment omitted]'
-              : `[Attachment omitted: ${clipText(description, maxCharacters - 22)}]`,
-        };
-      }
-      if (total <= maxCharacters) return part;
-      const start = offset;
-      offset += part.text.length;
-      if (offset <= leading || start >= trailingStart) return part;
-      const prefix = safeSlice(
-        part.text,
-        0,
-        Math.min(part.text.length, Math.max(0, leading - start)),
-      );
-      const suffix = safeSlice(
-        part.text,
-        Math.min(part.text.length, Math.max(0, trailingStart - start)),
-      );
-      const annotation = marked ? '' : marker;
-      marked = true;
-      return { ...part, text: prefix + annotation + suffix };
-    }),
+    content: message.content
+      .map(part => {
+        if (part.type !== 'text') return part;
+        const description = attachments.get(part);
+        if (description != null) {
+          return {
+            ...part,
+            text:
+              maxCharacters < 30
+                ? '[Attachment omitted]'
+                : `[Attachment omitted: ${clipText(description, maxCharacters - 22)}]`,
+          };
+        }
+        if (total <= maxCharacters) return part;
+        const start = offset;
+        offset += part.text.length;
+        if (offset <= leading || start >= trailingStart) return part;
+        const prefix = safeSlice(
+          part.text,
+          0,
+          Math.min(part.text.length, Math.max(0, leading - start)),
+        );
+        const suffix = safeSlice(
+          part.text,
+          Math.min(part.text.length, Math.max(0, trailingStart - start)),
+        );
+        const annotation = marked ? '' : marker;
+        marked = true;
+        return { ...part, text: prefix + annotation + suffix };
+      })
+      .filter(part => part.type !== 'text' || part.text.length > 0),
   };
 }
 
@@ -792,8 +912,16 @@ function prepareSummaryPrompt(
   const transcript = conversation
     .map(({ index, message }) => {
       ctx.abortSignal?.throwIfAborted();
-      return `[Message ${index}]\n${renderMessage(message, summaryMessageCharacterLimit, ctx)}`;
+      const rendered = renderMessage(
+        message,
+        summaryMessageCharacterLimit,
+        ctx,
+      );
+      return rendered.length === 0
+        ? undefined
+        : `[Message ${index}]\n${rendered}`;
     })
+    .filter(value => value != null)
     .join('\n\n');
   if (summarize.maxInputTokens === undefined) {
     return { system: summarySystem, messages: makeMessages(transcript) };
@@ -836,17 +964,19 @@ function renderMessage(
   limit: number,
   ctx: CompactionStrategyContext,
 ): string {
+  if (hasNativeContent(message)) throw unsupportedContent();
   if (typeof message.content === 'string')
     return `${message.role}: ${clipText(message.content, limit)}`;
   const content = message.content
     .map(part => {
       switch (part.type) {
         case 'text':
-        case 'reasoning':
           return clipText(part.text, limit);
+        case 'reasoning':
+        case 'reasoning-file':
+          return undefined;
         case 'image':
         case 'file':
-        case 'reasoning-file':
           return `[${describeMedia(part, ctx)}]`;
         case 'tool-call':
           return `Tool call ${part.toolName} (${part.toolCallId}): ${renderJSON(part.input, limit)}`;
@@ -857,11 +987,14 @@ function renderMessage(
         case 'tool-approval-response':
           return `Tool approval response (${part.approvalId}): ${part.approved ? 'approved' : 'denied'}`;
         case 'custom':
-          return '[Opaque provider content omitted]';
+          throw unsupportedContent();
       }
     })
+    .filter(value => value != null && value.length > 0)
     .join('\n');
-  return `${message.role}: ${clipText(content, limit)}`;
+  return content.length === 0
+    ? ''
+    : `${message.role}: ${clipText(content, limit)}`;
 }
 
 function renderOutput(

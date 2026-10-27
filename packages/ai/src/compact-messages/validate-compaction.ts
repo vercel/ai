@@ -1,4 +1,8 @@
-import { safeValidateTypes, type ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  safeValidateTypes,
+  type ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { modelMessageSchema } from '../prompt/message';
 import { z } from '../util/zod';
 import { CompactionError } from './compaction-error';
@@ -13,13 +17,19 @@ export function serializeMessages(messages: readonly ModelMessage[]): string {
         content,
         providerOptions,
       })),
-      (_key, value) => {
-        if (value instanceof ArrayBuffer)
-          return Array.from(new Uint8Array(value));
-        if (ArrayBuffer.isView(value)) {
-          return Array.from(
-            new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-          );
+      function (key, value) {
+        // Inspect the original value: Buffer.toJSON() runs before the replacer.
+        const original = this[key];
+        if (original instanceof ArrayBuffer || ArrayBuffer.isView(original)) {
+          const bytes =
+            original instanceof ArrayBuffer
+              ? new Uint8Array(original)
+              : new Uint8Array(
+                  original.buffer,
+                  original.byteOffset,
+                  original.byteLength,
+                );
+          return { type: 'binary', data: convertUint8ArrayToBase64(bytes) };
         }
         if (
           value != null &&
@@ -104,6 +114,14 @@ export async function isValidMessages(
   });
   if (!validation.success) return false;
 
+  return hasValidToolExchanges(messages, allowedPendingToolCalls);
+}
+
+/** Check boundaries of already validated messages without revalidating their payloads. */
+export function hasValidToolExchanges(
+  messages: readonly ModelMessage[],
+  allowedPendingToolCalls?: ReadonlyMap<string, string>,
+): boolean {
   const calls = new Map<
     string,
     { toolName: string; providerExecuted: boolean }

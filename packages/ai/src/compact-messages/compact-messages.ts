@@ -10,6 +10,7 @@ import type {
 import {
   createCheckpoint,
   getPendingToolCalls,
+  hasValidToolExchanges,
   isValidMessages,
   serializeMessages,
   validateCheckpoint,
@@ -64,6 +65,12 @@ export async function compactMessages(
       return Math.ceil(count);
     };
     const original = serializeMessages(messages);
+    // Capture immutable semantics before calling application code. The callback
+    // contract is read-only, but object-identity caches must not trust mutations.
+    const originalMessages =
+      typeof options.strategy === 'function'
+        ? new Set(messages.map(message => serializeMessages([message])))
+        : undefined;
     let summarized = false;
     const measureCandidate = (
       candidate: readonly ModelMessage[],
@@ -87,8 +94,11 @@ export async function compactMessages(
       return Math.ceil(estimated + excess);
     };
     const recordUsage = async (reported: LanguageModelUsage) => {
+      const captured = snapshotUsage(reported);
       usage =
-        usage === undefined ? reported : addLanguageModelUsage(usage, reported);
+        usage === undefined
+          ? captured
+          : snapshotUsage(addLanguageModelUsage(usage, captured));
       await options.onUsage?.(reported);
     };
     const createMessage: CompactionStrategyContext['createMessage'] = (
@@ -159,8 +169,15 @@ export async function compactMessages(
               });
               // A completed call remains billable even when cancellation or validation
               // prevents accepting its result.
-              if (result.usage !== undefined) await recordUsage(result.usage);
+              if (result?.usage !== undefined) await recordUsage(result.usage);
               abortSignal?.throwIfAborted();
+              if (result?.finishReason !== 'stop') {
+                throw new CompactionError({
+                  code: 'SUMMARY_INCOMPLETE',
+                  message:
+                    'Summary execution must complete with finishReason "stop".',
+                });
+              }
               if (
                 typeof result.text !== 'string' ||
                 result.text.trim().length === 0
@@ -182,7 +199,8 @@ export async function compactMessages(
         : await defaultCompaction(options, strategyContext, {
             measureCandidate,
             createCheckpoint,
-            isValidMessages: isValidReplacement,
+            isValidMessages: candidate =>
+              hasValidToolExchanges(candidate, originalPendingToolCalls),
           });
     abortSignal?.throwIfAborted();
     if (result == null || !(await isValidReplacement(result.messages))) {
@@ -273,17 +291,15 @@ export async function compactMessages(
     // A slice/reordering of existing messages cannot discard a known
     // underestimate by supplying a smaller estimate. For a rewritten custom
     // representation, its explicit next-request measurement is first-class.
-    const originalMessages = new Set(
-      messages.map(message => serializeMessages([message])),
-    );
-    const onlyRetainedMessages = result.messages.every(message =>
-      originalMessages.has(serializeMessages([message])),
-    );
     if (
       typeof options.strategy === 'function' &&
       measurement === 'estimated' &&
       inputTokensAfter !== undefined &&
-      (result.measurement === undefined || onlyRetainedMessages)
+      (result.measurement === undefined ||
+        !compacted ||
+        result.messages.every(message =>
+          originalMessages!.has(serializeMessages([message])),
+        ))
     ) {
       try {
         inputTokensAfter = Math.max(
@@ -325,6 +341,65 @@ export async function compactMessages(
       error.usage = usage;
     throw error;
   }
+}
+
+/** Detach reported usage before application callbacks can mutate it. */
+function snapshotUsage(reported: LanguageModelUsage): LanguageModelUsage {
+  const isObject = (value: unknown) =>
+    value != null && typeof value === 'object' && !Array.isArray(value);
+  if (
+    !isObject(reported) ||
+    !isObject(reported.inputTokenDetails) ||
+    !isObject(reported.outputTokenDetails)
+  ) {
+    throw new CompactionError({
+      code: 'INVALID_OPTIONS',
+      message:
+        'Reported usage must include inputTokenDetails and outputTokenDetails objects.',
+    });
+  }
+  const captured: LanguageModelUsage = {
+    inputTokens: reported.inputTokens,
+    inputTokenDetails: {
+      noCacheTokens: reported.inputTokenDetails.noCacheTokens,
+      cacheReadTokens: reported.inputTokenDetails.cacheReadTokens,
+      cacheWriteTokens: reported.inputTokenDetails.cacheWriteTokens,
+    },
+    outputTokens: reported.outputTokens,
+    outputTokenDetails: {
+      textTokens: reported.outputTokenDetails.textTokens,
+      reasoningTokens: reported.outputTokenDetails.reasoningTokens,
+    },
+    totalTokens: reported.totalTokens,
+  };
+  const counts = {
+    inputTokens: captured.inputTokens,
+    outputTokens: captured.outputTokens,
+    totalTokens: captured.totalTokens,
+    ...captured.inputTokenDetails,
+    ...captured.outputTokenDetails,
+  };
+  for (const [name, count] of Object.entries(counts)) {
+    if (count !== undefined) validateCount(count, `usage.${name}`);
+  }
+  if (reported.raw !== undefined) {
+    if (!isObject(reported.raw)) {
+      throw new CompactionError({
+        code: 'INVALID_OPTIONS',
+        message: 'usage.raw must be an object when supplied.',
+      });
+    }
+    try {
+      captured.raw = structuredClone(reported.raw);
+    } catch (cause) {
+      throw new CompactionError({
+        code: 'INVALID_OPTIONS',
+        message: 'usage.raw must contain cloneable provider usage data.',
+        cause,
+      });
+    }
+  }
+  return captured;
 }
 
 function validateCount(value: number, name: string, positive = false): void {
@@ -400,6 +475,7 @@ function validateOptions(options: CompactMessagesOptions): void {
   if (typeof strategy === 'function') {
     for (const key of [
       'keepRecentMessages',
+      'keepCurrentTurn',
       'maxRecentTokens',
       'maxToolResultCharacters',
       'oversizedUserMessage',
@@ -407,6 +483,12 @@ function validateOptions(options: CompactMessagesOptions): void {
       if (options[key] !== undefined)
         invalid(`${key} cannot be combined with a custom strategy.`);
     }
+  }
+  if (
+    options.keepCurrentTurn !== undefined &&
+    typeof options.keepCurrentTurn !== 'boolean'
+  ) {
+    invalid('keepCurrentTurn must be a boolean.');
   }
   for (const key of [
     'maxRecentTokens',

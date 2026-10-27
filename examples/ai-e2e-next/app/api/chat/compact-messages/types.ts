@@ -9,7 +9,7 @@ export type CompactionChatMessage = UIMessage<
   never,
   {
     compaction: {
-      status: 'running' | 'complete';
+      status: 'running' | 'complete' | 'skipped';
       beforeMessages: number;
       afterMessages?: number;
     };

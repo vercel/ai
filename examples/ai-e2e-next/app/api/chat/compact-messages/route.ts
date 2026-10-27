@@ -6,7 +6,6 @@ import {
   createUIMessageStreamResponse,
   generateText,
   isStepCount,
-  pruneMessages,
   tool,
   ToolLoopAgent,
   toUIMessageStream,
@@ -67,6 +66,7 @@ export async function POST(req: Request) {
           const eventId = `compaction-${stepNumber}`;
           log('Compaction starting', {
             messageCount: messages.length,
+            reason: 'The model context reached the 8-message demo threshold.',
           });
           writer.write({
             type: 'data-compaction',
@@ -76,12 +76,13 @@ export async function POST(req: Request) {
 
           const compacted = await compactMessages({
             strategy: 'summarize',
-            // Remove prior scratch reasoning before summarizing the conversation.
-            messages: pruneMessages({ messages, reasoning: 'all' }),
+            messages,
             checkpoint,
             keepRecentMessages: 2,
+            // Allow earlier completed tool exchanges in this turn to be summarized.
+            keepCurrentTurn: false,
             summarize: {
-              maxOutputTokens: 1_024,
+              maxOutputTokens: 4_096,
               execute: ({ system, ...input }) =>
                 generateText({
                   model,
@@ -94,15 +95,21 @@ export async function POST(req: Request) {
           });
           history = compacted.messages;
           checkpoint = compacted.checkpoint;
-          log('Compaction complete: new history', {
-            messages: history,
-            checkpoint,
-          });
+          log(
+            compacted.compacted
+              ? 'Compaction complete: new history'
+              : 'Compaction skipped: history unchanged',
+            {
+              compacted: compacted.compacted,
+              messages: history,
+              checkpoint,
+            },
+          );
           writer.write({
             type: 'data-compaction',
             id: eventId,
             data: {
-              status: 'complete',
+              status: compacted.compacted ? 'complete' : 'skipped',
               beforeMessages: messages.length,
               afterMessages: history.length,
             },

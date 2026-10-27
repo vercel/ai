@@ -11,10 +11,12 @@ export type CompactionErrorCode =
   | 'FIXED_CONTEXT_TOO_LARGE'
   | 'SUMMARY_REQUIRED'
   | 'SUMMARY_INPUT_TOO_LARGE'
+  | 'SUMMARY_INCOMPLETE'
   | 'EMPTY_SUMMARY'
   | 'INVALID_MESSAGES'
   | 'TARGET_NOT_REACHED'
-  | 'MEASUREMENT_UNAVAILABLE';
+  | 'MEASUREMENT_UNAVAILABLE'
+  | 'UNSUPPORTED_CONTENT';
 
 export class CompactionError extends AISDKError {
   private readonly [symbol] = true;

@@ -74,6 +74,11 @@ export default function CompactionChat() {
                       ) : (
                         <>Compaction interrupted.</>
                       )
+                    ) : part.data.status === 'skipped' ? (
+                      <>
+                        Compaction skipped: context was unchanged (
+                        {part.data.afterMessages} messages).
+                      </>
                     ) : (
                       <>
                         Context compacted: {part.data.beforeMessages} →{' '}
