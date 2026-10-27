@@ -58,3 +58,13 @@ These packages have special-case `README.md` files and do not follow this format
 - `provider`
 
 Never consult these files for which `README.md` conventions to follow.
+
+## Verification
+
+Run the verification script to ensure all `README.md` files adhere to the conventions:
+
+```bash
+./tools/verify-package-readme-files.mjs
+```
+
+If this script shows errors, you must address them, then rerun the verification script until it passes.
