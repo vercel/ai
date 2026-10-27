@@ -150,7 +150,188 @@ const annotationSchema = () =>
 const messageContentPartSchema = () =>
   z.object({
     type: z.string(),
+<<<<<<< HEAD
     text: z.string().optional(),
+=======
+  }),
+]);
+
+const messageContentPartSchema = z.object({
+  type: z.string(),
+  text: z.string().optional(),
+  logprobs: z.array(z.any()).optional(),
+  annotations: z.array(annotationSchema).optional(),
+});
+
+const reasoningSummaryPartSchema = z.object({
+  type: z.string(),
+  text: z.string(),
+});
+
+const toolCallSchema = z.object({
+  name: z.string().optional(),
+  arguments: z.string().optional(),
+  input: z.string().optional(),
+  call_id: z.string().optional(),
+  id: z.string(),
+  status: z.string(),
+  action: z.any().optional(),
+});
+
+const mcpCallSchema = z.object({
+  name: z.string().optional(),
+  arguments: z.string().optional(),
+  output: z.string().optional(),
+  error: z.string().optional(),
+  id: z.string(),
+  status: z.string(),
+  server_label: z.string().optional(),
+});
+
+const outputItemSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('web_search_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('x_search_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('code_interpreter_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('code_execution_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('view_image_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('view_x_video_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('file_search_call'),
+    id: z.string(),
+    status: z.string(),
+    queries: z.array(z.string()).optional(),
+    results: z
+      .array(
+        z.object({
+          file_id: z.string(),
+          filename: z.string(),
+          score: z.number(),
+          text: z.string(),
+        }),
+      )
+      .nullish(),
+  }),
+  z.object({
+    type: z.literal('custom_tool_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('mcp_call'),
+    ...mcpCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('message'),
+    role: z.string(),
+    content: z.array(messageContentPartSchema),
+    id: z.string(),
+    status: z.string(),
+  }),
+  z.object({
+    type: z.literal('function_call'),
+    name: z.string(),
+    arguments: z.string(),
+    call_id: z.string(),
+    id: z.string(),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    summary: z.array(reasoningSummaryPartSchema),
+    content: z
+      .array(z.object({ type: z.string(), text: z.string() }))
+      .nullish(),
+    status: z.string(),
+    encrypted_content: z.string().nullish(),
+  }),
+]);
+
+export const xaiResponsesUsageSchema = z.object({
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  total_tokens: z.number().optional(),
+  input_tokens_details: z
+    .object({
+      cached_tokens: z.number().optional(),
+    })
+    .optional(),
+  output_tokens_details: z
+    .object({
+      reasoning_tokens: z.number().optional(),
+    })
+    .optional(),
+  num_sources_used: z.number().optional(),
+  num_server_side_tools_used: z.number().optional(),
+  cost_in_usd_ticks: z.number().nullish(),
+});
+
+export const xaiResponsesResponseSchema = z.object({
+  id: z.string().nullish(),
+  created_at: z.number().nullish(),
+  model: z.string().nullish(),
+  object: z.literal('response'),
+  output: z.array(outputItemSchema),
+  usage: xaiResponsesUsageSchema.nullish(),
+  status: z.string(),
+});
+
+export const xaiResponsesChunkSchema = z.union([
+  z.object({
+    type: z.literal('response.created'),
+    response: xaiResponsesResponseSchema.partial({ usage: true, status: true }),
+  }),
+  z.object({
+    type: z.literal('response.in_progress'),
+    response: xaiResponsesResponseSchema.partial({ usage: true, status: true }),
+  }),
+  z.object({
+    type: z.literal('response.output_item.added'),
+    item: outputItemSchema,
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.output_item.done'),
+    item: outputItemSchema,
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.content_part.added'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    part: messageContentPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.content_part.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    part: messageContentPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.output_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+>>>>>>> a0b0a0cb47 (feat(provider/xai): expose costInUsdTicks in responses provider metadata (#13371))
     logprobs: z.array(z.any()).optional(),
     annotations: z.array(annotationSchema()).optional(),
   });
