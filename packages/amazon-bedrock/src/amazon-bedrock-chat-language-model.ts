@@ -1797,11 +1797,9 @@ function resolveAmazonBedrockReasoningConfig({
   if (isAnthropicModel) {
     const capabilities = getModelCapabilities(modelId);
 
-    if (reasoning === 'none' && !capabilities.rejectsThinkingDisabled) {
+    if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
     } else if (capabilities.supportsAdaptiveThinking) {
-      // Models that always use adaptive thinking cannot disable it, so
-      // reasoning 'none' maps to the lowest effort.
       const effort =
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({

@@ -9286,29 +9286,6 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should map reasoning "none" to the lowest effort for Anthropic models that cannot disable thinking', async () => {
-      server.urls[opus55AnthropicGenerateUrl].response = simpleResponse;
-
-      const result = await opus55AnthropicModel.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'adaptive',
-      });
-      expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('low');
-      expect(result.warnings).toContainEqual({
-        type: 'compatibility',
-        feature: 'reasoning',
-        details:
-          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
-      });
-    });
-
     it('should send reasoning "none" directly for OpenAI models with unknown reasoning efforts', async () => {
       server.urls[usOpenaiGenerateUrl].response = simpleResponse;
       const usOpenaiModel = new AmazonBedrockChatLanguageModel(
