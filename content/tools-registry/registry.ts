@@ -751,4 +751,36 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'netnest-fundamentals',
+    name: 'NetNest Design Fundamentals',
+    description:
+      'Fundamentals and filing events for companies that file with the SEC: revenue, net income, EPS, cash flow, balance sheet and more, annual, quarterly and trailing twelve months, plus 8-K, Form 4 and 13D/G events. Every value carries its source filing (form, accession number and SEC link). Try it with the demo key.',
+    packageName: 'netnest-fundamentals',
+    tags: ['finance', 'sec', 'fundamentals', 'data'],
+    apiKeyEnvName: 'NETNEST_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add netnest-fundamentals',
+      npm: 'npm install netnest-fundamentals',
+      yarn: 'yarn add netnest-fundamentals',
+      bun: 'bun add netnest-fundamentals',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { netnestTools } from 'netnest-fundamentals/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: netnestTools({ apiKey: process.env.NETNEST_API_KEY }),
+  stopWhen: isStepCount(5),
+  prompt:
+    "What was Apple's revenue in its latest fiscal year, and which SEC filing reports it?",
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/NetNest-Design/netnest-fundamentals/tree/main/js#vercel-ai-sdk',
+    apiKeyUrl: 'https://api.netnestdesign.com/docs',
+    websiteUrl: 'https://api.netnestdesign.com/docs',
+    npmUrl: 'https://www.npmjs.com/package/netnest-fundamentals',
+  },
 ];
