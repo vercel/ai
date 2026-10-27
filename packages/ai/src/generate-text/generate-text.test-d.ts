@@ -590,16 +590,9 @@ describe('generateText types', () => {
               writeFile: async () => {},
               writeBinaryFile: async () => {},
               writeTextFile: async () => {},
-              spawn: async () => ({
-                stdout: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                stderr: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                wait: async () => ({ exitCode: 0 }),
-                kill: async () => {},
-              }),
+              spawn: async () => {
+                throw new Error('spawn is not implemented in this mock.');
+              },
             },
           }),
         });
