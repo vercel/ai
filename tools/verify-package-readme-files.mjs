@@ -117,20 +117,32 @@ function validateReadme({ file, source }) {
   }
 
   if (h1Headings[0] != null && setupHeading != null) {
-    const descriptionLines = lines.slice(
-      h1Headings[0].lineIndex + 1,
-      setupHeading.lineIndex,
-    );
-    const hasDescription = descriptionLines.some(line => {
-      const trimmedLine = line.trim();
-      return (
-        trimmedLine.length > 0 &&
-        !/^->\s+\*\*Note\*\*:/i.test(trimmedLine)
-      );
+    const introductionParagraphs = getParagraphs({
+      endLineIndex: setupHeading.lineIndex,
+      lines,
+      startLineIndex: h1Headings[0].lineIndex + 1,
     });
+    const [descriptionParagraph, optionalNoteParagraph] =
+      introductionParagraphs;
+    const hasDescription =
+      descriptionParagraph != null &&
+      descriptionParagraph.trim().length > 0 &&
+      !isOptionalNoteParagraph(descriptionParagraph);
+    const hasOnlyDescriptionAndOptionalNote =
+      introductionParagraphs.length === 1 ||
+      (introductionParagraphs.length === 2 &&
+        isOptionalNoteParagraph(optionalNoteParagraph ?? ''));
 
     if (!hasDescription) {
-      errors.push('must include a short description after the H1');
+      errors.push('must include a description paragraph after the H1');
+    } else if (countSentences({ text: descriptionParagraph }) > 2) {
+      errors.push('the description paragraph must contain 1–2 sentences');
+    }
+
+    if (!hasOnlyDescriptionAndOptionalNote) {
+      errors.push(
+        'before "## Setup", must contain only the description paragraph and an optional note paragraph',
+      );
     }
   }
 
@@ -343,6 +355,46 @@ function hasNonCodeContent({
     }
   }
   return false;
+}
+
+function getParagraphs({ lines, startLineIndex, endLineIndex }) {
+  const paragraphs = [];
+  let paragraphLines = [];
+
+  for (let lineIndex = startLineIndex; lineIndex < endLineIndex; lineIndex++) {
+    const line = lines[lineIndex]?.trim() ?? '';
+    if (line.length === 0) {
+      if (paragraphLines.length > 0) {
+        paragraphs.push(paragraphLines.join(' '));
+        paragraphLines = [];
+      }
+    } else {
+      paragraphLines.push(line);
+    }
+  }
+
+  if (paragraphLines.length > 0) {
+    paragraphs.push(paragraphLines.join(' '));
+  }
+
+  return paragraphs;
+}
+
+function isOptionalNoteParagraph(text) {
+  return /^(?:->\s+\*\*Note\*\*:|>\s+\*\*(?:Note|Deploying to Vercel\?)\*\*)/i.test(
+    text,
+  );
+}
+
+function countSentences({ text }) {
+  const normalizedText = text
+    .replace(/`[^`]*`/g, '')
+    .replace(/\]\([^)]*\)/g, ']')
+    .replace(/\b(?:e\.g|i\.e)\./gi, '');
+  const sentenceEndings =
+    normalizedText.match(/[.!?](?=(?:["')\]]*)?(?:\s|$))/g) ?? [];
+
+  return Math.max(1, sentenceEndings.length);
 }
 
 function isInsideCodeBlock({ codeBlocks, lineIndex }) {
