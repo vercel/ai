@@ -13,6 +13,7 @@ export {
   CodeModeAbortedError,
   CodeModeBridgeLimitError,
   CodeModeConcurrencyError,
+  CodeModeCpuTimeoutError,
   CodeModeDetachedBridgeRequestError,
   CodeModeError,
   CodeModeProtocolError,

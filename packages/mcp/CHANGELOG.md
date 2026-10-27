@@ -1,5 +1,108 @@
 # @ai-sdk/mcp
 
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 2.0.84
+
+### Patch Changes
+
+- 84d7880: Fix MCP tool output conversion throwing on primitive or nullish results returned by output schemas or execute wrappers. Convert strings to text and normalize undefined outputs to JSON null while preserving MCP content conversion.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 2.0.81
+
+### Patch Changes
+
+- 060d419: fix(mcp): wait for the `server/discover` response over Streamable HTTP instead of falling back to `initialize` after 1 s. A modern-only server that answered discovery slowly, for example on a cold start, was downgraded to the legacy handshake and rejected it. stdio and custom transports keep the 1 s probe timeout.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 2.0.80
+
+### Patch Changes
+
+- 2b8185e: fix(mcp): bind OAuth client credentials to their authorization server, including when the selected server is approved by `validateAuthorizationServerURL`
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 2.0.79
+
+### Patch Changes
+
+- fce9210: fix(mcp): support shell option in stdio transport and extract response body in SSE transport errors
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.76
+
+### Patch Changes
+
+- 5111e98: BREAKING (experimental): managed event subscriptions now require `ttlMs: number | null` instead of accepting an `expiresAt` creation input. Use a duration in milliseconds or `null` to watch until stopped. Subscription responses retain `expiresAt` as the backend-calculated deadline. Update managed event adapters together with callers.
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 2.0.74
+
+### Patch Changes
+
+- 2913c8c: fix(mcp): allow MCP tools to execute without options
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 2.0.73
 
 ### Patch Changes

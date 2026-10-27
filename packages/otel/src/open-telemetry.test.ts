@@ -534,6 +534,52 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('agentSpanName', () => {
+    describe.each(['ai.generateText', 'ai.generateObject'])(
+      '%s',
+      operationId => {
+        it.each([
+          {
+            agentSpanName: undefined,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'modelId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent my-agent',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: undefined,
+            expectedName: 'invoke_agent gpt-4',
+          },
+        ])(
+          'uses $expectedName with agentSpanName=$agentSpanName and functionId=$functionId',
+          ({ agentSpanName, functionId, expectedName }) => {
+            integration = new OpenTelemetry({ tracer, agentSpanName });
+
+            integration.onStart!(makeOnStartEvent({ operationId, functionId }));
+
+            expect(tracer.spans[0].name).toBe(expectedName);
+            expect(getStartSpanAttributes(tracer, 0)).toMatchObject({
+              'gen_ai.operation.name': 'invoke_agent',
+              'gen_ai.request.model': 'gpt-4',
+            });
+            expect(getStartSpanAttributes(tracer, 0)['gen_ai.agent.name']).toBe(
+              functionId,
+            );
+          },
+        );
+      },
+    );
+  });
+
   describe('onStepStart', () => {
     it('creates agent_step and chat spans with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2195,6 +2241,56 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records error on step and chat spans and keeps the root span open for onEnd', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+
+      integration.onStepError!({
+        ...makeStepStartEvent(),
+        error: new Error('step failed'),
+      } as any);
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": false,
+            "name": "invoke_agent gpt-4",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+        ]
+      `);
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(tracer.spans[0].ended).toBe(true);
+      expect(tracer.spans[0].status).toBeUndefined();
+    });
+  });
+
   describe('onError', () => {
     it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());
@@ -3256,6 +3352,10 @@ describe('OpenTelemetry integration with decide', () => {
             answers: { refund: { type: 'boolean', probability: 0.9 } },
             usage: { inputTokens: 12, outputTokens: 2 },
             warnings: [],
+            response: {
+              id: 'test-response-id',
+              modelId: 'mock-model-resolved',
+            },
           }),
         }),
         state: { message: 'Please refund me' },
@@ -3300,6 +3400,8 @@ describe('OpenTelemetry integration with decide', () => {
             "name": "decide mock-model-id",
             "runtimeAttributes": {
               "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "mock-model-resolved",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },

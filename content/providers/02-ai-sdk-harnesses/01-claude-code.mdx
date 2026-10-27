@@ -105,9 +105,22 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
+  MCP configuration, such as a project `.mcp.json` or user settings.
 - `maxTurns`: maximum internal turns before yielding.
+<<<<<<< HEAD
 - `settings`: invocation-specific native Claude Code settings, provided as an
   inline JSON object or a settings file path inside the sandbox.
+=======
+- `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
+  is exceeded, the query stops and the turn ends with an error.
+- `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
+  to an `AskUserQuestion` question before the question fails. Defaults to the
+  Claude Code default.
+- `excludeDynamicSections`: moves per-session sections (working directory,
+  memory, git status) out of the Claude Code system prompt into the first user
+  message, so the system prompt can be cached across sessions.
+>>>>>>> origin/main
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
@@ -127,6 +140,11 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
+- `onDebug`: callback for bridge connection lifecycle events:
+  `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
+  means the connection is closed for good, so a host that caches idle sessions
+  can detach and reattach before sending the next prompt. The `cause` of a
+  failed reconnect can contain connection details, so avoid logging it as is.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret

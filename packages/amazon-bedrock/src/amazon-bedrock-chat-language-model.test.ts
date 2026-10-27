@@ -1,5 +1,6 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import type {
+  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -159,7 +160,19 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const futureAnthropicModelId = 'us.anthropic.claude-opus-6-v1:0';
+const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureAnthropicModelId)}/converse`;
+
+const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
+const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
+
+const sonnet55AnthropicModelId = 'us.anthropic.claude-sonnet-5-5';
+const sonnet55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(sonnet55AnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [sonnet55AnthropicGenerateUrl]: {},
+  [futureAnthropicGenerateUrl]: {},
+  [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
   [streamUrl]: {
     response: {
@@ -733,6 +746,48 @@ describe('request URL', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/amazon-bedrock-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.contentBlockDelta?.delta?.text != null,
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls[streamUrl].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `${JSON.stringify(event)}\n`),
+          ...(withError
+            ? [
+                `${JSON.stringify({ modelStreamErrorException: { message: 'Stream failed' } })}\n`,
+              ]
+            : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   beforeEach(() => {
     mockOptions = {
       success: true,
@@ -3127,6 +3182,28 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it.each(['portable', 'explicit'] as const)(
+    'should omit disabled thinking on Claude 3 in streams for %s configuration',
+    async source => {
+      setupMockEventStreamHandler();
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        ...(source === 'portable'
+          ? { reasoning: 'none' as const }
+          : {
+              providerOptions: {
+                amazonBedrock: { reasoningConfig: { type: 'disabled' } },
+              },
+            }),
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.additionalModelRequestFields).toBeUndefined();
+      expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+    },
+  );
 
   it('should transform reasoningConfig to thinking in stream requests', async () => {
     setupMockEventStreamHandler();
@@ -8978,7 +9055,9 @@ describe('doGenerate', () => {
         });
 
         const body = await server.calls[0].requestBodyJson;
-        expect(body.additionalModelRequestFields?.thinking).toBeUndefined();
+        expect(body.additionalModelRequestFields?.thinking).toEqual({
+          type: 'disabled',
+        });
         expect(
           body.additionalModelRequestFields?.output_config,
         ).toBeUndefined();
@@ -9056,9 +9135,9 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
       expect(
         requestBody.additionalModelRequestFields?.output_config,
       ).toBeUndefined();
@@ -9165,7 +9244,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should handle reasoning "none" for Anthropic models', async () => {
+    it('should omit thinking for reasoning "none" on Claude 3', async () => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
 
       await model.doGenerate({
@@ -9194,3 +9273,296 @@ describe('doGenerate', () => {
     });
   });
 });
+
+describe('disabled Anthropic thinking', () => {
+  async function request(
+    reasoningModelId: string,
+    options: Omit<LanguageModelV4CallOptions, 'prompt'>,
+  ) {
+    const url = `${baseUrl}/model/${encodeURIComponent(reasoningModelId)}/converse`;
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { role: 'assistant', content: [{ text: 'Hello' }] },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+    const reasoningModel = new AmazonBedrockChatLanguageModel(
+      reasoningModelId,
+      {
+        baseUrl: () => baseUrl,
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+    const { warnings } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+      ...options,
+    });
+    return { body: await server.calls[0].requestBodyJson, warnings };
+  }
+
+  it.each([
+    [anthropicModelId, 'explicit', false],
+    [legacyAnthropic37ModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'explicit', true],
+  ] as const)(
+    'should serialize disabled thinking only when supported by %s (%s configuration)',
+    async (reasoningModelId, source, supportsThinking) => {
+      const { body, warnings } = await request(
+        reasoningModelId,
+        source === 'portable'
+          ? { reasoning: 'none' }
+          : {
+              providerOptions: {
+                amazonBedrock: { reasoningConfig: { type: 'disabled' } },
+              },
+            },
+      );
+
+      expect(body.additionalModelRequestFields).toEqual(
+        supportsThinking ? { thinking: { type: 'disabled' } } : undefined,
+      );
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it('should preserve request settings without adding a thinking budget or display', async () => {
+    const { body, warnings } = await request(newerAnthropicModelId, {
+      maxOutputTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+      providerOptions: {
+        amazonBedrock: {
+          reasoningConfig: {
+            type: 'disabled',
+            budgetTokens: 3000,
+            display: 'summarized',
+          },
+          additionalModelRequestFields: { custom: 'preserved' },
+        },
+      },
+    });
+
+    expect(body.additionalModelRequestFields).toEqual({
+      custom: 'preserved',
+      thinking: { type: 'disabled' },
+    });
+    expect(body.inferenceConfig).toEqual({
+      maxTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([
+    [sonnet55AnthropicModelId, 'between_tools'],
+    [opus55AnthropicModelId, 'adaptive'],
+  ] as const)(
+    'should use supported thinking for portable none on %s',
+    async (reasoningModelId, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        reasoning: 'none',
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: thinkingType },
+        ...(thinkingType === 'adaptive' && {
+          output_config: { effort: 'low' },
+        }),
+      });
+      expect(warnings).toEqual(
+        thinkingType === 'adaptive'
+          ? [
+              expect.objectContaining({
+                type: 'compatibility',
+                feature: 'reasoning',
+              }),
+            ]
+          : [],
+      );
+    },
+  );
+
+  it.each([
+    [sonnet55AnthropicModelId, 'between_tools'],
+    [opus55AnthropicModelId, 'adaptive'],
+  ] as const)(
+    'should warn and preserve effort when explicit disabled thinking is rejected on %s',
+    async (reasoningModelId, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: { type: 'disabled', maxReasoningEffort: 'high' },
+            additionalModelRequestFields: {
+              thinking: { type: 'disabled', budget_tokens: 3000 },
+            },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: thinkingType },
+        output_config: { effort: 'high' },
+      });
+      expect(warnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.amazonBedrock.reasoningConfig',
+        }),
+      ]);
+    },
+  );
+
+  it.each([
+    ['raw', undefined, 'max'],
+    ['typed over raw', 'high', 'high'],
+  ] as const)(
+    'should preserve %s effort when portable none falls back to adaptive thinking',
+    async (_source, typedEffort, expectedEffort) => {
+      const { body, warnings } = await request(opus55AnthropicModelId, {
+        reasoning: 'none',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig:
+              typedEffort != null
+                ? { maxReasoningEffort: typedEffort }
+                : undefined,
+            additionalModelRequestFields: { output_config: { effort: 'max' } },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: 'adaptive' },
+        output_config: { effort: expectedEffort },
+      });
+      expect(warnings).toEqual([
+        expect.objectContaining({
+          type: 'compatibility',
+          feature: 'reasoning',
+        }),
+      ]);
+    },
+  );
+
+  it.each([
+    [opus5AnthropicModelId, 'typed', 'xhigh', 'disabled'],
+    [sonnet55AnthropicModelId, 'raw', 'max', 'between_tools'],
+  ] as const)(
+    'should lower incompatible %s %s %s effort for %s thinking',
+    async (reasoningModelId, source, effort, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'disabled',
+              ...(source === 'typed' && { maxReasoningEffort: effort }),
+            },
+            additionalModelRequestFields: {
+              custom: 'preserved',
+              output_config: {
+                custom: 'also-preserved',
+                ...(source === 'raw' && { effort }),
+              },
+            },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        custom: 'preserved',
+        thinking: { type: thinkingType },
+        output_config: { custom: 'also-preserved', effort: 'high' },
+      });
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature:
+            source === 'typed'
+              ? 'providerOptions.amazonBedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.amazonBedrock.additionalModelRequestFields.output_config.effort',
+        }),
+      );
+    },
+  );
+});
+
+it.each([
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, false],
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, true],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, false],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, true],
+] as const)(
+  'should use JSON instructions for future Claude model %s at %s (with tools: %s)',
+  async (modelId, generateUrl, withTools) => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+    const model = new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: { type: 'object', properties: { name: { type: 'string' } } },
+      },
+      tools: withTools
+        ? [
+            {
+              type: 'function',
+              name: 'lookup',
+              strict: true,
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
+            },
+          ]
+        : undefined,
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(body.system).toEqual(
+      expect.arrayContaining([
+        {
+          text: expect.stringContaining(
+            'You MUST answer with only a JSON object',
+          ),
+        },
+      ]),
+    );
+    if (withTools) {
+      expect(body.toolConfig.tools).toHaveLength(1);
+      expect(body.toolConfig.tools[0].toolSpec.name).toBe('lookup');
+      expect(body.toolConfig.tools[0].toolSpec.strict).toBeUndefined();
+    } else {
+      expect(body.toolConfig).toBeUndefined();
+    }
+    expect(result.content).toEqual([{ type: 'text', text: '{"name":"Test"}' }]);
+  },
+);

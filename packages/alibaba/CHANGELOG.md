@@ -1,5 +1,114 @@
 # @ai-sdk/alibaba
 
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 2.0.76
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.74
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 2.0.73
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- debdc6a: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 2.0.71
+
+### Patch Changes
+
+- 869601f: fix(openai-compatible, groq, alibaba): put reasoning before text in doGenerate
+
+## 2.0.70
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 2.0.66
+
+### Patch Changes
+
+- d74acd6: Select Wan video request protocols by version. Later Wan 2 minors retain the Wan 2.7 wire format, and future majors or unknown IDs use the current all-in-one media protocol instead of legacy size and reference fields.
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 2.0.65
 
 ### Patch Changes

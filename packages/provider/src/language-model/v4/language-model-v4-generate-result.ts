@@ -15,6 +15,16 @@ export type LanguageModelV4GenerateResult = {
   content: Array<LanguageModelV4Content>;
 
   /**
+   * Text to parse for structured JSON output when it differs from the
+   * concatenation of all text parts in `content` (e.g. drafts followed by a
+   * final answer). This does not replace or remove any generated content.
+   *
+   * When omitted, consumers concatenate all text parts. An empty string is
+   * an explicit selection and must not fall back to the other text parts.
+   */
+  structuredOutputText?: string;
+
+  /**
    * The finish reason.
    */
   finishReason: LanguageModelV4FinishReason;

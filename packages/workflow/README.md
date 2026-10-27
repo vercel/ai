@@ -1,11 +1,11 @@
-# @ai-sdk/workflow
+# Workflow
 
 WorkflowAgent is a class for building durable AI agents that can maintain state across workflow steps, call tools, and handle interruptions gracefully.
 
-## Installation
+## Setup
 
 ```bash
-npm install @ai-sdk/workflow ai workflow@5
+npm i @ai-sdk/workflow zod ai workflow@5
 ```
 
 ## Usage
@@ -42,46 +42,4 @@ console.log('Final messages:', result.messages);
 console.log('Steps:', result.steps);
 ```
 
-### Durable video generation
-
-`experimental_generateVideo` starts asynchronous video generation, suspends the
-workflow until a provider webhook arrives, and returns the provider's video
-data without downloading hosted URLs.
-
-```typescript
-import { experimental_generateVideo as generateVideo } from '@ai-sdk/workflow/video';
-
-export async function videoWorkflow(prompt: string) {
-  'use workflow';
-
-  const result = await generateVideo({
-    model: 'klingai/kling-v3.0-t2v',
-    prompt,
-  });
-
-  return result.videos;
-}
-```
-
-The workflow can persist, copy, or process each returned video URL in a
-separate step without serializing the video bytes through the workflow.
-
-## Features
-
-- **Streaming Support**: Stream responses in real-time
-- **Tool Calling**: Execute tools dynamically during conversation
-- **Context Management**: Pass context between steps
-- **Error Handling**: Robust error handling with callbacks
-- **Structured Output**: Parse structured outputs from LLM responses
-- **Step Callbacks**: Hook into each step of the agent loop
-- **Provider-Executed Tools**: Support for provider-executed tools
-- **Abort Support**: Cancel operations with AbortSignal
-- **Durable Video Generation**: Suspend on video webhooks without polling or automatically downloading hosted videos
-
-## API
-
-See the [AI SDK documentation](https://ai-sdk.dev/docs) for full API details.
-
-## License
-
-Apache-2.0
+See the [Workflow documentation](https://ai-sdk.dev/docs/agents/workflow-agent) for more information.

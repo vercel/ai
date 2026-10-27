@@ -1,5 +1,206 @@
 # ai
 
+## 7.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- c8e8866: Add `aiVersion` to telemetry events so tracing-channel subscribers and telemetry integrations can identify the emitting `ai` package version, including in bundled applications and applications with multiple SDK versions.
+- 1cf95c6: add experimental steering to generateText, streamText and ToolLoopAgent
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/gateway@4.0.127
+
+## 7.0.153
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/gateway@4.0.126
+
+## 7.0.152
+
+### Patch Changes
+
+- Updated dependencies [a706678]
+  - @ai-sdk/gateway@4.0.125
+
+## 7.0.151
+
+### Patch Changes
+
+- Updated dependencies [1bf6d85]
+  - @ai-sdk/gateway@4.0.124
+
+## 7.0.150
+
+### Patch Changes
+
+- 8e18d59: feat(ai): add experimental_streamSpeech
+
+  Streams speech audio from a string, or an array, iterable, or stream of text deltas and/or text parts (each with an optional `voice` and `providerOptions`) using speech models that implement the experimental `Experimental_StreamingSpeechModelV4` extension. Returns a single-consumer `audioStream` / `fullStream` plus `usage`, `warnings`, `responses`, and `providerMetadata` promises. Provider `error` parts are non-fatal and reported through `onError` (default `console.error`). A user abort or a cancel rejects the result promises immediately. Exports the `Experimental_SpeechTextPart`, `Experimental_SpeechStreamPart`, `Experimental_SpeechStreamUsage`, and `Experimental_StreamSpeechResult` types, adds an optional `cause` to `NoSpeechGeneratedError`, and adds `Experimental_MockStreamingSpeechModelV4` to `ai/test`.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/gateway@4.0.123
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 7.0.149
+
+### Patch Changes
+
+- 1727442: fix(ai): process only the first approval response per tool call, so repeated or conflicting responses in the final tool message no longer execute a tool twice or both execute and deny it
+- 0a5d0e7: Fix `toolChoice: 'none'` by forwarding it to the Hugging Face Responses API and rejecting tool calls before local execution in `generateText`, `streamText`, and `WorkflowAgent`. Streamed tool parts are withheld so client-side tools cannot act on them, and `repairToolCall` and `experimental_refineToolInput` are not invoked for rejected tool calls.
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+- Updated dependencies [101ce42]
+- Updated dependencies [e104368]
+- Updated dependencies [eb1f056]
+- Updated dependencies [10026d1]
+- Updated dependencies [5893e99]
+  - @ai-sdk/gateway@4.0.122
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 7.0.148
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [f1b550e]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/gateway@4.0.121
+
+## 7.0.147
+
+### Patch Changes
+
+- 66e74dc: fix(ai): preserve repaired tool names in streamed UI message parts
+- Updated dependencies [9bec2c3]
+  - @ai-sdk/gateway@4.0.120
+
+## 7.0.146
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 3785b2e: fix(ai): remove orphaned reasoning, including consecutive summary and reasoning-file parts, when pruning tool calls
+- ab8eb61: Fix optional tools adding an incorrect `undefined` member to tool call, result, error, denied output, and execution event types.
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/gateway@4.0.119
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 7.0.145
+
+### Patch Changes
+
+- Updated dependencies [1c47fee]
+  - @ai-sdk/gateway@4.0.118
+
+## 7.0.144
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+- 0ed59e2: Fix `streamText` return types for reusable options and `ReturnType` by moving low-memory streaming to `experimental_streamTextLowMemory`. Replace experimental `streamText({ experimental_lowMemory: true, ...options })` calls with `experimental_streamTextLowMemory(options)`.
+- Updated dependencies [60cc252]
+- Updated dependencies [6b7fb8f]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/gateway@4.0.117
+  - @ai-sdk/provider-utils@5.0.63
+
+## 7.0.143
+
+### Patch Changes
+
+- 8a5233b: Generate default chat IDs on first access so `useChat()` can prerender without reading a random value when the ID is not used during rendering.
+- 894e130: fix(ai): add `experimental_lowMemory: true` to `streamText` for single-consumer streaming without a replay buffer or retained final-content results, reducing memory retention.
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/gateway@4.0.116
+
+## 7.0.142
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+- Updated dependencies [5bdb816]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/gateway@4.0.115
+  - @ai-sdk/provider-utils@5.0.61
+
+## 7.0.141
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- Updated dependencies [2e89fa4]
+- Updated dependencies [b658e85]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/gateway@4.0.114
+
+## 7.0.140
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [42a2895]
+  - @ai-sdk/gateway@4.0.113
+
+## 7.0.139
+
+### Patch Changes
+
+- Updated dependencies [685667c]
+- Updated dependencies [bdbeba3]
+- Updated dependencies [ec2af7b]
+  - @ai-sdk/gateway@4.0.112
+
+## 7.0.138
+
+### Patch Changes
+
+- eab278a: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- 26d64e9: fix(ai): update tool outputs in the message containing the matching tool call
+- 75b3ea2: fix(ai): prevent duplicate message parts when resuming replayed streams
+- 69f4b82: fix(ai): prevent global type conflicts across SDK versions
+- e57803c: Add an optional shared citation representation to generated text and text-end stream events, separate from retrieved sources. Preserve citations in core result content and UI message text parts, including validation and persistence, without changing content or stream event discriminants.
+- 4c705d9: Fix validation of rounded choice probabilities in `experimental_decide`.
+- 5150d50: fix(ai): update streaming chat messages by stable ID
+- 9aef724: fix(workflow): report incomplete no-output model streams as errors
+- 7d0458b: fix(ai): reject approved tool calls without results before sending later context to providers
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/gateway@4.0.111
+
+## 7.0.137
+
+### Patch Changes
+
+- e27cc64: fix(ai): discard unrelated message state when reading resumed streams
+
 ## 7.0.136
 
 ### Patch Changes

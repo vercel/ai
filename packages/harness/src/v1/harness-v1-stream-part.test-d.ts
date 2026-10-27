@@ -69,7 +69,7 @@ test('tool variants reuse V4 primitives verbatim', () => {
   >();
   // The reverse direction must also hold on the V4-defined fields.
   expectTypeOf<
-    Omit<HPartByType<'tool-call'>, 'nativeName' | 'stepToolCallCount'>
+    Omit<HPartByType<'tool-call'>, 'nativeName'>
   >().toMatchTypeOf<LanguageModelV4ToolCall>();
 
   // tool-approval-request and tool-result are direct re-uses.

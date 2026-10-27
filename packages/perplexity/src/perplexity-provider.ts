@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type LanguageModelV4,
   type EmbeddingModelV4,
   type ProviderV4,
@@ -12,12 +13,17 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
+import { DecisionPerplexityModel } from './perplexity-decision-model';
+import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV4 {
+  /** Creates an experimental decision model using the Perplexity Decisions API. */
+  decisionModel(modelId: PerplexityDecisionModelId): DecisionModelV4;
+
   /**
    * Creates a Perplexity Agent API model or preset for text generation.
    */
@@ -110,6 +116,13 @@ export function createPerplexity(
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
+  provider.decisionModel = (modelId: PerplexityDecisionModelId) =>
+    new DecisionPerplexityModel(modelId, {
+      provider: 'perplexity.decision',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

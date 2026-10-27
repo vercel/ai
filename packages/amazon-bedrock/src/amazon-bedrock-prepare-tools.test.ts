@@ -151,6 +151,25 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it('should warn for unknown provider-defined tools on anthropic models', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.unknown_tool',
+            name: 'unknown_tool',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        { type: 'unsupported', feature: 'tool anthropic.unknown_tool' },
+      ]);
+    });
+
     it('should warn and filter out web_search_20250305 tool', async () => {
       const result = await prepareTools({
         tools: [
@@ -821,6 +840,8 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'us.anthropic.claude-opus-6-v1:0',
+      'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
       'us.anthropic.claude-opus-5',

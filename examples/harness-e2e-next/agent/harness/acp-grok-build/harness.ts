@@ -12,9 +12,9 @@ export const grokBuildACPHarness = createACP({
     return isRecord(metadata) && metadata.namespace === 'mcp';
   },
   source: {
-    type: 'npm-simple',
-    packageName: '@xai-official/grok',
-    packageVersion: '0.2.111',
+    type: 'install-command',
+    command:
+      'curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="$HOME/.local/bin" bash',
   },
   executable: 'grok',
   args: ['agent', 'stdio'],

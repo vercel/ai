@@ -1,5 +1,6 @@
 export * from './language-model-v4';
 export * from './language-model-v4-call-options';
+export * from './language-model-v4-citation';
 export * from './language-model-v4-content';
 export * from './language-model-v4-custom-content';
 export * from './language-model-v4-file';

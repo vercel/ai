@@ -39,6 +39,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     string,
     {
       text: string;
+      inputEncoding?: 'json' | 'text';
       index: number;
       toolName: string;
       dynamic?: boolean;
@@ -95,6 +96,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
 
     partialToolCalls[part.toolCallId] = {
       text: part.rawInput ?? '',
+      inputEncoding: part.inputEncoding,
       index,
       toolName:
         part.type === 'dynamic-tool' ? part.toolName : getStaticToolName(part),
@@ -143,6 +145,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   // A transport can replay a response from the beginning using the same ID.
   resetStateOnFirstMessageStart?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  let isFirstMessageStart = true;
+
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -225,6 +229,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   rawInput?: string;
+                  inputEncoding?: 'json' | 'text';
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
@@ -266,10 +271,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             if (part != null) {
               part.state = options.state;
+              anyPart.type = `tool-${options.toolName}`;
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
+              if (anyOptions.inputEncoding != null) {
+                anyPart.inputEncoding = anyOptions.inputEncoding;
+              } else {
+                delete anyPart.inputEncoding;
+              }
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -308,6 +319,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   ? { toolMetadata: options.toolMetadata }
                   : {}),
                 input: anyOptions.input,
+                ...(anyOptions.inputEncoding != null
+                  ? { inputEncoding: anyOptions.inputEncoding }
+                  : {}),
                 output: anyOptions.output,
                 rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
@@ -341,6 +355,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   rawInput?: string;
+                  inputEncoding?: 'json' | 'text';
                   providerMetadata?: ProviderMetadata;
                 }
               | {
@@ -382,6 +397,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
+              if (anyOptions.inputEncoding != null) {
+                anyPart.inputEncoding = anyOptions.inputEncoding;
+              } else {
+                delete anyPart.inputEncoding;
+              }
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -417,6 +437,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolCallId: options.toolCallId,
                 state: options.state,
                 input: anyOptions.input,
+                ...(anyOptions.inputEncoding != null
+                  ? { inputEncoding: anyOptions.inputEncoding }
+                  : {}),
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
                 preliminary: anyOptions.preliminary,
@@ -508,6 +531,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               }
               textPart.state = 'done';
+              if (chunk.citations != null) {
+                textPart.citations = chunk.citations;
+              }
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[chunk.id];
@@ -627,6 +653,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {
                 text: '',
+                inputEncoding: chunk.inputEncoding,
                 toolName: chunk.toolName,
                 index: toolInvocations.length,
                 dynamic: chunk.dynamic,
@@ -639,6 +666,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
+                  inputEncoding: chunk.inputEncoding,
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
@@ -650,6 +678,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
+                  inputEncoding: chunk.inputEncoding,
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
@@ -676,15 +705,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               partialToolCall.text += chunk.inputTextDelta;
 
-              const { value: partialArgs } = await parsePartialJson(
-                partialToolCall.text,
-              );
+              const partialArgs =
+                partialToolCall.inputEncoding === 'text'
+                  ? partialToolCall.text
+                  : (await parsePartialJson(partialToolCall.text)).value;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
+                  inputEncoding: partialToolCall.inputEncoding,
                   input: partialArgs,
                   rawInput: partialToolCall.text,
                   title: partialToolCall.title,
@@ -695,6 +726,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
+                  inputEncoding: partialToolCall.inputEncoding,
                   input: partialArgs,
                   rawInput: partialToolCall.text,
                   title: partialToolCall.title,
@@ -959,20 +991,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
-              if (
-                chunk.messageId != null &&
-                (resetStateOnFirstMessageStart ||
-                  (resetStateOnMessageIdChange &&
-                    chunk.messageId !== state.message.id))
-              ) {
-                // Start the separate response with empty parts and metadata.
-                // Reset the active-part maps too, so earlier chunks stay with
-                // the previous response. Keep the state object for its callers.
+              const shouldReset =
+                (resetStateOnFirstMessageStart && isFirstMessageStart) ||
+                (resetStateOnMessageIdChange &&
+                  chunk.messageId != null &&
+                  chunk.messageId !== state.message.id);
+              isFirstMessageStart = false;
+
+              if (shouldReset) {
+                // Rebuild a replay or separate response from empty state. Only
+                // reset a replay once: merged streams can emit more starts.
+                // Keep the state object for its callers and preserve the ID
+                // when the replay does not include one.
                 Object.assign(
                   state,
                   createStreamingUIMessageState({
                     lastMessage: undefined,
-                    messageId: chunk.messageId,
+                    messageId: chunk.messageId ?? state.message.id,
                   }),
                   { finishReason: undefined },
                 );
@@ -984,7 +1019,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               await updateMessageMetadata(chunk.messageMetadata);
 
-              if (chunk.messageId != null || chunk.messageMetadata != null) {
+              if (
+                shouldReset ||
+                chunk.messageId != null ||
+                chunk.messageMetadata != null
+              ) {
                 write({ updateStatus: false });
               }
               break;

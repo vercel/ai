@@ -35,6 +35,7 @@ it('infers answer kinds and literal options from inline questions', async () => 
         criteria: ['Low', 'High'],
       },
       refund: { type: 'boolean', instructions: 'Refund?' },
+      target: { type: 'box', instructions: 'The cat in the photo' },
     },
   });
   expectTypeOf(result.answers.topic.choice).toEqualTypeOf<
@@ -45,6 +46,10 @@ it('infers answer kinds and literal options from inline questions', async () => 
   >();
   expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
   expectTypeOf(result.answers.refund.probability).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.target).toEqualTypeOf<{
+    type: 'box';
+    box: { top: number; bottom: number; left: number; right: number };
+  }>();
   // @ts-expect-error No unknown question IDs.
   result.answers.missing;
   // @ts-expect-error Boolean answers are probabilities, not selected labels.
@@ -77,6 +82,10 @@ it('distributes over dynamic question types', () => {
     | { type: 'choice'; choice: string; probabilities?: Record<string, number> }
     | { type: 'score'; score: number; probabilities?: Record<string, number> }
     | { type: 'boolean'; probability: number }
+    | {
+        type: 'box';
+        box: { top: number; bottom: number; left: number; right: number };
+      }
   >();
 });
 
@@ -202,8 +211,41 @@ it('preserves literal Choice inference with public JSON instructions and criteri
   expectTypeOf<DecisionQuestion>().toEqualTypeOf<Experimental_DecisionModelV4Question>();
   expectTypeOf<
     Experimental_DecisionModelV4Question['instructions']
-  >().toEqualTypeOf<DecisionQuestionInput>();
+  >().toEqualTypeOf<DecisionQuestionInput | null | undefined>();
   const providerQuestion: Experimental_DecisionModelV4Question =
     reusableQuestions.department;
   expectTypeOf(providerQuestion).toExtend<DecisionQuestion>();
+});
+
+it('infers answers for criteria-only questions and still requires Box instructions', async () => {
+  const result = await decide({
+    model: new DecisionMockModelV4(),
+    state: 'message',
+    questions: {
+      department: {
+        type: 'choice',
+        criteria: { billing: 'Charges', support: null },
+      },
+      severity: {
+        type: 'score',
+        instructions: null,
+        criteria: ['Low', 'High'],
+      },
+      urgent: { type: 'boolean', criteria: { true: { severity: 'high' } } },
+    },
+  });
+  expectTypeOf(result.answers.department.choice).toEqualTypeOf<
+    'billing' | 'support'
+  >();
+  expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.urgent.probability).toEqualTypeOf<number>();
+  // @ts-expect-error Box has no criteria and still requires instructions.
+  const missing: DecisionQuestion = { type: 'box' };
+  // @ts-expect-error Box instructions cannot be null.
+  const nullInstructions: DecisionQuestion = {
+    type: 'box',
+    instructions: null,
+  };
+  void missing;
+  void nullInstructions;
 });

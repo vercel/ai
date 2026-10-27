@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
@@ -95,6 +96,9 @@ export type UIMessagePart<
  */
 export type TextUIPart = {
   type: 'text';
+
+  /** References supporting this text, separate from retrieved sources. */
+  citations?: Array<Citation>;
 
   /**
    * The text content.
@@ -304,6 +308,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
        * and later resumed.
        */
       rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -456,6 +462,8 @@ export type DynamicToolUIPart = {
        * and later resumed.
        */
       rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;

@@ -13,7 +13,10 @@ const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
   connects: [] as Array<
-    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+    (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
 }));
@@ -23,13 +26,22 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -67,7 +79,10 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       channelMocks.connects.push(connect);
@@ -77,6 +92,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       if (channelMocks.connectOnOpen) {
         await channelMocks.connects.at(-1)!({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
@@ -108,7 +124,6 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -208,7 +223,7 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
-  it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
+  it('ships bridge dependencies and installs them in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
@@ -219,11 +234,15 @@ describe('createDeepAgents', () => {
       '.harness-bootstrap/deepagents/package.json',
       '.harness-bootstrap/deepagents/pnpm-lock.yaml',
     ]);
-    const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain(
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    const packageManifest = bootstrap.files.find(file =>
+      file.path.endsWith('/package.json'),
     );
-    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
+    expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
+    const commands = bootstrap.commands.map(c => c.command);
+    expect(commands).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    ]);
+    expect(commands.join('\n')).not.toContain('github.com');
   });
 
   it('caches the bootstrap across calls', async () => {
@@ -276,6 +295,45 @@ describe('createDeepAgents', () => {
     expect(sentMessages.at(-1)).toMatchObject({
       type: 'start',
       model: 'agent-model',
+    });
+
+    await session.doDestroy();
+  });
+
+  it('passes inline images through the bridge prompt', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    } as unknown as Parameters<
+      ReturnType<typeof createDeepAgents>['doStart']
+    >[0]);
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this image.' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([1, 2, 3]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      prompt: [
+        { type: 'text', text: 'Describe this image.' },
+        { type: 'image', mediaType: 'image/png', data: 'AQID' },
+      ],
     });
 
     await session.doDestroy();

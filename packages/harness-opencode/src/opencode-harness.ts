@@ -4,6 +4,7 @@ import {
   HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
+  isHarnessV1BuiltinToolIncluded,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
@@ -11,9 +12,7 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
   type HarnessV1MintBridgeTokenCallback,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
@@ -30,25 +29,28 @@ import {
   classifyDiskLog,
   resolveSandboxCredentialEnvironment,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
+  extractHarnessPromptContent,
   markBridgeStarting,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeSkills,
   type SandboxChannelReconnectOptions,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
   tool,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession as SandboxSession,
@@ -77,6 +79,7 @@ import {
 import {
   outboundMessageSchema,
   type InboundMessage,
+  type OpenCodeBuiltinToolName,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
 import { VERSION } from './version';
@@ -242,7 +245,14 @@ const OPENCODE_BUILTIN_TOOLS = {
       metadata: optionalStringRecord,
     }),
   }),
-} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+} as const satisfies Record<
+  OpenCodeBuiltinToolName,
+  HarnessV1BuiltinTool<any, any>
+>;
+
+const OPENCODE_BUILTIN_TOOL_NAMES = Object.keys(
+  OPENCODE_BUILTIN_TOOLS,
+) as OpenCodeBuiltinToolName[];
 
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -275,25 +285,22 @@ export function createOpenCode(
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
+      validateBuiltinToolFiltering(startOpts.builtinToolFiltering);
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        sandboxId,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'opencode',
-          message:
-            'The OpenCode harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -436,26 +443,23 @@ export function createOpenCode(
 
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
+            portEndpointOverride: settings.portEndpoint,
             token: coords.token,
           });
           let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: ({ abortSignal }) =>
-              openWebSocket({
-                endpoint: attachEndpoint,
-                helloTimeoutMs: Math.min(timeoutMs, 5_000),
-                abortSignal,
-                onHello: supported => {
-                  supportsUserMessageResponses = supported;
-                },
-              }),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              webSocketConstructor: WebSocket,
+              onHello: hello => {
+                supportsUserMessageResponses =
+                  hello.capabilities?.experimental_userMessageResponses ===
+                  true;
+              },
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -508,7 +512,7 @@ export function createOpenCode(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
@@ -613,24 +617,25 @@ export function createOpenCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
       let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: ({ abortSignal }) =>
-          openWebSocket({
-            endpoint: bridgeEndpoint,
-            helloTimeoutMs: Math.min(timeoutMs, 5_000),
-            abortSignal,
-            onHello: supported => {
-              supportsUserMessageResponses = supported;
-            },
-          }),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+          onHello: hello => {
+            supportsUserMessageResponses =
+              hello.capabilities?.experimental_userMessageResponses === true;
+          },
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -672,203 +677,28 @@ export function createOpenCode(
   };
 }
 
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'opencode',
-    message:
-      'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
+function validateBuiltinToolFiltering(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): void {
+  if (toolFiltering == null) return;
+  const isActive = (toolName: 'write' | 'edit') =>
+    isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering });
+  if (isActive('write') !== isActive('edit')) {
     throw new HarnessCapabilityUnsupportedError({
       harnessId: 'opencode',
       message:
-        'The OpenCode harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'opencode',
-      message:
-        'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+        "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
     });
   }
 }
 
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'opencode',
-    message:
-      'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
-function openWebSocket({
-  endpoint,
-  helloTimeoutMs,
-  abortSignal,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  helloTimeoutMs: number;
-  abortSignal: AbortSignal;
-  onHello(supportsUserMessageResponses: boolean): void;
-}): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const abortReason = () =>
-      abortSignal.reason ?? new Error('WebSocket connection aborted');
-    if (abortSignal.aborted) {
-      reject(abortReason());
-      return;
-    }
-
-    const ws = new WebSocket(endpoint.url, {
-      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
-    });
-    let opened = false;
-    let receivedHello = false;
-    let settled = false;
-    let helloTimer: ReturnType<typeof setTimeout> | undefined;
-    let onAbort: (() => void) | undefined;
-    const cleanup = () => {
-      clearTimeout(helloTimer);
-      ws.off('open', onOpen);
-      ws.off('message', onMessage);
-      ws.off('close', onClose);
-      ws.off('error', onError);
-      if (onAbort != null) {
-        abortSignal.removeEventListener('abort', onAbort);
-      }
-    };
-    const settle = (error?: unknown) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      if (error == null) {
-        resolve(ws);
-      } else {
-        const suppressError = () => {};
-        const socketWithOnce = ws as WebSocket & {
-          once?: (event: string, listener: () => void) => void;
-        };
-        socketWithOnce.once?.('error', suppressError);
-        try {
-          ws.terminate();
-        } catch {
-          try {
-            ws.close();
-          } catch {
-            // best-effort
-          }
-        }
-        reject(error);
-      }
-    };
-    const tryResolve = () => {
-      if (opened && receivedHello) settle();
-    };
-    const onOpen = () => {
-      opened = true;
-      tryResolve();
-    };
-    const onMessage = (raw: unknown) => {
-      void (async () => {
-        const parsed = await safeParseJSON({
-          text: webSocketMessageToString(raw),
-        });
-        if (!parsed.success) return;
-        const value = parsed.value;
-        if (
-          typeof value !== 'object' ||
-          value == null ||
-          Array.isArray(value) ||
-          (value as { type?: unknown }).type !== 'bridge-hello'
-        ) {
-          return;
-        }
-        const capabilities = (
-          value as {
-            capabilities?: { experimental_userMessageResponses?: unknown };
-          }
-        ).capabilities;
-        onHello(capabilities?.experimental_userMessageResponses === true);
-        receivedHello = true;
-        tryResolve();
-      })();
-    };
-    const onClose = () =>
-      settle(new Error('OpenCode bridge closed before sending bridge-hello.'));
-    const onError = (err: Error) => {
-      settle(err);
-    };
-    onAbort = () => settle(abortReason());
-    ws.on('open', onOpen);
-    ws.on('message', onMessage);
-    ws.on('close', onClose);
-    ws.on('error', onError);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-    if (abortSignal.aborted) {
-      onAbort();
-      return;
-    }
-    helloTimer = setTimeout(
-      () =>
-        settle(
-          new Error(
-            `OpenCode bridge did not send bridge-hello within ${helloTimeoutMs}ms.`,
-          ),
-        ),
-      helloTimeoutMs,
-    );
-    helloTimer.unref?.();
-  });
-}
-
-function webSocketMessageToString(raw: unknown): string {
-  if (typeof raw === 'string') return raw;
-  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
-  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
-  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
-  if (ArrayBuffer.isView(raw)) {
-    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
-      'utf8',
-    );
-  }
-  return String(raw);
+function resolveInactiveBuiltinToolNames(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): OpenCodeBuiltinToolName[] | undefined {
+  if (toolFiltering == null) return undefined;
+  return OPENCODE_BUILTIN_TOOL_NAMES.filter(
+    toolName => !isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering }),
+  );
 }
 
 function createSession({
@@ -931,7 +761,10 @@ function createSession({
   let selectedModel: string | undefined;
   let activeTurn = false;
   let pendingTurnDrain: Promise<void> = Promise.resolve();
+  let abortedTurnDrain: Promise<void> = Promise.resolve();
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
+  const inactiveBuiltinToolNames =
+    resolveInactiveBuiltinToolNames(builtinToolFiltering);
 
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
@@ -1066,6 +899,7 @@ function createSession({
         new DOMException('Aborted', 'AbortError');
       isSettled = true;
       drainingAfterAbort = true;
+      abortedTurnDrain = turnDrain;
       userMessageSubmitter?.close(error);
       pendingReject!(error);
     };
@@ -1122,7 +956,7 @@ function createSession({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
-    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId
@@ -1140,7 +974,6 @@ function createSession({
     control: HarnessV1PromptControl;
     skillWriteResult: WriteSkillsResult;
   }> => {
-    await pendingTurnDrain;
     if (
       opts.responseFormat?.type === 'json' &&
       opts.responseFormat.schema == null
@@ -1173,13 +1006,14 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
+      await pendingTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(promptOpts);
       const turnModel = promptOpts.model ?? selectedModel;
       if (turnModel) selectedModel = turnModel;
       channel.send({
         type: 'start',
         operation: 'prompt',
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({ prompt: promptOpts.prompt }),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -1195,11 +1029,14 @@ function createSession({
         ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
+      rerunContinue = false;
       return control;
     },
     doContinueTurn: async continueOpts => {
+      await abortedTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(continueOpts);
       if (rerunContinue) {
+        rerunContinue = false;
         const turnModel = continueOpts.model ?? selectedModel;
         if (turnModel) selectedModel = turnModel;
         channel.send({
@@ -1248,6 +1085,7 @@ function createSession({
         provider,
         permissionMode,
         debug,
+        inactiveBuiltinToolNames,
         openCodeConfig,
         mcpServers,
         headers,
@@ -1422,6 +1260,7 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  inactiveBuiltinToolNames,
   openCodeConfig,
   mcpServers,
   headers,
@@ -1433,6 +1272,7 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  inactiveBuiltinToolNames: OpenCodeBuiltinToolName[] | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -1467,25 +1307,9 @@ async function runCompactOperation({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),
   });
   await done;
-}
-
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'opencode',
-        message: `The OpenCode harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

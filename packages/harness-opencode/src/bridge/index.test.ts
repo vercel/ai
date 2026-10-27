@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +34,21 @@ const relayMock = vi.hoisted(() => ({
   close: vi.fn(),
   port: 4097,
 }));
+const tempDirectories: string[] = [];
+const allBuiltinToolNames = [
+  'askUserQuestions',
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'glob',
+  'grep',
+  'ls',
+  'webfetch',
+  'skill',
+  'todowrite',
+  'agent',
+];
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: vi.fn(async (options: unknown) => {
@@ -50,7 +71,7 @@ vi.mock('./tool-relay', () => ({
 }));
 
 vi.mock('./opencode-path', () => ({
-  prependOpenCodeBinToPath: vi.fn(),
+  configureOpenCodePath: vi.fn(),
 }));
 
 function createUserMessages() {
@@ -77,7 +98,11 @@ function createUserMessages() {
   };
 }
 
-function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test'): string {
+  const bridgeStateDir = mkdtempSync(
+    path.join(tmpdir(), 'opencode-bridge-state-'),
+  );
+  tempDirectories.push(bridgeStateDir);
   process.argv.length = 0;
   process.argv.push(
     process.execPath,
@@ -85,15 +110,15 @@ function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
     '--workdir',
     workdir,
     '--bridge-state-dir',
-    `${workdir}-state`,
+    bridgeStateDir,
     '--bootstrap-dir',
     `${workdir}-bootstrap`,
   );
+  return bridgeStateDir;
 }
 
 describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
-  const tempDirectories: string[] = [];
 
   afterEach(() => {
     process.argv.length = 0;
@@ -260,6 +285,264 @@ describe('OpenCode bridge turn settlement', () => {
         }),
       }),
     );
+  });
+
+  it('submits inline image prompts as OpenCode file parts', async () => {
+    const promptAsync = vi.fn(async () => ({ data: {} }));
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync,
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(promptAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionID: 'session-1',
+        parts: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'file',
+            mime: 'image/png',
+            url: 'data:image/png;base64,iVBORw0KGgo=',
+          },
+        ],
+      }),
+    );
+  });
+
+  it.each([
+    {
+      filteringCase: 'all inactive',
+      inactiveBuiltinToolNames: allBuiltinToolNames,
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'deny',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+    {
+      filteringCase: 'write and edit active',
+      inactiveBuiltinToolNames: allBuiltinToolNames.filter(
+        toolName => toolName !== 'write' && toolName !== 'edit',
+      ),
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'ask',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+  ])(
+    'applies host-resolved inactive builtins to OpenCode permissions ($filteringCase)',
+    async ({ inactiveBuiltinToolNames, expectedPermissions }) => {
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        inactiveBuiltinToolNames,
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'end builtin filtering test turn',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      setBridgeArgv();
+
+      await import('./index');
+
+      expect(createOpencodeServerMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            permission: expect.objectContaining(expectedPermissions),
+          }),
+        }),
+      );
+    },
+  );
+
+  it('keeps large host tool schemas out of the inline OpenCode config', async () => {
+    const largeDescription = 'schema detail '.repeat(12_000);
+    const tools = [
+      {
+        name: 'lookup',
+        description: largeDescription,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: largeDescription },
+          },
+        },
+      },
+    ];
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Look up a value.',
+      tools,
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end host tool schema test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    const bridgeStateDir = setBridgeArgv();
+
+    await import('./index');
+
+    const config = createOpencodeServerMock.mock.calls[0]?.[0].config as Record<
+      string,
+      unknown
+    >;
+    const environment = (
+      config.mcp as {
+        'harness-tools': { environment: Record<string, string> };
+      }
+    )['harness-tools'].environment;
+    const schemasPath = environment.TOOL_SCHEMAS_PATH;
+    expect(environment).toEqual({
+      TOOL_SCHEMAS_PATH: path.join(bridgeStateDir, 'host-tool-schemas.json'),
+      TOOL_RELAY_URL: 'http://127.0.0.1:4097',
+    });
+    expect(environment).not.toHaveProperty('TOOL_SCHEMAS');
+    expect(
+      Buffer.byteLength(readFileSync(schemasPath, 'utf8')),
+    ).toBeGreaterThan(128 * 1024);
+    expect(JSON.parse(readFileSync(schemasPath, 'utf8'))).toEqual(tools);
+    expect(Buffer.byteLength(JSON.stringify(config))).toBeLessThan(128 * 1024);
   });
 
   it('allows external directory access in allow-all mode', async () => {
@@ -705,13 +988,19 @@ describe('OpenCode bridge turn settlement', () => {
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
-    const start = (prompt: string | undefined) => ({
+    const inactiveBuiltinToolNames = ['read'];
+    const noInactiveBuiltinToolNames: string[] = [];
+    const start = (
+      prompt: string | undefined,
+      inactiveNames: string[] = inactiveBuiltinToolNames,
+    ) => ({
       type: 'start',
       operation: 'prompt',
       prompt: 'Continue.',
       tools: [{ name: 'lookup' }],
       openCodeConfig:
         prompt === undefined ? undefined : { agent: { build: { prompt } } },
+      inactiveBuiltinToolNames: inactiveNames,
     });
 
     sdkMock.client = client;
@@ -730,7 +1019,10 @@ describe('OpenCode bridge turn settlement', () => {
     expect(firstServer.close).not.toHaveBeenCalled();
     expect(relayMock.close).not.toHaveBeenCalled();
 
-    await bridgeMock.onStart!(start('Prompt B'), turn());
+    await bridgeMock.onStart!(
+      start('Prompt B', noInactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
     expect(createOpencodeServerMock.mock.calls[1]?.[0]).toMatchObject({
@@ -778,6 +1070,45 @@ describe('OpenCode bridge turn settlement', () => {
       config: expect.not.objectContaining({ agent: expect.anything() }),
     });
     expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.every(
+        ([request]) =>
+          (request as { sessionID?: string }).sessionID === 'session-1',
+      ),
+    ).toBe(true);
+
+    const activeReadServer = (await createOpencodeServerMock.mock.results[4]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+    expect(activeReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[5]?.[0]).toMatchObject({
+      config: { permission: { read: 'allow' } },
+    });
+
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+
+    const deniedReadServer = (await createOpencodeServerMock.mock.results[5]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(
+      start(undefined, inactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(7);
+    expect(deniedReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[6]?.[0]).toMatchObject({
+      config: { permission: { read: 'deny' } },
+    });
     expect(
       client.session.promptAsync.mock.calls.every(
         ([request]) =>

@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -538,18 +540,22 @@ function timingFromXaiEvent(event: XaiStreamingTranscriptionEvent) {
   };
 }
 
-const xaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-        speaker: z.number().nullish(),
-      }),
-    )
-    .nullish(),
-});
+const xaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            speaker: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

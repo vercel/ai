@@ -48,6 +48,9 @@ const state = vi.hoisted(() => ({
   requestToolResult: undefined as
     | ((input: Record<string, unknown>) => Promise<Record<string, unknown>>)
     | undefined,
+  requestToolApproval: undefined as
+    | ((approvalId: string) => Promise<{ approved: boolean; reason?: string }>)
+    | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
@@ -135,7 +138,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
   },
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
     onStop,
@@ -171,7 +175,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         emitError: (input: unknown) => state.emitError?.(input),
         requestToolResult: async (input: Record<string, unknown>) =>
           state.requestToolResult?.(input) ?? { output: {} },
-        requestToolApproval: async () => ({ approved: true }),
+        requestToolApproval: async (approvalId: string) =>
+          state.requestToolApproval?.(approvalId) ?? { approved: true },
       });
     }
   },
@@ -192,6 +197,7 @@ describe('Claude Code bridge configuration', () => {
     state.turnAbortController = undefined;
     state.emitError = undefined;
     state.requestToolResult = undefined;
+    state.requestToolApproval = undefined;
     state.onStop = undefined;
     state.firstTurn = true;
     state.additionalTurns = [];
@@ -490,6 +496,75 @@ describe('Claude Code bridge configuration', () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
+  });
+
+  test('passes strict MCP config and the budget limit to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
+  test('omits strict MCP config and the budget limit when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('strictMcpConfig');
+    expect(options).not.toHaveProperty('maxBudgetUsd');
+  });
+
+  test('passes the question timeout and excludeDynamicSections to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ matcher: string; timeout?: number }> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).toMatchObject({
+      matcher: 'AskUserQuestion',
+      timeout: 600,
+    });
+    expect(options.systemPrompt).toMatchObject({
+      type: 'preset',
+      preset: 'claude_code',
+      excludeDynamicSections: true,
+    });
+  });
+
+  test('rounds the question timeout up to whole seconds for the Agent SDK', async () => {
+    state.start = { ...state.start, questionTimeoutMs: 1_500 };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ timeout?: number }> };
+    };
+    expect(options.hooks.PreToolUse[0]?.timeout).toBe(2);
+  });
+
+  test('omits the question timeout and excludeDynamicSections when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).not.toHaveProperty('timeout');
+    expect(options.systemPrompt).not.toHaveProperty('excludeDynamicSections');
   });
 
   test('passes subagent activity options to the Agent SDK', async () => {
@@ -901,6 +976,100 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test.each(['before', 'after'])(
+    'emits native calls once when permission callbacks run %s assistant messages',
+    async ordering => {
+      state.start.permissionMode = 'allow-edits';
+      const registered: string[] = [];
+      state.requestToolApproval = async id => {
+        expect(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        ).toBe(false);
+        registered.push(id);
+        return { approved: id === 'first', reason: 'Not allowed' };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          const canUseTool = args.options.canUseTool as (
+            name: string,
+            input: Record<string, unknown>,
+            options: { toolUseID: string },
+          ) => Promise<unknown>;
+          const assistant = {
+            type: 'assistant',
+            message: {
+              content: ['first', 'second'].map(id => ({
+                type: 'tool_use',
+                id,
+                name: 'Bash',
+                input: { command: 'pwd' },
+              })),
+            },
+          };
+          yield { type: 'stream_event', event: { type: 'message_start' } };
+          if (ordering === 'after') yield assistant;
+          for (const id of ['first', 'second']) {
+            const decision = await canUseTool(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: id },
+            );
+            expect(registered).toContain(id);
+            expect(decision).toEqual(
+              id === 'first'
+                ? {
+                    behavior: 'allow',
+                    updatedInput: { command: 'pwd' },
+                    toolUseID: id,
+                  }
+                : { behavior: 'deny', message: 'Not allowed', toolUseID: id },
+            );
+          }
+          if (ordering === 'before') yield assistant;
+          yield { type: 'stream_event', event: { type: 'message_stop' } };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+      await import('./index');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.toolCallId),
+      ).toEqual(['first', 'second']);
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['first', 'second']);
+    },
+  );
+
+  test('allows ListAgents without approval in allow-reads mode', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool!('ListAgents', {}, { toolUseID: 'list-agents' }),
+    ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+    expect(
+      state.emitted.some(event => event.type === 'tool-approval-request'),
+    ).toBe(false);
+  });
+
   test('routes questions through a PreToolUse hook in allow-all mode', async () => {
     const nativeInput = {
       questions: [
@@ -1042,6 +1211,53 @@ describe('Claude Code bridge configuration', () => {
     ]);
   });
 
+  test('returns model-facing text and inline images as MCP content', async () => {
+    state.start.tools = [
+      { name: 'inspect', inputSchema: { type: 'object', properties: {} } },
+    ];
+    state.requestToolResult = async () => ({
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'host-1',
+        toolName: 'inspect',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    });
+    let handlerResult: unknown;
+    state.createQuery = () =>
+      (async function* () {
+        handlerResult = await state.toolHandlers.get('inspect')!(
+          {},
+          {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          },
+        );
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(handlerResult).toEqual({
+      content: [
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+      ],
+      isError: false,
+    });
+  });
+
   test('uses callback metadata to correlate identical parallel host tool calls', async () => {
     state.start = {
       ...state.start,
@@ -1178,14 +1394,14 @@ describe('Claude Code bridge configuration', () => {
     expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
       {
         type: 'tool-call',
-        toolCallId: 'host-tool-2',
+        toolCallId: 'host-tool-1',
         toolName: 'weather',
         input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
       },
       {
         type: 'tool-call',
-        toolCallId: 'host-tool-1',
+        toolCallId: 'host-tool-2',
         toolName: 'weather',
         input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
@@ -1335,7 +1551,7 @@ describe('Claude Code bridge configuration', () => {
       expect(completedCalls[0]).toMatchObject({
         toolCallId: 'host-1',
         toolName: 'weather',
-        providerExecuted: reachedHandler ? false : true,
+        providerExecuted: false,
       });
       expect(results[0]).toMatchObject({
         toolCallId: 'host-1',
@@ -1419,6 +1635,42 @@ describe('Claude Code bridge configuration', () => {
         cacheWrite: 0,
       },
       outputTokens: { total: 5, text: 5 },
+    });
+  });
+
+  test('sends image prompt content as Claude image blocks', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        state.queryInputs.push((await input.next()).value);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+    state.start = {
+      ...state.start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+          },
+        ],
+      },
     });
   });
 

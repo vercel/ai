@@ -1,17 +1,61 @@
 ---
 title: OpenAI
-description: Learn how to use the OpenAI provider for the AI SDK.
+description: Learn how to use OpenAI with AI Gateway and the direct provider.
 ---
 
 # OpenAI Provider
 
 The [OpenAI](https://openai.com/) provider contains language model support for the OpenAI responses, chat, and completion APIs, as well as embedding model support for the OpenAI embeddings API.
+You can use OpenAI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/openai`.
 
-## Setup
+```ts provider="openai" model="openai/gpt-6-astra"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The OpenAI provider is available in the `@ai-sdk/openai` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/openai" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/openai`
+
+For direct access to OpenAI, install `ai` and `@ai-sdk/openai`:
+
+<InstallPackages packages="ai @ai-sdk/openai" />
+
+Set your OpenAI API credential in the `OPENAI_API_KEY` environment variable:
+
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/openai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/openai` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -201,9 +245,9 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, and GPT-6 Luna
-  support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6
-  Astra and GPT-6.1 Sol do not support `'none'`.
+  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, GPT-6 Luna, and
+  GPT-6.1 Terra support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and
+  `'max'`. GPT-6 Astra and GPT-6.1 Sol do not support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -239,7 +283,7 @@ The following provider options are available:
   OpenAI structured outputs have several
   [limitations](https://openai.com/index/introducing-structured-outputs-in-the-api),
   in particular around the [supported
-  schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
+  schemas](https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas),
   and are therefore opt-in. For example, optional schema properties are not
   supported. You need to change Zod `.nullish()` and `.optional()` to
   `.nullable()`.
@@ -274,7 +318,7 @@ The following provider options are available:
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
 - **promptCacheOptions** _object_
-  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`, and `ttl` currently only supports `'30m'`. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`. `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`. 12-hour writes are billed at a higher rate, and `usage.raw.input_tokens_details.cache_write_tokens_details` splits cache writes into `ttl_30m_tokens` and `ttl_12h_tokens`. Set `prewarm` to `true` to write the prompt to the cache without generating output. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
 
 - **promptCacheRetention** _'in_memory' | '24h'_
   The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
@@ -720,6 +764,12 @@ the operation is idempotent, and set explicit step limits.
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
 
+<Note>
+  `openai.tools.webSearchPreview()` is deprecated. Use
+  `openai.tools.webSearch()` instead. The existing `searchContextSize` and
+  `userLocation` options are supported by both tools.
+</Note>
+
 ```ts
 const result = await generateText({
   model: openai('gpt-6-astra'),
@@ -756,6 +806,13 @@ for (const toolResult of result.toolResults) {
   }
 }
 ```
+
+`result.sources` and source stream events expose the URLs returned in
+`web_search_call.action.sources`. These may include uncited URLs. Inline
+references are available separately on `text.citations` and `text-end.citations`,
+including titles and provider-supplied text ranges. Raw annotations remain in
+text provider metadata. Citation-only responses and `web_search_preview`
+responses without retrieval data retain citation-derived sources.
 
 The web search tool supports the following configuration options:
 
@@ -1531,6 +1588,111 @@ In client mode, the flow spans two steps:
 
 For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
 
+##### Load tools after an ordinary tool result
+
+When your own search function discovers tools, attach
+`providerOptions.openai.additionalTools` to its tool-result part. The Responses
+provider preserves the ordinary result and emits an `additional_tools` item
+immediately after it. Replaying the same messages preserves that insertion point.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesToolResultOptions,
+  type OpenAIToolOptions,
+} from '@ai-sdk/openai';
+import { generateText, tool, type ModelMessage } from 'ai';
+import { z } from 'zod/v4';
+
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Find Linear and list my issues.' },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'search',
+        input: {},
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'search',
+        output: {
+          type: 'json',
+          value: { connection: 'linear', connected: true },
+        },
+        providerOptions: {
+          openai: {
+            additionalTools: [
+              {
+                type: 'function',
+                name: 'list_issues',
+                description: 'List Linear issues.',
+                parameters: {
+                  type: 'object',
+                  properties: {},
+                  additionalProperties: false,
+                },
+              },
+            ],
+          } satisfies OpenAIResponsesToolResultOptions,
+        },
+      },
+    ],
+  },
+];
+
+const tools = {
+  search: tool({ inputSchema: z.object({}) }),
+  list_issues: tool({
+    inputSchema: z.object({}),
+    execute: async () => ({ issues: ['Example issue'] }),
+    providerOptions: {
+      openai: { omitFromRequestTools: true } satisfies OpenAIToolOptions,
+    },
+  }),
+};
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools,
+  messages,
+  providerOptions: { openai: { store: false } },
+});
+
+// Keep the original messages, including the additionalTools option, on replay.
+messages.push(...result.responseMessages);
+messages.push({ role: 'user', content: 'List my issues again.' });
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools,
+  messages,
+  providerOptions: { openai: { store: false } },
+});
+```
+
+`additionalTools` currently accepts function definitions with `type: 'function'`,
+`name`, `parameters`, and optional `description` and `strict`. An empty array emits
+no item. These are OpenAI-format definitions; keep their names and schemas aligned
+with the SDK tools used for local validation and execution.
+
+`omitFromRequestTools: true` omits only the function's top-level Responses tool
+definition. Keep the function in `tools` and, if you use `activeTools`, include it
+there too: inactive tools cannot be executed. Use automatic tool choice for these
+functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+
+Both `generateText` and `streamText` support this representation. For streaming,
+append `await result.responseMessages` when replaying the conversation. This
+support is for direct `@ai-sdk/openai` Responses requests; AI Gateway support is
+not guaranteed by this provider option.
+
 #### Custom Tool
 
 The OpenAI Responses API supports
@@ -1650,12 +1812,12 @@ canonical name — two MCP servers, for example — that name is ambiguous, so i
 name those tools as you declared them instead.
 
 <Note>
-  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
-  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
-  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
-  one of these in `allowedTools` removes it from the allow-list and emits a
-  warning; if that leaves no tools at all, the request fails with an error
-  instead of silently sending no restriction.
+  Some tools cannot be allow-listed, because OpenAI's `allowed_tools` only sees
+  the eagerly-loaded tool list: the [tool search tool](#tool-search), tools
+  marked with `deferLoading` or `omitFromRequestTools`, and tools grouped into a
+  namespace. Naming one of these in `allowedTools` removes it from the
+  allow-list and emits a warning; if that leaves no tools at all, the request
+  fails with an error instead of silently sending no restriction.
 </Note>
 
 <Note>
@@ -1793,6 +1955,12 @@ const result = await generateText({
 });
 ```
 
+For non-streaming JSON output with `generateText`, when a response contains
+messages marked with `phase: 'final_answer'`, the SDK parses only the last such
+message into `result.output`. This prevents commentary or repeated final answers
+from being joined into invalid JSON. The returned `text`, `content`, response
+messages, and token usage still include the complete response as before.
+
 #### Typed providerMetadata in Text Parts
 
 When using the OpenAI Responses API, the SDK attaches OpenAI-specific metadata to output parts via `providerMetadata`.
@@ -1852,6 +2020,10 @@ for (const part of result.content) {
         case 'url_citation':
           // url_citation is returned from web_search and provides:
           // properties: type, url, title, start_index and end_index
+          break;
+        case 'file_search':
+          // Retrieved file-search result; provides fileId.
+          // The filename is available as part.filename.
           break;
         case 'file_citation':
           // file_citation is returned from file_search and provides:
@@ -1931,12 +2103,20 @@ for (const part of result.content) {
 }
 ```
 
+When file-search results are included in the API response, each retrieved file
+is exposed once as a document source, even if it has multiple matching passages
+or is not cited. Inline file citations are available on `text.citations` and
+`text-end.citations`. If the response omits file-search results, file citations
+also remain document sources for compatibility. Generated file paths remain
+source parts and are not treated as citations.
+
 #### Typed providerMetadata in Source Document Parts
 
 For source document parts, when `part.type === 'source'` and `sourceType === 'document'`, the `providerMetadata` is provided as `OpenaiResponsesSourceDocumentProviderMetadata`.
 
 This metadata is also a discriminated union with a required `type` field. Supported types include:
 
+- `file_search` (retrieved file; includes `fileId`)
 - `file_citation`
 - `container_file_citation`
 - `file_path`
@@ -2684,7 +2864,7 @@ including `gpt-4o` and `gpt-4o-mini`.
   not need to be explicitly enabled.
 - You can use the response `usage` to access the number of prompt tokens that were a cache hit via `usage.inputTokenDetails.cacheReadTokens`.
 - For GPT-5.6 and later models, `usage.inputTokenDetails.cacheWriteTokens` reports tokens written to the cache.
-- For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes. Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
+- For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes. Chat models only support `'30m'`. The 12-hour lifetime is available on [Responses models](#responses-models). Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
 
 ```ts highlight="9"
 import { openai } from '@ai-sdk/openai';
@@ -2717,7 +2897,7 @@ const { text, usage } = await generateText({
 console.log('Cached tokens:', usage.inputTokenDetails.cacheReadTokens);
 ```
 
-GPT-5.6 and later models support explicit cache breakpoints on text, image, and file content blocks. Set a request-level cache key and mark the end of each reusable prefix with `promptCacheBreakpoint`:
+GPT-5.6 and later models support explicit cache breakpoints on text, image, and file content blocks. Set a request-level cache key and mark the end of each reusable prefix with `promptCacheBreakpoint`. With Responses models, a breakpoint can set its own `ttl` (for example `{ mode: 'explicit', ttl: '12h' }`) to override the request-level `promptCacheOptions.ttl`:
 
 ```ts highlight="9-12,20-28"
 import {
@@ -2889,6 +3069,7 @@ The following optional provider options are available for OpenAI completion mode
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.1-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-luna`          | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-sol`           | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |

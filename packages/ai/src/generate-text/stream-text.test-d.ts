@@ -10,6 +10,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
   Output,
+  experimental_streamTextLowMemory,
   streamText,
   type StreamTextEndEvent,
   type StreamTextOnEndCallback,
@@ -34,6 +35,81 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('result shape', () => {
+    it('should retain final output for reusable options', () => {
+      const options: Parameters<typeof streamText>[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      };
+      const result = streamText(options);
+
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+      expectTypeOf(result.text).toEqualTypeOf<PromiseLike<string>>();
+    });
+
+    it('should retain final output in ReturnType', () => {
+      type Result = ReturnType<typeof streamText>;
+
+      expectTypeOf<Result>().toHaveProperty('output');
+      expectTypeOf<Result['text']>().toEqualTypeOf<PromiseLike<string>>();
+    });
+
+    it('should infer structured output for reusable options', () => {
+      const output = Output.object({ schema: z.object({ value: z.string() }) });
+      const options: Parameters<
+        typeof streamText<{}, Context, typeof output>
+      >[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+      };
+
+      expectTypeOf(streamText(options).output).toEqualTypeOf<
+        PromiseLike<{ value: string }>
+      >();
+    });
+  });
+
+  describe('experimental_streamTextLowMemory', () => {
+    it('should omit final output and preserve typed partial output', () => {
+      const result = experimental_streamTextLowMemory({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({ schema: z.object({ value: z.string() }) }),
+      });
+
+      // @ts-expect-error low-memory results do not retain final output
+      result.output;
+      // @ts-expect-error low-memory results do not retain final text
+      result.text;
+      expectTypeOf(result.partialOutputStream).toEqualTypeOf<
+        AsyncIterableStream<DeepPartial<{ value: string }>>
+      >();
+    });
+
+    it('should accept reusable streamText options', () => {
+      const options: Parameters<typeof streamText>[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      };
+      const result = experimental_streamTextLowMemory(options);
+
+      expectTypeOf(result.textStream).toEqualTypeOf<
+        AsyncIterableStream<string>
+      >();
+      // @ts-expect-error low-memory results do not retain final output
+      result.output;
+    });
+  });
+
+  it('should accept toolCallConcurrency', () => {
+    streamText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('stream retries', () => {
     it('should accept streamRetries and an onError retry result', () => {
       streamText({
@@ -752,6 +828,12 @@ describe('streamText types', () => {
           }>();
         },
         onStepEnd: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+        onStepError: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;

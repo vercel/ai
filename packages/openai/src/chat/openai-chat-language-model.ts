@@ -52,6 +52,8 @@ import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -182,7 +184,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: this.config.requestModelId ?? this.modelId,
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
@@ -404,7 +406,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
@@ -504,7 +506,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/chat/completions',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -530,8 +532,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;

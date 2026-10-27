@@ -1,5 +1,154 @@
 # @ai-sdk/gateway
 
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.126
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.125
+
+### Patch Changes
+
+- a706678: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
+## 4.0.124
+
+### Patch Changes
+
+- 1bf6d85: chore(provider/gateway): update gateway model settings files
+
+## 4.0.123
+
+### Patch Changes
+
+- 8202f5b: feat(gateway): implement experimental streaming speech in the gateway provider
+
+  `GatewaySpeechModel` implements `Experimental_StreamingSpeechModelV4` and streams speech over the AI Gateway speech WebSocket (`/speech-model`, `ai-gateway-speech.v1` subprotocol). `@ai-sdk/provider-utils` adds the experimental speech-stream envelope (`experimental_parseSpeechStreamClientFrame`, `experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`) shared by clients and servers, plus the `EXPERIMENTAL_SPEECH_STREAM_*` frame type constants and `Experimental_SpeechStream*` frame types. Text-delta frames carry each text part's `voice` and `providerOptions`; the start frame carries `outputFormat` as an audio format object. Adds `gateway.experimental_speech`, callable like `speech(modelId)`, with a server-side `getToken()` that mints a speech-bound short-lived client secret for browser use.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 4.0.122
+
+### Patch Changes
+
+- 101ce42: chore(provider/gateway): update gateway model settings files
+- e104368: Add Voxtral 3 offline transcription and speech model IDs. Support transcription context phrases and detected language, update timestamp validation for Voxtral 3, and expose speech expressiveness and pronunciation hints.
+- eb1f056: fix(provider/gateway): update `parallelSearch` for Parallel's GA Search API
+
+  - Accept the `turbo`, `fast`, `basic`, and `advanced` modes. Tool calls that use one of these modes no longer fail client-side input validation. `one-shot` and `agentic` are deprecated but still accepted.
+  - Add the `location` and top-level `maxCharsTotal` options, plus `fetchPolicy.timeoutSeconds` and `fetchPolicy.disableCacheFallback`. `excerpts.maxCharsTotal` is deprecated in favor of `maxCharsTotal`.
+  - Fix the result type and schema to match the response the gateway returns: `search_id`, results with `url`, nullable `title` and `publish_date`, and `excerpts: string[]`, plus optional `warnings`, `usage`, and `session_id`. The `searchId`, `excerpt`, `publishDate`, and `relevanceScore` fields were never populated and are removed; update code that reads them. `validateUIMessages` now accepts Parallel Search results.
+
+- 5893e99: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.121
+
+### Patch Changes
+
+- f1b550e: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.120
+
+### Patch Changes
+
+- 9bec2c3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.119
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.118
+
+### Patch Changes
+
+- 1c47fee: chore(provider/gateway): update gateway model settings files
+
+## 4.0.117
+
+### Patch Changes
+
+- 6b7fb8f: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.115
+
+### Patch Changes
+
+- 5bdb816: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.114
+
+### Patch Changes
+
+- b658e85: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.113
+
+### Patch Changes
+
+- 42a2895: chore(provider/gateway): update gateway model settings files
+
+## 4.0.112
+
+### Patch Changes
+
+- 685667c: chore(provider/gateway): update gateway model settings files
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+- ec2af7b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 4.0.110
 
 ### Patch Changes

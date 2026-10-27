@@ -25,6 +25,14 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  it('should accept toolCallConcurrency', async () => {
+    await generateText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({
@@ -453,6 +461,12 @@ describe('generateText types', () => {
           }>();
         },
         onStepEnd: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
+        onStepError: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
             requestId: string;

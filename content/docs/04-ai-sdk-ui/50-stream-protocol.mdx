@@ -323,6 +323,13 @@ data: {"type":"error","errorText":"error message"}
 
 Indicates the beginning of tool input streaming.
 
+The optional `inputEncoding` field specifies how to interpret subsequent input
+deltas. When omitted or set to `'json'`, the UI parses the accumulated text as
+partial JSON. With `'text'`, the UI uses the accumulated text directly as the
+string input. Use `'text'` for raw custom-tool input such as code or HTML.
+The encoding is also retained on persisted `input-streaming` tool parts so
+streaming can resume correctly.
+
 Format: Server-Sent Event with JSON object
 
 Example:

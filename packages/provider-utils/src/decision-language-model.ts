@@ -62,6 +62,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     abortSignal,
     headers,
     providerOptions,
@@ -78,7 +80,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       }
     }
     const entries = Object.entries(questions).map(([id, question]) => {
-      if (!this.supportedQuestionTypes.includes(question.type)) {
+      if (!this.supportedQuestionTypes.some(type => type === question.type)) {
         throw new DecisionUnsupportedQuestionTypeError({
           questionId: id,
           questionType: question.type,
@@ -148,7 +150,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       ]),
     );
     const result = await this.model.doGenerate({
-      reasoning: 'none',
+      reasoning: reasoning ?? 'none',
+      maxOutputTokens,
       prompt: [
         {
           role: 'system',
@@ -220,7 +223,10 @@ export class DecisionLanguageModel implements DecisionModelV4 {
         const value: unknown = (values as Record<string, unknown>)[`q${index}`];
         if (question.type === 'choice') {
           const options = Object.keys(question.criteria);
-          const choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          let choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          if (choiceIndex === -1 && typeof value === 'string') {
+            choiceIndex = options.indexOf(value);
+          }
           if (choiceIndex === -1) {
             throw new InvalidResponseDataError({
               data: values,

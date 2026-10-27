@@ -122,7 +122,7 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
     );
   });
 
-  it('allows EOF at a complete frame boundary without messageStop', async () => {
+  it('reports interruption at a complete frame boundary without messageStop', async () => {
     const model = new AmazonBedrockChatLanguageModel(
       'anthropic.claude-3-haiku-20240307-v1:0',
       {
@@ -163,7 +163,7 @@ describe('AmazonBedrockChatLanguageModel doStream', () => {
         }),
         expect.objectContaining({
           type: 'finish',
-          finishReason: { unified: 'other' },
+          finishReason: { unified: 'interrupted' },
         }),
       ]),
     );

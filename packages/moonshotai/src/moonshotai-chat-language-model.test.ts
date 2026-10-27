@@ -1,6 +1,7 @@
 import {
   APICallError,
   UnsupportedFunctionalityError,
+  type JSONSchema7,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
@@ -176,6 +177,8 @@ describe('doGenerate', () => {
       'kimi-k2.7-code',
       'kimi-k2.7-code-highspeed',
       'kimi-k3',
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
     ] as const)(
       'should omit fixed sampling options and warn for %s',
       async modelId => {
@@ -649,28 +652,45 @@ describe('doGenerate', () => {
       ]);
     });
 
-    it('should omit thinking for Kimi K3', async () => {
-      const result = await provider.chatModel('kimi-k3').doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          moonshotai: {
-            thinking: { type: 'disabled' },
-            reasoningHistory: 'preserved',
+    it.each(['kimi-k3', 'kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should omit thinking for %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            moonshotai: {
+              thinking: { type: 'disabled' },
+              reasoningHistory: 'preserved',
+            },
           },
-        },
-      });
+        });
 
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody).not.toHaveProperty('thinking');
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported',
-          feature: 'thinking',
-          details:
-            'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
-        },
-      ]);
-    });
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).not.toHaveProperty('thinking');
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'thinking',
+            details:
+              'Kimi K3 always reasons and does not accept the thinking field. The option has been omitted.',
+          },
+        ]);
+      },
+    );
+
+    it.each(['kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed'] as const)(
+      'should map generic reasoning to reasoning_effort for %s',
+      async modelId => {
+        await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'high',
+        );
+      },
+    );
 
     it.each(['kimi-k2.7-code', 'kimi-k2.7-code-highspeed'] as const)(
       'should not disable thinking for %s',
@@ -872,6 +892,32 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send root unions of objects with type object in response_format', async () => {
+      const city: JSONSchema7 = {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      };
+      const coords: JSONSchema7 = {
+        properties: { lat: { type: 'number' } },
+        required: ['lat'],
+      };
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'location',
+          schema: { anyOf: [city, coords] },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.response_format.json_schema.schema).toStrictEqual({
+        type: 'object',
+        anyOf: [city, coords],
+      });
+    });
+
     it('should allow strict json schema validation to be disabled', async () => {
       await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
@@ -944,20 +990,30 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should fall back to json_object for unknown models', async () => {
-      await provider.chatModel('custom-model-id').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          schema: { type: 'object', properties: {} },
-        },
-      });
+    it.each(['custom-model-id', 'moonshot-v2', 'kimi-next'])(
+      'should preserve JSON schema output for unknown model %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'response',
+            schema: { type: 'object', properties: {} },
+          },
+        });
 
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
-      });
-    });
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.response_format).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            schema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
   });
 
   describe('Partial Mode', () => {
@@ -1149,6 +1205,41 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send root unions of objects with type object on the wire', async () => {
+      const city: JSONSchema7 = {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      };
+      const coords: JSONSchema7 = {
+        properties: { lat: { type: 'number' } },
+        required: ['lat'],
+      };
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'untyped',
+            inputSchema: { anyOf: [city, coords] },
+          },
+          {
+            type: 'function',
+            name: 'typed',
+            inputSchema: { type: 'object', anyOf: [city, coords] },
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      for (const tool of requestBody.tools) {
+        expect(tool.function.parameters).toStrictEqual({
+          type: 'object',
+          anyOf: [city, coords],
+        });
+      }
+    });
+
     it('should extract tool calls and finish reason', async () => {
       const result = await provider.chatModel('kimi-k3').doGenerate({
         prompt: TEST_PROMPT,
@@ -1308,6 +1399,126 @@ describe('doGenerate', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.prompt_cache_key).toBe('session-42');
       expect(requestBody.safety_identifier).toBe('user-hash-7');
+    });
+  });
+
+  describe('prompt cache writes', () => {
+    const cacheWriteUsage = {
+      prompt_tokens: 22459,
+      completion_tokens: 44,
+      total_tokens: 22503,
+      prompt_tokens_details: { cached_tokens: 1024, cache_write_tokens: 21248 },
+    };
+    const cacheWriteHeaders = {
+      'msh-usage-cache-write-tokens-5m': '0',
+      'msh-usage-cache-write-tokens-1h': '21248',
+    };
+
+    beforeEach(() => {
+      prepareJsonFixtureResponse('moonshotai-text');
+    });
+
+    it('should forward promptCacheOptions as prompt_cache_options', async () => {
+      await provider.chatModel('kimi-k3.1-pro').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            promptCacheOptions: { ttl: '1h' },
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).prompt_cache_options,
+      ).toStrictEqual({ mode: 'implicit', ttl: '1h' });
+    });
+
+    it('should default the mode when no ttl is set', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          moonshotai: {
+            promptCacheOptions: {},
+          } satisfies MoonshotAILanguageModelOptions,
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).prompt_cache_options,
+      ).toStrictEqual({ mode: 'implicit' });
+    });
+
+    it('should omit prompt_cache_options when not set', async () => {
+      await provider.chatModel('kimi-k3').doGenerate({ prompt: TEST_PROMPT });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'prompt_cache_options',
+      );
+    });
+
+    it('should report cache writes and the TTL split on generate', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        headers: cacheWriteHeaders,
+        body: { ...readJsonFixture('moonshotai-text'), usage: cacheWriteUsage },
+      };
+
+      const result = await provider.chatModel('kimi-k3.1-pro').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.inputTokens).toStrictEqual({
+        total: 22459,
+        noCache: 187,
+        cacheRead: 1024,
+        cacheWrite: 21248,
+      });
+      expect(
+        result.providerMetadata?.moonshotai?.cacheWriteTokens,
+      ).toStrictEqual({ ttl5m: 0, ttl1h: 21248 });
+    });
+
+    it('should report cache writes and the TTL split on stream', async () => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        headers: cacheWriteHeaders,
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chatcmpl-cache',
+            created: 1785880003,
+            model: 'kimi-k3.1-pro',
+            choices: [
+              { index: 0, delta: { content: 'OK' }, finish_reason: 'stop' },
+            ],
+            usage: cacheWriteUsage,
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider.chatModel('kimi-k3.1-pro').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const finish = (await convertReadableStreamToArray(stream)).find(
+        part => part.type === 'finish',
+      );
+
+      expect(finish?.usage.inputTokens.cacheWrite).toBe(21248);
+      expect(finish?.usage.inputTokens.noCache).toBe(187);
+      expect(
+        finish?.providerMetadata?.moonshotai?.cacheWriteTokens,
+      ).toStrictEqual({ ttl5m: 0, ttl1h: 21248 });
+    });
+
+    it('should omit the TTL split without the usage headers', async () => {
+      const result = await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata?.moonshotai).not.toHaveProperty(
+        'cacheWriteTokens',
+      );
     });
   });
 
@@ -1662,6 +1873,50 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    ['missing', 'interrupted'],
+    ['unknown_reason', 'other'],
+    ['invalid-json', 'error'],
+  ] as const)(
+    'handles a stream ending with %s as %s',
+    async (ending, unified) => {
+      server.urls['https://api.moonshot.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+          ...(ending === 'missing'
+            ? []
+            : ending === 'invalid-json'
+              ? ['data: {invalid-json}\n\n']
+              : [
+                  `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                ]),
+        ],
+      };
+      const { stream } = await provider('kimi-k2-0905-preview').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'invalid-json' ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified,
+            raw: ending === 'unknown_reason' ? ending : undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   it('should preserve a provider error envelope in stream errors', async () => {
     const data = {
       error: {

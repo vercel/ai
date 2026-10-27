@@ -1,5 +1,119 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.71
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.70
+
+### Patch Changes
+
+- f29bea4: fix(elevenlabs): only warn about an ignored text prompt when it is non-empty
+
+## 3.0.69
+
+### Patch Changes
+
+- 2e83794: feat(elevenlabs): music, sound effects, and dialogue via the speech model
+
+## 3.0.68
+
+### Patch Changes
+
+- 9874c89: feat(elevenlabs): text-to-dialogue streaming
+
+  `doStream()` supports `providerOptions.elevenlabs.dialogue` (Text-to-Dialogue WebSocket for `eleven_v3` / `eleven_v4`). Each text part's `voice` (default: the call's `voice`, else the first dialogue voice) selects its speaker and must be listed in `dialogue.voices`; a voice change starts a new turn, and `providerOptions.elevenlabs.newTurn` on a part forces one. Options Text-to-Dialogue does not support produce warnings.
+
+- 109a4fe: feat(elevenlabs): streaming speech over WebSocket; type v4/v3-conversational model ids
+
+  `ElevenLabsSpeechModel` implements the experimental `Experimental_StreamingSpeechModelV4` (`doStream()`) over the text-to-speech `stream-input` WebSocket, forwarding text deltas as they arrive and reporting `usage.inputCharacters` (Unicode code points). Adds `eleven_v4`, `eleven_v4_turbo`, and `eleven_v3_conversational` to the typed speech model IDs. The API key is sent in the WebSocket's first message (native `WebSocket` works), the portable `outputFormat` maps to an ElevenLabs `output_format` (or set `streaming.outputFormat` natively), text parts with a different voice are rejected, partial words are held back to whitespace, and keepalives are sent while the text stream is idle unless `inactivityTimeout` is set. `generateSpeech` ignores `streaming` options with a warning.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 3.0.67
+
+### Patch Changes
+
+- 762d96e: fix(elevenlabs): use the reported audio duration for batch transcription, including trailing silence, with word timestamps as a fallback.
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 3.0.66
+
+### Patch Changes
+
+- 688bd23: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 3.0.59
 
 ### Patch Changes

@@ -1,5 +1,7 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -183,6 +185,10 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
 
 // Minimal schema: only the fields the implementation reads, with `.nullish()`
 // so provider API changes don't break parsing.
-const googleVertexCloudTTSResponseSchema = z.object({
-  audioContent: z.string().nullish(),
-});
+const googleVertexCloudTTSResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audioContent: z.string().nullish(),
+    }),
+  ),
+);

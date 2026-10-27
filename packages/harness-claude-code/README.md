@@ -2,13 +2,13 @@
 
 `HarnessV1` adapter backed by [`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which drives the `claude` CLI. The adapter ships a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
 
+-> **Note**: This package is experimental.
+
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-claude-code @ai-sdk/harness @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness-claude-code @ai-sdk/harness @ai-sdk/sandbox-vercel zod
 ```
-
-The bridge installs `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-code` inside the sandbox the first time the session starts.
 
 ## Usage
 
@@ -63,6 +63,7 @@ try {
 }
 ```
 
+<<<<<<< HEAD
 The adapter needs a sandbox session with an exposed port. The caller owns the
 sandbox lifecycle: ending the harness session does not stop the sandbox.
 
@@ -102,3 +103,6 @@ Sub-agent messages and task/background notifications are surfaced as `raw`
 stream parts. `agentProgressSummaries` adds periodic summaries to raw
 `task_progress` messages, while `forwardSubagentText` includes sub-agent text
 and thinking messages in the raw stream.
+=======
+See the [Claude Code Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/claude-code) for more information.
+>>>>>>> origin/main

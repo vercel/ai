@@ -69,12 +69,12 @@ const ParameterEntry = ({
       className={`flex flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
       id={id}
     >
-      <a className="flex flex-row items-start gap-2" href={`#${id}`}>
-        <h3 className="font-medium font-mono text-sm">
+      <a className="flex flex-wrap items-start gap-x-2 gap-y-1" href={`#${id}`}>
+        <span className="max-w-full shrink-0 font-medium font-mono text-sm wrap-anywhere">
           {parameter.name}
           {parameter.isOptional ? '?:' : parameter.name === '' ? '' : ':'}
-        </h3>
-        <div className="w-full font-mono text-gray-900 text-sm">
+        </span>
+        <div className="min-w-0 flex-1 font-mono text-gray-900 text-sm wrap-anywhere">
           {parameter.type}
         </div>
       </a>

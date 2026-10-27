@@ -1,5 +1,107 @@
 # @ai-sdk/deepseek
 
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.73
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 3.0.71
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 3.0.70
+
+### Patch Changes
+
+- df6fe35: Defer DeepSeek validation schema creation until first use and cache shared schemas while preserving the internal Zod object exports.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 3.0.64
+
+### Patch Changes
+
+- 7b33cb0: Preserve reasoning content on all assistant turns for future DeepSeek models, using the current reasoning-enabled defaults. Known pre-V4 versions and legacy chat/reasoner aliases retain their previous handling.
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 3.0.63
 
 ### Patch Changes

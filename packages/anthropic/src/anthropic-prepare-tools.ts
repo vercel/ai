@@ -56,9 +56,9 @@ export async function prepareTools({
   defaultEagerInputStreaming?: boolean;
 
   /**
-   * Whether the model rejects forced tool use (`tool_choice` `any` or a
-   * named tool). When true, `required` and `tool` tool choices fall back to
-   * `auto` with a warning.
+   * Whether the model or thinking configuration rejects forced tool use
+   * (`tool_choice` `any` or a named tool). When true, `required` and `tool`
+   * tool choices fall back to `auto` with a warning.
    */
   rejectsForcedToolUse?: boolean;
 }): Promise<{
@@ -492,7 +492,7 @@ export async function prepareTools({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'required' is not supported with this model or thinking configuration. ` +
             `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
         });
         return {
@@ -515,15 +515,19 @@ export async function prepareTools({
         betas,
       };
     case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+      return {
+        tools: anthropicTools,
+        toolChoice: { type: 'none' },
+        toolWarnings,
+        betas,
+      };
     case 'tool':
       if (rejectsForcedToolUse) {
         toolWarnings.push({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'tool' is not supported with this model or thinking configuration. ` +
             `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
             `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
         });
