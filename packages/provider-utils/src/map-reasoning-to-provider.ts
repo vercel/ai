@@ -9,11 +9,6 @@ export type ReasoningLevel = Exclude<
 >;
 
 /**
- * A custom reasoning value: a reasoning level or `'none'`.
- */
-export type CustomReasoning = ReasoningLevel | 'none';
-
-/**
  * Reasoning levels in ascending order.
  */
 const REASONING_LEVELS: readonly ReasoningLevel[] = [
@@ -27,7 +22,7 @@ const REASONING_LEVELS: readonly ReasoningLevel[] = [
 
 export function isCustomReasoning(
   reasoning: LanguageModelV4CallOptions['reasoning'],
-): reasoning is CustomReasoning {
+): reasoning is ReasoningLevel | 'none' {
   return reasoning !== undefined && reasoning !== 'provider-default';
 }
 
@@ -49,8 +44,8 @@ export function mapReasoningToProviderEffort<T extends string>({
   effortMap,
   warnings,
 }: {
-  reasoning: CustomReasoning;
-  effortMap: Partial<Record<CustomReasoning, T>>;
+  reasoning: ReasoningLevel | 'none';
+  effortMap: Partial<Record<ReasoningLevel | 'none', T>>;
   warnings: SharedV4Warning[];
 }): T | undefined {
   // indexOf is -1 for 'none', so every level is a higher fallback.
@@ -112,7 +107,7 @@ export function mapReasoningToProviderBudget({
   budgetPercentages,
   warnings,
 }: {
-  reasoning: CustomReasoning;
+  reasoning: ReasoningLevel | 'none';
   maxOutputTokens: number;
   maxReasoningBudget: number;
   minReasoningBudget?: number;
