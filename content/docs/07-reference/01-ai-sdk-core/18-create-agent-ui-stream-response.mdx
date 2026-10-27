@@ -47,6 +47,8 @@ Keep sending and persisting the full UI conversation. On the next request, the h
 
 See [Compact Agent Context](/cookbook/guides/agent-context-compaction) for a complete example.
 
+Automatic client-persisted compaction rejects `sendReasoning: false` and context involving masked application tool errors, including summaries derived from those errors. Persist private model context server-side instead of sending it in a UI compaction record.
+
 ## Parameters
 
 <PropertiesTable

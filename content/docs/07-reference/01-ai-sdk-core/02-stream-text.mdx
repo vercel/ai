@@ -3460,6 +3460,13 @@ retain the content their contracts require.
               isOptional: true,
               description: 'The checkpoint embedded in the replacement history.',
             },
+            {
+              name: 'hasUnredactedToolErrors',
+              type: 'true',
+              isOptional: true,
+              description:
+                'Marks application tool errors in source or replacement history, including errors incorporated into summaries. UI conversion rejects automatic client persistence of this context to preserve error masking.',
+            },
           ],
         },
         {
@@ -4245,7 +4252,7 @@ retain the content their contracts require.
               type: 'boolean',
               isOptional: true,
               description:
-                'Send reasoning parts to the client. Defaults to false.',
+                'Send reasoning parts to the client. Defaults to true. Automatic client-persisted compaction is rejected when false because replacement context or its summary may include withheld reasoning.',
             },
             {
               name: 'sendSources',

@@ -74,4 +74,6 @@ For a custom integration, use the converter's `onCompactionApplied` callback to 
 
 The fingerprint detects stale history; it does not authenticate client data. Applications that require authoritative context should use their persisted server history or verify submitted records against it.
 
+Manual record creation does not apply UI reasoning filtering or error masking. Every field in the replacement history is sent to the client when the record is written. Only create manual records from context that the client may receive, including any sensitive information copied into summary text. Automatic `prepareStep.compaction` records instead reject incompatible UI disclosure settings and context involving masked application tool errors.
+
 See [Preserve Compaction Across Chat Requests](/cookbook/guides/agent-context-compaction#preserve-compaction-across-chat-requests) for the complete flow.

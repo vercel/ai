@@ -129,6 +129,7 @@ import type {
 import type { PrepareStepFunction } from './prepare-step';
 import type { CompactionCheckpoint } from '../compact-messages/types';
 import { resolveStepCompaction } from '../compact-messages/resolve-step-compaction';
+import { hasApplicationToolErrors } from '../compact-messages/has-application-tool-errors';
 import { validateCheckpoint } from '../compact-messages/validate-compaction';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
@@ -1560,6 +1561,7 @@ class DefaultStreamTextResult<
     let recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
+    let hasUnredactedToolErrors = false;
     let currentStepMessages: Array<ModelMessage> = [];
     let currentStepSteeringMessages: Array<UserModelMessage> = [];
     let isAborted = false;
@@ -2579,6 +2581,11 @@ class DefaultStreamTextResult<
             ...steeringMessages,
           ];
 
+          // Summarization can copy private errors into ordinary text. Remember
+          // their presence even if later replacements no longer contain errors.
+          hasUnredactedToolErrors ||=
+            hasApplicationToolErrors(stepInputMessages);
+
           const prepareStepResult = await prepareStep?.({
             model,
             steps: recordedSteps,
@@ -2606,12 +2613,18 @@ class DefaultStreamTextResult<
           });
           compactionCheckpoint = stepCompaction.checkpoint;
           if (stepCompaction.compacted) {
+            hasUnredactedToolErrors ||= hasApplicationToolErrors(
+              stepCompaction.messages,
+            );
             self.addStream(
               new ReadableStream({
                 start(controller) {
                   controller.enqueue({
                     type: 'compaction',
                     messages: cloneModelMessages(stepCompaction.messages),
+                    ...(hasUnredactedToolErrors
+                      ? { hasUnredactedToolErrors: true as const }
+                      : {}),
                     ...(compactionCheckpoint === undefined
                       ? {}
                       : { checkpoint: { ...compactionCheckpoint } }),

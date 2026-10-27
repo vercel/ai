@@ -65,6 +65,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Compacted context to persist with this response. Created with
    * `createUIMessageCompaction` and emitted before response content.
+   * Manual records must contain only context the client is allowed to receive.
    */
   compaction?: CompactionUIPart;
 
@@ -104,6 +105,8 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Send reasoning parts to the client.
    * Default to true.
+   * Automatic client-persisted compaction is rejected when false because
+   * replacement history and summaries can contain withheld reasoning.
    */
   sendReasoning?: boolean;
 
@@ -578,6 +581,12 @@ export type TextStreamCompactionPart = {
   type: 'compaction';
   messages: ModelMessage[];
   checkpoint?: CompactionCheckpoint;
+  /**
+   * Source history contains application tool errors, including errors that may
+   * have been incorporated into a summary. Prevents client persistence from
+   * bypassing UI error masking.
+   */
+  hasUnredactedToolErrors?: true;
 };
 
 export type TextStreamFinishStepPart = {

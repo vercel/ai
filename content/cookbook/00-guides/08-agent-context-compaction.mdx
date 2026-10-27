@@ -83,6 +83,14 @@ This also works when compaction occurs between tool steps in one assistant respo
 
 `createAgentUIStream` provides the same behavior when you need a UI stream instead of a `Response`.
 
+## UI Disclosure Controls
+
+Compaction records send replacement model context to the client. Automatic records are rejected when `sendReasoning: false`, or when the source or replacement context contains application tool errors that UI conversion masks. These checks also cover summaries that may repeat withheld context. The SDK does not remove private context from model history to make a record serializable.
+
+When reasoning or tool errors must remain private, persist the replacement model history and checkpoint server-side and use a plain `prepareStep.messages` override instead of automatic UI compaction. A masked tool error can still stream normally; the error prevents a later automatic compaction record from exposing its underlying model context. Provider-executed errors retain their existing unmasked UI behavior.
+
+Manually created records are an explicit disclosure of their replacement context. `createUIMessageCompaction` and `writer.write` do not redact that context. Only write a manual record after ensuring its complete contents, including summary text and provider options, may be sent to the client.
+
 ## Use Core Functions
 
 `generateText` and `streamText` support the same `prepareStep` result:

@@ -5,7 +5,8 @@ import { join } from 'path';
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
 // Native step compaction adds ~4 KiB to the named generateText bundle.
-const LIMIT = 620 * 1024;
+// Compaction disclosure checks add ~1 KiB to the complete SDK bundle.
+const LIMIT = 630 * 1024;
 
 interface BundleResult {
   size: number;

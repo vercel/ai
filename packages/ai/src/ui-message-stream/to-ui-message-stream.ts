@@ -3,6 +3,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { hasApplicationToolErrors } from '../compact-messages/has-application-tool-errors';
 import type {
   TextStreamPart,
   UIMessageStreamOptions,
@@ -51,6 +52,7 @@ export function toUIMessageStream<
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
   let hasFatalFailure = false;
   let pendingCompaction = compaction;
+  let hasMaskedToolErrors = false;
 
   const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
     if (
@@ -128,9 +130,35 @@ export function toUIMessageStream<
     >({
       transform: async (part, controller) => {
         try {
+          if (
+            (part.type === 'tool-error' && !part.providerExecuted) ||
+            (part.type === 'tool-call' && part.invalid)
+          ) {
+            hasMaskedToolErrors = true;
+          }
           const messageMetadataValue = messageMetadata?.({ part });
 
           if (part.type === 'compaction') {
+            if (!sendReasoning) {
+              throw new InvalidArgumentError({
+                parameter: 'sendReasoning',
+                value: sendReasoning,
+                message:
+                  'Automatic client-persisted compaction is incompatible with sendReasoning: false. Keep compacted model context server-side when withholding reasoning.',
+              });
+            }
+            if (
+              hasMaskedToolErrors ||
+              part.hasUnredactedToolErrors ||
+              hasApplicationToolErrors(part.messages)
+            ) {
+              throw new InvalidArgumentError({
+                parameter: 'compaction',
+                value: undefined,
+                message:
+                  'Automatic client-persisted compaction cannot include context with masked application tool errors. Keep compacted model context server-side.',
+              });
+            }
             if (originalMessages == null || originalMessages.length === 0) {
               throw new InvalidArgumentError({
                 parameter: 'originalMessages',
