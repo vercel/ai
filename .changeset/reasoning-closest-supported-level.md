@@ -8,6 +8,7 @@
 '@ai-sdk/fireworks': patch
 '@ai-sdk/google': patch
 '@ai-sdk/groq': patch
+'@ai-sdk/minimax': patch
 '@ai-sdk/mistral': patch
 '@ai-sdk/moonshotai': patch
 '@ai-sdk/open-responses': patch
