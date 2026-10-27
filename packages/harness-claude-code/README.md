@@ -63,7 +63,6 @@ try {
 }
 ```
 
-<<<<<<< HEAD
 The adapter needs a sandbox session with an exposed port. The caller owns the
 sandbox lifecycle: ending the harness session does not stop the sandbox.
 
@@ -103,6 +102,5 @@ Sub-agent messages and task/background notifications are surfaced as `raw`
 stream parts. `agentProgressSummaries` adds periodic summaries to raw
 `task_progress` messages, while `forwardSubagentText` includes sub-agent text
 and thinking messages in the raw stream.
-=======
+
 See the [Claude Code Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/claude-code) for more information.
->>>>>>> origin/main

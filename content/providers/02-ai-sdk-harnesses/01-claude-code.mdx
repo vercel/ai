@@ -108,10 +108,8 @@ Settings:
 - `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
   MCP configuration, such as a project `.mcp.json` or user settings.
 - `maxTurns`: maximum internal turns before yielding.
-<<<<<<< HEAD
 - `settings`: invocation-specific native Claude Code settings, provided as an
   inline JSON object or a settings file path inside the sandbox.
-=======
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
 - `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
@@ -120,7 +118,6 @@ Settings:
 - `excludeDynamicSections`: moves per-session sections (working directory,
   memory, git status) out of the Claude Code system prompt into the first user
   message, so the system prompt can be cached across sessions.
->>>>>>> origin/main
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw

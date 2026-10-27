@@ -114,13 +114,12 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
-<<<<<<< HEAD
    * Invocation-specific Claude Code settings. A string is resolved as a
    * settings file path inside the sandbox; an object is forwarded as inline
    * settings.
    */
   readonly settings?: string | ClaudeCodeSettings;
-=======
+  /**
    * Maximum estimated spend in USD for each Claude query. When it is exceeded,
    * the query stops and the turn ends with an error. Unset means no limit.
    */
@@ -141,7 +140,6 @@ export type ClaudeCodeHarnessSettings = {
    * system prompt can be cached across sessions.
    */
   readonly excludeDynamicSections?: boolean;
->>>>>>> origin/main
   /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
@@ -1096,14 +1094,11 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
-<<<<<<< HEAD
             claudeSettings: settings.settings,
-=======
             maxBudgetUsd: settings.maxBudgetUsd,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
->>>>>>> origin/main
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1274,14 +1269,11 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
-<<<<<<< HEAD
         claudeSettings: settings.settings,
-=======
         maxBudgetUsd: settings.maxBudgetUsd,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
->>>>>>> origin/main
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1320,14 +1312,11 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
-<<<<<<< HEAD
   claudeSettings,
-=======
   maxBudgetUsd,
   strictMcpConfig,
   questionTimeoutMs,
   excludeDynamicSections,
->>>>>>> origin/main
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1355,14 +1344,11 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
-<<<<<<< HEAD
   claudeSettings: string | ClaudeCodeSettings | undefined;
-=======
   maxBudgetUsd: number | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
->>>>>>> origin/main
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1640,16 +1626,13 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
-<<<<<<< HEAD
         ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
-=======
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
           ? { excludeDynamicSections }
           : {}),
->>>>>>> origin/main
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1721,16 +1704,13 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
-<<<<<<< HEAD
           ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
-=======
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined
             ? { excludeDynamicSections }
             : {}),
->>>>>>> origin/main
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),

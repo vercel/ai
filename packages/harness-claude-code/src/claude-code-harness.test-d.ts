@@ -102,7 +102,6 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
-<<<<<<< HEAD
   test('createClaudeCode accepts native settings', () => {
     const settings: ClaudeCodeSettings = {
       skillOverrides: {
@@ -128,7 +127,8 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
       // @ts-expect-error - native settings must be JSON serializable
       settings: { hook: () => {} },
     });
-=======
+  });
+
   test('createClaudeCode accepts question timeout and dynamic section settings', () => {
     const settings: ClaudeCodeHarnessSettings = {
       questionTimeoutMs: 600_000,
@@ -141,7 +141,6 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     expectTypeOf(settings.excludeDynamicSections).toEqualTypeOf<
       boolean | undefined
     >();
->>>>>>> origin/main
   });
 
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {

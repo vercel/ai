@@ -1429,17 +1429,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-<<<<<<< HEAD
   it('sends a sandbox-local settings path when rerunning a continued turn', async () => {
     const settings = '/vercel/sandbox/claude-settings.json';
     const harness = createClaudeCode({ settings });
-=======
-  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
-    const harness = createClaudeCode({
-      strictMcpConfig: true,
-      maxBudgetUsd: 0.5,
-    });
->>>>>>> origin/main
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1462,21 +1454,47 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-<<<<<<< HEAD
     expect(lastStart()).toMatchObject({ settings, continue: true });
-=======
+
+    await session.doDestroy();
+  });
+
+  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
     expect(lastStart()).toMatchObject({
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
       continue: true,
     });
->>>>>>> origin/main
 
     await session.doDestroy();
   });
 
-<<<<<<< HEAD
-=======
   it('sends strict MCP config and the budget limit after attaching', async () => {
     const harness = createClaudeCode({
       strictMcpConfig: true,
@@ -1619,7 +1637,6 @@ describe('createClaudeCode adapter', () => {
     await attachedSession.doDestroy();
   });
 
->>>>>>> origin/main
   it('writes standard Claude skill files and enables their names on start', async () => {
     const writes: Array<{ path: string; content: string }> = [];
     const runs: string[] = [];
