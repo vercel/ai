@@ -273,6 +273,27 @@ describe('doGenerate', () => {
     expect(multipart3!.file.size).toBe(40169);
   });
 
+  it.each([
+    'gpt-4o-mini-transcribe-2025-03-20',
+    'gpt-4o-mini-transcribe-2025-12-15',
+  ])(
+    'should request json for dated %s snapshots when provider options are set',
+    async modelId => {
+      prepareJsonResponse();
+
+      await provider.transcription(modelId).doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { openai: { language: 'en' } },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: modelId,
+        response_format: 'json',
+      });
+    },
+  );
+
   it('should request json for gpt-transcribe when provider options are set', async () => {
     prepareJsonResponse();
 
