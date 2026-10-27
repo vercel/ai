@@ -3515,6 +3515,7 @@ The following provider options are available:
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
+  For streaming with `gpt-transcribe` and `gpt-live-transcribe`, it is sent as a single-entry `languages` list.
   Optional.
 
 - **prompt** _string_
@@ -3536,7 +3537,7 @@ The following provider options are available:
   Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
 
 - **streaming** _object_
-  Options for streaming transcription models such as `gpt-realtime-whisper`.
+  Options for streaming transcription models such as `gpt-live-transcribe`.
   Use with `experimental_streamTranscribe`.
   - **delay** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
     Latency/accuracy tradeoff for realtime transcription.
@@ -3552,6 +3553,8 @@ The following provider options are available:
 | `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
+| `gpt-transcribe`            | <Check />     | <Check /> | <Cross /> | <Cross /> | <Check /> |
+| `gpt-live-transcribe`       | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 
 ## Translation Models

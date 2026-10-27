@@ -58,14 +58,43 @@ type OpenAIRealtimeTranscriptionEvent = {
 };
 
 /**
- * Realtime transcription model IDs stream over the realtime WebSocket
- * and do not support the REST transcription endpoint. Prefix matching
- * keeps dated snapshots (e.g. `gpt-realtime-whisper-2026-01-01`) working.
+ * Whether `modelId` is `base` or one of its dated snapshots
+ * (e.g. `gpt-realtime-whisper-2026-01-01`).
+ */
+function isModelOrSnapshot(modelId: string, base: string): boolean {
+  return modelId === base || modelId.startsWith(`${base}-`);
+}
+
+/**
+ * Model IDs that stream over the realtime transcription WebSocket and do not
+ * support the REST transcription endpoint.
  */
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
   return (
-    modelId === 'gpt-realtime-whisper' ||
-    modelId.startsWith('gpt-realtime-whisper-')
+    isModelOrSnapshot(modelId, 'gpt-realtime-whisper') ||
+    isModelOrSnapshot(modelId, 'gpt-live-transcribe')
+  );
+}
+
+/**
+ * Model IDs that support streaming transcription. `gpt-transcribe` also
+ * supports the REST transcription endpoint.
+ */
+function supportsStreamingTranscription(modelId: string): boolean {
+  return (
+    isRealtimeTranscriptionModelId(modelId) ||
+    isModelOrSnapshot(modelId, 'gpt-transcribe')
+  );
+}
+
+/**
+ * Models whose realtime transcription session takes a `languages` list
+ * instead of the singular `language` field.
+ */
+function usesLanguagesList(modelId: string): boolean {
+  return (
+    isModelOrSnapshot(modelId, 'gpt-live-transcribe') ||
+    isModelOrSnapshot(modelId, 'gpt-transcribe')
   );
 }
 
@@ -366,7 +395,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   ): Promise<
     Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
   > {
-    if (!isRealtimeTranscriptionModelId(this.modelId)) {
+    if (!supportsStreamingTranscription(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `streaming transcription with ${this.modelId}`,
       });
@@ -398,11 +427,22 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
+    // gpt-transcribe transcribes each committed turn, so it has no delay setting:
+    const supportsDelay = !isModelOrSnapshot(this.modelId, 'gpt-transcribe');
+    if (!supportsDelay && openAIOptions?.streaming?.delay != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.openai.streaming.delay',
+        details: `OpenAI streaming transcription with ${this.modelId} does not support delay.`,
+      });
+    }
+
     const headers = combineHeaders(this.config.headers?.(), options.headers);
     const sessionUpdate = buildOpenAIRealtimeTranscriptionSession({
       modelId: this.modelId,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: openAIOptions,
+      supportsDelay,
     });
 
     return {
@@ -591,10 +631,12 @@ function buildOpenAIRealtimeTranscriptionSession({
   modelId,
   inputAudioFormat,
   providerOptions,
+  supportsDelay,
 }: {
   modelId: string;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: OpenAITranscriptionModelOptions | undefined;
+  supportsDelay: boolean;
 }) {
   return {
     type: 'session.update',
@@ -611,9 +653,11 @@ function buildOpenAIRealtimeTranscriptionSession({
           transcription: {
             model: modelId,
             ...(providerOptions?.language != null
-              ? { language: providerOptions.language }
+              ? usesLanguagesList(modelId)
+                ? { languages: [providerOptions.language] }
+                : { language: providerOptions.language }
               : {}),
-            ...(providerOptions?.streaming?.delay != null
+            ...(supportsDelay && providerOptions?.streaming?.delay != null
               ? { delay: providerOptions.streaming.delay }
               : {}),
           },

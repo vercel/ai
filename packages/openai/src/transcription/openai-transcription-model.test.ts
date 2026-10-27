@@ -175,6 +175,31 @@ describe('doGenerate', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
+  it.each(['gpt-live-transcribe', 'gpt-live-transcribe-2026-01-01'])(
+    'should reject %s for non-streaming transcription',
+    async modelId => {
+      await expect(
+        provider.transcription(modelId).doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+    },
+  );
+
+  it('should send gpt-transcribe to the REST transcription endpoint', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'gpt-transcribe',
+    });
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -923,6 +948,101 @@ describe('doStream', () => {
       modelId: 'gpt-realtime-whisper',
     });
   });
+
+  it.each([
+    ['gpt-live-transcribe', true],
+    ['gpt-live-transcribe-2026-01-01', true],
+    ['gpt-transcribe', false],
+    ['gpt-transcribe-2026-01-01', false],
+  ])(
+    'should stream %s and send the language hint as a languages list',
+    async (modelId, supportsDelay) => {
+      MockWebSocket.instances = [];
+      const model = new OpenAITranscriptionModel(modelId, {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        webSocket: MockWebSocket,
+      });
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerOptions: {
+          openai: { language: 'en', streaming: { delay: 'low' } },
+        },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      expect(ws.url.toString()).toBe(
+        'wss://api.openai.com/v1/realtime?intent=transcription',
+      );
+      ws.open();
+      await flush();
+
+      expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
+        type: 'session.update',
+        session: {
+          type: 'transcription',
+          audio: {
+            input: {
+              format: { type: 'audio/pcm', rate: 24000 },
+              transcription: {
+                model: modelId,
+                languages: ['en'],
+                ...(supportsDelay && { delay: 'low' }),
+              },
+              turn_detection: null,
+            },
+          },
+        },
+      });
+
+      ws.message({
+        type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'item-1',
+        transcript: 'Hello',
+      });
+      const parts = await partsPromise;
+      expect(parts).toContainEqual({
+        type: 'transcript-final',
+        id: 'item-1',
+        text: 'Hello',
+      });
+      expect(parts[0]).toEqual({
+        type: 'stream-start',
+        warnings: supportsDelay
+          ? []
+          : [
+              {
+                type: 'unsupported',
+                feature: 'providerOptions.openai.streaming.delay',
+                details: `OpenAI streaming transcription with ${modelId} does not support delay.`,
+              },
+            ],
+      });
+    },
+  );
+
+  it.each(['gpt-4o-transcribe', 'whisper-1'])(
+    'should reject %s for streaming transcription',
+    async modelId => {
+      const model = new OpenAITranscriptionModel(modelId, {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        webSocket: MockWebSocket,
+      });
+
+      await expect(
+        model.doStream({
+          audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+          inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+    },
+  );
 
   it('should accept dated gpt-realtime-whisper snapshot model IDs', async () => {
     MockWebSocket.instances = [];
