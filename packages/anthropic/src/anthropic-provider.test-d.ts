@@ -8,7 +8,20 @@ import type {
   AnthropicModelId,
 } from './anthropic-language-model-options';
 import type { AnthropicCitation, AnthropicTextProviderMetadata } from './index';
-import { anthropic } from './anthropic-provider';
+import { anthropic, createAnthropic } from './anthropic-provider';
+
+it('accepts static, promised, synchronous, and asynchronous auth tokens', () => {
+  expectTypeOf(createAnthropic).toBeCallableWith({ authToken: 'token' });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: Promise.resolve('token'),
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: () => 'token',
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: async () => 'token',
+  });
+});
 
 it('types batch support on the provider', () => {
   expectTypeOf(anthropic.experimental_batch()).toEqualTypeOf<

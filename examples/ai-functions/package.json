@@ -78,6 +78,7 @@
     "@ai-sdk/workflow": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
     "@ai-sdk/zai": "workspace:*",
+    "@anthropic-ai/sdk": "0.129.0",
     "@basetenlabs/performance-client": "0.0.10",
     "@google/generative-ai": "0.21.0",
     "@langchain/core": "^1.1.46",
