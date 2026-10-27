@@ -43,12 +43,9 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
 
       /**
        * The timestamp granularities to populate for this transcription.
-       * @default ['segment']
+       * Defaults to ['segment'] when the response format is verbose_json.
        */
-      timestampGranularities: z
-        .array(z.enum(['word', 'segment']))
-        .default(['segment'])
-        .optional(),
+      timestampGranularities: z.array(z.enum(['word', 'segment'])).optional(),
 
       /**
        * The format of the transcription response.

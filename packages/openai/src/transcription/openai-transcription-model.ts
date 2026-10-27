@@ -197,54 +197,45 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       `audio.${fileExtension}`,
     );
 
-    if (this.modelId === 'whisper-1') {
-      formData.append('response_format', 'verbose_json');
-    }
-
     const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+
+    const responseFormat =
+      openAIOptions?.responseFormat ??
+      (isDiarizationModel
+        ? 'diarized_json'
+        : this.modelId === 'whisper-1'
+          ? 'verbose_json'
+          : undefined);
+
+    // Timestamps are only returned with verbose_json, so only default to
+    // segments when that format is used.
+    const timestampGranularities =
+      openAIOptions?.timestampGranularities ??
+      (responseFormat === 'verbose_json' ? ['segment'] : undefined);
+
     const chunkingStrategy =
       openAIOptions?.chunkingStrategy ??
       (isDiarizationModel ? 'auto' : undefined);
 
-    // Add provider-specific options
-    if (openAIOptions) {
-      const isGpt4oTranscribeModel = [
-        'gpt-4o-transcribe',
-        'gpt-4o-mini-transcribe',
-      ].includes(this.modelId);
+    const transcriptionModelOptions = {
+      response_format: responseFormat,
+      include: openAIOptions?.include,
+      language: openAIOptions?.language,
+      prompt: openAIOptions?.prompt,
+      temperature: openAIOptions?.temperature,
+      timestamp_granularities: timestampGranularities,
+    };
 
-      const transcriptionModelOptions = {
-        include: openAIOptions.include,
-        language: openAIOptions.language,
-        prompt: openAIOptions.prompt,
-        // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
-        // prefer verbose_json to get segments for models that support it
-        ...(this.modelId !== 'whisper-1' && {
-          response_format:
-            openAIOptions.responseFormat ??
-            (isDiarizationModel
-              ? 'diarized_json'
-              : isGpt4oTranscribeModel
-                ? 'json'
-                : 'verbose_json'),
-        }),
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
-      };
-
-      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
-        if (value != null) {
-          if (Array.isArray(value)) {
-            for (const item of value) {
-              formData.append(`${key}[]`, String(item));
-            }
-          } else {
-            formData.append(key, String(value));
+    for (const [key, value] of Object.entries(transcriptionModelOptions)) {
+      if (value != null) {
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            formData.append(`${key}[]`, String(item));
           }
+        } else {
+          formData.append(key, String(value));
         }
       }
-    } else if (isDiarizationModel) {
-      formData.append('response_format', 'diarized_json');
     }
 
     if (chunkingStrategy != null) {
