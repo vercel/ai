@@ -8,6 +8,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -29,11 +31,15 @@ import {
 } from './heygen-video-model-options';
 import type { HeyGenVideoModelId } from './heygen-video-settings';
 
-const operationSchema = z.object({
-  videoId: z.string().min(1),
-  mode: z.enum(['text_to_video', 'image_to_video', 'reference_to_video']),
-  resolution: z.enum(['480p', '768p', '1080p', '2k']),
-});
+const operationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      videoId: z.string().min(1),
+      mode: z.enum(['text_to_video', 'image_to_video', 'reference_to_video']),
+      resolution: z.enum(['480p', '768p', '1080p', '2k']),
+    }),
+  ),
+);
 
 // HeyGen's named size classes do not consistently equal the short edge.
 // https://developers.heygen.com/docs/models/heygen-video#output

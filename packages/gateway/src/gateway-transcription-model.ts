@@ -8,6 +8,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -28,9 +30,13 @@ import {
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
-import { asGatewayError, createGatewayErrorFromResponse } from './errors';
+import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import {
+  createErrorFromServerErrorPart,
+  errorControllerWithGatewayError,
+} from './gateway-stream-errors';
 import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
 import {
   GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
@@ -245,8 +251,18 @@ export function toGatewayTranscriptionUrl(
  * case-insensitive because `combineHeaders` does not normalize casing and
  * callers can pass arbitrary casing via the `headers` option.
  */
-function getProtocolsFromHeaders(
+export function getProtocolsFromHeaders(
   headers: Record<string, string | undefined>,
+  {
+    marker = GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
+    getProtocols = getGatewayTranscriptionProtocols,
+  }: {
+    marker?: string;
+    getProtocols?: (
+      token: string,
+      options: { teamIdOrSlug?: string },
+    ) => string[];
+  } = {},
 ): string[] {
   const normalizedHeaders = normalizeHeaders(headers);
   const authorization = normalizedHeaders.authorization;
@@ -255,8 +271,8 @@ function getProtocolsFromHeaders(
     : undefined;
 
   return token == null
-    ? [GATEWAY_TRANSCRIPTION_SUBPROTOCOL]
-    : getGatewayTranscriptionProtocols(token, {
+    ? [marker]
+    : getProtocols(token, {
         teamIdOrSlug: normalizedHeaders[VERCEL_AI_GATEWAY_TEAM_HEADER],
       });
 }
@@ -443,114 +459,51 @@ function createGatewayTranscriptionStream({
   });
 }
 
-const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
 
-const gatewayTranscriptionWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayTranscriptionWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewayTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  segments: z
-    .array(
-      z.object({
-        text: z.string(),
-        startSecond: z.number(),
-        endSecond: z.number(),
-      }),
-    )
-    .optional(),
-  language: z.string().nullish(),
-  durationInSeconds: z.number().nullish(),
-  warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
-  usage: z.record(z.string(), z.json()).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-});
-
-/**
- * `asGatewayError` is async while the WebSocket event handlers are
- * synchronous, hence this helper.
- */
-async function errorControllerWithGatewayError(
-  controller: ReadableStreamDefaultController<TranscriptionModelV4StreamPart>,
-  error: unknown,
-  authMethod: 'api-key' | 'oidc' | undefined,
-): Promise<void> {
-  controller.error(await asGatewayError(error, authMethod));
-}
-
-/**
- * Extract a human-readable message from an `error` stream part's payload for
- * the terminal close error.
- */
-function getServerErrorMessage(error: unknown): string {
-  if (
-    error != null &&
-    typeof error === 'object' &&
-    'message' in error &&
-    typeof error.message === 'string'
-  ) {
-    return error.message;
-  }
-  // JSON-stringifies object payloads (`String` would yield '[object Object]').
-  return getErrorMessage(error);
-}
-
-/** Canonical status codes for server error-part types (no HTTP status exists on the WebSocket). */
-const SERVER_ERROR_STATUS_CODES: Record<string, number> = {
-  authentication_error: 401,
-  failed_dependency: 424,
-  forbidden: 403,
-  internal_server_error: 500,
-  invalid_request_error: 400,
-  model_not_found: 404,
-  rate_limit_exceeded: 429,
-};
-
-/**
- * Maps a server error-part payload (`{ message, type }`) to the public
- * Gateway error class for its type; unknown shapes keep the generic message.
- */
-async function createErrorFromServerErrorPart(
-  error: unknown,
-  authMethod: 'api-key' | 'oidc' | undefined,
-): Promise<unknown> {
-  if (
-    typeof error === 'object' &&
-    error != null &&
-    'message' in error &&
-    typeof error.message === 'string' &&
-    'type' in error &&
-    typeof error.type === 'string' &&
-    error.type in SERVER_ERROR_STATUS_CODES
-  ) {
-    return createGatewayErrorFromResponse({
-      response: { error: { message: error.message, type: error.type } },
-      statusCode: SERVER_ERROR_STATUS_CODES[error.type],
-      authMethod,
-    });
-  }
-  return new Error(
-    `AI Gateway transcription stream failed: ${getServerErrorMessage(error)}`,
-  );
-}
+const gatewayTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      segments: z
+        .array(
+          z.object({
+            text: z.string(),
+            startSecond: z.number(),
+            endSecond: z.number(),
+          }),
+        )
+        .optional(),
+      language: z.string().nullish(),
+      durationInSeconds: z.number().nullish(),
+      warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),
+      usage: z.record(z.string(), z.json()).optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+    }),
+  ),
+);

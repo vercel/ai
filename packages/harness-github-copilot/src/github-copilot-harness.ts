@@ -20,22 +20,17 @@ import {
   normalizeGitHubHost,
   resolveGitHubCopilotSubscriptionEnvironment,
 } from './github-copilot-subscription';
+import { withGitHubCopilotGatewayModel } from './github-copilot-gateway-model';
 import { VERSION } from './version';
 
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__: string;
 
 const GITHUB_COPILOT_CLIENT_APP = {
   name: 'ai-sdk-harness-github-copilot',
   version: VERSION,
 } as const;
-const GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON =
-  __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
   'COPILOT_GITHUB_TOKEN',
   'GH_TOKEN',
@@ -43,6 +38,7 @@ const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
 ]);
 const GITHUB_OAUTH_TOKEN_BODY_LENGTH = 36;
 const GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER = 'aisdkhc';
+const GITHUB_COPILOT_GATEWAY_MODEL = 'openai/gpt-5.5';
 
 export type GitHubCopilotAuthenticationMode = ACPAuthenticationMode;
 
@@ -264,15 +260,15 @@ export function createGitHubCopilot(
     ...Object.keys(settings.mcpServers ?? {}).map(name => `${name}-`),
   ];
 
-  return createACP({
+  const harness = createACP({
     version: 'v1',
     harnessId: 'github-copilot',
     clientApp: GITHUB_COPILOT_CLIENT_APP,
     source: {
       type: 'npm-locked',
-      packageJson: GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON,
-      pnpmLockYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK,
-      pnpmWorkspaceYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE,
+      packageJson: __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__,
+      pnpmLockYaml: __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__,
+      pnpmWorkspaceYaml: __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'copilot',
     args: [
@@ -292,6 +288,13 @@ export function createGitHubCopilot(
      * so host tools must be exposed over the bridge's HTTP MCP endpoint.
      */
     hostToolMcpTransport: 'http',
+    /*
+     * Images from tool outputs are only processed with direct GitHub Copilot
+     * authentication. For third parties like AI Gateway, GitHub Copilot does
+     * not fetch the model catalog and therefore its check for image support
+     * from a tool output leads to it passing only the text.
+     */
+    nonTextContentTypes: ['image'],
     forwardEnv: ['COPILOT_GH_HOST', 'GH_HOST'],
     credentialEnv: ['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
@@ -462,7 +465,7 @@ export function createGitHubCopilot(
             $source: 'gateway-api-key',
           },
           COPILOT_PROVIDER_WIRE_API: 'responses',
-          COPILOT_MODEL: 'openai/gpt-5.5',
+          COPILOT_MODEL: GITHUB_COPILOT_GATEWAY_MODEL,
           COPILOT_PROVIDER_HEADERS: {
             $source: 'client-app',
             prefix: 'x-client-app: ',
@@ -488,6 +491,11 @@ export function createGitHubCopilot(
     startupTimeoutMs: settings.startupTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
+  });
+
+  return withGitHubCopilotGatewayModel({
+    harness,
+    gatewayModel: GITHUB_COPILOT_GATEWAY_MODEL,
   });
 }
 

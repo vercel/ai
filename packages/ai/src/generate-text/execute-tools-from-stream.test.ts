@@ -315,7 +315,13 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
-  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+  it.each([
+    'length',
+    'error',
+    'content-filter',
+    'interrupted',
+    'other',
+  ] as const)(
     'should not execute tools when the finish reason is %s',
     async finishReason => {
       const execute = vi.fn(async () => 'tool-result');

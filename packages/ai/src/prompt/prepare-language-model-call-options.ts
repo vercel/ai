@@ -33,56 +33,6 @@ export function prepareLanguageModelCallOptions({
     }
   }
 
-  if (temperature != null) {
-    if (typeof temperature !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'temperature',
-        value: temperature,
-        message: 'temperature must be a number',
-      });
-    }
-  }
-
-  if (topP != null) {
-    if (typeof topP !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'topP',
-        value: topP,
-        message: 'topP must be a number',
-      });
-    }
-  }
-
-  if (topK != null) {
-    if (typeof topK !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'topK',
-        value: topK,
-        message: 'topK must be a number',
-      });
-    }
-  }
-
-  if (presencePenalty != null) {
-    if (typeof presencePenalty !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'presencePenalty',
-        value: presencePenalty,
-        message: 'presencePenalty must be a number',
-      });
-    }
-  }
-
-  if (frequencyPenalty != null) {
-    if (typeof frequencyPenalty !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'frequencyPenalty',
-        value: frequencyPenalty,
-        message: 'frequencyPenalty must be a number',
-      });
-    }
-  }
-
   if (seed != null) {
     if (!Number.isInteger(seed)) {
       throw new InvalidArgumentError({

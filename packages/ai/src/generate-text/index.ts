@@ -10,10 +10,12 @@ export type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -49,6 +51,12 @@ export type {
   StepResultPerformance,
 } from './step-result';
 export {
+  createSteering as experimental_createSteering,
+  type Steering as Experimental_Steering,
+  type SteeringNotDeliveredReason as Experimental_SteeringNotDeliveredReason,
+  type SteeringOutcome as Experimental_SteeringOutcome,
+} from './steering';
+export {
   hasToolCall,
   isLoopFinished,
   isStepCount,
@@ -65,6 +73,7 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  streamTextLowMemory as experimental_streamTextLowMemory,
   type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,

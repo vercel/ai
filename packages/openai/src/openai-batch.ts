@@ -35,7 +35,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  openaiErrorDataSchema,
+  openaiErrorDataSchemaValidator,
   openaiFailedResponseHandler,
 } from './openai-error';
 import type { OpenAIConfig } from './openai-config';
@@ -663,7 +663,7 @@ async function convertOpenAIErrorResponse({
 }): Promise<BatchV4Error> {
   const result = await safeValidateTypes({
     value: body,
-    schema: openaiErrorDataSchema,
+    schema: openaiErrorDataSchemaValidator,
   });
 
   if (!result.success) {

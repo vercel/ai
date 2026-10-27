@@ -4,6 +4,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -339,13 +342,25 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
-  output: z.union([z.array(z.string()), z.string()]).nullish(),
-  error: z.string().nullish(),
-  urls: z.object({
-    get: z.string(),
-  }),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum([
+        'starting',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+      ]),
+      output: z.union([z.array(z.string()), z.string()]).nullish(),
+      error: z.string().nullish(),
+      urls: z.object({
+        get: z.string(),
+      }),
+    }),
+  ),
+);
 
-type ReplicateImagePrediction = z.infer<typeof replicateImageResponseSchema>;
+type ReplicateImagePrediction = InferSchema<
+  typeof replicateImageResponseSchema
+>;

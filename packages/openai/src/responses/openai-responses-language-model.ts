@@ -413,6 +413,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
       outputSchemaToolNames,
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
@@ -598,7 +599,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: modelId,
+      model: config.requestModelId ?? modelId,
       input,
       temperature,
       top_p: topP,
@@ -854,7 +855,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
@@ -925,6 +926,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
+
+    let structuredOutputText: string | undefined;
 
     // map response content to content array
     for (const part of response.output) {
@@ -1045,6 +1048,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             input: JSON.stringify({
               action: {
                 commands: part.action.commands,
+                timeoutMs: part.action.timeout_ms ?? undefined,
+                maxOutputLength: part.action.max_output_length ?? undefined,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             ...(isShellProviderExecuted && { providerExecuted: true }),
@@ -1064,6 +1069,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolCallId: part.call_id,
             toolName: toolNameMapping.toCustomToolName('shell'),
             result: {
+              ...(part.max_output_length != null && {
+                maxOutputLength: part.max_output_length,
+              }),
               output: part.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1081,6 +1089,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'message': {
+          // Parse only the last final answer for JSON output, while preserving
+          // every message and its metadata in the generated content.
+          if (
+            options.responseFormat?.type === 'json' &&
+            part.phase === 'final_answer'
+          ) {
+            structuredOutputText = part.content
+              .map(contentPart => contentPart.text)
+              .join('');
+          }
+
           for (const contentPart of part.content) {
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
@@ -1511,6 +1530,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       content,
+      ...(structuredOutputText !== undefined && { structuredOutputText }),
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
@@ -1547,7 +1567,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1594,8 +1614,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIResponsesUsage | undefined = undefined;
@@ -2530,6 +2551,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   input: JSON.stringify({
                     action: {
                       commands: value.item.action.commands,
+                      timeoutMs: value.item.action.timeout_ms ?? undefined,
+                      maxOutputLength:
+                        value.item.action.max_output_length ?? undefined,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   ...(isShellProviderExecuted && {
@@ -2545,6 +2569,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolCallId: value.item.call_id,
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   result: {
+                    ...(value.item.max_output_length != null && {
+                      maxOutputLength: value.item.max_output_length,
+                    }),
                     output: value.item.output.map(
                       (item: {
                         stdout: string;

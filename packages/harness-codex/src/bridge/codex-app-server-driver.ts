@@ -55,6 +55,15 @@ export function createCodexAppServerRuntime(): {
 } {
   let client: CodexAppServerClient | undefined;
   let loadedThreadId: string | undefined;
+  /*
+   * The model Codex reported in the `thread/start` / `thread/resume` response
+   * for the loaded thread, keyed by the model the bridge requested. Turns on an
+   * already-loaded thread skip those requests, so the reported model is reused
+   * while the requested model is unchanged.
+   */
+  let loadedThreadModel:
+    | { requestedModel: string | undefined; modelId: string | undefined }
+    | undefined;
   let loadedConfig: Record<string, unknown> | undefined;
   let activeTurn: ActiveTurn | undefined;
 
@@ -62,6 +71,7 @@ export function createCodexAppServerRuntime(): {
     const previous = client;
     client = undefined;
     loadedThreadId = undefined;
+    loadedThreadModel = undefined;
     loadedConfig = undefined;
     await previous?.close();
   };
@@ -279,6 +289,7 @@ export function createCodexAppServerRuntime(): {
           }),
         });
         loadedThreadId = undefined;
+        loadedThreadModel = undefined;
       }
       if (trustedHook != null) {
         const hooks = await raceWithProcess({
@@ -328,9 +339,23 @@ export function createCodexAppServerRuntime(): {
           method: threadMethod,
         });
         loadedThreadId = currentTurn.threadId;
+        loadedThreadModel = {
+          requestedModel: codexModel,
+          modelId: readOptionalString(asRecord(threadResponse)?.model),
+        };
       }
       handler.announceThread(currentTurn.threadId!);
-      emit({ type: 'stream-start' });
+      const threadModel = loadedThreadModel;
+      const streamStartModelId =
+        threadModel != null &&
+        threadModel.requestedModel === codexModel &&
+        threadModel.modelId != null
+          ? threadModel.modelId
+          : codexModel;
+      emit({
+        type: 'stream-start',
+        ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+      });
       const turnResponse = await raceWithProcess({
         operation: runningClient.request({
           method: 'turn/start',
@@ -440,7 +465,17 @@ export function createTurnParams({
   return {
     threadId,
     ...(disableEnvironments ? { environments: [] } : {}),
-    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    input:
+      typeof start.prompt === 'string'
+        ? [{ type: 'text', text: start.prompt, text_elements: [] }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text', text: part.text, text_elements: [] }
+              : {
+                  type: 'image',
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          ),
     approvalPolicy: 'never',
     sandboxPolicy: {
       type: 'externalSandbox',
@@ -640,4 +675,8 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

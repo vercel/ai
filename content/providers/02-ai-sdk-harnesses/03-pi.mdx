@@ -210,6 +210,13 @@ prompt templates also remain disabled.
 
 ## Session Reattachment
 
+Pi keeps its live session journal in a host temporary directory. On detach,
+stop, or suspension, the adapter copies the journal to
+`$HOME/.ai-sdk-harness/.agent-runs/<encoded-sessionId>/pi/<session-file>.jsonl`.
+Here, `$HOME` belongs to the sandbox; the saved journal is outside
+`sessionWorkDir`. A future process restores that journal after the caller
+reattaches the sandbox and supplies the saved lifecycle state.
+
 By default, Pi keeps a suspended turn alive for an efficient continuation in
 the same process when the incoming request has compatible settings and runtime
 resources. Changed request-scoped settings or sandbox handles cause a cold
@@ -350,6 +357,9 @@ Pi supports built-in tool approval requests when `permissionMode` is
 
 Pi does not support structured output. Supplying `output` to `HarnessAgent`
 causes the turn to throw `HarnessCapabilityUnsupportedError`.
+
+Pi does not support user messages with text parts after image parts; all text
+must appear before the first image.
 
 ## Related
 

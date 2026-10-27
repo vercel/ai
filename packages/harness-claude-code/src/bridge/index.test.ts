@@ -498,6 +498,75 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes strict MCP config and the budget limit to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
+  test('omits strict MCP config and the budget limit when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('strictMcpConfig');
+    expect(options).not.toHaveProperty('maxBudgetUsd');
+  });
+
+  test('passes the question timeout and excludeDynamicSections to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ matcher: string; timeout?: number }> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).toMatchObject({
+      matcher: 'AskUserQuestion',
+      timeout: 600,
+    });
+    expect(options.systemPrompt).toMatchObject({
+      type: 'preset',
+      preset: 'claude_code',
+      excludeDynamicSections: true,
+    });
+  });
+
+  test('rounds the question timeout up to whole seconds for the Agent SDK', async () => {
+    state.start = { ...state.start, questionTimeoutMs: 1_500 };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ timeout?: number }> };
+    };
+    expect(options.hooks.PreToolUse[0]?.timeout).toBe(2);
+  });
+
+  test('omits the question timeout and excludeDynamicSections when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).not.toHaveProperty('timeout');
+    expect(options.systemPrompt).not.toHaveProperty('excludeDynamicSections');
+  });
+
   test('passes subagent activity options to the Agent SDK', async () => {
     state.start = {
       ...state.start,
@@ -1468,6 +1537,42 @@ describe('Claude Code bridge configuration', () => {
         cacheWrite: 0,
       },
       outputTokens: { total: 5, text: 5 },
+    });
+  });
+
+  test('sends image prompt content as Claude image blocks', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        state.queryInputs.push((await input.next()).value);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+    state.start = {
+      ...state.start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+          },
+        ],
+      },
     });
   });
 

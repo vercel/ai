@@ -1,6 +1,7 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -161,7 +162,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.#options.headers,
+          ...normalizeHeaders(this.#options.headers),
         },
         credentials: this.#options.credentials,
         signal: abortController.signal,

@@ -42,7 +42,7 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 ### Requirements
 
 - **Node.js**: v22.13+, v24, or v26 (v22.13 recommended for development)
-- **pnpm**: v11+ (`npm install -g pnpm@11`)
+- **pnpm**: v12+ (`npm install -g pnpm@12`)
 
 ### Initial Setup
 
@@ -62,6 +62,7 @@ pnpm build          # Build all packages
 | `pnpm test`              | Run all tests (excludes examples)                                 |
 | `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
+| `pnpm konsistent`        | Run code consistency validation and checks                        |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |

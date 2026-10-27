@@ -33,11 +33,13 @@ import {
   zodSchema,
   type FetchFunction,
   type InferSchema,
-  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { continueGoogleStream } from './continue-google-stream';
+import {
+  continueGoogleStream,
+  type GoogleStreamPart,
+} from './continue-google-stream';
 import {
   addGoogleUsageMetadata,
   convertGoogleUsage,
@@ -520,6 +522,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping,
     jsonResponseToolName,
     initialPromptTokenCount,
+    groundingMetadataPerRequest,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
@@ -528,6 +531,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
     jsonResponseToolName?: string;
     initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -718,6 +722,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
         groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
         urlContextMetadata: candidate?.urlContextMetadata ?? null,
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
@@ -781,12 +788,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // the prompt plus all output so far as input, so the first request's
     // prompt token count is kept separately for context window checks.
     const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
     let usageMetadata: GoogleUsageMetadata | undefined;
     const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
     let isContinued = false;
 
     while (true) {
       const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
       const continuationToken =
         candidate?.finishReason === 'CONTINUATION'
           ? candidate.continuationToken
@@ -828,6 +838,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       jsonResponseToolName,
       initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
     });
 
     const result = {
@@ -885,6 +898,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const { responseHeaders, value: firstResponse } =
       await streamGenerateContent(args);
 
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
     // Gemini 4 long decode: when a stream reaches the per-request cap while
     // `maxOutputTokens` budget remains, its last chunk finishes with
     // `CONTINUATION`. Resend the same request with the continuation token and
@@ -893,16 +910,27 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       stream: firstResponse,
       getContinuationToken: chunk => {
         const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
         return candidate?.finishReason === 'CONTINUATION'
           ? (candidate.continuationToken ?? undefined)
           : undefined;
       },
-      continueStream: async continuationToken =>
-        (await streamGenerateContent({ ...args, continuationToken })).value,
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
@@ -980,7 +1008,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<ChunkSchema>,
+          GoogleStreamPart<ChunkSchema>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -988,11 +1016,21 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           transform(chunk, controller) {
+            if ('type' in chunk) {
+              // Reset in stream order, after the prior response's buffered
+              // CONTINUATION chunk, rather than when the request starts.
+              finishReason = { unified: 'interrupted', raw: undefined };
+              return;
+            }
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -1489,6 +1527,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               providerMetadata: wrapProviderMetadata({
                 promptFeedback,
                 groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
                 urlContextMetadata: lastUrlContextMetadata,
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
@@ -1856,14 +1902,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
-const partialArgSchema = z.object({
-  jsonPath: z.string(),
-  stringValue: z.string().nullish(),
-  numberValue: z.number().nullish(),
-  boolValue: z.boolean().nullish(),
-  nullValue: z.unknown().nullish(),
-  willContinue: z.boolean().nullish(),
-});
+const partialArgSchema = () =>
+  z.object({
+    jsonPath: z.string(),
+    stringValue: z.string().nullish(),
+    numberValue: z.number().nullish(),
+    boolValue: z.boolean().nullish(),
+    nullValue: z.unknown().nullish(),
+    willContinue: z.boolean().nullish(),
+  });
 
 const getContentSchema = () =>
   z.object({
@@ -1876,7 +1923,7 @@ const getContentSchema = () =>
               id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
+              partialArgs: z.array(partialArgSchema()).nullish(),
               willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
@@ -1938,35 +1985,37 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z
-      .object({
-        modality: z.string(),
-        tokenCount: z.number(),
-      })
-      .loose(),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z
+        .object({
+          modality: z.string(),
+          tokenCount: z.number(),
+        })
+        .loose(),
+    )
+    .nullish();
 
-const usageSchema = z
-  .object({
-    cachedContentTokenCount: z.number().nullish(),
-    thoughtsTokenCount: z.number().nullish(),
-    promptTokenCount: z.number().nullish(),
-    candidatesTokenCount: z.number().nullish(),
-    toolUsePromptTokenCount: z.number().nullish(),
-    totalTokenCount: z.number().nullish(),
-    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-    trafficType: z.string().nullish(),
-    serviceTier: z.string().nullish(),
-    // https://ai.google.dev/api/generate-content#Modality
-    promptTokensDetails: tokenDetailsSchema,
-    cacheTokensDetails: tokenDetailsSchema,
-    candidatesTokensDetails: tokenDetailsSchema,
-    toolUsePromptTokensDetails: tokenDetailsSchema,
-  })
-  .loose();
+const usageSchema = () =>
+  z
+    .object({
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokenCount: z.number().nullish(),
+      candidatesTokenCount: z.number().nullish(),
+      toolUsePromptTokenCount: z.number().nullish(),
+      totalTokenCount: z.number().nullish(),
+      // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+      trafficType: z.string().nullish(),
+      serviceTier: z.string().nullish(),
+      // https://ai.google.dev/api/generate-content#Modality
+      promptTokensDetails: tokenDetailsSchema(),
+      cacheTokensDetails: tokenDetailsSchema(),
+      candidatesTokensDetails: tokenDetailsSchema(),
+      toolUsePromptTokensDetails: tokenDetailsSchema(),
+    })
+    .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1998,7 +2047,7 @@ export const responseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -2053,7 +2102,7 @@ const chunkSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),

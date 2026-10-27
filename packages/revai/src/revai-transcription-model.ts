@@ -4,11 +4,14 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
   mediaTypeToExtension,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -184,7 +187,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       // Poll for job status
       const pollingResult = await getFromApi({
         url: this.config.url({
-          path: `/speechtotext/v1/jobs/${jobId}`,
+          path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}`,
           modelId: this.modelId,
         }),
         validateUrl: false,
@@ -219,7 +222,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await getFromApi({
       url: this.config.url({
-        path: `/speechtotext/v1/jobs/${jobId}/transcript`,
+        path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}/transcript`,
         modelId: this.modelId,
       }),
       validateUrl: false,
@@ -315,27 +318,35 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const revaiTranscriptionJobResponseSchema = z.object({
-  id: z.string().nullish(),
-  status: z.string().nullish(),
-  language: z.string().nullish(),
-});
+const revaiTranscriptionJobResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      status: z.string().nullish(),
+      language: z.string().nullish(),
+    }),
+  ),
+);
 
-const revaiTranscriptionResponseSchema = z.object({
-  monologues: z
-    .array(
-      z.object({
-        elements: z
-          .array(
-            z.object({
-              type: z.string().nullish(),
-              value: z.string().nullish(),
-              ts: z.number().nullish(),
-              end_ts: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const revaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      monologues: z
+        .array(
+          z.object({
+            elements: z
+              .array(
+                z.object({
+                  type: z.string().nullish(),
+                  value: z.string().nullish(),
+                  ts: z.number().nullish(),
+                  end_ts: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

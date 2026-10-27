@@ -223,6 +223,7 @@ const harnessV1FinishReasonSchema = z.object({
     'content-filter',
     'tool-calls',
     'error',
+    'interrupted',
     'other',
   ]),
   raw: z.string().optional(),

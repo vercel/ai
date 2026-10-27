@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -20,6 +20,7 @@ import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
@@ -46,6 +47,7 @@ import {
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import { configureACPModel } from './model-mapping';
+import { resolveACPModelId } from './resolve-acp-model-id';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -57,13 +59,6 @@ import {
   type ACPSessionRestorationMethod,
 } from './session-lifecycle';
 
-type ImplementationDescriptor = {
-  readonly executablePath: string;
-  readonly privateHome: boolean;
-  readonly args: ReadonlyArray<string>;
-  readonly envKeys: ReadonlyArray<string>;
-};
-
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
 
@@ -73,16 +68,9 @@ const bridgeStateDir = requireArg({
   value: args.bridgeStateDir,
   name: '--bridge-state-dir',
 });
-const implementationDir = requireArg({
-  value: args.implementationDir,
-  name: '--implementation-dir',
-});
 const bridgeType = requireArg({
   value: args.bridgeType,
   name: '--bridge-type',
-});
-const implementation = await readImplementationDescriptor({
-  path: `${implementationDir}/implementation.json`,
 });
 const bridgeConfiguration = await readACPBridgeEnvironment({ env: processEnv });
 
@@ -94,6 +82,7 @@ let recoveredSessionUpdates:
   | ReturnType<typeof createACPRecoveredSessionUpdates>
   | undefined;
 let recoveredSessionId: string | undefined;
+let sessionSupportsImagePrompts = false;
 let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
@@ -102,6 +91,7 @@ let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
+let currentModelId: string | undefined;
 let activePermissionController:
   | ReturnType<typeof createACPPermissionController>
   | undefined;
@@ -148,6 +138,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       start,
       turn,
     }));
+    if (
+      !sessionSupportsImagePrompts &&
+      start.prompt.some(part => part.type === 'image')
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: 'The ACP agent does not advertise support for image prompts.',
+      });
+    }
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -223,12 +222,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   }
 
-  await configureACPModel({
+  const configuredModelId = await configureACPModel({
     agent: connection!.agent,
     sessionId: activeSession.sessionId,
     model: start.model,
     mapping: start.modelMapping,
   });
+  if (configuredModelId != null) currentModelId = configuredModelId;
 
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
@@ -261,7 +261,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       rejectCancellationFailure(cancellationFailureError);
     }
   };
-  turn.emit({ type: 'stream-start' });
+  const streamStartModelId = currentModelId ?? start.model;
+  turn.emit({
+    type: 'stream-start',
+    ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+  });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
     emitToolCallCandidate: ({ toolCall }) => {
@@ -373,6 +377,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         });
       }
       if (message.kind === 'session_update') {
+        if (message.update.sessionUpdate === 'config_option_update') {
+          currentModelId =
+            resolveACPModelId({
+              sessionState: message.update,
+              modelMapping: start.modelMapping,
+            }) ?? currentModelId;
+        }
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
@@ -467,14 +478,13 @@ async function ensureSession({
     environment: {
       ...createChildEnvironment({
         launchEnv,
-        implementationDir,
-        privateHome: implementation.privateHome,
+        home: bridgeConfiguration.agent.home,
       }),
     },
   });
   child = spawn(
-    `${implementationDir}/${implementation.executablePath}`,
-    [...implementation.args],
+    bridgeConfiguration.agent.command,
+    [...bridgeConfiguration.agent.args],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,
@@ -598,6 +608,10 @@ async function ensureSession({
     requested: acp.PROTOCOL_VERSION,
     initialization,
   });
+  sessionSupportsImagePrompts = isACPImagePromptSupported({
+    initialization,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
+  });
 
   if (authentication != null) {
     await authenticate({
@@ -712,6 +726,10 @@ async function ensureSession({
     throw error;
   }
   session = createdSession;
+  currentModelId = resolveACPModelId({
+    sessionState: createdSession.newSessionResponse,
+    modelMapping: start.modelMapping,
+  });
   initializationDiagnostic = createACPInitializationDiagnostic({
     initialization,
     sessionId: createdSession.sessionId,
@@ -834,12 +852,10 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
-  implementationDir,
-  privateHome,
+  home,
 }: {
   launchEnv: Readonly<Record<string, string>>;
-  implementationDir: string;
-  privateHome: boolean;
+  home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -858,9 +874,8 @@ function createChildEnvironment({
     ),
     ...launchEnv,
   };
-  if (!privateHome) return environment;
+  if (home == null) return environment;
 
-  const home = `${implementationDir}/home`;
   const inheritedPath = environment.PATH;
   return {
     ...environment,
@@ -953,44 +968,14 @@ function promptActiveSession({
   return response;
 }
 
-async function readImplementationDescriptor({
-  path,
-}: {
-  path: string;
-}): Promise<ImplementationDescriptor> {
-  const text = await readFile(path, 'utf8');
-  const value = await new Response(text, {
-    headers: { 'content-type': 'application/json' },
-  }).json();
-  if (
-    !isRecord(value) ||
-    typeof value.executablePath !== 'string' ||
-    typeof value.privateHome !== 'boolean' ||
-    !Array.isArray(value.args) ||
-    !value.args.every(item => typeof item === 'string') ||
-    !Array.isArray(value.envKeys) ||
-    !value.envKeys.every(item => typeof item === 'string')
-  ) {
-    throw new Error('Invalid ACP implementation descriptor.');
-  }
-  return {
-    executablePath: value.executablePath,
-    privateHome: value.privateHome,
-    args: value.args as string[],
-    envKeys: value.envKeys as string[],
-  };
-}
-
 function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
-  implementationDir?: string;
   bridgeType?: string;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
-    implementationDir?: string;
     bridgeType?: string;
   } = {};
   for (let index = 0; index < args.length; index++) {
@@ -999,8 +984,6 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     if (args[index] === '--workdir') result.workDir = value;
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
-    else if (args[index] === '--implementation-dir')
-      result.implementationDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
   }
   return result;

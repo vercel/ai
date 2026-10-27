@@ -1,5 +1,87 @@
 # @ai-sdk/code-mode
 
+## 1.0.111
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.110
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 1.0.109
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.108
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 1.0.106
+
+### Patch Changes
+
+- d0063af: feat(code-mode): add `executionPolicy.cpuTimeoutMs` to bound CPU time spent running sandboxed code, and throw `CodeModeCpuTimeoutError` when it is exceeded
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
+## 1.0.105
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 1.0.102
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
 ## 1.0.100
 
 ### Patch Changes

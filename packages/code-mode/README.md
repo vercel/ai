@@ -4,17 +4,11 @@
 AI SDK tools. The code runs in an isolated QuickJS sandbox and returns a
 JSON-serializable value.
 
-Use code mode when a model needs to call several tools, transform their results,
-or run them concurrently. Only the tools you provide are available to the
-generated code.
-
-## Installation
+## Setup
 
 ```bash
-pnpm add ai @ai-sdk/code-mode
+npm i ai @ai-sdk/code-mode zod
 ```
-
-This package runs on the server and requires Node.js 22.13 or newer.
 
 ## Usage
 
@@ -74,29 +68,4 @@ const result = await generateText({
 });
 ```
 
-The model can then generate code like:
-
-```ts
-const [inventory, demand] = await Promise.all([
-  tools.getInventory({ productId: 'sku_123' }),
-  tools.getDemand({ productId: 'sku_123' }),
-]);
-
-return {
-  sufficient: inventory.availableUnits >= demand.requestedUnits,
-  remaining: inventory.availableUnits - demand.requestedUnits,
-};
-```
-
-## Direct Execution
-
-Use `experimental_runCodeMode` to run code directly:
-
-```ts
-import { experimental_runCodeMode as runCodeMode } from '@ai-sdk/code-mode';
-
-const result = await runCodeMode({
-  js: 'return await tools.getInventory({ productId: "sku_123" });',
-  tools: { getInventory },
-});
-```
+See the [Code Mode documentation](https://ai-sdk.dev/docs/ai-sdk-core/code-mode) for more information.

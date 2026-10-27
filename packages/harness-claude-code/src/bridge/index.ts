@@ -570,6 +570,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.maxBudgetUsd !== undefined
+        ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.strictMcpConfig !== undefined
+        ? { strictMcpConfig: start.strictMcpConfig }
+        : {}),
       ...(start.agentProgressSummaries !== undefined
         ? { agentProgressSummaries: start.agentProgressSummaries }
         : {}),
@@ -582,7 +588,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
-      systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
+      systemPrompt: createClaudeCodeSystemPrompt(start.instructions, {
+        excludeDynamicSections: start.excludeDynamicSections,
+      }),
       thinking: start.thinking,
       ...(start.effort !== undefined ? { effort: start.effort } : {}),
       ...(start.responseFormat?.type === 'json' &&
@@ -603,6 +611,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           {
             matcher: 'AskUserQuestion',
             hooks: [questionPreToolUseHook],
+            ...(start.questionTimeoutMs !== undefined
+              ? { timeout: Math.ceil(start.questionTimeoutMs / 1000) }
+              : {}),
           },
         ],
         PostCompact: [
@@ -843,7 +854,7 @@ function createQueryInput({
   userMessages,
   abortSignal,
 }: {
-  initialUserMessage: string;
+  initialUserMessage: StartMessage['prompt'];
   userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
@@ -882,14 +893,28 @@ function createQueryInput({
   }
 
   const toUserMessage = (options: {
-    text: string;
+    content: StartMessage['prompt'];
     messageId: string;
     priority?: 'next';
   }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text: options.text }],
+      content:
+        typeof options.content === 'string'
+          ? [{ type: 'text', text: options.content }]
+          : options.content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: part.mediaType,
+                      data: part.data,
+                    },
+                  },
+            ),
     },
     parent_tool_use_id: null,
     uuid: options.messageId,
@@ -963,7 +988,7 @@ function createQueryInput({
               sentInitial = true;
               return {
                 value: toUserMessage({
-                  text: initialUserMessage,
+                  content: initialUserMessage,
                   messageId: initialMessageId,
                 }),
                 done: false,
@@ -983,7 +1008,7 @@ function createQueryInput({
             sentMessageIds.add(nextMessage.value.messageId);
             return {
               value: toUserMessage({
-                text: nextMessage.value.text,
+                content: nextMessage.value.text,
                 messageId: nextMessage.value.messageId,
                 priority: 'next',
               }),

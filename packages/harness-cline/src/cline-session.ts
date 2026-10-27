@@ -25,6 +25,7 @@ import {
   createTool,
   type AgentMessage,
   type AgentModel,
+  type AgentRunInput,
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
@@ -64,7 +65,7 @@ import {
   type ClineTranslatorState,
 } from './cline-translate';
 import {
-  extractUserText,
+  extractUserInput,
   mapRunFinishReason,
   usageFromAgentUsage,
 } from './cline-utils';
@@ -188,7 +189,7 @@ function createClineAgentModel({
   settings: ClineSessionSettings;
   clientApp: string;
   modelId: string | undefined;
-}): { model: AgentModel; providerId: string } {
+}): { model: AgentModel; providerId: string; modelId: string | undefined } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
   const providerId = isAiGateway ? 'cline' : (settings.providerId ?? 'cline');
@@ -249,6 +250,15 @@ function createClineAgentModel({
   return {
     model,
     providerId,
+    /*
+     * The Cline gateway resolves an omitted model to the provider manifest's
+     * `defaultModelId`, which `listProviders()` reports with the same
+     * precedence (provider config, then built-in manifest, then first model).
+     */
+    modelId:
+      modelId ??
+      gateway.listProviders().find(provider => provider.id === providerId)
+        ?.defaultModelId,
   };
 }
 
@@ -635,7 +645,7 @@ export async function createClineSession(
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
   async function runTurn(turnOpts: {
-    text: string | undefined;
+    input: AgentRunInput | undefined;
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -716,25 +726,25 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(activeModelId ? { modelId: activeModelId } : {}),
+      ...(agentModel.modelId ? { modelId: agentModel.modelId } : {}),
     });
 
     acceptingUserMessages = true;
     const turnPromise = (async () => {
       const runtime = agent!;
       try {
-        let nextText = turnOpts.text;
+        let nextInput = turnOpts.input;
         let result: AgentRunResult;
         for (;;) {
-          // `text` is undefined only on rerun-continue: `continue()` without
+          // `input` is undefined only on rerun-continue: `continue()` without
           // input re-drives the loop from the restored transcript instead of
           // pushing an empty user message.
           result =
-            nextText === undefined
+            nextInput === undefined
               ? await runtime.continue()
               : agentHasRun
-                ? await runtime.continue(nextText)
-                : await runtime.run(nextText);
+                ? await runtime.continue(nextInput)
+                : await runtime.run(nextInput);
           agentHasRun = true;
           currentMessages = result.messages;
 
@@ -747,7 +757,7 @@ export async function createClineSession(
           if (result.status !== 'completed') break;
           const pendingUserMessage = consumePendingUserMessage();
           if (pendingUserMessage == null) break;
-          nextText = pendingUserMessage;
+          nextInput = pendingUserMessage;
         }
 
         if (
@@ -891,7 +901,7 @@ export async function createClineSession(
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        input: extractUserInput(promptOpts.prompt),
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
@@ -927,7 +937,7 @@ export async function createClineSession(
        * host-resident runtime cannot do a lossless attach.
        */
       return runTurn({
-        text: undefined,
+        input: undefined,
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],

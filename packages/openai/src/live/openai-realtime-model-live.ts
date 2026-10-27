@@ -4,6 +4,8 @@ import {
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -20,10 +22,17 @@ import type { OpenAIRealtimeModelConfig } from '../realtime/openai-realtime-mode
 
 export type OpenAIRealtimeModelLiveConfig = OpenAIRealtimeModelConfig;
 
-const webRTCSessionSchema = z.object({
-  session: z.object({ id: z.string().min(1) }),
-  transport: z.object({ type: z.literal('webrtc'), sdp: z.string().min(1) }),
-});
+const webRTCSessionSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      session: z.object({ id: z.string().min(1) }),
+      transport: z.object({
+        type: z.literal('webrtc'),
+        sdp: z.string().min(1),
+      }),
+    }),
+  ),
+);
 
 export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;

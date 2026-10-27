@@ -182,6 +182,41 @@ describe('createEmitStreamEvent', () => {
     expect(state.stepOpen).toBe(true);
   });
 
+  it('reports the init model on stream-start when command lifecycle frames arrive first', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'command_lifecycle',
+      command_uuid: 'command-1',
+      state: 'queued',
+    } as ClaudeMessage);
+    emitStreamEvent({
+      type: 'command_lifecycle',
+      command_uuid: 'command-1',
+      state: 'started',
+    } as ClaudeMessage);
+    expect(emitted).toEqual([]);
+
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'init',
+      model: 'claude-sonnet-4-6',
+    });
+
+    expect(emitted).toEqual([
+      { type: 'stream-start', modelId: 'claude-sonnet-4-6' },
+    ]);
+  });
+
   it.each([
     {
       name: 'TaskCreate object output',

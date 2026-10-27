@@ -31,6 +31,15 @@ explicit `validateUrl`.
 > If the host, or anything beyond a path segment, comes from a response body,
 > or an authenticated poll must validate redirects → `validateUrl: true`.
 
+## Identifiers in URL paths
+
+Use `encodePathSegment` from `@ai-sdk/provider-utils` when inserting a raw
+identifier into a URL path. It encodes separators, query and fragment markers,
+and standalone `.` / `..` segments that URL parsers would otherwise normalize.
+Pass unencoded values. For resource names with intentional slashes, encode each
+segment separately with `resourceName.split('/').map(encodePathSegment).join('/')`;
+the provider must still validate the resource name's expected structure.
+
 ## Self-hosted deployments: `trustedOrigin`
 
 A response URL often points back at the developer-configured endpoint itself
