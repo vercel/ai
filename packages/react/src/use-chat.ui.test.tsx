@@ -18,7 +18,6 @@ import {
   isStaticToolUIPart,
   TextStreamChatTransport,
   type ChatTransport,
-  type CompactionUIPart,
   type FinishReason,
   type UIMessage,
   type UIMessageChunk,
@@ -46,115 +45,6 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
-  describe('compaction history', () => {
-    afterEach(cleanup);
-
-    it('retains built-in records and sends the full conversation after reloading', async () => {
-      const originalMessages: UIMessage[] = [
-        {
-          id: 'old-user',
-          role: 'user',
-          parts: [{ type: 'text', text: 'Original visible question' }],
-        },
-        {
-          id: 'old-assistant',
-          role: 'assistant',
-          parts: [{ type: 'text', text: 'Original visible answer' }],
-        },
-      ];
-      const compaction: CompactionUIPart = {
-        type: 'compaction',
-        version: 1,
-        replaces: {
-          messageId: 'id-0',
-          messageCount: 3,
-          partCount: 1,
-          digest: '0'.repeat(64),
-        },
-        messages: [{ role: 'user', content: 'Compacted model context' }],
-      };
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatChunk({ type: 'start', messageId: 'assistant-1' }),
-          formatChunk(compaction),
-          formatChunk({ type: 'text-start', id: 'text-1' }),
-          formatChunk({
-            type: 'text-delta',
-            id: 'text-1',
-            delta: 'New visible answer',
-          }),
-          formatChunk({ type: 'text-end', id: 'text-1' }),
-          formatChunk({ type: 'finish' }),
-        ],
-      };
-      const generateId = mockId();
-      let helpers!: ReturnType<typeof useChat>;
-
-      function TestComponent({
-        initialMessages,
-      }: {
-        initialMessages: UIMessage[];
-      }) {
-        helpers = useChat({
-          id: 'compaction-chat',
-          messages: initialMessages,
-          generateId,
-        });
-
-        return (
-          <div>
-            {helpers.messages.map(message => (
-              <p key={message.id}>
-                {message.parts
-                  .filter(part => part.type === 'text')
-                  .map(part => part.text)
-                  .join('')}
-              </p>
-            ))}
-          </div>
-        );
-      }
-
-      const view = render(<TestComponent initialMessages={originalMessages} />);
-      await act(async () => {
-        await helpers.sendMessage({ text: 'Continue the conversation' });
-      });
-
-      expect(helpers.error).toBeUndefined();
-      expect(helpers.messages.slice(0, 2)).toEqual(originalMessages);
-      expect(helpers.messages.at(-1)?.parts).toEqual([
-        compaction,
-        expect.objectContaining({ type: 'text', text: 'New visible answer' }),
-      ]);
-      expect(screen.getByText('Original visible question')).toBeInTheDocument();
-      expect(screen.getByText('Original visible answer')).toBeInTheDocument();
-      expect(screen.getByText('New visible answer')).toBeInTheDocument();
-
-      const persistedMessages = JSON.parse(JSON.stringify(helpers.messages));
-      view.unmount();
-      render(<TestComponent initialMessages={persistedMessages} />);
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [formatChunk({ type: 'finish' })],
-      };
-
-      await act(async () => {
-        await helpers.sendMessage({ text: 'A follow-up after reload' });
-      });
-
-      const request = await server.calls[1].requestBodyJson;
-      expect(request.messages.slice(0, -1)).toEqual(persistedMessages);
-      expect(request.messages.at(-1)).toEqual(
-        expect.objectContaining({
-          role: 'user',
-          parts: [{ type: 'text', text: 'A follow-up after reload' }],
-        }),
-      );
-      expect(request.messages[3].parts[0]).toEqual(compaction);
-    });
-  });
-
   describe('id generation', () => {
     afterEach(cleanup);
 

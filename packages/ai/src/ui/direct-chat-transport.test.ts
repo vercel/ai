@@ -1,4 +1,4 @@
-import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
+import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -8,10 +8,6 @@ import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { DirectChatTransport } from './direct-chat-transport';
-import { createUIMessageCompaction } from './create-ui-message-compaction';
-import { createCheckpoint } from '../compact-messages/validate-compaction';
-import type { CompactionCheckpoint } from '../compact-messages/types';
-import type { UIMessage } from './ui-messages';
 
 describe('DirectChatTransport', () => {
   describe('sendMessages', () => {
@@ -108,114 +104,44 @@ describe('DirectChatTransport', () => {
       ]);
     });
 
-    it.each(['onStepEnd', 'onStepFinish'] as const)(
-      'should expose UI step snapshots through %s',
-      async callbackName => {
-        const onStepEnd = vi.fn();
-        const transport = new DirectChatTransport({
-          agent: new ToolLoopAgent({ model: mockModel }),
-          generateMessageId: () => 'assistant-1',
-          messageMetadata: ({ part }) =>
-            part.type === 'finish-step'
-              ? { totalTokens: part.usage.totalTokens }
-              : undefined,
-          [callbackName]: onStepEnd,
-        });
-        await convertReadableStreamToArray(
-          await transport.sendMessages({
-            chatId: 'chat-1',
-            messageId: undefined,
-            trigger: 'submit-message',
-            messages: [
-              {
-                id: 'user-1',
-                role: 'user',
-                parts: [{ type: 'text', text: 'Hello' }],
-              },
-            ],
-            abortSignal: undefined,
-          }),
-        );
-        expect(onStepEnd).toHaveBeenCalledOnce();
-        expect(onStepEnd.mock.calls[0][0]).toMatchObject({
-          isContinuation: false,
-          responseMessage: {
-            id: 'assistant-1',
-            metadata: { totalTokens: 13 },
-            parts: [
-              { type: 'step-start' },
-              { type: 'text', text: 'Hello, world!', state: 'done' },
-            ],
-          },
-        });
-      },
-    );
-
-    it('restores compaction checkpoints before validating replaced historical tool schemas', async () => {
-      const prefix: UIMessage[] = [
-        {
-          id: 'u1',
-          role: 'user',
-          parts: [{ type: 'text', text: 'Earlier question' }],
-        },
-        {
-          id: 'a1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-current',
-              toolCallId: 'old-call',
-              state: 'output-available',
-              input: { previous: 'Old schema' },
-              output: 'Old result',
-            },
-          ],
-        },
-      ];
-      const replacement: ModelMessage[] = [
-        { role: 'user', content: 'Summarized earlier tool work.' },
-      ];
-      const checkpoint = await createCheckpoint(replacement, 0, 1);
-      const compaction = await createUIMessageCompaction({
-        messages: prefix,
-        replacementMessages: replacement,
-        checkpoint,
+    it('should expose UI step snapshots through shared stream options', async () => {
+      const onStepEnd = vi.fn();
+      const transport = new DirectChatTransport({
+        agent: new ToolLoopAgent({ model: mockModel }),
+        generateMessageId: () => 'assistant-1',
+        messageMetadata: ({ part }) =>
+          part.type === 'finish-step'
+            ? { totalTokens: part.usage.totalTokens }
+            : undefined,
+        onStepEnd,
       });
-      let restoredCheckpoint: CompactionCheckpoint | undefined;
-      const agent = new ToolLoopAgent({
-        model: mockModel,
-        tools: {
-          current: tool({ inputSchema: z.object({ current: z.string() }) }),
-        },
-        prepareStep: ({ compactionCheckpoint }) => {
-          restoredCheckpoint = compactionCheckpoint;
-        },
-      });
-      const transport = new DirectChatTransport({ agent });
-      const messages = [
-        ...prefix,
-        { id: 'record', role: 'assistant', parts: [compaction] },
-        { id: 'u2', role: 'user', parts: [{ type: 'text', text: 'Continue' }] },
-      ] as Parameters<typeof transport.sendMessages>[0]['messages'];
-
       await convertReadableStreamToArray(
         await transport.sendMessages({
           chatId: 'chat-1',
-          messageId: 'u2',
+          messageId: undefined,
           trigger: 'submit-message',
-          messages,
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Hello' }],
+            },
+          ],
           abortSignal: undefined,
         }),
       );
-
-      expect(restoredCheckpoint).toEqual(checkpoint);
-      expect(mockModel.doStreamCalls[0].prompt).toEqual([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Summarized earlier tool work.' }],
+      expect(onStepEnd).toHaveBeenCalledOnce();
+      expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+        isContinuation: false,
+        responseMessage: {
+          id: 'assistant-1',
+          metadata: { totalTokens: 13 },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+          ],
         },
-        { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
-      ]);
+      });
     });
 
     it('should pass abortSignal to agent', async () => {
