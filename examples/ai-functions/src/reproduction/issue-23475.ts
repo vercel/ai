@@ -26,8 +26,12 @@ async function main() {
   });
   const live = await Sandbox.get({ name, fetch: recordingFetch });
   try {
-    console.log('persistent:', live.persistent);
-    const stopped = await live.stop();
+    const persistent = live.persistent;
+    console.log('persistent:', persistent);
+    const stopped = await live.stop({ signal: AbortSignal.timeout(90_000) });
+    if (stopped.status !== 'stopped') {
+      throw new Error('Template sandbox did not finish stopping');
+    }
     const snapshotId = stopped.sourceSnapshotId;
     if (!snapshotId) {
       throw new Error('Template source snapshot missing');
@@ -36,21 +40,28 @@ async function main() {
       name: `${name}-direct`,
       source: { type: 'snapshot', snapshotId },
       persistent: false,
+      timeout: 30 * 60 * 1_000,
       fetch: recordingFetch,
       signal: AbortSignal.timeout(90_000),
     });
     try {
       const directPersistent = direct.persistent;
-      const directStopped = await direct.stop();
+      const directStopped = await direct.stop({
+        signal: AbortSignal.timeout(90_000),
+      });
       console.log('recorded live responses:', JSON.stringify(responses));
-      if (directPersistent || directStopped.snapshot) {
+      if (
+        directStopped.status !== 'stopped' ||
+        directPersistent ||
+        directStopped.snapshot
+      ) {
         throw new Error(
           'Direct provider control did not honor persistent:false',
         );
       }
       console.log('Direct provider control: nonpersistent, no stop snapshot');
     } finally {
-      await direct.delete();
+      await direct.delete({ deleteOrphanSnapshots: true });
     }
     if (stopped.snapshot) {
       console.log('Unwanted snapshot sizeBytes:', stopped.snapshot.sizeBytes);
@@ -58,12 +69,12 @@ async function main() {
         'ISSUE-23475: persistent:false template sandbox wrote an unwanted stop snapshot',
       );
     }
-    if (live.persistent) {
+    if (persistent) {
       throw new Error('Template sandbox did not honor persistent:false');
     }
     console.log('Template sandbox: nonpersistent, no stop snapshot');
   } finally {
-    await live.delete();
+    await live.delete({ deleteOrphanSnapshots: true });
   }
 }
 

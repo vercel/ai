@@ -1,12 +1,13 @@
 {
   "version": 2,
   "issueId": 23475,
-  "expectationRevision": 1,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23475.ts",
+  "expectationRevision": 2,
+  "supersedesReproductionCommitSha": "c95f833ce192583c2a6284ba8f3c5cda264dc1c0",
+  "command": "pnpm -C packages/sandbox-vercel exec vitest --config vitest.node.config.js --run src/issue-23475.test.ts",
   "artifactPaths": [
     "examples/ai-functions/src/reproduction/issue-23475.ts",
-    "packages/sandbox-vercel/src/__fixtures__/issue-23475.json",
-    "packages/sandbox-vercel/src/issue-23475.test.ts"
+    "packages/sandbox-vercel/src/issue-23475.test.ts",
+    "packages/sandbox-vercel/src/__fixtures__/issue-23475.json"
   ],
   "expectedFailure": {
     "exitCode": 1,
