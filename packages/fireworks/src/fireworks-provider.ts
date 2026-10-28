@@ -148,16 +148,10 @@ export function createFireworks(
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
       supportsStructuredOutputs: true,
-      // Fireworks supports none, low, medium, and high reasoning efforts.
       mapReasoning: ({ reasoning, warnings }) =>
         mapReasoningToProviderEffort({
           reasoning,
-          effortMap: {
-            none: 'none',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-          },
+          effortMap: getFireworksReasoningEffortMap(modelId),
           warnings,
         }),
       transformRequestBody: args => {
@@ -233,3 +227,31 @@ export function createFireworks(
 }
 
 export const fireworks = createFireworks();
+
+// Model families that always reason and reject reasoning effort 'none'.
+const modelsWithoutNoneReasoningEffort = /^(?:gpt-oss|glm-5p3|muse-spark)/;
+
+// Model families that reject reasoning effort 'minimal'.
+const modelsWithoutMinimalReasoningEffort = /^(?:nemotron|inkling)/;
+
+/**
+ * Fireworks accepts every reasoning effort for most models, so reasoning
+ * values are sent directly, except to model families known to reject them.
+ */
+function getFireworksReasoningEffortMap(modelId: string) {
+  const modelName = modelId.slice(modelId.lastIndexOf('/') + 1);
+
+  return {
+    ...(!modelsWithoutNoneReasoningEffort.test(modelName) && {
+      none: 'none' as const,
+    }),
+    ...(!modelsWithoutMinimalReasoningEffort.test(modelName) && {
+      minimal: 'minimal' as const,
+    }),
+    low: 'low' as const,
+    medium: 'medium' as const,
+    high: 'high' as const,
+    xhigh: 'xhigh' as const,
+    max: 'max' as const,
+  };
+}

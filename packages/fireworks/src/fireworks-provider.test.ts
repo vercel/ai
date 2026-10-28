@@ -252,16 +252,27 @@ describe('FireworksProvider', () => {
     });
 
     it.each([
-      ['none', 'none', false],
-      ['minimal', 'low', true],
-      ['medium', 'medium', false],
-      ['xhigh', 'high', true],
-      ['max', 'high', true],
+      ['test-model', 'none', 'none', false],
+      ['test-model', 'minimal', 'minimal', false],
+      ['test-model', 'xhigh', 'xhigh', false],
+      ['test-model', 'max', 'max', false],
+      ['accounts/fireworks/models/kimi-k3', 'max', 'max', false],
+      ['accounts/fireworks/models/gpt-oss-120b', 'none', 'minimal', true],
+      ['accounts/fireworks/models/glm-5p3', 'none', 'minimal', true],
+      ['accounts/fireworks/routers/glm-5p3-fast', 'none', 'minimal', true],
+      ['accounts/fireworks/models/muse-spark-open', 'none', 'minimal', true],
+      [
+        'accounts/fireworks/models/nemotron-3-ultra-nvfp4',
+        'minimal',
+        'low',
+        true,
+      ],
+      ['accounts/fireworks/models/inkling', 'minimal', 'low', true],
     ] as const)(
-      'should map top-level reasoning %s to reasoning_effort %s',
-      (reasoning, effort, hasWarning) => {
+      'should map top-level reasoning for %s from %s to reasoning_effort %s',
+      (modelId, reasoning, effort, hasWarning) => {
         const provider = createFireworks();
-        provider.chatModel('test-model');
+        provider.chatModel(modelId);
 
         const constructorCall =
           OpenAICompatibleChatLanguageModelMock.mock.calls[0];

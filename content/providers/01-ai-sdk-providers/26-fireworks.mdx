@@ -111,8 +111,9 @@ const model = fireworks('accounts/fireworks/models/firefunction-v1');
 ### Reasoning Models
 
 For models that support reasoning effort, use the top-level `reasoning` parameter.
-Fireworks supports the `'none'`, `'low'`, `'medium'`, and `'high'` reasoning
-efforts.
+Most Fireworks models accept every reasoning effort from `'none'` to `'max'`.
+GPT-OSS, GLM-5.3 and Muse Spark models cannot disable reasoning, and Nemotron
+and Inkling models do not support `'minimal'`.
 
 Fireworks exposes the thinking of `deepseek-r1` in the generated text using the `<think>` tag.
 You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
