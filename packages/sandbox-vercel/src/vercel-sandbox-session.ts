@@ -22,26 +22,41 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
-// Exit code the path scripts below use to report that a path does not exist.
+// Distinct from the exit codes bash and coreutils use for their own errors.
 const NOT_FOUND_EXIT_CODE = 3;
-
-// Exit code the path scripts below use to report that a path has the wrong
-// type for the operation.
 const WRONG_TYPE_EXIT_CODE = 4;
 
-// The path is passed as `$1` so it is never interpolated into the script.
-// The scripts only use bash builtins, `rm`, and `stat`. `stat -c` is supported
-// by GNU coreutils, BusyBox, and toybox; `stat -f` is the BSD fallback.
-const STAT_SCRIPT = `
-[ -e "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+// when `[ -e ]` (which checks existance) is false, also check if the parent directories are searchable
+// because otherwise it's a false negative (file doesn't exist) when the directory just can't be accessed
+const EXIT_MISSING_FUNCTION = `
+exit_missing() {
+  ancestor=$1
+  while [ ! -e "$ancestor" ] && [ ! -L "$ancestor" ]; do
+    parent=$(dirname -- "$ancestor")
+    [ "$parent" = "$ancestor" ] && break
+    ancestor=$parent
+  done
+  if [ "$ancestor" != "$1" ] && [ -d "$ancestor" ] && [ ! -x "$ancestor" ]; then
+    echo "Permission denied" >&2
+    exit 1
+  fi
+  exit ${NOT_FOUND_EXIT_CODE}
+}
+`;
+
+// Paths are passed as `$1` so they aren't interpolated into the script
+// `stat -f` is the fallback for BSD `stat`.
+const STAT_SCRIPT = `${EXIT_MISSING_FUNCTION}
+[ -e "$1" ] || exit_missing "$1"
 if [ -f "$1" ]; then type=file; elif [ -d "$1" ]; then type=directory; else type=other; fi
 size=$(stat -L -c %s -- "$1" 2>/dev/null || stat -L -f %z -- "$1") || exit 1
 printf '%s %s' "$type" "$size"
 `;
 
-const LIST_DIRECTORY_SCRIPT = `
+// `cd -P` so that `link/..` lists the same directory `[ -d ]` checked.
+const LIST_DIRECTORY_SCRIPT = `${EXIT_MISSING_FUNCTION}
 if [ ! -d "$1" ]; then
-  [ -e "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+  [ -e "$1" ] || exit_missing "$1"
   echo "Not a directory" >&2
   exit ${WRONG_TYPE_EXIT_CODE}
 fi
@@ -57,12 +72,13 @@ for name in *; do
 done
 `;
 
-const DELETE_FILE_SCRIPT = `
+// delete the symlink itself even when it points to a dir or to a file or to nothing
+const DELETE_FILE_SCRIPT = `${EXIT_MISSING_FUNCTION}
 if [ -d "$1" ] && [ ! -L "$1" ]; then
   echo "Is a directory" >&2
   exit ${WRONG_TYPE_EXIT_CODE}
 fi
-[ -e "$1" ] || [ -L "$1" ] || exit ${NOT_FOUND_EXIT_CODE}
+[ -e "$1" ] || [ -L "$1" ] || exit_missing "$1"
 rm -f -- "$1"
 `;
 
@@ -83,14 +99,14 @@ export class VercelSandboxSession implements SandboxSession {
     ].join('\n');
   }
 
-  // Vercel Sandbox resolves a relative `cwd` against `/` instead of the
-  // session's working directory, which relative file paths resolve against.
-  // The path is not normalized, so `..` after a symbolic link is resolved by
-  // the filesystem, as it is for file paths.
+  // Make relative `workingDirectory` absolute
+  // - vercel sandbox resolves relative `cwd` against `/` instead of the sandbox's working directory
+  // - join paths directly instead of using `posix.join` so that symlinks are followed
+
   private resolveWorkingDirectory(workingDirectory: string): string {
-    return posix.isAbsolute(workingDirectory)
-      ? workingDirectory
-      : `${this.sandbox.currentSession().cwd.replace(/\/$/, '')}/${workingDirectory}`;
+    if (posix.isAbsolute(workingDirectory)) return workingDirectory;
+    const cwd = this.sandbox.currentSession().cwd;
+    return cwd === '/' ? `/${workingDirectory}` : `${cwd}/${workingDirectory}`;
   }
 
   async run({

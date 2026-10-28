@@ -95,7 +95,7 @@ export type SandboxFileStat = {
   type: 'file' | 'directory' | 'other';
 
   /**
-   * Size in bytes.
+   * Size in bytes. The size of a directory is implementation-defined.
    */
   size: number;
 };

@@ -180,7 +180,8 @@ describe('JustBashSandboxSession', () => {
         content: '',
       });
       await sandbox.run({
-        command: 'ln -s /work/file.txt file-link && ln -s /work/dir dir-link',
+        command:
+          'ln -s /work/file.txt file-link && ln -s /work/dir dir-link && ln -s /work/missing broken-link',
       });
     });
 
@@ -214,9 +215,51 @@ describe('JustBashSandboxSession', () => {
       const entries = await sandbox.listDirectory({ path: '.' });
 
       expect(entries?.sort((a, b) => a.name.localeCompare(b.name))).toEqual([
+        { name: 'broken-link', type: 'symlink' },
         { name: 'dir', type: 'directory' },
         { name: 'dir-link', type: 'symlink' },
         { name: 'file-link', type: 'symlink' },
+        { name: 'file.txt', type: 'file' },
+      ]);
+    });
+
+    it('stat returns null for a broken symbolic link', async () => {
+      expect(await sandbox.stat({ path: 'broken-link' })).toBeNull();
+    });
+
+    it('listDirectory lists a directory through a symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'dir-link' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+
+    it('listDirectory returns null for a broken symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'broken-link' })).toBeNull();
+    });
+
+    it('listDirectory falls back to lstat without readdirWithFileTypes', async () => {
+      const nativeSandbox = await Sandbox.create({ cwd: '/work' });
+      const session = new JustBashSandboxSession(nativeSandbox);
+      await session.writeTextFile({ path: 'file.txt', content: '' });
+      await session.run({ command: 'mkdir dir && ln -s /work/dir dir-link' });
+      // The built-in `readdir` uses `readdirWithFileTypes`, so only hide it
+      // from the adapter.
+      const fs = nativeSandbox.bashEnvInstance.fs;
+      Object.defineProperty(nativeSandbox.bashEnvInstance, 'fs', {
+        value: new Proxy(fs, {
+          get: (target, property) => {
+            if (property === 'readdirWithFileTypes') return undefined;
+            const value = Reflect.get(target, property, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+          },
+        }),
+      });
+
+      const entries = await session.listDirectory({ path: '.' });
+
+      expect(entries?.sort((a, b) => a.name.localeCompare(b.name))).toEqual([
+        { name: 'dir', type: 'directory' },
+        { name: 'dir-link', type: 'symlink' },
         { name: 'file.txt', type: 'file' },
       ]);
     });
@@ -243,6 +286,30 @@ describe('JustBashSandboxSession', () => {
       expect(await sandbox.stat({ path: 'file.txt' })).toBeNull();
     });
 
+    it('deleteFile deletes a broken symbolic link', async () => {
+      expect(await sandbox.deleteFile({ path: 'broken-link' })).toBe(true);
+      expect(
+        (await sandbox.listDirectory({ path: '.' }))?.map(entry => entry.name),
+      ).not.toContain('broken-link');
+    });
+
+    it('path methods reject when the signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const abortSignal = controller.signal;
+
+      await expect(
+        sandbox.stat({ path: 'file.txt', abortSignal }),
+      ).rejects.toThrow();
+      await expect(
+        sandbox.listDirectory({ path: '.', abortSignal }),
+      ).rejects.toThrow();
+      await expect(
+        sandbox.deleteFile({ path: 'file.txt', abortSignal }),
+      ).rejects.toThrow();
+      expect(await sandbox.stat({ path: 'file.txt' })).not.toBeNull();
+    });
+
     it('deleteFile returns false for a missing file', async () => {
       expect(await sandbox.deleteFile({ path: 'missing.txt' })).toBe(false);
     });
@@ -252,13 +319,6 @@ describe('JustBashSandboxSession', () => {
         'it is a directory',
       );
       expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
-    });
-
-    it('deleteFile deletes a file in a symbolically linked directory', async () => {
-      expect(await sandbox.deleteFile({ path: 'dir-link/nested.txt' })).toBe(
-        true,
-      );
-      expect(await sandbox.stat({ path: 'dir/nested.txt' })).toBeNull();
     });
 
     it('deleteFile deletes a symbolic link to a directory but not the directory', async () => {

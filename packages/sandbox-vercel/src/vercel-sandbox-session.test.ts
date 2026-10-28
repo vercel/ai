@@ -1,5 +1,12 @@
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Sandbox } from '@vercel/sandbox';
@@ -974,6 +981,8 @@ describe('VercelSandboxSession path methods', () => {
     await writeFile(join(directory, 'with space\nand newline'), '');
     await symlink(join(directory, 'file.txt'), join(directory, 'file-link'));
     await symlink(join(directory, 'dir'), join(directory, 'dir-link'));
+    await symlink(join(directory, 'missing'), join(directory, 'broken-link'));
+    spawnSync('mkfifo', [join(directory, 'fifo')]);
   });
 
   afterEach(async () => {
@@ -1006,6 +1015,48 @@ describe('VercelSandboxSession path methods', () => {
       expect(await sandbox.stat({ path: 'missing.txt' })).toBeNull();
       expect(await sandbox.stat({ path: 'file.txt/child' })).toBeNull();
     });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await sandbox.stat({ path: 'broken-link' })).toBeNull();
+    });
+
+    it('returns other for a named pipe', async () => {
+      expect(await sandbox.stat({ path: 'fifo' })).toEqual({
+        type: 'other',
+        size: 0,
+      });
+    });
+
+    // Root can search any directory, so the check cannot fail as root.
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects instead of returning null when a parent directory is not searchable',
+      async () => {
+        await mkdir(join(directory, 'locked'));
+        await writeFile(join(directory, 'locked', 'secret.txt'), '');
+        await chmod(join(directory, 'locked'), 0o000);
+        try {
+          await expect(
+            sandbox.stat({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            sandbox.listDirectory({ path: 'locked/missing' }),
+          ).rejects.toThrow('Permission denied');
+          await expect(
+            sandbox.deleteFile({ path: 'locked/secret.txt' }),
+          ).rejects.toThrow('Permission denied');
+        } finally {
+          await chmod(join(directory, 'locked'), 0o755);
+        }
+      },
+    );
+
+    it('rejects when the signal is already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        sandbox.stat({ path: 'file.txt', abortSignal: controller.signal }),
+      ).rejects.toThrow();
+    });
   });
 
   describe('listDirectory', () => {
@@ -1020,12 +1071,20 @@ describe('VercelSandboxSession path methods', () => {
             "type": "file",
           },
           {
+            "name": "broken-link",
+            "type": "symlink",
+          },
+          {
             "name": "dir",
             "type": "directory",
           },
           {
             "name": "dir-link",
             "type": "symlink",
+          },
+          {
+            "name": "fifo",
+            "type": "other",
           },
           {
             "name": "file-link",
@@ -1070,6 +1129,16 @@ describe('VercelSandboxSession path methods', () => {
         'Not a directory',
       );
     });
+
+    it('lists a directory through a symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'dir-link' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
+
+    it('returns null for a broken symbolic link', async () => {
+      expect(await sandbox.listDirectory({ path: 'broken-link' })).toBeNull();
+    });
   });
 
   describe('deleteFile', () => {
@@ -1093,6 +1162,22 @@ describe('VercelSandboxSession path methods', () => {
       expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
       expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();
       expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('deletes a broken symbolic link', async () => {
+      expect(await sandbox.deleteFile({ path: 'broken-link' })).toBe(true);
+      expect(
+        await sandbox
+          .listDirectory({ path: '.' })
+          .then(entries => entries?.map(entry => entry.name)),
+      ).not.toContain('broken-link');
+    });
+
+    it('deletes a file in a symbolically linked directory', async () => {
+      expect(await sandbox.deleteFile({ path: 'dir-link/nested.txt' })).toBe(
+        true,
+      );
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).toBeNull();
     });
   });
 

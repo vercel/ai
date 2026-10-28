@@ -169,9 +169,10 @@ export class JustBashSandboxSession implements SandboxSession {
     abortSignal?.throwIfAborted();
     const fs = this.sandbox.bashEnvInstance.fs;
     const resolved = this.resolvePath(path);
-    // The just-bash filesystem replaces a directory with the file instead of
-    // rejecting the write.
-    if ((await fs.exists(resolved)) && (await fs.stat(resolved)).isDirectory) {
+    // The just-bash filesystem would replace the directory, deleting its
+    // contents.
+    const existing = await fs.stat(resolved).catch(() => null);
+    if (existing?.isDirectory) {
       throw new Error(`Cannot write ${path}: it is a directory.`);
     }
     await fs.writeFile(resolved, content);
@@ -227,31 +228,17 @@ export class JustBashSandboxSession implements SandboxSession {
         const entries = await fs.readdirWithFileTypes(resolved);
         return entries.map(entry => ({
           name: entry.name,
-          type: entry.isSymbolicLink
-            ? 'symlink'
-            : entry.isFile
-              ? 'file'
-              : entry.isDirectory
-                ? 'directory'
-                : 'other',
+          type: toEntryType(entry),
         }));
       }
 
+      // `readdirWithFileTypes` is optional in custom just-bash filesystems.
       const names = await fs.readdir(resolved);
       return await Promise.all(
-        names.map(async name => {
-          const stat = await fs.lstat(posix.join(resolved, name));
-          return {
-            name,
-            type: stat.isSymbolicLink
-              ? ('symlink' as const)
-              : stat.isFile
-                ? ('file' as const)
-                : stat.isDirectory
-                  ? ('directory' as const)
-                  : ('other' as const),
-          };
-        }),
+        names.map(async name => ({
+          name,
+          type: toEntryType(await fs.lstat(posix.join(resolved, name))),
+        })),
       );
     } catch (error) {
       if (isFileNotFoundError(error)) return null;
@@ -268,10 +255,7 @@ export class JustBashSandboxSession implements SandboxSession {
       if (stat.isDirectory) {
         throw new Error(`Cannot delete ${path}: it is a directory.`);
       }
-      // The just-bash filesystem does not follow symbolic links in the parent
-      // directories when removing, so remove the entry from the real parent.
-      const parent = await fs.realpath(posix.dirname(resolved));
-      await fs.rm(posix.join(parent, posix.basename(resolved)));
+      await fs.rm(resolved);
       return true;
     } catch (error) {
       if (isFileNotFoundError(error) || isNotDirectoryError(error)) {
@@ -403,6 +387,18 @@ function isFileNotFoundError(error: unknown): boolean {
   );
 }
 
+function toEntryType(entry: {
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymbolicLink: boolean;
+}): SandboxDirectoryEntry['type'] {
+  if (entry.isSymbolicLink) return 'symlink';
+  if (entry.isFile) return 'file';
+  if (entry.isDirectory) return 'directory';
+  return 'other';
+}
+
+// `ENOTDIR`: a parent is a file, so the path does not exist.
 function isNotDirectoryError(error: unknown): boolean {
   if (error == null || typeof error !== 'object') return false;
   const code = (error as { code?: unknown }).code;

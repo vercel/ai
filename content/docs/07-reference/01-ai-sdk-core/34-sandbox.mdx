@@ -42,6 +42,7 @@ type Experimental_SandboxSession = {
     workingDirectory?: string;
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
+    stdin?: boolean;
   }) => PromiseLike<Experimental_SandboxProcess>;
 
   readonly readFile: (options: {
@@ -163,9 +164,9 @@ with `run` prints can be passed to `readTextFile`.
     },
     {
       name: 'spawn',
-      type: '(options: { command: string; workingDirectory?: string; env?: Record<string, string>; abortSignal?: AbortSignal }) => PromiseLike<Experimental_SandboxProcess>',
+      type: '(options: { command: string; workingDirectory?: string; env?: Record<string, string>; abortSignal?: AbortSignal; stdin?: boolean }) => PromiseLike<Experimental_SandboxProcess>',
       description:
-        'Starts a long-running process and returns immediately with a handle that streams standard output and standard error, can be waited on, and can be killed.',
+        'Starts a long-running process and returns immediately with a handle that streams standard output and standard error, can be waited on, and can be killed. With `stdin: true`, standard input stays open and the handle also has a writable `stdin` stream; implementations that do not support this reject before starting the command.',
     },
     {
       name: 'readFile / readBinaryFile / readTextFile',
@@ -183,7 +184,7 @@ with `run` prints can be passed to `readTextFile`.
       name: 'stat',
       type: '(options: { path: string; abortSignal?: AbortSignal }) => PromiseLike<Experimental_SandboxFileStat | null>',
       description:
-        'Returns the type (`file`, `directory`, or `other`) and size in bytes of a path. Symbolic links are followed. Resolves to `null` when the path does not exist.',
+        'Returns the type (`file`, `directory`, or `other`) and size in bytes of a path. The size of a directory is implementation-defined. Symbolic links are followed. Resolves to `null` when the path does not exist.',
     },
     {
       name: 'listDirectory',
