@@ -13,6 +13,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { openaiLiveRealtimeCapabilities } from '../openai-model-catalog';
 import {
   createOpenAILiveServerEventParser,
   parseOpenAILiveServerEvent,
@@ -38,13 +39,7 @@ const webRTCSessionSchema = lazySchema(() =>
 
 export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
-  readonly capabilities = {
-    conversation: 'continuous',
-    transports: ['websocket', 'webrtc'],
-    connections: ['server-websocket', 'webrtc'],
-    startup: 'session-start',
-    finalization: 'session-close',
-  } as const;
+  readonly capabilities = openaiLiveRealtimeCapabilities;
 
   constructor(
     readonly modelId: OpenAIRealtimeModelLiveId,
