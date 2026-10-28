@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 5.0.125
+
+### Patch Changes
+
+- 38a5b84: support Google Auth Library 11 in `@ai-sdk/google-vertex`
+
 ## 5.0.124
 
 ### Patch Changes
