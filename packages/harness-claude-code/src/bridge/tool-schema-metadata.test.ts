@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 
@@ -31,9 +31,8 @@ it('does not advertise host-invalid tool inputs as valid to Claude', async () =>
   const bridge = jsonSchemaToZodObject(original);
   const server = new McpServer({ name: 'harness-tools', version: '1.0.0' });
   const client = new Client({ name: 'regression', version: '1.0.0' });
-  server.registerTool('host', { inputSchema: bridge }, async () => ({
-    content: [],
-  }));
+  const handler = vi.fn(async () => ({ content: [] }));
+  server.registerTool('host', { inputSchema: bridge }, handler);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   try {
@@ -45,16 +44,8 @@ it('does not advertise host-invalid tool inputs as valid to Claude', async () =>
     const recorded = events.find(event => event.type === 'tool-call');
     expect(recorded).toBeDefined();
     const input = recorded!.input;
-    console.log('Advertised MCP schema:', JSON.stringify(advertised));
-
-    // A fix may change the advertised schema to exclude this stale input.
-    // Do not require that the broken schema continues to accept it.
-    expect
-      .soft(
-        validate(input).valid && !host.safeParse(input).success,
-        'ISSUE-23960: advertised-valid model input is rejected by host',
-      )
-      .toBe(false);
+    expect(host.safeParse(input).success).toBe(false);
+    expect(validate(input).valid).toBe(false);
 
     const directInput = direct.content.find(
       part => part.type === 'tool_use',
@@ -62,10 +53,20 @@ it('does not advertise host-invalid tool inputs as valid to Claude', async () =>
     expect(validate(directInput).valid).toBe(true);
     expect(host.parse(directInput).mode).toBe('host-default');
 
-    // The bridge transports metadata; the host alone enforces these limits
-    // and fills defaults. Replacing metadata with Zod checks is not a fix.
     expect(bridge.parse(input)).toEqual(input);
     expect(bridge.parse(directInput)).not.toHaveProperty('mode');
+    for (const toolInput of [input, directInput]) {
+      handler.mockClear();
+      const result = await client.callTool({
+        name: 'host',
+        arguments: toolInput,
+      });
+      expect(result.isError).not.toBe(true);
+      expect(handler).toHaveBeenCalledExactlyOnceWith(
+        toolInput,
+        expect.anything(),
+      );
+    }
     for (const [name, keywords] of Object.entries({
       bounded: ['minimum', 'maximum'],
       exclusive: ['exclusiveMinimum', 'exclusiveMaximum'],
@@ -74,12 +75,10 @@ it('does not advertise host-invalid tool inputs as valid to Claude', async () =>
       mode: ['default'],
     })) {
       for (const keyword of keywords) {
-        expect
-          .soft(advertised.properties?.[name])
-          .toHaveProperty(
-            keyword,
-            (original.properties![name] as Record<string, unknown>)[keyword],
-          );
+        expect(advertised.properties?.[name]).toHaveProperty(
+          keyword,
+          (original.properties![name] as Record<string, unknown>)[keyword],
+        );
       }
     }
     const omitted = jsonSchemaToZodObject({
@@ -88,12 +87,9 @@ it('does not advertise host-invalid tool inputs as valid to Claude', async () =>
         text: { type: 'string', pattern: '^x$', format: 'email' },
       },
     });
-    expect(z.toJSONSchema(omitted).properties?.text).not.toHaveProperty(
-      'pattern',
-    );
-    expect(z.toJSONSchema(omitted).properties?.text).not.toHaveProperty(
-      'format',
-    );
+    expect(z.toJSONSchema(omitted).properties?.text).toEqual({
+      type: 'string',
+    });
   } finally {
     await client.close();
     await server.close();
