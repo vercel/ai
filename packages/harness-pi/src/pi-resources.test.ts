@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { piLifecycleStateSchema } from './pi-lifecycle-state';
+import { piResumeStateSchema } from './pi-resume-state';
 import {
   createFakePi,
   createThrowingSandboxSession,
@@ -68,9 +68,10 @@ describe('Pi with a scripted model', () => {
     await runPromptTurn(first, 'Remember the word PELICAN.');
     const state = await first.doStop();
 
-    expect(piLifecycleStateSchema.parse(state.data).entries?.[0]).toMatchObject(
-      { type: 'session', id: 'session-pelican' },
-    );
+    expect(piResumeStateSchema.parse(state.data).entries?.[0]).toMatchObject({
+      type: 'session',
+      id: 'session-pelican',
+    });
 
     const firstRequest = model.requests.length;
     const resumed = await createFakePi(scripted.url).doStart({
@@ -168,7 +169,7 @@ describe('Pi with a scripted model', () => {
     const state = await session.doStop();
 
     expect(requestText(model.requests[firstRequest])).toContain('BLUE-HERON-7');
-    const savedEntries = piLifecycleStateSchema.parse(state.data).entries;
+    const savedEntries = piResumeStateSchema.parse(state.data).entries;
     expect(savedEntries?.[0]).toMatchObject({ type: 'session', version: 3 });
     expect(savedEntries?.find(entry => entry.id === 'e3')).toMatchObject({
       message: { role: 'custom', content: 'The codename is BLUE-HERON-7.' },

@@ -73,7 +73,7 @@ const piPendingToolBatchSchema = z.object({
 export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
 export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
 
-const sessionHeaderSchema = z.custom<SessionHeader>(
+const piSessionHeaderSchema = z.custom<SessionHeader>(
   value =>
     isRecord(value) &&
     value.type === 'session' &&
@@ -83,7 +83,7 @@ const sessionHeaderSchema = z.custom<SessionHeader>(
   'Pi session entries must start with a session header.',
 );
 
-export const sessionEntrySchema = z.custom<SessionEntry>(
+export const piSessionEntrySchema = z.custom<SessionEntry>(
   value =>
     isRecord(value) &&
     typeof value.type === 'string' &&
@@ -92,11 +92,11 @@ export const sessionEntrySchema = z.custom<SessionEntry>(
 );
 
 export const piSessionEntriesSchema: z.ZodType<PiSessionEntries> = z.tuple(
-  [sessionHeaderSchema],
-  sessionEntrySchema,
+  [piSessionHeaderSchema],
+  piSessionEntrySchema,
 );
 
-export const piLifecycleStateSchema = z.preprocess(
+export const piResumeStateSchema = z.preprocess(
   value => {
     /*
      * A pending tool batch is only replayed against a session restored from
@@ -117,9 +117,9 @@ export const piLifecycleStateSchema = z.preprocess(
   }),
 );
 
-export type PiLifecycleData = z.infer<typeof piLifecycleStateSchema>;
+export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
 
-export function sessionEntriesOf(
+export function getSessionEntries(
   manager: Pick<SessionManager, 'getHeader' | 'getEntries'>,
 ): PiSessionEntries | undefined {
   const header = manager.getHeader();

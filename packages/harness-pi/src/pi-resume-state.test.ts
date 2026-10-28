@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  piLifecycleStateSchema,
-  sessionEntriesOf,
+  piResumeStateSchema,
+  getSessionEntries,
   withSessionId,
   type PiSessionEntries,
-} from './pi-lifecycle-state';
+} from './pi-resume-state';
 
 const header = {
   type: 'session',
@@ -24,28 +24,26 @@ const entry = {
 
 const entries: PiSessionEntries = [header, entry];
 
-describe('piLifecycleStateSchema', () => {
+describe('piResumeStateSchema', () => {
   it('accepts a header followed by entries', () => {
-    expect(piLifecycleStateSchema.parse({ entries })).toEqual({ entries });
+    expect(piResumeStateSchema.parse({ entries })).toEqual({ entries });
   });
 
   it.each([{}, { sessionFileName: 'pi-session.jsonl' }])(
     'reads %j as a state without entries',
     data => {
-      expect(piLifecycleStateSchema.parse(data)).toEqual({});
+      expect(piResumeStateSchema.parse(data)).toEqual({});
     },
   );
 
   it('rejects entries without a header', () => {
-    expect(piLifecycleStateSchema.safeParse({ entries: [entry] }).success).toBe(
+    expect(piResumeStateSchema.safeParse({ entries: [entry] }).success).toBe(
       false,
     );
   });
 
   it('rejects an empty entry list', () => {
-    expect(piLifecycleStateSchema.safeParse({ entries: [] }).success).toBe(
-      false,
-    );
+    expect(piResumeStateSchema.safeParse({ entries: [] }).success).toBe(false);
   });
 
   it('accepts a pending tool batch with its assistant message', () => {
@@ -61,13 +59,14 @@ describe('piLifecycleStateSchema', () => {
       nativeApprovalDecisions: [],
     };
 
-    expect(piLifecycleStateSchema.parse({ entries, pendingToolBatch })).toEqual(
-      { entries, pendingToolBatch },
-    );
+    expect(piResumeStateSchema.parse({ entries, pendingToolBatch })).toEqual({
+      entries,
+      pendingToolBatch,
+    });
   });
 
   it('rejects a legacy pending tool batch without its assistant message', () => {
-    const result = piLifecycleStateSchema.safeParse({
+    const result = piResumeStateSchema.safeParse({
       entries,
       pendingToolBatch: {
         awaitingToolCallIds: ['tool-1'],
@@ -93,7 +92,7 @@ describe('piLifecycleStateSchema', () => {
 
   it('rejects a pending tool batch with a non-assistant message', () => {
     expect(
-      piLifecycleStateSchema.safeParse({
+      piResumeStateSchema.safeParse({
         leafId: 'entry-1',
         pendingToolBatch: {
           assistantMessage: { role: 'user', content: [] },
@@ -107,7 +106,7 @@ describe('piLifecycleStateSchema', () => {
 
   it('drops a legacy pending tool batch from a state without a session to replay it against', () => {
     expect(
-      piLifecycleStateSchema.parse({
+      piResumeStateSchema.parse({
         sessionFileName: 'pi-session.jsonl',
         pendingToolBatch: {
           awaitingToolCallIds: ['tool-1'],
@@ -129,16 +128,16 @@ describe('withSessionId', () => {
   });
 });
 
-describe('sessionEntriesOf', () => {
+describe('getSessionEntries', () => {
   it('puts the header before the entries', () => {
     expect(
-      sessionEntriesOf({ getHeader: () => header, getEntries: () => [entry] }),
+      getSessionEntries({ getHeader: () => header, getEntries: () => [entry] }),
     ).toEqual(entries);
   });
 
   it('returns undefined without a header', () => {
     expect(
-      sessionEntriesOf({ getHeader: () => null, getEntries: () => [] }),
+      getSessionEntries({ getHeader: () => null, getEntries: () => [] }),
     ).toBeUndefined();
   });
 });

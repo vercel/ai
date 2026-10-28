@@ -5,7 +5,7 @@ import type {
 import type {
   PiAssistantMessage,
   PiCompletedToolResult,
-} from './pi-lifecycle-state';
+} from './pi-resume-state';
 
 export type PiAgent = AgentSession['agent'];
 type PiStreamFunction = PiAgent['streamFunction'];

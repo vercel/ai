@@ -77,14 +77,14 @@ import {
 } from './pi-tool-result';
 import {
   piAssistantMessageSchema,
-  sessionEntriesOf,
+  getSessionEntries,
   withSessionId,
   type PiAssistantMessage,
   type PiCompletedToolResult,
-  type PiLifecycleData,
+  type PiResumeStateData,
   type PiPendingToolBatch,
   type PiSessionEntries,
-} from './pi-lifecycle-state';
+} from './pi-resume-state';
 import {
   appendSessionEntries,
   readSessionEntries,
@@ -653,7 +653,9 @@ export async function createPiSession(
     | { entries: PiSessionEntries; count: number; leafId?: string }
     | undefined => {
     const entries =
-      sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
+      sessionManager == null
+        ? seededEntries
+        : getSessionEntries(sessionManager);
     if (entries == null) return undefined;
     const [header, ...rest] = entries;
     const unsaved = rest.slice(savedEntryCount);
@@ -1016,7 +1018,7 @@ export async function createPiSession(
       });
       savedEntryCount += snapshot.count;
     }
-    const data: PiLifecycleData = {
+    const data: PiResumeStateData = {
       ...(storage == null
         ? snapshot && { entries: snapshot.entries }
         : snapshot?.leafId && { leafId: snapshot.leafId }),

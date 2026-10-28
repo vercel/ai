@@ -7,10 +7,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import {
-  piLifecycleStateSchema,
-  type PiLifecycleData,
-} from './pi-lifecycle-state';
+import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
 import type { PiSessionStorage } from './pi-session-storage';
 import {
   createPiSession,
@@ -222,10 +219,10 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: true,
-    lifecycleStateSchema: piLifecycleStateSchema,
+    lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as PiLifecycleData | undefined;
+      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,

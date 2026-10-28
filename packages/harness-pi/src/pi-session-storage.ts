@@ -6,7 +6,7 @@ import {
   type SessionHeader,
 } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
-import { sessionEntrySchema } from './pi-lifecycle-state';
+import { piSessionEntrySchema } from './pi-resume-state';
 
 interface PiSessionStorageEntry {
   /**
@@ -74,9 +74,9 @@ export interface PiSessionStorage {
   }): PromiseLike<ReadonlyArray<PiSessionStorageEntry>>;
 }
 
-const storedEntrySchema = z.looseObject({
+const piSessionStorageEntrySchema = z.looseObject({
   version: z.number(),
-  data: sessionEntrySchema,
+  data: piSessionEntrySchema,
 });
 
 export async function appendSessionEntries({
@@ -118,7 +118,7 @@ export async function readSessionEntries({
 }): Promise<SessionEntry[]> {
   const values = await storage.read({ sessionId, leafId, abortSignal });
   return values.map((value, index) => {
-    const result = storedEntrySchema.safeParse(value);
+    const result = piSessionStorageEntrySchema.safeParse(value);
     if (!result.success) {
       throw new HarnessError({
         message: `Entry ${index} of the Pi session "${sessionId}" is not a Pi session entry.`,

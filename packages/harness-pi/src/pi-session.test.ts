@@ -32,7 +32,7 @@ import {
   withSessionId,
   type PiAssistantMessage,
   type PiSessionEntries,
-} from './pi-lifecycle-state';
+} from './pi-resume-state';
 import {
   createPiSession,
   type PiHarnessExtensionFactory,

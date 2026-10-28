@@ -8,7 +8,7 @@ import {
   CURRENT_SESSION_VERSION,
   type SessionEntry,
 } from '@earendil-works/pi-coding-agent';
-import { piLifecycleStateSchema } from './pi-lifecycle-state';
+import { piResumeStateSchema } from './pi-resume-state';
 import {
   type PiSessionStorage,
   readSessionEntries,
@@ -68,7 +68,7 @@ const createMemoryStorage = ({ readAll = false, batch = false } = {}) => {
 };
 
 const leafOf = (state: { data: unknown }) =>
-  piLifecycleStateSchema.parse(state.data).leafId;
+  piResumeStateSchema.parse(state.data).leafId;
 
 describe('Pi with a session storage', () => {
   const scripted = useScriptedPiModel();
@@ -281,7 +281,7 @@ describe('Pi with a session storage', () => {
     const session = await start(storage, inline);
     const stopped = await session.doStop();
 
-    const [header, ...entries] = piLifecycleStateSchema.parse(
+    const [header, ...entries] = piResumeStateSchema.parse(
       inline.data,
     ).entries!;
     expect(stopped.data).toEqual({ leafId: entries.at(-1)!.id });
