@@ -22,6 +22,7 @@ import {
   type ImageModelV4Result,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertImageModelFileToDataUri,
   convertBase64ToUint8Array,
@@ -314,14 +315,12 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     }
     formData.append('file', file, filename);
 
-    const headers = combineHeaders(
-      this.options.config.headers?.(),
-      options.headers,
-    );
-
     const { value: uploadedFile } = await postFormDataToApi({
       url: this.getUrl('/files'),
-      headers,
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -333,7 +332,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
 
     const { value: batch } = await postJsonToApi({
       url: this.getUrl('/batches'),
-      headers,
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         name: xaiBatchName,
         input_file_id: uploadedFile.id,
@@ -378,7 +380,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
       url: this.getUrl(
         `/batches/${encodeURIComponent(options.batchId)}:cancel`,
       ),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {},
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -402,7 +407,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
 
     const { value: page } = await getFromApi({
       url: url.toString(),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiBatchListResponseSchema,
@@ -444,7 +452,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   ): Promise<XaiBatchResponse> {
     const { value: batch } = await getFromApi({
       url: this.getUrl(`/batches/${encodeURIComponent(options.batchId)}`),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiBatchResponseSchema,
@@ -475,7 +486,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
           `/batches/${encodeURIComponent(options.batchId)}/results?${query}`,
         ),
         headers: combineHeaders(
-          this.options.config.headers?.(),
+          await resolve(this.options.config.headers),
           options.headers,
         ),
         failedResponseHandler: xaiFailedResponseHandler,

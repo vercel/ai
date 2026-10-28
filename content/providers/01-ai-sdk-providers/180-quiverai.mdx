@@ -86,7 +86,11 @@ You can use the following optional settings to customize the QuiverAI provider i
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.quiver.ai/v1`. It also reads `QUIVERAI_BASE_URL` from the environment.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is sent as a `Bearer` token in the `Authorization` header.
   It defaults to the `QUIVERAI_API_KEY` environment variable.

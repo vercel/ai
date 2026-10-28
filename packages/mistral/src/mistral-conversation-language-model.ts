@@ -13,6 +13,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -53,7 +55,7 @@ import {
 type MistralConversationConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
@@ -278,7 +280,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -350,7 +355,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

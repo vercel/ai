@@ -754,18 +754,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       jsonResponseToolName,
     } = await this.getArgs(options);
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const generateContent = (body: typeof args) =>
+    const generateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:generateContent`,
-        headers: mergedHeaders,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -875,18 +873,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const streamGenerateContent = (body: typeof args) =>
+    const streamGenerateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:streamGenerateContent?alt=sse`,
-        headers,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler:

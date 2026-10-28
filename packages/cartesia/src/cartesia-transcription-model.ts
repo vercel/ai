@@ -7,6 +7,7 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -156,7 +157,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/stt',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -287,7 +291,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<string> {
     const { value } = await postJsonToApi({
       url: this.config.url({ path: '/access-token', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { grants: { stt: true } },
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

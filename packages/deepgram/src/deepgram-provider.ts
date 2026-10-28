@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -41,9 +43,10 @@ export interface DeepgramProvider extends ProviderV4 {
 
 export interface DeepgramProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -64,16 +67,18 @@ export function createDeepgram(
   options: DeepgramProviderSettings = {},
 ): DeepgramProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: `Token ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'DEEPGRAM_API_KEY',
-          description: 'Deepgram',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-deepgram/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: `Token ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'DEEPGRAM_API_KEY',
+            description: 'Deepgram',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-deepgram/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: DeepgramTranscriptionModelId) =>

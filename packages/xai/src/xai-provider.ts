@@ -12,6 +12,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -123,8 +125,9 @@ export interface XaiProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -149,16 +152,18 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     options.baseURL ?? 'https://api.x.ai/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'XAI_API_KEY',
-          description: 'xAI API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-xai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'XAI_API_KEY',
+            description: 'xAI API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-xai/${VERSION}`,
+      ),
     );
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {

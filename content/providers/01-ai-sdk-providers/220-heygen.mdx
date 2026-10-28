@@ -82,7 +82,12 @@ const heygen = createHeyGen({
 
 The following settings are optional:
 
-- **apiKey** _string_: The key sent in the `x-api-key` header. Defaults to the `HEYGEN_API_KEY` environment variable.
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_: The key sent in the `x-api-key` header. Defaults to the `HEYGEN_API_KEY` environment variable.
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
+
 - **baseURL** _string_: The API URL prefix. Defaults to `https://api.heygen.com`.
 - **headers** _Record&lt;string, string&gt;_: Additional request headers.
 - **fetch** _typeof fetch_: A custom fetch implementation.

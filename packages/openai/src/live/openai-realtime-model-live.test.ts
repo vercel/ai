@@ -72,11 +72,16 @@ describe('OpenAIRealtimeModelLive', () => {
     });
   });
 
-  it('maps an HTTP development base URL to ws', () => {
+  it('maps an HTTP development base URL to ws', async () => {
     expect(
-      createOpenAI({ apiKey: 'test-key', baseURL: 'http://localhost:3000/v1' })
-        .experimental_realtime('gpt-live-1')
-        .getServerWebSocketConfig().url,
+      (
+        await createOpenAI({
+          apiKey: 'test-key',
+          baseURL: 'http://localhost:3000/v1',
+        })
+          .experimental_realtime('gpt-live-1')
+          .getServerWebSocketConfig()
+      ).url,
     ).toBe('ws://localhost:3000/v1/live/sessions');
   });
 

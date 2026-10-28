@@ -5,10 +5,12 @@ import {
   createJsonResponseHandler,
   getErrorMessage,
   loadOptionalSetting,
+  resolve,
   postJsonToApi,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
@@ -57,20 +59,21 @@ import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import type {
-  EmbeddingModelV4,
-  Experimental_BatchV4 as BatchV4,
-  ImageModelV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
-  Experimental_VideoModelV4,
-  Experimental_DecisionModelV4,
-  Experimental_StreamingSpeechModelV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  ProviderV4,
-  LanguageModelV4,
+import {
+  LoadAPIKeyError,
+  type EmbeddingModelV4,
+  type Experimental_BatchV4 as BatchV4,
+  type ImageModelV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
+  type Experimental_VideoModelV4,
+  type Experimental_DecisionModelV4,
+  type Experimental_StreamingSpeechModelV4,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type ProviderV4,
+  type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
 
@@ -306,8 +309,9 @@ export interface GatewayProviderSettings {
   /**
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
+   * A callback is resolved before each request and must return a non-empty key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Vercel team ID or slug to scope requests for access tokens that can access
@@ -392,9 +396,13 @@ export function createGateway(
       `ai-sdk-gateway/${VERSION}`,
     );
 
-  const getHeaders = async () => {
+  const getHeaders = async (
+    onResolved?: (headers: Record<string, string | undefined>) => void,
+  ) => {
     try {
-      return createAuthHeaders(await getGatewayAuthToken(options));
+      const headers = createAuthHeaders(await getGatewayAuthToken(options));
+      onResolved?.(headers);
+      return headers;
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -520,9 +528,13 @@ export function createGateway(
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
 
+      let resolvedHeaders: Record<string, string | undefined> | undefined;
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
-        headers: getHeaders,
+        headers: () =>
+          getHeaders(headers => {
+            resolvedHeaders = headers;
+          }),
         fetch: options.fetch,
       })
         .getAvailableModels()
@@ -533,7 +545,7 @@ export function createGateway(
         .catch(async (error: unknown) => {
           throw await asGatewayError(
             error,
-            await parseAuthMethod(await getHeaders()),
+            await parseAuthMethod(resolvedHeaders ?? {}),
           );
         });
     }
@@ -542,46 +554,58 @@ export function createGateway(
   };
 
   const getCredits = async () => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayFetchMetadata({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getCredits()
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getSpendReport = async (params: GatewaySpendReportParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewaySpendReport({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getSpendReport(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayGenerationInfoFetcher({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getGenerationInfo(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
@@ -770,8 +794,22 @@ export const gateway = createGateway();
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
+  const resolvedApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? options.apiKey
+      : await resolve(options.apiKey);
+  if (
+    options.apiKey != null &&
+    typeof options.apiKey !== 'string' &&
+    (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+  ) {
+    throw new LoadAPIKeyError({
+      message: 'AI Gateway API key must be a non-empty string.',
+    });
+  }
+
   const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
+    settingValue: resolvedApiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
   });
 

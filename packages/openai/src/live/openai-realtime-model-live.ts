@@ -4,6 +4,8 @@ import {
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  resolve,
   lazySchema,
   zodSchema,
   createJsonResponseHandler,
@@ -57,14 +59,16 @@ export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
     return { dataChannelLabel: 'oai-events' };
   }
 
-  getServerWebSocketConfig(): { url: string; headers: Record<string, string> } {
-    const url = new URL(`${this.config.baseURL}/live/sessions`);
-    url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
-    const headers: Record<string, string> = {};
-    for (const [key, value] of Object.entries(this.config.headers())) {
-      if (value !== undefined) headers[key] = value;
-    }
-    return { url: url.toString(), headers };
+  getServerWebSocketConfig() {
+    return resolveWith(this.config.headers, configHeaders => {
+      const url = new URL(`${this.config.baseURL}/live/sessions`);
+      url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(configHeaders)) {
+        if (value !== undefined) headers[key] = value;
+      }
+      return { url: url.toString(), headers };
+    });
   }
 
   async doCreateWebRTCSession({
@@ -83,7 +87,7 @@ export class OpenAIRealtimeModelLive implements RealtimeModelV4 {
     );
     const { value } = await postJsonToApi({
       url: `${this.config.baseURL}/live/sessions`,
-      headers: this.config.headers(),
+      headers: await resolve(this.config.headers),
       body: {
         session,
         transport: { type: 'webrtc', sdp: z.string().min(1).parse(sdp) },

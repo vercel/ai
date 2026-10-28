@@ -292,7 +292,6 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
       }
     }
 
-    const headers = await this.getHeaders(options.headers);
     const createUrl = `${this.batchConfig.baseURL}/${getModelPath(
       modelId,
     )}:batchGenerateContent`;
@@ -300,7 +299,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
     if (fileParts == null) {
       const { value: operation } = await postJsonToApi({
         url: createUrl,
-        headers,
+        headers: await this.getHeaders(options.headers),
         body: inlineBatchBody,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -329,7 +328,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
 
     const { value: uploadUrl } = await postJsonToApi({
       url: `${this.getBaseOrigin()}/upload/v1beta/files`,
-      headers: combineHeaders(headers, {
+      headers: combineHeaders(await this.getHeaders(options.headers), {
         'X-Goog-Upload-Protocol': 'resumable',
         'X-Goog-Upload-Command': 'start',
         'X-Goog-Upload-Header-Content-Length': String(inputFile.size),
@@ -370,7 +369,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
 
     const { value: operation } = await postJsonToApi({
       url: createUrl,
-      headers,
+      headers: await this.getHeaders(options.headers),
       body: {
         batch: {
           displayName,

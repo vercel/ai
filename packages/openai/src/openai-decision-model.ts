@@ -6,6 +6,7 @@ import {
   type Experimental_DecisionModelV4Input as DecisionModelV4Input,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -144,7 +145,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: this.config.url({ path: '/decisions', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         safety_identifier: openaiOptions?.safetyIdentifier,

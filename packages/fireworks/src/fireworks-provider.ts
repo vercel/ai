@@ -11,6 +11,8 @@ import type {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -49,8 +51,9 @@ export interface FireworksProviderSettings {
   /**
    * Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -115,22 +118,24 @@ export function createFireworks(
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'FIREWORKS_API_KEY',
-          description: 'Fireworks API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-fireworks/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'FIREWORKS_API_KEY',
+            description: 'Fireworks API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fireworks/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
