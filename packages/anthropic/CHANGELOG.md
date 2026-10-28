@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.91
+
+### Patch Changes
+
+- 50da4c5: Fix workflow serialization of Anthropic models using API keys or synchronous auth tokens while preserving support for asynchronous token providers.
+
 ## 4.0.90
 
 ### Patch Changes
