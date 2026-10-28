@@ -120,7 +120,9 @@ async function scenario(timing: Timing): Promise<boolean> {
       callSeen = true;
       void completed.then(() => {
         executions++;
-        stateAtSend = sockets[0].readyState;
+        // Record the current connection, not the already-closed original
+        // socket in the after-reconnect control.
+        stateAtSend = sockets.at(-1)!.readyState;
         closeDetectedAtSend = closeDetected;
         try {
           channel.send(result);
