@@ -1,13 +1,13 @@
-import type {
-  HarnessV1JSONValue,
-  HarnessV1ResumeSessionState,
-} from '@ai-sdk/harness';
+import type { HarnessV1ResumeSessionState } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { tool } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { CURRENT_SESSION_VERSION } from '@earendil-works/pi-coding-agent';
+import {
+  CURRENT_SESSION_VERSION,
+  type SessionEntry,
+} from '@earendil-works/pi-coding-agent';
 import { piLifecycleStateSchema } from './pi-lifecycle-state';
 import {
   type PiSessionStorage,
@@ -21,12 +21,7 @@ import {
   useScriptedPiModel,
 } from './test-helpers';
 
-type StoredEntry = {
-  entryId: string;
-  parentEntryId?: string;
-  version: number;
-  data: HarnessV1JSONValue;
-};
+type StoredEntry = Parameters<PiSessionStorage['append']>[0]['entry'];
 
 const pathTo = (log: Map<string, StoredEntry>, leafId: string) => {
   const path: StoredEntry[] = [];
@@ -53,9 +48,9 @@ const createMemoryStorage = ({ readAll = false, batch = false } = {}) => {
     }
   };
   const storage: PiSessionStorage = {
-    append: async ({ sessionId, entryId, parentEntryId, version, data }) => {
+    append: async ({ sessionId, entry }) => {
       calls.append++;
-      add(sessionId, { entryId, parentEntryId, version, data });
+      add(sessionId, entry);
     },
     ...(batch && {
       appendMany: async ({ sessionId, entries }) => {
@@ -320,7 +315,11 @@ describe('Pi with a session storage', () => {
     const storage: PiSessionStorage = {
       append: async () => {},
       read: async () => [
-        { version: CURRENT_SESSION_VERSION, data: { type: 'session' } },
+        {
+          entryId: 'any',
+          version: CURRENT_SESSION_VERSION,
+          data: { type: 'session' } as unknown as SessionEntry,
+        },
       ],
     };
 
@@ -330,20 +329,20 @@ describe('Pi with a session storage', () => {
   });
 
   it('migrates each entry from the session version it was written under', async () => {
+    const stored = {
+      entryId: 'a1b2c3d4',
+      version: 2,
+      data: {
+        type: 'message',
+        id: 'a1b2c3d4',
+        parentId: null,
+        timestamp: '2026-01-01T00:00:00.000Z',
+        message: { role: 'hookMessage', content: 'from a hook' },
+      } as unknown as SessionEntry,
+    };
     const storage: PiSessionStorage = {
       append: async () => {},
-      read: async () => [
-        {
-          version: 2,
-          data: {
-            type: 'message',
-            id: 'a1b2c3d4',
-            parentId: null,
-            timestamp: '2026-01-01T00:00:00.000Z',
-            message: { role: 'hookMessage', content: 'from a hook' },
-          },
-        },
-      ],
+      read: async () => [stored],
     };
 
     const [entry] = await readSessionEntries({
@@ -353,5 +352,6 @@ describe('Pi with a session storage', () => {
     });
 
     expect(entry).toMatchObject({ message: { role: 'custom' } });
+    expect(stored.data).toMatchObject({ message: { role: 'hookMessage' } });
   });
 });

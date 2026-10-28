@@ -1,4 +1,4 @@
-import { HarnessError, type HarnessV1JSONValue } from '@ai-sdk/harness';
+import { HarnessError } from '@ai-sdk/harness';
 import {
   CURRENT_SESSION_VERSION,
   migrateSessionEntries,
@@ -23,7 +23,10 @@ interface PiSessionStorageEntry {
    * entries written under an older version when it reads them.
    */
   version: number;
-  data: HarnessV1JSONValue;
+  /**
+   * The Pi session entry, a JSON value.
+   */
+  data: SessionEntry;
 }
 
 /**
@@ -33,20 +36,19 @@ interface PiSessionStorageEntry {
  * only the id of the entry the session ends at. Entries are never changed or
  * deleted. Pi sessions are trees, so a regenerated turn, a retried step or a
  * second turn resumed from the same state appends a new branch, and each
- * lifecycle state selects its own branch. The storage moves JSON values; the
- * harness decides what an entry holds and checks it when it is read.
+ * lifecycle state selects its own branch. The harness checks each entry when it
+ * reads it.
  */
 export interface PiSessionStorage {
   /**
    * Appends one entry to the log of a session. An entry whose `entryId` the
    * log already holds is a retry of an earlier append and can be ignored.
    */
-  append(
-    options: PiSessionStorageEntry & {
-      sessionId: string;
-      abortSignal?: AbortSignal;
-    },
-  ): PromiseLike<void>;
+  append(options: {
+    sessionId: string;
+    entry: PiSessionStorageEntry;
+    abortSignal?: AbortSignal;
+  }): PromiseLike<void>;
 
   /**
    * Appends several entries to the log of a session, in order, as `append`
@@ -62,17 +64,14 @@ export interface PiSessionStorage {
   /**
    * Reads the entries of the log of a session that lead to `leafId`: the
    * entry whose `entryId` is `leafId`, its parent entry, and so on back to the
-   * first entry, in the order they were appended, each with the `version` and
-   * `data` it was appended with. Returning every entry of the log, including
-   * other branches, is also valid.
+   * first entry, in the order they were appended. Returning every entry of the
+   * log, including other branches, is also valid.
    */
   read(options: {
     sessionId: string;
     leafId: string;
     abortSignal?: AbortSignal;
-  }): PromiseLike<
-    ReadonlyArray<Pick<PiSessionStorageEntry, 'version' | 'data'>>
-  >;
+  }): PromiseLike<ReadonlyArray<PiSessionStorageEntry>>;
 }
 
 const storedEntrySchema = z.looseObject({
@@ -95,14 +94,14 @@ export async function appendSessionEntries({
     entryId: entry.id,
     parentEntryId: entry.parentId ?? undefined,
     version,
-    data: entry as unknown as HarnessV1JSONValue,
+    data: entry,
   }));
   if (storage.appendMany != null) {
     await storage.appendMany({ sessionId, entries: stored });
     return;
   }
   for (const entry of stored) {
-    await storage.append({ sessionId, ...entry });
+    await storage.append({ sessionId, entry });
   }
 }
 
@@ -119,7 +118,7 @@ export async function readSessionEntries({
 }): Promise<SessionEntry[]> {
   const values = await storage.read({ sessionId, leafId, abortSignal });
   return values.map((value, index) => {
-    const result = storedEntrySchema.safeParse(structuredClone(value));
+    const result = storedEntrySchema.safeParse(value);
     if (!result.success) {
       throw new HarnessError({
         message: `Entry ${index} of the Pi session "${sessionId}" is not a Pi session entry.`,
@@ -127,14 +126,16 @@ export async function readSessionEntries({
       });
     }
     const { version, data: entry } = result.data;
-    if (version < CURRENT_SESSION_VERSION) {
-      migrateEntryFromVersion(version, entry);
-    }
-    return entry;
+    return version < CURRENT_SESSION_VERSION
+      ? migrateEntryFromVersion(version, entry)
+      : entry;
   });
 }
 
-function migrateEntryFromVersion(version: number, entry: SessionEntry): void {
+function migrateEntryFromVersion(
+  version: number,
+  entry: SessionEntry,
+): SessionEntry {
   const header: SessionHeader = {
     type: 'session',
     version,
@@ -142,5 +143,7 @@ function migrateEntryFromVersion(version: number, entry: SessionEntry): void {
     timestamp: '',
     cwd: '',
   };
-  migrateSessionEntries([header, entry]);
+  const migrated = structuredClone(entry);
+  migrateSessionEntries([header, migrated]);
+  return migrated;
 }

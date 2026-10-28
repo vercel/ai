@@ -273,27 +273,25 @@ that keeps the session in an append-only log somewhere else, such as an object
 store, a database table or a stream. The harness appends each new Pi session
 entry to the log, and the lifecycle state holds only `leafId`, the id of the
 entry the session ends at. Restoring a session reads the log and continues from
-that entry. The storage only moves JSON values; the harness checks each entry
-when it reads it.
+that entry. Each entry's `data` is a Pi session entry, a JSON value; the harness
+checks each entry when it reads it.
 
 ```ts
 import { createPi, type PiSessionStorage } from '@ai-sdk/harness-pi';
 
 const storage: PiSessionStorage = {
-  append: async ({ sessionId, entryId, parentEntryId, version, data }) => {
+  append: async ({ sessionId, entry }) => {
     await db
       .insert(piSessionEntries)
-      .values({ sessionId, entryId, parentEntryId, version, data })
+      .values({ sessionId, ...entry })
       .onConflictDoNothing();
   },
-  read: async ({ sessionId }) => {
-    const rows = await db
+  read: async ({ sessionId }) =>
+    db
       .select()
       .from(piSessionEntries)
       .where(eq(piSessionEntries.sessionId, sessionId))
-      .orderBy(piSessionEntries.position);
-    return rows.map(({ version, data }) => ({ version, data }));
-  },
+      .orderBy(piSessionEntries.position),
 };
 
 const harness = createPi({ sessionStorage: storage });
@@ -306,13 +304,13 @@ branch, and each lifecycle state's `leafId` selects its own branch, so the
 others are left out.
 
 Each entry also comes with `version`, the Pi session version it was written
-under, and `read` returns it next to `data`, so the harness can migrate entries
-written by an older Pi. An entry whose `entryId` the log already holds is a
-retried append, so the
-example keeps `(sessionId, entryId)` unique and ignores the conflict. `read` may
-return every entry of the log, as above. To read less, return only the entries
-that lead to `leafId`: the entry whose `entryId` is `leafId`, then its
-`parentEntryId`, and so on, in the order they were appended. A database can
+under, and `read` returns it with the rest of the entry, so the harness can
+migrate entries written by an older Pi. An entry whose `entryId` the log already
+holds is a retried append, so the example keeps `(sessionId, entryId)` unique and
+ignores the conflict. `read` may return every entry of the log, as above. To
+read less, return only the entries that lead to `leafId`: the entry whose
+`entryId` is `leafId`, then its `parentEntryId`, and so on, in the order they
+were appended. A database can
 follow that chain in one query, such as a recursive common table expression.
 
 A turn usually adds several entries. The harness appends them one at a time,
