@@ -1,0 +1,111 @@
+---
+title: Fikra API
+description: Use the Fikra API OpenAI compatible API with the AI SDK.
+---
+
+# Fikra API Provider
+
+[Fikra API](https://fikraapi.co.ke) is an inference API that provides access to
+open-weight models from multiple AI providers (led by DeepSeek, with GLM, Kimi,
+StepFun, Qwen and others) through an OpenAI-compatible API. You can use its Chat
+Completions endpoint with the AI SDK through the
+`@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a [Fikra API key](https://fikraapi.co.ke), and set the key as a
+server-side environment variable:
+
+```bash
+export FIKRA_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a Fikra provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const fikra = createOpenAICompatible({
+  name: 'fikra',
+  apiKey: process.env.FIKRA_API_KEY,
+  baseURL: 'https://api.fikraapi.co.ke/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a Fikra model ID to the provider instance:
+
+```ts
+const model = fikra('deepseek-v4.1-flash');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const fikra = createOpenAICompatible({
+  name: 'fikra',
+  apiKey: process.env.FIKRA_API_KEY,
+  baseURL: 'https://api.fikraapi.co.ke/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: fikra('deepseek-v4.1-flash'),
+  prompt: 'Explain what an inference endpoint does in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use Fikra language models with `streamText`.
+
+## Supported Models and Capabilities
+
+Fikra exposes the following text model IDs through its OpenAI-compatible Chat
+Completions endpoint:
+
+| Provider | Model IDs |
+| -------- | --------- |
+| Alibaba  | `qwen3.8-27b` |
+| DeepSeek | `deepseek-v4.1-flash`, `deepseek-v4.1-flash-1017`, `deepseek-v4-flash-0731` |
+| Google   | `gemini-4-argon` (forward route) |
+| Moonshot | `kimi-k3` |
+| NVIDIA   | `nvidia-nemotron-3.5-super-vl` |
+| StepFun  | `step-5-preview` |
+| Xiaomi   | `mimo-v2.6-pro` |
+| Zhipu AI | `glm-5.3`, `glm-5.3-flash`, `glm-5.2` |
+
+Fikra also serves house lanes (`fikra-pro-120b`, `fikra-code-35b`, `fikra-auto`
+and others) and a preview Step 5 route with shorter output caps.
+
+The available models can change. Use the authenticated
+[`GET /v1/models`](https://api.fikraapi.co.ke/v1/models) endpoint or the
+[Fikra pricing catalog](https://fikraapi.co.ke/pricing) for the current model
+IDs. Pricing is per token in USD with a $1 minimum top-up (M-Pesa and cards).
+
+The Chat Completions request whitelist includes `tools`, `tool_choice`, `n`,
+`seed`, `stop`, `presence_penalty`, `frequency_penalty` and `response_format`
+(structured JSON output). Reasoning models emit reasoning content on the wire;
+the endpoint does not expose `thinking` / `reasoning_effort` controls.
+
+## Resources
+
+- [Fikra docs](https://fikraapi.co.ke/docs)
+- [Fikra pricing catalog](https://fikraapi.co.ke/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
