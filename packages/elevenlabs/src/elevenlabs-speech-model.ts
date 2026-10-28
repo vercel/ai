@@ -882,6 +882,7 @@ function toElevenLabsOutputFormat(outputFormat: string): string {
     pcm_24000: 'pcm_24000',
     pcm_44100: 'pcm_44100',
     ulaw: 'ulaw_8000',
+    wav: 'wav_44100',
   };
   return formatMap[outputFormat] || outputFormat;
 }

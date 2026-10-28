@@ -122,6 +122,29 @@ describe('ElevenLabsSpeechModel', () => {
       expect(server.calls[0].requestUrl).toContain('output_format=pcm_44100');
     });
 
+    it.each([
+      ['wav', 'wav_44100'],
+      ['wav_24000', 'wav_24000'],
+    ])(
+      'should map HTTP output format %s to %s',
+      async (outputFormat, nativeFormat) => {
+        const audio = prepareAudioResponse({ format: 'wav' });
+
+        const result = await model.doGenerate({
+          text: 'Hello, world!',
+          outputFormat,
+        });
+
+        expect(
+          server.calls[0].requestUrlSearchParams.get('output_format'),
+        ).toBe(nativeFormat);
+        expect(result.audio).toEqual(audio);
+        expect(result.providerMetadata?.elevenlabs.outputFormat).toBe(
+          nativeFormat,
+        );
+      },
+    );
+
     it('should handle language parameter', async () => {
       prepareAudioResponse();
 
@@ -296,6 +319,45 @@ describe('ElevenLabsSpeechModel', () => {
   });
 
   describe('native output formats', () => {
+    it.each([
+      {
+        modelId: 'music_v2_5',
+        url: 'https://api.elevenlabs.io/v1/music',
+        providerOptions: {},
+      },
+      {
+        modelId: 'eleven_text_to_sound_v2',
+        url: 'https://api.elevenlabs.io/v1/sound-generation',
+        providerOptions: {},
+      },
+      {
+        modelId: 'eleven_v3',
+        url: 'https://api.elevenlabs.io/v1/text-to-dialogue',
+        providerOptions: {
+          inputs: [{ text: 'Hello', voiceId: 'voice-a' }],
+        },
+      },
+    ] as const)(
+      'should normalize WAV for $modelId',
+      async ({ modelId, url, providerOptions }) => {
+        const audio = prepareGenerationResponse(url);
+
+        const result = await provider.speech(modelId).doGenerate({
+          text: 'Hello',
+          outputFormat: 'wav',
+          providerOptions: { elevenlabs: providerOptions },
+        });
+
+        expect(
+          server.calls[0].requestUrlSearchParams.get('output_format'),
+        ).toBe('wav_44100');
+        expect(result.audio).toEqual(audio);
+        expect(result.providerMetadata?.elevenlabs.outputFormat).toBe(
+          'wav_44100',
+        );
+      },
+    );
+
     it.each([
       {
         modelId: 'music_v2_5',
