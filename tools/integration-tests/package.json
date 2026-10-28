@@ -18,6 +18,6 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   }
 }

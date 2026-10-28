@@ -53,7 +53,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "engines": {
     "node": ">=22"
