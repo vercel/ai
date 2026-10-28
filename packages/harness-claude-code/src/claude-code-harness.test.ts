@@ -4,11 +4,12 @@ import {
   type HarnessV1Prompt,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import { convertBase64ToUint8Array, tool } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { z } from 'zod/v4';
+import { z } from 'zod/v4';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -326,6 +327,86 @@ describe('createClaudeCode adapter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('issue 23503: closes the stream at a built-in approval with a host tool in the same message', async () => {
+    // These are real bridge frames recorded by issue-23503.ts --live --record.
+    // The provider has requested host input; it is the SDK's responsibility
+    // to yield to the caller without waiting for the blocked MCP result echo.
+    const approvalAndHostTool = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/issue-23503.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { events: Array<Record<string, unknown>> };
+    const agent = new HarnessAgent({
+      harness: createClaudeCode(),
+      permissionMode: 'allow-reads',
+      toolApproval: { listProjectTickets: 'approved' },
+      tools: {
+        listProjectTickets: tool({
+          inputSchema: z.object({}),
+          execute: async () => [{ id: '23503' }],
+        }),
+      },
+    });
+    const session = await agent.createSession({
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+    });
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await agent.stream({
+        session,
+        prompt: 'Call Bash and listProjectTickets in the same message.',
+        abortSignal: abort.signal,
+      });
+      let approvalSeen = false;
+      const consume = (async () => {
+        for await (const part of result.fullStream) {
+          if (part.type === 'error') throw part.error;
+          if (part.type === 'abort') {
+            throw new Error('Replay turn was unexpectedly aborted.');
+          }
+          if (
+            part.type === 'tool-approval-request' &&
+            part.toolCall.toolName === 'bash'
+          ) {
+            approvalSeen = true;
+          }
+        }
+      })();
+      await vi.waitFor(() => {
+        expect(sentMessages.some(message => message.type === 'start')).toBe(
+          true,
+        );
+      });
+      for (const event of approvalAndHostTool.events) {
+        dispatchChannelEvent(event);
+      }
+      const closed = await Promise.race([
+        consume.then(() => true),
+        new Promise<boolean>(resolve => {
+          timer = setTimeout(() => resolve(false), 1000);
+        }),
+      ]);
+      expect(
+        approvalSeen,
+        'Bash approval must be available to the caller',
+      ).toBe(true);
+      expect(
+        closed,
+        'ISSUE_23503: stream remained open at the built-in approval boundary with a host tool in the same message',
+      ).toBe(true);
+    } finally {
+      clearTimeout(timer);
+      abort.abort();
+      await session.destroy();
+    }
   });
 
   it('declares the harness id and builtin tools', () => {
