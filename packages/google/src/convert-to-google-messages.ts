@@ -14,12 +14,12 @@ import {
   resolveProviderReference,
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
-import type {
-  GoogleContent,
-  GoogleContentPart,
-  GoogleFunctionResponsePart,
-  GooglePrompt,
-  GoogleVideoMetadata,
+import {
+  googleVideoMetadataSchema,
+  type GoogleContent,
+  type GoogleContentPart,
+  type GoogleFunctionResponsePart,
+  type GooglePrompt,
 } from './google-prompt';
 import {
   codeExecutionInputSchema,
@@ -331,9 +331,11 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
-              const videoMetadata = readProviderOpts(part)?.videoMetadata as
-                | GoogleVideoMetadata
-                | undefined;
+              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
 
               switch (part.data.type) {
                 case 'url': {

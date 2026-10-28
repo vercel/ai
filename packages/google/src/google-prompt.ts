@@ -1,3 +1,4 @@
+import { z } from 'zod/v4';
 import type {
   GroundingMetadataSchema,
   PromptFeedbackSchema,
@@ -20,15 +21,17 @@ export type GoogleContent = {
   parts: Array<GoogleContentPart>;
 };
 
-/** Metadata for preprocessing video file parts. */
-export type GoogleVideoMetadata = {
+export const googleVideoMetadataSchema = z.object({
   /** Start offset as a duration in seconds, e.g. `'3.5s'`. */
-  startOffset?: string;
+  startOffset: z.string().optional(),
   /** End offset as a duration in seconds, e.g. `'10s'`. */
-  endOffset?: string;
+  endOffset: z.string().optional(),
   /** Frames per second in the range (0, 24]. Defaults to 1. */
-  fps?: number;
-};
+  fps: z.number().gt(0).max(24).optional(),
+});
+
+/** Metadata for preprocessing video file parts. */
+export type GoogleVideoMetadata = z.infer<typeof googleVideoMetadataSchema>;
 
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
