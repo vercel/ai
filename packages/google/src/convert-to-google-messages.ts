@@ -19,6 +19,7 @@ import type {
   GoogleContentPart,
   GoogleFunctionResponsePart,
   GooglePrompt,
+  GoogleVideoPartFields,
 } from './google-prompt';
 import {
   codeExecutionInputSchema,
@@ -244,6 +245,62 @@ function appendLegacyToolResultParts(
   }
 }
 
+/**
+ * Maps `providerOptions.google.processing` on a video file part (the same
+ * option `google.interactions()` accepts) to the generateContent part fields.
+ */
+function getVideoPartFields({
+  mediaType,
+  processing,
+  onWarning,
+}: {
+  mediaType: string;
+  processing: unknown;
+  onWarning?: (warning: SharedV4Warning) => void;
+}): GoogleVideoPartFields {
+  if (processing == null || getTopLevelMediaType(mediaType) !== 'video') {
+    return {};
+  }
+
+  if (processing === 'agentic') {
+    return { mediaProcessing: 'AGENTIC' };
+  }
+
+  if (processing === 'static') {
+    return { mediaProcessing: 'STATIC' };
+  }
+
+  if (
+    typeof processing === 'object' &&
+    !Array.isArray(processing) &&
+    (processing as { type?: unknown }).type === 'static'
+  ) {
+    const { startOffset, endOffset, fps } = processing as {
+      startOffset?: unknown;
+      endOffset?: unknown;
+      fps?: unknown;
+    };
+    const videoMetadata = {
+      ...(typeof startOffset === 'number'
+        ? { startOffset: `${startOffset}s` }
+        : {}),
+      ...(typeof endOffset === 'number' ? { endOffset: `${endOffset}s` } : {}),
+      ...(typeof fps === 'number' ? { fps } : {}),
+    };
+    return {
+      mediaProcessing: 'STATIC',
+      ...(Object.keys(videoMetadata).length > 0 ? { videoMetadata } : {}),
+    };
+  }
+
+  onWarning?.({
+    type: 'other',
+    message:
+      'invalid providerOptions.google.processing on video file part; expected "agentic", "static", or a static processing configuration. Option dropped.',
+  });
+  return {};
+}
+
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -330,6 +387,12 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
+              const videoFields = getVideoPartFields({
+                mediaType: part.mediaType,
+                processing: readProviderOpts(part)?.processing,
+                onWarning,
+              });
+
               switch (part.data.type) {
                 case 'url': {
                   parts.push({
@@ -341,6 +404,7 @@ export function convertToGoogleMessages(
                           ? part.data.originalUrl
                           : part.data.url.toString(),
                     },
+                    ...videoFields,
                   });
                   break;
                 }
@@ -359,6 +423,7 @@ export function convertToGoogleMessages(
                         provider: 'google',
                       }),
                     },
+                    ...videoFields,
                   });
                   break;
                 }
@@ -381,6 +446,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       data: convertToBase64(part.data.data),
                     },
+                    ...videoFields,
                   });
                   break;
                 }
