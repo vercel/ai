@@ -630,6 +630,11 @@ templates. `sandboxId` names the live sandbox, not its reusable template.
 The existing native `name` option still names the live sandbox; if both are
 supplied, their values must match.
 
+Set `persistent: false` in `createVercelNetworkSandboxSession()` to prevent
+automatic snapshots when the live sandbox stops, including when using a template.
+The reusable template snapshot is still created. Omitting `persistent` keeps
+Vercel Sandbox's default persistence behavior.
+
 ## Settings
 
 `HarnessAgent` accepts these main settings:

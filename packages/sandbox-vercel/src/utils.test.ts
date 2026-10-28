@@ -268,8 +268,24 @@ describe('Vercel template snapshots', () => {
 
     expect(createMock).toHaveBeenCalledWith({
       timeout: 60_000,
+      persistent: true,
       name: 'live-session',
       source: { type: 'snapshot', snapshotId: 'snap_derived' },
     });
   });
+
+  it.each([{ persistent: false }, { persistent: true }, {}])(
+    'preserves live sandbox persistence options %j',
+    async options => {
+      await createLiveSandboxFromSnapshot({
+        baseParams: { runtime: 'node24', ...options },
+        snapshotId: 'snap_derived',
+      });
+
+      expect(createMock).toHaveBeenCalledWith({
+        ...options,
+        source: { type: 'snapshot', snapshotId: 'snap_derived' },
+      });
+    },
+  );
 });
