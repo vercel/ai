@@ -16,7 +16,7 @@ import { parallel } from '@ai-sdk/parallel';
 import { experimental_decide as decide } from 'ai';
 
 const result = await decide({
-  model: parallel('fast'),
+  model: parallel.decisionModel('fast'),
   state: { company: 'Parallel', website: 'https://parallel.ai' },
   questions: {
     hasSearch: {
