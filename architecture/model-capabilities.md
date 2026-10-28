@@ -154,6 +154,18 @@ relevant capability section. One model can therefore appear in several tables
 without duplicating its catalog entry. The generator owns presentation and column
 selection, not model lists or capability decisions.
 
+Register providers in `tools/model-capabilities-docs/providers.mjs` with their
+catalog path and export, documentation path, and table definitions. Each table
+declares its marker ID, capability section, and columns as `[heading, path,
+optional formatter]`. Add matching `model-capabilities:<id>:start` and
+`model-capabilities:<id>:end` markers around the table in the provider's MDX.
+Providers in the shared language overview also declare an `overviewLink` matching
+their existing rows. The shared renderer selects only language entries for that
+overview, even when a catalog includes other operations.
+
+Catalog loading and table rendering live in separate helpers. Adding a provider
+requires no changes to the generation loop.
+
 Run `pnpm generate:model-capabilities-docs` after changing the catalog.
 `pnpm verify:model-capabilities-docs` compares the generated result with the
 checked-in documentation without writing files; CI runs this check.
