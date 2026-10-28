@@ -8,11 +8,12 @@ import {
   isUrlSupported,
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
-import type {
-  GoogleGenerativeAIContent,
-  GoogleGenerativeAIContentPart,
-  GoogleGenerativeAIFunctionResponsePart,
-  GoogleGenerativeAIPrompt,
+import {
+  googleVideoMetadataSchema,
+  type GoogleGenerativeAIContent,
+  type GoogleGenerativeAIContentPart,
+  type GoogleGenerativeAIFunctionResponsePart,
+  type GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
 
 /**
@@ -34,6 +35,7 @@ type GoogleProviderOptions = {
   thoughtSignature?: unknown;
   serverToolCallId?: unknown;
   serverToolType?: unknown;
+  videoMetadata?: unknown;
 };
 
 function getGoogleProviderOptions(
@@ -313,6 +315,14 @@ export function convertToGoogleGenerativeAIMessages(
               // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+              const rawVideoMetadata = getGoogleProviderOptions(
+                part.providerOptions,
+                providerOptionsName,
+              )?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
 
               parts.push(
                 part.data instanceof URL
@@ -325,12 +335,14 @@ export function convertToGoogleGenerativeAIMessages(
                             ? part.originalUrl
                             : part.data.toString(),
                       },
+                      ...(videoMetadata != null ? { videoMetadata } : {}),
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
+                      ...(videoMetadata != null ? { videoMetadata } : {}),
                     },
               );
 

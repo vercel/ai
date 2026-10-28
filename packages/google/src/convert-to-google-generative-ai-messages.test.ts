@@ -1,3 +1,4 @@
+import type { LanguageModelV3FilePart } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleGenerativeAIMessages,
@@ -543,6 +544,188 @@ describe('user messages', () => {
         },
       ],
     });
+  });
+
+  describe('videoMetadata', () => {
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const fileUri =
+      'https://generativelanguage.googleapis.com/v1beta/files/video';
+
+    it.each<{
+      name: string;
+      data: LanguageModelV3FilePart['data'];
+      originalUrl?: string;
+      expected: object;
+    }>([
+      {
+        name: 'YouTube URL',
+        data: new URL('https://www.youtube.com/watch?v=example'),
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://www.youtube.com/watch?v=example',
+          },
+        },
+      },
+      {
+        name: 'Cloud Storage URL with original casing',
+        data: new URL('gs://VideoBucket/video.mp4'),
+        originalUrl: 'gs://VideoBucket/video.mp4',
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'gs://VideoBucket/video.mp4',
+          },
+        },
+      },
+      {
+        name: 'uploaded file URL',
+        data: new URL(fileUri),
+        expected: { fileData: { mimeType: 'video/mp4', fileUri } },
+      },
+      {
+        name: 'base64 data',
+        data: 'AAECAw==',
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+      {
+        name: 'binary data',
+        data: new Uint8Array([0, 1, 2, 3]),
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+    ])(
+      'should include videoMetadata for $name',
+      ({ data, originalUrl, expected }) => {
+        const result = convertToGoogleGenerativeAIMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data,
+                originalUrl,
+                mediaType: 'video/mp4',
+                providerOptions: { google: { videoMetadata } },
+              },
+            ],
+          },
+        ]);
+
+        expect(result.contents[0].parts[0]).toEqual({
+          ...expected,
+          videoMetadata,
+        });
+      },
+    );
+
+    it.each([
+      { providerOptionsName: 'google', namespace: 'google' },
+      {
+        providerOptionsName: 'vertex',
+        namespace: 'googleVertex',
+      },
+      { providerOptionsName: 'vertex', namespace: 'vertex' },
+      { providerOptionsName: 'vertex', namespace: 'google' },
+      { providerOptionsName: 'google', namespace: 'googleVertex' },
+      { providerOptionsName: 'google', namespace: 'vertex' },
+    ])(
+      'should resolve $namespace metadata with $providerOptionsName',
+      ({ providerOptionsName, namespace }) => {
+        const result = convertToGoogleGenerativeAIMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: new URL(
+                    'https://storage.googleapis.com/bucket/video.mp4',
+                  ),
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    [namespace]: { videoMetadata: { fps: 2 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsName },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://storage.googleapis.com/bucket/video.mp4',
+          },
+          videoMetadata: { fps: 2 },
+        });
+      },
+    );
+
+    it.each([
+      { providerOptionsName: 'google', expected: { fps: 1 } },
+      {
+        providerOptionsName: 'googleVertex',
+        expected: { fps: 2 },
+      },
+      { providerOptionsName: 'vertex', expected: { fps: 3 } },
+    ])(
+      'should prefer the configured namespace $providerOptionsName',
+      ({ providerOptionsName, expected }) => {
+        const result = convertToGoogleGenerativeAIMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: new URL(fileUri),
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    google: { videoMetadata: { fps: 1 } },
+                    googleVertex: { videoMetadata: { fps: 2 } },
+                    vertex: { videoMetadata: { fps: 3 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsName },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: { mimeType: 'video/mp4', fileUri },
+          videoMetadata: expected,
+        });
+      },
+    );
+
+    it.each<LanguageModelV3FilePart['providerOptions']>([
+      undefined,
+      {},
+      { google: { videoMetadata: null } },
+    ])(
+      'should omit videoMetadata when it is not provided (%j)',
+      providerOptions => {
+        const result = convertToGoogleGenerativeAIMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'AAECAw==',
+                mediaType: 'video/mp4',
+                providerOptions,
+              },
+            ],
+          },
+        ]);
+
+        expect(result.contents[0].parts[0]).toEqual({
+          inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        });
+      },
+    );
   });
 });
 

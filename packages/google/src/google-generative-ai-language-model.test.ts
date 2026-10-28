@@ -710,6 +710,42 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://www.youtube.com/watch?v=example'),
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 
@@ -4880,6 +4916,43 @@ describe('doStream', () => {
       ),
     };
   };
+
+  it('should send videoMetadata on video file parts', async () => {
+    prepareStreamResponse({ content: ['done'] });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const result = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://www.youtube.com/watch?v=example'),
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+    await convertReadableStreamToArray(result.stream);
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
 
   describe('text', () => {
     beforeEach(() => {
