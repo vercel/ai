@@ -3251,6 +3251,15 @@ describe('HarnessAgent', () => {
             "type": "execution-denied",
           },
           "toolCallId": "call-1",
+          "toolResult": {
+            "output": {
+              "reason": "User denied the lookup.",
+              "type": "execution-denied",
+            },
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-result",
+          },
         },
       ]
     `);
@@ -4423,6 +4432,16 @@ describe('HarnessAgent', () => {
           type: 'execution-denied',
           reason:
             "Tool 'hidden' is inactive due to the HarnessAgent tool filtering policy.",
+        },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'hidden',
+          output: {
+            type: 'execution-denied',
+            reason:
+              "Tool 'hidden' is inactive due to the HarnessAgent tool filtering policy.",
+          },
         },
       },
     ]);

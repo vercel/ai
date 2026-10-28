@@ -3265,6 +3265,15 @@ describe('runPrompt host tool generator results', () => {
           type: 'execution-denied',
           reason: 'weather disabled',
         },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'execution-denied',
+            reason: 'weather disabled',
+          },
+        },
       },
     ]);
     expect(parts).toContainEqual(
