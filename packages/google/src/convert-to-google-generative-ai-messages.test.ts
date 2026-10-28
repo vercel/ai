@@ -1,10 +1,4 @@
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.test.ts
-=======
-import type {
-  LanguageModelV4FilePart,
-  LanguageModelV4ToolResultOutput,
-} from '@ai-sdk/provider';
->>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.test.ts
+import type { LanguageModelV3FilePart } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleGenerativeAIMessages,
@@ -551,8 +545,6 @@ describe('user messages', () => {
       ],
     });
   });
-<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.test.ts
-=======
 
   describe('videoMetadata', () => {
     const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
@@ -561,15 +553,13 @@ describe('user messages', () => {
 
     it.each<{
       name: string;
-      data: LanguageModelV4FilePart['data'];
+      data: LanguageModelV3FilePart['data'];
+      originalUrl?: string;
       expected: object;
     }>([
       {
         name: 'YouTube URL',
-        data: {
-          type: 'url',
-          url: new URL('https://www.youtube.com/watch?v=example'),
-        },
+        data: new URL('https://www.youtube.com/watch?v=example'),
         expected: {
           fileData: {
             mimeType: 'video/mp4',
@@ -579,11 +569,8 @@ describe('user messages', () => {
       },
       {
         name: 'Cloud Storage URL with original casing',
-        data: {
-          type: 'url',
-          url: new URL('gs://VideoBucket/video.mp4'),
-          originalUrl: 'gs://VideoBucket/video.mp4',
-        },
+        data: new URL('gs://VideoBucket/video.mp4'),
+        originalUrl: 'gs://VideoBucket/video.mp4',
         expected: {
           fileData: {
             mimeType: 'video/mp4',
@@ -592,67 +579,68 @@ describe('user messages', () => {
         },
       },
       {
-        name: 'uploaded file reference',
-        data: { type: 'reference', reference: { google: fileUri } },
+        name: 'uploaded file URL',
+        data: new URL(fileUri),
         expected: { fileData: { mimeType: 'video/mp4', fileUri } },
       },
       {
         name: 'base64 data',
-        data: { type: 'data', data: 'AAECAw==' },
+        data: 'AAECAw==',
         expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
       },
       {
         name: 'binary data',
-        data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+        data: new Uint8Array([0, 1, 2, 3]),
         expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
       },
-    ])('should include videoMetadata for $name', ({ data, expected }) => {
-      const result = convertToGoogleMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data,
-              mediaType: 'video/mp4',
-              providerOptions: { google: { videoMetadata } },
-            },
-          ],
-        },
-      ]);
+    ])(
+      'should include videoMetadata for $name',
+      ({ data, originalUrl, expected }) => {
+        const result = convertToGoogleGenerativeAIMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data,
+                originalUrl,
+                mediaType: 'video/mp4',
+                providerOptions: { google: { videoMetadata } },
+              },
+            ],
+          },
+        ]);
 
-      expect(result.contents[0].parts[0]).toEqual({
-        ...expected,
-        videoMetadata,
-      });
-    });
+        expect(result.contents[0].parts[0]).toEqual({
+          ...expected,
+          videoMetadata,
+        });
+      },
+    );
 
     it.each([
-      { providerOptionsNames: ['google'], namespace: 'google' },
+      { providerOptionsName: 'google', namespace: 'google' },
       {
-        providerOptionsNames: ['googleVertex', 'vertex'],
+        providerOptionsName: 'vertex',
         namespace: 'googleVertex',
       },
-      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'vertex' },
-      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'google' },
-      { providerOptionsNames: ['google'], namespace: 'googleVertex' },
-      { providerOptionsNames: ['google'], namespace: 'vertex' },
+      { providerOptionsName: 'vertex', namespace: 'vertex' },
+      { providerOptionsName: 'vertex', namespace: 'google' },
+      { providerOptionsName: 'google', namespace: 'googleVertex' },
+      { providerOptionsName: 'google', namespace: 'vertex' },
     ])(
-      'should resolve $namespace metadata with $providerOptionsNames',
-      ({ providerOptionsNames, namespace }) => {
-        const result = convertToGoogleMessages(
+      'should resolve $namespace metadata with $providerOptionsName',
+      ({ providerOptionsName, namespace }) => {
+        const result = convertToGoogleGenerativeAIMessages(
           [
             {
               role: 'user',
               content: [
                 {
                   type: 'file',
-                  data: {
-                    type: 'url',
-                    url: new URL(
-                      'https://storage.googleapis.com/bucket/video.mp4',
-                    ),
-                  },
+                  data: new URL(
+                    'https://storage.googleapis.com/bucket/video.mp4',
+                  ),
                   mediaType: 'video/mp4',
                   providerOptions: {
                     [namespace]: { videoMetadata: { fps: 2 } },
@@ -661,7 +649,7 @@ describe('user messages', () => {
               ],
             },
           ],
-          { providerOptionsNames },
+          { providerOptionsName },
         );
 
         expect(result.contents[0].parts[0]).toEqual({
@@ -675,23 +663,23 @@ describe('user messages', () => {
     );
 
     it.each([
-      { providerOptionsNames: ['google'], expected: { fps: 1 } },
+      { providerOptionsName: 'google', expected: { fps: 1 } },
       {
-        providerOptionsNames: ['googleVertex', 'vertex'],
+        providerOptionsName: 'googleVertex',
         expected: { fps: 2 },
       },
-      { providerOptionsNames: ['vertex'], expected: { fps: 3 } },
+      { providerOptionsName: 'vertex', expected: { fps: 3 } },
     ])(
-      'should prefer the configured namespace $providerOptionsNames',
-      ({ providerOptionsNames, expected }) => {
-        const result = convertToGoogleMessages(
+      'should prefer the configured namespace $providerOptionsName',
+      ({ providerOptionsName, expected }) => {
+        const result = convertToGoogleGenerativeAIMessages(
           [
             {
               role: 'user',
               content: [
                 {
                   type: 'file',
-                  data: { type: 'url', url: new URL(fileUri) },
+                  data: new URL(fileUri),
                   mediaType: 'video/mp4',
                   providerOptions: {
                     google: { videoMetadata: { fps: 1 } },
@@ -702,7 +690,7 @@ describe('user messages', () => {
               ],
             },
           ],
-          { providerOptionsNames },
+          { providerOptionsName },
         );
 
         expect(result.contents[0].parts[0]).toEqual({
@@ -712,20 +700,20 @@ describe('user messages', () => {
       },
     );
 
-    it.each<LanguageModelV4FilePart['providerOptions']>([
+    it.each<LanguageModelV3FilePart['providerOptions']>([
       undefined,
       {},
       { google: { videoMetadata: null } },
     ])(
       'should omit videoMetadata when it is not provided (%j)',
       providerOptions => {
-        const result = convertToGoogleMessages([
+        const result = convertToGoogleGenerativeAIMessages([
           {
             role: 'user',
             content: [
               {
                 type: 'file',
-                data: { type: 'data', data: 'AAECAw==' },
+                data: 'AAECAw==',
                 mediaType: 'video/mp4',
                 providerOptions,
               },
@@ -739,108 +727,6 @@ describe('user messages', () => {
       },
     );
   });
-
-  it('should convert file parts with provider reference to fileData', async () => {
-    const result = convertToGoogleMessages([
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'file',
-            data: {
-              type: 'reference' as const,
-              reference: {
-                google:
-                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
-                openai: 'file-xyz789',
-              },
-            },
-            mediaType: 'image/png',
-          },
-        ],
-      },
-    ]);
-
-    expect(result).toEqual({
-      systemInstruction: undefined,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              fileData: {
-                mimeType: 'image/png',
-                fileUri:
-                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
-              },
-            },
-          ],
-        },
-      ],
-    });
-  });
-
-  it('should convert image file parts with provider reference to fileData', async () => {
-    const result = convertToGoogleMessages([
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'file',
-            data: {
-              type: 'reference' as const,
-              reference: {
-                google:
-                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
-              },
-            },
-            mediaType: 'image/jpeg',
-          },
-        ],
-      },
-    ]);
-
-    expect(result).toEqual({
-      systemInstruction: undefined,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              fileData: {
-                mimeType: 'image/jpeg',
-                fileUri:
-                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
-              },
-            },
-          ],
-        },
-      ],
-    });
-  });
-
-  it('should throw when provider reference is missing google key in user file part', async () => {
-    expect(() =>
-      convertToGoogleMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: {
-                type: 'reference' as const,
-                reference: { openai: 'file-xyz789' },
-              },
-              mediaType: 'image/png',
-            },
-          ],
-        },
-      ]),
-    ).toThrow(
-      "No provider reference found for provider 'google'. Available providers: openai",
-    );
-  });
->>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.test.ts
 });
 
 describe('tool messages', () => {
