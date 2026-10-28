@@ -1177,6 +1177,38 @@ describe('Claude Code bridge configuration', () => {
       expect(requestedBeforeRegistering).toEqual([false]);
     });
 
+    test('names the resumed tool result after the previous bridge deferred the call', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          await approvalHook(args)(bash, 'call-1');
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'call-1',
+                  content: '/vercel/sandbox',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'tool-result')?.toolName,
+      ).toBe('bash');
+    });
+
     test('reports other calls deferred in the same message as not run', async () => {
       state.requestToolApproval = async () => ({ approved: true });
       state.createQuery = args =>

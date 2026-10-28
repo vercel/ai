@@ -400,6 +400,7 @@ function createApprovalPreToolUseHook(input: {
   inactiveNativeTools: ReadonlySet<string>;
   decisions: Map<string, { approved: boolean; reason?: string }>;
   deferredToolUseIds: Set<string>;
+  nativeToolCallNames: Map<string, string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
     const toolName = (hookInput as { tool_name?: unknown }).tool_name;
@@ -412,6 +413,9 @@ function createApprovalPreToolUseHook(input: {
     }
     const decision = input.decisions.get(toolUseID);
     if (decision != null) {
+      // A bridge that resumes another bridge's deferred call never saw its
+      // tool_use, so record the name for the tool result that follows.
+      input.nativeToolCallNames.set(toolUseID, toolName);
       if (!decision.approved) input.decisions.delete(toolUseID);
       return {
         hookSpecificOutput: {
@@ -645,6 +649,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
     deferredToolUseIds,
+    nativeToolCallNames: streamEventState.nativeToolCallNames,
   });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
