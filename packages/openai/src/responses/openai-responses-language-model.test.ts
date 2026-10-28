@@ -1433,6 +1433,60 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
+      it('should keep logprob settings for GPT-5 reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.top_logprobs).toBe(5);
+        expect(body.include).toStrictEqual(['message.output_text.logprobs']);
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it.each([
+        ['gpt-5.5', 'minimal', 'low'],
+        ['gpt-5.1', 'xhigh', 'high'],
+        ['gpt-5-nano', 'none', 'minimal'],
+      ] as const)(
+        'should map unsupported reasoning for %s from %s to %s',
+        async (modelId, reasoning, expectedEffort) => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+            expectedEffort,
+          );
+          expect(warnings).toStrictEqual([
+            {
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+            },
+          ]);
+        },
+      );
+
+      it('should send max reasoning for GPT-5.6 models', async () => {
+        const { warnings } = await createModel('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+          'max',
+        );
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
         const { warnings } = await createModel('gpt-5.6').doGenerate({
           prompt: TEST_PROMPT,
@@ -2129,6 +2183,22 @@ describe('OpenAIResponsesLanguageModel', () => {
               'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
+      });
+
+      it('should send prompt cache retention for GPT-5 models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).prompt_cache_retention,
+        ).toBe('24h');
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should omit legacy prompt cache retention for GPT-6 models', async () => {

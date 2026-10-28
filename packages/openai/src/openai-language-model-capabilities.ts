@@ -34,6 +34,12 @@ export type OpenAILanguageModelCapabilities = {
   supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
 
   /**
+   * Whether function tools can be combined with a reasoning effort other than
+   * `none` in the Chat Completions API.
+   */
+  supportsChatFunctionToolsWithReasoning: boolean;
+
+  /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
    */
   supportsNonReasoningParameters: boolean;
@@ -49,6 +55,15 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion?.variant?.startsWith('chat') ?? false);
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
+
+  // Pro, codex, and chat variants are excluded because their supported
+  // efforts are not known.
+  const isStandardGpt5Model =
+    gptVersion?.major === 5 &&
+    (gptVersion.variant == null ||
+      /^(?:(?:mini|nano|sol|luna|terra)(?:-\d{4}-\d{2}-\d{2})?|\d{4}-\d{2}-\d{2})$/.test(
+        gptVersion.variant,
+      ));
 
   const isGpt6OrLaterModelWithNoneEffort =
     modelId === 'gpt-6-sol' ||
@@ -94,11 +109,35 @@ export function getOpenAILanguageModelCapabilities(
       ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       : isGpt6OrLaterModel
         ? ['low', 'medium', 'high', 'xhigh', 'max']
-        : undefined,
+        : isStandardGpt5Model
+          ? getGpt5ReasoningEfforts(gptVersion.minor ?? 0)
+          : undefined,
+    // GPT-5.6 rejects function tools with reasoning in the Chat Completions API.
+    supportsChatFunctionToolsWithReasoning: !(
+      gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6
+    ),
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,
   };
+}
+
+function getGpt5ReasoningEfforts(
+  minor: number,
+): readonly OpenAIReasoningEffort[] {
+  if (minor === 0) {
+    return ['minimal', 'low', 'medium', 'high'];
+  }
+
+  if (minor === 1) {
+    return ['none', 'low', 'medium', 'high'];
+  }
+
+  if (minor < 6) {
+    return ['none', 'low', 'medium', 'high', 'xhigh'];
+  }
+
+  return ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
 }
 
 function getOSeriesVersion(modelId: string): number | undefined {

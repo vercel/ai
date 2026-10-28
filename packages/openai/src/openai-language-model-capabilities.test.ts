@@ -134,6 +134,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
         supportsAsyncToolCalling: true,
         supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
         supportsNonReasoningParameters: false,
+        supportsChatFunctionToolsWithReasoning: true,
       });
     });
 
@@ -154,6 +155,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
           'max',
         ],
         supportsNonReasoningParameters: true,
+        supportsChatFunctionToolsWithReasoning: true,
       });
     });
 
@@ -189,7 +191,6 @@ describe('getOpenAILanguageModelCapabilities', () => {
     );
 
     it.each([
-      ['gpt-5.6', undefined],
       ['gpt-6-astra', ['low', 'medium', 'high', 'xhigh', 'max']],
       ['gpt-99', ['low', 'medium', 'high', 'xhigh', 'max']],
     ])(
@@ -200,6 +201,41 @@ describe('getOpenAILanguageModelCapabilities', () => {
         ).toEqual(expectedCapabilities);
       },
     );
+  });
+
+  describe('GPT-5 reasoning efforts', () => {
+    it.each([
+      ['gpt-5', ['minimal', 'low', 'medium', 'high']],
+      ['gpt-5-nano-2025-08-07', ['minimal', 'low', 'medium', 'high']],
+      ['gpt-5.1', ['none', 'low', 'medium', 'high']],
+      ['gpt-5.2', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.4-mini', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.5', ['none', 'low', 'medium', 'high', 'xhigh']],
+      ['gpt-5.6', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
+      ['gpt-5.6-luna', ['none', 'low', 'medium', 'high', 'xhigh', 'max']],
+      ['gpt-5-pro', undefined],
+      ['gpt-5-codex', undefined],
+      ['gpt-5-chat-latest', undefined],
+      ['gpt-5.2-pro', undefined],
+    ])('%s supports the expected reasoning efforts', (modelId, expected) => {
+      expect(
+        getOpenAILanguageModelCapabilities(modelId).supportedReasoningEfforts,
+      ).toEqual(expected);
+    });
+  });
+
+  describe('supportsChatFunctionToolsWithReasoning', () => {
+    it.each([
+      ['gpt-5.5', true],
+      ['gpt-5.6', false],
+      ['gpt-5.6-luna', false],
+      ['gpt-6-sol', true],
+    ])('%s: %s', (modelId, expected) => {
+      expect(
+        getOpenAILanguageModelCapabilities(modelId)
+          .supportsChatFunctionToolsWithReasoning,
+      ).toBe(expected);
+    });
   });
 
   describe('supportsFlexProcessing', () => {

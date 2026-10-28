@@ -16,6 +16,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -123,12 +124,37 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
-    const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
-      providerReasoningEffort: openaiOptions.reasoningEffort,
-      reasoning,
-      supportedReasoningEfforts: modelCapabilities.supportedReasoningEfforts,
-      warnings,
-    });
+    // Some models reject function tools unless reasoning is disabled, even
+    // when no reasoning effort is sent, so reasoning is set to 'none'.
+    const requiresNoReasoningEffort =
+      !modelCapabilities.supportsChatFunctionToolsWithReasoning &&
+      openaiOptions.reasoningEffort == null &&
+      (tools?.some(tool => tool.type === 'function') ?? false);
+
+    if (
+      requiresNoReasoningEffort &&
+      isCustomReasoning(reasoning) &&
+      reasoning !== 'none'
+    ) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details: `${this.modelId} does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.`,
+      });
+    }
+
+    const resolvedReasoningEffort = requiresNoReasoningEffort
+      ? 'none'
+      : resolveOpenAIReasoningEffort({
+          providerReasoningEffort: openaiOptions.reasoningEffort,
+          reasoning,
+          // Only the Responses API supports `max`.
+          supportedReasoningEfforts:
+            modelCapabilities.supportedReasoningEfforts?.filter(
+              effort => effort !== 'max',
+            ),
+          warnings,
+        });
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -235,7 +261,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportedReasoningEfforts != null &&
+      modelCapabilities.supportsConfigurationUpdate &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
