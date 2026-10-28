@@ -254,6 +254,13 @@ describe('JustBashSandboxSession', () => {
       expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
     });
 
+    it('deleteFile deletes a file in a symbolically linked directory', async () => {
+      expect(await sandbox.deleteFile({ path: 'dir-link/nested.txt' })).toBe(
+        true,
+      );
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).toBeNull();
+    });
+
     it('deleteFile deletes a symbolic link to a directory but not the directory', async () => {
       expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
       expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();

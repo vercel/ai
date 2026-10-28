@@ -45,7 +45,7 @@ if [ ! -d "$1" ]; then
   echo "Not a directory" >&2
   exit ${WRONG_TYPE_EXIT_CODE}
 fi
-cd -- "$1" || exit 1
+cd -P -- "$1" || exit 1
 shopt -s dotglob nullglob
 for name in *; do
   if [ -L "$name" ]; then type=symlink
@@ -85,10 +85,12 @@ export class VercelSandboxSession implements SandboxSession {
 
   // Vercel Sandbox resolves a relative `cwd` against `/` instead of the
   // session's working directory, which relative file paths resolve against.
+  // The path is not normalized, so `..` after a symbolic link is resolved by
+  // the filesystem, as it is for file paths.
   private resolveWorkingDirectory(workingDirectory: string): string {
     return posix.isAbsolute(workingDirectory)
       ? workingDirectory
-      : posix.join(this.sandbox.currentSession().cwd, workingDirectory);
+      : `${this.sandbox.currentSession().cwd.replace(/\/$/, '')}/${workingDirectory}`;
   }
 
   async run({

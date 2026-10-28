@@ -268,7 +268,10 @@ export class JustBashSandboxSession implements SandboxSession {
       if (stat.isDirectory) {
         throw new Error(`Cannot delete ${path}: it is a directory.`);
       }
-      await fs.rm(resolved);
+      // The just-bash filesystem does not follow symbolic links in the parent
+      // directories when removing, so remove the entry from the real parent.
+      const parent = await fs.realpath(posix.dirname(resolved));
+      await fs.rm(posix.join(parent, posix.basename(resolved)));
       return true;
     } catch (error) {
       if (isFileNotFoundError(error) || isNotDirectoryError(error)) {

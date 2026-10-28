@@ -154,6 +154,24 @@ describe('VercelSandboxSession', () => {
       );
     });
 
+    it('does not normalize a relative workingDirectory', async () => {
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => ({ cwd: '/' }),
+      } as unknown as Partial<Sandbox>);
+      spies.runCommand.mockResolvedValueOnce(
+        makeMockCommand({ logs: [], exitCode: 0 }).handle,
+      );
+
+      await new VercelSandboxSession(sandbox).run({
+        command: 'ls',
+        workingDirectory: 'link/..',
+      });
+
+      expect(spies.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ cwd: '/link/..' }),
+      );
+    });
+
     it('throws on pre-aborted signal', async () => {
       const { sandbox } = makeMockSandbox();
       const ac = new AbortController();
@@ -1024,6 +1042,18 @@ describe('VercelSandboxSession path methods', () => {
           },
         ]
       `);
+    });
+
+    it('resolves `..` after a symbolic link in the filesystem', async () => {
+      await mkdir(join(directory, 'deep', 'inner'), { recursive: true });
+      await symlink(
+        join(directory, 'deep', 'inner'),
+        join(directory, 'inner-link'),
+      );
+
+      expect(await sandbox.listDirectory({ path: 'inner-link/..' })).toEqual([
+        { name: 'inner', type: 'directory' },
+      ]);
     });
 
     it('returns an empty array for an empty directory', async () => {
