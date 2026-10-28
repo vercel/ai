@@ -1,5 +1,41 @@
 # @ai-sdk/valibot
 
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+
+## 3.0.66
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.66
+
 ## 3.0.65
 
 ### Patch Changes

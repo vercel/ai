@@ -6,10 +6,8 @@ The **QuiverAI provider** for the [AI SDK](https://ai-sdk.dev/docs) adds Arrow l
 
 ## Setup
 
-The QuiverAI provider is available in the `@ai-sdk/quiverai` module. You can install it with:
-
 ```bash
-npm i @ai-sdk/quiverai
+npm i ai @ai-sdk/quiverai
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `quiverai` from `@ai-sdk/quiverai`:
-
-```ts
-import { quiverai } from '@ai-sdk/quiverai';
-```
-
-## Image Generation Example
+## Usage
 
 ```ts
 import { quiverai } from '@ai-sdk/quiverai';
@@ -45,20 +35,4 @@ fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
 ```
 
-## Text Generation Example
-
-```ts
-import { quiverai } from '@ai-sdk/quiverai';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: quiverai('arrow-2'),
-  prompt: 'Design a simple compass icon and explain the visual choices.',
-});
-
-console.log(text);
-```
-
-## Documentation
-
-Please check out the **[QuiverAI provider](https://ai-sdk.dev/providers/ai-sdk-providers/quiverai)** for more information.
+See the [QuiverAI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/quiverai) for more information.

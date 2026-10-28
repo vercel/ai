@@ -31,6 +31,13 @@ with `server/discover` and automatically falls back to the legacy
 `initialize` handshake for older servers. Custom transports can opt into this
 negotiation with `supportsProtocolVersionDiscovery: true`.
 
+Recognized modern protocol errors, including `-32022` (unsupported protocol
+version), do not trigger automatic fallback to `initialize`. If you know an
+endpoint requires legacy initialization, set `protocolVersionDiscovery: false`
+on `createMCPClient` to skip discovery and start with the legacy handshake.
+The server can then negotiate an older supported version in its `initialize`
+response.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:

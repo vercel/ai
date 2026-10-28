@@ -22,7 +22,6 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -37,7 +36,10 @@ import {
   type OpenAIConfig,
 } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  getOpenAILanguageModelCapabilities,
+  resolveOpenAIReasoningEffort,
+} from '../openai-language-model-capabilities';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -341,24 +343,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    let resolvedReasoningEffort =
-      openaiOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
-
-    if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
-      });
-      resolvedReasoningEffort = undefined;
-    }
+    const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
+      providerReasoningEffort: openaiOptions?.reasoningEffort,
+      reasoning,
+      supportedReasoningEfforts: modelCapabilities.supportedReasoningEfforts,
+      warnings,
+    });
 
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
@@ -413,6 +403,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
       outputSchemaToolNames,
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
@@ -457,10 +448,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
+    const supportedReasoningEfforts =
+      modelCapabilities.supportedReasoningEfforts as
+        | readonly string[]
+        | undefined;
     const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
-      effort != null &&
-      modelCapabilities.supportedReasoningEfforts?.includes(effort) === false
-        ? `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`
+      effort != null && supportedReasoningEfforts?.includes(effort) === false
+        ? `${modelId} only supports the following reasoning efforts: ${supportedReasoningEfforts.join(', ')}`
         : undefined;
 
     // Reject configuration updates whose effort value is unsupported by the selected model.
@@ -926,6 +920,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
+    let structuredOutputText: string | undefined;
+
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
@@ -1086,6 +1082,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'message': {
+          // Parse only the last final answer for JSON output, while preserving
+          // every message and its metadata in the generated content.
+          if (
+            options.responseFormat?.type === 'json' &&
+            part.phase === 'final_answer'
+          ) {
+            structuredOutputText = part.content
+              .map(contentPart => contentPart.text)
+              .join('');
+          }
+
           for (const contentPart of part.content) {
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
@@ -1261,9 +1268,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            ...(part.status === 'failed' || part.status === 'incomplete'
-              ? { isError: true, result: { status: part.status } }
-              : { result: mapWebSearchOutput(part.action) }),
+            ...mapWebSearchResult(part),
           });
 
           if (part.action?.type === 'search') {
@@ -1516,6 +1521,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       content,
+      ...(structuredOutputText !== undefined && { structuredOutputText }),
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
@@ -2175,10 +2181,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  ...(value.item.status === 'failed' ||
-                  value.item.status === 'incomplete'
-                    ? { isError: true, result: { status: value.item.status } }
-                    : { result: mapWebSearchOutput(value.item.action) }),
+                  ...mapWebSearchResult(value.item),
                 });
 
                 if (value.item.action?.type === 'search') {
@@ -3165,7 +3168,21 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-export function mapWebSearchOutput(
+export function mapWebSearchResult({
+  action,
+  status,
+}: {
+  action?: OpenAIResponsesWebSearchAction | null;
+  status: string;
+}):
+  | { isError: true; result: { status: string } }
+  | { result: InferSchema<typeof webSearchOutputSchema> } {
+  return status === 'completed'
+    ? { result: mapWebSearchOutput(action) }
+    : { isError: true, result: { status } };
+}
+
+function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {

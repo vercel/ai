@@ -217,13 +217,20 @@ function mcpToModelOutput({
   input: unknown;
   output: unknown;
 }): ToolResultOutput {
-  const result = output as CallToolResult;
-
-  if (!('content' in result) || !Array.isArray(result.content)) {
-    return { type: 'json', value: result as JSONValue };
+  if (typeof output === 'string') {
+    return { type: 'text', value: output };
   }
 
-  const convertedContent = result.content.map(
+  if (
+    output == null ||
+    typeof output !== 'object' ||
+    !('content' in output) ||
+    !Array.isArray(output.content)
+  ) {
+    return { type: 'json', value: (output ?? null) as JSONValue };
+  }
+
+  const convertedContent = output.content.map(
     (part: { type: string; [key: string]: unknown }) => {
       if (part.type === 'text' && 'text' in part) {
         return { type: 'text' as const, text: part.text as string };
@@ -699,6 +706,39 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         error.code != null &&
         MODERN_PROTOCOL_ERROR_CODES.includes(error.code)
       ) {
+        if (
+          error.code === -32022 &&
+          error.data != null &&
+          typeof error.data === 'object' &&
+          'supported' in error.data &&
+          Array.isArray(error.data.supported) &&
+          error.data.supported.every(version => typeof version === 'string')
+        ) {
+          const supportedVersions = error.data.supported;
+          if (
+            !supportedVersions.includes(this.protocolVersion) &&
+            supportedVersions.some(
+              version =>
+                version <= LATEST_LEGACY_PROTOCOL_VERSION &&
+                SUPPORTED_PROTOCOL_VERSIONS.includes(version),
+            )
+          ) {
+            throw new MCPClientError({
+              message:
+                `MCP server rejected protocol version ${this.protocolVersion} during discovery. ` +
+                `Server-supported versions: ${supportedVersions.join(', ')}. ` +
+                'The client does not automatically switch to legacy initialization after this error. ' +
+                'If this is a known legacy server, set protocolVersionDiscovery: false to use initialize.',
+              code: error.code,
+              data: error.data,
+              statusCode: error.statusCode,
+              url: error.url,
+              responseBody: error.responseBody,
+              cause: error,
+            });
+          }
+        }
+
         throw error;
       }
 

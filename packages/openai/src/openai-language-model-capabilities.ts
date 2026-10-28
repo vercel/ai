@@ -1,3 +1,25 @@
+import type {
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import { mapReasoningToProviderEffort } from '@ai-sdk/provider-utils';
+
+type OpenAIReasoningEffort = Exclude<
+  LanguageModelV4CallOptions['reasoning'],
+  'provider-default' | undefined
+>;
+
+// Unknown model families send the reasoning value directly.
+const ALL_OPENAI_REASONING_EFFORTS: readonly OpenAIReasoningEffort[] = [
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+];
+
 export type OpenAILanguageModelCapabilities = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -5,7 +27,11 @@ export type OpenAILanguageModelCapabilities = {
   supportsPriorityProcessing: boolean;
   supportsConfigurationUpdate: boolean;
   supportsAsyncToolCalling: boolean;
-  supportedReasoningEfforts: readonly string[] | undefined;
+  /**
+   * Reasoning efforts supported by the model family, or `undefined` when they
+   * are not known.
+   */
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -24,7 +50,10 @@ export function getOpenAILanguageModelCapabilities(
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
-  const isGpt6SolOrLuna = modelId === 'gpt-6-sol' || modelId === 'gpt-6-luna';
+  const isGpt6OrLaterModelWithNoneEffort =
+    modelId === 'gpt-6-sol' ||
+    modelId === 'gpt-6-luna' ||
+    modelId === 'gpt-6.1-terra';
 
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
@@ -45,10 +74,10 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
 
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
-  // GPT-5.1 through GPT-5.x and GPT-6 Sol/Luna support temperature,
-  // topP, and logProbs when reasoningEffort is none.
+  // GPT-5.1 through GPT-5.x, GPT-6 Sol/Luna, and GPT-6.1 Terra support
+  // temperature, topP, and logProbs when reasoningEffort is none.
   const supportsNonReasoningParameters =
-    isGpt6SolOrLuna ||
+    isGpt6OrLaterModelWithNoneEffort ||
     (!isGpt6OrLaterModel &&
       gptVersion != null &&
       (gptVersion.major > 5 ||
@@ -61,7 +90,7 @@ export function getOpenAILanguageModelCapabilities(
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
     supportsAsyncToolCalling: isGpt6OrLaterModel,
-    supportedReasoningEfforts: isGpt6SolOrLuna
+    supportedReasoningEfforts: isGpt6OrLaterModelWithNoneEffort
       ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       : isGpt6OrLaterModel
         ? ['low', 'medium', 'high', 'xhigh', 'max']
@@ -95,4 +124,34 @@ function getGptVersion(modelId: string):
     minor: match[2] == null ? undefined : Number(match[2]),
     variant: match[3],
   };
+}
+
+/**
+ * Resolves the reasoning effort to send to OpenAI.
+ *
+ * A reasoning effort from provider options is sent unchanged. Otherwise the
+ * top-level reasoning value is mapped to the closest effort that the model
+ * family supports, or sent directly when the supported efforts are not known.
+ */
+export function resolveOpenAIReasoningEffort({
+  providerReasoningEffort,
+  reasoning,
+  supportedReasoningEfforts,
+  warnings,
+}: {
+  providerReasoningEffort: string | null | undefined;
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
+  warnings: SharedV4Warning[];
+}): string | undefined {
+  return mapReasoningToProviderEffort({
+    reasoning,
+    providerOptionsEffort: providerReasoningEffort,
+    effortMap: Object.fromEntries(
+      (supportedReasoningEfforts ?? ALL_OPENAI_REASONING_EFFORTS).map(
+        effort => [effort, effort],
+      ),
+    ),
+    warnings,
+  });
 }
