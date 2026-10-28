@@ -82,6 +82,9 @@ implementation uses these sections:
 | `requestConfig.transcription` | Response format, chunking default, and singular or plural language field |
 | `requestConfig.realtime`      | API selection, session startup, and finalization behavior                |
 
+Anthropic uses `requestConfig.language` for its resolved maximum output-token
+default and whether the requested model belongs to a known family.
+
 The rule for choosing a location is: **feature availability belongs in
 `capabilities`; how to send the request belongs in `requestConfig`.**
 
@@ -90,9 +93,10 @@ capabilities nor request configuration.
 
 ## Runtime resolution
 
-Request builders and documentation use the same resolved catalog. OpenAI's entry
-point is `packages/openai/src/openai-model-catalog.ts`, which exports
-`openaiModelCatalog` and the operation-specific entry resolvers.
+Request builders and documentation use the same resolved catalog. Current entry
+points are `packages/openai/src/openai-model-catalog.ts` and
+`packages/anthropic/src/anthropic-model-catalog.ts`. Each exports its catalog and
+operation-specific entry resolvers.
 
 Source declarations are organized by operation inside the catalog. The catalog
 combines their named sections when the same model ID appears in more than one
@@ -120,20 +124,19 @@ can be derived from the catalog without changing their public shape.
 
 ## Documentation
 
-`tools/generate-model-capabilities-docs.mjs` loads `openaiModelCatalog` directly
-from source. For each table it selects entries containing the relevant capability
-section. One model can therefore appear in several tables without duplicating its
-catalog entry. The generator owns presentation and column selection, not model
-lists or capability decisions.
+`tools/generate-model-capabilities-docs.mjs` loads the OpenAI and Anthropic
+catalogs directly from source. For each table it selects entries containing the
+relevant capability section. One model can therefore appear in several tables
+without duplicating its catalog entry. The generator owns presentation and column
+selection, not model lists or capability decisions.
 
 Run `pnpm generate:model-capabilities-docs` after changing the catalog.
 `pnpm verify:model-capabilities-docs` compares the generated result with the
 checked-in documentation without writing files; CI runs this check.
 
-The current integration generates OpenAI's language, reasoning/sampling, image,
-embedding, speech, transcription, speech translation, and realtime tables, plus
-the OpenAI rows in the shared provider overview. Other providers can adopt the
-same shape independently.
+The current integration generates OpenAI's operation tables, Anthropic's language
+table, and both providers' rows in the shared provider overview. Other providers
+can adopt the same shape independently.
 
 ## Maintaining the catalog
 

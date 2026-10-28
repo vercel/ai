@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Generate the OpenAI capability tables from the catalog used by the provider.
+// Generate capability tables from the catalogs used by providers.
 // --check verifies the checked-in docs without writing files or building packages.
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -15,11 +15,13 @@ if (unexpectedArguments.length > 0) {
   throw new Error(`Unknown arguments: ${unexpectedArguments.join(', ')}`);
 }
 
-const { openaiModelCatalog } = await loadCatalog(
-  'packages/openai/src/openai-model-catalog.ts',
-);
-const entries = Object.entries(openaiModelCatalog);
-const languageRows = entries.filter(([, { capabilities }]) =>
+const [{ openaiModelCatalog }, { anthropicModelCatalog }] = await Promise.all([
+  loadCatalog('packages/openai/src/openai-model-catalog.ts'),
+  loadCatalog('packages/anthropic/src/anthropic-model-catalog.ts'),
+]);
+const openaiEntries = Object.entries(openaiModelCatalog);
+const anthropicEntries = Object.entries(anthropicModelCatalog);
+const openaiLanguageRows = openaiEntries.filter(([, { capabilities }]) =>
   capabilities.language != null,
 );
 const tables = [
@@ -103,16 +105,21 @@ const tables = [
   },
 ];
 
-const providerPath = 'content/providers/01-ai-sdk-providers/03-openai.mdx';
+const openaiProviderPath =
+  'content/providers/01-ai-sdk-providers/03-openai.mdx';
+const anthropicProviderPath =
+  'content/providers/01-ai-sdk-providers/05-anthropic.mdx';
 const overviewPath = 'content/docs/02-foundations/02-providers-and-models.mdx';
-const [providerSource, overviewSource] = await Promise.all([
-  readFile(new URL(providerPath, repoRoot), 'utf8'),
+const [openaiProviderSource, anthropicProviderSource, overviewSource] =
+  await Promise.all([
+  readFile(new URL(openaiProviderPath, repoRoot), 'utf8'),
+  readFile(new URL(anthropicProviderPath, repoRoot), 'utf8'),
   readFile(new URL(overviewPath, repoRoot), 'utf8'),
 ]);
 
-let providerContent = providerSource;
+let openaiProviderContent = openaiProviderSource;
 for (const { id, capability, columns } of tables) {
-  const rows = entries
+  const rows = openaiEntries
     .filter(([, { capabilities }]) => capabilities[capability] != null)
     .map(([modelId, { capabilities }]) => [
       `\`${modelId}\``,
@@ -120,17 +127,40 @@ for (const { id, capability, columns } of tables) {
         format(readPath(capabilities[capability], field)),
       ),
     ]);
-  providerContent = replaceGeneratedTable(
-    providerContent,
+  openaiProviderContent = replaceGeneratedTable(
+    openaiProviderContent,
     id,
     renderTable(['Model', ...columns.map(([heading]) => heading)], rows),
   );
 }
 
-const overviewContent = replaceOverviewRows(overviewSource, languageRows);
+const anthropicProviderContent = replaceGeneratedTable(
+  anthropicProviderSource,
+  'anthropic-language',
+  renderCapabilityTable(anthropicEntries, 'language', [
+    ['Image Input', 'inputs.image'],
+    ['Object Generation', 'objectGeneration'],
+    ['Tool Usage', 'tools.usage'],
+    ['Computer Use', 'tools.computerUse'],
+    ['Web Search', 'tools.webSearch'],
+    ['Tool Search', 'tools.toolSearch'],
+    ['Compaction', 'compaction'],
+  ]),
+);
+
+const overviewContent = replaceOverviewRows(
+  replaceOverviewRows(
+    overviewSource,
+    '[OpenAI](/providers/ai-sdk-providers/openai)',
+    openaiLanguageRows,
+  ),
+  '[Anthropic](/providers/ai-sdk-providers/anthropic)',
+  anthropicEntries,
+);
 let changedFiles = 0;
 for (const [path, source, content] of [
-  [providerPath, providerSource, providerContent],
+  [openaiProviderPath, openaiProviderSource, openaiProviderContent],
+  [anthropicProviderPath, anthropicProviderSource, anthropicProviderContent],
   [overviewPath, overviewSource, overviewContent],
 ]) {
   if (source === content) continue;
@@ -149,12 +179,13 @@ if (check && changedFiles > 0) {
   );
   process.exitCode = 1;
 } else {
-  console.log('OpenAI model capability documentation is up to date.');
+  console.log('Model capability documentation is up to date.');
 }
 
 async function loadCatalog(path) {
   const compiled = new Map();
-  const sourceRoot = new URL('packages/openai/src/', repoRoot);
+  const entryUrl = new URL(path, repoRoot);
+  const sourceRoot = new URL('./', entryUrl);
 
   // Load the local TypeScript graph in memory. This works before package builds
   // and on the repository's minimum Node.js version without a custom TS loader.
@@ -204,7 +235,7 @@ async function loadCatalog(path) {
           : dependency.pathname + '.ts';
       }
       if (!dependency.href.startsWith(sourceRoot.href)) {
-        throw new Error(`Catalog dependency is outside OpenAI sources: ${name}`);
+        throw new Error(`Catalog dependency is outside provider sources: ${name}`);
       }
       const dependencyUrl = await compile(dependency, [...ancestors, url.href]);
       replacements.push({
@@ -223,7 +254,7 @@ async function loadCatalog(path) {
     return moduleUrl;
   }
 
-  return import(await compile(new URL(path, repoRoot)));
+  return import(await compile(entryUrl));
 }
 
 function rejectDynamicImports(node) {
@@ -271,6 +302,18 @@ function renderTable(headers, rows) {
   ].join('\n');
 }
 
+function renderCapabilityTable(entries, capability, columns) {
+  const rows = entries
+    .filter(([, { capabilities }]) => capabilities[capability] != null)
+    .map(([modelId, { capabilities }]) => [
+      `\`${modelId}\``,
+      ...columns.map(([, field, format = formatSupport]) =>
+        format(readPath(capabilities[capability], field)),
+      ),
+    ]);
+  return renderTable(['Model', ...columns.map(([heading]) => heading)], rows);
+}
+
 function replaceGeneratedTable(source, id, table) {
   const start = `{/* model-capabilities:${id}:start */}`;
   const end = `{/* model-capabilities:${id}:end */}`;
@@ -287,8 +330,7 @@ function replaceGeneratedTable(source, id, table) {
     `\n\n${table}\n\n` + source.slice(endIndex);
 }
 
-function replaceOverviewRows(source, entries) {
-  const provider = '[OpenAI](/providers/ai-sdk-providers/openai)';
+function replaceOverviewRows(source, provider, entries) {
   const lines = source.split('\n');
   const indices = lines.flatMap((line, index) =>
     line.startsWith('|') && line.split('|')[1]?.trim() === provider ? [index] : [],
@@ -298,7 +340,7 @@ function replaceOverviewRows(source, entries) {
     indices.some((index, position) => index !== indices[0] + position)
   ) {
     throw new Error(
-      'The provider overview must contain one contiguous group of OpenAI rows.',
+      `The provider overview must contain one contiguous group of ${provider} rows.`,
     );
   }
   let headerIndex = indices[0];
