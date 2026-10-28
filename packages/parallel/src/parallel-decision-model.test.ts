@@ -361,3 +361,17 @@ it('forwards future mode strings without a package update', async () => {
   expect(result.providerMetadata?.parallel?.mode).toBe('future-mode');
   expect(result.response?.modelId).toBe('future-mode');
 });
+
+it('defaults the callable provider to decision models', async () => {
+  const { provider, fetch } = setup();
+  const result = await provider('fast').doDecide(options);
+  expect(result.answers.hasSearch).toEqual({
+    type: 'boolean',
+    probability: 0.9992643798509062,
+  });
+  expect(result.providerMetadata?.parallel?.citations).toEqual(
+    fixture.citations,
+  );
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).mode).toBe('fast');
+  expect(() => provider('')).toThrow('No such decisionModel');
+});

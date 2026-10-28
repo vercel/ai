@@ -3,7 +3,7 @@ import { parallel } from '@ai-sdk/parallel';
 import { experimental_decide as decide } from 'ai';
 
 const result = await decide({
-  model: parallel.decisionModel('fast'),
+  model: parallel('fast'),
   state: { company: 'Parallel', website: 'https://parallel.ai' },
   questions: {
     hasSearch: {

@@ -15,6 +15,8 @@ import { VERSION } from './version';
 
 export interface ParallelProvider extends ProviderV4 {
   /** Creates a web-grounded decision model. */
+  (modelId: ParallelDecisionModelId): DecisionModelV4;
+  /** Creates a web-grounded decision model. */
   decisionModel(modelId: ParallelDecisionModelId): DecisionModelV4;
 }
 
@@ -43,30 +45,32 @@ export function createParallel(
       `ai-sdk-parallel/${VERSION}`,
     );
 
-  return {
-    specificationVersion: 'v4',
-    decisionModel: modelId => {
-      if (modelId.length === 0) {
-        throw new NoSuchModelError({ modelId, modelType: 'decisionModel' });
-      }
-      return new DecisionParallelModel(modelId, {
-        provider: 'parallel.decision',
-        baseURL:
-          withoutTrailingSlash(options.baseURL) ?? 'https://api.parallel.ai/v1',
-        headers,
-        fetch: options.fetch,
-      });
-    },
-    languageModel: modelId => {
+  const createDecisionModel = (modelId: ParallelDecisionModelId) => {
+    if (modelId.length === 0) {
+      throw new NoSuchModelError({ modelId, modelType: 'decisionModel' });
+    }
+    return new DecisionParallelModel(modelId, {
+      provider: 'parallel.decision',
+      baseURL:
+        withoutTrailingSlash(options.baseURL) ?? 'https://api.parallel.ai/v1',
+      headers,
+      fetch: options.fetch,
+    });
+  };
+
+  return Object.assign(createDecisionModel, {
+    specificationVersion: 'v4' as const,
+    decisionModel: createDecisionModel,
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },
-    embeddingModel: modelId => {
+    embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
     },
-    imageModel: modelId => {
+    imageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
     },
-  };
+  });
 }
 
 export const parallel = createParallel();

@@ -35,7 +35,7 @@ import { parallel } from '@ai-sdk/parallel';
 import { experimental_decide as decide } from 'ai';
 
 const result = await decide({
-  model: parallel.decisionModel('fast'),
+  model: parallel('fast'),
   state: { company: 'Parallel', website: 'https://parallel.ai' },
   questions: {
     hasSearch: {
@@ -54,6 +54,8 @@ const result = await decide({
   },
 });
 ```
+
+Use `parallel('fast')` or the equivalent `parallel.decisionModel('fast')` to create a decision model.
 
 `fast` is currently the only documented mode. The mode argument is required; other mode strings are forwarded to Parallel for validation so newly released modes can be used without an SDK update. It is sent as `mode`, not `model`, to Parallel.
 Parallel accepts 1–100 related questions, 2–255 choice options, and 2–10 score
