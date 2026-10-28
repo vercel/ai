@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.74
+
+### Patch Changes
+
+- 7062ab6: fix(elevenlabs): parse ElevenLabs error bodies (detail object/array/string) so error messages and request ids are preserved
+
 ## 3.0.73
 
 ### Patch Changes

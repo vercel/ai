@@ -1,5 +1,12 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.167
+
+### Patch Changes
+
+- 177291a: fix(sandbox-vercel): bump template versions to invalidate stale templates
+  - @ai-sdk/harness@1.0.167
+
 ## 1.0.166
 
 ### Patch Changes
