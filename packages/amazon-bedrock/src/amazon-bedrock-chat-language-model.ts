@@ -335,17 +335,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           }
         }
 
-        if (hasExplicitDisabledThinking || thinkingType === 'adaptive') {
-          warnings.push({
-            type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
-            feature: hasExplicitDisabledThinking
-              ? 'providerOptions.amazonBedrock.reasoningConfig'
-              : 'reasoning',
-            details:
-              `thinking cannot be disabled for ${this.modelId}. ` +
-              `Using '${thinkingType}' thinking instead.`,
-          });
-        }
+        warnings.push({
+          type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
+          feature: hasExplicitDisabledThinking
+            ? 'providerOptions.amazonBedrock.reasoningConfig'
+            : 'reasoning',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using '${thinkingType}' thinking instead.`,
+        });
       }
 
       const effort =

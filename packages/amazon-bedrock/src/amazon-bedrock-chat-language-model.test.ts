@@ -9465,16 +9465,13 @@ describe('disabled Anthropic thinking', () => {
           output_config: { effort: 'low' },
         }),
       });
-      expect(warnings).toEqual(
-        thinkingType === 'adaptive'
-          ? [
-              expect.objectContaining({
-                type: 'compatibility',
-                feature: 'reasoning',
-              }),
-            ]
-          : [],
-      );
+      expect(warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details: `thinking cannot be disabled for ${reasoningModelId}. Using '${thinkingType}' thinking instead.`,
+        },
+      ]);
     },
   );
 
