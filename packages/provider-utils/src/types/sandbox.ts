@@ -27,6 +27,8 @@ type SandboxProcessOptions = {
   abortSignal?: AbortSignal;
 };
 
+export type SandboxRunOptions = SandboxProcessOptions;
+
 export type SandboxSpawnOptions = SandboxProcessOptions & {
   stdin?: boolean;
 };
@@ -42,7 +44,7 @@ export type SandboxSpawnOptionsWithoutStdin = SandboxProcessOptions & {
 /**
  * Options for reading a file from the sandbox.
  */
-type ReadFileOptions = {
+export type SandboxReadFileOptions = {
   /**
    * Path of the file to read.
    */
@@ -52,6 +54,26 @@ type ReadFileOptions = {
    * Signal that can be used to abort the read.
    */
   abortSignal?: AbortSignal;
+};
+
+export type SandboxReadBinaryFileOptions = SandboxReadFileOptions;
+
+export type SandboxReadTextFileOptions = SandboxReadFileOptions & {
+  /**
+   * Text encoding used to decode the file bytes. Defaults to `"utf-8"`.
+   */
+  encoding?: string;
+
+  /**
+   * 1-based inclusive start line. Defaults to 1.
+   */
+  startLine?: number;
+
+  /**
+   * 1-based inclusive end line. When past the file's line count, the read
+   * returns through EOF without error.
+   */
+  endLine?: number;
 };
 
 /**
@@ -75,6 +97,19 @@ type WriteFileOptions<CONTENT> = {
   abortSignal?: AbortSignal;
 };
 
+export type SandboxWriteFileOptions = WriteFileOptions<
+  ReadableStream<Uint8Array>
+>;
+
+export type SandboxWriteBinaryFileOptions = WriteFileOptions<Uint8Array>;
+
+export type SandboxWriteTextFileOptions = WriteFileOptions<string> & {
+  /**
+   * Text encoding used to encode the string to bytes. Defaults to `"utf-8"`.
+   */
+  encoding?: string;
+};
+
 /**
  * Sandbox session that can execute commands and read/write files.
  */
@@ -95,7 +130,7 @@ export type SandboxSession = {
    * to stream bytes.
    */
   readonly readFile: (
-    options: ReadFileOptions,
+    options: SandboxReadFileOptions,
   ) => PromiseLike<ReadableStream<Uint8Array> | null>;
 
   /**
@@ -103,7 +138,7 @@ export type SandboxSession = {
    * file does not exist.
    */
   readonly readBinaryFile: (
-    options: ReadFileOptions,
+    options: SandboxReadBinaryFileOptions,
   ) => PromiseLike<Uint8Array | null>;
 
   /**
@@ -114,23 +149,7 @@ export type SandboxSession = {
    * returns through EOF without error.
    */
   readonly readTextFile: (
-    options: ReadFileOptions & {
-      /**
-       * Text encoding used to decode the file bytes. Defaults to `"utf-8"`.
-       */
-      encoding?: string;
-
-      /**
-       * 1-based inclusive start line. Defaults to 1.
-       */
-      startLine?: number;
-
-      /**
-       * 1-based inclusive end line. When past the file's line count, the read
-       * returns through EOF without error.
-       */
-      endLine?: number;
-    },
+    options: SandboxReadTextFileOptions,
   ) => PromiseLike<string | null>;
 
   /**
@@ -140,16 +159,14 @@ export type SandboxSession = {
    * This is the lowest-level write primitive; prefer `writeBinaryFile` or
    * `writeTextFile` when the full content is already materialized in memory.
    */
-  readonly writeFile: (
-    options: WriteFileOptions<ReadableStream<Uint8Array>>,
-  ) => PromiseLike<void>;
+  readonly writeFile: (options: SandboxWriteFileOptions) => PromiseLike<void>;
 
   /**
    * Write one file to the sandbox from raw bytes. Creates parent directories
    * recursively and overwrites any existing file.
    */
   readonly writeBinaryFile: (
-    options: WriteFileOptions<Uint8Array>,
+    options: SandboxWriteBinaryFileOptions,
   ) => PromiseLike<void>;
 
   /**
@@ -158,12 +175,7 @@ export type SandboxSession = {
    * existing file.
    */
   readonly writeTextFile: (
-    options: WriteFileOptions<string> & {
-      /**
-       * Text encoding used to encode the string to bytes. Defaults to `"utf-8"`.
-       */
-      encoding?: string;
-    },
+    options: SandboxWriteTextFileOptions,
   ) => PromiseLike<void>;
 
   /**
@@ -191,7 +203,7 @@ export type SandboxSession = {
   /**
    * Run a command in the sandbox.
    */
-  readonly run: (options: SandboxProcessOptions) => PromiseLike<{
+  readonly run: (options: SandboxRunOptions) => PromiseLike<{
     /**
      * Exit code returned by the command.
      */

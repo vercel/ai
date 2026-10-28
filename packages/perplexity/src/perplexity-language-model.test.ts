@@ -203,6 +203,50 @@ describe('doGenerate', () => {
     ).toBe(true);
     expect(result.usage.raw).toEqual(response.usage);
     expect(result.finishReason.unified).toBe('stop');
+    expect(result.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'Find the official TypeScript website and describe TypeScript in one sentence with a citation.',
+    ]);
+  });
+
+  it('collects search queries across search result items without duplicates', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          {
+            type: 'search_results',
+            queries: ['running shoes Denmark', 'best running shoe brands'],
+            results: [],
+          },
+          {
+            type: 'search_results',
+            queries: ['best running shoe brands', 'running shoes 2026'],
+            results: [],
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'running shoes Denmark',
+      'best running shoe brands',
+      'running shoes 2026',
+    ]);
+  });
+
+  it('returns null search queries when no web search ran', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: createResponse().output.filter(
+          item => item.type !== 'search_results',
+        ),
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.searchQueries).toBeNull();
   });
 
   it('accepts native tool results without treating them as web search results', async () => {
@@ -262,6 +306,7 @@ describe('doGenerate', () => {
       perplexity: {
         usage: { citationTokens: null, numSearchQueries: 2 },
         images: null,
+        searchQueries: ['latest AI news'],
         cost: {
           inputTokensCost: 0.001,
           outputTokensCost: 0.002,
@@ -740,8 +785,60 @@ describe('doStream', () => {
       expect.objectContaining({
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'completed' },
+        providerMetadata: expect.objectContaining({
+          perplexity: expect.objectContaining({
+            searchQueries: [
+              'Find the official TypeScript website and describe TypeScript in one sentence with a citation.',
+            ],
+          }),
+        }),
       }),
     );
+  });
+
+  it('collects search queries from reasoning events when the completed response omits them', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: 'Planning...',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 1,
+        queries: ['running shoes Denmark', 'best running shoe brands'],
+        thought: 'Searching the web...',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 2,
+        queries: ['best running shoe brands'],
+      },
+      {
+        type: 'response.reasoning.fetch_url_queries',
+        sequence_number: 3,
+        urls: ['https://example.com/source'],
+      },
+      { type: 'response.reasoning.stopped', sequence_number: 4 },
+      {
+        type: 'response.completed',
+        sequence_number: 5,
+        response: createResponse({
+          output: createResponse().output.filter(
+            item => item.type !== 'search_results',
+          ),
+        }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const finish = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finish?.providerMetadata?.perplexity?.searchQueries).toEqual([
+      'running shoes Denmark',
+      'best running shoe brands',
+    ]);
   });
 
   it.each(['response.completed', 'response.incomplete'])(
