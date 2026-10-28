@@ -3,6 +3,8 @@
 'ai': patch
 '@ai-sdk/sandbox-just-bash': patch
 '@ai-sdk/sandbox-vercel': patch
+'@ai-sdk/harness-pi': patch
+'@ai-sdk/workflow': patch
 ---
 
 feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
