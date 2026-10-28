@@ -362,10 +362,34 @@ function toText(input: DecisionModelV4Input): string {
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
 
+const INPUT_JSON_MAX_DEPTH = 32;
+const INPUT_JSON_MAX_VALUES = 10_000;
+const INPUT_JSON_MAX_BYTES = 256 * 1024;
+
 function isInputJsonData(value: JSONValue): value is JSONObject | JSONObject[] {
-  return Array.isArray(value)
+  const hasInputJsonShape = Array.isArray(value)
     ? value.length > 0 && value.every(isJSONObject)
     : isJSONObject(value);
+  return hasInputJsonShape && fitsInputJsonLimits(value);
+}
+
+function fitsInputJsonLimits(value: JSONValue): boolean {
+  let count = 0;
+  const visit = (node: JSONValue | undefined, depth: number): boolean => {
+    count += 1;
+    if (count > INPUT_JSON_MAX_VALUES) return false;
+    if (node === null || typeof node !== 'object') return true;
+    if (depth > INPUT_JSON_MAX_DEPTH) return false;
+    const children: readonly (JSONValue | undefined)[] = Array.isArray(node)
+      ? node
+      : Object.values(node);
+    return children.every(child => visit(child, depth + 1));
+  };
+  return (
+    visit(value, 1) &&
+    new TextEncoder().encode(JSON.stringify(value)).length <=
+      INPUT_JSON_MAX_BYTES
+  );
 }
 
 function isJSONObject(value: JSONValue): value is JSONObject {

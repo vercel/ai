@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidResponseDataError,
   InvalidArgumentError,
+  type JSONObject,
 } from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
@@ -229,6 +230,57 @@ it.each([
     expect(
       JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
     ).toEqual([part]);
+  },
+);
+
+function nested(levels: number): JSONObject {
+  let value: JSONObject = { leaf: true };
+  for (let level = 1; level < levels; level++) value = { next: value };
+  return value;
+}
+
+function withKeys(count: number): JSONObject {
+  return Object.fromEntries(
+    Array.from({ length: count }, (_, i) => [`k${i}`, 0]),
+  );
+}
+
+it.each([
+  { label: '32 container levels', value: nested(32), native: true },
+  { label: '33 container levels', value: nested(33), native: false },
+  { label: '9,000 values', value: withKeys(9_000), native: true },
+  {
+    label: '10,000 keys plus the root',
+    value: withKeys(10_000),
+    native: false,
+  },
+  {
+    label: '200 KiB of JSON',
+    value: { blob: 'x'.repeat(200 * 1024) },
+    native: true,
+  },
+  {
+    label: 'more than 256 KiB of JSON',
+    value: { blob: 'x'.repeat(256 * 1024) },
+    native: false,
+  },
+  {
+    label: 'more than 256 KiB of multibyte UTF-8',
+    value: { blob: 'é'.repeat(140 * 1024) },
+    native: false,
+  },
+])(
+  'falls back to input_text beyond input_json limits: $label',
+  async ({ value, native }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    const [part] = JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0]
+      .content;
+    expect(part).toEqual(
+      native
+        ? { type: 'input_json', data: value }
+        : { type: 'input_text', text: JSON.stringify(value) },
+    );
   },
 );
 
