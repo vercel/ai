@@ -1346,7 +1346,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       );
 
       it.each(['none', 'minimal'])(
-        'should omit unsupported GPT-6 reasoning effort %s',
+        'should send provider reasoning effort %s unchanged for GPT-6 models',
         async reasoningEffort => {
           const { warnings } = await createModel('gpt-6-astra').doGenerate({
             prompt: TEST_PROMPT,
@@ -1357,21 +1357,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           });
 
-          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
             model: 'gpt-6-astra',
-            input: [
-              {
-                role: 'user',
-                content: [{ type: 'input_text', text: 'Hello' }],
-              },
-            ],
+            reasoning: { effort: reasoningEffort },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it.each(['none', 'minimal'] as const)(
+        'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+        async reasoning => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: 'gpt-6-astra',
+            reasoning: { effort: 'low' },
           });
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported',
-              feature: 'reasoningEffort',
-              details:
-                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
             },
           ]);
         },

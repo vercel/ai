@@ -43,6 +43,9 @@ jobs:
       - name: Verify package README files
         run: pnpm run verify:readmes
 
+      - name: Verify harness bridge package.json files
+        run: pnpm run verify:harness-bridge-package-json
+
   konsistent:
     name: 'Code Consistency'
     runs-on: ubuntu-latest

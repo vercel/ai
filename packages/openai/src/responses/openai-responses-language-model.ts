@@ -22,7 +22,6 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -37,7 +36,10 @@ import {
   type OpenAIConfig,
 } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  getOpenAILanguageModelCapabilities,
+  resolveOpenAIReasoningEffort,
+} from '../openai-language-model-capabilities';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -341,24 +343,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    let resolvedReasoningEffort =
-      openaiOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
-
-    if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
-      });
-      resolvedReasoningEffort = undefined;
-    }
+    const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
+      providerReasoningEffort: openaiOptions?.reasoningEffort,
+      reasoning,
+      supportedReasoningEfforts: modelCapabilities.supportedReasoningEfforts,
+      warnings,
+    });
 
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
@@ -458,10 +448,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
+    const supportedReasoningEfforts =
+      modelCapabilities.supportedReasoningEfforts as
+        | readonly string[]
+        | undefined;
     const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
-      effort != null &&
-      modelCapabilities.supportedReasoningEfforts?.includes(effort) === false
-        ? `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`
+      effort != null && supportedReasoningEfforts?.includes(effort) === false
+        ? `${modelId} only supports the following reasoning efforts: ${supportedReasoningEfforts.join(', ')}`
         : undefined;
 
     // Reject configuration updates whose effort value is unsupported by the selected model.

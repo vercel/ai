@@ -1048,6 +1048,31 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('should map top-level reasoning none to the lowest effort for grok-4.7', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.7').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('low');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+          });
+        });
+
         it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.6', async () => {
           prepareJsonResponse({
             id: 'resp_123',

@@ -82,31 +82,17 @@ export class MiniMaxChatLanguageModel
       return { options, warnings };
     }
 
-    if (reasoning === 'none') {
-      warnings.push({
-        type: 'compatibility',
-        feature: 'reasoning',
-        details:
-          `reasoning 'none' is not supported by ${this.modelId}; it always reasons. ` +
-          `Using effort 'low' to minimize thinking instead.`,
-      });
-    }
-
-    const effort =
-      reasoning === 'none'
-        ? 'low'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-              max: 'max',
-            },
-            warnings,
-          });
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: {
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      },
+      warnings,
+    });
 
     return {
       options: {

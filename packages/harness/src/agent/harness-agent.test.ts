@@ -4569,6 +4569,206 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('retains an unechoed host result across repeated approval pauses and session resume', async () => {
+    const tickets = [{ id: 'AI-23503' }];
+    const execute = vi.fn(async () => tickets);
+    let finishPrompt!: () => void;
+    let continuationCount = 0;
+    const { harness, toolResults, toolApprovals } = mockHarness({
+      builtinTools: {
+        bash: tool({ inputSchema: z.object({ command: z.string() }) }),
+      },
+      supportsBuiltinToolApprovals: true,
+      promptDone: () =>
+        new Promise(resolve => {
+          finishPrompt = resolve;
+        }),
+      script: () => [
+        { type: 'stream-start', modelId: 'claude-code-sequence' },
+        {
+          type: 'tool-call',
+          toolCallId: 'bash-1',
+          toolName: 'bash',
+          nativeName: 'Bash',
+          input: '{"command":"pwd"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'bash-1',
+          toolCallId: 'bash-1',
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: zeroUsage(),
+        },
+      ],
+      continueScript: () => {
+        continuationCount++;
+        const hostCall: HarnessV1StreamPart = {
+          type: 'tool-call',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          providerExecuted: false,
+        };
+        if (continuationCount === 1) {
+          return [
+            hostCall,
+            {
+              type: 'tool-call',
+              toolCallId: 'bash-2',
+              toolName: 'bash',
+              nativeName: 'Bash',
+              input: '{"command":"git status"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'bash-2',
+              toolCallId: 'bash-2',
+            },
+            {
+              type: 'finish-step',
+              finishReason: { unified: 'tool-calls', raw: 'host-input' },
+              usage: zeroUsage(),
+            },
+          ];
+        }
+        const hostResult: HarnessV1StreamPart = {
+          type: 'tool-result',
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          result: tickets,
+        };
+        return [hostCall, hostResult, hostResult, hostCall, ...finishEvents()];
+      },
+    });
+    const agent = new HarnessAgent({
+      harness,
+      permissionMode: 'allow-reads',
+      tools: {
+        listProjectTickets: tool({ inputSchema: z.object({}), execute }),
+      },
+      toolApproval: { listProjectTickets: 'approved' },
+    });
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
+    try {
+      const first = await agent.stream({
+        session,
+        prompt: 'Run Bash and list the project tickets in the same response.',
+      });
+      await first.consumeStream();
+
+      expect(session.hasUnfinishedTurn()).toBe(true);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(toolResults).toEqual([{ toolCallId: 'host-1', output: tickets }]);
+      expect((await first.steps)[0]!.content).toEqual([
+        expect.objectContaining({ type: 'tool-call', toolCallId: 'bash-1' }),
+        expect.objectContaining({ type: 'tool-call', toolCallId: 'host-1' }),
+        expect.objectContaining({
+          type: 'tool-approval-request',
+          approvalId: 'bash-1',
+        }),
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'host-1',
+          output: tickets,
+        }),
+      ]);
+
+      const continued = await agent.stream({
+        session,
+        messages: [
+          ...(await first.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'bash-1',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      await continued.consumeStream();
+
+      expect(toolApprovals).toEqual([
+        { approvalId: 'bash-1', approved: true, reason: undefined },
+      ]);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(session.hasUnfinishedTurn()).toBe(true);
+      expect(toolResults).toEqual([
+        { toolCallId: 'host-1', output: tickets },
+        { toolCallId: 'host-1', output: tickets },
+      ]);
+      expect((await continued.steps).flatMap(step => step.toolResults)).toEqual(
+        [],
+      );
+
+      const resumeFrom = await session.detach();
+      expect(resumeFrom.continueFrom?.pendingToolResults).toEqual([
+        {
+          toolCallId: 'host-1',
+          toolName: 'listProjectTickets',
+          input: '{}',
+          completedResult: { output: tickets },
+        },
+      ]);
+      session = await agent.createSession({
+        sandboxSession,
+        resumeFrom: structuredClone(resumeFrom),
+      });
+      const completed = await agent.stream({
+        session,
+        messages: [
+          ...(await continued.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'bash-2',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      const completedParts = [];
+      for await (const part of completed.fullStream) completedParts.push(part);
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(toolResults).toHaveLength(3);
+      expect(toolResults[2]).toEqual(toolResults[0]);
+      expect(toolApprovals).toEqual([
+        { approvalId: 'bash-1', approved: true, reason: undefined },
+        { approvalId: 'bash-2', approved: true, reason: undefined },
+      ]);
+      expect(session.hasUnfinishedTurn()).toBe(false);
+      expect(
+        completedParts.filter(
+          part => 'toolCallId' in part && part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(await completed.finishReason).toBe('tool-calls');
+    } finally {
+      finishPrompt();
+      await session.destroy();
+    }
+  });
+
   test('session.detach() after a tool approval pause returns resume state with nested continuation state', async () => {
     const { harness, doDetach, doSuspendTurn } = mockHarness({
       script: () => [
