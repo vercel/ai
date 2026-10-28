@@ -557,6 +557,40 @@ export async function createPiSession(
     });
     return sandboxPaths;
   };
+
+  let skillsSynchronized: Promise<unknown> | undefined;
+  const synchronizeSkills = async ({
+    skills,
+    abortSignal,
+  }: {
+    skills: ReadonlyArray<HarnessV1Skill>;
+    abortSignal?: AbortSignal;
+  }) => {
+    const { homeDir, skillRootDir } = await resolveSandboxPaths();
+    const result = await writeSkills({
+      sandbox: toolSafeSandboxSession,
+      homePath: homeDir,
+      skillsDir: '.agents/skills',
+      skills,
+      abortSignal,
+      invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Pi skill file path for ${skillName}: ${filePath}`,
+    });
+    harnessSkills = createHarnessPiSkills({
+      skills,
+      sandboxSkillRootDir: skillRootDir,
+    });
+    skillsSynchronized = Promise.resolve();
+    return result;
+  };
+
+  const ensureSkillsSynchronized = () =>
+    (skillsSynchronized ??= synchronizeSkills({ skills: [] }).catch(error => {
+      skillsSynchronized = undefined;
+      throw error;
+    }));
+
   const piSessionId = PI_SESSION_ID_PATTERN.test(input.sessionId)
     ? input.sessionId
     : undefined;
@@ -1257,7 +1291,10 @@ export async function createPiSession(
         buildBuiltinToolDefinition({
           native,
           sessionWorkDir,
-          remoteOps: async () => (await resolveSandboxPaths()).remoteOps,
+          remoteOps: async () => {
+            await ensureSkillsSynchronized();
+            return (await resolveSandboxPaths()).remoteOps;
+          },
           requestApproval: requestBuiltinToolApproval,
         }),
       ),
@@ -1424,20 +1461,9 @@ export async function createPiSession(
     }
 
     if (turnOpts.skills.length > 0 || harnessSkills.length > 0) {
-      const { homeDir, skillRootDir } = await resolveSandboxPaths();
-      const skillWriteResult = await writeSkills({
-        sandbox: toolSafeSandboxSession,
-        homePath: homeDir,
-        skillsDir: '.agents/skills',
+      const skillWriteResult = await synchronizeSkills({
         skills: turnOpts.skills,
         abortSignal: turnOpts.abortSignal,
-        invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,
-        invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-          `Invalid Pi skill file path for ${skillName}: ${filePath}`,
-      });
-      harnessSkills = createHarnessPiSkills({
-        skills: turnOpts.skills,
-        sandboxSkillRootDir: skillRootDir,
       });
       if (piSession != null && skillWriteResult.changed) {
         await reloadResourcesOnly();

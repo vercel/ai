@@ -1108,6 +1108,67 @@ describe('createPiSession', () => {
     }
   });
 
+  it('removes skills written by an earlier process the first time a later one touches the sandbox', async () => {
+    const sandboxSession = createSandboxSession();
+    const startSession = (isResume: boolean) =>
+      createPiSession({
+        sessionId: 'session-skills-cold-resume',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume,
+      });
+    const runTurn = async (
+      session: Awaited<ReturnType<typeof startSession>>,
+      skills: HarnessV1Skill[],
+    ) => {
+      const control = await session.doPromptTurn({
+        skills,
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+    };
+    const removeSkill = expect.objectContaining({
+      command: "rm -rf -- '/sandbox/home/.agents/skills/demo-skill'",
+    });
+
+    piMock.session = createFakePiSession().session;
+    const first = await startSession(false);
+    try {
+      await runTurn(first, [
+        {
+          name: 'demo-skill',
+          description: 'Demo skill description',
+          content: 'Skill instructions content',
+        },
+      ]);
+    } finally {
+      await first.doDestroy();
+    }
+
+    let readTool = false;
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        if (readTool) await executeReadTool('notes.txt');
+      },
+    }).session;
+    const second = await startSession(true);
+    try {
+      vi.mocked(sandboxSession.run).mockClear();
+      await runTurn(second, []);
+      expect(sandboxSession.run).not.toHaveBeenCalled();
+
+      readTool = true;
+      await runTurn(second, []);
+      expect(sandboxSession.run).toHaveBeenCalledWith(removeSkill);
+    } finally {
+      await second.doDestroy();
+    }
+  });
+
   it('expands a skill command from the sandbox before prompting', async () => {
     const prompt = vi.fn(async () => {});
     piMock.session = {
