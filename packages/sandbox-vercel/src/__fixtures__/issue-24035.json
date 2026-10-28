@@ -1,0 +1,43 @@
+{
+  "description": "Live @vercel/sandbox 3.9.0 request and selected response fields; POST /-/ping never publishes a package. Native updates preserving the input rules retained 403. Native read/modify/write also bypassed the rule because native policy readback omits responseRules.",
+  "requestedPolicy": {
+    "allow": {
+      "registry.npmjs.org": [
+        {
+          "match": { "method": ["PUT", "POST", "DELETE"] },
+          "response": { "statusCode": 403 }
+        }
+      ],
+      "example.com": []
+    }
+  },
+  "createResponseNetworkPolicy": {
+    "mode": "custom",
+    "allowedDomains": ["registry.npmjs.org", "example.com"],
+    "responseRules": [
+      {
+        "domain": "registry.npmjs.org",
+        "statusCode": 403,
+        "matchDimensions": ["method"]
+      }
+    ]
+  },
+  "nativeReadback": {
+    "allow": ["registry.npmjs.org", "example.com"]
+  },
+  "transformationResponseNetworkPolicy": {
+    "mode": "custom",
+    "allowedDomains": ["registry.npmjs.org", "example.com"],
+    "injectionRules": [
+      { "domain": "example.com", "headerNames": ["x-example"] }
+    ]
+  },
+  "blockedPost": "403",
+  "nativePreservingUpdatePost": "403",
+  "nativeReadModifyWritePost": "{\"code\":\"MethodNotAllowedError\",\"message\":\"POST is not allowed\"}\n405",
+  "addRequestTransformationsPost": "{\"code\":\"MethodNotAllowedError\",\"message\":\"POST is not allowed\"}\n405",
+  "setRequestTransformationsPost": "{\"code\":\"MethodNotAllowedError\",\"message\":\"POST is not allowed\"}\n405",
+  "openCodeCredentialBrokeringPost": "{\"code\":\"MethodNotAllowedError\",\"message\":\"POST is not allowed\"}\n405",
+  "unchangedSetNetworkPolicyPost": "403",
+  "allowedGet": "{}\n200"
+}
