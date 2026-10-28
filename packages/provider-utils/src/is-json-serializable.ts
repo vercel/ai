@@ -1,4 +1,4 @@
-import type { JSONValue } from '@ai-sdk/provider';
+import { isPlainObject, type JSONValue } from '@ai-sdk/provider';
 
 /**
  * Checks whether a value can cross a workflow serialization boundary.
@@ -19,7 +19,7 @@ export function isJSONSerializable(value: unknown): value is JSONValue {
     return value.every(isJSONSerializable);
   }
 
-  if (Object.getPrototypeOf(value) === Object.prototype) {
+  if (isPlainObject(value)) {
     return Object.values(value as Record<string, unknown>).every(
       isJSONSerializable,
     );
