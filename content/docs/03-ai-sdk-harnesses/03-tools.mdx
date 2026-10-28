@@ -286,6 +286,20 @@ support it will error if an unsupported tool approval mode is specified.
 Host-executed tool approvals are handled by `HarnessAgent`, so they work across
 adapters.
 
+A built-in approval request carries the harness's tool name (for example
+`bash`), while its input keeps the runtime's own shape (Claude Code's `Bash`
+takes `command`). When the runtime's name differs, the request also carries it
+as `toolCall.providerMetadata[harnessId].nativeToolName`:
+
+```ts
+for await (const part of result.fullStream) {
+  if (part.type === 'tool-approval-request') {
+    const nativeToolName =
+      part.toolCall.providerMetadata?.['claude-code']?.nativeToolName; // 'Bash'
+  }
+}
+```
+
 ## File Changes and Compaction
 
 Some harness events are not ordinary tool calls. For UI compatibility,

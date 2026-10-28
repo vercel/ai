@@ -4518,6 +4518,56 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('names the native tool on builtin approval requests', async () => {
+    const { harness } = mockHarness({
+      builtinTools: {
+        bash: tool({
+          inputSchema: z.object({ command: z.string() }),
+        }),
+      },
+      supportsBuiltinToolApprovals: true,
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'b1',
+          toolName: 'bash',
+          nativeName: 'Bash',
+          input: JSON.stringify({ command: 'pwd' }),
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'b1',
+          toolCallId: 'b1',
+        },
+        ...finishEvents(),
+      ],
+    });
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'go' });
+    const approvalRequests: unknown[] = [];
+
+    for await (const part of result.fullStream) {
+      if (part.type === 'tool-approval-request') approvalRequests.push(part);
+    }
+
+    expect(approvalRequests).toMatchObject([
+      {
+        approvalId: 'b1',
+        toolCall: {
+          toolCallId: 'b1',
+          toolName: 'bash',
+          input: { command: 'pwd' },
+          providerMetadata: { mock: { nativeToolName: 'Bash' } },
+        },
+      },
+    ]);
+    await session.destroy();
+  });
+
   test('auto-denies inactive builtin approvals without approval stream parts', async () => {
     const { harness, toolApprovals } = mockHarness({
       builtinTools: {

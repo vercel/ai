@@ -1296,7 +1296,11 @@ export function runPrompt<
           onPendingToolApproval(pendingApproval);
           enqueueApprovalRequest({
             approvalId: pendingApproval.approvalId,
-            toolCall,
+            toolCall: withNativeToolName({
+              toolCall,
+              harnessId: input.harness.harnessId,
+              nativeName: pendingApproval.nativeName,
+            }),
           });
           hostInputPauseRequested = true;
           continue;
@@ -1816,6 +1820,37 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
  * `shell`), false/undefined for host tools — and is passed through to the AI
  * SDK part by `parseToolCall`.
  */
+/**
+ * Adds the runtime's native tool name to a builtin approval request, so a
+ * host can check the call by the name its input shape belongs to (Claude
+ * Code's `Bash` takes `command`; the wire name is `bash`). The name goes in
+ * `providerMetadata[harnessId].nativeToolName`.
+ */
+function withNativeToolName(args: {
+  toolCall: ToolCallTextStreamPart;
+  harnessId: string;
+  nativeName: string | undefined;
+}): ToolCallTextStreamPart {
+  const { toolCall, harnessId, nativeName } = args;
+  if (nativeName == null || nativeName === toolCall.toolName) {
+    return toolCall;
+  }
+  const providerMetadata = (toolCall.providerMetadata ?? {}) as Record<
+    string,
+    Record<string, unknown>
+  >;
+  return {
+    ...toolCall,
+    providerMetadata: {
+      ...providerMetadata,
+      [harnessId]: {
+        ...providerMetadata[harnessId],
+        nativeToolName: nativeName,
+      },
+    },
+  };
+}
+
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
   tools: TOOLS | undefined;
