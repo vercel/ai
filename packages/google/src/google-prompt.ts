@@ -20,10 +20,21 @@ export type GoogleContent = {
   parts: Array<GoogleContentPart>;
 };
 
+/** Metadata for preprocessing video file parts. */
+export type GoogleVideoMetadata = {
+  /** Start offset as a duration in seconds, e.g. `'3.5s'`. */
+  startOffset?: string;
+  /** End offset as a duration in seconds, e.g. `'10s'`. */
+  endOffset?: string;
+  /** Frames per second in the range (0, 24]. Defaults to 1. */
+  fps?: number;
+};
+
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
   | {
       inlineData: { mimeType: string; data: string };
+      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
     }
@@ -41,6 +52,7 @@ export type GoogleContentPart =
     }
   | {
       fileData: { mimeType: string; fileUri: string };
+      videoMetadata?: GoogleVideoMetadata;
       thought?: boolean;
       thoughtSignature?: string;
     }
