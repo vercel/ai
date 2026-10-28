@@ -1,0 +1,26 @@
+{
+  "mode": "fast",
+  "decision_id": "decisions_1234567890abcdef1234567890abcdef",
+  "answers": {
+    "hasSearch": { "type": "noul", "noul": 0.9992643798509062 },
+    "availability": {
+      "type": "choice",
+      "choice": "available",
+      "probabilities": { "available": 0.987654321, "unknown": 0.012345679 },
+      "confidence": 0.87654321
+    },
+    "fit": {
+      "type": "score",
+      "score": 1.7123456789,
+      "legend": { "0": "No fit", "1": "Partial fit", "2": "Full fit" },
+      "probabilities": { "0": 0.1, "1": 0.0876543211, "2": 0.8123456789 },
+      "confidence": 0.7654321
+    }
+  },
+  "usage": { "input_tokens": 4212, "output_tokens": 0 },
+  "citations": [
+    { "url": "https://example.com/search", "title": "Search API", "excerpts": ["A web search API.", "Current documentation."] },
+    { "url": "https://example.com/reference", "excerpts": [] },
+    { "url": "https://example.com/untitled", "title": null, "excerpts": ["Evidence without a page title."] }
+  ]
+}
