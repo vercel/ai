@@ -229,6 +229,13 @@ not fit a common tool shape.
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
 
+Approval requests keep the harness tool name (for example, `bash`) and the
+Claude Code input shape (for example, `{ command: 'echo hello' }`). When the
+native name differs, read it from
+`toolCall.providerMetadata['claude-code'].nativeToolName` (for example,
+`'Bash'`, `'Write'`, or `'Edit'`). See [native tool names](/docs/ai-sdk-harnesses/tools#native-tool-names)
+for an approval-gate example.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

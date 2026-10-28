@@ -278,6 +278,32 @@ flows, `useChat` sends those messages for you when you add the approval result.
 In direct agent code, pass the approval response as `messages` on the next
 `stream()` or `generate()` call.
 
+### Native Tool Names
+
+Built-in tool calls use the harness tool name, such as `bash`, `write`, or
+`edit`, while their input follows the underlying runtime's schema. When an
+adapter supplies a different native name, `HarnessAgent` exposes it as
+`providerMetadata[harnessId].nativeToolName` on the streamed `tool-call` and
+on the `toolCall` inside a `tool-approval-request`.
+
+For example, a Claude Code approval request for `bash` includes
+`toolCall.providerMetadata['claude-code'].nativeToolName: 'Bash'`. An approval
+gate that works with Claude Code's native tool names can read it without
+changing the harness-facing `toolName` or interpreting the input shape:
+
+```ts
+for await (const part of result.fullStream) {
+  if (part.type === 'tool-approval-request') {
+    const nativeToolName =
+      part.toolCall.providerMetadata?.['claude-code']?.nativeToolName;
+    console.log(nativeToolName ?? part.toolCall.toolName, part.toolCall.input);
+  }
+}
+```
+
+The metadata field is omitted when the adapter does not supply a native name
+or when it matches `toolName`. Existing provider metadata is preserved.
+
 ## Built-in Approval Support
 
 Most adapters can pause built-in tool calls for approval. Adapters that do not
