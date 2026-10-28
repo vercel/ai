@@ -71,6 +71,26 @@ describe('ElevenLabsSpeechModel', () => {
       expect(server.calls[0].requestUrl).toContain('output_format=pcm_44100');
     });
 
+    it.each([
+      ['wav', 'wav_44100'],
+      ['wav_24000', 'wav_24000'],
+    ])(
+      'should map HTTP output format %s to %s',
+      async (outputFormat, nativeFormat) => {
+        const audio = prepareAudioResponse({ format: 'wav' });
+
+        const result = await model.doGenerate({
+          text: 'Hello, world!',
+          outputFormat,
+        });
+
+        expect(
+          server.calls[0].requestUrlSearchParams.get('output_format'),
+        ).toBe(nativeFormat);
+        expect(result.audio).toEqual(audio);
+      },
+    );
+
     it('should handle language parameter', async () => {
       prepareAudioResponse();
 
