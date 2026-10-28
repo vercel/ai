@@ -1,0 +1,140 @@
+---
+title: SOKKAN Router
+description: Use the SOKKAN Router OpenAI compatible API with the AI SDK.
+---
+
+# SOKKAN Router Provider
+
+[SOKKAN Router](https://router.sokkan.ch) is an OpenAI-compatible LLM gateway
+operated by NINABOT Sàrl (Geneva, Switzerland). It serves open-weight models
+from declared regions (Switzerland or the EU), lets each request be restricted
+to a region, and does not store prompts or completions. You can use its Chat
+Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible`
+module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a [SOKKAN Router API key](https://router.sokkan.ch) (keys are prefixed
+`skr_`) and set it as a server-side environment variable:
+
+```bash
+export SOKKAN_API_KEY=skr_your-api-key
+```
+
+See the [SOKKAN Router docs](https://router.sokkan.ch/docs) for details.
+
+## Provider Instance
+
+Create a SOKKAN Router provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const sokkan = createOpenAICompatible({
+  name: 'sokkan',
+  apiKey: process.env.SOKKAN_API_KEY,
+  baseURL: 'https://router.sokkan.ch/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+To restrict where requests may run, send the `X-Data-Location` header (`CH`,
+`EU` or `any`). A model that does not run in the requested location returns a
+`400` error with code `no_provider` and the request is not sent elsewhere:
+
+```ts
+const sokkanCH = createOpenAICompatible({
+  name: 'sokkan',
+  apiKey: process.env.SOKKAN_API_KEY,
+  baseURL: 'https://router.sokkan.ch/v1',
+  headers: { 'X-Data-Location': 'CH' },
+});
+```
+
+## Language Models
+
+Create a language model by passing a SOKKAN Router model ID to the provider
+instance:
+
+```ts
+const model = sokkan('qwen/qwen3.8-27b');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const sokkan = createOpenAICompatible({
+  name: 'sokkan',
+  apiKey: process.env.SOKKAN_API_KEY,
+  baseURL: 'https://router.sokkan.ch/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: sokkan('qwen/qwen3.8-27b'),
+  prompt: 'Explain what data residency means in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use SOKKAN Router language models with `streamText`.
+
+## Supported Models and Capabilities
+
+SOKKAN Router serves the following model IDs pay-per-token
+(`"availability": "on_demand"`). Prices are in USD per million tokens, as listed
+on 2026-10-22:
+
+| Model ID                  | Region | Context | Input | Cached input | Output |
+| ------------------------- | ------ | ------- | ----- | ------------ | ------ |
+| `qwen/qwen3.8-27b`        | EU     | 131,072 | 0.20  | 0.05         | 2.50   |
+| `qwen/qwen3.6-35b-a3b-eu` | EU     | 262,144 | 0.20  | 0.05         | 1.40   |
+| `qwen/qwen3.5-397b-a17b`  | EU     | 262,144 | 1.00  | 1.00         | 6.00   |
+| `openai/gpt-oss-120b`     | EU     | 131,072 | 0.10  | 0.10         | 0.50   |
+| `openai/gpt-oss-20b`      | CH     | 65,536  | 0.015 | 0.008        | 0.075  |
+
+Models, prices and availability can change. The unauthenticated
+[`GET /v1/models`](https://router.sokkan.ch/v1/models) endpoint is the current
+source. Models listed there with `"availability": "committed"` require a prepaid
+throughput commitment and return `403` (`committed_throughput`) on a
+pay-per-token key.
+
+Supported capabilities depend on the selected model and include:
+
+- text generation and streaming;
+- tool calling, including multi-step tool use with `stopWhen`; and
+- structured output for models that support JSON Schema.
+
+To send JSON Schema structured-output requests, enable
+`supportsStructuredOutputs`:
+
+```ts
+const sokkan = createOpenAICompatible({
+  name: 'sokkan',
+  apiKey: process.env.SOKKAN_API_KEY,
+  baseURL: 'https://router.sokkan.ch/v1',
+  supportsStructuredOutputs: true,
+});
+```
+
+`qwen/qwen3.6-35b-a3b-eu` reasons by default: leave room in `maxOutputTokens`
+(1024 or more) when you expect a tool call or structured output.
+
+## Resources
+
+- [SOKKAN Router docs](https://router.sokkan.ch/docs)
+- [SOKKAN Router model catalogue](https://router.sokkan.ch/v1/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
