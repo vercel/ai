@@ -777,6 +777,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
    * call the hook deferred in the same message was dropped by Claude Code,
    * which can only resume one deferred call, so report those as not run.
    */
+  let deferredDecision:
+    | Promise<{ approved: boolean; reason?: string }>
+    | undefined;
   const requestDeferredApproval = (call: {
     toolUseId: string;
     toolName: string;
@@ -811,6 +814,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         ...(isExternalMcpTool(call.toolName) ? { dynamic: true } : {}),
       });
     }
+    // Register before asking, so an answer that arrives while the deferred
+    // query is still being disposed is not missed.
+    deferredDecision = turn.requestToolApproval(call.toolUseId);
     emit({
       type: 'tool-approval-request',
       approvalId: call.toolUseId,
@@ -864,11 +870,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       if (deferredToolUseId != null) {
         const toolUseId = deferredToolUseId;
         const decision = await Promise.race([
-          turn.requestToolApproval(toolUseId),
+          deferredDecision ?? turn.requestToolApproval(toolUseId),
           hostAborted,
         ]).finally(() =>
           clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
         );
+        deferredDecision = undefined;
         if (decision == null || abortCtl.signal.aborted) return;
         approvalDecisions.set(toolUseId, decision);
         deferredToolUseId = undefined;

@@ -1151,6 +1151,32 @@ describe('Claude Code bridge configuration', () => {
       ).toMatchObject({ 'claude-code': { costUsd: 0.08 } });
     });
 
+    test('registers for the host decision before it asks the host', async () => {
+      const requestedBeforeRegistering: boolean[] = [];
+      state.requestToolApproval = async id => {
+        requestedBeforeRegistering.push(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        );
+        return { approved: true };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestedBeforeRegistering).toEqual([false]);
+    });
+
     test('reports other calls deferred in the same message as not run', async () => {
       state.requestToolApproval = async () => ({ approved: true });
       state.createQuery = args =>
