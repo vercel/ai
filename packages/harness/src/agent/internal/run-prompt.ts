@@ -831,11 +831,18 @@ export function runPrompt<
 
       settledHostToolCallIds.add(approval.toolCallId);
       if (!continuation.approved) {
+        const output = {
+          type: 'execution-denied' as const,
+          reason: continuation.reason,
+        };
         await submitToolResult({
           toolCallId: approval.toolCallId,
-          output: {
-            type: 'execution-denied',
-            reason: continuation.reason,
+          output,
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: approval.toolCallId,
+            toolName: approval.toolName,
+            output,
           },
         });
         return 'continued';
@@ -1400,7 +1407,7 @@ export function runPrompt<
             !hasTool({ tools: activeTools, toolName: toolCall.toolName })
           ) {
             const output = {
-              type: 'execution-denied',
+              type: 'execution-denied' as const,
               reason: getHarnessV1BuiltinToolFilteringDenialReason({
                 toolName: toolCall.toolName,
               }),
@@ -1408,6 +1415,12 @@ export function runPrompt<
             await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
+              toolResult: {
+                type: 'tool-result',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                output,
+              },
             });
             const execution = toolExecutions.get(toolCall.toolCallId);
             if (execution != null) {
@@ -1467,7 +1480,7 @@ export function runPrompt<
               providerExecuted: false,
             });
             const output = {
-              type: 'execution-denied',
+              type: 'execution-denied' as const,
               reason: customToolApprovalDecision.reason,
             };
             const execution = toolExecutions.get(toolCall.toolCallId);
@@ -1477,6 +1490,12 @@ export function runPrompt<
             await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
+              toolResult: {
+                type: 'tool-result',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                output,
+              },
             });
             if (execution != null) {
               execution.toolOutput = toToolOutput({
