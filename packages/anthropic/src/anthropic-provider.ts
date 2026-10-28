@@ -160,18 +160,8 @@ export function createAnthropic(
     });
   }
 
-  const getHeaders = async () => {
-    const authHeaders: Record<string, string> = options.authToken
-      ? { Authorization: `Bearer ${await resolve(options.authToken)}` }
-      : {
-          'x-api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'ANTHROPIC_API_KEY',
-            description: 'Anthropic',
-          }),
-        };
-
-    return withUserAgentSuffix(
+  const createHeaders = (authHeaders: Record<string, string>) =>
+    withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
@@ -179,6 +169,28 @@ export function createAnthropic(
       },
       `ai-sdk-anthropic/${VERSION}`,
     );
+
+  const getHeaders = () => {
+    const authToken = options.authToken;
+
+    if (authToken) {
+      const token = typeof authToken === 'function' ? authToken() : authToken;
+      const createBearerHeaders = (token: string) =>
+        createHeaders({ Authorization: `Bearer ${token}` });
+
+      // Keep synchronous credentials serializable across workflow boundaries.
+      return typeof token === 'string'
+        ? createBearerHeaders(token)
+        : resolve(token).then(createBearerHeaders);
+    }
+
+    return createHeaders({
+      'x-api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+        description: 'Anthropic',
+      }),
+    });
   };
 
   const languageModelConfig = {
