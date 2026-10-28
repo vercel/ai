@@ -40,7 +40,7 @@ type ParallelDecisionModelConfig = {
   fetch?: FetchFunction;
 };
 
-export class ParallelDecisionModel implements DecisionModelV4 {
+export class DecisionParallelModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['boolean', 'choice', 'score'] as const;
 
@@ -53,7 +53,7 @@ export class ParallelDecisionModel implements DecisionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: ParallelDecisionModel) {
+  static [WORKFLOW_SERIALIZE](model: DecisionParallelModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -64,7 +64,7 @@ export class ParallelDecisionModel implements DecisionModelV4 {
     modelId: ParallelDecisionModelId;
     config: ParallelDecisionModelConfig;
   }) {
-    return new ParallelDecisionModel(options.modelId, options.config);
+    return new DecisionParallelModel(options.modelId, options.config);
   }
 
   async doDecide(

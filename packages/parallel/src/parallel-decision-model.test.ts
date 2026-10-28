@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ParallelDecisionModel } from './parallel-decision-model';
+import { DecisionParallelModel } from './parallel-decision-model';
 import { createParallel, parallel } from './parallel-provider';
 
 // Illustrative fixture based on the public contract, not a live capture.
@@ -329,16 +329,16 @@ it('rejects unsupported model families', () => {
 });
 
 it('serializes model configuration and restores the request contract', async () => {
-  const model = setup().model as ParallelDecisionModel;
-  const serialized = ParallelDecisionModel[WORKFLOW_SERIALIZE](model);
+  const model = setup().model as DecisionParallelModel;
+  const serialized = DecisionParallelModel[WORKFLOW_SERIALIZE](model);
   expect(serialized).toMatchObject({
     modelId: 'fast',
     config: { baseURL: 'https://example.com/v1' },
   });
-  const restored = ParallelDecisionModel[WORKFLOW_DESERIALIZE]({
+  const restored = DecisionParallelModel[WORKFLOW_DESERIALIZE]({
     modelId: serialized.modelId,
     config: serialized.config as unknown as Parameters<
-      (typeof ParallelDecisionModel)[typeof WORKFLOW_DESERIALIZE]
+      (typeof DecisionParallelModel)[typeof WORKFLOW_DESERIALIZE]
     >[0]['config'],
   });
   const { fetch } = setup();

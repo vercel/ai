@@ -24,7 +24,7 @@
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli docs *.tsbuildinfo",
-    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/170-parallel.mdx ./docs/",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/230-parallel.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",

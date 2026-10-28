@@ -9,7 +9,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { ParallelDecisionModel } from './parallel-decision-model';
+import { DecisionParallelModel } from './parallel-decision-model';
 import type { ParallelDecisionModelId } from './parallel-decision-model-options';
 import { VERSION } from './version';
 
@@ -49,7 +49,7 @@ export function createParallel(
       if (modelId.length === 0) {
         throw new NoSuchModelError({ modelId, modelType: 'decisionModel' });
       }
-      return new ParallelDecisionModel(modelId, {
+      return new DecisionParallelModel(modelId, {
         provider: 'parallel.decision',
         baseURL:
           withoutTrailingSlash(options.baseURL) ?? 'https://api.parallel.ai/v1',
