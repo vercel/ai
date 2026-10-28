@@ -1581,6 +1581,31 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it.each([
+    [{ hostDisconnectTimeoutMs: 60_000 }, '60000'],
+    [{}, undefined],
+  ])(
+    'passes the host disconnect timeout to the bridge (%o)',
+    async (settings, expected) => {
+      const spawnEnvs: Array<Record<string, string | undefined>> = [];
+      const harness = createClaudeCode(settings);
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          spawnEnvs,
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+
+      expect(spawnEnvs[0]?.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS).toBe(expected);
+
+      await session.doDestroy();
+    },
+  );
+
   it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
     const toolHints = { search: { readOnly: true } };

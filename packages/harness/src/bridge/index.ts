@@ -345,6 +345,13 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   port?: number;
   /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
   token?: string;
+  /**
+   * Abort the running turn when its host disconnects and no host reconnects
+   * within this many milliseconds. A host that suspends the turn is exempt.
+   * Defaults to `BRIDGE_HOST_DISCONNECT_TIMEOUT_MS` env. Unset keeps the turn
+   * running until it finishes.
+   */
+  hostDisconnectTimeoutMs?: number;
   /** Called with the bound port once the server is listening. */
   onListening?(port: number): void;
   /**
@@ -394,6 +401,25 @@ export async function runBridge<TStart extends { type: 'start' }>(
 ): Promise<BridgeHandle> {
   const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
   const teardownGraceMs = options.turnTeardownGraceMs ?? 10_000;
+  const configuredHostDisconnectTimeoutMs =
+    options.hostDisconnectTimeoutMs ??
+    (procEnv.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS
+      ? Number(procEnv.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS)
+      : undefined);
+  // Only a positive finite timeout enables it. An invalid value keeps the turn
+  // running instead of aborting it on every disconnect, and longer values are
+  // capped at the largest delay setTimeout supports.
+  const hostDisconnectTimeoutMs =
+    configuredHostDisconnectTimeoutMs != null &&
+    Number.isFinite(configuredHostDisconnectTimeoutMs) &&
+    configuredHostDisconnectTimeoutMs > 0
+      ? Math.min(configuredHostDisconnectTimeoutMs, 2_147_483_647)
+      : undefined;
+  let hostDisconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearHostDisconnectTimer = (): void => {
+    clearTimeout(hostDisconnectTimer);
+    hostDisconnectTimer = undefined;
+  };
   const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
@@ -766,6 +792,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const thisTurn = new Promise<void>(resolve => (turnFinished = resolve));
         activeTurn = thisTurn;
         activeSocket = ws; // asking for a turn claims the event stream
+        clearHostDisconnectTimer();
         const firstTurn = isFirstTurn;
         isFirstTurn = false;
         eventLog = []; // clear previous turn; keep seqCounter monotonic
@@ -856,6 +883,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
             activeTurn = undefined;
             currentTurnState = 'waiting';
             void writeBridgeMeta('waiting');
+            clearHostDisconnectTimer();
           }
           turnFinished();
         }
@@ -929,6 +957,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
         return;
       case 'resume':
         activeSocket = ws; // asking for a catch-up claims it too
+        clearHostDisconnectTimer();
         // Synchronous, so no event can slip out live ahead of the replayed tail.
         replay(ws, msg.lastSeenEventId);
         return;
@@ -1033,13 +1062,26 @@ export async function runBridge<TStart extends { type: 'start' }>(
       void handleInbound(parsed, ws);
     });
 
-    ws.on('close', () => {
+    ws.on('close', (_code: number, reason: Buffer) => {
       // Only the stream owner's close matters; a socket that never claimed it,
       // or that a later `start`/`resume` displaced, closes as a no-op.
       // Crucially we do NOT abort the in-flight turn: it keeps running and its
-      // events accumulate in the log for replay on reconnect.
+      // events accumulate in the log for replay on reconnect. With a host
+      // disconnect timeout, a turn whose host never comes back is aborted.
       if (activeSocket === ws) {
         activeSocket = undefined;
+        if (
+          hostDisconnectTimeoutMs != null &&
+          activeTurn != null &&
+          reason.toString() !== 'suspended'
+        ) {
+          clearHostDisconnectTimer();
+          hostDisconnectTimer = setTimeout(() => {
+            hostDisconnectTimer = undefined;
+            if (activeSocket == null) turnAbort?.abort();
+          }, hostDisconnectTimeoutMs);
+          hostDisconnectTimer.unref?.();
+        }
       }
     });
 
