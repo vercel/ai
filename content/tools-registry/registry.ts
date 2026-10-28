@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'keenable',
+    name: 'Keenable',
+    description:
+      'Keenable adds web search and page fetch to AI agents. Search returns ranked pages with extracted text, and fetch reads a URL as markdown. The tools work without an API key on the public tier; set KEENABLE_API_KEY to remove the hourly rate limit.',
+    packageName: '@keenable/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'KEENABLE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @keenable/ai-sdk',
+      npm: 'npm install @keenable/ai-sdk',
+      yarn: 'yarn add @keenable/ai-sdk',
+      bun: 'bun add @keenable/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { keenableTools } from '@keenable/ai-sdk';
+
+const { text } = await generateText({
+  model: 'google/gemini-3.1-pro-preview',
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
+  stopWhen: isStepCount(6),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
+    apiKeyUrl: 'https://app.keenable.ai/console',
+    websiteUrl: 'https://keenable.ai',
+    npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
+  },
 ];
