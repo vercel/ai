@@ -1,4 +1,4 @@
-# Deep Agents Harness
+# AI SDK - Deep Agents Harness
 
 A [HarnessV1](../harness) adapter that runs [Deep Agents](https://github.com/langchain-ai/deepagentsjs)
 (LangChain's LangGraph-based agent harness) as a coding-agent runtime inside an

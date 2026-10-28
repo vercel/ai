@@ -1275,9 +1275,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            ...(part.status === 'failed' || part.status === 'incomplete'
-              ? { isError: true, result: { status: part.status } }
-              : { result: mapWebSearchOutput(part.action) }),
+            ...mapWebSearchResult(part),
           });
 
           if (part.action?.type === 'search') {
@@ -2190,10 +2188,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  ...(value.item.status === 'failed' ||
-                  value.item.status === 'incomplete'
-                    ? { isError: true, result: { status: value.item.status } }
-                    : { result: mapWebSearchOutput(value.item.action) }),
+                  ...mapWebSearchResult(value.item),
                 });
 
                 if (value.item.action?.type === 'search') {
@@ -3180,7 +3175,21 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-export function mapWebSearchOutput(
+export function mapWebSearchResult({
+  action,
+  status,
+}: {
+  action?: OpenAIResponsesWebSearchAction | null;
+  status: string;
+}):
+  | { isError: true; result: { status: string } }
+  | { result: InferSchema<typeof webSearchOutputSchema> } {
+  return status === 'completed'
+    ? { result: mapWebSearchOutput(action) }
+    : { isError: true, result: { status } };
+}
+
+function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {

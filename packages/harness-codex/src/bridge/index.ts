@@ -24,6 +24,16 @@ const bridgeStateDir = requireArg({
 });
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
+/*
+ * Base URLs known to serve Codex's standalone search route (`/alpha/search`).
+ * Responses Lite models can only search through that route, and Codex only
+ * enables it for custom providers that opt in.
+ */
+const STANDALONE_WEB_SEARCH_BASE_URLS = new Set([
+  'https://api.openai.com/v1',
+  'https://chatgpt.com/backend-api/codex',
+]);
+
 const threadState: { id: string | undefined } = { id: undefined };
 const appServer = createCodexAppServerRuntime();
 
@@ -149,6 +159,9 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
         env_key: 'CODEX_API_KEY',
         wire_api: 'responses',
         supports_websockets: false,
+        ...(STANDALONE_WEB_SEARCH_BASE_URLS.has(apiBaseUrl.replace(/\/+$/, ''))
+          ? { supports_standalone_web_search: true }
+          : {}),
         ...(start.headers != null || (hasGatewayAuth && HARNESS_CLIENT_APP)
           ? {
               http_headers: {

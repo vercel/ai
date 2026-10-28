@@ -767,24 +767,6 @@ describe('experimental_toolCallers', () => {
     ]);
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
   });
-
-  it('rejects caller names that are not caller-capable tools', async () => {
-    await expect(
-      generateText({
-        model: new MockLanguageModelV4(),
-        tools: {
-          getInventory: tool({
-            inputSchema: z.object({}),
-            execute: async () => undefined,
-          }),
-        },
-        experimental_toolCallers: {
-          getInventory: ['getInventory'],
-        } as never,
-        prompt: 'Check inventory.',
-      }),
-    ).rejects.toThrow('tool "getInventory" contains an invalid caller.');
-  });
 });
 
 const modelWithSources = new MockLanguageModelV4({

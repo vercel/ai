@@ -1,8 +1,19 @@
 import { posix } from 'node:path';
 import {
   extractLines,
+  type Experimental_SandboxRunOptions as RunOptions,
+  type Experimental_SandboxReadFileOptions as ReadFileOptions,
+  type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
+  type Experimental_SandboxReadTextFileOptions as ReadTextFileOptions,
+  type Experimental_SandboxWriteFileOptions as WriteFileOptions,
+  type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
+  type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess as SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
+  type Experimental_WritableSandboxProcess as WritableSandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
@@ -28,12 +39,11 @@ export class VercelSandboxSession implements SandboxSession {
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  }: RunOptions): Promise<{
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+  }> {
     abortSignal?.throwIfAborted();
 
     const finished = await this.sandbox.runCommand({
@@ -56,38 +66,43 @@ export class VercelSandboxSession implements SandboxSession {
     };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<WritableSandboxProcess>;
+  spawn(options: SpawnOptionsWithoutStdin): Promise<SandboxProcess>;
+  spawn(
+    options: SpawnOptions,
+  ): Promise<SandboxProcess | WritableSandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<SandboxProcess | WritableSandboxProcess> {
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
       args: ['-c', command],
       detached: true,
+      ...(stdin === true ? { stdin: true } : {}),
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
-    return createSandboxProcess(live, abortSignal);
+    const process = createSandboxProcess({ command: live, abortSignal });
+    return stdin === true
+      ? {
+          ...process,
+          stdin: createStdinStream({ command: live, abortSignal }),
+        }
+      : process;
   }
 
   async readFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<ReadableStream<Uint8Array> | null> {
+  }: ReadFileOptions): Promise<ReadableStream<Uint8Array> | null> {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     return bytesToStream(bytes);
@@ -96,10 +111,7 @@ export class VercelSandboxSession implements SandboxSession {
   async readBinaryFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<Uint8Array | null> {
+  }: ReadBinaryFileOptions): Promise<Uint8Array | null> {
     abortSignal?.throwIfAborted();
     try {
       const buffer = await this.sandbox.readFileToBuffer(
@@ -124,13 +136,7 @@ export class VercelSandboxSession implements SandboxSession {
     startLine,
     endLine,
     abortSignal,
-  }: {
-    path: string;
-    encoding?: string;
-    startLine?: number;
-    endLine?: number;
-    abortSignal?: AbortSignal;
-  }): Promise<string | null> {
+  }: ReadTextFileOptions): Promise<string | null> {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
@@ -141,11 +147,7 @@ export class VercelSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: ReadableStream<Uint8Array>;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteFileOptions): Promise<void> {
     const bytes = await collectStream(content);
     await this.writeBinaryFile({ path, content: bytes, abortSignal });
   }
@@ -154,11 +156,7 @@ export class VercelSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: Uint8Array;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteBinaryFileOptions): Promise<void> {
     abortSignal?.throwIfAborted();
     const parent = posix.dirname(path);
     if (parent && parent !== '.' && parent !== '/') {
@@ -179,12 +177,7 @@ export class VercelSandboxSession implements SandboxSession {
     content,
     encoding = 'utf-8',
     abortSignal,
-  }: {
-    path: string;
-    content: string;
-    encoding?: string;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteTextFileOptions): Promise<void> {
     const buffer = Buffer.from(content, encoding as BufferEncoding);
     await this.writeBinaryFile({
       path,
@@ -198,10 +191,13 @@ export class VercelSandboxSession implements SandboxSession {
   }
 }
 
-function createSandboxProcess(
-  command: Command,
-  abortSignal: AbortSignal | undefined,
-): SandboxProcess {
+function createSandboxProcess({
+  command,
+  abortSignal,
+}: {
+  command: Command;
+  abortSignal?: AbortSignal;
+}): SandboxProcess {
   const encoder = new TextEncoder();
   const controllers: {
     stdout?: ReadableStreamDefaultController<Uint8Array>;
@@ -219,6 +215,18 @@ function createSandboxProcess(
       controllers.stderr = controller;
     },
   });
+
+  const removeAbortListener = () =>
+    abortSignal?.removeEventListener('abort', onAbort);
+  const onAbort = () => {
+    removeAbortListener();
+    void command.kill().catch(() => {});
+  };
+  if (abortSignal?.aborted) {
+    onAbort();
+  } else {
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
+  }
 
   const drained = (async () => {
     try {
@@ -242,17 +250,73 @@ function createSandboxProcess(
     stdout,
     stderr,
     async wait(): Promise<{ exitCode: number }> {
-      const finished = await command.wait();
-      await drained;
-      if (abortSignal?.aborted) {
-        throw abortSignal.reason ?? new DOMException('Aborted', 'AbortError');
+      try {
+        const finished = await (abortSignal
+          ? command.wait({ signal: abortSignal })
+          : command.wait());
+        removeAbortListener();
+        await drained;
+        abortSignal?.throwIfAborted();
+        return { exitCode: finished.exitCode };
+      } catch (error) {
+        abortSignal?.throwIfAborted();
+        throw error;
       }
-      return { exitCode: finished.exitCode };
     },
     async kill(): Promise<void> {
       await command.kill();
+      removeAbortListener();
     },
   };
+}
+
+function createStdinStream({
+  command,
+  abortSignal,
+}: {
+  command: Command;
+  abortSignal?: AbortSignal;
+}): WritableStream<Uint8Array> {
+  let removeAbortListener = () => {};
+
+  return new WritableStream<Uint8Array>({
+    start(controller) {
+      const onAbort = () => {
+        removeAbortListener();
+        controller.error(abortSignal?.reason);
+      };
+      removeAbortListener = () =>
+        abortSignal?.removeEventListener('abort', onAbort);
+      if (abortSignal?.aborted) {
+        onAbort();
+      } else {
+        abortSignal?.addEventListener('abort', onAbort, { once: true });
+      }
+    },
+    async write(chunk) {
+      try {
+        await command.writeStdin(chunk, { abortSignal });
+      } catch (error) {
+        /*
+         * A failed write may have delivered only part of the input. Sending
+         * EOF could make the process treat that truncated input as complete.
+         */
+        removeAbortListener();
+        throw error;
+      }
+    },
+    async close() {
+      try {
+        await command.closeStdin({ abortSignal });
+      } finally {
+        removeAbortListener();
+      }
+    },
+    abort() {
+      removeAbortListener();
+      return command.closeStdin();
+    },
+  });
 }
 
 function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
