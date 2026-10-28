@@ -1,5 +1,14 @@
 # @ai-sdk/perplexity
 
+## 5.0.22
+
+### Patch Changes
+
+- c6bbe48: Expose the web search queries the Agent API ran as `providerMetadata.perplexity.searchQueries` for `generateText` and `streamText`. Previously only the query count (`usage.numSearchQueries`) was returned and the queries on `search_results` items and `response.reasoning.search_queries` events were dropped.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
 ## 5.0.21
 
 ### Patch Changes

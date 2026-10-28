@@ -111,3 +111,19 @@ test('createPi accepts deprecated MCP adapter settings', () => {
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
 });
+
+test('createPi accepts project resources', () => {
+  createPi({
+    resources: {
+      skills: [
+        {
+          name: 'brand-voice',
+          description: 'Voice rules',
+          filePath: '/sandbox/skills/brand-voice/SKILL.md',
+        },
+      ],
+    },
+  });
+  // @ts-expect-error
+  createPi({ resources: { skills: [{ name: 'brand-voice' }] } });
+});
