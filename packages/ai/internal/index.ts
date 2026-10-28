@@ -34,9 +34,11 @@ export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
+export { filterIncludedContext } from '../src/telemetry/filter-included-context';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
 export { DefaultStepResult } from '../src/generate-text/step-result';
 export { parseToolCall } from '../src/generate-text/parse-tool-call';
+export { isOutputChunk } from '../src/generate-text/is-output-chunk';
 export type { ToolsContextSettings } from '../src/generate-text/tools-context-parameter';
 export { validateToolContext } from '../src/generate-text/validate-tool-context';
 export { createToolSearchState } from '../src/tool-search/prepare-tool-search';
@@ -50,3 +52,11 @@ export {
 } from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
+
+export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';
+export { convertLanguageModelContent } from '../src/generate-text/convert-language-model-content';
+export { calculateTokensPerSecond } from '../src/generate-text/calculate-tokens-per-second';
+export {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from '../src/generate-text/tool-call-concurrency';

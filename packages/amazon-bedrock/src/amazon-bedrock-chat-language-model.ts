@@ -13,6 +13,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createProviderStreamError,
   createJsonErrorResponseHandler,
@@ -79,10 +81,16 @@ type AmazonBedrockChatConfig = {
   modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
-const anthropicProviderOptions = z.object({
-  disableParallelToolUse: z.boolean().optional(),
-  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
-});
+const anthropicProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      disableParallelToolUse: z.boolean().optional(),
+      structuredOutputMode: z
+        .enum(['outputFormat', 'jsonTool', 'auto'])
+        .optional(),
+    }),
+  ),
+);
 
 function createAmazonBedrockStreamError({
   type,
@@ -178,6 +186,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsForcedToolUse,
+      rejectsThinkingDisabled,
+      rejectsThinkingDisabledAboveHighEffort,
+      supportsBetweenToolsThinking,
+      isKnownModel,
     } = getModelCapabilities(this.modelId);
 
     if (frequencyPenalty != null) {
@@ -275,6 +287,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
 
+    const hasExplicitDisabledThinking =
+      amazonBedrockOptions.reasoningConfig?.type === 'disabled';
+    const explicitReasoningEffort =
+      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
       amazonBedrockOptions,
@@ -284,9 +301,82 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
     });
 
+    let thinkingType:
+      | 'enabled'
+      | 'disabled'
+      | 'adaptive'
+      | 'between_tools'
+      | undefined = amazonBedrockOptions.reasoningConfig?.type;
+    let maxReasoningEffort =
+      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+
+    if (isAnthropicModel && thinkingType === 'disabled') {
+      if (
+        /claude-(?:instant|v?2|3-(?:5-)?(?:haiku|sonnet|opus))(?=[-.:]|$)/.test(
+          this.modelId,
+        )
+      ) {
+        // Claude 3.5 and earlier do not accept a thinking field, even disabled.
+        thinkingType = undefined;
+      } else if (rejectsThinkingDisabled) {
+        thinkingType = supportsBetweenToolsThinking
+          ? 'between_tools'
+          : 'adaptive';
+
+        if (!hasExplicitDisabledThinking && thinkingType === 'adaptive') {
+          maxReasoningEffort ??= explicitReasoningEffort;
+
+          if (
+            maxReasoningEffort == null &&
+            amazonBedrockOptions.additionalModelRequestFields?.output_config
+              ?.effort == null
+          ) {
+            maxReasoningEffort = 'low';
+          }
+        }
+
+        if (hasExplicitDisabledThinking || thinkingType === 'adaptive') {
+          warnings.push({
+            type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
+            feature: hasExplicitDisabledThinking
+              ? 'providerOptions.amazonBedrock.reasoningConfig'
+              : 'reasoning',
+            details:
+              `thinking cannot be disabled for ${this.modelId}. ` +
+              `Using '${thinkingType}' thinking instead.`,
+          });
+        }
+      }
+
+      const effort =
+        maxReasoningEffort ??
+        amazonBedrockOptions.additionalModelRequestFields?.output_config
+          ?.effort;
+
+      if (
+        ((thinkingType === 'disabled' &&
+          rejectsThinkingDisabledAboveHighEffort) ||
+          thinkingType === 'between_tools') &&
+        (effort === 'xhigh' || effort === 'max')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature:
+            maxReasoningEffort != null
+              ? 'providerOptions.amazonBedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.amazonBedrock.additionalModelRequestFields.output_config.effort',
+          details:
+            `effort '${effort}' is not supported by ${this.modelId} with '${thinkingType}' thinking. ` +
+            `The effort has been lowered to 'high'.`,
+        });
+        maxReasoningEffort = 'high';
+      }
+    }
+
     const isThinkingEnabled =
-      amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
-      amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
 
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
@@ -341,6 +431,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
+        (this.modelId.includes('claude-') &&
+          (!isKnownModel || !modelSupportsStructuredOutput) &&
+          !supportsNativeStructuredOutput(this.modelId) &&
+          structuredOutputMode !== 'jsonTool') ||
         (structuredOutputMode !== 'jsonTool' &&
           !supportsStrictTools(this.modelId) &&
           tools != null &&
@@ -394,7 +488,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       };
     }
 
-    const thinkingType = amazonBedrockOptions.reasoningConfig?.type;
     const thinkingBudget =
       thinkingType === 'enabled'
         ? amazonBedrockOptions.reasoningConfig?.budgetTokens
@@ -413,7 +506,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    if (isAnthropicThinkingEnabled) {
+    if (isAnthropicModel) {
       if (thinkingBudget != null) {
         if (inferenceConfig.maxTokens != null) {
           inferenceConfig.maxTokens += thinkingBudget;
@@ -435,8 +528,16 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
+      } else if (
+        thinkingType === 'disabled' ||
+        thinkingType === 'between_tools'
+      ) {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          thinking: { type: thinkingType },
+        };
       }
-    } else if (!isAnthropicModel) {
+    } else {
       if (amazonBedrockOptions.reasoningConfig?.budgetTokens != null) {
         warnings.push({
           type: 'unsupported',
@@ -454,9 +555,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         });
       }
     }
-
-    const maxReasoningEffort =
-      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -632,8 +730,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       additionalModelRequestFields: __,
       serviceTier: ___,
       structuredOutputMode: ____,
+      requestMetadata: _____,
       ...filteredAmazonBedrockOptions
     } = providerOptions?.amazonBedrock ?? providerOptions?.bedrock ?? {};
+
+    const resolvedRequestMetadata = amazonBedrockOptions.requestMetadata;
 
     const additionalModelResponseFieldPaths = isAnthropicModel
       ? ['/delta/stop_sequence']
@@ -655,6 +756,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           serviceTier: {
             type: amazonBedrockOptions.serviceTier,
           },
+        }),
+        ...(resolvedRequestMetadata != null && {
+          requestMetadata: resolvedRequestMetadata,
         }),
         ...filteredAmazonBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
@@ -899,8 +1003,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: AmazonBedrockUsage | undefined = undefined;
@@ -1443,14 +1548,16 @@ const AmazonBedrockToolUseSchema = z.object({
   input: z.unknown().optional(),
 });
 
-const AmazonBedrockReasoningTextSchema = z.object({
-  signature: z.string().nullish(),
-  text: z.string(),
-});
+const AmazonBedrockReasoningTextSchema = () =>
+  z.object({
+    signature: z.string().nullish(),
+    text: z.string(),
+  });
 
-const AmazonBedrockRedactedReasoningSchema = z.object({
-  data: z.string(),
-});
+const AmazonBedrockRedactedReasoningSchema = () =>
+  z.object({
+    data: z.string(),
+  });
 
 const AmazonBedrockCacheDetailSchema = z
   .object({
@@ -1461,68 +1568,72 @@ const AmazonBedrockCacheDetailSchema = z
 
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const AmazonBedrockResponseSchema = z.object({
-  metrics: z
-    .object({
-      latencyMs: z.number(),
-    })
-    .nullish(),
-  output: z.object({
-    message: z.object({
-      content: z.array(
-        z.object({
-          text: z.string().nullish(),
-          citationsContent: z
-            .object({
-              content: z
-                .array(
-                  z.object({
-                    text: z.string().nullish(),
-                  }),
-                )
+const AmazonBedrockResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metrics: z
+        .object({
+          latencyMs: z.number(),
+        })
+        .nullish(),
+      output: z.object({
+        message: z.object({
+          content: z.array(
+            z.object({
+              text: z.string().nullish(),
+              citationsContent: z
+                .object({
+                  content: z
+                    .array(
+                      z.object({
+                        text: z.string().nullish(),
+                      }),
+                    )
+                    .nullish(),
+                })
                 .nullish(),
-            })
-            .nullish(),
-          toolUse: AmazonBedrockToolUseSchema.nullish(),
-          reasoningContent: z
-            .union([
-              z.object({
-                reasoningText: AmazonBedrockReasoningTextSchema,
-              }),
-              z.object({
-                redactedReasoning: AmazonBedrockRedactedReasoningSchema,
-              }),
-              // `redactedContent` is a member of the documented
-              // ReasoningContentBlock union. OpenAI models on Bedrock
-              // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
-              // reasoning in this shape.
-              z.object({
-                redactedContent: z.string(),
-              }),
-            ])
-            .nullish(),
+              toolUse: AmazonBedrockToolUseSchema.nullish(),
+              reasoningContent: z
+                .union([
+                  z.object({
+                    reasoningText: AmazonBedrockReasoningTextSchema(),
+                  }),
+                  z.object({
+                    redactedReasoning: AmazonBedrockRedactedReasoningSchema(),
+                  }),
+                  // `redactedContent` is a member of the documented
+                  // ReasoningContentBlock union. OpenAI models on Bedrock
+                  // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
+                  // reasoning in this shape.
+                  z.object({
+                    redactedContent: z.string(),
+                  }),
+                ])
+                .nullish(),
+            }),
+          ),
+          role: z.string(),
         }),
-      ),
-      role: z.string(),
+      }),
+      stopReason: AmazonBedrockStopReasonSchema,
+      additionalModelResponseFields:
+        AmazonBedrockAdditionalModelResponseFieldsSchema.nullish(),
+      trace: z.unknown().nullish(),
+      performanceConfig: z.object({ latency: z.string() }).nullish(),
+      serviceTier: z.object({ type: z.string() }).nullish(),
+      usage: z
+        .object({
+          inputTokens: z.number(),
+          outputTokens: z.number(),
+          totalTokens: z.number(),
+          cacheReadInputTokens: z.number().nullish(),
+          cacheWriteInputTokens: z.number().nullish(),
+          cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
+        })
+        .catchall(z.json()),
     }),
-  }),
-  stopReason: AmazonBedrockStopReasonSchema,
-  additionalModelResponseFields:
-    AmazonBedrockAdditionalModelResponseFieldsSchema.nullish(),
-  trace: z.unknown().nullish(),
-  performanceConfig: z.object({ latency: z.string() }).nullish(),
-  serviceTier: z.object({ type: z.string() }).nullish(),
-  usage: z
-    .object({
-      inputTokens: z.number(),
-      outputTokens: z.number(),
-      totalTokens: z.number(),
-      cacheReadInputTokens: z.number().nullish(),
-      cacheWriteInputTokens: z.number().nullish(),
-      cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
-    })
-    .catchall(z.json()),
-});
+  ),
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -1618,6 +1729,18 @@ const amazonBedrockReasoningEffortMap: Partial<
   medium: 'medium',
   high: 'high',
   xhigh: 'max',
+  max: 'max',
+};
+
+const amazonNovaReasoningEffortMap: Partial<
+  Record<string, 'low' | 'medium' | 'high'>
+> = {
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'high',
+  max: 'high',
 };
 
 function isNova2ReasoningModel(modelId: string): boolean {
@@ -1639,16 +1762,27 @@ function resolveAmazonBedrockReasoningConfig({
   isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
+  const reasoningConfig = amazonBedrockOptions.reasoningConfig;
+
   if (!isCustomReasoning(reasoning)) {
     return amazonBedrockOptions;
   }
 
   const result = { ...amazonBedrockOptions };
+
+  // Do not derive effort or budget from portable reasoning when thinking is
+  // explicitly disabled. Clone the configuration before removing those fields.
+  if (reasoningConfig?.type === 'disabled') {
+    result.reasoningConfig = { ...reasoningConfig };
+    delete result.reasoningConfig.maxReasoningEffort;
+    delete result.reasoningConfig.budgetTokens;
+    return result;
+  }
+
   const hasPortableReasoning = reasoning !== 'none';
-  const hasExplicitReasoningConfig =
-    amazonBedrockOptions.reasoningConfig != null;
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
-  const supportsPortableReasoning = isOpenAIModel || isNovaReasoningModel;
+  const supportsPortableReasoning =
+    isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
 
   if (isAnthropicModel) {
     const capabilities = getModelCapabilities(modelId);
@@ -1656,42 +1790,52 @@ function resolveAmazonBedrockReasoningConfig({
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
     } else if (capabilities.supportsAdaptiveThinking) {
-      const effort = mapReasoningToProviderEffort({
-        reasoning,
-        effortMap: amazonBedrockReasoningEffortMap,
-        warnings,
-      });
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: amazonBedrockReasoningEffortMap,
+          warnings,
+        });
       result.reasoningConfig = {
-        type: 'adaptive',
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'adaptive',
         maxReasoningEffort: effort,
-        ...amazonBedrockOptions.reasoningConfig,
       };
     } else {
-      const budgetTokens = mapReasoningToProviderBudget({
-        reasoning,
-        maxOutputTokens: capabilities.maxOutputTokens,
-        maxReasoningBudget: capabilities.maxOutputTokens,
-        warnings,
-      });
+      const budgetTokens =
+        reasoningConfig?.budgetTokens ??
+        mapReasoningToProviderBudget({
+          reasoning,
+          maxOutputTokens: capabilities.maxOutputTokens,
+          maxReasoningBudget: capabilities.maxOutputTokens,
+          warnings,
+        });
       if (budgetTokens != null) {
         result.reasoningConfig = {
-          type: 'enabled',
+          ...reasoningConfig,
+          type: reasoningConfig?.type ?? 'enabled',
           budgetTokens,
-          ...amazonBedrockOptions.reasoningConfig,
         };
       }
     }
   } else if (hasPortableReasoning) {
-    if (supportsPortableReasoning || hasExplicitReasoningConfig) {
-      const effort = mapReasoningToProviderEffort({
-        reasoning,
-        effortMap: amazonBedrockReasoningEffortMap,
-        warnings,
-      });
+    if (supportsPortableReasoning) {
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: isNovaReasoningModel
+            ? amazonNovaReasoningEffortMap
+            : amazonBedrockReasoningEffortMap,
+          warnings,
+        });
       result.reasoningConfig = {
-        ...(isNovaReasoningModel && { type: 'enabled' }),
+        ...reasoningConfig,
+        ...(isNovaReasoningModel && {
+          type: reasoningConfig?.type ?? 'enabled',
+        }),
         maxReasoningEffort: effort,
-        ...amazonBedrockOptions.reasoningConfig,
       };
     } else {
       warnings.push({
@@ -1701,17 +1845,6 @@ function resolveAmazonBedrockReasoningConfig({
           'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
       });
     }
-  }
-
-  /*
-   * Mirror anthropic-messages-language-model.ts: when the merged type ends up
-   * 'disabled' (user override combined with a non-none reasoning), strip
-   * derived effort/budget so downstream does not emit output_config.effort
-   * alongside disabled thinking.
-   */
-  if (result.reasoningConfig?.type === 'disabled') {
-    delete result.reasoningConfig.maxReasoningEffort;
-    delete result.reasoningConfig.budgetTokens;
   }
 
   return result;

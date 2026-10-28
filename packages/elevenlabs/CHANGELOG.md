@@ -1,5 +1,192 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.71
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.70
+
+### Patch Changes
+
+- f29bea4: fix(elevenlabs): only warn about an ignored text prompt when it is non-empty
+
+## 3.0.69
+
+### Patch Changes
+
+- 2e83794: feat(elevenlabs): music, sound effects, and dialogue via the speech model
+
+## 3.0.68
+
+### Patch Changes
+
+- 9874c89: feat(elevenlabs): text-to-dialogue streaming
+
+  `doStream()` supports `providerOptions.elevenlabs.dialogue` (Text-to-Dialogue WebSocket for `eleven_v3` / `eleven_v4`). Each text part's `voice` (default: the call's `voice`, else the first dialogue voice) selects its speaker and must be listed in `dialogue.voices`; a voice change starts a new turn, and `providerOptions.elevenlabs.newTurn` on a part forces one. Options Text-to-Dialogue does not support produce warnings.
+
+- 109a4fe: feat(elevenlabs): streaming speech over WebSocket; type v4/v3-conversational model ids
+
+  `ElevenLabsSpeechModel` implements the experimental `Experimental_StreamingSpeechModelV4` (`doStream()`) over the text-to-speech `stream-input` WebSocket, forwarding text deltas as they arrive and reporting `usage.inputCharacters` (Unicode code points). Adds `eleven_v4`, `eleven_v4_turbo`, and `eleven_v3_conversational` to the typed speech model IDs. The API key is sent in the WebSocket's first message (native `WebSocket` works), the portable `outputFormat` maps to an ElevenLabs `output_format` (or set `streaming.outputFormat` natively), text parts with a different voice are rejected, partial words are held back to whitespace, and keepalives are sent while the text stream is idle unless `inactivityTimeout` is set. `generateSpeech` ignores `streaming` options with a warning.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 3.0.67
+
+### Patch Changes
+
+- 762d96e: fix(elevenlabs): use the reported audio duration for batch transcription, including trailing silence, with word timestamps as a fallback.
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 3.0.66
+
+### Patch Changes
+
+- 688bd23: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 3.0.56
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 3.0.55
+
+### Patch Changes
+
+- 615c491: fix(elevenlabs): preserve default diarization when provider options are supplied
+- 4c19228: fix(elevenlabs): preserve transcription word metadata
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 3.0.53
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 3.0.52
 
 ### Patch Changes

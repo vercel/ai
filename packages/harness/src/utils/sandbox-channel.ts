@@ -36,6 +36,13 @@ export interface SandboxChannelReconnectOptions {
 
 export interface SandboxChannelConnectOptions {
   readonly abortSignal: AbortSignal;
+
+  /**
+   * Why the channel is connecting: `'open'` for the initial
+   * {@link SandboxChannel.open} call, `'reconnect'` for an attempt to recover
+   * from a transient disconnect.
+   */
+  readonly reason: 'open' | 'reconnect';
 }
 
 export interface SandboxChannelOptions<TOut> {
@@ -296,6 +303,7 @@ export class SandboxChannel<
     try {
       const ws = await this.connect({
         abortSignal: abortController.signal,
+        reason: 'open',
       });
       this.wire(ws);
       this.ws = ws;
@@ -528,6 +536,7 @@ export class SandboxChannel<
         try {
           const ws = await this.connect({
             abortSignal: abortController.signal,
+            reason: 'reconnect',
           });
           if (this.terminal || this.closing) {
             closeWebSocket({ ws });
@@ -590,10 +599,11 @@ export class SandboxChannel<
 
   private connect({
     abortSignal,
+    reason,
   }: SandboxChannelConnectOptions): Promise<WebSocket> {
     return awaitWebSocketConnection({
       connection: Promise.resolve().then(() =>
-        this.connectThunk({ abortSignal }),
+        this.connectThunk({ abortSignal, reason }),
       ),
       abortSignal,
     });

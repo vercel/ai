@@ -15,10 +15,12 @@ import {
   type LanguageModelV4,
   type ProviderV4,
   type ImageModelV4,
+  type SharedV4Warning,
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadApiKey,
   loadSetting,
   normalizeHeaders,
@@ -29,27 +31,63 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import {
+  azureImageModelOptions,
+  isMAIImageModel,
+} from './azure-image-model-options';
+import { AzureMaiImageModel } from './azure-mai-image-model';
+import { AzureMaiTranscriptionModel } from './azure-mai-transcription-model';
 import { azureOpenaiTools } from './azure-openai-tools';
+import {
+  azureSpeechModelOptions,
+  getMAIVoiceModel,
+} from './azure-speech-model-options';
+import { AzureSpeechSpeechModel } from './azure-speech-speech-model';
 import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
 import {
   azureTranscriptionModelOptions,
-  isMAITranscribe2,
+  getMAITranscribeModel,
+  isMAITranscribeStreaming,
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
+export interface AzureOpenAILanguageModelSettings {
+  /**
+   * Underlying model ID used for reported identity and capability detection.
+   * Defaults to the deployment ID. Requests always use the deployment ID.
+   */
+  modelId?: string;
+}
+
 export interface AzureOpenAIProvider extends ProviderV4 {
-  (deploymentId: string): LanguageModelV4;
+  /**
+   * Creates a Responses API model. The optional model ID is used for reported
+   * identity and capability detection; requests always use the deployment ID.
+   */
+  (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  languageModel(deploymentId: string): LanguageModelV4;
+  languageModel(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  chat(deploymentId: string): LanguageModelV4;
+  chat(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure-hosted DeepSeek chat model for text generation.
@@ -58,13 +96,21 @@ export interface AzureOpenAIProvider extends ProviderV4 {
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  responses(deploymentId: string): LanguageModelV4;
+  responses(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
+   * The optional model ID is used for reported identity.
    */
-  completion(deploymentId: string): LanguageModelV4;
+  completion(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
@@ -87,18 +133,20 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   textEmbeddingModel(deploymentId: string): EmbeddingModelV4;
 
   /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
+   * Creates an Azure image model. MAI-Image models use the MAI image API by
+   * default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   image(deploymentId: string): ImageModelV4;
 
   /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
+   * Creates an Azure image model. Alias of `image`.
    */
   imageModel(deploymentId: string): ImageModelV4;
 
   /**
-   * Creates an Azure transcription model. MAI-Transcribe-2 uses the Speech API
-   * by default; other IDs use OpenAI. Override with providerOptions.azure.api.
+   * Creates an Azure transcription model. MAI-Transcribe models use the Speech
+   * API and MAI-Transcribe-2-Streaming the MAI realtime API by default; other
+   * IDs use OpenAI. Override with providerOptions.azure.api.
    */
   transcription(deploymentId: string): TranscriptionModelV4;
 
@@ -108,9 +156,15 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   transcriptionModel(deploymentId: string): TranscriptionModelV4;
 
   /**
-   * Creates an Azure OpenAI model for speech generation.
+   * Creates an Azure speech generation model. MAI-Voice models use the Speech
+   * API by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   speech(deploymentId: string): SpeechModelV4;
+
+  /**
+   * Creates an Azure speech generation model. Alias of `speech`.
+   */
+  speechModel(deploymentId: string): SpeechModelV4;
 
   /**
    * AzureOpenAI-specific tools.
@@ -174,12 +228,27 @@ export interface AzureOpenAIProviderSettings {
   useDeploymentBasedUrls?: boolean;
 
   /**
-   * URL prefix for Azure Speech transcription (MAI-Transcribe-2), e.g. a
-   * regional endpoint like `https://eastus.api.cognitive.microsoft.com`.
+   * URL prefix for Azure Speech (MAI-Transcribe transcription and MAI-Voice
+   * speech), e.g. a regional endpoint like
+   * `https://eastus.api.cognitive.microsoft.com`.
    * Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
    * Speech requests do not use `baseURL` or `apiVersion`.
    */
   speechBaseURL?: string;
+
+  /**
+   * URL prefix for MAI APIs (MAI-Image, MAI-Transcribe-2-Streaming). Defaults
+   * to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+   */
+  maiBaseURL?: string;
+
+  /**
+   * Custom WebSocket implementation for MAI streaming transcription, e.g.
+   * `ws` in Node.js. With a custom implementation the API key is sent as a
+   * header; otherwise it is sent as the `api-key` query parameter. Entra ID
+   * tokens require a custom implementation; streaming rejects them otherwise.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 function getAzureOpenAIBaseURLInfo(baseURL: string | undefined) {
@@ -224,7 +293,7 @@ export function createAzure(
     });
   }
 
-  const getHeaders = (api: 'openai' | 'speech' = 'openai') => {
+  const getHeaders = (api: 'openai' | 'speech' | 'mai' = 'openai') => {
     const authHeaders = tokenProvider
       ? {}
       : {
@@ -232,7 +301,12 @@ export function createAzure(
             loadApiKey({
               apiKey: options.apiKey,
               environmentVariableName: 'AZURE_API_KEY',
-              description: api === 'speech' ? 'Azure Speech' : 'Azure OpenAI',
+              description:
+                api === 'speech'
+                  ? 'Azure Speech'
+                  : api === 'mai'
+                    ? 'Azure MAI'
+                    : 'Azure OpenAI',
             }),
         };
 
@@ -270,7 +344,7 @@ export function createAzure(
 
     // The resource name becomes part of the request host, so only a DNS label
     // is accepted (e.g. `user@internal:8080/#` would rewrite the host).
-    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(resourceName)) {
+    if (!isValidHostnamePart(resourceName)) {
       throw new InvalidArgumentError({
         argument: 'resourceName',
         message:
@@ -316,9 +390,13 @@ export function createAzure(
     return fullUrl.toString();
   };
 
-  const createChatModel = (deploymentName: string) =>
-    new OpenAIChatLanguageModel(deploymentName, {
+  const createChatModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIChatLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.chat',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -336,9 +414,13 @@ export function createAzure(
       supportsStructuredOutputs: true,
     });
 
-  const createCompletionModel = (modelId: string) =>
-    new OpenAICompletionLanguageModel(modelId, {
+  const createCompletionModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAICompletionLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.completion',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -352,9 +434,13 @@ export function createAzure(
       fetch,
     });
 
-  const createResponsesModel = (modelId: string) =>
-    new OpenAIResponsesLanguageModel(modelId, {
+  const createResponsesModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIResponsesLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.responses',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -363,19 +449,36 @@ export function createAzure(
       fileIdPrefixes: ['assistant-'],
     });
 
+  const maiBaseURL = () =>
+    withoutTrailingSlash(options.maiBaseURL) ??
+    `https://${getResourceName()}.services.ai.azure.com/mai/v1`;
+
   const createImageModel = (modelId: string) =>
-    new OpenAIImageModel(modelId, {
-      provider: 'azure.image',
-      url,
-      headers: getHeaders,
-      fetch,
-      // Azure model IDs are user-defined deployment names, so OpenAI model
-      // family capabilities cannot be inferred from them.
-      imageInputCapabilities: {
-        supportsFileInputs: undefined,
-        supportsMaskInputs: undefined,
-      },
-    });
+    new AzureImageModel(
+      modelId,
+      options,
+      new OpenAIImageModel(modelId, {
+        provider: 'azure.image',
+        url,
+        headers: getHeaders,
+        fetch,
+        // Azure model IDs are user-defined deployment names, so OpenAI model
+        // family capabilities cannot be inferred from them.
+        imageInputCapabilities: {
+          supportsFileInputs: undefined,
+          supportsMaskInputs: undefined,
+        },
+      }),
+      new AzureMaiImageModel(modelId, {
+        url: path => `${maiBaseURL()}${path}`,
+        headers: () => getHeaders('mai'),
+        fetch,
+      }),
+    );
+
+  const speechBaseURL = () =>
+    withoutTrailingSlash(options.speechBaseURL) ??
+    `https://${getResourceName()}.cognitiveservices.azure.com`;
 
   const createTranscriptionModel = (modelId: string) =>
     new AzureTranscriptionModel(
@@ -389,31 +492,51 @@ export function createAzure(
       }),
       new AzureSpeechTranscriptionModel(modelId, {
         url: () =>
-          `${
-            withoutTrailingSlash(options.speechBaseURL) ??
-            `https://${getResourceName()}.cognitiveservices.azure.com`
-          }/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
+          `${speechBaseURL()}/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
+        headers: () => getHeaders('speech'),
+        fetch,
+      }),
+      new AzureMaiTranscriptionModel(modelId, {
+        url: () => `${maiBaseURL()}/realtime?intent=transcription`,
+        headers: async () =>
+          tokenProvider
+            ? {
+                authorization: `Bearer ${await tokenProvider()}`,
+                ...getHeaders('mai'),
+              }
+            : getHeaders('mai'),
+        webSocket: options.webSocket,
+      }),
+    );
+
+  const createSpeechModel = (modelId: string) =>
+    new AzureSpeechModel(
+      modelId,
+      options,
+      new OpenAISpeechModel(modelId, {
+        provider: 'azure.speech',
+        url,
+        headers: getHeaders,
+        fetch,
+      }),
+      new AzureSpeechSpeechModel(modelId, {
+        url: () => `${speechBaseURL()}/tts/cognitiveservices/v1`,
         headers: () => getHeaders('speech'),
         fetch,
       }),
     );
 
-  const createSpeechModel = (modelId: string) =>
-    new OpenAISpeechModel(modelId, {
-      provider: 'azure.speech',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
-
-  const provider = function (deploymentId: string) {
+  const provider = function (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createResponsesModel(deploymentId);
+    return createResponsesModel(deploymentId, settings);
   };
 
   provider.specificationVersion = 'v4' as const;
@@ -431,6 +554,7 @@ export function createAzure(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;
 }
@@ -450,6 +574,7 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
     private readonly config: AzureOpenAIProviderSettings,
     private readonly openai: OpenAITranscriptionModel,
     private readonly speech: AzureSpeechTranscriptionModel,
+    private readonly mai: AzureMaiTranscriptionModel,
   ) {}
 
   static [WORKFLOW_SERIALIZE](model: AzureTranscriptionModel) {
@@ -467,11 +592,18 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
-    const { api, ...speechOptions } = await this.getOptions(
+    const { api, speechOptions, maiOptions } = await this.getOptions(
       options.providerOptions,
     );
+    if (api === 'mai') {
+      return this.mai.doGenerate();
+    }
     if (api === 'speech') {
-      return this.speech.doGenerate(options, speechOptions);
+      const result = await this.speech.doGenerate(options, speechOptions);
+      return {
+        ...result,
+        warnings: [...result.warnings, ...maiOnlyWarnings(maiOptions)],
+      };
     }
 
     const result = await this.openai.doGenerate(options);
@@ -479,11 +611,8 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       ...result,
       warnings: [
         ...result.warnings,
-        ...Object.keys(speechOptions).map(key => ({
-          type: 'unsupported' as const,
-          feature: `providerOptions.azure.${key}`,
-          details: 'This option requires the Azure Speech API.',
-        })),
+        ...speechOnlyWarnings(speechOptions),
+        ...maiOnlyWarnings(maiOptions),
       ],
     };
   }
@@ -491,11 +620,20 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   async doStream(
     options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
   ) {
-    const { api } = await this.getOptions(options.providerOptions);
+    const { api, speechOptions, maiOptions } = await this.getOptions(
+      options.providerOptions,
+    );
     if (api === 'speech') {
       throw new UnsupportedFunctionalityError({
         functionality: 'streaming transcription with the Azure Speech API',
       });
+    }
+    if (api === 'mai') {
+      return this.mai.doStream(
+        options,
+        maiOptions,
+        speechOnlyWarnings(speechOptions),
+      );
     }
     return this.openai.doStream(options);
   }
@@ -505,15 +643,165 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       TranscriptionModelV4['doGenerate']
     >[0]['providerOptions'],
   ) {
-    const options = await parseProviderOptions({
-      provider: 'azure',
-      providerOptions,
-      schema: azureTranscriptionModelOptions,
-    });
+    const { api, language, ...speechOptions } =
+      (await parseProviderOptions({
+        provider: 'azure',
+        providerOptions,
+        schema: azureTranscriptionModelOptions,
+      })) ?? {};
     return {
-      ...options,
       api:
-        options?.api ?? (isMAITranscribe2(this.modelId) ? 'speech' : 'openai'),
+        api ??
+        (isMAITranscribeStreaming(this.modelId)
+          ? ('mai' as const)
+          : getMAITranscribeModel(this.modelId)
+            ? ('speech' as const)
+            : ('openai' as const)),
+      speechOptions,
+      maiOptions: language != null ? { language } : {},
     };
   }
+}
+
+// Resolves the API per request: providerOptions also reach this model via Gateway.
+class AzureSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly provider = 'azure.speech';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: AzureOpenAIProviderSettings,
+    private readonly openai: OpenAISpeechModel,
+    private readonly speech: AzureSpeechSpeechModel,
+  ) {}
+
+  static [WORKFLOW_SERIALIZE](model: AzureSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: AzureOpenAIProviderSettings;
+  }) {
+    return createAzure(options.config).speech(options.modelId);
+  }
+
+  async doGenerate(options: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const { api, ...speechOptions } =
+      (await parseProviderOptions({
+        provider: 'azure',
+        providerOptions: options.providerOptions,
+        schema: azureSpeechModelOptions,
+      })) ?? {};
+    if (
+      (api ?? (getMAIVoiceModel(this.modelId) ? 'speech' : 'openai')) ===
+      'speech'
+    ) {
+      return this.speech.doGenerate(options, speechOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [...result.warnings, ...speechOnlyWarnings(speechOptions)],
+    };
+  }
+}
+
+// Resolves the API per request: providerOptions also reach this model via Gateway.
+class AzureImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly provider = 'azure.image';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: AzureOpenAIProviderSettings,
+    private readonly openai: OpenAIImageModel,
+    private readonly mai: AzureMaiImageModel,
+  ) {}
+
+  // Capabilities follow the default route; an `api` override is per request.
+  private get defaultModel() {
+    return isMAIImageModel(this.modelId) ? this.mai : this.openai;
+  }
+
+  get maxImagesPerCall() {
+    return this.defaultModel.maxImagesPerCall;
+  }
+
+  get supportsFileInputs() {
+    return this.defaultModel.supportsFileInputs;
+  }
+
+  get supportsMaskInputs() {
+    return this.defaultModel.supportsMaskInputs;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: AzureImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: AzureOpenAIProviderSettings;
+  }) {
+    return createAzure(options.config).image(options.modelId);
+  }
+
+  async doGenerate(options: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const { api, ...maiOptions } =
+      (await parseProviderOptions({
+        provider: 'azure',
+        providerOptions: options.providerOptions,
+        schema: azureImageModelOptions,
+      })) ?? {};
+    if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
+      return this.mai.doGenerate(options, maiOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        ...unsupportedOptionWarnings(
+          maiOptions,
+          'This option requires the MAI image API.',
+        ),
+      ],
+    };
+  }
+}
+
+function speechOnlyWarnings(options: Record<string, unknown>) {
+  return unsupportedOptionWarnings(
+    options,
+    'This option requires the Azure Speech API.',
+  );
+}
+
+function maiOnlyWarnings(options: Record<string, unknown>) {
+  return unsupportedOptionWarnings(
+    options,
+    'This option requires MAI streaming transcription.',
+  );
+}
+
+function unsupportedOptionWarnings(
+  options: Record<string, unknown>,
+  details: string,
+): SharedV4Warning[] {
+  return Object.entries(options)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => ({
+      type: 'unsupported',
+      feature: `providerOptions.azure.${key}`,
+      details,
+    }));
 }

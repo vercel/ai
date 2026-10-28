@@ -1,5 +1,309 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.170
+
+### Patch Changes
+
+- 09b3e1d: feat(harness-claude-code): add maxBudgetUsd and strictMcpConfig settings
+- 6e3e999: add questionTimeoutMs and excludeDynamicSections settings
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.169
+
+### Patch Changes
+
+- 39aae54: fix(harness): ensure harness adapters always resolve the model used
+- a15b2a9: add onDebug setting to observe bridge connection events
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.168
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.167
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.166
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.164
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.161
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.159
+
+### Patch Changes
+
+- dc1d7a6: support inline images in user messages
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+
+## 1.0.156
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.155
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- 0291550: fix(harness-claude-code): wait for response completion before finishing tool steps
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.154
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.153
+
+### Patch Changes
+
+- bda96e8: fix(harness-claude-code): only restart recovered Claude Code turns once
+- 40c10e0: fix(harness-claude-code): register the native ListAgents tool
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+
+## 1.0.152
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.151
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.150
+
+### Patch Changes
+
+- 0887035: fix(harness-claude-code): close compaction events emitted outside a model step
+- 714f3fc: fix(harness-claude-code): report host tool calls rejected by MCP input validation
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.149
+
+### Patch Changes
+
+- 18c2658: fix(harness-claude-code): forward Claude rate limit events through raw stream parts
+  - @ai-sdk/harness@1.0.145
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.147
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.143
+
+### Patch Changes
+
+- a470e0d: Fix over-reported `finish` metadata cost when Claude Code returns multiple results. `harnessMetadata['claude-code'].costUsd` now uses the latest cumulative `total_cost_usd` instead of adding running totals together, including costs carried forward by resumed sessions.
+- 12d249f: fix(harness-claude-code): fix resumed turns ending with empty text when background-task notification result gets emitted before the host prompt is processed
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.138
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 91345da: fix(harness-claude-code): forward subagent and task activity as raw stream parts
+
+  Expose `agentProgressSummaries` and `forwardSubagentText` through `createClaudeCode`.
+
+- 0116f28: fix(harness-claude-code): forward tool progress and response boundaries as raw parts
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 1.0.137
 
 ### Patch Changes

@@ -1,3 +1,4 @@
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.mistral.ai/models
@@ -17,6 +18,8 @@ export type MistralChatModelId =
   | 'ministral-8b-latest'
   | 'mistral-code-fim-latest'
   | 'mistral-code-latest'
+  | 'mistral-large-4'
+  | 'mistral-large-4-0'
   | 'mistral-large-latest'
   | 'mistral-large-2512'
   | 'mistral-medium'
@@ -32,57 +35,68 @@ export type MistralChatModelId =
   | 'mistral-vibe-cli-with-tools'
   | 'voxtral-small-2507'
   | 'voxtral-small-latest'
+  | 'zai-glm-5'
   | 'zai-glm-5-2'
+  | 'zai-glm-5-3'
+  | 'zai-glm-5-3-flash'
+  | 'zai-glm-latest'
   | (string & {});
 
-export const mistralLanguageModelChatOptions = z.object({
-  /**
-   * Whether to inject a safety prompt before all conversations.
-   *
-   * Defaults to `false`.
-   */
-  safePrompt: z.boolean().optional(),
+export const mistralLanguageModelChatOptions = () =>
+  z.object({
+    /**
+     * Whether to inject a safety prompt before all conversations.
+     *
+     * Defaults to `false`.
+     */
+    safePrompt: z.boolean().optional(),
 
-  documentImageLimit: z.number().optional(),
-  documentPageLimit: z.number().optional(),
+    documentImageLimit: z.number().optional(),
+    documentPageLimit: z.number().optional(),
 
-  /**
-   * Whether to use structured outputs.
-   *
-   * @default true
-   */
-  structuredOutputs: z.boolean().optional(),
+    /**
+     * Whether to use structured outputs.
+     *
+     * @default true
+     */
+    structuredOutputs: z.boolean().optional(),
 
-  /**
-   * Whether to use strict JSON schema validation.
-   *
-   * @default false
-   */
-  strictJsonSchema: z.boolean().optional(),
+    /**
+     * Whether to use strict JSON schema validation.
+     *
+     * @default false
+     */
+    strictJsonSchema: z.boolean().optional(),
 
-  /**
-   * Whether to enable parallel function calling during tool use.
-   * When set to false, the model will use at most one tool per response.
-   *
-   * @default true
-   */
-  parallelToolCalls: z.boolean().optional(),
+    /**
+     * Whether to enable parallel function calling during tool use.
+     * When set to false, the model will use at most one tool per response.
+     *
+     * @default true
+     */
+    parallelToolCalls: z.boolean().optional(),
 
-  /**
-   * A stable identifier used to route requests with shared prompt prefixes to
-   * the same cache.
-   */
-  promptCacheKey: z.string().optional(),
+    /**
+     * A stable identifier used to route requests with shared prompt prefixes to
+     * the same cache.
+     */
+    promptCacheKey: z.string().optional(),
 
-  /**
-   * Controls the reasoning effort for models that support adjustable reasoning.
-   *
-   * - `'high'`: Enable reasoning
-   * - `'none'`: Disable reasoning
-   */
-  reasoningEffort: z.enum(['high', 'none']).optional(),
-});
+    /**
+     * Controls the reasoning effort for models that support adjustable reasoning.
+     *
+     * - `'high'`: Enable reasoning
+     * - `'none'`: Disable reasoning
+     * - `'low'`, `'max'`: Lowest and highest reasoning effort for models that
+     *   support them, e.g. `zai-glm-5-3`, which accepts `'low'`, `'high'`, and
+     *   `'max'` but not `'none'`
+     */
+    reasoningEffort: z.enum(['high', 'none', 'low', 'max']).optional(),
+  });
+export const mistralLanguageModelChatOptionsValidator = lazySchema(() =>
+  zodSchema(mistralLanguageModelChatOptions()),
+);
 
 export type MistralLanguageModelChatOptions = z.infer<
-  typeof mistralLanguageModelChatOptions
+  ReturnType<typeof mistralLanguageModelChatOptions>
 >;

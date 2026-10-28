@@ -58,14 +58,43 @@ type OpenAIRealtimeTranscriptionEvent = {
 };
 
 /**
- * Realtime transcription model IDs stream over the realtime WebSocket
- * and do not support the REST transcription endpoint. Prefix matching
- * keeps dated snapshots (e.g. `gpt-realtime-whisper-2026-01-01`) working.
+ * Whether `modelId` is `base` or one of its dated snapshots
+ * (e.g. `gpt-realtime-whisper-2026-01-01`).
+ */
+function isModelOrSnapshot(modelId: string, base: string): boolean {
+  return modelId === base || modelId.startsWith(`${base}-`);
+}
+
+/**
+ * Model IDs that stream over the realtime transcription WebSocket and do not
+ * support the REST transcription endpoint.
  */
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
   return (
-    modelId === 'gpt-realtime-whisper' ||
-    modelId.startsWith('gpt-realtime-whisper-')
+    isModelOrSnapshot(modelId, 'gpt-realtime-whisper') ||
+    isModelOrSnapshot(modelId, 'gpt-live-transcribe')
+  );
+}
+
+/**
+ * Model IDs that support streaming transcription. `gpt-transcribe` also
+ * supports the REST transcription endpoint.
+ */
+function supportsStreamingTranscription(modelId: string): boolean {
+  return (
+    isRealtimeTranscriptionModelId(modelId) ||
+    isModelOrSnapshot(modelId, 'gpt-transcribe')
+  );
+}
+
+/**
+ * Models whose realtime transcription session takes a `languages` list
+ * instead of the singular `language` field.
+ */
+function usesLanguagesList(modelId: string): boolean {
+  return (
+    isModelOrSnapshot(modelId, 'gpt-live-transcribe') ||
+    isModelOrSnapshot(modelId, 'gpt-transcribe')
   );
 }
 
@@ -136,6 +165,12 @@ const languageMap = {
   welsh: 'cy',
 };
 
+function isLanguageCode(
+  language: string | null | undefined,
+): language is string {
+  return language != null && /^[a-z]{2}$/.test(language);
+}
+
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -180,7 +215,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -191,54 +226,45 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       `audio.${fileExtension}`,
     );
 
-    if (this.modelId === 'whisper-1') {
-      formData.append('response_format', 'verbose_json');
-    }
-
     const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
+
+    const responseFormat =
+      openAIOptions?.responseFormat ??
+      (isDiarizationModel
+        ? 'diarized_json'
+        : this.modelId === 'whisper-1'
+          ? 'verbose_json'
+          : undefined);
+
+    // Timestamps are only returned with verbose_json, so only default to
+    // segments when that format is used.
+    const timestampGranularities =
+      openAIOptions?.timestampGranularities ??
+      (responseFormat === 'verbose_json' ? ['segment'] : undefined);
+
     const chunkingStrategy =
       openAIOptions?.chunkingStrategy ??
       (isDiarizationModel ? 'auto' : undefined);
 
-    // Add provider-specific options
-    if (openAIOptions) {
-      const isGpt4oTranscribeModel = [
-        'gpt-4o-transcribe',
-        'gpt-4o-mini-transcribe',
-      ].includes(this.modelId);
+    const transcriptionModelOptions = {
+      response_format: responseFormat,
+      include: openAIOptions?.include,
+      language: openAIOptions?.language,
+      prompt: openAIOptions?.prompt,
+      temperature: openAIOptions?.temperature,
+      timestamp_granularities: timestampGranularities,
+    };
 
-      const transcriptionModelOptions = {
-        include: openAIOptions.include,
-        language: openAIOptions.language,
-        prompt: openAIOptions.prompt,
-        // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
-        // prefer verbose_json to get segments for models that support it
-        ...(this.modelId !== 'whisper-1' && {
-          response_format:
-            openAIOptions.responseFormat ??
-            (isDiarizationModel
-              ? 'diarized_json'
-              : isGpt4oTranscribeModel
-                ? 'json'
-                : 'verbose_json'),
-        }),
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
-      };
-
-      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
-        if (value != null) {
-          if (Array.isArray(value)) {
-            for (const item of value) {
-              formData.append(`${key}[]`, String(item));
-            }
-          } else {
-            formData.append(key, String(value));
+    for (const [key, value] of Object.entries(transcriptionModelOptions)) {
+      if (value != null) {
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            formData.append(`${key}[]`, String(item));
           }
+        } else {
+          formData.append(key, String(value));
         }
       }
-    } else if (isDiarizationModel) {
-      formData.append('response_format', 'diarized_json');
     }
 
     if (chunkingStrategy != null) {
@@ -299,9 +325,16 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const language =
-      response.language != null && response.language in languageMap
-        ? languageMap[response.language as keyof typeof languageMap]
-        : undefined;
+      (isLanguageCode(response.language)
+        ? response.language
+        : response.language != null &&
+            Object.prototype.hasOwnProperty.call(languageMap, response.language)
+          ? languageMap[response.language as keyof typeof languageMap]
+          : undefined) ??
+      (response.languages?.length === 1 &&
+      isLanguageCode(response.languages[0].code)
+        ? response.languages[0].code
+        : undefined);
 
     const diarizedSegments = response.segments?.flatMap(segment =>
       'speaker' in segment
@@ -331,22 +364,35 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         })) ??
         [],
       language,
-      durationInSeconds: response.duration ?? undefined,
+      // Duration-billed json responses report the duration only in `usage`:
+      durationInSeconds:
+        response.duration ??
+        (response.usage?.type === 'duration' &&
+        typeof response.usage.seconds === 'number'
+          ? response.usage.seconds
+          : undefined),
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
       },
-      ...(diarizedSegments != null &&
-        diarizedSegments.length > 0 && {
-          providerMetadata: {
-            openai: {
-              segments: diarizedSegments,
-            },
+      ...(((diarizedSegments != null && diarizedSegments.length > 0) ||
+        response.languages != null) && {
+        providerMetadata: {
+          openai: {
+            ...(diarizedSegments != null &&
+              diarizedSegments.length > 0 && {
+                segments: diarizedSegments,
+              }),
+            ...(response.languages != null && {
+              languages: response.languages,
+            }),
           },
-        }),
+        },
+      }),
     };
   }
 
@@ -355,7 +401,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   ): Promise<
     Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
   > {
-    if (!isRealtimeTranscriptionModelId(this.modelId)) {
+    if (!supportsStreamingTranscription(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `streaming transcription with ${this.modelId}`,
       });
@@ -387,11 +433,22 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
+    // gpt-transcribe transcribes each committed turn, so it has no delay setting:
+    const supportsDelay = !isModelOrSnapshot(this.modelId, 'gpt-transcribe');
+    if (!supportsDelay && openAIOptions?.streaming?.delay != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.openai.streaming.delay',
+        details: `OpenAI streaming transcription with ${this.modelId} does not support delay.`,
+      });
+    }
+
     const headers = combineHeaders(this.config.headers?.(), options.headers);
     const sessionUpdate = buildOpenAIRealtimeTranscriptionSession({
       modelId: this.modelId,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: openAIOptions,
+      supportsDelay,
     });
 
     return {
@@ -580,10 +637,12 @@ function buildOpenAIRealtimeTranscriptionSession({
   modelId,
   inputAudioFormat,
   providerOptions,
+  supportsDelay,
 }: {
   modelId: string;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: OpenAITranscriptionModelOptions | undefined;
+  supportsDelay: boolean;
 }) {
   return {
     type: 'session.update',
@@ -600,9 +659,11 @@ function buildOpenAIRealtimeTranscriptionSession({
           transcription: {
             model: modelId,
             ...(providerOptions?.language != null
-              ? { language: providerOptions.language }
+              ? usesLanguagesList(modelId)
+                ? { languages: [providerOptions.language] }
+                : { language: providerOptions.language }
               : {}),
-            ...(providerOptions?.streaming?.delay != null
+            ...(supportsDelay && providerOptions?.streaming?.delay != null
               ? { delay: providerOptions.streaming.delay }
               : {}),
           },

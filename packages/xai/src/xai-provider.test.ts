@@ -281,5 +281,14 @@ describe('xAIProvider', () => {
 
       expect(XaiTranscriptionModelMock).toHaveBeenCalledOnce();
     });
+
+    it('should pass the transcription model id to the constructor', () => {
+      const provider = createXai();
+
+      provider.transcription('grok-voice-transcribe-2.0');
+
+      const constructorCall = XaiTranscriptionModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('grok-voice-transcribe-2.0');
+    });
   });
 });

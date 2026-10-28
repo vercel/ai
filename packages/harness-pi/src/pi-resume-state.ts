@@ -1,6 +1,10 @@
-import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  harnessSessionDataDirectoryPath,
+  harnessStateDirectoryPath,
+} from '@ai-sdk/harness';
+import type { AgentSession } from '@earendil-works/pi-coding-agent';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -20,6 +24,66 @@ const piSessionFileNameSchema = z
     'Pi sessionFileName must be a safe .jsonl or .json basename.',
   );
 
+const piCompletedToolResultSchema = z.object({
+  toolCallId: z.string(),
+  result: z.looseObject({ content: z.array(z.unknown()).optional() }),
+  isError: z.boolean(),
+});
+
+type PiAssistantMessageStream = Awaited<
+  ReturnType<AgentSession['agent']['streamFunction']>
+>;
+
+type PiAgentAssistantMessage = Awaited<
+  ReturnType<PiAssistantMessageStream['result']>
+>;
+
+export interface PiAssistantMessage extends PiAgentAssistantMessage {}
+
+const piAssistantMessageShapeSchema = z.looseObject({
+  role: z.literal('assistant'),
+  content: z.array(z.unknown()),
+});
+
+/*
+ * The parked assistant message is stored verbatim so it can be replayed into
+ * Pi. Validation only checks the fields this adapter reads directly; the full
+ * Pi message type is asserted at this lifecycle-state boundary so capture,
+ * checkpointing and replay share one type.
+ */
+export const piAssistantMessageSchema = z.custom<PiAssistantMessage>(
+  value => piAssistantMessageShapeSchema.safeParse(value).success,
+  {
+    error:
+      'Pi pendingToolBatch.assistantMessage must be the parked assistant message. Tool batches parked by earlier harness-pi versions cannot be continued.',
+  },
+);
+
+/**
+ * A tool batch that was waiting on host input (tool results, approvals) when
+ * its turn was persisted. Pi cannot resume in the middle of a batch, so a cold
+ * continuation replays this host-held assistant message through Pi's tool
+ * executor. Its tool calls must match the restored journal before replay:
+ * calls in `completedToolResults` reuse their stored result, while calls in
+ * `awaitingToolCallIds` receive the host input delivered with the
+ * continuation.
+ */
+export const piPendingToolBatchSchema = z.object({
+  assistantMessage: piAssistantMessageSchema,
+  awaitingToolCallIds: z.array(z.string()),
+  completedToolResults: z.array(piCompletedToolResultSchema),
+  nativeApprovalDecisions: z.array(
+    z.object({
+      toolCallId: z.string(),
+      approved: z.boolean(),
+      reason: z.string().optional(),
+    }),
+  ),
+});
+
+export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
+export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
+
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
  * by Pi's resumable lifecycle methods. Carries the basename
@@ -29,6 +93,7 @@ const piSessionFileNameSchema = z
  */
 export const piResumeStateSchema = z.looseObject({
   sessionFileName: piSessionFileNameSchema.optional(),
+  pendingToolBatch: piPendingToolBatchSchema.optional(),
 });
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;
@@ -38,12 +103,14 @@ export function resolvePiPrivateSessionDirectory(input: {
   readonly sessionWorkDir: string;
   readonly sessionId: string;
 }): string {
-  const sessionKey = createHash('sha256').update(input.sessionId).digest('hex');
   const privateSessionDir = path.posix.join(
-    input.sandboxHomeDir,
-    '.ai-sdk',
-    'harness-pi',
-    sessionKey,
+    harnessSessionDataDirectoryPath({
+      stateDirectory: harnessStateDirectoryPath({
+        sandboxHomeDir: input.sandboxHomeDir,
+      }),
+      sessionId: input.sessionId,
+    }),
+    'pi',
   );
   const relativePath = path.posix.relative(
     input.sessionWorkDir,

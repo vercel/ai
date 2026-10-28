@@ -35,7 +35,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  openaiErrorDataSchema,
+  openaiErrorDataSchemaValidator,
   openaiFailedResponseHandler,
 } from './openai-error';
 import type { OpenAIConfig } from './openai-config';
@@ -47,7 +47,7 @@ import {
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
 import {
-  mapWebSearchOutput,
+  mapWebSearchResult,
   OpenAIResponsesLanguageModel,
   openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
@@ -181,6 +181,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     private readonly options: {
       provider: string;
       config: OpenAIConfig;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -466,6 +467,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonLinesResponseHandler(
           openaiBatchResultLineSchema,
+          { maxLineBytes: this.options.maxLineBytes },
         ),
         abortSignal: options.abortSignal,
         fetch: this.options.config.fetch,
@@ -661,7 +663,7 @@ async function convertOpenAIErrorResponse({
 }): Promise<BatchV4Error> {
   const result = await safeValidateTypes({
     value: body,
-    schema: openaiErrorDataSchema,
+    schema: openaiErrorDataSchemaValidator,
   });
 
   if (!result.success) {
@@ -810,7 +812,7 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: mapWebSearchOutput(part.action),
+          ...mapWebSearchResult(part),
           dynamic: true,
         });
         break;

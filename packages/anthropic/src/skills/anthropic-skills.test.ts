@@ -189,6 +189,41 @@ describe('AnthropicSkills', () => {
       });
     });
 
+    it('resolves auth separately for upload and metadata without changing beta header precedence', async () => {
+      prepareResponse({
+        url: 'https://api.anthropic.com/v1/skills',
+        filename: 'anthropic-skill-create',
+      });
+      prepareVersionMetadataResponse();
+
+      const authToken = vi
+        .fn()
+        .mockResolvedValueOnce('upload-token')
+        .mockResolvedValueOnce('metadata-token');
+      const skills = createAnthropic({
+        authToken,
+        headers: { 'anthropic-beta': 'provider-beta' },
+      }).skills();
+
+      await skills.uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
+      });
+
+      expect(authToken).toHaveBeenCalledTimes(2);
+      expect(
+        server.calls.map(call => call.requestHeaders.authorization),
+      ).toEqual(['Bearer upload-token', 'Bearer metadata-token']);
+      for (const call of server.calls) {
+        expect(call.requestHeaders['x-api-key']).toBeUndefined();
+        expect(call.requestHeaders['anthropic-beta']).toBe('skills-2025-10-02');
+      }
+    });
+
     it('should map response to providerReference', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',

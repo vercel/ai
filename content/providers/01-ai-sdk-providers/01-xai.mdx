@@ -1,18 +1,61 @@
 ---
 title: xAI Grok
-description: Learn how to use xAI Grok and Imagine.
+description: Learn how to use xAI with AI Gateway and the direct provider.
 ---
 
 # xAI Grok Provider
 
 The [xAI Grok](https://x.ai) provider contains language model support for the [xAI API](https://x.ai/api).
+You can use xAI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/xai`.
 
-## Setup
+```ts provider="xai" model="spacexai/grok-4.7"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The xAI Grok provider is available via the `@ai-sdk/xai` module. You can
-install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/xai" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/xai`
+
+For direct access to xAI, install `ai` and `@ai-sdk/xai`:
+
+<InstallPackages packages="ai @ai-sdk/xai" />
+
+Set your xAI API credential in the `XAI_API_KEY` environment variable:
+
+```bash
+export XAI_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/xai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/xai` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -287,6 +330,8 @@ console.log(text);
 console.log('Citations:', sources);
 ```
 
+Each citation is returned as one `source`. With `streamText`, each citation is emitted once as a `source` stream part, as soon as it is added.
+
 #### Web Search Parameters
 
 - **allowedDomains** _string[]_
@@ -329,11 +374,11 @@ const { text, sources } = await generateText({
 
 - **allowedXHandles** _string[]_
 
-  Only search posts from specified X handles (max 10). Cannot be used with `excludedXHandles`.
+  Only search posts from specified X handles (max 20). Cannot be used with `excludedXHandles`.
 
 - **excludedXHandles** _string[]_
 
-  Exclude posts from specified X handles (max 10). Cannot be used with `allowedXHandles`.
+  Exclude posts from specified X handles (max 20). Cannot be used with `allowedXHandles`.
 
 - **fromDate** _string_
 
@@ -582,7 +627,7 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Control the reasoning effort for supported models. See [Reasoning Effort](#reasoning-effort) for model-specific values and defaults.
 
@@ -828,11 +873,13 @@ const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
 ## Transcription Models
 
 You can create models that call the [xAI Speech to Text API](https://docs.x.ai/developers/model-capabilities/audio/speech-to-text)
-using the `.transcription()` factory method. xAI's batch transcription endpoint
-does not require a model identifier.
+using the `.transcription()` factory method. The model identifier is optional:
+pass `grok-voice-transcribe-2.0` to pin a model, or omit it to use xAI's
+default transcription model. `grok-voice-transcribe-1.0` is retired, and
+requests to it are routed to `grok-voice-transcribe-2.0`.
 
 ```ts
-const model = xai.transcription();
+const model = xai.transcription('grok-voice-transcribe-2.0');
 ```
 
 Use xAI transcription models with the `transcribe` function:
@@ -871,9 +918,13 @@ const result = await transcribe({
 });
 ```
 
-- **audioFormat** _`pcm` | `mulaw` | `alaw`_
+- **audioFormat** _`pcm` | `mulaw` | `alaw` | `opus`_
 
-  Audio encoding for raw, headerless input audio.
+  Input audio encoding for raw, headerless audio (`pcm`, `mulaw`, `alaw`).
+  Container formats such as Ogg/Opus are auto-detected, so do not set
+  `audioFormat` for them. `opus` is supported for streaming transcription only:
+  each audio chunk must be exactly one raw Opus packet (not Ogg), and an
+  `audio/opus` input audio type maps to `opus` automatically.
 
 - **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
 
@@ -907,6 +958,11 @@ const result = await transcribe({
 
   Includes filler words such as `uh` and `um` in the transcript.
 
+- **vadThreshold** _number_
+
+  Voice activity detection threshold. Range: 0.0-1.0. Defaults to `0.5` for
+  `transcribe` and `0.08` for streaming. `0` disables the filter.
+
 - **streaming** _object_
 
   Options for streaming speech-to-text over WebSocket. Use with `experimental_streamTranscribe`.
@@ -928,9 +984,10 @@ const result = await transcribe({
 
 ### Model Capabilities
 
-| Model     | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
-| --------- | ---------------- | --------- | --------------- | ----------- | ------------ |
-| `default` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+| Model                       | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
+| --------------------------- | ---------------- | --------- | --------------- | ----------- | ------------ |
+| `default`                   | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+| `grok-voice-transcribe-2.0` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
 
 <Note>
   Word timestamps, diarization results, and segments are only returned on the
@@ -1053,22 +1110,29 @@ const { images } = await generateImage({
 });
 ```
 
-- **resolution** _'1k' | '2k'_
+- **resolution** _'1k' | '1.5k' | '2k'_
 
-  Output resolution. `1k` produces ~1024×1024 images, `2k` produces ~2048×2048
-  images (actual dimensions vary based on aspect ratio). Available for
-  `grok-imagine-image-pro`.
+  Output resolution: `1k` (default, ~1024×1024), `1.5k` (~1408×1408), or `2k`
+  (~2048×2048). Actual dimensions vary based on aspect ratio.
+  `grok-imagine-image` does not support `1.5k`.
 
-- **quality** _'low' | 'medium' | 'high'_
+- **quality** _'low' | 'medium' | 'high' | 'auto'_
 
-  Image quality level. Higher quality may increase generation time.
+  Image quality level. Only supported by `grok-imagine-image-2.0`, which accepts
+  `low`, `medium`, and `auto`. `auto` is the default when omitted: it serves
+  `low` for generation and `medium` for editing, billed at the quality served.
+  `high` is not documented by xAI but is still accepted by older models, and is
+  kept for backward compatibility.
 
 ### Image Model Capabilities
 
-| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing |
-| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
-| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
-| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
+| Model                    | Resolution         | Aspect Ratios                                                                                                              | Image Editing |
+| ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `grok-imagine-image-2.0` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `21:9`, `5:2`, `auto` | <Check />     |
+| `grok-imagine-image-pro` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
+| `grok-imagine-image`     | `1k`               | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
+
+`grok-imagine-image-2.0` is xAI's latest image model.
 
 ## Video Models
 

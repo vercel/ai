@@ -63,6 +63,76 @@ describe('processUIMessageStream', () => {
     });
   };
 
+  describe('replay start', () => {
+    it.each(['msg-123', undefined])(
+      'resets existing state only on the first start with message ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+          },
+        });
+        state.activeTextParts.old = { type: 'text', text: 'old text' };
+        state.activeReasoningParts.old = {
+          type: 'reasoning',
+          text: 'old reasoning',
+        };
+        state.partialToolCalls.old = { text: '{', index: 0, toolName: 'old' };
+        state.finishReason = 'length';
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+              // Merged streams can emit another start for the same message.
+              { type: 'start', messageId, messageMetadata: { fresh: true } },
+              { type: 'text-delta', id: 'text-1', delta: ' world!' },
+              { type: 'text-end', id: 'text-1' },
+            ]),
+            resetStateOnFirstMessageStart: true,
+            resetStateOnMessageIdChange: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [],
+        });
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { fresh: true },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
+
   describe('finish-step', () => {
     it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
       const stream = createUIMessageStream([
@@ -3469,6 +3539,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 

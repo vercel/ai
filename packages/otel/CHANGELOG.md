@@ -1,5 +1,310 @@
 # @ai-sdk/otel
 
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+
+## 1.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.149
+
+### Patch Changes
+
+- e6a568d: Add an `agentSpanName` option to `OpenTelemetry` to name root agent spans using `functionId` or a custom callback. Preserve model-based span names by default.
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+
+## 1.0.148
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+
+## 1.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 1.0.138
+
+### Patch Changes
+
+- ba05943: fix(otel): record decision model response identifiers
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.136
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.135
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+
+## 1.0.134
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.133
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+
+## 1.0.132
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 1.0.128
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 51e1763: fix(otel): mark span status as `ERROR` when finish reason is `error`
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+
+## 1.0.123
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+
 ## 1.0.122
 
 ### Patch Changes

@@ -1,5 +1,278 @@
 # @ai-sdk/gateway
 
+## 4.0.128
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.126
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.125
+
+### Patch Changes
+
+- a706678: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
+## 4.0.124
+
+### Patch Changes
+
+- 1bf6d85: chore(provider/gateway): update gateway model settings files
+
+## 4.0.123
+
+### Patch Changes
+
+- 8202f5b: feat(gateway): implement experimental streaming speech in the gateway provider
+
+  `GatewaySpeechModel` implements `Experimental_StreamingSpeechModelV4` and streams speech over the AI Gateway speech WebSocket (`/speech-model`, `ai-gateway-speech.v1` subprotocol). `@ai-sdk/provider-utils` adds the experimental speech-stream envelope (`experimental_parseSpeechStreamClientFrame`, `experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`) shared by clients and servers, plus the `EXPERIMENTAL_SPEECH_STREAM_*` frame type constants and `Experimental_SpeechStream*` frame types. Text-delta frames carry each text part's `voice` and `providerOptions`; the start frame carries `outputFormat` as an audio format object. Adds `gateway.experimental_speech`, callable like `speech(modelId)`, with a server-side `getToken()` that mints a speech-bound short-lived client secret for browser use.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 4.0.122
+
+### Patch Changes
+
+- 101ce42: chore(provider/gateway): update gateway model settings files
+- e104368: Add Voxtral 3 offline transcription and speech model IDs. Support transcription context phrases and detected language, update timestamp validation for Voxtral 3, and expose speech expressiveness and pronunciation hints.
+- eb1f056: fix(provider/gateway): update `parallelSearch` for Parallel's GA Search API
+
+  - Accept the `turbo`, `fast`, `basic`, and `advanced` modes. Tool calls that use one of these modes no longer fail client-side input validation. `one-shot` and `agentic` are deprecated but still accepted.
+  - Add the `location` and top-level `maxCharsTotal` options, plus `fetchPolicy.timeoutSeconds` and `fetchPolicy.disableCacheFallback`. `excerpts.maxCharsTotal` is deprecated in favor of `maxCharsTotal`.
+  - Fix the result type and schema to match the response the gateway returns: `search_id`, results with `url`, nullable `title` and `publish_date`, and `excerpts: string[]`, plus optional `warnings`, `usage`, and `session_id`. The `searchId`, `excerpt`, `publishDate`, and `relevanceScore` fields were never populated and are removed; update code that reads them. `validateUIMessages` now accepts Parallel Search results.
+
+- 5893e99: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.121
+
+### Patch Changes
+
+- f1b550e: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.120
+
+### Patch Changes
+
+- 9bec2c3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.119
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.118
+
+### Patch Changes
+
+- 1c47fee: chore(provider/gateway): update gateway model settings files
+
+## 4.0.117
+
+### Patch Changes
+
+- 6b7fb8f: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.115
+
+### Patch Changes
+
+- 5bdb816: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.114
+
+### Patch Changes
+
+- b658e85: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.113
+
+### Patch Changes
+
+- 42a2895: chore(provider/gateway): update gateway model settings files
+
+## 4.0.112
+
+### Patch Changes
+
+- 685667c: chore(provider/gateway): update gateway model settings files
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+- ec2af7b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.110
+
+### Patch Changes
+
+- e280aa1: feat(gateway): send image files in decision state
+
+## 4.0.109
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- 908fd12: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.108
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.107
+
+### Patch Changes
+
+- 866e884: feat(anthropic): add Claude Haiku 5.5 support
+
+  - add the `claude-haiku-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-haiku-5-5` and `us.anthropic.claude-haiku-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-haiku-5.5` to `@ai-sdk/gateway`
+  - recognize `claude-haiku-5-5` as a known model with a 128k max output token limit, adaptive thinking, and all five effort levels; thinking can be disabled up to `high` effort, and `xhigh` and `max` are lowered to `high` with a warning when thinking is disabled
+  - `claude-haiku-5-5` does not support thinking token budgets: `thinking: { type: 'enabled', budgetTokens }` is converted to adaptive thinking with a warning
+  - use the JSON tool fallback for structured output on Amazon Bedrock for `claude-haiku-5-5`
+
+- 04fdf5e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.106
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.105
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- ad64697: chore(provider/gateway): update gateway model settings files
+- 0c82824: fix(xai): preserve or report unavailable speaker diarization
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.104
+
+### Patch Changes
+
+- 131532b: chore(provider/gateway): update gateway model settings files
+- 2959d35: feat: rename `evaluate` to `decide`
+- 6ac923a: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.103
+
+### Patch Changes
+
+- d1bb9e8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.102
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- e25994e: fix(gateway): scope `getCredits()` to `teamIdOrSlug`
+
+  The credits endpoint reads the team from the `teamId` / `slug` query parameter rather than the `x-vercel-ai-gateway-team` header. `getCredits()` now forwards the configured team as a query parameter, so credentials that can access multiple teams (such as Vercel access tokens) are no longer rejected with an authentication error.
+
+- e74afc5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.101
+
+### Patch Changes
+
+- 040033b: feat(openai): add GPT-6.1 Sol model support
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.100
 
 ### Patch Changes

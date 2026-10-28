@@ -1254,6 +1254,17 @@ describe('OpenResponsesLanguageModel', () => {
         );
       });
 
+      it('should pass max directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'max' },
+        );
+      });
+
       it('should not set reasoning when not specified', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1737,6 +1748,124 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['throw', 'reject'] as const)(
+      'preserves extension item decoding errors when the stream ends (%s)',
+      async failure => {
+        const error = new Error('Extension item decoding failed');
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = () => {
+          if (failure === 'reject') {
+            return Promise.reject(error);
+          }
+          throw error;
+        };
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: 0,
+              output_index: 0,
+              item: {
+                id: 'search-1',
+                type: 'acme:document_search_receipt',
+                status: 'completed',
+                call_id: 'call-1',
+                name: 'documentSearch',
+              },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('test-model', [
+          extension,
+        ]).doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([
+          { type: 'error', error },
+        ]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: { unified: 'error', raw: undefined },
+          }),
+        ]);
+      },
+    );
+
+    it('preserves extension errors when the stream ends', async () => {
+      const error = new Error('Extension failed');
+      const extension = createDocumentSearchExtension({
+        providerExecuted: true,
+      });
+      extension.decodeEvent = () => {
+        throw error;
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'acme:document_search_input', sequence_number: 0, call_id: 'call-1', name: 'documentSearch', delta: '{}' })}\n\n`,
+        ],
+      };
+      const { stream } = await createModel('test-model', [extension]).doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({ type: 'error', error });
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      );
+    });
+
+    it.each([false, true])(
+      'handles a truncated stream (with error: %s)',
+      async withError => {
+        const events = fs
+          .readFileSync(
+            'src/responses/__fixtures__/lmstudio-basic.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        const firstText = events.findIndex(
+          event => event.type === 'response.output_text.delta',
+        );
+        expect(firstText).toBeGreaterThanOrEqual(0);
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events
+              .slice(0, firstText + 1)
+              .map(event => `data: ${JSON.stringify(event)}\n\n`),
+            ...(withError ? ['data: {invalid-json}\n\n'] : []),
+          ],
+        };
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError ? 'error' : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(

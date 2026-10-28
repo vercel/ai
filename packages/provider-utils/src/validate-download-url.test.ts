@@ -16,6 +16,15 @@ describe('validateDownloadUrl', () => {
       ).not.toThrow();
     });
 
+    it.each([
+      'https://internal.example.com/file',
+      'https://service.internal.example.com/file',
+      'https://service.notinternal/file',
+      'https://example.com/service.internal',
+    ])('should allow URLs without an .internal hostname suffix: %s', url => {
+      expect(() => validateDownloadUrl(url)).not.toThrow();
+    });
+
     it('should allow public IP addresses', () => {
       // 8.8.8.8 — a genuinely public, globally-routable address. The TEST-NET
       // documentation ranges (192.0.2/24, 198.51.100/24, 203.0.113/24) are
@@ -85,6 +94,16 @@ describe('validateDownloadUrl', () => {
       expect(() => validateDownloadUrl('http://app.localhost/file')).toThrow(
         DownloadError,
       );
+    });
+
+    it.each([
+      'http://metadata.google.internal/file',
+      'https://service.namespace.internal/file',
+      'https://SERVICE.INTERNAL/file',
+      'https://service.internal./file',
+      'http://service.internal:8080/file',
+    ])('should block .internal hostnames: %s', url => {
+      expect(() => validateDownloadUrl(url)).toThrow(DownloadError);
     });
   });
 

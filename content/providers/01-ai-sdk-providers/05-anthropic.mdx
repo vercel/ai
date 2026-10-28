@@ -1,17 +1,61 @@
 ---
 title: Anthropic
-description: Learn how to use the Anthropic provider for the AI SDK.
+description: Learn how to use Anthropic with AI Gateway and the direct provider.
 ---
 
 # Anthropic Provider
 
 The [Anthropic](https://www.anthropic.com/) provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
+You can use Anthropic models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/anthropic`.
 
-## Setup
+```ts provider="anthropic" model="anthropic/claude-sonnet-5.5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/anthropic" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/anthropic`
+
+For direct access to Anthropic, install `ai` and `@ai-sdk/anthropic`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic" />
+
+Set your Anthropic API credential in the `ANTHROPIC_API_KEY` environment variable:
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/anthropic`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/anthropic` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -33,6 +77,15 @@ const anthropic = createAnthropic({
 
 You can use the following optional settings to customize the Anthropic provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -44,10 +97,12 @@ You can use the following optional settings to customize the Anthropic provider 
   It defaults to the `ANTHROPIC_API_KEY` environment variable.
   Only one of `apiKey` or `authToken` is required.
 
-- **authToken** _string_
+- **authToken** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   Auth token that is being sent using the `Authorization: Bearer` header.
-  It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+  Pass a function to resolve a token for each request, including short-lived
+  tokens managed by an external credential provider. This setting does not
+  enable OAuth beta headers; configure any required headers explicitly.
   Only one of `apiKey` or `authToken` is required.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -61,21 +116,91 @@ You can use the following optional settings to customize the Anthropic provider 
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+### Workload identity federation
+
+Use an `authToken` callback to connect the Anthropic SDK's token exchange and
+cache helpers to the AI SDK. Configure your service account and federation rule
+first, as described in [Anthropic's workload identity federation guide](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation).
+
+The following example uses the credential helpers from `@anthropic-ai/sdk@0.129.0`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic @anthropic-ai/sdk@0.129.0" />
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { identityTokenFromFile } from '@anthropic-ai/sdk/lib/credentials/identity-token';
+import { oidcFederationProvider } from '@anthropic-ai/sdk/lib/credentials/oidc-federation';
+import { TokenCache } from '@anthropic-ai/sdk/lib/credentials/token-cache';
+import { generateText } from 'ai';
+
+// Create the cache and provider once, then reuse them across requests.
+const tokenCache = new TokenCache(
+  oidcFederationProvider({
+    identityTokenProvider: identityTokenFromFile(
+      '/var/run/secrets/anthropic.com/token',
+    ),
+    federationRuleId: process.env.ANTHROPIC_FEDERATION_RULE_ID!,
+    organizationId: process.env.ANTHROPIC_ORGANIZATION_ID!,
+    serviceAccountId: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID!,
+    // Set this when your rule requires a workspace or to select a specific one.
+    workspaceId: process.env.ANTHROPIC_WORKSPACE_ID,
+    baseURL: 'https://api.anthropic.com',
+    fetch: globalThis.fetch,
+  }),
+);
+
+const anthropic = createAnthropic({
+  authToken: () => tokenCache.getToken(),
+  headers: { 'anthropic-beta': 'oauth-2025-04-20' },
+});
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-5-5'),
+  prompt: 'Explain workload identity federation in one sentence.',
+});
+```
+
+The AI SDK resolves `authToken` before each request and sends the returned token
+as a bearer credential. The Anthropic SDK helpers perform the OIDC exchange,
+cache the access token, and renew it as needed.
+
+Set the `oauth-2025-04-20` beta explicitly for these federated OAuth tokens,
+matching Anthropic's SDK. A bearer token or token callback alone does not imply
+workload identity federation. The exchange helper supplies its own token-endpoint
+headers. This example covers Messages API inference; it does not add WIF support
+to the Files, Skills, or Batch APIs, which have separate beta-header handling.
+
+Refresh is demand-driven: in the helper version above, `getToken()` starts a
+background exchange when the cached token has at most two minutes remaining,
+and waits for an exchange when at most 30 seconds remain. Concurrent requests
+share the pending exchange. Federation renews access by exchanging another
+identity token; it does not use a refresh token.
+
+Your workload's identity provider must supply fresh identity tokens. The file
+helper rereads the file on each exchange but does not rotate its contents.
+Anthropic rejects reuse of assertions with a `jti` by default, so arrange for a
+fresh assertion for each exchange. See the [WIF reference](https://platform.claude.com/docs/en/manage-claude/wif-reference)
+for token lifetimes and replay protection.
+
+This setup explicitly configures credentials; it does not enable the Anthropic
+client's automatic credential discovery or its invalidate-and-retry behavior on
+HTTP 401. Keep the helper version pinned and verify the integration when upgrading.
+
 ## Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-haiku-4-5`.
+The first argument is the model id, e.g. `claude-haiku-5-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic('claude-haiku-4-5');
+const model = anthropic('claude-haiku-5-5');
 ```
 
 You can also use the following aliases for model creation:
 
-- `anthropic.languageModel('claude-haiku-4-5')` - Creates a language model
-- `anthropic.chat('claude-haiku-4-5')` - Alias for `languageModel`
-- `anthropic.messages('claude-haiku-4-5')` - Alias for `languageModel`
+- `anthropic.languageModel('claude-haiku-5-5')` - Creates a language model
+- `anthropic.chat('claude-haiku-5-5')` - Alias for `languageModel`
+- `anthropic.messages('claude-haiku-5-5')` - Alias for `languageModel`
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -84,7 +209,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-haiku-4-5'),
+  model: anthropic('claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -92,6 +217,34 @@ const { text } = await generateText({
 Anthropic language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Message-start events
+
+During streaming, each Anthropic `message_start` event is exposed as an
+`anthropic.message_start` custom stream part containing the message ID, model,
+and raw initial token usage. No provider option is required.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-haiku-5-5'),
+  prompt: 'Say hi in one word.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'custom' && part.kind === 'anthropic.message_start') {
+    console.log(part.providerMetadata?.anthropic);
+  }
+}
+```
+
+Initial usage may be incomplete; use `result.usage` for final token counts.
+Like other custom parts, this event is included in response content and forwarded
+to UI message streams. It is ignored when replaying conversation history to Anthropic.
+
+### Provider options
 
 The following optional provider options are available for Anthropic models:
 
@@ -208,9 +361,18 @@ verify that a tool call was made.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, and `claude-sonnet-5-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
 
-On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
+On `claude-opus-5` and `claude-haiku-5-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
+
+`claude-haiku-5-5` is the first Haiku model with effort levels and supports all
+five of them. It uses adaptive thinking and does not support thinking token
+budgets: the AI SDK converts `thinking: { type: 'enabled', budgetTokens }` to
+`{ type: 'adaptive' }` and emits a warning. Use `effort` to control how much it
+thinks. Unlike `claude-sonnet-5-5`, thinking can still be turned off with
+`thinking: { type: 'disabled' }`, but only at `low`, `medium`, and `high` effort.
+Start at `medium` effort and test other levels rather than carrying over the
+settings you used on `claude-haiku-4-5`.
 
 On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
 `effort` is the main control for latency and cost. The API default effort for
@@ -332,6 +494,8 @@ The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` 
 ### Safety Classifiers and Fallbacks
 
 Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+Claude Haiku 5.5 has the same biology safeguards as Claude Sonnet 5 and 5.5, plus safeguards that prevent cyber misuse.
 
 Claude Sonnet 5.5 also has safety classifiers enabled, including for cybersecurity, biology, and reasoning extraction. Requests that ask the model to reproduce its internal reasoning in the response text can be declined with the `reasoning_extraction` category; use `thinking: { type: 'adaptive', display: 'summarized' }` and read the reasoning parts instead.
 
@@ -693,6 +857,13 @@ Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
 room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
 setting `max_tokens`. For known models, the combined value is capped at the
 model's maximum output token limit.
+
+With manual thinking (`thinking.type: 'enabled'`), a `required` or named
+`toolChoice` falls back to `auto` with a warning. For a named tool choice, only
+the selected tool is sent. This also applies when the top-level `reasoning`
+option enables manual thinking, including when structured output uses the
+internal JSON response tool. Tool use is no longer guaranteed: instruct the
+model to use the tool in your prompt and verify that a tool call was made.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
@@ -1334,7 +1505,7 @@ together with an older `computer_*` tool.
 
 Parameters:
 
-- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position' | 'zoom'): The action to perform. The `zoom` action is only available with `computer_20251124`.
+- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position' | 'zoom'): The action to perform. For versioned computer tools, the `zoom` action is only available with `computer_20251124`. It is also available with `computerToolset_20260801`, where it is enabled by default.
 - `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
 - `text` (string, optional): Required for `type` and `key` actions.
 - `region` (number[], optional): Required for `zoom` action. Specifies `[x1, y1, x2, y2]` coordinates for the area to inspect.
@@ -1371,6 +1542,40 @@ const result = await generateText({
   Web search must be enabled in your organization's [Console
   settings](https://console.anthropic.com/settings/privacy).
 </Note>
+
+#### Sources and Citations
+
+`result.sources` and source stream events expose web-search results. Inline
+references are attached separately to generated text as `part.citations`, and
+to streamed text as `text-end.citations`. This shared citation representation
+includes the referenced URL or document and its supporting passage. If web-search
+results are unavailable, web citations also provide source references for
+compatibility. Indexed document references retain their existing document source
+parts when the original prompt supplies document information.
+
+Raw citations remain available as
+`text.providerMetadata.anthropic.citations`, including on streamed `text-end`
+events. Import `AnthropicTextProviderMetadata` and `AnthropicCitation` for typed
+access. `AnthropicCitation` is a union of `web_search_result_location`,
+`search_result_location`, `page_location`, `char_location`, and
+`content_block_location`. Document page, character, and block locations refer to
+the source document, rather than the generated answer.
+
+```ts
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
+
+for (const part of result.content) {
+  if (part.type === 'text') {
+    console.log(part.citations);
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      console.log(citation.type, citation.cited_text);
+    }
+  }
+}
+```
 
 #### Configuration Options
 
@@ -2211,6 +2416,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-haiku-5-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
@@ -2231,18 +2437,18 @@ and the `mediaType` should be set to `'application/pdf'`.
   any available provider model ID as a string if needed.
 </Note>
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `anthropic.evaluationModel(modelId)`.
+Create an experimental decision model with `anthropic.decisionModel(modelId)`.
 It uses the Messages API's structured-output support for Choice, Score, and Boolean
 questions. `claude-haiku-4-5-20251001` is one supported model.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: anthropic.evaluationModel('claude-haiku-4-5-20251001'),
+const { answers } = await experimental_decide({
+  model: anthropic.decisionModel('claude-haiku-4-5-20251001'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2272,10 +2478,10 @@ It respects
 `structuredOutputMode`. Supported models use native structured output by default;
 `jsonTool` uses the existing Messages JSON-tool fallback. Usage, warnings,
 response information, and provider metadata are preserved.
-See [Evaluation](/docs/ai-sdk-core/evaluation).
+See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

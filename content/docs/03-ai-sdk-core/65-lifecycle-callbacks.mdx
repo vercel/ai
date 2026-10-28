@@ -1,12 +1,12 @@
 ---
 title: Lifecycle Callbacks
-description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_evaluate calls
+description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_decide calls
 ---
 
 # Lifecycle Callbacks
 
 Event callbacks let you run your own code at important points in an AI SDK call.
-You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_evaluate` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
+You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_decide` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
 
 They are especially useful when you want application-specific logic close to the call site:
 
@@ -299,6 +299,10 @@ A multi-step generation with local tool execution usually runs like this:
 `onLanguageModelCallStart` and `onLanguageModelCallEnd` describe only the model call inside that step.
 This distinction matters when the step includes local tool execution: the step duration can be longer than the model response duration.
 
+When a step that started fails before it produces a step result, `onStepError` is called instead of `onStepEnd`. This happens when the provider call throws or rejects, or when the model stream ends without output. A provider `error` chunk does not fail the step: the step still ends with `onStepEnd` and `finishReason: 'error'`.
+
+Aborts and timeouts end the step differently in each function. In `generateText` and `agent.generate()`, they end the step with `onStepError`. Its `error` is the abort or timeout error, or a provider error that has it as its `cause`. In `streamText` and `agent.stream()`, they end the step with `onAbort`.
+
 ## Runtime and Tool Context
 
 Generation and step lifecycle callbacks receive the full `runtimeContext` and
@@ -404,6 +408,12 @@ const result = await generateText({
         'Called after each generation step completes. Receives the step result, including usage and performance.',
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => void | Promise<void>',
+      description:
+        'Called when a step that started fails before it produces a step result: the provider call throws or rejects, or the model stream ends without output. Receives the `onStepStart` event of the failed step plus `error`. In `generateText`, also called on abort or timeout. In `streamText`, aborts and timeouts call `onAbort` instead.',
+    },
+    {
       name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | Promise<void>',
       description:
@@ -452,21 +462,20 @@ const result = await generateText({
   ]}
 />
 
-### `experimental_evaluate`
+### `experimental_decide`
 
 <PropertiesTable
   content={[
     {
       name: 'onStart',
-      type: '(event: Experimental_EvaluateStartEvent) => void | Promise<void>',
+      type: '(event: Experimental_DecideStartEvent) => void | Promise<void>',
       description:
-        'Called when the evaluation operation begins, before the evaluation model is called.',
+        'Called when the decision operation begins, before the decision model is called.',
     },
     {
       name: 'onEnd',
-      type: '(event: Experimental_EvaluateEndEvent) => void | Promise<void>',
-      description:
-        'Called when the evaluation operation completes successfully.',
+      type: '(event: Experimental_DecideEndEvent) => void | Promise<void>',
+      description: 'Called when the decision operation completes successfully.',
     },
   ]}
 />
@@ -1174,10 +1183,10 @@ For `embed`, `value` is a single string. For `embedMany`, `value` is an array of
   ]}
 />
 
-### Evaluation Events
+### Decision Events
 
-Evaluation callbacks are experimental. Their exported types are
-`Experimental_EvaluateStartEvent` and `Experimental_EvaluateEndEvent`.
+Decision callbacks are experimental. Their exported types are
+`Experimental_DecideStartEvent` and `Experimental_DecideEndEvent`.
 
 #### onStart
 
@@ -1186,12 +1195,12 @@ Evaluation callbacks are experimental. Their exported types are
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this evaluation call.',
+      description: 'Unique identifier for this decision call.',
     },
     {
       name: 'operationId',
-      type: "'ai.evaluate'",
-      description: 'Evaluation operation identifier.',
+      type: "'ai.decide'",
+      description: 'Decision operation identifier.',
     },
     {
       name: 'runtimeContext',
@@ -1201,22 +1210,22 @@ Evaluation callbacks are experimental. Their exported types are
     {
       name: 'provider',
       type: 'string',
-      description: 'Provider identifier for the evaluation model.',
+      description: 'Provider identifier for the decision model.',
     },
     {
       name: 'modelId',
       type: 'string',
-      description: 'Evaluation model identifier.',
+      description: 'Decision model identifier.',
     },
     {
       name: 'state',
       type: 'string | object | array',
-      description: 'Shared state being evaluated.',
+      description: 'Shared state used to make decisions.',
     },
     {
       name: 'questions',
-      type: 'Readonly<Record<string, Experimental_EvaluationQuestion>>',
-      description: 'Questions being evaluated against the shared state.',
+      type: 'Readonly<Record<string, Experimental_DecisionQuestion>>',
+      description: 'Questions to decide against the shared state.',
     },
     {
       name: 'maxRetries',
@@ -1244,18 +1253,18 @@ Includes every `onStart` field plus:
   content={[
     {
       name: 'answers',
-      type: 'Record<string, Experimental_EvaluationAnswer>',
+      type: 'Record<string, Experimental_DecisionAnswer>',
       description: 'Exactly one typed answer per question ID.',
     },
     {
       name: 'usage',
       type: '{ inputTokens: number | undefined; outputTokens: number | undefined; totalTokens: number | undefined }',
-      description: 'Token usage for the evaluation operation.',
+      description: 'Token usage for the decision operation.',
     },
     {
       name: 'warnings',
       type: 'Array<Warning>',
-      description: 'Warnings from the evaluation model.',
+      description: 'Warnings from the decision model.',
     },
     {
       name: 'rounding',

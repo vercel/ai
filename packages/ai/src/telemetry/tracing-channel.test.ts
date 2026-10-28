@@ -2,11 +2,11 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
-import { evaluate } from '../evaluate/evaluate';
+import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
@@ -14,13 +14,19 @@ import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
-import { EvaluationMockModelV4 } from '../test/evaluation-mock-model-v4';
+import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import type { InferTelemetryEvent } from './telemetry';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+import { VERSION } from '../version';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 type TelemetryTracingChannelAsyncEndMessage = TelemetryTracingChannelMessage & {
   result?: unknown;
@@ -178,7 +184,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     const messages = await collectTracingChannelStartMessages(async () => {
       const telemetry = createTelemetryDispatcher({});
 
-      await telemetry.onStart!(event as any);
+      await telemetry.onStart?.(event as any);
     });
 
     expect(messages).toEqual([]);
@@ -221,6 +227,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         {
           "event": {
+            "aiVersion": "0.0.0-test",
             "callId": "tracing-channel-generate-text",
             "functionId": "enabled-function",
             "recordInputs": undefined,
@@ -278,6 +285,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "language-model-call",
           "functionId": "execution-function",
           "modelId": "mock-model",
@@ -344,6 +352,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "tool-call",
           "functionId": "execution-function",
           "messages": [],
@@ -561,7 +570,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('filters tracing context using telemetry allowlists', async () => {
+  it('includes the SDK version with allowlisted context on every tracing span', async () => {
     const usage = {
       inputTokens: {
         total: 3,
@@ -691,9 +700,9 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry,
       });
 
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -709,13 +718,33 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       });
     });
 
+    expect(messages.map(message => message.type)).toEqual(
+      expect.arrayContaining([
+        'generateText',
+        'streamText',
+        'step',
+        'languageModelCall',
+        'executeTool',
+        'embed',
+        'embedMany',
+        'rerank',
+        'experimental_decide',
+      ]),
+    );
+
+    for (const message of messages) {
+      expect((message.event as InferTelemetryEvent<unknown>).aiVersion).toBe(
+        VERSION,
+      );
+    }
+
     for (const type of [
       'generateText',
       'streamText',
       'embed',
       'embedMany',
       'rerank',
-      'experimental_evaluate',
+      'experimental_decide',
     ] as const) {
       const startMessage = messages.find(message => message.type === type);
       expect(startMessage?.event).toEqual(
@@ -830,11 +859,11 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('traces the current evaluate lifecycle sequence', async () => {
+  it('traces the current decide lifecycle sequence', async () => {
     const sequence = await collectTracingChannelEventSequence(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -850,8 +879,8 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
 
     expect(sequence).toMatchInlineSnapshot(`
       [
-        "bindStart experimental_evaluate",
-        "asyncEnd experimental_evaluate",
+        "bindStart experimental_decide",
+        "asyncEnd experimental_decide",
       ]
     `);
   });
@@ -863,11 +892,11 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       name: 'an explicitly excluded field',
       telemetry: { includeRuntimeContext: { secret: false } },
     },
-  ])('excludes evaluate runtime context with $name', async ({ telemetry }) => {
+  ])('excludes decide runtime context with $name', async ({ telemetry }) => {
     const messages = await collectTracingChannelStartMessages(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -883,20 +912,20 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       });
     });
 
-    const evaluateMessage = messages.find(
-      message => message.type === 'experimental_evaluate',
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
     );
 
     expect(
-      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({});
   });
 
-  it('includes only allowlisted evaluate runtime context in tracing', async () => {
+  it('includes only allowlisted decide runtime context in tracing', async () => {
     const messages = await collectTracingChannelStartMessages(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -912,12 +941,12 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       });
     });
 
-    const evaluateMessage = messages.find(
-      message => message.type === 'experimental_evaluate',
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
     );
 
     expect(
-      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
   });
 

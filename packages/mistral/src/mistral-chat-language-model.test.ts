@@ -504,6 +504,48 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should inject JSON schema when structured outputs are disabled', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string' as const },
+      },
+    };
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema,
+      },
+      providerOptions: {
+        mistral: {
+          structuredOutputs: false,
+        },
+      },
+    });
+
+    expect(request).toMatchObject({
+      body: {
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: {
+          type: 'json_object',
+        },
+      },
+    });
+  });
+
   it('should pass parallelToolCalls option', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -860,6 +902,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',
@@ -921,6 +965,23 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send reasoning_effort high with a warning for reasoning max', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
     it('should send reasoning_effort none for reasoning none', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -946,6 +1007,35 @@ describe('doGenerate', () => {
       });
     });
 
+    it.each([
+      'magistral-large-latest',
+      'mistral-large-5',
+      'future-reasoning-model',
+    ])(
+      'forwards reasoning and provider overrides for future model %s',
+      async modelId => {
+        const model = provider.chat(modelId);
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'reasoning' }),
+        );
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: { mistral: { reasoningEffort: 'none' } },
+        });
+        expect(await server.calls[1].requestBodyJson).toMatchObject({
+          reasoning_effort: 'none',
+        });
+      },
+    );
+
     it('should not send reasoning_effort for non-supporting models', async () => {
       const unsupportedModel = provider.chat('mistral-large-latest');
       await unsupportedModel.doGenerate({
@@ -958,6 +1048,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',
@@ -976,10 +1068,145 @@ describe('doGenerate', () => {
         reasoning_effort: 'high',
       });
     });
+
+    describe.each([
+      'zai-glm-5-3',
+      'zai-glm-5',
+      'zai-glm-latest',
+      'zai-glm-5-3-flash',
+    ] as const)('low, high, and max reasoning effort model %s', modelId => {
+      it.each([
+        ['minimal', 'low'],
+        ['low', 'low'],
+        ['medium', 'high'],
+        ['high', 'high'],
+        ['xhigh', 'max'],
+        ['max', 'max'],
+      ] as const)(
+        'should map reasoning %s to reasoning_effort %s',
+        async (reasoning, effort) => {
+          await provider.chat(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            reasoning_effort: effort,
+          });
+        },
+      );
+
+      it('should map reasoning none to reasoning_effort low with a warning', async () => {
+        const result = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'low',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+    });
+
+    it.each(['low', 'max'] as const)(
+      'should send provider reasoning_effort %s',
+      async reasoningEffort => {
+        await provider.chat('zai-glm-5-3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: reasoningEffort,
+        });
+      },
+    );
+
+    it.each(['zai-glm-5-2', 'glm-5-2'] as const)(
+      'should send reasoning_effort none for reasoning none on %s',
+      async modelId => {
+        await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'none',
+        });
+      },
+    );
+
+    it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+      'should send provider reasoning_effort for %s',
+      async modelId => {
+        const reasoningModel = provider.chat(modelId);
+
+        await reasoningModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort: 'high' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+      },
+    );
   });
 });
 
 describe('doStream', () => {
+  it.each([
+    ['missing', 'interrupted'],
+    ['unknown_reason', 'other'],
+    ['invalid-json', 'error'],
+  ] as const)(
+    'handles a stream ending with %s as %s',
+    async (ending, unified) => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+          ...(ending === 'missing'
+            ? []
+            : ending === 'invalid-json'
+              ? ['data: {invalid-json}\n\n']
+              : [
+                  `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'invalid-json' ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified,
+            raw: ending === 'unknown_reason' ? ending : undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   function prepareChunksFixtureResponse(
     filename: string,
     { headers }: { headers?: Record<string, string> } = {},

@@ -125,14 +125,39 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should reject context bias items with commas or whitespace', async () => {
+  it('should accept phrases, punctuation, and more than 100 context bias entries', async () => {
+    prepareJsonResponse();
+    const contextBias = [
+      'AI SDK',
+      'A conversation about Vercel, TypeScript, and speech.',
+      ...Array.from({ length: 100 }, (_, i) => `Product ${i}`),
+    ];
+    let capturedFormData: FormData | undefined;
+    const customModel = createMistral({
+      apiKey: 'test-api-key',
+      fetch: async (url, init) => {
+        capturedFormData = init?.body as FormData;
+        return fetch(url, init);
+      },
+    }).transcription('voxtral-mini-transcribe-3-0');
+
+    await customModel.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { mistral: { contextBias } },
+    });
+
+    expect(capturedFormData!.getAll('context_bias')).toEqual(contextBias);
+  });
+
+  it('should reject empty context bias entries', async () => {
     await expect(
       model.doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
         providerOptions: {
           mistral: {
-            contextBias: ['AI SDK'],
+            contextBias: [''],
           },
         },
       }),
@@ -157,9 +182,33 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should reject language combined with timestamp granularities', async () => {
-    await expect(
-      model.doGenerate({
+  it.each(['voxtral-mini-2507', 'voxtral-mini-2602', 'voxtral-mini-latest'])(
+    'should reject language combined with timestamps for %s',
+    async legacyModelId => {
+      await expect(
+        provider.transcription(legacyModelId).doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            mistral: {
+              language: 'en',
+              timestampGranularities: ['segment'],
+            },
+          },
+        }),
+      ).rejects.toSatisfy(InvalidArgumentError.isInstance);
+    },
+  );
+
+  it.each([
+    'voxtral-mini-transcribe-4-0',
+    'voxtral-small-transcribe-3-1',
+    'custom-transcription-model',
+  ])(
+    'should allow language combined with timestamps for unrecognized model %s',
+    async unknownModelId => {
+      prepareJsonResponse();
+      await provider.transcription(unknownModelId).doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
         providerOptions: {
@@ -168,8 +217,98 @@ describe('doGenerate', () => {
             timestampGranularities: ['segment'],
           },
         },
+      });
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: unknownModelId,
+        language: 'en',
+        timestamp_granularities: 'segment',
+      });
+    },
+  );
+
+  describe.each([
+    'voxtral-mini-transcribe-3-0',
+    'voxtral-mini-transcribe-3',
+    'voxtral-mini-transcribe-latest',
+    'voxtral-small-transcribe-3-0',
+    'voxtral-small-transcribe-3',
+    'voxtral-small-transcribe-latest',
+  ])('%s', voxtral3ModelId => {
+    const voxtral3Model = provider.transcription(voxtral3ModelId);
+
+    it('should allow language with segment timestamps and diarization', async () => {
+      prepareJsonResponse();
+      await voxtral3Model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          mistral: {
+            language: 'en',
+            returnLanguage: false,
+            timestampGranularities: ['segment'],
+            diarize: true,
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: voxtral3ModelId,
+        language: 'en',
+        return_language: 'false',
+        timestamp_granularities: 'segment',
+        diarize: 'true',
+      });
+    });
+
+    it('should forward word timestamps for the API to validate', async () => {
+      prepareJsonResponse();
+      await voxtral3Model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { mistral: { timestampGranularities: ['word'] } },
+      });
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        timestamp_granularities: 'word',
+      });
+    });
+
+    it('should forward diarization without timestamps for the API to validate', async () => {
+      prepareJsonResponse();
+      await voxtral3Model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { mistral: { diarize: true } },
+      });
+      const multipart = await server.calls[0].requestBodyMultipart;
+      expect(multipart).toMatchObject({ diarize: 'true' });
+      expect(multipart).not.toHaveProperty('timestamp_granularities');
+    });
+  });
+
+  it('should request and return the detected language', async () => {
+    prepareJsonResponse({ body: { ...transcriptionResponse, language: 'en' } });
+    const result = await provider
+      .transcription('voxtral-mini-transcribe-3-0')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { mistral: { returnLanguage: true } },
+      });
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      return_language: 'true',
+    });
+    expect(result.language).toBe('en');
+  });
+
+  it('should reject language prediction when the language is pinned', async () => {
+    await expect(
+      provider.transcription('voxtral-mini-transcribe-3-0').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { mistral: { language: 'en', returnLanguage: true } },
       }),
-    ).rejects.toSatisfy(InvalidArgumentError.isInstance);
+    ).rejects.toThrow(
+      'providerOptions.mistral.language cannot be combined with providerOptions.mistral.returnLanguage',
+    );
   });
 
   it('should pass headers, abort signal, and the Mistral user agent', async () => {
@@ -263,6 +402,7 @@ describe('doGenerate', () => {
       ),
     );
     expect(result.durationInSeconds).toBe(36);
+    expect(result.usage).toStrictEqual(transcriptionResponse.usage);
     expect(result.warnings).toEqual([]);
     expect(result.response).toEqual({
       timestamp: testDate,

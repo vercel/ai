@@ -6,16 +6,18 @@ import {
 import type { JSONValue } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
-const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema),
-  ]),
-);
+let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
+const jsonValueSchema = (): z.ZodType<JSONValue> =>
+  (cachedJsonValueSchema ??= z.lazy(() =>
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(jsonValueSchema()),
+      z.record(z.string(), jsonValueSchema()),
+    ]),
+  ));
 
 export const mcpArgsSchema = lazySchema(() =>
   zodSchema(
@@ -67,7 +69,7 @@ export const mcpOutputSchema = lazySchema(() =>
       name: z.string(),
       arguments: z.string(),
       output: z.string().nullish(),
-      error: z.union([z.string(), jsonValueSchema]).optional(),
+      error: z.union([z.string(), jsonValueSchema()]).optional(),
     }),
   ),
 );

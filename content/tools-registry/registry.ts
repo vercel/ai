@@ -689,4 +689,66 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'pexafy',
+    name: 'Pexafy',
+    description:
+      'Pexafy adds semantic stock photo search to your agents: describe a scene in plain English and get real, free-to-use photographs from Unsplash, Pexels, Pixabay and six more libraries, each with an image URL, alt text, license and credit line.',
+    packageName: 'pexafy-ai-sdk',
+    tags: ['images', 'photos', 'search'],
+    apiKeyEnvName: 'PEXAFY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add pexafy-ai-sdk',
+      npm: 'npm install pexafy-ai-sdk',
+      yarn: 'yarn add pexafy-ai-sdk',
+      bun: 'bun add pexafy-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pexafyTools } from 'pexafy-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-4.5',
+  tools: pexafyTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find a header photo for a blog post about remote work, with its credit line.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.pexafy.com/ai-sdk',
+    apiKeyUrl: 'https://pexafy.com/dashboard/api-keys/create/',
+    websiteUrl: 'https://pexafy.com',
+    npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
+  },
+  {
+    slug: 'agentmail',
+    name: 'AgentMail',
+    description:
+      'Give your agents real email inboxes. Create inboxes programmatically, send, receive, reply, search, and manage threaded email conversations.',
+    packageName: 'agentmail-toolkit',
+    tags: ['email', 'inbox', 'agents', 'automation'],
+    apiKeyEnvName: 'AGENTMAIL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agentmail-toolkit',
+      npm: 'npm install agentmail-toolkit',
+      yarn: 'yarn add agentmail-toolkit',
+      bun: 'bun add agentmail-toolkit',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { AgentMailToolkit } from 'agentmail-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  tools: new AgentMailToolkit().getTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Create an inbox for yourself, then check it for new messages and reply to anything urgent.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.agentmail.to/integrations/ai-sdk',
+    apiKeyUrl: 'https://console.agentmail.to',
+    websiteUrl: 'https://agentmail.to',
+    npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
+  },
 ];

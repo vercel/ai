@@ -148,7 +148,7 @@ export async function prepareTools({
           },
         });
       } else {
-        toolWarnings.push({ type: 'unsupported', feature: 'tool ${tool.id}' });
+        toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
       }
     }
   } else {
@@ -193,7 +193,7 @@ export async function prepareTools({
       supportsStrictOnTools &&
       (tool.strict !== true || isStrictToolSchemaCompatible(tool.inputSchema));
 
-    if (!supportsStrictOnTools && tool.strict != null) {
+    if (!supportsStrictOnTools && tool.strict === true) {
       toolWarnings.push({
         type: 'unsupported',
         feature: 'strict',

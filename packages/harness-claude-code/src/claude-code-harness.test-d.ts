@@ -1,6 +1,7 @@
-import type {
-  HarnessAgentAdapter,
-  HarnessAgentSettings,
+import {
+  HarnessAgent,
+  type HarnessAgentAdapter,
+  type HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
 import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
@@ -41,6 +42,13 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
   });
 
   test('new built-in tool inputs retain their schema types', () => {
+    assertType<InferToolInput<typeof claudeCode.builtinTools.ListAgents>>({
+      channel: 'reviewers',
+      q: 'available',
+    });
+    assertType<InferToolOutput<typeof claudeCode.builtinTools.ListAgents>>({
+      listing: 'reviewer',
+    });
     assertType<InferToolInput<typeof claudeCode.builtinTools.CronCreate>>({
       cron: '0 9 * * *',
       prompt: 'Prepare the daily summary.',
@@ -54,6 +62,13 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         approve: false,
         feedback: 'Add a regression test.',
       },
+    });
+  });
+
+  test('ListAgents can be disabled without a type cast', () => {
+    new HarnessAgent({
+      harness: claudeCode,
+      inactiveTools: ['ListAgents'],
     });
   });
 
@@ -84,6 +99,20 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         credentialForwarding: async ({ credential }) => credential,
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts question timeout and dynamic section settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.questionTimeoutMs).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(settings.excludeDynamicSections).toEqualTypeOf<
+      boolean | undefined
+    >();
   });
 
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {

@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +34,21 @@ const relayMock = vi.hoisted(() => ({
   close: vi.fn(),
   port: 4097,
 }));
+const tempDirectories: string[] = [];
+const allBuiltinToolNames = [
+  'askUserQuestions',
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'glob',
+  'grep',
+  'ls',
+  'webfetch',
+  'skill',
+  'todowrite',
+  'agent',
+];
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: vi.fn(async (options: unknown) => {
@@ -50,7 +71,7 @@ vi.mock('./tool-relay', () => ({
 }));
 
 vi.mock('./opencode-path', () => ({
-  prependOpenCodeBinToPath: vi.fn(),
+  configureOpenCodePath: vi.fn(),
 }));
 
 function createUserMessages() {
@@ -77,7 +98,11 @@ function createUserMessages() {
   };
 }
 
-function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test'): string {
+  const bridgeStateDir = mkdtempSync(
+    path.join(tmpdir(), 'opencode-bridge-state-'),
+  );
+  tempDirectories.push(bridgeStateDir);
   process.argv.length = 0;
   process.argv.push(
     process.execPath,
@@ -85,15 +110,15 @@ function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
     '--workdir',
     workdir,
     '--bridge-state-dir',
-    `${workdir}-state`,
+    bridgeStateDir,
     '--bootstrap-dir',
     `${workdir}-bootstrap`,
   );
+  return bridgeStateDir;
 }
 
 describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
-  const tempDirectories: string[] = [];
 
   afterEach(() => {
     process.argv.length = 0;
@@ -260,6 +285,264 @@ describe('OpenCode bridge turn settlement', () => {
         }),
       }),
     );
+  });
+
+  it('submits inline image prompts as OpenCode file parts', async () => {
+    const promptAsync = vi.fn(async () => ({ data: {} }));
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync,
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(promptAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionID: 'session-1',
+        parts: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'file',
+            mime: 'image/png',
+            url: 'data:image/png;base64,iVBORw0KGgo=',
+          },
+        ],
+      }),
+    );
+  });
+
+  it.each([
+    {
+      filteringCase: 'all inactive',
+      inactiveBuiltinToolNames: allBuiltinToolNames,
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'deny',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+    {
+      filteringCase: 'write and edit active',
+      inactiveBuiltinToolNames: allBuiltinToolNames.filter(
+        toolName => toolName !== 'write' && toolName !== 'edit',
+      ),
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'ask',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+  ])(
+    'applies host-resolved inactive builtins to OpenCode permissions ($filteringCase)',
+    async ({ inactiveBuiltinToolNames, expectedPermissions }) => {
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        inactiveBuiltinToolNames,
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'end builtin filtering test turn',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      setBridgeArgv();
+
+      await import('./index');
+
+      expect(createOpencodeServerMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            permission: expect.objectContaining(expectedPermissions),
+          }),
+        }),
+      );
+    },
+  );
+
+  it('keeps large host tool schemas out of the inline OpenCode config', async () => {
+    const largeDescription = 'schema detail '.repeat(12_000);
+    const tools = [
+      {
+        name: 'lookup',
+        description: largeDescription,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: largeDescription },
+          },
+        },
+      },
+    ];
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Look up a value.',
+      tools,
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end host tool schema test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    const bridgeStateDir = setBridgeArgv();
+
+    await import('./index');
+
+    const config = createOpencodeServerMock.mock.calls[0]?.[0].config as Record<
+      string,
+      unknown
+    >;
+    const environment = (
+      config.mcp as {
+        'harness-tools': { environment: Record<string, string> };
+      }
+    )['harness-tools'].environment;
+    const schemasPath = environment.TOOL_SCHEMAS_PATH;
+    expect(environment).toEqual({
+      TOOL_SCHEMAS_PATH: path.join(bridgeStateDir, 'host-tool-schemas.json'),
+      TOOL_RELAY_URL: 'http://127.0.0.1:4097',
+    });
+    expect(environment).not.toHaveProperty('TOOL_SCHEMAS');
+    expect(
+      Buffer.byteLength(readFileSync(schemasPath, 'utf8')),
+    ).toBeGreaterThan(128 * 1024);
+    expect(JSON.parse(readFileSync(schemasPath, 'utf8'))).toEqual(tools);
+    expect(Buffer.byteLength(JSON.stringify(config))).toBeLessThan(128 * 1024);
   });
 
   it('allows external directory access in allow-all mode', async () => {
@@ -705,13 +988,19 @@ describe('OpenCode bridge turn settlement', () => {
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
-    const start = (prompt: string | undefined) => ({
+    const inactiveBuiltinToolNames = ['read'];
+    const noInactiveBuiltinToolNames: string[] = [];
+    const start = (
+      prompt: string | undefined,
+      inactiveNames: string[] = inactiveBuiltinToolNames,
+    ) => ({
       type: 'start',
       operation: 'prompt',
       prompt: 'Continue.',
       tools: [{ name: 'lookup' }],
       openCodeConfig:
         prompt === undefined ? undefined : { agent: { build: { prompt } } },
+      inactiveBuiltinToolNames: inactiveNames,
     });
 
     sdkMock.client = client;
@@ -730,7 +1019,10 @@ describe('OpenCode bridge turn settlement', () => {
     expect(firstServer.close).not.toHaveBeenCalled();
     expect(relayMock.close).not.toHaveBeenCalled();
 
-    await bridgeMock.onStart!(start('Prompt B'), turn());
+    await bridgeMock.onStart!(
+      start('Prompt B', noInactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
     expect(createOpencodeServerMock.mock.calls[1]?.[0]).toMatchObject({
@@ -784,65 +1076,167 @@ describe('OpenCode bridge turn settlement', () => {
           (request as { sessionID?: string }).sessionID === 'session-1',
       ),
     ).toBe(true);
+
+    const activeReadServer = (await createOpencodeServerMock.mock.results[4]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+    expect(activeReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[5]?.[0]).toMatchObject({
+      config: { permission: { read: 'allow' } },
+    });
+
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+
+    const deniedReadServer = (await createOpencodeServerMock.mock.results[5]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(
+      start(undefined, inactiveBuiltinToolNames),
+      turn(),
+    );
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(7);
+    expect(deniedReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[6]?.[0]).toMatchObject({
+      config: { permission: { read: 'deny' } },
+    });
+    expect(
+      client.session.promptAsync.mock.calls.every(
+        ([request]) =>
+          (request as { sessionID?: string }).sessionID === 'session-1',
+      ),
+    ).toBe(true);
   });
 
-  it('settles a host-aborted turn once the next event arrives', async () => {
-    // The shared bridge runtime serializes turns: a replacement `start`
-    // waits (bounded) for the aborted turn's `onStart` to settle. OpenCode
-    // observes its abort signal at the top of the event loop, so any event
-    // after the abort — a heartbeat is enough — must settle the turn; it
-    // must not keep waiting for the turn's own completion events.
-    const emitted: Array<Record<string, unknown>> = [];
-    const emitError = vi.fn();
-    const userMessages = createUserMessages();
+  it('aborts OpenCode before allowing the next turn to stream', async () => {
     const abort = new AbortController();
-    bridgeMock.start = {
-      type: 'start',
-      operation: 'prompt',
-      prompt: 'Start.',
-    };
-    bridgeMock.turn = {
-      emit: (event: Record<string, unknown>) => emitted.push(event),
+    const firstTurn = {
+      emit: vi.fn(),
       requestToolResult: vi.fn(),
       requestToolApproval: vi.fn(),
-      experimental_userMessages: userMessages,
+      experimental_userMessages: createUserMessages(),
       abortSignal: abort.signal,
       firstTurn: true,
       bridgeLog: vi.fn(),
       emitWarning: vi.fn(),
-      emitError,
+      emitError: vi.fn(),
     };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Write a long response.',
+    };
+    bridgeMock.turn = firstTurn;
+    const sessionAbort = vi.fn(async () => ({ data: true }));
+    let subscriptionCount = 0;
     sdkMock.client = {
       mcp: { status: vi.fn(async () => ({ data: {} })) },
       session: {
+        abort: sessionAbort,
         create: vi.fn(async () => ({ data: { id: 'session-1' } })),
         get: vi.fn(async () => ({ data: {} })),
         messages: vi.fn(async () => ({ data: [] })),
-        // The turn is in flight when the host aborts.
         promptAsync: vi.fn(async () => {
-          queueMicrotask(() => abort.abort());
+          if (subscriptionCount === 1) queueMicrotask(() => abort.abort());
           return { data: {} };
         }),
       },
       event: {
-        subscribe: vi.fn(async () => ({
-          stream: {
-            async *[Symbol.asyncIterator]() {
-              // No completion events — the model is mid-work. Deliver one
-              // heartbeat after the abort; nothing else, ever.
-              await new Promise<void>(resolve => {
-                if (abort.signal.aborted) return resolve();
-                abort.signal.addEventListener('abort', () => resolve(), {
-                  once: true,
-                });
-              });
-              yield {
-                type: 'session.updated',
-                properties: { sessionID: 'session-1' },
+        subscribe: vi.fn(
+          async (_input: unknown, options: { signal: AbortSignal }) => {
+            subscriptionCount++;
+            if (subscriptionCount === 1) {
+              return {
+                stream: {
+                  [Symbol.asyncIterator]() {
+                    return {
+                      next: async () => {
+                        await new Promise<void>(resolve => {
+                          if (options.signal.aborted) return resolve();
+                          options.signal.addEventListener(
+                            'abort',
+                            () => resolve(),
+                            {
+                              once: true,
+                            },
+                          );
+                        });
+                        return { done: true as const, value: undefined };
+                      },
+                    };
+                  },
+                },
               };
-            },
+            }
+            return {
+              stream: {
+                async *[Symbol.asyncIterator]() {
+                  yield {
+                    type: 'message.updated',
+                    properties: {
+                      info: {
+                        id: 'second-assistant',
+                        sessionID: 'session-1',
+                        role: 'assistant',
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'message.part.delta',
+                    properties: {
+                      partID: 'second-text',
+                      messageID: 'second-assistant',
+                      field: 'text',
+                      delta: 'banana',
+                      sessionID: 'session-1',
+                    },
+                  };
+                  yield {
+                    type: 'message.part.updated',
+                    properties: {
+                      part: {
+                        id: 'second-step',
+                        messageID: 'second-assistant',
+                        sessionID: 'session-1',
+                        type: 'step-finish',
+                        reason: 'stop',
+                        tokens: {
+                          input: 1,
+                          output: 1,
+                          reasoning: 0,
+                          cache: { read: 0, write: 0 },
+                        },
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'busy' },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'idle' },
+                    },
+                  };
+                },
+              },
+            };
           },
-        })),
+        ),
       },
       v2: {
         session: {
@@ -853,14 +1247,41 @@ describe('OpenCode bridge turn settlement', () => {
     };
     setBridgeArgv();
 
-    // Resolves only once `onStart` settles — the very promise the shared
-    // runtime's turn fence waits on before starting a replacement turn.
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    expect(sessionAbort).toHaveBeenCalledOnce();
+    expect(sessionAbort).toHaveBeenCalledWith({ sessionID: 'session-1' });
+    expect(firstTurn.emitError).not.toHaveBeenCalled();
+
+    const emitted: Array<Record<string, unknown>> = [];
+    const secondTurn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+
+    await bridgeMock.onStart!(
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Reply with banana.',
+      },
+      secondTurn,
     );
-    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+
+    expect(secondTurn.emitError).not.toHaveBeenCalled();
+    expect(
+      emitted
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta)
+        .join(''),
+    ).toBe('banana');
   });
 
   it('authorizes host tools for task-linked subagents only', async () => {

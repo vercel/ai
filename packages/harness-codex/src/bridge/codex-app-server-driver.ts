@@ -1,4 +1,7 @@
-import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { StartMessage } from '../codex-bridge-protocol';
@@ -52,6 +55,15 @@ export function createCodexAppServerRuntime(): {
 } {
   let client: CodexAppServerClient | undefined;
   let loadedThreadId: string | undefined;
+  /*
+   * The model Codex reported in the `thread/start` / `thread/resume` response
+   * for the loaded thread, keyed by the model the bridge requested. Turns on an
+   * already-loaded thread skip those requests, so the reported model is reused
+   * while the requested model is unchanged.
+   */
+  let loadedThreadModel:
+    | { requestedModel: string | undefined; modelId: string | undefined }
+    | undefined;
   let loadedConfig: Record<string, unknown> | undefined;
   let activeTurn: ActiveTurn | undefined;
 
@@ -59,6 +71,7 @@ export function createCodexAppServerRuntime(): {
     const previous = client;
     client = undefined;
     loadedThreadId = undefined;
+    loadedThreadModel = undefined;
     loadedConfig = undefined;
     await previous?.close();
   };
@@ -157,6 +170,7 @@ export function createCodexAppServerRuntime(): {
             dynamicTools: active.dynamicTools,
             emit: active.options.emit,
             requestToolResult: active.options.turn.requestToolResult,
+            stepTracker: active.options.stepTracker,
           }).catch(error => {
             active.fail(error);
             throw error;
@@ -275,6 +289,7 @@ export function createCodexAppServerRuntime(): {
           }),
         });
         loadedThreadId = undefined;
+        loadedThreadModel = undefined;
       }
       if (trustedHook != null) {
         const hooks = await raceWithProcess({
@@ -324,9 +339,23 @@ export function createCodexAppServerRuntime(): {
           method: threadMethod,
         });
         loadedThreadId = currentTurn.threadId;
+        loadedThreadModel = {
+          requestedModel: codexModel,
+          modelId: readOptionalString(asRecord(threadResponse)?.model),
+        };
       }
       handler.announceThread(currentTurn.threadId!);
-      emit({ type: 'stream-start' });
+      const threadModel = loadedThreadModel;
+      const streamStartModelId =
+        threadModel != null &&
+        threadModel.requestedModel === codexModel &&
+        threadModel.modelId != null
+          ? threadModel.modelId
+          : codexModel;
+      emit({
+        type: 'stream-start',
+        ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+      });
       const turnResponse = await raceWithProcess({
         operation: runningClient.request({
           method: 'turn/start',
@@ -436,7 +465,17 @@ export function createTurnParams({
   return {
     threadId,
     ...(disableEnvironments ? { environments: [] } : {}),
-    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    input:
+      typeof start.prompt === 'string'
+        ? [{ type: 'text', text: start.prompt, text_elements: [] }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text', text: part.text, text_elements: [] }
+              : {
+                  type: 'image',
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          ),
     approvalPolicy: 'never',
     sandboxPolicy: {
       type: 'externalSandbox',
@@ -526,11 +565,13 @@ export async function handleAppServerRequest({
   dynamicTools,
   emit,
   requestToolResult,
+  stepTracker,
 }: {
   request: CodexAppServerRequest;
   dynamicTools: ReturnType<typeof createDynamicTools>;
   emit: Emit;
   requestToolResult: BridgeTurn['requestToolResult'];
+  stepTracker: CodexStepTracker;
 }): Promise<unknown> {
   if (request.method !== 'item/tool/call') {
     throw new Error(
@@ -558,7 +599,11 @@ export async function handleAppServerRequest({
     input: JSON.stringify(params.arguments ?? {}),
     providerExecuted: false,
   });
-  const result = await requestToolResult(params.callId);
+  const callId = params.callId;
+  stepTracker.awaitHostInput({ itemId: callId });
+  const result = await requestToolResult(callId).finally(() =>
+    stepTracker.resolveHostInput({ itemId: callId }),
+  );
   emit({
     type: 'tool-result',
     toolCallId: params.callId,
@@ -566,6 +611,22 @@ export async function handleAppServerRequest({
     result: result.output ?? null,
     isError: result.isError === true,
   });
+  if (result.toolResult != null) {
+    const converted = convertHarnessToolModelOutput({
+      output: result.toolResult.output,
+    });
+    return {
+      contentItems: converted.content.map(part =>
+        part.type === 'text'
+          ? { type: 'inputText', text: part.text }
+          : {
+              type: 'inputImage',
+              imageUrl: `data:${part.mediaType};base64,${part.data}`,
+            },
+      ),
+      success: result.isError !== true && !converted.isError,
+    };
+  }
   return {
     contentItems: [
       { type: 'inputText', text: serializeToolOutput(result.output) },
@@ -614,4 +675,8 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

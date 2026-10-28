@@ -111,7 +111,7 @@ Your AI SDK calls stay exactly as they are. Every span carries the `Vercel AI SD
 
 You can configure what happens to your incoming traces on Confident AI's [workflows page](https://www.confident-ai.com/docs/llm-tracing/workflows).
 
-![Confident AI workflows page](https://confident-docs.s3.us-east-1.amazonaws.com/confident-trace-workflows.png)
+![Confident AI workflows page](/images/confident-trace-workflows.jpg)
 
 Here's the workflows you can configure:
 
@@ -150,7 +150,7 @@ const { text } = await traceContext(
 
 ### Group Traces Into Threads
 
-`confident-trace` provides a `turn()` method you can use to group two sequential AI SDK calls into one turn. Reuse the same thread ID on later turns to group them into one thread you can view and evaluate on Confident AI:
+`confident-trace` provides a `turn()` method you can use to group sequential AI SDK calls into one turn. Reuse the same thread ID on later turns to group them into one thread you can view and evaluate on Confident AI:
 
 ```ts
 import { generateText } from 'ai';

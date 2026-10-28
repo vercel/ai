@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4FilePart,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -8,6 +12,95 @@ import { CacheControlValidator } from './get-cache-control';
 const defaultToolNameMapping = createToolNameMapping({
   tools: [],
   providerToolNames: {},
+});
+
+describe('custom media conversion', () => {
+  it.each(['part', 'message'] as const)(
+    'converts the original file part and preserves %s cache control',
+    async cacheControlLocation => {
+      const cacheOptions = {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      };
+      const file: LanguageModelV4FilePart = {
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'reference', reference: { custom: 'video-id' } },
+        providerOptions: {
+          custom: { fps: 2 },
+          ...(cacheControlLocation === 'part' ? cacheOptions : {}),
+        },
+      };
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Describe.' }, file],
+            providerOptions:
+              cacheControlLocation === 'message' ? cacheOptions : undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+        convertMediaPart: async part => {
+          expect(part).toBe(file);
+          return {
+            type: 'video',
+            source: { type: 'url', url: 'https://example.com/video.mp4' },
+          };
+        },
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe.', cache_control: undefined },
+            {
+              type: 'video',
+              source: { type: 'url', url: 'https://example.com/video.mp4' },
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(result.betas.size).toBe(0);
+    },
+  );
+
+  it('uses default file conversion when the hook returns undefined', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/doc.pdf'),
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+      convertMediaPart: async () => undefined,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'document',
+        source: { type: 'url', url: 'https://example.com/doc.pdf' },
+        title: undefined,
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.betas).toContain('pdfs-2024-09-25');
+  });
 });
 
 describe('orphaned programmatic callers', () => {
@@ -1775,6 +1868,70 @@ describe('tool messages', () => {
     `);
   });
 
+  it('should handle tool result with a provider-referenced file', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'get-file',
+              toolCallId: 'get-file-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { anthropic: 'file-txt-12345' },
+                    },
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'get-file-1',
+                is_error: undefined,
+                cache_control: undefined,
+                content: [
+                  {
+                    type: 'document',
+                    source: {
+                      type: 'file',
+                      file_id: 'file-txt-12345',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('should handle tool result with custom tool-reference content for custom tool search', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -1980,6 +2137,141 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should ignore message-start accounting parts when replaying assistant content', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.message_start',
+              providerOptions: {
+                anthropic: {
+                  id: 'msg_usage',
+                  model: 'claude-haiku-4-5',
+                  usage: { input_tokens: 13, output_tokens: 1 },
+                },
+              },
+            },
+            { type: 'text', text: 'Hi!' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi!', cache_control: undefined }],
+      },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('should preserve fallback boundaries between reasoning blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Primary model thinking',
+              providerOptions: {
+                anthropic: { signature: 'primary-signature' },
+              },
+            },
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                  to: { model: 'claude-opus-4-8' },
+                },
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Fallback model thinking',
+              providerOptions: {
+                anthropic: { signature: 'fallback-signature' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Primary model thinking',
+            signature: 'primary-signature',
+          },
+          {
+            type: 'fallback',
+            from: { model: 'claude-opus-5-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+          {
+            type: 'thinking',
+            thinking: 'Fallback model thinking',
+            signature: 'fallback-signature',
+          },
+        ],
+      },
+    ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
+  });
+
+  it('should warn and omit fallback boundaries with invalid metadata', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'anthropic fallback metadata must include from.model and to.model',
+      },
+    ]);
+  });
+
   it('should omit empty compaction blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -3361,6 +3653,94 @@ describe('assistant messages', () => {
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
+
+  it.each([
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+  ] as const)(
+    'should convert $toolName $output.type error results',
+    async ({ toolName, output }) => {
+      const warnings: SharedV4Warning[] = [];
+      const toolCallId = `srvtoolu_${toolName}`;
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input:
+                  toolName === 'tool_search_tool_regex'
+                    ? { pattern: '[' }
+                    : { query: 'weather' },
+                providerExecuted: true,
+                toolCallId,
+                toolName,
+                type: 'tool-call',
+              },
+              {
+                output,
+                toolCallId,
+                toolName,
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content[1]).toEqual({
+        cache_control: undefined,
+        content: {
+          error_code: 'invalid_tool_input',
+          type: 'tool_search_tool_result_error',
+        },
+        tool_use_id: toolCallId,
+        type: 'tool_search_tool_result',
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
 
   describe('advisor 20260301 multi-turn round-trip', () => {
     it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {
@@ -5696,6 +6076,7 @@ describe('toolsets', () => {
               "cache_control": undefined,
               "id": "toolu_click",
               "input": {
+                "action": "left_click",
                 "coordinate": [
                   640,
                   60,
@@ -5764,7 +6145,7 @@ describe('toolsets', () => {
         id: 'toolu_screenshot',
         name: 'screenshot',
         toolset_name: 'computer',
-        input: {},
+        input: { action: 'screenshot' },
         cache_control: undefined,
       },
     ]);
@@ -5780,34 +6161,84 @@ describe('toolsets', () => {
     ]);
   });
 
-  it('should warn and skip toolset tool calls without an action', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
-      prompt: [
+  it.each([
+    { input: { coordinate: [1, 2] }, toolName: 'computer' },
+    { input: { action: null, coordinate: [1, 2] }, toolName: 'computer' },
+    { input: 'invalid JSON', toolName: 'computer' },
+    { input: { action: null }, toolName: 'desktop' },
+  ])(
+    'should retain malformed toolset calls and their existing error results: %j',
+    async ({ input, toolName }) => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_bad',
+                toolName,
+                input,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_bad',
+                toolName,
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input for tool computer',
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: toolsetToolNameMapping,
+        toolsetNames: { [toolName]: 'computer' },
+      });
+
+      expect(result.prompt.messages).toEqual([
         {
           role: 'assistant',
           content: [
             {
-              type: 'tool-call',
-              toolCallId: 'toolu_bad',
-              toolName: 'computer',
-              input: { coordinate: [1, 2] },
+              type: 'tool_use',
+              id: 'toolu_bad',
+              name: 'computer',
+              toolset_name: 'computer',
+              input:
+                typeof input === 'string' ? { rawInvalidInput: input } : input,
+              cache_control: undefined,
             },
           ],
         },
-      ],
-      sendReasoning: true,
-      warnings,
-      toolNameMapping: toolsetToolNameMapping,
-      toolsetNames: { computer: 'computer' },
-    });
-
-    expect(result.prompt.messages).toEqual([]);
-    expect(warnings).toEqual([
-      {
-        type: 'other',
-        message: 'toolset tool call for tool computer is missing the action',
-      },
-    ]);
-  });
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_bad',
+              toolset_name: 'computer',
+              content: 'Invalid input for tool computer',
+              is_error: true,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'other',
+          message: `toolset tool call for tool ${toolName} is missing the action`,
+        },
+      ]);
+    },
+  );
 });

@@ -354,3 +354,28 @@ describe('doGenerate', () => {
     expect(result.response.headers?.['x-request-id']).toBe('test-request-id');
   });
 });
+
+describe('region validation', () => {
+  it.each(['googleVertex', 'vertex', 'google'])(
+    'rejects an injected per-request region under %s before fetching',
+    async namespace => {
+      const fetch = vi.fn();
+      const model = createGoogleVertex({
+        project: 'test',
+        location: 'us-central1',
+        fetch,
+      }).transcription('chirp_3');
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: { [namespace]: { region: 'user@internal:8080/#' } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'region',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+});

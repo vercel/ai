@@ -10,6 +10,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import {
   Output,
+  experimental_streamTextLowMemory,
   streamText,
   type StreamTextEndEvent,
   type StreamTextOnEndCallback,
@@ -34,6 +35,81 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('result shape', () => {
+    it('should retain final output for reusable options', () => {
+      const options: Parameters<typeof streamText>[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      };
+      const result = streamText(options);
+
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+      expectTypeOf(result.text).toEqualTypeOf<PromiseLike<string>>();
+    });
+
+    it('should retain final output in ReturnType', () => {
+      type Result = ReturnType<typeof streamText>;
+
+      expectTypeOf<Result>().toHaveProperty('output');
+      expectTypeOf<Result['text']>().toEqualTypeOf<PromiseLike<string>>();
+    });
+
+    it('should infer structured output for reusable options', () => {
+      const output = Output.object({ schema: z.object({ value: z.string() }) });
+      const options: Parameters<
+        typeof streamText<{}, Context, typeof output>
+      >[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+      };
+
+      expectTypeOf(streamText(options).output).toEqualTypeOf<
+        PromiseLike<{ value: string }>
+      >();
+    });
+  });
+
+  describe('experimental_streamTextLowMemory', () => {
+    it('should omit final output and preserve typed partial output', () => {
+      const result = experimental_streamTextLowMemory({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({ schema: z.object({ value: z.string() }) }),
+      });
+
+      // @ts-expect-error low-memory results do not retain final output
+      result.output;
+      // @ts-expect-error low-memory results do not retain final text
+      result.text;
+      expectTypeOf(result.partialOutputStream).toEqualTypeOf<
+        AsyncIterableStream<DeepPartial<{ value: string }>>
+      >();
+    });
+
+    it('should accept reusable streamText options', () => {
+      const options: Parameters<typeof streamText>[0] = {
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      };
+      const result = experimental_streamTextLowMemory(options);
+
+      expectTypeOf(result.textStream).toEqualTypeOf<
+        AsyncIterableStream<string>
+      >();
+      // @ts-expect-error low-memory results do not retain final output
+      result.output;
+    });
+  });
+
+  it('should accept toolCallConcurrency', () => {
+    streamText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('stream retries', () => {
     it('should accept streamRetries and an onError retry result', () => {
       streamText({
@@ -268,6 +344,61 @@ describe('streamText types', () => {
   });
 
   describe('toUIMessageStream options', () => {
+    it('preserves custom UI message types in step callbacks across all conversion methods', () => {
+      type Message = UIMessage<
+        { totalTokens: number },
+        { context: { project: string } },
+        {
+          weather: {
+            input: { location: string };
+            output: { temperature: number };
+          };
+        }
+      >;
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+      const checkSnapshot = (message: Message) => {
+        expectTypeOf(message.metadata).toEqualTypeOf<
+          { totalTokens: number } | undefined
+        >();
+        for (const part of message.parts) {
+          if (part.type === 'data-context') {
+            expectTypeOf(part.data).toEqualTypeOf<{ project: string }>();
+          }
+          if (
+            part.type === 'tool-weather' &&
+            part.state === 'output-available'
+          ) {
+            expectTypeOf(part.input).toEqualTypeOf<{ location: string }>();
+            expectTypeOf(part.output).toEqualTypeOf<{ temperature: number }>();
+          }
+        }
+      };
+      result.toUIMessageStream<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.toUIMessageStreamResponse<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.pipeUIMessageStreamToResponse<Message>(null as never, {
+        onStepFinish: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+    });
+
     it('should support onEnd and deprecated onFinish', () => {
       const result = streamText({
         model: new MockLanguageModelV4(),
@@ -702,6 +833,12 @@ describe('streamText types', () => {
             requestId: string;
           }>();
         },
+        onStepError: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
         onFinish: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -820,16 +957,9 @@ describe('streamText types', () => {
               writeFile: async () => {},
               writeBinaryFile: async () => {},
               writeTextFile: async () => {},
-              spawn: async () => ({
-                stdout: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                stderr: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                wait: async () => ({ exitCode: 0 }),
-                kill: async () => {},
-              }),
+              spawn: async () => {
+                throw new Error('spawn is not implemented in this mock.');
+              },
             },
           }),
         });
@@ -848,7 +978,7 @@ describe('streamText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

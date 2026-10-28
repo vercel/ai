@@ -49,14 +49,16 @@ return createUIMessageStreamResponse({
 });
 ```
 
-In case you are using `createDataStreamResponse`, you can use the `onError` function when calling `toDataStreamResponse`:
+In case you are using `createUIMessageStream`, you can pass the `onError` function to it:
 
 ```tsx
-const response = createDataStreamResponse({
-  // ...
-  async execute(dataStream) {
+const response = createUIMessageStreamResponse({
+  stream: createUIMessageStream({
     // ...
-  },
-  onError: errorHandler,
+    async execute({ writer }) {
+      // ...
+    },
+    onError: errorHandler,
+  }),
 });
 ```

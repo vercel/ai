@@ -18,10 +18,10 @@ export function resolveACPPrivateSessionDirectory({
 }
 
 export function resolveACPSkillsDirectory({
-  implementationHomeDir,
+  agentHomeDir,
   skillsDirectory = DEFAULT_ACP_SKILLS_DIRECTORY,
 }: {
-  implementationHomeDir: string;
+  agentHomeDir: string;
   skillsDirectory?: string;
 }): string {
   const containsTraversal = skillsDirectory
@@ -44,7 +44,7 @@ export function resolveACPSkillsDirectory({
     );
   }
 
-  return path.posix.join(implementationHomeDir, normalizedDirectory);
+  return path.posix.join(agentHomeDir, normalizedDirectory);
 }
 
 export function validateACPSkills({

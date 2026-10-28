@@ -12,7 +12,21 @@ const modelMapping: ACPV1Settings['modelMapping'] = {
   path: 'model',
 };
 
+const source: ACPV1Settings['source'] = {
+  type: 'install-command',
+  command: 'curl https://example.com/install -fsS | bash',
+};
+
 describe('createACP built-in tool inference', () => {
+  test('accepts only image as a non-text content type', () => {
+    expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
+      ReadonlyArray<'image'> | undefined
+    >();
+    expectTypeOf<ReadonlyArray<'text' | 'audio'>>().not.toExtend<
+      NonNullable<ACPV1Settings['nonTextContentTypes']>
+    >();
+  });
+
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
     expectTypeOf<ToolCall>().toExtend<ACPToolCall>();
@@ -44,13 +58,10 @@ describe('createACP built-in tool inference', () => {
   });
 
   test('requires a model mapping', () => {
-    // @ts-expect-error modelMapping is required for every ACP implementation
+    // @ts-expect-error modelMapping is required for every ACP agent
     createACP({
       harnessId: 'missing-model-mapping',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
     });
   });
@@ -76,11 +87,7 @@ describe('createACP built-in tool inference', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-        packageVersion: '1.1.4',
-      },
+      source,
       executable: 'codex-acp',
       modelMapping,
       builtinTools: { bash },
@@ -93,10 +100,7 @@ describe('createACP built-in tool inference', () => {
   test('adds askUserQuestions only when configured', () => {
     const withoutQuestions = createACP({
       harnessId: 'without-questions',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
     });
@@ -106,10 +110,7 @@ describe('createACP built-in tool inference', () => {
 
     const withQuestions = createACP({
       harnessId: 'with-questions',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
       askUserQuestions: {
@@ -123,26 +124,7 @@ describe('createACP built-in tool inference', () => {
     >().toEqualTypeOf<'askUserQuestions'>();
   });
 
-  test('accepts discriminated npm and install command sources', () => {
-    createACP({
-      harnessId: 'simple-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-        packageVersion: '1.2.3',
-      },
-      executable: 'acp-agent',
-      modelMapping,
-    });
-    createACP({
-      harnessId: 'unpinned-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
-      executable: 'acp-agent',
-      modelMapping,
-    });
+  test('accepts npm-locked and install-command sources', () => {
     createACP({
       harnessId: 'locked-acp',
       source: {
@@ -167,10 +149,7 @@ describe('createACP built-in tool inference', () => {
   test('accepts native instruction mappings', () => {
     createACP({
       harnessId: 'claude-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/claude-agent-acp',
-      },
+      source,
       executable: 'claude-agent-acp',
       modelMapping,
       skillsDirectory: '.claude/skills',
@@ -181,10 +160,7 @@ describe('createACP built-in tool inference', () => {
     });
     createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-      },
+      source,
       executable: 'codex-acp',
       modelMapping,
       instructionMapping: {
@@ -211,10 +187,7 @@ describe('createACP built-in tool inference', () => {
   test('accepts asynchronous credential forwarding', () => {
     createACP({
       harnessId: 'credential-forwarding-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
       credentialForwarding: async ({ credential, environmentVariableName }) =>

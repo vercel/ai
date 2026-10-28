@@ -2,7 +2,7 @@ import {
   InvalidArgumentError,
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -12,12 +12,14 @@ import {
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  resolve,
   validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
@@ -54,8 +56,12 @@ export interface AnthropicProvider extends ProviderV4 {
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
-  evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
+  decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -78,6 +84,12 @@ export interface AnthropicProvider extends ProviderV4 {
 }
 
 export interface AnthropicProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
@@ -93,10 +105,11 @@ export interface AnthropicProviderSettings {
 
   /**
    * Auth token that is being sent using the `Authorization: Bearer` header.
-   * It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   * Can be a string, a promise, or a function returning either. Functions are
+   * called before each request to support short-lived tokens and token refresh.
    * Only one of `apiKey` or `authToken` is required.
    */
-  authToken?: string;
+  authToken?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -147,18 +160,8 @@ export function createAnthropic(
     });
   }
 
-  const getHeaders = () => {
-    const authHeaders: Record<string, string> = options.authToken
-      ? { Authorization: `Bearer ${options.authToken}` }
-      : {
-          'x-api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'ANTHROPIC_API_KEY',
-            description: 'Anthropic',
-          }),
-        };
-
-    return withUserAgentSuffix(
+  const createHeaders = (authHeaders: Record<string, string>) =>
+    withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
@@ -166,6 +169,28 @@ export function createAnthropic(
       },
       `ai-sdk-anthropic/${VERSION}`,
     );
+
+  const getHeaders = () => {
+    const authToken = options.authToken;
+
+    if (authToken) {
+      const token = typeof authToken === 'function' ? authToken() : authToken;
+      const createBearerHeaders = (token: string) =>
+        createHeaders({ Authorization: `Bearer ${token}` });
+
+      // Keep synchronous credentials serializable across workflow boundaries.
+      return typeof token === 'string'
+        ? createBearerHeaders(token)
+        : resolve(token).then(createBearerHeaders);
+    }
+
+    return createHeaders({
+      'x-api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+        description: 'Anthropic',
+      }),
+    });
   };
 
   const languageModelConfig = {
@@ -183,6 +208,7 @@ export function createAnthropic(
   const createBatch = () =>
     new AnthropicBatch({
       provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: languageModelConfig,
       supportedUrls,
     });
@@ -209,11 +235,13 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
-  provider.evaluationModel = (modelId: AnthropicModelId) =>
-    new EvaluationLanguageModel({
+  provider.decisionModel = (modelId: AnthropicModelId) =>
+    new DecisionLanguageModel({
       model: createChatModel(modelId),
-      provider: `${providerName.replace(/\.messages$/, '')}.evaluation`,
+      provider: `${providerName.replace(/\.messages$/, '')}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {

@@ -2,9 +2,9 @@ import '../global.css';
 import '@/lib/geistdocs/site-url-warning';
 import { Analytics } from '@vercel/analytics/next';
 import { Footer } from '@vercel/geistdocs/footer';
-import { GeistdocsProvider } from '@vercel/geistdocs/layout';
 import { Navbar } from '@vercel/geistdocs/navbar';
 import type { Metadata, Viewport } from 'next';
+import { DocsProvider } from '@/components/docs/provider';
 import { config } from '@/lib/geistdocs/config';
 import { mono, sans } from '@/lib/geistdocs/fonts';
 import { getRootLang } from '@/lib/geistdocs/root-params';
@@ -52,12 +52,12 @@ const RootLayout = async ({ children }: LayoutProps<'/[lang]'>) => {
         <link href="/llms.txt" rel="llms-txt" />
       </head>
       <body>
-        <GeistdocsProvider config={config} lang={lang}>
+        <DocsProvider config={config} lang={lang}>
           <Navbar config={config} />
           {children}
           <Footer />
           <Analytics />
-        </GeistdocsProvider>
+        </DocsProvider>
       </body>
     </html>
   );

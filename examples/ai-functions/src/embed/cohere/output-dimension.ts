@@ -3,13 +3,13 @@ import { embed } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  // outputDimension: 256, 512, 1024, or 1536 (default)
+  // Embed 5 supports 256, 512, 768, 1024, 1536, or 2048 (default).
   const { embedding, usage, warnings } = await embed({
-    model: cohere.embedding('embed-v4.0'),
+    model: cohere.embedding('embed-v5.0-pro'),
     value: 'sunny day at the beach',
     providerOptions: {
       cohere: {
-        outputDimension: 256,
+        outputDimension: 768,
       } satisfies CohereEmbeddingModelOptions,
     },
   });
