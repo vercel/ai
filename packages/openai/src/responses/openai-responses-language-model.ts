@@ -718,7 +718,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         if (
-          modelCapabilities.supportedReasoningEfforts != null &&
+          modelCapabilities.supportsConfigurationUpdate &&
           (baseArgs.top_logprobs != null ||
             baseArgs.include?.includes('message.output_text.logprobs'))
         ) {
