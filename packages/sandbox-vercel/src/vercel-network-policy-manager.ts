@@ -60,7 +60,7 @@ export class VercelNetworkPolicyManager {
 
   setNetworkPolicy(policy: HarnessV1NetworkPolicy): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       if (
         this.#state == null &&
         inspection.requestTransformationHosts.length > 0
@@ -85,7 +85,7 @@ export class VercelNetworkPolicyManager {
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       await this.#applyState({
         accessPolicy: inspection.accessPolicy,
         requestTransformations: transformations.map(cloneRequestTransformation),
@@ -99,7 +99,7 @@ export class VercelNetworkPolicyManager {
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       const incomingTransformations = transformations.map(
         cloneRequestTransformation,
       );
@@ -160,7 +160,7 @@ export class VercelNetworkPolicyManager {
     return result;
   }
 
-  #inspectPolicy(): CurrentPolicyInspection {
+  async #inspectPolicy(): Promise<CurrentPolicyInspection> {
     /*
      * Once initialized, this manager is the sole supported owner of the
      * session's network policy. Direct native Sandbox policy mutations can
@@ -175,9 +175,38 @@ export class VercelNetworkPolicyManager {
       };
     }
 
-    return inspectCurrentPolicy(
-      this.#sandbox.currentSession().networkPolicy ?? 'allow-all',
-    );
+    const session = this.#sandbox.currentSession();
+    const policy = session.networkPolicy ?? 'allow-all';
+    const inspection = inspectCurrentPolicy(policy);
+
+    if (typeof policy === 'object') {
+      const sessions = await this.#sandbox.listSessions();
+      for await (const metadata of sessions) {
+        if (metadata.id !== session.sessionId) {
+          continue;
+        }
+
+        if (metadata.networkPolicy == null) {
+          break;
+        }
+
+        const responseRules = metadata.networkPolicy.responseRules;
+        if (
+          responseRules != null &&
+          (!Array.isArray(responseRules) || responseRules.length > 0)
+        ) {
+          throw createResponseRuleConflictError();
+        }
+
+        return inspection;
+      }
+
+      throw createPolicyConflictError(
+        'Cannot mutate the network policy because the current Vercel Sandbox session policy could not be inspected for response rules.',
+      );
+    }
+
+    return inspection;
   }
 
   async #applyState({
@@ -241,6 +270,9 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
   if (policy.allow != null && !Array.isArray(policy.allow)) {
     for (const [host, rules] of Object.entries(policy.allow)) {
       for (const rule of rules) {
+        if (rule.response != null) {
+          throw createResponseRuleConflictError();
+        }
         if (hasRequestTransformation(rule)) {
           requestTransformationHosts.add(host.toLowerCase());
         }
@@ -751,4 +783,10 @@ function createPolicyConflictError(
     harnessId: VERCEL_PROVIDER_ID,
     message,
   });
+}
+
+function createResponseRuleConflictError(): HarnessCapabilityUnsupportedError {
+  return createPolicyConflictError(
+    'Cannot mutate the network policy because the current Vercel Sandbox policy contains response rules that cannot be preserved safely. Manage this policy through the native Sandbox SDK with the complete original rules instead.',
+  );
 }

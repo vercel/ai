@@ -710,6 +710,25 @@ try {
 }
 ```
 
+### Vercel Network Policy Conflicts
+
+The Vercel adapter rejects `setNetworkPolicy()`, `addRequestTransformations()`,
+and `setRequestTransformations()` with `HarnessCapabilityUnsupportedError` when
+the existing native policy contains `response` rules. These rules can restrict
+requests by method or path, but the native SDK's policy readback can omit them.
+Before taking ownership of an existing custom policy, the adapter inspects raw
+session metadata and refuses the mutation if response rules are present or the
+current session policy cannot be inspected. No replacement policy is sent.
+
+Harness credential brokering can call `addRequestTransformations()` during
+session startup, so this conflict can also prevent `agent.createSession()` from
+completing. The adapter's custom `setNetworkPolicy()` supports hosts and CIDRs,
+not method, path, or response rules. Manage policies containing response rules
+through the native Sandbox SDK using the complete original rule set; do not
+remove restrictions just to enable credential brokering. After the adapter takes
+ownership of a policy, use its network methods rather than mutating the native
+policy directly.
+
 ### Basic Sandbox Sessions Without Network Control
 
 The following example demonstrates how the basic-session API works. If your
