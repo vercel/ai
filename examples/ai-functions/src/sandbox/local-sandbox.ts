@@ -94,7 +94,10 @@ export class LocalSandboxSession implements SandboxSession {
     }
 
     const child = spawn('bash', ['-c', command], {
-      cwd: this.resolvePath(workingDirectory ?? this.rootDirectory),
+      cwd:
+        workingDirectory === undefined
+          ? this.rootDirectory
+          : this.resolvePath(workingDirectory),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
