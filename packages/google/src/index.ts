@@ -3,8 +3,18 @@ export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */
   GoogleLanguageModelOptions as GoogleGenerativeAIProviderOptions,
+<<<<<<< HEAD
 } from './google-generative-ai-options';
 export type { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
+=======
+} from './google-language-model-options';
+export type {
+  GoogleProviderMetadata,
+  GoogleVideoMetadata,
+  /** @deprecated Use `GoogleProviderMetadata` instead. */
+  GoogleProviderMetadata as GoogleGenerativeAIProviderMetadata,
+} from './google-prompt';
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155))
 export type {
   GoogleImageModelOptions,
   /** @deprecated Use `GoogleImageModelOptions` instead. */

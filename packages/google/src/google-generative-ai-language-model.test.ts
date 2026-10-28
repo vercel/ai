@@ -710,6 +710,45 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 
@@ -4881,6 +4920,137 @@ describe('doStream', () => {
     };
   };
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.test.ts
+=======
+  it('should send videoMetadata on video file parts', async () => {
+    prepareStreamResponse({ content: ['done'] });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const result = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+    await convertReadableStreamToArray(result.stream);
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
+  describe('in-stream errors', () => {
+    it.each([
+      {
+        partialText: false,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'INVALID_ARGUMENT',
+        isRetryable: false,
+      },
+      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+    ])(
+      'should surface $status and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, isRetryable }) => {
+        const error = {
+          code,
+          message: 'Provider error',
+          status,
+          details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo' }],
+        };
+        server.urls[TEST_URL_GEMINI_PRO].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...(partialText
+              ? [
+                  {
+                    candidates: [
+                      { content: { parts: [{ text: 'Partial answer' }] } },
+                    ],
+                    usageMetadata: {
+                      promptTokenCount: 10,
+                      candidatesTokenCount: 2,
+                      totalTokenCount: 12,
+                    },
+                  },
+                ]
+              : []),
+            { error },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.map(event => event.type)).toEqual([
+          'stream-start',
+          ...(partialText ? ['text-start', 'text-delta'] : []),
+          'error',
+          ...(partialText ? ['text-end'] : []),
+          'finish',
+        ]);
+        const errorEvent = events.find(event => event.type === 'error');
+        expect(errorEvent).toEqual({
+          type: 'error',
+          error: {
+            message: error.message,
+            type: status,
+            code: code ?? undefined,
+            statusCode: code ?? undefined,
+            isRetryable,
+            data: error,
+          },
+        });
+        expect(isProviderStreamError(errorEvent?.error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+          ...(partialText && {
+            usage: {
+              inputTokens: { total: 10 },
+              outputTokens: { total: 2 },
+            },
+          }),
+        });
+      },
+    );
+  });
+
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/google-language-model.test.ts
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-text');

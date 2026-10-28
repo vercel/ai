@@ -8,12 +8,26 @@ import {
   isUrlSupported,
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
 import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
+=======
+import {
+  googleVideoMetadataSchema,
+  type GoogleContent,
+  type GoogleContentPart,
+  type GoogleFunctionResponsePart,
+  type GooglePrompt,
+} from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.ts
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -310,9 +324,39 @@ export function convertToGoogleGenerativeAIMessages(
             }
 
             case 'file': {
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
               // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+=======
+              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
+
+              switch (part.data.type) {
+                case 'url': {
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+                case 'reference': {
+                  if (isVertexLike) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.ts
 
               parts.push(
                 part.data instanceof URL
@@ -332,7 +376,39 @@ export function convertToGoogleGenerativeAIMessages(
                         data: convertToBase64(part.data),
                       },
                     },
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.ts
               );
+=======
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+                case 'text': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: isFullMediaType(part.mediaType)
+                        ? part.mediaType
+                        : 'text/plain',
+                      data: convertToBase64(
+                        new TextEncoder().encode(part.data.text),
+                      ),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+                case 'data': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      data: convertToBase64(part.data.data),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+              }
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.ts
 
               break;
             }

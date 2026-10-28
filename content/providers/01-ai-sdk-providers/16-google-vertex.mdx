@@ -696,6 +696,33 @@ const { text } = await generateText({
   files to that location.
 </Note>
 
+For video file parts, pass `videoMetadata` through `providerOptions.googleVertex`
+to control clipping and frame rate. It works with Cloud Storage URLs and inline
+video data:
+
+```ts
+import type { FilePart } from 'ai';
+
+const videoPart = {
+  type: 'file',
+  data: new URL('gs://my-bucket/video.mp4'),
+  mediaType: 'video/mp4',
+  providerOptions: {
+    googleVertex: {
+      videoMetadata: {
+        startOffset: '60s',
+        endOffset: '120s',
+        fps: 1,
+      },
+    },
+  },
+} satisfies FilePart;
+```
+
+All three fields are optional. `startOffset` and `endOffset` are durations in
+seconds, such as `'60s'` or `'3.5s'`. `fps` must be in the range `(0, 24]` and
+defaults to `1`.
+
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
 ### Long decode

@@ -1,3 +1,4 @@
+<<<<<<< HEAD:packages/google/src/google-generative-ai-prompt.ts
 import {
   type GroundingMetadataSchema,
   type PromptFeedbackSchema,
@@ -5,6 +6,16 @@ import {
   type UsageMetadataSchema,
   type SafetyRatingSchema,
 } from './google-generative-ai-language-model';
+=======
+import { z } from 'zod/v4';
+import type {
+  GroundingMetadataSchema,
+  PromptFeedbackSchema,
+  SafetyRatingSchema,
+  UrlContextMetadataSchema,
+  UsageMetadataSchema,
+} from './google-language-model';
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/google-prompt.ts
 
 export type GoogleGenerativeAIPrompt = {
   systemInstruction?: GoogleGenerativeAISystemInstruction;
@@ -20,9 +31,32 @@ export type GoogleGenerativeAIContent = {
   parts: Array<GoogleGenerativeAIContentPart>;
 };
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-prompt.ts
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
   | { inlineData: { mimeType: string; data: string } }
+=======
+export const googleVideoMetadataSchema = z.object({
+  /** Start offset as a duration in seconds, e.g. `'3.5s'`. */
+  startOffset: z.string().optional(),
+  /** End offset as a duration in seconds, e.g. `'10s'`. */
+  endOffset: z.string().optional(),
+  /** Frames per second in the range (0, 24]. Defaults to 1. */
+  fps: z.number().gt(0).max(24).optional(),
+});
+
+/** Metadata for preprocessing video file parts. */
+export type GoogleVideoMetadata = z.infer<typeof googleVideoMetadataSchema>;
+
+export type GoogleContentPart =
+  | { text: string; thought?: boolean; thoughtSignature?: string }
+  | {
+      inlineData: { mimeType: string; data: string };
+      videoMetadata?: GoogleVideoMetadata;
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/google-prompt.ts
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -35,7 +69,16 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
+<<<<<<< HEAD:packages/google/src/google-generative-ai-prompt.ts
   | { fileData: { mimeType: string; fileUri: string } }
+=======
+  | {
+      fileData: { mimeType: string; fileUri: string };
+      videoMetadata?: GoogleVideoMetadata;
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/google-prompt.ts
   | {
       toolCall: {
         toolType: string;

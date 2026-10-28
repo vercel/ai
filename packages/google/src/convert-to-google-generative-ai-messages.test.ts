@@ -1,3 +1,10 @@
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.test.ts
+=======
+import type {
+  LanguageModelV4FilePart,
+  LanguageModelV4ToolResultOutput,
+} from '@ai-sdk/provider';
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.test.ts
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleGenerativeAIMessages,
@@ -544,6 +551,296 @@ describe('user messages', () => {
       ],
     });
   });
+<<<<<<< HEAD:packages/google/src/convert-to-google-generative-ai-messages.test.ts
+=======
+
+  describe('videoMetadata', () => {
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const fileUri =
+      'https://generativelanguage.googleapis.com/v1beta/files/video';
+
+    it.each<{
+      name: string;
+      data: LanguageModelV4FilePart['data'];
+      expected: object;
+    }>([
+      {
+        name: 'YouTube URL',
+        data: {
+          type: 'url',
+          url: new URL('https://www.youtube.com/watch?v=example'),
+        },
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://www.youtube.com/watch?v=example',
+          },
+        },
+      },
+      {
+        name: 'Cloud Storage URL with original casing',
+        data: {
+          type: 'url',
+          url: new URL('gs://VideoBucket/video.mp4'),
+          originalUrl: 'gs://VideoBucket/video.mp4',
+        },
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'gs://VideoBucket/video.mp4',
+          },
+        },
+      },
+      {
+        name: 'uploaded file reference',
+        data: { type: 'reference', reference: { google: fileUri } },
+        expected: { fileData: { mimeType: 'video/mp4', fileUri } },
+      },
+      {
+        name: 'base64 data',
+        data: { type: 'data', data: 'AAECAw==' },
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+      {
+        name: 'binary data',
+        data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+    ])('should include videoMetadata for $name', ({ data, expected }) => {
+      const result = convertToGoogleMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data,
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result.contents[0].parts[0]).toEqual({
+        ...expected,
+        videoMetadata,
+      });
+    });
+
+    it.each([
+      { providerOptionsNames: ['google'], namespace: 'google' },
+      {
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        namespace: 'googleVertex',
+      },
+      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'google' },
+      { providerOptionsNames: ['google'], namespace: 'googleVertex' },
+      { providerOptionsNames: ['google'], namespace: 'vertex' },
+    ])(
+      'should resolve $namespace metadata with $providerOptionsNames',
+      ({ providerOptionsNames, namespace }) => {
+        const result = convertToGoogleMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL(
+                      'https://storage.googleapis.com/bucket/video.mp4',
+                    ),
+                  },
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    [namespace]: { videoMetadata: { fps: 2 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsNames },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://storage.googleapis.com/bucket/video.mp4',
+          },
+          videoMetadata: { fps: 2 },
+        });
+      },
+    );
+
+    it.each([
+      { providerOptionsNames: ['google'], expected: { fps: 1 } },
+      {
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        expected: { fps: 2 },
+      },
+      { providerOptionsNames: ['vertex'], expected: { fps: 3 } },
+    ])(
+      'should prefer the configured namespace $providerOptionsNames',
+      ({ providerOptionsNames, expected }) => {
+        const result = convertToGoogleMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: { type: 'url', url: new URL(fileUri) },
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    google: { videoMetadata: { fps: 1 } },
+                    googleVertex: { videoMetadata: { fps: 2 } },
+                    vertex: { videoMetadata: { fps: 3 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsNames },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: { mimeType: 'video/mp4', fileUri },
+          videoMetadata: expected,
+        });
+      },
+    );
+
+    it.each<LanguageModelV4FilePart['providerOptions']>([
+      undefined,
+      {},
+      { google: { videoMetadata: null } },
+    ])(
+      'should omit videoMetadata when it is not provided (%j)',
+      providerOptions => {
+        const result = convertToGoogleMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'AAECAw==' },
+                mediaType: 'video/mp4',
+                providerOptions,
+              },
+            ],
+          },
+        ]);
+
+        expect(result.contents[0].parts[0]).toEqual({
+          inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        });
+      },
+    );
+  });
+
+  it('should convert file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+                openai: 'file-xyz789',
+              },
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert image file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
+            },
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/jpeg',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw when provider reference is missing google key in user file part', async () => {
+    expect(() =>
+      convertToGoogleMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { openai: 'file-xyz789' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "No provider reference found for provider 'google'. Available providers: openai",
+    );
+  });
+>>>>>>> b1bcea13b8 (feat(google): support videoMetadata on video file parts (#24155)):packages/google/src/convert-to-google-messages.test.ts
 });
 
 describe('tool messages', () => {
