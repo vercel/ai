@@ -3695,8 +3695,10 @@ include probability distributions. Boolean questions use the API's predicate
 primitive and return P(true). Apply thresholds in application code, for example
 `answers.requestsRefund.probability >= 0.5`.
 
-Structured state, instructions, and criterion descriptions are serialized as JSON
-text. Score levels receive zero-based index labels. Non-null Boolean criteria are
+JSON state parts that hold an object or an array of objects are sent as native
+`input_json` parts when they fit its limits (32 container levels, 10,000 values, and
+256 KiB of compact UTF-8 JSON). Larger JSON state, other JSON state values, structured
+instructions, and criterion descriptions are serialized as JSON text. Score levels receive zero-based index labels. Non-null Boolean criteria are
 appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
 String criteria are passed through; structured criteria are serialized as JSON text.
 
@@ -3718,11 +3720,15 @@ state: [
 
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for
-safety monitoring (up to 128 characters). For example:
+safety monitoring (up to 128 characters). Set `providerOptions.openai.promptCacheKey`
+to partition prompt cache reuse across requests that share `state`. For example:
 
 ```ts
 providerOptions: {
-  openai: { safetyIdentifier: 'user-123' } satisfies OpenAIDecisionModelOptions,
+  openai: {
+    safetyIdentifier: 'user-123',
+    promptCacheKey: 'tenant-42',
+  } satisfies OpenAIDecisionModelOptions,
 }
 ```
 
