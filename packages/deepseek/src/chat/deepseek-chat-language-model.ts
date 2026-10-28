@@ -353,14 +353,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         : isCustomReasoning(reasoning) && reasoning !== 'none'
           ? mapReasoningToProviderEffort({
               reasoning,
-              effortMap: {
-                minimal: 'low',
-                low: 'low',
-                medium: 'high',
-                high: 'high',
-                xhigh: 'max',
-                max: 'max',
-              },
+              effortMap: { low: 'low', high: 'high', max: 'max' },
               warnings: allWarnings,
             })
           : undefined;

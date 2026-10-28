@@ -157,48 +157,14 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
         this.modelId,
       );
 
-      if (
-        options.reasoningEffort == null &&
-        reasoning === 'none' &&
-        supportsLowHighMax
-      ) {
-        warnings.push({
-          type: 'compatibility',
-          feature: 'reasoning',
-          details:
-            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
-        });
-      }
-
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? supportsLowHighMax
-              ? 'low'
-              : 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: supportsLowHighMax
-                  ? {
-                      minimal: 'low',
-                      low: 'low',
-                      medium: 'high',
-                      high: 'high',
-                      xhigh: 'max',
-                      max: 'max',
-                    }
-                  : {
-                      minimal: 'high',
-                      low: 'high',
-                      medium: 'high',
-                      high: 'high',
-                      xhigh: 'high',
-                      max: 'high',
-                    },
-                warnings,
-              })
-          : undefined);
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: supportsLowHighMax
+          ? { low: 'low', high: 'high', max: 'max' }
+          : { none: 'none', high: 'high' },
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',

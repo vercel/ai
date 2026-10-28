@@ -495,10 +495,6 @@ function resolveCohereThinking({
     warnings,
   });
 
-  if (tokenBudget == null) {
-    return {};
-  }
-
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
 

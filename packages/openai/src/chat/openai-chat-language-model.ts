@@ -16,7 +16,6 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -26,7 +25,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  getOpenAILanguageModelCapabilities,
+  resolveOpenAIReasoningEffort,
+} from '../openai-language-model-capabilities';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -121,25 +123,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
-    // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    let resolvedReasoningEffort =
-      openaiOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
-
-    if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
-      });
-      resolvedReasoningEffort = undefined;
-    }
+    const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
+      providerReasoningEffort: openaiOptions.reasoningEffort,
+      reasoning,
+      supportedReasoningEfforts: modelCapabilities.supportedReasoningEfforts,
+      warnings,
+    });
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
