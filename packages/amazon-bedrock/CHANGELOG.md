@@ -1,5 +1,34 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 5.0.126
+
+### Patch Changes
+
+- b6de62e: fix(amazon-bedrock): make document names unique within a request
+
+  Bedrock Converse rejects requests that contain duplicate document names. Different filenames could sanitize to the same name (e.g. `rates.v1.pdf` and `rates.v2.pdf` both became `rates`), and repeated filenames were sent as-is, so these requests failed. Repeated names now get a numeric suffix such as `invoice (2)`.
+
+- 22b4461: Forward disabled thinking in Anthropic Converse requests when using `reasoning: 'none'` or `reasoningConfig: { type: 'disabled' }`, omitting the unsupported thinking field for Claude 3.5 and earlier. Apply model-specific fallbacks and effort limits when disabled thinking is unsupported, preserving explicit reasoning effort during the adaptive fallback.
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [599a97f]
+- Updated dependencies [8375141]
+- Updated dependencies [7eac057]
+- Updated dependencies [436374e]
+- Updated dependencies [9026c7d]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai@4.0.104
+
 ## 5.0.125
 
 ### Patch Changes

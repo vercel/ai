@@ -1824,7 +1824,7 @@ describe('responses', () => {
             expect.objectContaining({
               type: 'source',
               sourceType: 'url',
-              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+              url: 'https://www.nbcnews.com/',
             }),
           ]),
         );
@@ -2374,7 +2374,7 @@ describe('responses', () => {
             expect.objectContaining({
               type: 'source',
               sourceType: 'url',
-              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+              url: 'https://www.nbcnews.com/',
             }),
           ]),
         );

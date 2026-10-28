@@ -1,4 +1,4 @@
-# Vercel AI SDK - Hugging Face Provider
+# AI SDK - Hugging Face Provider
 
 The **[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/index)** for the [Vercel AI SDK](https://ai-sdk.dev/docs) contains language model support for thousands of models through multiple inference providers via the Hugging Face router API.
 
