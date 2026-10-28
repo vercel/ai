@@ -1,0 +1,82 @@
+---
+title: PowerTokens
+description: Use the PowerTokens OpenAI compatible API with the AI SDK.
+---
+
+# PowerTokens Provider
+
+[PowerTokens](https://powertokens.ai/) provides an OpenAI-compatible API gateway for GLM, MiniMax, Qwen and DeepSeek models. One API key works for every model. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a PowerTokens API key and set it as a server-side environment variable:
+
+```bash
+export POWERTOKENS_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a PowerTokens provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const powertokens = createOpenAICompatible({
+  name: 'powertokens',
+  apiKey: process.env.POWERTOKENS_API_KEY,
+  baseURL: 'https://api.powertokens.ai/v1',
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a PowerTokens model ID:
+
+```ts
+const model = powertokens.chatModel('glm-5.2');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, streamText } from 'ai';
+
+const powertokens = createOpenAICompatible({
+  name: 'powertokens',
+  apiKey: process.env.POWERTOKENS_API_KEY,
+  baseURL: 'https://api.powertokens.ai/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: powertokens('glm-5.2'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text);
+
+const result = streamText({
+  model: powertokens('glm-5.2'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+for await (const part of result.textStream) process.stdout.write(part);
+```
+
+## Supported Models and Capabilities
+
+This integration uses PowerTokens' OpenAI-compatible Chat Completions endpoint for text generation.
+
+Use the [PowerTokens models list](https://powertokens.ai/models) or the `GET https://api.powertokens.ai/v1/models` endpoint to find current model IDs and model-specific capabilities and limits.
+
+## Resources
+
+- [PowerTokens AI SDK documentation](https://docs.powertokens.ai/en/guides/vercel-ai-sdk)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
