@@ -288,26 +288,20 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     let reasoningConfig = agentOptions.reasoning;
     if (reasoningConfig == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-        });
-      } else {
-        const effort = mapReasoningToProviderEffort({
-          reasoning,
-          effortMap: {
-            minimal: 'minimal',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            xhigh: 'xhigh',
-            max: 'xhigh',
-          },
-          warnings,
-        });
-        reasoningConfig = effort == null ? undefined : { effort };
-      }
+      // Reasoning cannot be disabled, so reasoning 'none' maps to the lowest
+      // effort.
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: {
+          minimal: 'minimal',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'xhigh',
+        },
+        warnings,
+      });
+      reasoningConfig = effort == null ? undefined : { effort };
     }
 
     const body: Record<string, unknown> = {
