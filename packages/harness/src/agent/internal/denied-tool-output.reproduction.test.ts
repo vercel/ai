@@ -9,6 +9,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
+  HarnessV1PromptControl,
   HarnessV1PromptTurnOptions,
   HarnessV1Session,
   HarnessV1StreamPart,
@@ -36,6 +37,9 @@ const finishEvents: HarnessV1StreamPart[] = [
 ];
 
 describe('issue 24057: denied host tool output', () => {
+  // This is shared harness orchestration, not a provider-specific report.
+  // Exercise both valid adapter behaviors: echoing a submitted host result
+  // and finishing without an echo. No external model or sandbox is needed.
   for (const resume of [false, true]) {
     for (const echo of [false, true]) {
       for (const converter of ['map', 'validate'] as const) {
@@ -86,11 +90,16 @@ describe('issue 24057: denied host tool output', () => {
             }
             return {
               done,
-              async submitToolResult(submission: {
-                toolCallId: string;
-                output: unknown;
-              }) {
-                submissions.push(submission.output);
+              async submitToolResult(
+                submission: Parameters<
+                  HarnessV1PromptControl['submitToolResult']
+                >[0],
+              ) {
+                // Respect the protocol's model-facing output precedence so a
+                // fix that supplies toolResult is tested as well.
+                submissions.push(
+                  submission.toolResult?.output ?? submission.output,
+                );
                 if (echo) {
                   options.emit({
                     type: 'tool-result',
@@ -152,7 +161,9 @@ describe('issue 24057: denied host tool output', () => {
             sessionWorkDir: '/sandbox',
             runtimeContext: {},
             abortSignal: undefined,
-            toolApproval: { weather: { type: 'denied', reason } },
+            toolApproval: {
+              weather: resume ? 'user-approval' : { type: 'denied', reason },
+            },
             ...(resume
               ? {
                   pendingToolApprovals: [
@@ -181,10 +192,14 @@ describe('issue 24057: denied host tool output', () => {
           })();
           await done;
           let timer: ReturnType<typeof setTimeout> | undefined;
-          const complete = await Promise.race([
-            drain.then(() => true),
-            new Promise<false>(resolve => {
-              timer = setTimeout(() => resolve(false), 1000);
+          // Both the stream and the response messages must settle. Bound the
+          // whole user-visible outcome, not just one of the two promises.
+          const completed = await Promise.race([
+            Promise.all([drain, result.responseMessages]).then(
+              ([, messages]) => ({ messages }),
+            ),
+            new Promise<undefined>(resolve => {
+              timer = setTimeout(() => resolve(undefined), 1000);
             }),
           ]);
           clearTimeout(timer);
@@ -197,12 +212,13 @@ describe('issue 24057: denied host tool output', () => {
             }),
           );
           expect(
-            complete &&
+            completed !== undefined &&
               parts.some(part => part.type === 'finish') &&
               !parts.some(part => part.type === 'error'),
             'DENIED_TOOL_TURN_INCOMPLETE: answer streamed but denied host tool prevented clean completion',
           ).toBe(true);
-          const messages = await result.responseMessages;
+          if (completed === undefined) return; // The assertion above fails.
+          const { messages } = completed;
           const outputs = messages.flatMap(message =>
             message.role === 'tool'
               ? message.content
