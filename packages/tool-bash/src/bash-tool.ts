@@ -8,10 +8,6 @@ import {
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
 
-type BashInput = z.infer<typeof inputSchema>;
-
-type BashOutput = z.infer<typeof outputSchema>;
-
 const inputSchema = z.object({
   command: z.string().describe('The Bash command or script to execute.'),
 });
@@ -21,6 +17,10 @@ const outputSchema = z.object({
   stderr: z.string(),
   exitCode: z.number(),
 });
+
+type BashInput = z.infer<typeof inputSchema>;
+
+type BashOutput = z.infer<typeof outputSchema>;
 
 function limitOutput(output: string, maxLength: number): string {
   if (output.length <= maxLength) {
@@ -42,20 +42,35 @@ function limitOutput(output: string, maxLength: number): string {
  * command, created if needed. When omitted, uses the sandbox's default directory.
  * @param maxOutputLength - Maximum characters retained from each output stream
  * before appending a truncation notice. Defaults to 30,000.
+ * @param timeout - Optional timeout in milliseconds for each command execution.
+ * Cancellation is forwarded to the sandbox along with the caller's abort signal.
  */
 export async function createBashTool({
   sandbox,
   workingDirectory,
   maxOutputLength = 30_000,
+  timeout,
 }: {
   sandbox: SandboxSession;
   workingDirectory?: string;
   maxOutputLength?: number;
+  timeout?: number;
 }): Promise<
   Tool<BashInput, BashOutput, {}> & {
     execute: ToolExecuteFunction<BashInput, BashOutput, {}>;
   }
 > {
+  if (
+    timeout !== undefined &&
+    (!Number.isInteger(timeout) || timeout < 1 || timeout > 2_147_483_647)
+  ) {
+    throw new InvalidArgumentError({
+      parameter: 'timeout',
+      value: timeout,
+      message: 'Must be an integer between 1 and 2147483647 milliseconds.',
+    });
+  }
+
   if (!Number.isSafeInteger(maxOutputLength) || maxOutputLength < 1) {
     throw new InvalidArgumentError({
       parameter: 'maxOutputLength',
@@ -100,10 +115,19 @@ export async function createBashTool({
     inputSchema,
     outputSchema,
     execute: async ({ command }, { abortSignal }) => {
+      const timeoutSignal =
+        timeout === undefined ? undefined : AbortSignal.timeout(timeout);
+      const commandSignal =
+        timeoutSignal === undefined
+          ? abortSignal
+          : abortSignal === undefined
+            ? timeoutSignal
+            : AbortSignal.any([abortSignal, timeoutSignal]);
+
       const { stdout, stderr, exitCode } = await sandbox.run({
         command,
         ...(workingDirectory !== undefined ? { workingDirectory } : {}),
-        abortSignal,
+        abortSignal: commandSignal,
       });
 
       return {

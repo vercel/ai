@@ -1,5 +1,94 @@
 # @ai-sdk/harness-pi
 
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.167
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.166
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.164
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.162
+
+### Patch Changes
+
+- 36e4ce7: fix(harness-pi): ensure `/skill` command reads skill file from sandbox
+- 7fcc24e: fix(harness-pi): validate cold-resume tool calls against host state
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.159
+
+### Patch Changes
+
+- 62b54a5: feat(harness-pi): add support for image input
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
 ## 1.0.158
 
 ### Patch Changes

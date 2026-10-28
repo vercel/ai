@@ -58,7 +58,7 @@ System messages in `prompt` or `messages` are rejected by default; use the `inst
 const result = await generateText({
   model: __MODEL__,
   instructions:
-    `You help planning travel itineraries. ` +
+    `You help plan travel itineraries. ` +
     `Respond to the users' request with a list ` +
     `of the best stops to make in their destination.`,
   prompt:
@@ -481,7 +481,7 @@ const result = await generateText({
 });
 ```
 
-### Tool messages
+### Tool Messages
 
 <Note>
   [Tools](/docs/foundations/tools) (also known as function calling) are programs
@@ -616,7 +616,7 @@ const result = await generateText({
   model: __MODEL__,
   allowSystemInMessages: true,
   messages: [
-    { role: 'system', content: 'You help planning travel itineraries.' },
+    { role: 'system', content: 'You help plan travel itineraries.' },
     {
       role: 'user',
       content:

@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 
-const implementationPackageJson = JSON.stringify(
+const bridgePackageJson = JSON.stringify(
   readFileSync(
     new URL('./src/bridge/package.json', import.meta.url),
   ).toString(),
 );
-const implementationPnpmLockYaml = JSON.stringify(
+const bridgePnpmLockYaml = JSON.stringify(
   readFileSync(
     new URL('./src/bridge/pnpm-lock.yaml', import.meta.url),
   ).toString(),
 );
-const implementationPnpmWorkspaceYaml = JSON.stringify(
+const bridgePnpmWorkspaceYaml = JSON.stringify(
   readFileSync(
     new URL('./src/bridge/pnpm-workspace.yaml', import.meta.url),
   ).toString(),
@@ -19,11 +19,9 @@ const implementationPnpmWorkspaceYaml = JSON.stringify(
 
 export default defineConfig({
   define: {
-    __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: implementationPackageJson,
-    __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__:
-      implementationPnpmLockYaml,
-    __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
-      implementationPnpmWorkspaceYaml,
+    __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__: bridgePackageJson,
+    __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__: bridgePnpmLockYaml,
+    __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__: bridgePnpmWorkspaceYaml,
   },
   test: {
     environment: 'node',

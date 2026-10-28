@@ -1,5 +1,68 @@
 # @ai-sdk/mcp
 
+## 2.0.86
+
+### Patch Changes
+
+- ade2a33: Improve unsupported-version discovery errors when a server advertises a compatible legacy version. Include the requested and advertised versions and explain how to explicitly select legacy initialization with `protocolVersionDiscovery: false`, while preserving the original error details and avoiding automatic legacy fallback.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 2.0.84
+
+### Patch Changes
+
+- 84d7880: Fix MCP tool output conversion throwing on primitive or nullish results returned by output schemas or execute wrappers. Convert strings to text and normalize undefined outputs to JSON null while preserving MCP content conversion.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 2.0.81
+
+### Patch Changes
+
+- 060d419: fix(mcp): wait for the `server/discover` response over Streamable HTTP instead of falling back to `initialize` after 1 s. A modern-only server that answered discovery slowly, for example on a cold start, was downgraded to the legacy handshake and rejected it. stdio and custom transports keep the 1 s probe timeout.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 2.0.80
+
+### Patch Changes
+
+- 2b8185e: fix(mcp): bind OAuth client credentials to their authorization server, including when the selected server is approved by `validateAuthorizationServerURL`
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 2.0.79
 
 ### Patch Changes

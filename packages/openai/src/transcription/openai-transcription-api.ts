@@ -6,6 +6,7 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
     z.object({
       text: z.string(),
       language: z.string().nullish(),
+      languages: z.array(z.object({ code: z.string() })).nullish(),
       duration: z.number().nullish(),
       words: z
         .array(

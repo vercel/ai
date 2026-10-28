@@ -6,6 +6,8 @@ import {
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -63,6 +65,8 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -209,10 +213,18 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
               outputTokens: response.usage.output_tokens ?? undefined,
             },
       // Perplexity returns full-precision probabilities; no rounding allowance.
-      warnings: Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
-        type: 'unsupported',
-        feature: `providerOptions.perplexity.${option}`,
-      })),
+      warnings: [
+        ...(maxOutputTokens != null
+          ? [{ type: 'unsupported' as const, feature: 'maxOutputTokens' }]
+          : []),
+        ...(reasoning != null
+          ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
+          : []),
+        ...Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
+          type: 'unsupported' as const,
+          feature: `providerOptions.perplexity.${option}`,
+        })),
+      ],
       providerMetadata: {
         perplexity: {
           confidence: Object.fromEntries(
@@ -241,32 +253,36 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
   }
 }
 
-const probability = z.number().min(0).max(1);
-const perplexityDecisionResponseSchema = z.object({
-  model: z.string().nullish(),
-  answers: z.record(
-    z.string(),
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('noul'), noul: probability }),
-      z.object({
-        type: z.literal('choice'),
-        choice: z.string(),
-        probabilities: z.record(z.string(), probability),
-        confidence: probability.nullish(),
-      }),
-      z.object({
-        type: z.literal('score'),
-        score: z.number(),
-        probabilities: z.record(z.string(), probability),
-        confidence: probability.nullish(),
-        legend: z.record(z.string(), z.json()).nullish(),
-      }),
-    ]),
+const probability = () => z.number().min(0).max(1);
+const perplexityDecisionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string().nullish(),
+      answers: z.record(
+        z.string(),
+        z.discriminatedUnion('type', [
+          z.object({ type: z.literal('noul'), noul: probability() }),
+          z.object({
+            type: z.literal('choice'),
+            choice: z.string(),
+            probabilities: z.record(z.string(), probability()),
+            confidence: probability().nullish(),
+          }),
+          z.object({
+            type: z.literal('score'),
+            score: z.number(),
+            probabilities: z.record(z.string(), probability()),
+            confidence: probability().nullish(),
+            legend: z.record(z.string(), z.json()).nullish(),
+          }),
+        ]),
+      ),
+      usage: z
+        .object({
+          input_tokens: z.number().nullish(),
+          output_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
   ),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      output_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

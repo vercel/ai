@@ -3,6 +3,7 @@ import {
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   postFormDataToApi,
   resolve,
@@ -20,17 +21,6 @@ interface AnthropicSkillsConfig {
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
-}
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
 }
 
 export class AnthropicSkills implements SkillsV4 {
@@ -51,16 +41,14 @@ export class AnthropicSkills implements SkillsV4 {
   private async fetchVersionMetadata({
     skillId,
     version,
-    headers,
   }: {
     skillId: string;
     version: string;
-    headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
       url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
       validateUrl: false,
-      headers,
+      headers: await this.getHeaders(),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicSkillVersionResponseSchema,
@@ -96,11 +84,9 @@ export class AnthropicSkills implements SkillsV4 {
       );
     }
 
-    const headers = await this.getHeaders();
-
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/skills`,
-      headers,
+      headers: await this.getHeaders(),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -114,7 +100,6 @@ export class AnthropicSkills implements SkillsV4 {
         ? await this.fetchVersionMetadata({
             skillId: response.id,
             version: response.latest_version,
-            headers,
           })
         : {};
 

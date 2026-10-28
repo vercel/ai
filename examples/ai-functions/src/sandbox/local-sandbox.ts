@@ -6,7 +6,17 @@ import { Readable, type Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {
   extractLines,
+  type Experimental_SandboxRunOptions as RunOptions,
+  type Experimental_SandboxReadFileOptions as ReadFileOptions,
+  type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
+  type Experimental_SandboxReadTextFileOptions as ReadTextFileOptions,
+  type Experimental_SandboxWriteFileOptions as WriteFileOptions,
+  type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
+  type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxSpawnOptions as SpawnOptions,
+  type Experimental_SandboxSpawnOptionsWithStdin as SpawnOptionsWithStdin,
+  type Experimental_SandboxSpawnOptionsWithoutStdin as SpawnOptionsWithoutStdin,
 } from '@ai-sdk/provider-utils';
 import { type Experimental_SandboxSession as SandboxSession } from 'ai';
 import {
@@ -40,17 +50,7 @@ export class LocalSandboxSession implements SandboxSession {
     return isAbsolute(path) ? path : join(this.rootDirectory, path);
   }
 
-  async run({
-    command,
-    workingDirectory,
-    env,
-    abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }) {
+  async run({ command, workingDirectory, env, abortSignal }: RunOptions) {
     const proc = await this.spawn({
       command,
       workingDirectory,
@@ -67,18 +67,22 @@ export class LocalSandboxSession implements SandboxSession {
     return { exitCode, stdout, stderr };
   }
 
+  spawn(options: SpawnOptionsWithStdin): Promise<never>;
+  spawn(
+    options: SpawnOptionsWithoutStdin,
+  ): Promise<Experimental_SandboxProcess>;
+  spawn(options: SpawnOptions): Promise<Experimental_SandboxProcess>;
   async spawn({
     command,
     workingDirectory,
     env,
     abortSignal,
-  }: {
-    command: string;
-    workingDirectory?: string;
-    env?: Record<string, string>;
-    abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+    stdin,
+  }: SpawnOptions): Promise<Experimental_SandboxProcess> {
     abortSignal?.throwIfAborted();
+    if (stdin === true) {
+      throw new Error('LocalSandboxSession does not support writable stdin.');
+    }
 
     if (env != null && Object.keys(env).length > 0) {
       throw new Error('LocalSandboxSession does not support the `env` option.');
@@ -142,10 +146,7 @@ export class LocalSandboxSession implements SandboxSession {
   async readFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<ReadableStream<Uint8Array> | null> {
+  }: ReadFileOptions): Promise<ReadableStream<Uint8Array> | null> {
     const resolved = this.resolvePath(path);
     try {
       await stat(resolved);
@@ -161,11 +162,7 @@ export class LocalSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: ReadableStream<Uint8Array>;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteFileOptions): Promise<void> {
     const resolved = this.resolvePath(path);
     await mkdir(dirname(resolved), { recursive: true });
     const source = Readable.fromWeb(content as any);
@@ -178,10 +175,7 @@ export class LocalSandboxSession implements SandboxSession {
   async readBinaryFile({
     path,
     abortSignal,
-  }: {
-    path: string;
-    abortSignal?: AbortSignal;
-  }): Promise<Uint8Array | null> {
+  }: ReadBinaryFileOptions): Promise<Uint8Array | null> {
     const stream = await this.readFile({ path, abortSignal });
     if (stream == null) return null;
     return collectStream(stream);
@@ -191,11 +185,7 @@ export class LocalSandboxSession implements SandboxSession {
     path,
     content,
     abortSignal,
-  }: {
-    path: string;
-    content: Uint8Array;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteBinaryFileOptions): Promise<void> {
     await this.writeFile({
       path,
       content: bytesToStream(content),
@@ -209,13 +199,7 @@ export class LocalSandboxSession implements SandboxSession {
     startLine,
     endLine,
     abortSignal,
-  }: {
-    path: string;
-    encoding?: string;
-    startLine?: number;
-    endLine?: number;
-    abortSignal?: AbortSignal;
-  }): Promise<string | null> {
+  }: ReadTextFileOptions): Promise<string | null> {
     const bytes = await this.readBinaryFile({ path, abortSignal });
     if (bytes == null) return null;
     const text = Buffer.from(bytes).toString(encoding as BufferEncoding);
@@ -227,12 +211,7 @@ export class LocalSandboxSession implements SandboxSession {
     content,
     encoding = 'utf-8',
     abortSignal,
-  }: {
-    path: string;
-    content: string;
-    encoding?: string;
-    abortSignal?: AbortSignal;
-  }): Promise<void> {
+  }: WriteTextFileOptions): Promise<void> {
     const bytes = Buffer.from(content, encoding as BufferEncoding);
     await this.writeBinaryFile({
       path,

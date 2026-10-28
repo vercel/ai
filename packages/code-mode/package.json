@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/code-mode",
-  "version": "1.0.102",
+  "version": "1.0.112",
   "description": "QuickJS-backed code mode tool for AI SDK",
   "keywords": [
     "ai",
@@ -74,6 +74,6 @@
     "url": "https://github.com/vercel/ai/issues"
   },
   "dependencies": {
-    "run": "^2.0.0"
+    "run": "^2.1.8"
   }
 }

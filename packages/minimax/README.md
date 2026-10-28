@@ -6,10 +6,8 @@ The **[MiniMax provider](https://ai-sdk.dev/providers/ai-sdk-providers/minimax)*
 
 ## Setup
 
-The MiniMax provider is available in the `@ai-sdk/minimax` module. You can install it with
-
 ```bash
-npm i @ai-sdk/minimax
+npm i ai @ai-sdk/minimax
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `minimax` from `@ai-sdk/minimax`:
-
-```ts
-import { minimax } from '@ai-sdk/minimax';
-```
-
-## Language Model Example
+## Usage
 
 ```ts
 import { minimax } from '@ai-sdk/minimax';
@@ -40,37 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Thinking Mode Example
-
-```ts
-import { minimax } from '@ai-sdk/minimax';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: minimax('minimax-m3'),
-  prompt: 'Solve this problem step by step: What is 15% of 240?',
-  providerOptions: {
-    minimax: {
-      thinking: { type: 'adaptive' },
-    },
-  },
-});
-```
-
-## Video Generation Example
-
-```ts
-import { minimax } from '@ai-sdk/minimax';
-import { experimental_generateVideo as generateVideo } from 'ai';
-
-const { video } = await generateVideo({
-  model: minimax.video('MiniMax-H3'),
-  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
-  aspectRatio: '16:9',
-  duration: 5,
-});
-```
-
-## Documentation
-
-Please check out the **[MiniMax provider](https://ai-sdk.dev/providers/ai-sdk-providers/minimax)** for more information.
+See the [MiniMax Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/minimax) for more information.

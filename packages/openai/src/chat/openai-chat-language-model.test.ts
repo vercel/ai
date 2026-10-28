@@ -2617,6 +2617,58 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    [null, 'interrupted'],
+    ['stop', 'stop'],
+    ['length', 'length'],
+    ['tool_calls', 'tool-calls'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finish_reason %j to %s',
+    async (raw, unified) => {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chat-1',
+            object: 'chat.completion.chunk',
+            created: 1,
+            model: 'gpt-4o',
+            choices: [
+              {
+                index: 0,
+                delta: { content: 'Partial answer' },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+          ...(raw === undefined
+            ? []
+            : [
+                `data: ${JSON.stringify({
+                  choices: [{ index: 0, delta: {}, finish_reason: raw }],
+                })}\n\n`,
+                'data: [DONE]\n\n',
+              ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Partial answer',
+      });
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: { unified, raw: raw ?? undefined },
+        }),
+      ]);
+    },
+  );
+
   it('should stream text after Azure content filter chunks', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',

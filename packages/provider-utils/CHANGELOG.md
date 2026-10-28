@@ -1,5 +1,61 @@
 # @ai-sdk/provider-utils
 
+## 5.0.70
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+
+## 5.0.69
+
+### Patch Changes
+
+- e64ed82: use native Buffer base64 encoding when available. encoding a `Uint8Array` backed by a detached `ArrayBuffer` now throws a `TypeError` in runtimes with `Buffer` instead of returning an empty string
+
+## 5.0.68
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+
+## 5.0.67
+
+### Patch Changes
+
+- 8202f5b: feat(gateway): implement experimental streaming speech in the gateway provider
+
+  `GatewaySpeechModel` implements `Experimental_StreamingSpeechModelV4` and streams speech over the AI Gateway speech WebSocket (`/speech-model`, `ai-gateway-speech.v1` subprotocol). `@ai-sdk/provider-utils` adds the experimental speech-stream envelope (`experimental_parseSpeechStreamClientFrame`, `experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`) shared by clients and servers, plus the `EXPERIMENTAL_SPEECH_STREAM_*` frame type constants and `Experimental_SpeechStream*` frame types. Text-delta frames carry each text part's `voice` and `providerOptions`; the start frame carries `outputFormat` as an audio format object. Adds `gateway.experimental_speech`, callable like `speech(modelId)`, with a server-side `getToken()` that mints a speech-bound short-lived client secret for browser use.
+
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider@4.0.33
+
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+
+## 5.0.65
+
+### Patch Changes
+
+- b089ce8: Block `.internal` hostnames in download URL validation.
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+
+## 5.0.64
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 200c47f: Avoid retaining oversized backing buffers when reading response bodies, reducing memory usage for responses delivered in small chunks on runtimes such as Deno.
+- Updated dependencies [0c2a9de]
+  - @ai-sdk/provider@4.0.31
+
 ## 5.0.63
 
 ### Patch Changes

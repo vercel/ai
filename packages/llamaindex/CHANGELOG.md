@@ -1,5 +1,79 @@
 # @ai-sdk/llamaindex
 
+## 3.0.155
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 3.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 3.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 3.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 3.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 3.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 3.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
+## 3.0.148
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 3.0.147
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 3.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
 ## 3.0.145
 
 ### Patch Changes

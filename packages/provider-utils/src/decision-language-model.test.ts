@@ -517,3 +517,34 @@ it.each([{}, { instructions: undefined }, { instructions: null }])(
     );
   },
 );
+
+it.each([undefined, 1, 512])(
+  'forwards maxOutputTokens to the language model: %s',
+  async maxOutputTokens => {
+    const { model, doGenerate } = setup();
+    await model.doDecide({ ...options, maxOutputTokens });
+    expect(doGenerate.mock.calls[0][0].maxOutputTokens).toBe(maxOutputTokens);
+  },
+);
+
+it.each([
+  undefined,
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+] as const)(
+  'forwards reasoning and defaults to none when omitted: %s',
+  async reasoning => {
+    const { model, doGenerate } = setup();
+    await model.doDecide({ ...options, maxOutputTokens: 512, reasoning });
+    expect(doGenerate.mock.calls[0][0]).toMatchObject({
+      reasoning: reasoning ?? 'none',
+      maxOutputTokens: 512,
+    });
+  },
+);

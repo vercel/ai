@@ -1,5 +1,73 @@
 # @ai-sdk/gmicloud
 
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+
+## 3.0.49
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/openai-compatible@3.0.78
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/openai-compatible@3.0.77
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/openai-compatible@3.0.76
+  - @ai-sdk/provider-utils@5.0.66
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [e619655]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai-compatible@3.0.75
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/openai-compatible@3.0.74
+
 ## 3.0.44
 
 ### Patch Changes

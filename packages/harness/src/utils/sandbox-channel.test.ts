@@ -594,6 +594,23 @@ describe('SandboxChannel', () => {
     expect(signals.every(signal => !signal.aborted)).toBe(true);
   });
 
+  it('passes the connect reason for the initial open and reconnects', async () => {
+    const connector = makeConnector();
+    const reasons: Array<string | undefined> = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: async ({ reason }) => {
+        reasons.push(reason);
+        return connector.connect();
+      },
+      outboundSchema,
+      reconnect: { initialDelayMs: 1, maxDelayMs: 1, maxElapsedMs: 200 },
+    });
+    await channel.open();
+    connector.current().drop();
+    await vi.waitFor(() => expect(reasons).toHaveLength(2));
+    expect(reasons).toEqual(['open', 'reconnect']);
+  });
+
   it('seeds lastSeenEventId and advances it as events arrive', async () => {
     const connector = makeConnector();
     const channel = new SandboxChannel<Outbound, Inbound>({

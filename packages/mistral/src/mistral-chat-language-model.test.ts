@@ -1069,6 +1069,81 @@ describe('doGenerate', () => {
       });
     });
 
+    describe.each([
+      'zai-glm-5-3',
+      'zai-glm-5',
+      'zai-glm-latest',
+      'zai-glm-5-3-flash',
+    ] as const)('low, high, and max reasoning effort model %s', modelId => {
+      it.each([
+        ['minimal', 'low'],
+        ['low', 'low'],
+        ['medium', 'high'],
+        ['high', 'high'],
+        ['xhigh', 'max'],
+        ['max', 'max'],
+      ] as const)(
+        'should map reasoning %s to reasoning_effort %s',
+        async (reasoning, effort) => {
+          await provider.chat(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            reasoning_effort: effort,
+          });
+        },
+      );
+
+      it('should map reasoning none to reasoning_effort low with a warning', async () => {
+        const result = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'low',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+    });
+
+    it.each(['low', 'max'] as const)(
+      'should send provider reasoning_effort %s',
+      async reasoningEffort => {
+        await provider.chat('zai-glm-5-3').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: reasoningEffort,
+        });
+      },
+    );
+
+    it.each(['zai-glm-5-2', 'glm-5-2'] as const)(
+      'should send reasoning_effort none for reasoning none on %s',
+      async modelId => {
+        await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'none',
+        });
+      },
+    );
+
     it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
       'should send provider reasoning_effort for %s',
       async modelId => {
@@ -1090,6 +1165,48 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    ['missing', 'interrupted'],
+    ['unknown_reason', 'other'],
+    ['invalid-json', 'error'],
+  ] as const)(
+    'handles a stream ending with %s as %s',
+    async (ending, unified) => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+          ...(ending === 'missing'
+            ? []
+            : ending === 'invalid-json'
+              ? ['data: {invalid-json}\n\n']
+              : [
+                  `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'invalid-json' ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified,
+            raw: ending === 'unknown_reason' ? ending : undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   function prepareChunksFixtureResponse(
     filename: string,
     { headers }: { headers?: Record<string, string> } = {},

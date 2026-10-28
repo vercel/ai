@@ -7,10 +7,8 @@ contains speech generation (S1 and S2 models) and speech-to-text transcription s
 
 ## Setup
 
-The Fish Audio provider is available in the `@ai-sdk/fish-audio` module. You can install it with
-
 ```bash
-npm i @ai-sdk/fish-audio
+npm i ai @ai-sdk/fish-audio
 ```
 
 ## Skill for Coding Agents
@@ -21,17 +19,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `fishAudio` from `@ai-sdk/fish-audio`:
-
-```ts
-import { fishAudio } from '@ai-sdk/fish-audio';
-```
-
-## Example
-
-### Speech generation
+## Usage
 
 ```ts
 import { fishAudio } from '@ai-sdk/fish-audio';
@@ -45,19 +33,4 @@ const { audio } = await generateSpeech({
 });
 ```
 
-### Transcription
-
-```ts
-import { fishAudio } from '@ai-sdk/fish-audio';
-import { transcribe } from 'ai';
-import { readFile } from 'node:fs/promises';
-
-const { text, segments } = await transcribe({
-  model: fishAudio.transcription(),
-  audio: await readFile('audio.mp3'),
-});
-```
-
-## Documentation
-
-Please check out the **[Fish Audio provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/fish-audio)** for more information.
+See the [Fish Audio Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/fish-audio) for more information.

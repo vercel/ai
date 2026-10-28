@@ -59,6 +59,7 @@ import {
   toOpenCodeQuestionResponse,
   type OpenCodeQuestionRequest,
 } from './question-tool';
+import { toOpenCodePromptParts } from './opencode-prompt';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -551,12 +552,12 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
-  prompt: promptText,
+  prompt,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
-  prompt?: string;
+  prompt: StartMessage['prompt'];
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
   const submitPrompt = session.promptAsync ?? session.prompt;
@@ -573,7 +574,7 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts: [{ type: 'text', text: promptText ?? start.prompt }],
+    parts: toOpenCodePromptParts(prompt),
   });
 }
 
@@ -885,6 +886,7 @@ async function runPrompt({
         client,
         sessionId,
         start,
+        prompt: start.prompt,
       });
     } catch (error) {
       promptRequestSettled.resolve(undefined);

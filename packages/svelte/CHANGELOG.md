@@ -1,5 +1,95 @@
 # @ai-sdk/svelte
 
+## 5.0.155
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 5.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 5.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 5.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 5.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 5.0.150
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+
+## 5.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider-utils@5.0.66
+
+## 5.0.148
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 5.0.147
+
+### Patch Changes
+
+- 8be2a2b: fix: preserve Headers instance entries in structured-object and completion requests
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 5.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 5.0.145
 
 ### Patch Changes

@@ -107,6 +107,9 @@
       "path": "../../packages/rsc"
     },
     {
+      "path": "../../packages/sandbox-vercel"
+    },
+    {
       "path": "../../packages/valibot"
     },
     {

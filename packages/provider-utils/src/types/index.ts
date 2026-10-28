@@ -34,6 +34,17 @@ export type { ProviderReference } from './provider-reference';
 export type {
   SandboxSession as Experimental_SandboxSession,
   SandboxProcess as Experimental_SandboxProcess,
+  SandboxRunOptions as Experimental_SandboxRunOptions,
+  SandboxReadFileOptions as Experimental_SandboxReadFileOptions,
+  SandboxReadBinaryFileOptions as Experimental_SandboxReadBinaryFileOptions,
+  SandboxReadTextFileOptions as Experimental_SandboxReadTextFileOptions,
+  SandboxSpawnOptions as Experimental_SandboxSpawnOptions,
+  SandboxSpawnOptionsWithStdin as Experimental_SandboxSpawnOptionsWithStdin,
+  SandboxSpawnOptionsWithoutStdin as Experimental_SandboxSpawnOptionsWithoutStdin,
+  SandboxWriteFileOptions as Experimental_SandboxWriteFileOptions,
+  SandboxWriteBinaryFileOptions as Experimental_SandboxWriteBinaryFileOptions,
+  SandboxWriteTextFileOptions as Experimental_SandboxWriteTextFileOptions,
+  WritableSandboxProcess as Experimental_WritableSandboxProcess,
 } from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {

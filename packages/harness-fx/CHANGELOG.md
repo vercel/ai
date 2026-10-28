@@ -1,5 +1,109 @@
 # @ai-sdk/harness-fx
 
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [ade2a33]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/mcp@2.0.86
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+  - @ai-sdk/mcp@2.0.85
+
+## 1.0.80
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [84d7880]
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/mcp@2.0.84
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.79
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
+## 1.0.78
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+  - @ai-sdk/mcp@2.0.83
+
+## 1.0.75
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/mcp@2.0.82
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.74
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [060d419]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/mcp@2.0.81
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.73
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.72
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [2b8185e]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/mcp@2.0.80
+  - @ai-sdk/harness@1.0.157
+
 ## 1.0.71
 
 ### Patch Changes

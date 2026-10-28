@@ -413,6 +413,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       customProviderToolNames,
       outputSchemaToolNames,
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
@@ -926,6 +927,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
+    let structuredOutputText: string | undefined;
+
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
@@ -1086,6 +1089,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'message': {
+          // Parse only the last final answer for JSON output, while preserving
+          // every message and its metadata in the generated content.
+          if (
+            options.responseFormat?.type === 'json' &&
+            part.phase === 'final_answer'
+          ) {
+            structuredOutputText = part.content
+              .map(contentPart => contentPart.text)
+              .join('');
+          }
+
           for (const contentPart of part.content) {
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
@@ -1261,9 +1275,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            ...(part.status === 'failed' || part.status === 'incomplete'
-              ? { isError: true, result: { status: part.status } }
-              : { result: mapWebSearchOutput(part.action) }),
+            ...mapWebSearchResult(part),
           });
 
           if (part.action?.type === 'search') {
@@ -1516,6 +1528,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       content,
+      ...(structuredOutputText !== undefined && { structuredOutputText }),
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
@@ -1599,8 +1612,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIResponsesUsage | undefined = undefined;
@@ -2174,10 +2188,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  ...(value.item.status === 'failed' ||
-                  value.item.status === 'incomplete'
-                    ? { isError: true, result: { status: value.item.status } }
-                    : { result: mapWebSearchOutput(value.item.action) }),
+                  ...mapWebSearchResult(value.item),
                 });
 
                 if (value.item.action?.type === 'search') {
@@ -3164,7 +3175,21 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-export function mapWebSearchOutput(
+export function mapWebSearchResult({
+  action,
+  status,
+}: {
+  action?: OpenAIResponsesWebSearchAction | null;
+  status: string;
+}):
+  | { isError: true; result: { status: string } }
+  | { result: InferSchema<typeof webSearchOutputSchema> } {
+  return status === 'completed'
+    ? { result: mapWebSearchOutput(action) }
+    : { isError: true, result: { status } };
+}
+
+function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {

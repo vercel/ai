@@ -7461,6 +7461,288 @@ describe('AnthropicLanguageModel', () => {
 
   describe('doStream', () => {
     it.each([
+      'empty',
+      'metadata-only',
+      'empty-text',
+      'empty-reasoning',
+      'empty-tool-input',
+      'later-message',
+      'partial-text',
+      'partial-reasoning',
+      'partial-tool-input',
+      'tool-call',
+    ] as const)(
+      'only emits an interrupted finish after output (%s)',
+      async scenario => {
+        const messageStart = (id: string, content: unknown[] = []) => ({
+          type: 'message_start',
+          message: {
+            id,
+            type: 'message',
+            role: 'assistant',
+            content,
+            model: 'claude-3-haiku-20240307',
+            stop_reason: null,
+            usage: { input_tokens: 10, output_tokens: 1 },
+          },
+        });
+        const textStart = {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        };
+        const textDelta = (text: string) => ({
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text },
+        });
+        const events: unknown[] = [];
+        if (scenario === 'later-message') {
+          events.push(
+            messageStart('msg-previous'),
+            textStart,
+            textDelta('Previous answer'),
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 3 },
+            },
+            { type: 'message_stop' },
+          );
+        }
+        if (scenario !== 'empty') {
+          events.push(
+            messageStart(
+              'msg-current',
+              scenario === 'tool-call'
+                ? [
+                    {
+                      type: 'tool_use',
+                      id: 'tool-1',
+                      name: 'test-tool',
+                      input: {},
+                    },
+                  ]
+                : [],
+            ),
+          );
+        }
+        if (scenario === 'empty-text' || scenario === 'partial-text') {
+          events.push(
+            textStart,
+            textDelta(scenario === 'partial-text' ? 'Partial' : ''),
+          );
+        }
+        if (
+          scenario === 'empty-reasoning' ||
+          scenario === 'partial-reasoning'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'thinking', thinking: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'thinking_delta',
+                thinking: scenario === 'partial-reasoning' ? 'Thinking' : '',
+              },
+            },
+          );
+        }
+        if (
+          scenario === 'empty-tool-input' ||
+          scenario === 'partial-tool-input'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'tool-1',
+                name: 'test-tool',
+                input: {},
+              },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: scenario === 'partial-tool-input' ? '{' : '',
+              },
+            },
+          );
+        }
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: true,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(
+          parts
+            .filter(part => part.type === 'finish')
+            .map(part => part.finishReason),
+        ).toEqual(
+          scenario === 'later-message'
+            ? [{ unified: 'stop', raw: 'end_turn' }]
+            : [
+                  'partial-text',
+                  'partial-reasoning',
+                  'partial-tool-input',
+                  'tool-call',
+                ].includes(scenario)
+              ? [{ unified: 'interrupted', raw: undefined }]
+              : [],
+        );
+      },
+    );
+
+    it('reports interruption for a later message even when an earlier message completed', async () => {
+      const messageStart = (id: string) => ({
+        type: 'message_start',
+        message: {
+          id,
+          type: 'message',
+          role: 'assistant',
+          content: [],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: null,
+          usage: { input_tokens: 10, output_tokens: 1 },
+        },
+      });
+      const events = [
+        messageStart('msg1'),
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { output_tokens: 3 },
+        },
+        { type: 'message_stop' },
+        messageStart('msg2'),
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'Partial answer' },
+        },
+      ];
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(
+        parts
+          .filter(part => part.type === 'finish')
+          .map(part => part.finishReason),
+      ).toEqual([
+        { unified: 'stop', raw: 'end_turn' },
+        { unified: 'interrupted', raw: undefined },
+      ]);
+      const finishes = parts.filter(part => part.type === 'finish');
+      expect(finishes[1].usage).toEqual(finishes[0].usage);
+      expect(finishes[1].providerMetadata).toEqual(
+        finishes[0].providerMetadata,
+      );
+    });
+
+    it.each([
+      [undefined, false, 'interrupted'],
+      [null, false, 'interrupted'],
+      ['end_turn', false, 'interrupted'],
+      ['end_turn', true, 'stop'],
+      [undefined, true, 'other'],
+      ['unknown_reason', true, 'other'],
+    ] as const)(
+      'maps stop_reason %j and message_stop %s to %s',
+      async (stopReason, messageStop, unified) => {
+        const events = [
+          {
+            type: 'message_start',
+            message: {
+              id: 'msg1',
+              type: 'message',
+              role: 'assistant',
+              content: [],
+              model: 'claude-3-haiku-20240307',
+              stop_reason: null,
+              usage: { input_tokens: 10, output_tokens: 1 },
+            },
+          },
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: '' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: 'Partial answer' },
+          },
+          ...(stopReason === undefined
+            ? []
+            : [
+                {
+                  type: 'message_delta',
+                  delta: { stop_reason: stopReason, stop_sequence: null },
+                  usage: { output_tokens: 3 },
+                },
+              ]),
+          ...(messageStop ? [{ type: 'message_stop' }] : []),
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified,
+              raw: messageStop ? stopReason : undefined,
+            },
+            usage: expect.objectContaining({
+              inputTokens: expect.objectContaining({
+                total: messageStop ? 10 : undefined,
+              }),
+            }),
+          }),
+        ]);
+        if (!messageStop) {
+          expect(parts.find(part => part.type === 'finish')).not.toHaveProperty(
+            'providerMetadata',
+          );
+        }
+      },
+    );
+
+    it.each([
       {
         type: 'page_location',
         cited_text: 'Supporting passage',
