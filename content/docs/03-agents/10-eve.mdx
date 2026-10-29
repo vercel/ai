@@ -1,0 +1,105 @@
+---
+title: Filesystem-First Agents
+description: Run durable backend agents from conventional files with eve, a framework built on the AI SDK.
+---
+
+# Filesystem-First Agents
+
+[eve](https://eve.dev) is a filesystem-first framework for durable backend agents on Vercel. Instead of assembling an agent loop, channels, and schedules in code, core capabilities live in conventional locations: an `instructions.md` file for the always-on system prompt, a `tools/` directory for typed functions, a `channels/` directory for message channels, and a `schedules/` directory for recurring jobs. Projects are easier to inspect, extend, and operate.
+
+eve is built on the AI SDK:
+
+- `defineTool` uses the same shape as [`tool()`](/docs/ai-sdk-core/tools-and-tool-calling): a `description`, an `inputSchema` (Zod, any Standard Schema, or a JSON Schema object), and an `execute` function.
+- `defineAgent` accepts an [AI Gateway](https://vercel.com/ai-gateway) model ID such as `openai/gpt-6-luna-fast`, or any AI SDK `LanguageModel` from a [provider package](/providers).
+- Options like `reasoning` map to the AI SDK's model settings.
+- An AI SDK telemetry integration records every model call, tool call, and generation as an eve turn.
+- A [Chat SDK](/docs/agents/chat-platforms) channel bridges any `@chat-adapter/*` adapter to your agent.
+
+## Project layout
+
+A typical eve agent has this structure:
+
+```text
+my-agent/
+└── agent/
+    ├── agent.ts            # Optional: model and runtime config
+    ├── instructions.md     # Required: the always-on system prompt
+    ├── tools/              # Optional: typed functions the model can call
+    │   └── get_weather.ts
+    ├── skills/             # Optional: procedures loaded on demand
+    │   └── plan_a_trip.md
+    ├── channels/           # Optional: message channels (HTTP, Slack, Discord)
+    │   └── slack.ts
+    └── schedules/          # Optional: recurring cron jobs
+        └── weekly_recap.ts
+```
+
+## Quick start
+
+Create a new agent project:
+
+```bash
+npx eve@latest init my-agent
+```
+
+This creates a `my-agent` directory, installs its dependencies, initializes Git, and starts the interactive terminal UI. To add an agent to an existing project, pass a path:
+
+```bash
+cd myapp
+npx eve@latest init .
+```
+
+<Note>
+  Like the `ai` package, `eve` bundles its full documentation, so coding agents
+  can read it locally from `node_modules/eve/docs`. See [Coding
+  Agents](/docs/getting-started/coding-agents) for the same workflow with the AI
+  SDK.
+</Note>
+
+## A minimal example
+
+Replace the system prompt in `agent/instructions.md`:
+
+```md filename="agent/instructions.md"
+You are a concise weather demo assistant. Tell users that the weather data is mocked.
+```
+
+Add a tool at `agent/tools/get_weather.ts`. The filename is the tool name the model sees:
+
+```ts filename="agent/tools/get_weather.ts"
+import { defineTool } from 'eve/tools';
+import { z } from 'zod';
+
+export default defineTool({
+  description: 'Return mock weather data for a city.',
+  inputSchema: z.object({ city: z.string().min(1) }),
+  async execute({ city }) {
+    return { city, condition: 'Sunny', temperatureF: 72 };
+  },
+});
+```
+
+Choose the model in `agent/agent.ts`:
+
+```ts filename="agent/agent.ts"
+import { defineAgent } from 'eve';
+
+export default defineAgent({
+  model: 'openai/gpt-6-luna-fast',
+  reasoning: 'high',
+});
+```
+
+## When to choose eve
+
+The AI SDK gives you primitives; eve gives you a project.
+
+- Use [`ToolLoopAgent`](/docs/agents/building-agents) when you are assembling your own model-and-tools loop inside an application.
+- Use [`WorkflowAgent`](/docs/agents/workflow-agent) from `@ai-sdk/workflow` when you need durable, resumable execution with explicit workflow steps.
+- Use [Chat SDK](/docs/agents/chat-platforms) when you are adding an agent to chat platforms.
+- Use eve when you want a complete durable backend agent as a project — prompt, tools, channels, and schedules as conventional files — running on Vercel.
+
+## Next steps
+
+- [eve documentation](https://eve.dev/docs) — the full project layout and guides
+- [eve on GitHub](https://github.com/vercel/eve) — source code and discussions
