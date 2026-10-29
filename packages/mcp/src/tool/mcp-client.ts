@@ -400,11 +400,24 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
+  listPrompts(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListPromptsResult>;
+
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult>;
+
+  /** @deprecated Use `listPrompts` instead. */
   experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
+  /** @deprecated Use `getPrompt` instead. */
   experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
@@ -1474,7 +1487,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  experimental_listPrompts({
+  listPrompts({
     params,
     options,
   }: {
@@ -1484,7 +1497,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listPromptsInternal({ params, options });
   }
 
-  experimental_getPrompt({
+  getPrompt({
     name,
     arguments: args,
     options,
@@ -1494,6 +1507,20 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  /** @deprecated Use `listPrompts` instead. */
+  experimental_listPrompts(
+    options?: Parameters<MCPClient['listPrompts']>[0],
+  ): Promise<ListPromptsResult> {
+    return this.listPrompts(options);
+  }
+
+  /** @deprecated Use `getPrompt` instead. */
+  experimental_getPrompt(
+    args: Parameters<MCPClient['getPrompt']>[0],
+  ): Promise<GetPromptResult> {
+    return this.getPrompt(args);
   }
 
   complete(

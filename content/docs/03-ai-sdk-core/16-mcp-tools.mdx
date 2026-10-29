@@ -160,7 +160,7 @@ The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 import { createMCPClient } from '@ai-sdk/mcp';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 // Or use the AI SDK's stdio transport:
-// import { Experimental_StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
+// import { StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 const mcpClient = await createMCPClient({
   transport: new StdioClientTransport({
@@ -666,16 +666,12 @@ client throws an `MCPClientError`.
 
 ## Using MCP Prompts
 
-<Note type="warning">
-  MCP Prompts is an experimental feature and may change in the future.
-</Note>
-
 According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
 
 ### Listing Prompts
 
 ```typescript
-const prompts = await mcpClient.experimental_listPrompts();
+const prompts = await mcpClient.listPrompts();
 ```
 
 ### Getting a Prompt
@@ -683,7 +679,7 @@ const prompts = await mcpClient.experimental_listPrompts();
 Retrieve prompt messages, optionally passing arguments defined by the server:
 
 ```typescript
-const prompt = await mcpClient.experimental_getPrompt({
+const prompt = await mcpClient.getPrompt({
   name: 'code_review',
   arguments: { code: 'function add(a, b) { return a + b; }' },
 });
