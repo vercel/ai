@@ -1,5 +1,70 @@
 # @ai-sdk/openai
 
+## 4.0.104
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- 599a97f: fix(openai): read transcription duration from `usage` for duration-billed `json` responses
+
+  `durationInSeconds` now falls back to `usage.seconds` when `usage.type` is `duration` and the response has no top-level `duration` (e.g. `gpt-transcribe` with the default `json` response format).
+
+- 8375141: Support streaming transcription with `gpt-live-transcribe` and `gpt-transcribe`. For these models the `language` provider option is sent as a single-entry `languages` list. `gpt-transcribe` warns about and omits `streaming.delay`, which it does not support. `gpt-live-transcribe` rejects non-streaming transcription, since it has no REST endpoint.
+- 7eac057: fix(openai): strip `propertyNames` schemas that omit `type: 'string'` (e.g. Zod 3 records with constrained keys) instead of throwing an unsupported functionality error
+- 436374e: fix(openai): report unfinished web searches as tool errors
+- 9026c7d: fix(openai): only send transcription response format and timestamp defaults when needed
+
+  Transcription requests no longer send `response_format=verbose_json` or `timestamp_granularities[]=segment` unless the caller sets them or the model needs them. Previously, any `providerOptions.openai` value (such as a `prompt`) caused `verbose_json` to be sent for models like `gpt-transcribe`, which rejected the request.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.103
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.102
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 4.0.100
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 4.0.99
 
 ### Patch Changes

@@ -2,6 +2,7 @@ import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { AnthropicFiles } from './anthropic-files';
+import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -113,6 +114,39 @@ describe('AnthropicFiles', () => {
       });
 
       expect(server.calls[0].requestHeaders['x-api-key']).toBe('test-api-key');
+    });
+
+    it('resolves auth tokens for each upload without changing beta header precedence', async () => {
+      server.urls['https://api.anthropic.com/v1/files'].response =
+        successfulResponse;
+
+      const authToken = vi
+        .fn()
+        .mockResolvedValueOnce('first-token')
+        .mockResolvedValueOnce('refreshed-token');
+      const files = createAnthropic({
+        authToken,
+        headers: { 'anthropic-beta': 'provider-beta' },
+      }).files();
+
+      for (let i = 0; i < 2; i++) {
+        await files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+          mediaType: 'application/octet-stream',
+          headers: { 'anthropic-beta': 'request-beta,files-api-2025-04-14' },
+        });
+      }
+
+      expect(authToken).toHaveBeenCalledTimes(2);
+      expect(
+        server.calls.map(call => call.requestHeaders.authorization),
+      ).toEqual(['Bearer first-token', 'Bearer refreshed-token']);
+      for (const call of server.calls) {
+        expect(call.requestHeaders['x-api-key']).toBeUndefined();
+        expect(call.requestHeaders['anthropic-beta']).toBe(
+          'request-beta,files-api-2025-04-14',
+        );
+      }
     });
 
     it('sends multipart form data with file', async () => {

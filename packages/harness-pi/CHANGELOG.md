@@ -1,5 +1,102 @@
 # @ai-sdk/harness-pi
 
+## 1.0.170
+
+### Patch Changes
+
+- c85285b: refactor(harness-pi): resolve sandbox paths on first use so session start makes no sandbox calls
+
+  Starting a Pi session no longer resolves the sandbox `HOME` or the `fileToolPathPolicy` denied roots. The harness resolves them the first time a native file tool runs or a turn has skills to write, and retries the resolution on the next use if it fails. Skills that an earlier process wrote and the current turn no longer passes are removed the first time a native file tool runs. A turn without skills or native file tool calls makes no sandbox calls.
+
+  A denied root that cannot be resolved now fails the native file tool call that needs it instead of failing session start.
+
+- c85285b: refactor(harness-pi): drop the workspace mirror and list sandbox skills from settings
+
+  The harness no longer copies the sandbox workspace to the host or patches Node's `fs` module to serve that copy at the sandbox path. Pi used the copy only to discover `AGENTS.md`, `CLAUDE.md` and project skills, so Pi no longer reads those files from the sandbox workspace. Native file tools resolve relative paths against the sandbox work directory directly.
+
+  Put project context in `instructions` instead. For skills that already exist in the sandbox, the new `resources.skills` setting lists them to the model; each must exist at `filePath`, and the model reads it with the `read` tool, which can read the skill's directory. Pi reads no project settings, context files or skills from the host.
+
+  Inline extensions no longer see a host copy of the workspace, including when the sandbox shares the host filesystem. Read project files through `session.sandboxSession`.
+
+- c85285b: feat(harness-pi): keep the Pi session in lifecycle data
+
+  The `data` of both lifecycle states (`continue-turn` and `resume-session`) is now `{ entries, pendingToolBatch? }`: the Pi session header followed by its entries, plus the tool batch that was waiting on host input. Pi keeps the session in memory and restores it from those entries, migrating entries recorded under an older Pi session version. Nothing is written to or read from the sandbox for session state, so stopping, suspending and resuming a session make no sandbox calls. `sessionFileName` is gone from lifecycle data.
+
+  A rebuild of the Pi session for a changed tool set now keeps the conversation. It used to start the rebuilt session with an empty history.
+
+  Breaking: a state recorded before this version (`{ sessionFileName }`) still passes `lifecycleStateSchema` but resumes as a fresh session, so conversations suspended across the upgrade lose their history. A pending tool batch in such a state is dropped, because there is no journal to replay it against.
+
+  Deferred MCP tools that `tool_search` loaded in an earlier turn are not re-activated when the session is rebuilt from entries, as before.
+
+- c85285b: feat(harness-pi): keep the Pi session in an optional caller-provided append-only `sessionStorage`, so lifecycle state holds only the id of the entry the session ends at
+
+  The harness appends each new Pi session entry with its `entryId`, `parentEntryId` and Pi session `version`, through the optional `appendMany` when the storage has it. A storage can ignore a retried append, and `read` can return only the entries that lead to `leafId`.
+
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.167
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.166
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.164
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.162
+
+### Patch Changes
+
+- 36e4ce7: fix(harness-pi): ensure `/skill` command reads skill file from sandbox
+- 7fcc24e: fix(harness-pi): validate cold-resume tool calls against host state
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 1.0.161
 
 ### Patch Changes

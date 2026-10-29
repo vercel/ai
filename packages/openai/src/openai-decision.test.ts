@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidResponseDataError,
   InvalidArgumentError,
+  type JSONObject,
 } from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
@@ -174,7 +175,7 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
     input: [
       {
         role: 'user',
-        content: [{ type: 'input_text', text: '{"ticket":["charged twice"]}' }],
+        content: [{ type: 'input_json', data: { ticket: ['charged twice'] } }],
       },
     ],
     questions: [
@@ -204,6 +205,100 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
       },
     ],
   });
+});
+
+it.each([
+  {
+    value: [{ charge: 49 }, { charge: 49 }],
+    part: { type: 'input_json', data: [{ charge: 49 }, { charge: 49 }] },
+  },
+  { value: [], part: { type: 'input_text', text: '[]' } },
+  {
+    value: [{ charge: 49 }, 49],
+    part: { type: 'input_text', text: '[{"charge":49},49]' },
+  },
+  {
+    value: 'charged twice',
+    part: { type: 'input_text', text: '"charged twice"' },
+  },
+  { value: null, part: { type: 'input_text', text: 'null' } },
+])(
+  'sends JSON state natively only when it is an object or array of objects: $value',
+  async ({ value, part }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([part]);
+  },
+);
+
+function nested(levels: number): JSONObject {
+  let value: JSONObject = { leaf: true };
+  for (let level = 1; level < levels; level++) value = { next: value };
+  return value;
+}
+
+function withKeys(count: number): JSONObject {
+  return Object.fromEntries(
+    Array.from({ length: count }, (_, i) => [`k${i}`, 0]),
+  );
+}
+
+it.each([
+  { label: '32 container levels', value: nested(32), native: true },
+  { label: '33 container levels', value: nested(33), native: false },
+  { label: '9,000 values', value: withKeys(9_000), native: true },
+  {
+    label: '10,000 keys plus the root',
+    value: withKeys(10_000),
+    native: false,
+  },
+  {
+    label: '200 KiB of JSON',
+    value: { blob: 'x'.repeat(200 * 1024) },
+    native: true,
+  },
+  {
+    label: 'more than 256 KiB of JSON',
+    value: { blob: 'x'.repeat(256 * 1024) },
+    native: false,
+  },
+  {
+    label: 'more than 256 KiB of multibyte UTF-8',
+    value: { blob: 'é'.repeat(140 * 1024) },
+    native: false,
+  },
+])(
+  'falls back to input_text beyond input_json limits: $label',
+  async ({ value, native }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    const [part] = JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0]
+      .content;
+    expect(part).toEqual(
+      native
+        ? { type: 'input_json', data: value }
+        : { type: 'input_text', text: JSON.stringify(value) },
+    );
+  },
+);
+
+it('sends promptCacheKey without warning and omits it when unset', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({
+    ...options,
+    providerOptions: { openai: { promptCacheKey: 'tenant-42' } },
+  });
+  expect(result.warnings).toEqual([]);
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toMatchObject({
+    prompt_cache_key: 'tenant-42',
+  });
+
+  await model.doDecide(options);
+  expect(JSON.parse(fetch.mock.calls[1][1]?.body as string)).not.toHaveProperty(
+    'prompt_cache_key',
+  );
 });
 
 it('warns about unsupported Responses options without sending them', async () => {

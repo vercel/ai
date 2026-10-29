@@ -1,5 +1,63 @@
 # @ai-sdk/tool-bash
 
+## 1.0.10
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.7
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 1.0.6
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.5
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
 ## 1.0.2
 
 ### Patch Changes

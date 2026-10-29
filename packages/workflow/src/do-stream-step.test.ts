@@ -669,6 +669,87 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('withholds tool calls with tool choice none', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-input-start' as const,
+            id: 'call-1',
+            toolName: 'search',
+          },
+          { type: 'tool-input-delta' as const, id: 'call-1', delta: '{}' },
+          { type: 'tool-input-end' as const, id: 'call-1' },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: '{}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+    const repairToolCall = vi.fn();
+    const writtenParts: Array<{ type: string }> = [];
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      {
+        search: {
+          hasOnInputStart: true,
+          hasOnInputDelta: true,
+          hasOnInputAvailable: true,
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          },
+        },
+      },
+      { toolChoice: 'none', repairToolCall },
+    );
+
+    expect(result).toMatchObject({
+      toolCalls: [],
+      toolInputLifecycleEvents: [],
+      terminalError: expect.objectContaining({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      }),
+    });
+    expect(repairToolCall).not.toHaveBeenCalled();
+    expect(writtenParts.filter(part => part.type.startsWith('tool-'))).toEqual(
+      [],
+    );
+  });
+
   it('does not retain input deltas for tools without delta callbacks', async () => {
     const model = new MockLanguageModelV4({
       doStream: async () => ({

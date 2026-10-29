@@ -96,6 +96,7 @@ describe('createTurnLifecycle', () => {
     await lifecycle.error(error);
 
     expect(onError).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: 'call-1',
       error,
     });
@@ -133,6 +134,7 @@ describe('createTurnLifecycle', () => {
     });
 
     expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: 'call-1',
       steps: [
         expect.objectContaining({

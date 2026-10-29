@@ -272,6 +272,10 @@ const agent = new HarnessAgent({
 `toolApproval` accepts the same status values as AI SDK tool approval status
 objects: `not-applicable`, `approved`, `user-approval`, and `denied`.
 
+When a host tool call is denied, the model and response messages receive an
+`execution-denied` tool result with the denial reason, if provided. The tool's
+`execute` and `toModelOutput` functions are not called for the denial.
+
 When approval is required, the stream pauses after a `tool-approval-request`.
 Continue the same session by sending a tool approval response message. In UI
 flows, `useChat` sends those messages for you when you add the approval result.

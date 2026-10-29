@@ -245,9 +245,9 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, and GPT-6 Luna
-  support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6
-  Astra and GPT-6.1 Sol do not support `'none'`.
+  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, GPT-6 Luna, and
+  GPT-6.1 Terra support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and
+  `'max'`. GPT-6 Astra and GPT-6.1 Sol do not support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -1955,6 +1955,12 @@ const result = await generateText({
 });
 ```
 
+For non-streaming JSON output with `generateText`, when a response contains
+messages marked with `phase: 'final_answer'`, the SDK parses only the last such
+message into `result.output`. This prevents commentary or repeated final answers
+from being joined into invalid JSON. The returned `text`, `content`, response
+messages, and token usage still include the complete response as before.
+
 #### Typed providerMetadata in Text Parts
 
 When using the OpenAI Responses API, the SDK attaches OpenAI-specific metadata to output parts via `providerMetadata`.
@@ -3063,6 +3069,7 @@ The following optional provider options are available for OpenAI completion mode
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.1-terra`       | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-luna`          | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-sol`           | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3502,12 +3509,13 @@ The following provider options are available:
 
 - **timestampGranularities** _string[]_
   The granularity of the timestamps in the transcription.
-  Defaults to `['segment']`.
+  Defaults to `['segment']` when `responseFormat` is `verbose_json`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
   Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
+  For streaming with `gpt-transcribe` and `gpt-live-transcribe`, it is sent as a single-entry `languages` list.
   Optional.
 
 - **prompt** _string_
@@ -3523,13 +3531,13 @@ The following provider options are available:
   Additional information to include in the transcription response.
 
 - **responseFormat** _'json' | 'verbose_json' | 'diarized_json'_
-  The format of the transcription response. `gpt-4o-transcribe-diarize` defaults to `diarized_json`.
+  The format of the transcription response. `whisper-1` defaults to `verbose_json` and `gpt-4o-transcribe-diarize` defaults to `diarized_json`. Other models use the service default unless this option is set.
 
 - **chunkingStrategy** _'auto' | object_
   Controls how the audio is split into chunks. `gpt-4o-transcribe-diarize` defaults to `'auto'`; provide this option to override the default. The object form configures OpenAI server-side VAD with `type: 'server_vad'` and optional `threshold`, `prefixPaddingMs`, and `silenceDurationMs` fields.
 
 - **streaming** _object_
-  Options for streaming transcription models such as `gpt-realtime-whisper`.
+  Options for streaming transcription models such as `gpt-live-transcribe`.
   Use with `experimental_streamTranscribe`.
   - **delay** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
     Latency/accuracy tradeoff for realtime transcription.
@@ -3545,6 +3553,8 @@ The following provider options are available:
 | `gpt-4o-mini-transcribe`    | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe`         | <Check />     | <Cross /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe-diarize` | <Check />     | <Cross /> | <Check /> | <Check /> | <Cross /> |
+| `gpt-transcribe`            | <Check />     | <Check /> | <Cross /> | <Cross /> | <Check /> |
+| `gpt-live-transcribe`       | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 
 ## Translation Models
@@ -3685,8 +3695,10 @@ include probability distributions. Boolean questions use the API's predicate
 primitive and return P(true). Apply thresholds in application code, for example
 `answers.requestsRefund.probability >= 0.5`.
 
-Structured state, instructions, and criterion descriptions are serialized as JSON
-text. Score levels receive zero-based index labels. Non-null Boolean criteria are
+JSON state parts that hold an object or an array of objects are sent as native
+`input_json` parts when they fit its limits (32 container levels, 10,000 values, and
+256 KiB of compact UTF-8 JSON). Larger JSON state, other JSON state values, structured
+instructions, and criterion descriptions are serialized as JSON text. Score levels receive zero-based index labels. Non-null Boolean criteria are
 appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
 String criteria are passed through; structured criteria are serialized as JSON text.
 
@@ -3708,11 +3720,15 @@ state: [
 
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for
-safety monitoring (up to 128 characters). For example:
+safety monitoring (up to 128 characters). Set `providerOptions.openai.promptCacheKey`
+to partition prompt cache reuse across requests that share `state`. For example:
 
 ```ts
 providerOptions: {
-  openai: { safetyIdentifier: 'user-123' } satisfies OpenAIDecisionModelOptions,
+  openai: {
+    safetyIdentifier: 'user-123',
+    promptCacheKey: 'tenant-42',
+  } satisfies OpenAIDecisionModelOptions,
 }
 ```
 

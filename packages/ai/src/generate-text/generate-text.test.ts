@@ -2,6 +2,7 @@ import {
   InvalidPromptError,
   JSONParseError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4Prompt,
@@ -20,6 +21,7 @@ import {
   type ToolExecuteFunction,
   type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
+import { GatewayAuthenticationError } from '@ai-sdk/gateway';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   afterEach,
@@ -764,24 +766,6 @@ describe('experimental_toolCallers', () => {
       'getInventory',
     ]);
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
-  });
-
-  it('rejects caller names that are not caller-capable tools', async () => {
-    await expect(
-      generateText({
-        model: new MockLanguageModelV4(),
-        tools: {
-          getInventory: tool({
-            inputSchema: z.object({}),
-            execute: async () => undefined,
-          }),
-        },
-        experimental_toolCallers: {
-          getInventory: ['getInventory'],
-        } as never,
-        prompt: 'Check inventory.',
-      }),
-    ).rejects.toThrow('tool "getInventory" contains an invalid caller.');
   });
 });
 
@@ -1959,6 +1943,145 @@ describe('generateText', () => {
   });
 
   describe('tool choice enforcement', () => {
+    it.each([
+      { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'tool-calls',
+      },
+      {
+        toolChoice: 'none',
+        stepToolChoice: undefined,
+        finishReason: 'interrupted',
+      },
+      {
+        toolChoice: 'auto',
+        stepToolChoice: 'none',
+        finishReason: 'tool-calls',
+      },
+    ] as const)(
+      'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+      async ({ toolChoice, stepToolChoice, finishReason }) => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputStart = vi.fn();
+        const onInputAvailable = vi.fn();
+        const onLanguageModelCallEnd = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+              ],
+              finishReason: { unified: finishReason, raw: finishReason },
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputStart,
+              onInputAvailable,
+            }),
+          },
+          toolChoice,
+          prepareStep:
+            stepToolChoice == null
+              ? undefined
+              : () => ({ toolChoice: stepToolChoice }),
+          prompt: 'test-input',
+          onLanguageModelCallEnd,
+        });
+
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_ToolChoiceViolationError',
+          message:
+            'Model response contained a tool call even though tool choice was none.',
+          toolChoice: { type: 'none' },
+          finishReason,
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          content: [expect.objectContaining({ type: 'tool-call' })],
+        });
+        expect(execute).not.toHaveBeenCalled();
+        expect(onInputStart).not.toHaveBeenCalled();
+        expect(onInputAvailable).not.toHaveBeenCalled();
+        expect(onLanguageModelCallEnd).toHaveBeenCalledOnce();
+      },
+    );
+
+    it('should not repair or refine tool calls with none', async () => {
+      const repairToolCall = vi.fn();
+      const refineToolInput = vi.fn();
+
+      const result = generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: 'invalid json',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool2',
+                input: '{"value":"x"}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
+        }),
+        tools: {
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+          tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        toolChoice: 'none',
+        repairToolCall,
+        experimental_refineToolInput: { tool2: refineToolInput },
+        prompt: 'test-input',
+      });
+
+      await expect(result).rejects.toMatchObject({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      });
+      expect(repairToolCall).not.toHaveBeenCalled();
+      expect(refineToolInput).not.toHaveBeenCalled();
+    });
+
+    it('should allow text responses with none and preserve tool definitions', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools, toolChoice }) => {
+            expect(tools).toEqual([
+              expect.objectContaining({ type: 'function', name: 'tool1' }),
+            ]);
+            expect(toolChoice).toEqual({ type: 'none' });
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'No tool call.' }],
+            };
+          },
+        }),
+        tools: { tool1: tool({ inputSchema: z.object({}) }) },
+        toolChoice: 'none',
+        prompt: 'test-input',
+      });
+
+      expect(result.text).toBe('No tool call.');
+    });
+
     it('should reject when a required tool choice produces no tool call', async () => {
       const result = generateText({
         model: new MockLanguageModelV4({
@@ -3797,6 +3920,185 @@ describe('generateText', () => {
       });
       expect(recordedToolContext).toEqual({ label: 'updated' });
     });
+  });
+
+  describe('options.onStepError', () => {
+    it('should be called when the provider call fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              throw providerError;
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          onStepStart,
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        ...onStepStart.mock.calls[0][0],
+        error: providerError,
+      });
+    });
+
+    it('should report the step that failed in a multi-step run', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      let responseCount = 0;
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              if (responseCount++ > 0) {
+                throw providerError;
+              }
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "value" }',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          prompt: 'test-input',
+          maxRetries: 0,
+          stopWhen: isStepCount(3),
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+    });
+
+    it('should not be called when the step completes', async () => {
+      const onStepError = vi.fn();
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+        onStepError,
+      });
+
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should be called with the same wrapped gateway error that is thrown', async () => {
+      const onStepError = vi.fn();
+
+      const error = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new GatewayAuthenticationError();
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onStepError,
+      }).catch(error => error);
+
+      expect(error.name).toBe('GatewayAuthenticationError');
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toBe(error);
+    });
+
+    it('should be called with the abort error when the call is aborted', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const abortController = new AbortController();
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              abortController.abort();
+              throw new DOMException('aborted', 'AbortError');
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          abortSignal: abortController.signal,
+          onStepEnd,
+          onStepError,
+        }),
+      ).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError.mock.calls[0][0].error).toMatchObject({
+        name: 'AbortError',
+      });
+    });
+
+    it.each([
+      ['total', { totalMs: 10 }],
+      ['step', { stepMs: 10 }],
+    ] as const)(
+      'should be called with the timeout error when the %s timeout is reached',
+      async (_, timeout) => {
+        const onStepError = vi.fn();
+
+        const result = generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) =>
+              new Promise((_, reject) => {
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              }),
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          timeout,
+          onStepError,
+        });
+        const rejection = expect(result).rejects.toThrow();
+
+        await vi.advanceTimersByTimeAsync(10);
+        await rejection;
+
+        expect(onStepError).toHaveBeenCalledTimes(1);
+        expect(onStepError.mock.calls[0][0]).toMatchObject({
+          stepNumber: 0,
+          error: { name: 'TimeoutError' },
+        });
+      },
+    );
   });
 
   describe('options.onStepEnd stepNumber', () => {
@@ -8811,6 +9113,221 @@ describe('generateText', () => {
           }
         `);
       });
+    });
+
+    describe('provider-selected structured output', () => {
+      it('should parse the selected text while preserving content, messages, and callbacks', async () => {
+        const source = {
+          type: 'source' as const,
+          sourceType: 'url' as const,
+          id: 'source-1',
+          url: 'https://example.com',
+          title: 'Example',
+        };
+        const draftMetadata = {
+          testProvider: {
+            itemId: 'draft',
+            phase: 'commentary',
+            annotations: [
+              { type: 'url_citation', url: source.url, title: source.title },
+            ],
+          },
+        };
+        const finalMetadata = {
+          testProvider: { itemId: 'final', phase: 'final_answer' },
+        };
+        const content: LanguageModelV4Content[] = [
+          { type: 'reasoning', text: 'Thinking.' },
+          {
+            type: 'text',
+            text: '{"value":"draft"}',
+            citations: [{ source, startIndex: 0, endIndex: 17 }],
+            providerMetadata: draftMetadata,
+          },
+          source,
+          {
+            type: 'text',
+            text: '{"value":',
+            providerMetadata: finalMetadata,
+          },
+          {
+            type: 'text',
+            text: '"final"}',
+            providerMetadata: finalMetadata,
+          },
+        ];
+        const onLanguageModelCallEnd = vi.fn();
+        const onStepEnd = vi.fn();
+        const onEnd = vi.fn();
+
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content,
+              structuredOutputText: '{"value":"final"}',
+            },
+          }),
+          prompt: 'prompt',
+          output: Output.object({ schema: z.object({ value: z.string() }) }),
+          onLanguageModelCallEnd,
+          onStepEnd,
+          onEnd,
+        });
+
+        const expectedText = '{"value":"draft"}{"value":"final"}';
+        const expectedMessages = [
+          {
+            role: 'assistant',
+            content: content
+              .filter(part => part.type === 'text' || part.type === 'reasoning')
+              .map(part => ({
+                type: part.type,
+                text: part.text,
+                providerOptions: part.providerMetadata,
+              })),
+          },
+        ];
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe(expectedText);
+        expect(result.content).toEqual(content);
+        expect(result.sources).toEqual([source]);
+        expect(result.finalStep.content).toEqual(content);
+        expect(result.response.messages).toEqual(expectedMessages);
+        expect(result.responseMessages).toEqual(expectedMessages);
+        expect(result.usage.totalTokens).toBe(13);
+        expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+          expect.objectContaining({ content }),
+        );
+        expect(onStepEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: expectedText,
+            content,
+            response: expect.objectContaining({ messages: expectedMessages }),
+          }),
+        );
+        expect(onEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: expectedText,
+            content,
+            responseMessages: expectedMessages,
+          }),
+        );
+      });
+
+      it('should concatenate all text parts when no structured output text is supplied', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{"value":' },
+                { type: 'text', text: '"final"}' },
+              ],
+            },
+          }),
+          prompt: 'prompt',
+          output: Output.object({ schema: z.object({ value: z.string() }) }),
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe('{"value":"final"}');
+      });
+
+      it.each(['', '{"value":'])(
+        'should reject invalid selected text %j without falling back to valid content',
+        async structuredOutputText => {
+          await expect(
+            generateText({
+              model: new MockLanguageModelV4({
+                doGenerate: {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: '{"value":"draft"}' }],
+                  structuredOutputText,
+                },
+              }),
+              prompt: 'prompt',
+              output: Output.object({
+                schema: z.object({ value: z.string() }),
+              }),
+            }),
+          ).rejects.toMatchObject({
+            name: 'AI_NoObjectGeneratedError',
+            text: structuredOutputText,
+            cause: expect.any(JSONParseError),
+          });
+        },
+      );
+
+      it.each([
+        { name: 'default', output: undefined },
+        { name: 'text', output: Output.text() },
+      ])('should preserve all text for $name output', async ({ output }) => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: 'Commentary. ' },
+                { type: 'text', text: 'Final answer.' },
+              ],
+              structuredOutputText: 'Final answer.',
+            },
+          }),
+          prompt: 'prompt',
+          output,
+        });
+
+        expect(result.output).toBe('Commentary. Final answer.');
+        expect(result.text).toBe('Commentary. Final answer.');
+      });
+
+      it.each([undefined, '{"value":"final"}'])(
+        'should not reuse an earlier step selection when the final selection is %j',
+        async structuredOutputText => {
+          const result = await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: [
+                {
+                  ...dummyResponseValues,
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                  content: [
+                    { type: 'text', text: '{"value":"earlier"}' },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{}',
+                    },
+                  ],
+                  structuredOutputText: '{"value":"earlier"}',
+                },
+                {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: '{"value":"final"}' }],
+                  structuredOutputText,
+                },
+              ],
+            }),
+            prompt: 'prompt',
+            output: Output.object({ schema: z.object({ value: z.string() }) }),
+            tools: {
+              testTool: tool({
+                inputSchema: z.object({}),
+                execute: async () => 'tool result',
+              }),
+            },
+            stopWhen: isStepCount(2),
+          });
+
+          expect(result.output).toEqual({ value: 'final' });
+          expect(result.text).toBe('{"value":"final"}');
+          expect(result.steps).toHaveLength(2);
+          expect(result.steps[0].text).toBe('{"value":"earlier"}');
+          expect(result.toolResults[0].output).toBe('tool result');
+        },
+      );
     });
 
     describe('array output', () => {

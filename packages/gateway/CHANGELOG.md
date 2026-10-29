@@ -1,5 +1,79 @@
 # @ai-sdk/gateway
 
+## 4.0.129
+
+### Patch Changes
+
+- 9f19c79: chore(provider/gateway): update gateway model settings files
+
+## 4.0.128
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.126
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.125
+
+### Patch Changes
+
+- a706678: feat(provider/moonshotai): add kimi-k3.1-pro and kimi-k3.1-pro-highspeed
+
+## 4.0.124
+
+### Patch Changes
+
+- 1bf6d85: chore(provider/gateway): update gateway model settings files
+
+## 4.0.123
+
+### Patch Changes
+
+- 8202f5b: feat(gateway): implement experimental streaming speech in the gateway provider
+
+  `GatewaySpeechModel` implements `Experimental_StreamingSpeechModelV4` and streams speech over the AI Gateway speech WebSocket (`/speech-model`, `ai-gateway-speech.v1` subprotocol). `@ai-sdk/provider-utils` adds the experimental speech-stream envelope (`experimental_parseSpeechStreamClientFrame`, `experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`) shared by clients and servers, plus the `EXPERIMENTAL_SPEECH_STREAM_*` frame type constants and `Experimental_SpeechStream*` frame types. Text-delta frames carry each text part's `voice` and `providerOptions`; the start frame carries `outputFormat` as an audio format object. Adds `gateway.experimental_speech`, callable like `speech(modelId)`, with a server-side `getToken()` that mints a speech-bound short-lived client secret for browser use.
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 4.0.122
+
+### Patch Changes
+
+- 101ce42: chore(provider/gateway): update gateway model settings files
+- e104368: Add Voxtral 3 offline transcription and speech model IDs. Support transcription context phrases and detected language, update timestamp validation for Voxtral 3, and expose speech expressiveness and pronunciation hints.
+- eb1f056: fix(provider/gateway): update `parallelSearch` for Parallel's GA Search API
+
+  - Accept the `turbo`, `fast`, `basic`, and `advanced` modes. Tool calls that use one of these modes no longer fail client-side input validation. `one-shot` and `agentic` are deprecated but still accepted.
+  - Add the `location` and top-level `maxCharsTotal` options, plus `fetchPolicy.timeoutSeconds` and `fetchPolicy.disableCacheFallback`. `excerpts.maxCharsTotal` is deprecated in favor of `maxCharsTotal`.
+  - Fix the result type and schema to match the response the gateway returns: `search_id`, results with `url`, nullable `title` and `publish_date`, and `excerpts: string[]`, plus optional `warnings`, `usage`, and `session_id`. The `searchId`, `excerpt`, `publishDate`, and `relevanceScore` fields were never populated and are removed; update code that reads them. `validateUIMessages` now accepts Parallel Search results.
+
+- 5893e99: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 4.0.121
 
 ### Patch Changes

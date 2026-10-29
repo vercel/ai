@@ -1,5 +1,70 @@
 # @ai-sdk/otel
 
+## 1.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+
+## 1.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.149
+
+### Patch Changes
+
+- e6a568d: Add an `agentSpanName` option to `OpenTelemetry` to name root agent spans using `functionId` or a custom callback. Preserve model-based span names by default.
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+
 ## 1.0.148
 
 ### Patch Changes

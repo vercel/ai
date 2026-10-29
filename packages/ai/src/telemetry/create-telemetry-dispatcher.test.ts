@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
@@ -6,6 +7,7 @@ import { registerTelemetry } from './telemetry-registry';
 const dummyEvent = {} as any;
 const augmentedDummyEvent = {
   ...dummyEvent,
+  aiVersion: VERSION,
   recordInputs: undefined,
   recordOutputs: undefined,
   functionId: undefined,
@@ -71,6 +73,22 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onStart!(dummyEvent);
 
     expect(integration.onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+  });
+
+  it('adds the emitting SDK version without modifying the original event', async () => {
+    const onStart = vi.fn();
+    const event = Object.freeze({
+      ...dummyEvent,
+      aiVersion: 'other-version',
+    });
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: { onStart } },
+    });
+
+    await telemetry.onStart!(event);
+
+    expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(event.aiVersion).toBe('other-version');
   });
 
   it('accepts an array of integrations', () => {
@@ -516,10 +534,13 @@ describe('createTelemetryDispatcher', () => {
     it('wraps execute with a single integration', async () => {
       const execute = vi.fn().mockResolvedValue('result');
       let wrapperCalls = 0;
+      let version: string | undefined;
       const wrapper: Telemetry['executeLanguageModelCall'] = async ({
         execute,
+        aiVersion,
       }) => {
         wrapperCalls += 1;
+        version = aiVersion;
         return `wrapped:${await execute()}` as any;
       };
 
@@ -535,6 +556,7 @@ describe('createTelemetryDispatcher', () => {
       ).resolves.toBe('wrapped:result');
 
       expect(wrapperCalls).toBe(1);
+      expect(version).toBe(VERSION);
       expect(execute).toHaveBeenCalledOnce();
     });
 
@@ -584,8 +606,13 @@ describe('createTelemetryDispatcher', () => {
     it('wraps execute with a single integration', async () => {
       const execute = vi.fn().mockResolvedValue('result');
       let wrapperCalls = 0;
-      const wrapper: Telemetry['executeTool'] = async ({ execute }) => {
+      let version: string | undefined;
+      const wrapper: Telemetry['executeTool'] = async ({
+        execute,
+        aiVersion,
+      }) => {
         wrapperCalls += 1;
+        version = aiVersion;
         return `wrapped:${await execute()}` as any;
       };
 
@@ -602,6 +629,7 @@ describe('createTelemetryDispatcher', () => {
       ).resolves.toBe('wrapped:result');
 
       expect(wrapperCalls).toBe(1);
+      expect(version).toBe(VERSION);
       expect(execute).toHaveBeenCalledOnce();
     });
 

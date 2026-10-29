@@ -18,7 +18,6 @@ export type GatewayImageModelId =
   | 'meta/muse-image-1.0'
   | 'microsoft/mai-image-2.6'
   | 'microsoft/mai-image-2.6-flash'
-  | 'openai/gpt-image-1'
   | 'openai/gpt-image-1-mini'
   | 'openai/gpt-image-1.5'
   | 'openai/gpt-image-2'

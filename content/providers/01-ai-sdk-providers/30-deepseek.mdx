@@ -153,11 +153,7 @@ The following optional provider options are available for DeepSeek models:
 
 - `reasoningEffort` _'low' | 'high' | 'max'_
 
-  Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
-  using the top-level `reasoning` setting, `minimal` is sent as `low`,
-  `medium` is sent as `high`, `xhigh` is sent as `max`, and `max` is sent
-  directly. A compatibility warning is returned whenever the requested value
-  is mapped.
+  Optional. Controls thinking strength for DeepSeek V4 reasoning models.
 
 For backwards compatibility, legacy provider options supplied at runtime are
 also mapped to documented values: `thinking.type: 'adaptive'` becomes

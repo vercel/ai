@@ -1151,15 +1151,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   private async getHeaders({
     betas,
+    configHeaders,
     headers,
     providerOptions,
   }: {
     betas: Set<string>;
+    configHeaders: Record<string, string | undefined> | undefined;
     headers: Record<string, string | undefined> | undefined;
     providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
     const combinedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+      configHeaders,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
@@ -1169,13 +1171,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       : combinedHeaders;
   }
 
-  private async getBetasFromHeaders(
+  private getBetasFromHeaders(
+    configHeaders: Record<string, string | undefined> | undefined,
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
-
     const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
@@ -1249,6 +1248,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args,
       warnings,
@@ -1260,7 +1263,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1279,6 +1285,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -1896,6 +1903,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4StreamResult> {
     'use step';
 
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args: body,
       warnings,
@@ -1907,7 +1918,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: true,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1923,6 +1937,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url,
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -1992,8 +2007,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
-    let hasFinishedMessage = false;
-    let hasStreamError = false;
 
     let blockType:
       | 'text'
@@ -2015,69 +2028,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const generateId = this.generateId;
 
-    const emitFinish = (
-      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
-      reason: LanguageModelV4FinishReason,
-    ) => {
-      const anthropicMetadata = {
-        usage: (rawUsage as JSONObject) ?? null,
-        stopSequence,
-        ...(stopDetails != null ? { stopDetails } : {}),
-        ...(inputTransformations != null ? { inputTransformations } : {}),
-        ...(safeguardResults != null ? { safeguardResults } : {}),
-        iterations: usage.iterations
-          ? usage.iterations.map(
-              iter =>
-                ({
-                  type: iter.type,
-                  ...(iter.model != null ? { model: iter.model } : {}),
-                  inputTokens: iter.input_tokens,
-                  outputTokens: iter.output_tokens,
-                  ...(iter.cache_creation_input_tokens
-                    ? {
-                        cacheCreationInputTokens:
-                          iter.cache_creation_input_tokens,
-                      }
-                    : {}),
-                  ...(iter.cache_read_input_tokens
-                    ? {
-                        cacheReadInputTokens: iter.cache_read_input_tokens,
-                      }
-                    : {}),
-                }) satisfies AnthropicUsageIteration,
-            )
-          : null,
-        container,
-        contextManagement,
-      } satisfies AnthropicMessageMetadata;
-
-      const providerMetadata: SharedV4ProviderMetadata = {
-        anthropic: anthropicMetadata,
-      };
-
-      if (usedCustomProviderKey && providerOptionsName !== 'anthropic') {
-        providerMetadata[providerOptionsName] = anthropicMetadata;
-      }
-
-      if (!hasWebSearchResults) {
-        for (const citation of fallbackWebCitations) {
-          const source = createCitationSource(
-            citation,
-            citationDocuments,
-            generateId,
-          );
-          if (source) controller.enqueue(source);
-        }
-      }
-      fallbackWebCitations.length = 0;
-      controller.enqueue({
-        type: 'finish',
-        finishReason: reason,
-        usage: convertAnthropicUsage({ usage, rawUsage }),
-        providerMetadata,
-      });
-    };
-
     const transformedStream = response.pipeThrough(
       new TransformStream<
         ParseResult<InferSchema<typeof anthropicChunkSchema>>,
@@ -2097,7 +2047,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           if (!chunk.success) {
-            hasStreamError = true;
             controller.enqueue({ type: 'error', error: chunk.error });
             return;
           }
@@ -2995,7 +2944,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 hasInvalidMessageSequence = true;
-                hasStreamError = true;
                 controller.enqueue({
                   type: 'error',
                   error: new InvalidResponseDataError({
@@ -3009,8 +2957,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               }
 
               isMessageOpen = true;
-              hasFinishedMessage = false;
-              finishReason = { unified: 'other', raw: undefined };
               activeMessageId = value.message.id;
 
               usage.input_tokens = value.message.usage.input_tokens;
@@ -3189,13 +3135,73 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               isMessageOpen = false;
               activeMessageId = undefined;
 
-              hasFinishedMessage = true;
-              emitFinish(controller, finishReason);
+              const anthropicMetadata = {
+                usage: (rawUsage as JSONObject) ?? null,
+                stopSequence,
+                ...(stopDetails != null ? { stopDetails } : {}),
+                ...(inputTransformations != null
+                  ? { inputTransformations }
+                  : {}),
+                ...(safeguardResults != null ? { safeguardResults } : {}),
+                iterations: usage.iterations
+                  ? usage.iterations.map(
+                      iter =>
+                        ({
+                          type: iter.type,
+                          ...(iter.model != null ? { model: iter.model } : {}),
+                          inputTokens: iter.input_tokens,
+                          outputTokens: iter.output_tokens,
+                          ...(iter.cache_creation_input_tokens
+                            ? {
+                                cacheCreationInputTokens:
+                                  iter.cache_creation_input_tokens,
+                              }
+                            : {}),
+                          ...(iter.cache_read_input_tokens
+                            ? {
+                                cacheReadInputTokens:
+                                  iter.cache_read_input_tokens,
+                              }
+                            : {}),
+                        }) satisfies AnthropicUsageIteration,
+                    )
+                  : null,
+                container,
+                contextManagement,
+              } satisfies AnthropicMessageMetadata;
+
+              const providerMetadata: SharedV4ProviderMetadata = {
+                anthropic: anthropicMetadata,
+              };
+
+              if (
+                usedCustomProviderKey &&
+                providerOptionsName !== 'anthropic'
+              ) {
+                providerMetadata[providerOptionsName] = anthropicMetadata;
+              }
+
+              if (!hasWebSearchResults) {
+                for (const citation of fallbackWebCitations) {
+                  const source = createCitationSource(
+                    citation,
+                    citationDocuments,
+                    generateId,
+                  );
+                  if (source) controller.enqueue(source);
+                }
+              }
+              fallbackWebCitations.length = 0;
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertAnthropicUsage({ usage, rawUsage }),
+                providerMetadata,
+              });
               return;
             }
 
             case 'error': {
-              hasStreamError = true;
               controller.enqueue({
                 type: 'error',
                 error: createAnthropicStreamError(value.error),
@@ -3209,19 +3215,74 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
           }
         },
-
-        flush(controller) {
-          // Errors keep their existing error path. Only a clean EOF without
-          // message_stop receives an interrupted finish part.
-          if (!hasFinishedMessage && !hasStreamError) {
-            emitFinish(controller, { unified: 'interrupted', raw: undefined });
-          }
-        },
       }),
     );
 
+    let hasOutput = false;
+    let hasStreamError = false;
+    let lastFinish:
+      | Extract<LanguageModelV4StreamPart, { type: 'finish' }>
+      | undefined;
+    const streamWithFinishReason = transformedStream.pipeThrough(
+      new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(
+        {
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'response-metadata':
+                hasOutput = false;
+                break;
+              case 'finish':
+                hasOutput = false;
+                lastFinish = chunk;
+                break;
+              case 'error':
+                hasStreamError = true;
+                break;
+              case 'text-delta':
+              case 'reasoning-delta':
+              case 'tool-input-delta':
+                hasOutput ||= chunk.delta.length > 0;
+                break;
+              case 'tool-call':
+                hasOutput = true;
+                break;
+            }
+            controller.enqueue(chunk);
+          },
+          flush(controller) {
+            // Preserve the existing no-output error path. Only partial output
+            // without a finish chunk receives an interrupted finish reason.
+            if (hasOutput && !hasStreamError) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason: { unified: 'interrupted', raw: undefined },
+                // Keep the usage and metadata core already had before the cutoff.
+                usage: lastFinish?.usage ?? {
+                  inputTokens: {
+                    total: undefined,
+                    noCache: undefined,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: undefined,
+                    text: undefined,
+                    reasoning: undefined,
+                  },
+                },
+                ...(lastFinish?.providerMetadata != null
+                  ? { providerMetadata: lastFinish.providerMetadata }
+                  : {}),
+              });
+            }
+          },
+        },
+      ),
+    );
+
     // The first chunk needs to be pulled immediately to check if it is an error
-    const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
+    const [streamForFirstChunk, streamForConsumer] =
+      streamWithFinishReason.tee();
 
     const firstChunkReader = streamForFirstChunk.getReader();
     try {
@@ -3606,6 +3667,13 @@ function resolveAnthropicReasoningConfig({
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
     if (supportsBetweenToolsThinking) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; thinking cannot be disabled. ` +
+          `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+      });
       return { thinking: { type: 'between_tools' } };
     }
 
@@ -3630,11 +3698,10 @@ function resolveAnthropicReasoningConfig({
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: {
-        minimal: 'low' as const,
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
         max: 'max' as const,
       },
       warnings,
@@ -3651,9 +3718,6 @@ function resolveAnthropicReasoningConfig({
     maxReasoningBudget: maxOutputTokensForModel,
     warnings,
   });
-  if (budgetTokens == null) {
-    return undefined;
-  }
   return { thinking: { type: 'enabled', budgetTokens } };
 }
 
