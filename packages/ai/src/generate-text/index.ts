@@ -10,10 +10,12 @@ export type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -48,6 +50,12 @@ export type {
   StepResult,
   StepResultPerformance,
 } from './step-result';
+export {
+  createSteering as experimental_createSteering,
+  type Steering as Experimental_Steering,
+  type SteeringNotDeliveredReason as Experimental_SteeringNotDeliveredReason,
+  type SteeringOutcome as Experimental_SteeringOutcome,
+} from './steering';
 export {
   hasToolCall,
   isLoopFinished,

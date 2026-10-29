@@ -202,6 +202,13 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
               ],
             },
             {
+              name: 'protocolVersionDiscovery',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether transports that support protocol discovery probe with server/discover before legacy initialization. Defaults to true. Set to false for a known legacy server to start with initialize. Recognized modern protocol errors do not trigger automatic legacy fallback.',
+            },
+            {
               name: 'initializationOptions',
               type: 'RequestOptions',
               isOptional: true,

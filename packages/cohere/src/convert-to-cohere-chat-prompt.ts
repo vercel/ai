@@ -5,6 +5,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -91,10 +92,11 @@ export async function convertToCohereChatPrompt(
                   break;
                 }
                 case 'data': {
-                  textContent =
+                  textContent = new TextDecoder().decode(
                     typeof part.data.data === 'string'
-                      ? part.data.data
-                      : new TextDecoder().decode(part.data.data);
+                      ? convertBase64ToUint8Array(part.data.data)
+                      : part.data.data,
+                  );
                   break;
                 }
               }

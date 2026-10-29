@@ -1,23 +1,18 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
-import {
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, type ServerResponse } from 'node:http';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPi } from './pi-harness';
 import {
   close,
   createFakePi,
-  createScriptedModelServerThenDone,
   listen,
   readBody,
+  runPromptTurn,
+  toolCallChunks,
+  useScriptedPiModel,
   type ModelRequestBody,
 } from './test-helpers';
 
@@ -178,28 +173,6 @@ const createMcpServer = () => {
   return { server, requests, sessionIds, deletedSessionIds };
 };
 
-const toolCallChunks = (name: string, args: object): object[] => [
-  {
-    choices: [
-      {
-        index: 0,
-        delta: {
-          role: 'assistant',
-          tool_calls: [
-            {
-              index: 0,
-              id: `call-${name}`,
-              type: 'function',
-              function: { name, arguments: JSON.stringify(args) },
-            },
-          ],
-        },
-      },
-    ],
-  },
-  { choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] },
-];
-
 const MODEL_SCRIPT: ReadonlyArray<ReadonlyArray<object>> = [
   toolCallChunks('tool_search', { query: 'brand check' }),
   toolCallChunks('mcp__brand_ai__brand_check', { query: 'hello' }),
@@ -210,24 +183,17 @@ const declaredToolNames = (body: ModelRequestBody | undefined): string[] =>
 
 describe("Pi's native MCP over streamable HTTP", () => {
   const mcp = createMcpServer();
-  const model = createScriptedModelServerThenDone();
+  const scripted = useScriptedPiModel();
+  const { model, agentDir } = scripted;
   model.enqueue(...MODEL_SCRIPT);
-  const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-mcp-agent-'));
-  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   let mcpUrl = '';
-  let modelUrl = '';
 
   beforeAll(async () => {
-    process.env.PI_CODING_AGENT_DIR = agentDir;
     mcpUrl = await listen(mcp.server);
-    modelUrl = await listen(model.server);
   });
 
   afterAll(async () => {
-    if (previousAgentDir == null) delete process.env.PI_CODING_AGENT_DIR;
-    else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
-    await Promise.all([close(mcp.server), close(model.server)]);
-    rmSync(agentDir, { recursive: true, force: true });
+    await close(mcp.server);
   });
 
   it('declares direct tools, loads deferred tools through tool_search and closes connections on destroy', async () => {
@@ -236,7 +202,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
       cwd: sessionWorkDir,
     }).createSession();
     const headers = { Authorization: `Bearer ${MCP_TOKEN}` };
-    const harness = createFakePi(modelUrl, {
+    const harness = createFakePi(scripted.url, {
       mcpServers: {
         memory: { url: `${mcpUrl}/memory`, headers },
         brand_ai: { url: `${mcpUrl}/brand_ai`, headers, exposure: 'deferred' },
@@ -323,7 +289,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
     }).createSession();
 
     await expect(
-      createFakePi(modelUrl, { mcpServers: { broken: {} } }).doStart({
+      createFakePi(scripted.url, { mcpServers: { broken: {} } }).doStart({
         sessionId: 'session-invalid-mcp',
         sandboxSession,
         sessionWorkDir,
@@ -368,7 +334,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
     writeFileSync(authFile, stored);
     const firstRequest = mcp.requests.length;
 
-    const session = await createFakePi(modelUrl, {
+    const session = await createFakePi(scripted.url, {
       mcpServers: { memory: { url } },
     }).doStart({
       sessionId: 'session-mcp-no-stored-credentials',
@@ -376,14 +342,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
       sessionWorkDir,
     });
     try {
-      const control = await session.doPromptTurn({
-        prompt: 'Hello.',
-        model: 'fake/fake-model',
-        tools: [],
-        skills: [],
-        emit: () => {},
-      });
-      await control.done;
+      await runPromptTurn(session, 'Hello.');
     } finally {
       await session.doDestroy();
     }

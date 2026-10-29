@@ -1,5 +1,21 @@
 # @ai-sdk/cohere
 
+## 4.0.71
+
+### Patch Changes
+
+- 7a93864: Decode base64-encoded file data before sending it as document text to Cohere.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 4.0.69
 
 ### Patch Changes

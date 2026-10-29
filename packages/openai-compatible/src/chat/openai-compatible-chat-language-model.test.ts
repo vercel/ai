@@ -1557,6 +1557,58 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should map top-level reasoning with mapReasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning: ({ reasoning, warnings }) => {
+          warnings.push({ type: 'compatibility', feature: 'reasoning' });
+          return `mapped-${reasoning}`;
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'mapped-xhigh',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+      });
+    });
+
+    it('should not apply mapReasoning to providerOptions reasoningEffort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const mapReasoning = vi.fn(() => 'mapped');
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning,
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'max' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+      expect(mapReasoning).not.toHaveBeenCalled();
+    });
+
     it('should pass textVerbosity setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 

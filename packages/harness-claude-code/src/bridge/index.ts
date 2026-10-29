@@ -570,6 +570,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.maxBudgetUsd !== undefined
+        ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.strictMcpConfig !== undefined
+        ? { strictMcpConfig: start.strictMcpConfig }
+        : {}),
       ...(start.agentProgressSummaries !== undefined
         ? { agentProgressSummaries: start.agentProgressSummaries }
         : {}),
@@ -582,7 +588,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
-      systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
+      systemPrompt: createClaudeCodeSystemPrompt(start.instructions, {
+        excludeDynamicSections: start.excludeDynamicSections,
+      }),
       thinking: start.thinking,
       ...(start.effort !== undefined ? { effort: start.effort } : {}),
       ...(start.responseFormat?.type === 'json' &&
@@ -603,6 +611,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           {
             matcher: 'AskUserQuestion',
             hooks: [questionPreToolUseHook],
+            ...(start.questionTimeoutMs !== undefined
+              ? { timeout: Math.ceil(start.questionTimeoutMs / 1000) }
+              : {}),
           },
         ],
         PostCompact: [

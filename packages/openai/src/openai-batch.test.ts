@@ -1036,7 +1036,7 @@ describe('OpenAI batch service', () => {
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'preserves %s web search tool errors in successful batch responses',
           async status => {
             server.urls[urls.batch].response = {

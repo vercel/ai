@@ -1151,15 +1151,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   private async getHeaders({
     betas,
+    configHeaders,
     headers,
     providerOptions,
   }: {
     betas: Set<string>;
+    configHeaders: Record<string, string | undefined> | undefined;
     headers: Record<string, string | undefined> | undefined;
     providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
     const combinedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+      configHeaders,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
@@ -1169,13 +1171,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       : combinedHeaders;
   }
 
-  private async getBetasFromHeaders(
+  private getBetasFromHeaders(
+    configHeaders: Record<string, string | undefined> | undefined,
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
-
     const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
@@ -1249,6 +1248,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args,
       warnings,
@@ -1260,7 +1263,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1279,6 +1285,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -1896,6 +1903,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4StreamResult> {
     'use step';
 
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args: body,
       warnings,
@@ -1907,7 +1918,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: true,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1923,6 +1937,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url,
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -3652,6 +3667,13 @@ function resolveAnthropicReasoningConfig({
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
     if (supportsBetweenToolsThinking) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; thinking cannot be disabled. ` +
+          `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+      });
       return { thinking: { type: 'between_tools' } };
     }
 
@@ -3676,11 +3698,10 @@ function resolveAnthropicReasoningConfig({
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: {
-        minimal: 'low' as const,
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
         max: 'max' as const,
       },
       warnings,
@@ -3697,9 +3718,6 @@ function resolveAnthropicReasoningConfig({
     maxReasoningBudget: maxOutputTokensForModel,
     warnings,
   });
-  if (budgetTokens == null) {
-    return undefined;
-  }
   return { thinking: { type: 'enabled', budgetTokens } };
 }
 

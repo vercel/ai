@@ -491,14 +491,6 @@ function validateBatchReference({
   batchApi: BatchV4;
   batch: BatchReference;
 }) {
-  if (batch.version !== 2) {
-    throw new InvalidArgumentError({
-      parameter: 'batch',
-      value: batch,
-      message: 'batch must be a supported batch reference',
-    });
-  }
-
   if (batch.provider !== batchApi.provider) {
     throw new InvalidArgumentError({
       parameter: 'provider',
