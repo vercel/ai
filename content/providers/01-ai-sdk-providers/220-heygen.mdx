@@ -202,7 +202,7 @@ Text-to-video defaults to `16:9`. Reference-to-video defaults to `adaptive`, inh
 ### Other Constraints
 
 - Prompts must contain between 1 and 32,000 characters.
-- Duration must be a whole number from 5 to 30 seconds for text-to-video and image-to-video with `quality` (the default) or `turbo` prompt enhancement, at every resolution. Reference-to-video and `ultraquality` or `disabled` enhancement remain limited to 5–15 seconds. The default duration is 5. See [duration limits](https://developers.heygen.com/docs/models/heygen-video#duration-limits).
+- The SDK accepts positive whole-second durations and forwards them without clamping. HeyGen currently supports 5 to 30 seconds for text-to-video and image-to-video with `quality` (the default) or `turbo` prompt enhancement, at every resolution. Reference-to-video and `ultraquality` or `disabled` enhancement remain limited to 5–15 seconds. The default duration is 5. See [duration limits](https://developers.heygen.com/docs/models/heygen-video#duration-limits).
 - Seeds must be unsigned 32-bit integers.
 - One video is generated per provider call.
 - Output is MP4 at 24 fps with generated audio. Unsupported `fps` values and `generateAudio: false` produce warnings.

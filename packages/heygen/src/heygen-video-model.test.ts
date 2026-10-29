@@ -104,37 +104,57 @@ describe('HeyGenVideoModel', () => {
     },
   );
 
-  it.each(['ultraquality', 'disabled'])(
-    'keeps %s clips limited to 15 seconds before submission',
-    async promptEnhancement => {
-      await expect(
-        createModel().doStart({
-          ...defaultOptions,
-          duration: 16,
-          providerOptions: { heygen: { promptEnhancement } },
-        }),
-      ).rejects.toThrow('between 5 and 15 seconds');
-      expect(server.calls).toHaveLength(0);
+  it.each(['text_to_video', 'image_to_video', 'reference_to_video'] as const)(
+    'passes long %s requests through without imposing provider duration limits',
+    async mode => {
+      for (const duration of [1, 16, 31, 60]) {
+        for (const promptEnhancement of [
+          'quality',
+          'ultraquality',
+          'disabled',
+        ]) {
+          await createModel().doStart({
+            ...defaultOptions,
+            duration,
+            ...(mode === 'image_to_video' ? { image } : {}),
+            ...(mode === 'reference_to_video'
+              ? { inputReferences: [video] }
+              : {}),
+            providerOptions: { heygen: { mode, promptEnhancement } },
+          });
+          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+            duration,
+            mode,
+            prompt_enhancement: promptEnhancement,
+          });
+        }
+      }
     },
   );
 
-  it('keeps inferred reference mode limited to 15 seconds before submission', async () => {
-    await expect(
-      createModel().doStart({
-        ...defaultOptions,
-        duration: 16,
-        inputReferences: [video],
+  it('propagates a provider duration rejection without clamping or retrying', async () => {
+    server.urls[createURL].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          code: 'invalid_parameter',
+          message: 'Duration exceeds the limit for these settings',
+          param: 'duration',
+        },
       }),
-    ).rejects.toThrow('between 5 and 15 seconds');
-    expect(server.calls).toHaveLength(0);
-    await createModel().doStart({
-      ...defaultOptions,
-      duration: 15,
-      inputReferences: [video],
+    };
+    await expect(
+      createModel().doStart({ ...defaultOptions, duration: 31 }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      statusCode: 400,
+      message:
+        'Duration exceeds the limit for these settings (invalid_parameter) [duration]',
     });
+    expect(server.calls).toHaveLength(1);
     expect(await server.calls[0].requestBodyJson).toMatchObject({
-      duration: 15,
-      mode: 'reference_to_video',
+      duration: 31,
     });
   });
 
@@ -327,8 +347,9 @@ describe('HeyGenVideoModel', () => {
     ['missing prompt', { prompt: undefined }],
     ['empty prompt', { prompt: '' }],
     ['long prompt', { prompt: 'x'.repeat(32001) }],
-    ['short duration', { duration: 4 }],
-    ['long duration', { duration: 31 }],
+    ['zero duration', { duration: 0 }],
+    ['negative duration', { duration: -1 }],
+    ['nonfinite duration', { duration: Number.POSITIVE_INFINITY }],
     ['fractional duration', { duration: 5.5 }],
     ['negative seed', { seed: -1 }],
     ['large seed', { seed: 4294967296 }],

@@ -215,21 +215,14 @@ export class HeyGenVideoModel implements VideoModelV4 {
         : referenceCount > 0
           ? 'reference_to_video'
           : 'text_to_video');
-    const maxDuration =
-      mode === 'reference_to_video' ||
-      heygenOptions?.promptEnhancement === 'ultraquality' ||
-      heygenOptions?.promptEnhancement === 'disabled'
-        ? 15
-        : 30;
     if (
       options.duration != null &&
-      (!Number.isInteger(options.duration) ||
-        options.duration < 5 ||
-        options.duration > maxDuration)
+      (!Number.isInteger(options.duration) || options.duration <= 0)
     ) {
       throw new InvalidArgumentError({
         argument: 'duration',
-        message: `HeyGen duration must be an integer between 5 and ${maxDuration} seconds for the selected mode and prompt enhancement.`,
+        message:
+          'HeyGen duration must be a positive integer number of seconds.',
       });
     }
 
