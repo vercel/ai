@@ -80,6 +80,64 @@ describe('HeyGenVideoModel', () => {
     },
   });
 
+  it.each(['text_to_video', 'image_to_video'] as const)(
+    'supports 30-second %s clips at every resolution with compatible enhancement',
+    async mode => {
+      for (const resolution of ['480p', '768p', '1080p', '2k']) {
+        for (const promptEnhancement of [undefined, 'quality', 'turbo']) {
+          await createModel().doStart({
+            ...defaultOptions,
+            aspectRatio: '16:9',
+            duration: 30,
+            ...(mode === 'image_to_video' ? { image } : {}),
+            providerOptions: {
+              heygen: { mode, resolution, promptEnhancement },
+            },
+          });
+          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+            duration: 30,
+            mode,
+            resolution,
+          });
+        }
+      }
+    },
+  );
+
+  it.each(['ultraquality', 'disabled'])(
+    'keeps %s clips limited to 15 seconds before submission',
+    async promptEnhancement => {
+      await expect(
+        createModel().doStart({
+          ...defaultOptions,
+          duration: 16,
+          providerOptions: { heygen: { promptEnhancement } },
+        }),
+      ).rejects.toThrow('between 5 and 15 seconds');
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('keeps inferred reference mode limited to 15 seconds before submission', async () => {
+    await expect(
+      createModel().doStart({
+        ...defaultOptions,
+        duration: 16,
+        inputReferences: [video],
+      }),
+    ).rejects.toThrow('between 5 and 15 seconds');
+    expect(server.calls).toHaveLength(0);
+    await createModel().doStart({
+      ...defaultOptions,
+      duration: 15,
+      inputReferences: [video],
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      duration: 15,
+      mode: 'reference_to_video',
+    });
+  });
+
   it('submits text-to-video with explicit defaults and returns an operation', async () => {
     const result = await createModel().doStart(defaultOptions);
     expect(await server.calls[0].requestBodyJson).toEqual({
@@ -270,7 +328,7 @@ describe('HeyGenVideoModel', () => {
     ['empty prompt', { prompt: '' }],
     ['long prompt', { prompt: 'x'.repeat(32001) }],
     ['short duration', { duration: 4 }],
-    ['long duration', { duration: 16 }],
+    ['long duration', { duration: 31 }],
     ['fractional duration', { duration: 5.5 }],
     ['negative seed', { seed: -1 }],
     ['large seed', { seed: 4294967296 }],

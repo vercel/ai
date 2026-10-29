@@ -114,17 +114,6 @@ export class HeyGenVideoModel implements VideoModelV4 {
       });
     }
     if (
-      options.duration != null &&
-      (!Number.isInteger(options.duration) ||
-        options.duration < 5 ||
-        options.duration > 15)
-    ) {
-      throw new InvalidArgumentError({
-        argument: 'duration',
-        message: 'HeyGen duration must be an integer between 5 and 15 seconds.',
-      });
-    }
-    if (
       options.seed != null &&
       (!Number.isInteger(options.seed) ||
         options.seed < 0 ||
@@ -226,6 +215,24 @@ export class HeyGenVideoModel implements VideoModelV4 {
         : referenceCount > 0
           ? 'reference_to_video'
           : 'text_to_video');
+    const maxDuration =
+      mode === 'reference_to_video' ||
+      heygenOptions?.promptEnhancement === 'ultraquality' ||
+      heygenOptions?.promptEnhancement === 'disabled'
+        ? 15
+        : 30;
+    if (
+      options.duration != null &&
+      (!Number.isInteger(options.duration) ||
+        options.duration < 5 ||
+        options.duration > maxDuration)
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'duration',
+        message: `HeyGen duration must be an integer between 5 and ${maxDuration} seconds for the selected mode and prompt enhancement.`,
+      });
+    }
+
     if (
       (mode === 'image_to_video' && image == null) ||
       (mode !== 'image_to_video' && image != null)
