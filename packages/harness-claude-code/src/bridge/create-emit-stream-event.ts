@@ -51,6 +51,12 @@ export type ClaudeMessage = {
   total_cost_usd?: number;
   structured_output?: unknown;
   tool_use_result?: unknown;
+  terminal_reason?: string;
+  deferred_tool_use?: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  };
 };
 
 type MessageBlock = {
