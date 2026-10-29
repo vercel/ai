@@ -790,6 +790,7 @@ export function runPrompt<
           part: await validateToolCall({
             event: rawToolCall,
             tools: input.tools,
+            harnessId: input.harness.harnessId,
           }),
         });
         toolCall = displayHostToolCall({
@@ -1238,6 +1239,7 @@ export function runPrompt<
           const parsed = await validateToolCall<TOOLS>({
             event: isHostTool ? value : displayValue,
             tools: isFilteredBuiltinDynamicCall ? undefined : input.tools,
+            harnessId: input.harness.harnessId,
           });
           const parsedToolCall = asToolCallTextStreamPart({ part: parsed });
           validatedHostToolCall = isHostTool ? parsedToolCall : undefined;
@@ -1891,8 +1893,19 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
   tools: TOOLS | undefined;
+  harnessId: string;
 }): Promise<TextStreamPart<TOOLS>> {
-  const { event, tools } = args;
+  const { event, tools, harnessId } = args;
+  const providerMetadata =
+    event.nativeName !== undefined && event.nativeName !== event.toolName
+      ? {
+          ...event.providerMetadata,
+          [harnessId]: {
+            ...event.providerMetadata?.[harnessId],
+            nativeToolName: event.nativeName,
+          },
+        }
+      : event.providerMetadata;
   const toolCall: LanguageModelV4ToolCall = {
     type: 'tool-call',
     toolCallId: event.toolCallId,
@@ -1902,9 +1915,7 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
       ? { providerExecuted: event.providerExecuted }
       : {}),
     ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
-    ...(event.providerMetadata !== undefined
-      ? { providerMetadata: event.providerMetadata }
-      : {}),
+    ...(providerMetadata !== undefined ? { providerMetadata } : {}),
   };
 
   const parsed = await parseToolCall<TOOLS>({
