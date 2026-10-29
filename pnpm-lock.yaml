@@ -5171,6 +5171,12 @@ importers:
 
   tools/tsdown-config: {}
 
+  tools/verifiers:
+    dependencies:
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
+
 packages:
 
   '@adobe/css-tools@4.4.4':

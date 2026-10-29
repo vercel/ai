@@ -1,0 +1,14 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": [],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/.agents/guidelines/**",
+        "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/split-ts-references.mjs"
+      ]
+    }
+  }
+}
