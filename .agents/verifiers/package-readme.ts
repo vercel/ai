@@ -1,51 +1,46 @@
 #!/usr/bin/env node
 
-import { globSync, readFileSync } from 'node:fs';
-import { basename, dirname, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+  runVerifier,
+  type FileVerifierViolation,
+} from '../../tools/verifiers/api.ts';
+import { readTextFile } from '../../tools/verifiers/utils.ts';
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const excludedPackageNames = new Set([
-  'ai',
-  'codemod',
-  'provider-utils',
-  'provider',
-]);
+type Heading = {
+  level: number;
+  lineIndex: number;
+  text: string;
+};
 
-const packageReadmes = globSync('packages/*/README.md', {
-  cwd: repoRoot,
-}).sort();
+type CodeBlock = {
+  closed: boolean;
+  endLineIndex: number;
+  fenceCharacter: string;
+  fenceLength: number;
+  language: string;
+  lineIndex: number;
+  lines: string[];
+};
 
-const readmesToVerify = packageReadmes.filter(readmePath => {
-  const packageName = basename(dirname(readmePath));
-  return !excludedPackageNames.has(packageName);
-});
-
-const errors = readmesToVerify.flatMap(readmePath => {
-  const filePath = resolve(repoRoot, readmePath);
-  return validateReadme({
-    file: relative(repoRoot, filePath),
-    source: readFileSync(filePath, 'utf8'),
-  });
-});
-
-if (errors.length > 0) {
-  console.error(`\n✖ Found ${errors.length} package README violation(s):\n`);
-  for (const error of errors) {
-    console.error(`  - ${error}`);
+await runVerifier(async ({ files, reportViolation }) => {
+  for (const file of files) {
+    validateReadme({
+      file,
+      source: await readTextFile(file),
+      reportViolation,
+    });
   }
-  console.error(
-    `\nChecked ${readmesToVerify.length} README files; excluded ${excludedPackageNames.size} known exceptions.\n`,
-  );
-  process.exitCode = 1;
-} else {
-  console.log(
-    `✓ Verified ${readmesToVerify.length} package README files; excluded ${excludedPackageNames.size} known exceptions.`,
-  );
-}
+});
 
-function validateReadme({ file, source }) {
-  const errors = [];
+function validateReadme({
+  file,
+  source,
+  reportViolation,
+}: {
+  file: string;
+  source: string;
+  reportViolation: (violation: FileVerifierViolation) => void;
+}): void {
   const { codeBlocks, headings, lines } = parseMarkdown({ source });
   const h1Headings = headings.filter(heading => heading.level === 1);
   const h2Headings = headings.filter(heading => heading.level === 2);
@@ -72,9 +67,7 @@ function validateReadme({ file, source }) {
     h1Headings[0]?.lineIndex !== 0 ||
     !lines[0]?.startsWith('# AI SDK - ')
   ) {
-    errors.push(
-      'must have exactly one H1 on the first line beginning "# AI SDK - "',
-    );
+    reportViolation({ file, violationCode: 'README-1' });
   }
 
   const h2Order = h2Headings.map(heading => heading.text);
@@ -89,10 +82,7 @@ function validateReadme({ file, source }) {
         h2Order.every((heading, index) => heading === expectedOrder[index]),
     )
   ) {
-    const foundHeadings = h2Headings.map(heading => `## ${heading.text}`);
-    errors.push(
-      `must have "## Setup" and "## Usage" H2 sections, with optional "## Skill for Coding Agents" between them (found: ${foundHeadings.join(', ') || 'none'})`,
-    );
+    reportViolation({ file, violationCode: 'README-3' });
   }
 
   const skillEndLineIndex =
@@ -113,7 +103,7 @@ function validateReadme({ file, source }) {
       ),
   );
   if (otherHeadings.length > 0) {
-    errors.push('must not contain additional heading sections');
+    reportViolation({ file, violationCode: 'README-3' });
   }
 
   if (h1Headings[0] != null && setupHeading != null) {
@@ -134,15 +124,13 @@ function validateReadme({ file, source }) {
         isOptionalNoteParagraph(optionalNoteParagraph ?? ''));
 
     if (!hasDescription) {
-      errors.push('must include a description paragraph after the H1');
+      reportViolation({ file, violationCode: 'README-2' });
     } else if (countSentences({ text: descriptionParagraph }) > 2) {
-      errors.push('the description paragraph must contain 1–2 sentences');
+      reportViolation({ file, violationCode: 'README-2' });
     }
 
     if (!hasOnlyDescriptionAndOptionalNote) {
-      errors.push(
-        'before "## Setup", must contain only the description paragraph and an optional note paragraph',
-      );
+      reportViolation({ file, violationCode: 'README-2' });
     }
   }
 
@@ -159,7 +147,7 @@ function validateReadme({ file, source }) {
     });
 
     if (setupCodeBlocks.length !== 1) {
-      errors.push('the Setup section must contain exactly one fenced command');
+      reportViolation({ file, violationCode: 'README-3' });
     } else {
       const [setupCodeBlock] = setupCodeBlocks;
       const commandLines = setupCodeBlock.lines
@@ -167,16 +155,14 @@ function validateReadme({ file, source }) {
         .filter(line => line.length > 0);
 
       if (!['bash', 'sh', 'shell'].includes(setupCodeBlock.language)) {
-        errors.push('the Setup command must use a shell code fence');
+        reportViolation({ file, violationCode: 'README-3' });
       }
       if (
         !setupCodeBlock.closed ||
         commandLines.length !== 1 ||
         !/^npm i\s+\S+(?:\s+\S+)*$/.test(commandLines[0] ?? '')
       ) {
-        errors.push(
-          'the Setup section must contain one fenced, one-line `npm i` command',
-        );
+        reportViolation({ file, violationCode: 'README-3' });
       }
     }
 
@@ -188,7 +174,7 @@ function validateReadme({ file, source }) {
         startLineIndex: setupHeading.lineIndex + 1,
       })
     ) {
-      errors.push('the Setup section must not contain additional content');
+      reportViolation({ file, violationCode: 'README-3' });
     }
 
     const usageEndLineIndex = getSectionEndLine({
@@ -203,7 +189,7 @@ function validateReadme({ file, source }) {
     });
 
     if (usageCodeBlocks.length !== 1) {
-      errors.push('the Usage section must contain exactly one fenced example');
+      reportViolation({ file, violationCode: 'README-3' });
     } else {
       const [usageCodeBlock] = usageCodeBlocks;
       const isTypeScriptExample =
@@ -214,9 +200,7 @@ function validateReadme({ file, source }) {
           ));
 
       if (!usageCodeBlock.closed || !isTypeScriptExample) {
-        errors.push(
-          'the Usage section must contain a fenced TypeScript example',
-        );
+        reportViolation({ file, violationCode: 'README-3' });
       }
     }
 
@@ -232,9 +216,7 @@ function validateReadme({ file, source }) {
       );
 
     if (!hasDocsLink) {
-      errors.push(
-        'the last paragraph must contain a link to https://ai-sdk.dev/docs/... or https://ai-sdk.dev/providers/...',
-      );
+      reportViolation({ file, violationCode: 'README-3' });
     }
 
     if (
@@ -245,31 +227,26 @@ function validateReadme({ file, source }) {
         startLineIndex: usageHeading.lineIndex + 1,
       })
     ) {
-      errors.push('the Usage section must not contain additional content');
+      reportViolation({ file, violationCode: 'README-3' });
     }
   }
 
   for (const codeBlock of codeBlocks) {
     if (!codeBlock.closed) {
-      errors.push('contains an unclosed fenced code block');
-      break;
+      reportViolation({ file, violationCode: 'README-3' });
     }
   }
 
   if (codeBlocks.length !== 2 + skillCodeBlocks.length) {
-    errors.push(
-      'must contain only the Setup and Usage code blocks, plus any in the optional Skill for Coding Agents section',
-    );
+    reportViolation({ file, violationCode: 'README-3' });
   }
-
-  return errors.map(error => `${file}: ${error}`);
 }
 
-function parseMarkdown({ source }) {
+function parseMarkdown({ source }: { source: string }) {
   const lines = source.replace(/\r\n?/g, '\n').split('\n');
-  const headings = [];
-  const codeBlocks = [];
-  let openCodeBlock;
+  const headings: Heading[] = [];
+  const codeBlocks: CodeBlock[] = [];
+  let openCodeBlock: CodeBlock | undefined;
 
   for (const [lineIndex, line] of lines.entries()) {
     if (openCodeBlock != null) {
@@ -309,9 +286,7 @@ function parseMarkdown({ source }) {
       headings.push({
         level: heading[1].length,
         lineIndex,
-        text: (heading[2] ?? '')
-          .replace(/[ \t]+#+[ \t]*$/, '')
-          .trim(),
+        text: (heading[2] ?? '').replace(/[ \t]+#+[ \t]*$/, '').trim(),
       });
     }
   }
@@ -319,7 +294,15 @@ function parseMarkdown({ source }) {
   return { codeBlocks, headings, lines };
 }
 
-function getSectionCodeBlocks({ codeBlocks, endLineIndex, startLineIndex }) {
+function getSectionCodeBlocks({
+  codeBlocks,
+  endLineIndex,
+  startLineIndex,
+}: {
+  codeBlocks: CodeBlock[];
+  endLineIndex: number;
+  startLineIndex: number;
+}) {
   return codeBlocks.filter(
     codeBlock =>
       codeBlock.lineIndex > startLineIndex &&
@@ -327,7 +310,15 @@ function getSectionCodeBlocks({ codeBlocks, endLineIndex, startLineIndex }) {
   );
 }
 
-function getSectionEndLine({ heading, headings, lineCount }) {
+function getSectionEndLine({
+  heading,
+  headings,
+  lineCount,
+}: {
+  heading: Heading;
+  headings: Heading[];
+  lineCount: number;
+}) {
   return (
     headings.find(
       candidate =>
@@ -341,12 +332,13 @@ function hasNonCodeContent({
   endLineIndex,
   lines,
   startLineIndex,
+}: {
+  codeBlocks: CodeBlock[];
+  endLineIndex: number;
+  lines: string[];
+  startLineIndex: number;
 }) {
-  for (
-    let lineIndex = startLineIndex;
-    lineIndex < endLineIndex;
-    lineIndex++
-  ) {
+  for (let lineIndex = startLineIndex; lineIndex < endLineIndex; lineIndex++) {
     if (
       lines[lineIndex]?.trim().length > 0 &&
       !isInsideCodeBlock({ codeBlocks, lineIndex })
@@ -357,7 +349,15 @@ function hasNonCodeContent({
   return false;
 }
 
-function getParagraphs({ lines, startLineIndex, endLineIndex }) {
+function getParagraphs({
+  lines,
+  startLineIndex,
+  endLineIndex,
+}: {
+  lines: string[];
+  startLineIndex: number;
+  endLineIndex: number;
+}) {
   const paragraphs = [];
   let paragraphLines = [];
 
@@ -380,13 +380,13 @@ function getParagraphs({ lines, startLineIndex, endLineIndex }) {
   return paragraphs;
 }
 
-function isOptionalNoteParagraph(text) {
+function isOptionalNoteParagraph(text: string) {
   return /^(?:->\s+\*\*Note\*\*:|>\s+\*\*(?:Note|Deploying to Vercel\?)\*\*)/i.test(
     text,
   );
 }
 
-function countSentences({ text }) {
+function countSentences({ text }: { text: string }) {
   const normalizedText = text
     .replace(/`[^`]*`/g, '')
     .replace(/\]\([^)]*\)/g, ']')
@@ -397,14 +397,20 @@ function countSentences({ text }) {
   return Math.max(1, sentenceEndings.length);
 }
 
-function isInsideCodeBlock({ codeBlocks, lineIndex }) {
+function isInsideCodeBlock({
+  codeBlocks,
+  lineIndex,
+}: {
+  codeBlocks: CodeBlock[];
+  lineIndex: number;
+}) {
   return codeBlocks.some(
     codeBlock =>
       lineIndex >= codeBlock.lineIndex && lineIndex <= codeBlock.endLineIndex,
   );
 }
 
-function getLastParagraph({ lines }) {
+function getLastParagraph({ lines }: { lines: string[] }) {
   let endLineIndex = lines.length - 1;
   while (endLineIndex >= 0 && lines[endLineIndex].trim().length === 0) {
     endLineIndex--;
@@ -412,10 +418,7 @@ function getLastParagraph({ lines }) {
   if (endLineIndex < 0) return undefined;
 
   let startLineIndex = endLineIndex;
-  while (
-    startLineIndex > 0 &&
-    lines[startLineIndex - 1].trim().length > 0
-  ) {
+  while (startLineIndex > 0 && lines[startLineIndex - 1].trim().length > 0) {
     startLineIndex--;
   }
 
