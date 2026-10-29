@@ -2,7 +2,48 @@ import type {
   ModelCapabilities,
   ModelCapability,
   ModelEntry,
+  ProviderOptionDefinition,
+  ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
+
+type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
+
+/**
+ * Options accepted under `providerOptions.anthropic`. The `satisfies` check
+ * keeps this list in sync with the option schema.
+ */
+export const anthropicProviderOptions = {
+  language: {
+    sendReasoning: { description: 'Whether to send reasoning to the model.' },
+    structuredOutputMode: {
+      description: 'How structured outputs are generated.',
+    },
+    thinking: { description: 'Extended thinking configuration.' },
+    disableParallelToolUse: {
+      description: 'Use at most one tool per response.',
+    },
+    cacheControl: { description: 'Prompt cache control settings.' },
+    metadata: { description: 'Request metadata, such as a user ID.' },
+    mcpServers: { description: 'MCP servers to use in the request.' },
+    container: { description: 'Container and Agent Skills configuration.' },
+    toolStreaming: {
+      description: 'Fine-grained streaming of tool inputs and outputs.',
+    },
+    effort: {
+      description: 'Effort spent on thinking, text, and tool calls.',
+    },
+    taskBudget: { description: 'Advisory token budget for an agentic task.' },
+    speed: { description: 'Fast mode for faster output token speeds.' },
+    serviceTier: { description: 'Service tier for the request.' },
+    inferenceGeo: { description: 'Where model inference runs.' },
+    fallbacks: { description: 'Server-side fallback models.' },
+    anthropicBeta: { description: 'Additional beta features to enable.' },
+    safeguards: { description: 'Server-side safeguards to run.' },
+    compaction: { description: 'On-demand conversation summary.' },
+    contextManagement: { description: 'Server-side context management.' },
+  } satisfies Record<AnthropicLanguageProviderOption, ProviderOptionDefinition>,
+} as const satisfies ProviderOptionDefinitions;
 
 type AnthropicLanguageCapabilities = NonNullable<
   ModelCapabilities['language']
@@ -39,6 +80,9 @@ export type AnthropicLanguageModelEntry = ModelEntry<{
   language: AnthropicLanguageRequestConfig;
 }> & {
   capabilities: { language: AnthropicLanguageCapabilities };
+  providerOptions: {
+    language: Record<AnthropicLanguageProviderOption, ModelCapability>;
+  };
   requestConfig: { language: AnthropicLanguageRequestConfig };
 };
 
@@ -59,6 +103,8 @@ type RuntimeDefinition = {
 type DocumentedCapabilities = {
   toolSearch: boolean;
   compaction: boolean;
+  /** `effort` was introduced with claude-opus-4-5. */
+  effort: boolean;
 };
 
 const legacyClaude = defineRuntime({});
@@ -199,23 +245,23 @@ const runtimeRules: readonly {
 ];
 
 const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
-  'claude-opus-5-5': { toolSearch: true, compaction: true },
-  'claude-opus-5': { toolSearch: true, compaction: true },
-  'claude-sonnet-5-5': { toolSearch: true, compaction: true },
-  'claude-sonnet-5': { toolSearch: true, compaction: true },
-  'claude-haiku-5-5': { toolSearch: true, compaction: true },
-  'claude-fable-5-1': { toolSearch: true, compaction: true },
-  'claude-fable-5': { toolSearch: true, compaction: true },
-  'claude-opus-4-8': { toolSearch: true, compaction: true },
-  'claude-opus-4-7': { toolSearch: true, compaction: true },
-  'claude-opus-4-6': { toolSearch: true, compaction: true },
-  'claude-sonnet-4-6': { toolSearch: true, compaction: true },
-  'claude-opus-4-5': { toolSearch: true, compaction: false },
-  'claude-haiku-4-5': { toolSearch: true, compaction: false },
-  'claude-sonnet-4-5': { toolSearch: true, compaction: false },
-  'claude-opus-4-1': { toolSearch: false, compaction: false },
-  'claude-opus-4-0': { toolSearch: false, compaction: false },
-  'claude-sonnet-4-0': { toolSearch: false, compaction: false },
+  'claude-opus-5-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-opus-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-sonnet-5-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-sonnet-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-haiku-5-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-fable-5-1': { toolSearch: true, compaction: true, effort: true },
+  'claude-fable-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-opus-4-8': { toolSearch: true, compaction: true, effort: true },
+  'claude-opus-4-7': { toolSearch: true, compaction: true, effort: true },
+  'claude-opus-4-6': { toolSearch: true, compaction: true, effort: true },
+  'claude-sonnet-4-6': { toolSearch: true, compaction: true, effort: true },
+  'claude-opus-4-5': { toolSearch: true, compaction: false, effort: true },
+  'claude-haiku-4-5': { toolSearch: true, compaction: false, effort: false },
+  'claude-sonnet-4-5': { toolSearch: true, compaction: false, effort: false },
+  'claude-opus-4-1': { toolSearch: false, compaction: false, effort: false },
+  'claude-opus-4-0': { toolSearch: false, compaction: false, effort: false },
+  'claude-sonnet-4-0': { toolSearch: false, compaction: false, effort: false },
 };
 
 export const anthropicModelCatalog: Readonly<
@@ -244,6 +290,7 @@ function createAnthropicLanguageModelEntry(
   const samplingSupport = runtime.samplingParameters
     ? true
     : { condition: 'Only supported when thinking is disabled.' };
+  const reasoningSupport = runtime.adaptiveThinking || runtime.budgetThinking;
 
   return {
     capabilities: {
@@ -262,7 +309,7 @@ function createAnthropicLanguageModelEntry(
           toolSearch: documented?.toolSearch ?? 'unknown',
         },
         reasoning: {
-          support: runtime.adaptiveThinking || runtime.budgetThinking,
+          support: reasoningSupport,
           efforts: runtime.xhighEffort
             ? ['low', 'medium', 'high', 'xhigh', 'max']
             : undefined,
@@ -284,6 +331,21 @@ function createAnthropicLanguageModelEntry(
         compaction: documented?.compaction ?? 'unknown',
       },
     },
+    providerOptions: {
+      language: declareProviderOptions(
+        anthropicProviderOptions.language,
+        declared ? true : 'unknown',
+        {
+          thinking: reasoningSupport,
+          effort: documented?.effort ?? 'unknown',
+          // Fast mode is documented for claude-opus-4-6 only.
+          speed: declared ? modelId === 'claude-opus-4-6' : 'unknown',
+          // Task budgets are documented for claude-opus-4-7; other models are
+          // not documented either way.
+          taskBudget: modelId === 'claude-opus-4-7' ? true : 'unknown',
+        },
+      ),
+    },
     requestConfig: {
       language: {
         maxOutputTokens: runtime.maxOutputTokens,
@@ -291,6 +353,20 @@ function createAnthropicLanguageModelEntry(
       },
     },
   };
+}
+
+/** Applies one default support value to every option, except the listed ones. */
+function declareProviderOptions<Option extends string>(
+  definitions: Readonly<Record<Option, ProviderOptionDefinition>>,
+  support: ModelCapability,
+  exceptions: Partial<Record<Option, ModelCapability>>,
+): Record<Option, ModelCapability> {
+  return Object.fromEntries(
+    (Object.keys(definitions) as Option[]).map(option => [
+      option,
+      exceptions[option] ?? support,
+    ]),
+  ) as Record<Option, ModelCapability>;
 }
 
 function resolveRuntimeDefinition(modelId: string): RuntimeDefinition {

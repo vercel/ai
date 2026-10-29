@@ -5,10 +5,11 @@
 A provider keeps one model catalog, keyed by model ID. Every entry follows the
 same structure:
 
-| Field           | Contains                                                                            |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `capabilities`  | What the model supports, grouped by operation                                       |
-| `requestConfig` | Optional settings for encoding requests and choosing defaults, grouped by operation |
+| Field             | Contains                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| `capabilities`    | What the model supports, grouped by operation                                        |
+| `providerOptions` | Optional per-model support for the provider's declared options, grouped by operation |
+| `requestConfig`   | Optional settings for encoding requests and choosing defaults, grouped by operation  |
 
 A model can declare several operations in the same entry. There is no single
 `type` discriminator that limits a model to one operation.
@@ -90,6 +91,29 @@ The rule for choosing a location is: **feature availability belongs in
 
 Aliases and model-family matching belong in lookup logic. They are neither
 capabilities nor request configuration.
+
+## Provider options
+
+Provider options are declared in two places:
+
+| Level    | Declaration                                                       | Contains                                       |
+| -------- | ----------------------------------------------------------------- | ---------------------------------------------- |
+| Provider | `ProviderOptionDefinitions`, e.g. `openaiProviderOptions`         | Each option name and description, by operation |
+| Model    | `ModelEntry.providerOptions`, e.g. `providerOptions.language.foo` | A `ModelCapability` for each declared option   |
+
+Option names match the keys accepted under `providerOptions.<provider>`. Each
+provider-level declaration uses `satisfies Record<keyof Options, ...>` against
+the option schema's inferred type, so adding or removing a schema option fails
+type checking until the catalog is updated.
+
+Model support defaults to `true` for catalog models and `'unknown'` for other
+model IDs. Model-specific options must declare an exception, using one of these
+sources:
+
+1. A capability the entry already declares, such as reasoning options following
+   `reasoning.support` or `promptCacheOptions` following `promptCache.options`.
+2. A documented per-model fact in the catalog table, such as Anthropic's
+   `effort` column, or an exact model ID for a single documented model.
 
 ## Runtime resolution
 

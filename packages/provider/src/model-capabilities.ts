@@ -82,11 +82,41 @@ export type ModelCapabilities = {
 };
 
 /**
+ * A provider option, declared once at the provider level.
+ */
+export type ProviderOptionDefinition = {
+  readonly description: string;
+};
+
+/**
+ * The provider options a provider accepts, grouped by the operation they
+ * configure. Section names match `ModelCapabilities`; option names match the
+ * keys accepted under `providerOptions.<provider>` for that operation.
+ */
+export type ProviderOptionDefinitions = {
+  readonly [Section in keyof ModelCapabilities]?: Readonly<
+    Record<string, ProviderOptionDefinition>
+  >;
+};
+
+/**
+ * Per-model support for the options in the provider's
+ * `ProviderOptionDefinitions`, keyed by the same sections and option names.
+ */
+export type ModelProviderOptions = {
+  readonly [Section in keyof ModelCapabilities]?: Readonly<
+    Record<string, ModelCapability>
+  >;
+};
+
+/**
  * One provider-owned model record, which can declare several operations.
  * RequestConfig is a provider-defined type for request encoding and defaults.
  * Feature support belongs in capabilities, including provider-specific features.
  */
 export type ModelEntry<RequestConfig = never> = {
   readonly capabilities: ModelCapabilities;
+  /** Omitted sections or options are undeclared, not explicitly unsupported. */
+  readonly providerOptions?: ModelProviderOptions;
   readonly requestConfig?: RequestConfig;
 };

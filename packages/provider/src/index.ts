@@ -13,6 +13,9 @@ export type {
   ModelCapabilities,
   ModelCapability,
   ModelEntry,
+  ModelProviderOptions,
+  ProviderOptionDefinition,
+  ProviderOptionDefinitions,
 } from './model-capabilities';
 export * from './provider/index';
 export * from './realtime-model/v4/index';
