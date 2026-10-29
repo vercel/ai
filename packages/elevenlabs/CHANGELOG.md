@@ -1,5 +1,14 @@
 # @ai-sdk/elevenlabs
 
+## 2.0.70
+
+### Patch Changes
+
+- 313e084: fix(elevenlabs): map the generic HTTP speech output format `wav` to the native `wav_44100` format instead of forwarding an unsupported value.
+- ceaafcb: Add the `withTimestamps` speech option to return character alignment and single-voice Eleven v4 voice segments in provider metadata. Preserve Scribe batch word and character timestamp metadata.
+- Updated dependencies [28252da]
+  - @ai-sdk/provider-utils@4.0.63
+
 ## 2.0.69
 
 ### Patch Changes
