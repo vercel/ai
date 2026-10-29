@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.157
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- eb768e2: Fix Next.js Edge Runtime warnings from Node.js runtime detection used by telemetry tracing.
+- Updated dependencies [9ca8bcf]
+- Updated dependencies [61a315e]
+  - @ai-sdk/gateway@4.0.130
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 7.0.156
 
 ### Patch Changes

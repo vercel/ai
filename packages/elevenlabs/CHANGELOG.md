@@ -1,5 +1,14 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.75
+
+### Patch Changes
+
+- 3e5a123: fix(elevenlabs): map the generic HTTP speech output format `wav` to the native `wav_44100` format instead of forwarding an unsupported value.
+- 48ab95d: Add the `withTimestamps` provider option for speech character alignment and music lyric word timing in provider metadata. Route `eleven_v4` speech through Text to Dialogue, including its timestamp endpoint and voice segment metadata.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 3.0.74
 
 ### Patch Changes

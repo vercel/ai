@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.130
+
+### Patch Changes
+
+- 9ca8bcf: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500. Propagate these errors from speech and transcription input streams to their output streams without leaving reads pending or causing unhandled rejections.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 4.0.129
 
 ### Patch Changes
