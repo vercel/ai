@@ -5,6 +5,10 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -34,7 +38,7 @@ import {
 interface XaiTranscriptionModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   _internal?: {
@@ -127,7 +131,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/stt`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -213,7 +220,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: xaiOptions,
     });
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     return {
       request: { body: url.toString() },
@@ -538,18 +548,22 @@ function timingFromXaiEvent(event: XaiStreamingTranscriptionEvent) {
   };
 }
 
-const xaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-        speaker: z.number().nullish(),
-      }),
-    )
-    .nullish(),
-});
+const xaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            speaker: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

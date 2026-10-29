@@ -4,8 +4,13 @@ import {
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4Input as DecisionModelV4Input,
+  type JSONObject,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   detectMediaType,
@@ -27,54 +32,63 @@ import { openaiDecisionModelOptions } from './openai-decision-model-options';
 
 export type OpenAIDecisionModelId = 'gpt-6-luna' | (string & {});
 
-const probability = z.number().min(0).max(1);
-const responseSchema = z.object({
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      input_tokens_details: z
+const probability = () => z.number().min(0).max(1);
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string().nullish(),
+      usage: z
         .object({
-          cached_tokens: z.number().nullish(),
-          cache_write_tokens: z.number().nullish(),
+          input_tokens: z.number().nullish(),
+          input_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          output_tokens: z.number().nullish(),
+          output_tokens_details: z
+            .object({
+              reasoning_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          total_tokens: z.number().nullish(),
         })
         .nullish(),
-      output_tokens: z.number().nullish(),
-      output_tokens_details: z
-        .object({
-          reasoning_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      total_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  answers: z.array(
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('refusal'), name: z.string().nullable() }),
-      z.object({
-        type: z.literal('predicate'),
-        name: z.string(),
-        probability,
-      }),
-      z.object({
-        type: z.literal('choice'),
-        name: z.string(),
-        choice: z.string(),
-        confidence: probability.nullish(),
-        probabilities: z.array(z.object({ value: z.string(), probability })),
-      }),
-      z.object({
-        type: z.literal('score'),
-        name: z.string(),
-        score: z.number(),
-        confidence: probability.nullish(),
-        probabilities: z.array(
-          z.object({ value: z.number().int().nonnegative(), probability }),
-        ),
-      }),
-    ]),
+      answers: z.array(
+        z.discriminatedUnion('type', [
+          z.object({ type: z.literal('refusal'), name: z.string().nullable() }),
+          z.object({
+            type: z.literal('predicate'),
+            name: z.string(),
+            probability: probability(),
+          }),
+          z.object({
+            type: z.literal('choice'),
+            name: z.string(),
+            choice: z.string(),
+            confidence: probability().nullish(),
+            probabilities: z.array(
+              z.object({ value: z.string(), probability: probability() }),
+            ),
+          }),
+          z.object({
+            type: z.literal('score'),
+            name: z.string(),
+            score: z.number(),
+            confidence: probability().nullish(),
+            probabilities: z.array(
+              z.object({
+                value: z.number().int().nonnegative(),
+                probability: probability(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+    }),
   ),
-});
+);
 
 export class DecisionOpenAIModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
@@ -114,6 +128,8 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -131,10 +147,11 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: this.config.url({ path: '/decisions', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         safety_identifier: openaiOptions?.safetyIdentifier,
+        prompt_cache_key: openaiOptions?.promptCacheKey,
         input: [
           {
             role: 'user',
@@ -142,10 +159,9 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
               if (part.type === 'text')
                 return { type: 'input_text', text: part.text };
               if (part.type === 'json')
-                return {
-                  type: 'input_text',
-                  text: JSON.stringify(part.value),
-                };
+                return isInputJsonData(part.value)
+                  ? { type: 'input_json', data: part.value }
+                  : { type: 'input_text', text: JSON.stringify(part.value) };
               if (part.data.type !== 'data') {
                 throw new UnsupportedFunctionalityError({
                   functionality: `OpenAI decision file input: ${part.mediaType} (${part.data.type})`,
@@ -180,7 +196,10 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
           },
         ],
         questions: Object.entries(questions).map(([name, question]) => {
-          const instructions = toText(question.instructions);
+          const instructions =
+            question.instructions == null
+              ? question.instructions
+              : toText(question.instructions);
           switch (question.type) {
             case 'boolean':
               return {
@@ -195,7 +214,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                     ? undefined
                     : `Criteria for false:\n${toText(question.criteria.false)}`,
                 ]
-                  .filter(part => part !== undefined)
+                  .filter(part => part != null)
                   .join('\n\n'),
               };
             case 'choice':
@@ -299,12 +318,20 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
             },
       // The Decisions API reports probabilities and scores to two decimal places.
       rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
-      warnings: Object.keys(providerOptions?.openai ?? {})
-        .filter(option => option !== 'safetyIdentifier')
-        .map(option => ({
-          type: 'unsupported',
-          feature: `providerOptions.openai.${option}`,
-        })),
+      warnings: [
+        ...(maxOutputTokens != null
+          ? [{ type: 'unsupported' as const, feature: 'maxOutputTokens' }]
+          : []),
+        ...(reasoning != null
+          ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
+          : []),
+        ...Object.keys(providerOptions?.openai ?? {})
+          .filter(option => !SUPPORTED_PROVIDER_OPTIONS.has(option))
+          .map(option => ({
+            type: 'unsupported' as const,
+            feature: `providerOptions.openai.${option}`,
+          })),
+      ],
       providerMetadata: {
         openai: {
           ...(response.usage == null ? {} : { usage: response.usage }),
@@ -327,6 +354,45 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
   }
 }
 
+const SUPPORTED_PROVIDER_OPTIONS = new Set([
+  'safetyIdentifier',
+  'promptCacheKey',
+]);
+
 function toText(input: DecisionModelV4Input): string {
   return typeof input === 'string' ? input : JSON.stringify(input);
+}
+
+const INPUT_JSON_MAX_DEPTH = 32;
+const INPUT_JSON_MAX_VALUES = 10_000;
+const INPUT_JSON_MAX_BYTES = 256 * 1024;
+
+function isInputJsonData(value: JSONValue): value is JSONObject | JSONObject[] {
+  const hasInputJsonShape = Array.isArray(value)
+    ? value.length > 0 && value.every(isJSONObject)
+    : isJSONObject(value);
+  return hasInputJsonShape && fitsInputJsonLimits(value);
+}
+
+function fitsInputJsonLimits(value: JSONValue): boolean {
+  let count = 0;
+  const visit = (node: JSONValue | undefined, depth: number): boolean => {
+    count += 1;
+    if (count > INPUT_JSON_MAX_VALUES) return false;
+    if (node === null || typeof node !== 'object') return true;
+    if (depth > INPUT_JSON_MAX_DEPTH) return false;
+    const children: readonly (JSONValue | undefined)[] = Array.isArray(node)
+      ? node
+      : Object.values(node);
+    return children.every(child => visit(child, depth + 1));
+  };
+  return (
+    visit(value, 1) &&
+    new TextEncoder().encode(JSON.stringify(value)).length <=
+      INPUT_JSON_MAX_BYTES
+  );
+}
+
+function isJSONObject(value: JSONValue): value is JSONObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

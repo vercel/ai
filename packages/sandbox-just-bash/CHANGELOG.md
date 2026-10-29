@@ -1,5 +1,169 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.167
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.164
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.163
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.156
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.155
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.155
+- @ai-sdk/provider-utils@5.0.63
+
+## 1.0.154
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.148
 
 ### Patch Changes

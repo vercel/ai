@@ -6,10 +6,8 @@ The **[Baseten provider](https://ai-sdk.dev/providers/ai-sdk-providers/baseten)*
 
 ## Setup
 
-The Baseten provider is available in the `@ai-sdk/baseten` module. You can install it with
-
 ```bash
-npm i @ai-sdk/baseten
+npm i ai @ai-sdk/baseten
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `baseten` from `@ai-sdk/baseten`:
-
-```ts
-import { baseten } from '@ai-sdk/baseten';
-```
-
-## Language Model Example (Model APIs)
+## Usage
 
 ```ts
 import { baseten } from '@ai-sdk/baseten';
@@ -40,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Baseten provider](https://ai-sdk.dev/providers/ai-sdk-providers/baseten)** for more information.
+See the [Baseten Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/baseten) for more information.

@@ -1,5 +1,210 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.128
+
+### Patch Changes
+
+- 61a315e: fix: map the top-level `reasoning` option consistently across providers
+
+  Providers now resolve reasoning the same way:
+
+  1. A provider-specific reasoning setting in `providerOptions` is sent unchanged. OpenAI no longer drops `providerOptions.openai.reasoningEffort` values that are not in its list for the model, and Fireworks no longer rewrites `providerOptions.fireworks.reasoningEffort`. Fireworks also sends top-level `reasoning` values directly instead of rounding them to `'high'` at most, except for model families known to reject `'none'` (GPT-OSS, GLM-5.3, Muse Spark) or `'minimal'` (Nemotron, Inkling).
+  2. Otherwise, `reasoning` maps to the closest level the model supports, rounding down, and rounds up only when there is no lower level. For example, `'xhigh'` now maps to `'high'` instead of `'max'` on Anthropic and Bedrock models without `xhigh` effort, and `'medium'` maps to `'low'` instead of `'high'` on DeepSeek, Kimi K3, and Mistral GLM-5.3 models.
+  3. `'none'` on a model that cannot disable reasoning maps to the model's lowest level with a compatibility warning, instead of being dropped or sending a request the API rejects. This affects GPT-6 models without `'none'`, xAI grok-4.5 and later, Groq GPT-OSS, Kimi K3, Perplexity, QuiverAI, Bedrock OpenAI `gpt-oss` models, and Gemini 2.5 Pro (minimum thinking budget). Gemini 3 and Anthropic and Bedrock `between_tools` mappings now emit the compatibility warning too.
+
+  `mapReasoningToProviderEffort` now accepts any `reasoning` value, returns an optional `providerOptionsEffort` unchanged, and rounds levels that are missing from the effort map to the closest supported level. `mapReasoningToProviderBudget` maps `'none'` to the minimum reasoning budget, always returns a budget, and uses the default percentage for levels missing from `budgetPercentages`. `OpenAICompatibleChatConfig` adds an optional `mapReasoning` function for mapping the top-level `reasoning` option.
+
+- Updated dependencies [47b1d8b]
+- Updated dependencies [d07b475]
+- Updated dependencies [61a315e]
+  - @ai-sdk/openai@4.0.105
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/anthropic@4.0.92
+
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 5.0.126
+
+### Patch Changes
+
+- b6de62e: fix(amazon-bedrock): make document names unique within a request
+
+  Bedrock Converse rejects requests that contain duplicate document names. Different filenames could sanitize to the same name (e.g. `rates.v1.pdf` and `rates.v2.pdf` both became `rates`), and repeated filenames were sent as-is, so these requests failed. Repeated names now get a numeric suffix such as `invoice (2)`.
+
+- 22b4461: Forward disabled thinking in Anthropic Converse requests when using `reasoning: 'none'` or `reasoningConfig: { type: 'disabled' }`, omitting the unsupported thinking field for Claude 3.5 and earlier. Apply model-specific fallbacks and effort limits when disabled thinking is unsupported, preserving explicit reasoning effort during the adaptive fallback.
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [599a97f]
+- Updated dependencies [8375141]
+- Updated dependencies [7eac057]
+- Updated dependencies [436374e]
+- Updated dependencies [9026c7d]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai@4.0.104
+
+## 5.0.125
+
+### Patch Changes
+
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+- Updated dependencies [02dbab1]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai@4.0.103
+  - @ai-sdk/anthropic@4.0.89
+
+## 5.0.124
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/openai@4.0.102
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/anthropic@4.0.88
+
+## 5.0.123
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/anthropic@4.0.87
+  - @ai-sdk/openai@4.0.101
+
+## 5.0.122
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+- Updated dependencies [aac6026]
+  - @ai-sdk/openai@4.0.100
+  - @ai-sdk/anthropic@4.0.86
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 5.0.121
+
+### Patch Changes
+
+- 4ea04c6: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [d39b41d]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+- Updated dependencies [bc1a2e9]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/anthropic@4.0.85
+  - @ai-sdk/openai@4.0.99
+
+## 5.0.120
+
+### Patch Changes
+
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [8b728ec]
+- Updated dependencies [3cb1dae]
+  - @ai-sdk/anthropic@4.0.84
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/openai@4.0.98
+
+## 5.0.119
+
+### Patch Changes
+
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/provider-utils@5.0.63
+
+## 5.0.118
+
+### Patch Changes
+
+- Updated dependencies [2be133e]
+- Updated dependencies [0957554]
+- Updated dependencies [fa98094]
+  - @ai-sdk/openai@4.0.96
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+
+## 5.0.117
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai@4.0.95
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/provider-utils@5.0.61
+
+## 5.0.116
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+  - @ai-sdk/openai@4.0.94
+
+## 5.0.115
+
+### Patch Changes
+
+- Updated dependencies [216e2c9]
+  - @ai-sdk/openai@4.0.93
+
+## 5.0.114
+
+### Patch Changes
+
+- 6971b00: Use known supported Claude models for native structured output and strict tools on Bedrock. Future Claude model IDs omit those unsupported fields and use JSON instructions for structured output by default.
+- Updated dependencies [1ccc7fb]
+- Updated dependencies [6aedb07]
+- Updated dependencies [9667bf2]
+- Updated dependencies [c91c857]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+- Updated dependencies [1f7e5ad]
+- Updated dependencies [e57803c]
+  - @ai-sdk/anthropic@4.0.79
+  - @ai-sdk/openai@4.0.92
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 5.0.113
 
 ### Patch Changes

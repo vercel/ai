@@ -12,6 +12,8 @@ import type {
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   loadOptionalSetting,
   validateBaseURL,
@@ -175,8 +177,9 @@ export interface OpenAIProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * OpenAI Organization.
@@ -230,18 +233,20 @@ export function createOpenAI(
   const providerName = options.name ?? 'openai';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'OPENAI_API_KEY',
-          description: 'OpenAI',
-        })}`,
-        'OpenAI-Organization': options.organization,
-        'OpenAI-Project': options.project,
-        ...options.headers,
-      },
-      `ai-sdk-openai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'OPENAI_API_KEY',
+            description: 'OpenAI',
+          })}`,
+          'OpenAI-Organization': options.organization,
+          'OpenAI-Project': options.project,
+          ...options.headers,
+        },
+        `ai-sdk-openai/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>

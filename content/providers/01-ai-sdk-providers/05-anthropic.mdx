@@ -1,17 +1,61 @@
 ---
 title: Anthropic
-description: Learn how to use the Anthropic provider for the AI SDK.
+description: Learn how to use Anthropic with AI Gateway and the direct provider.
 ---
 
 # Anthropic Provider
 
 The [Anthropic](https://www.anthropic.com/) provider contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
+You can use Anthropic models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/anthropic`.
 
-## Setup
+```ts provider="anthropic" model="anthropic/claude-sonnet-5.5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/anthropic" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/anthropic`
+
+For direct access to Anthropic, install `ai` and `@ai-sdk/anthropic`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic" />
+
+Set your Anthropic API credential in the `ANTHROPIC_API_KEY` environment variable:
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/anthropic`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/anthropic` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -53,10 +97,12 @@ You can use the following optional settings to customize the Anthropic provider 
   It defaults to the `ANTHROPIC_API_KEY` environment variable.
   Only one of `apiKey` or `authToken` is required.
 
-- **authToken** _string_
+- **authToken** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   Auth token that is being sent using the `Authorization: Bearer` header.
-  It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+  Pass a function to resolve a token for each request, including short-lived
+  tokens managed by an external credential provider. This setting does not
+  enable OAuth beta headers; configure any required headers explicitly.
   Only one of `apiKey` or `authToken` is required.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -69,6 +115,76 @@ You can use the following optional settings to customize the Anthropic provider 
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+### Workload identity federation
+
+Use an `authToken` callback to connect the Anthropic SDK's token exchange and
+cache helpers to the AI SDK. Configure your service account and federation rule
+first, as described in [Anthropic's workload identity federation guide](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation).
+
+The following example uses the credential helpers from `@anthropic-ai/sdk@0.129.0`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic @anthropic-ai/sdk@0.129.0" />
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { identityTokenFromFile } from '@anthropic-ai/sdk/lib/credentials/identity-token';
+import { oidcFederationProvider } from '@anthropic-ai/sdk/lib/credentials/oidc-federation';
+import { TokenCache } from '@anthropic-ai/sdk/lib/credentials/token-cache';
+import { generateText } from 'ai';
+
+// Create the cache and provider once, then reuse them across requests.
+const tokenCache = new TokenCache(
+  oidcFederationProvider({
+    identityTokenProvider: identityTokenFromFile(
+      '/var/run/secrets/anthropic.com/token',
+    ),
+    federationRuleId: process.env.ANTHROPIC_FEDERATION_RULE_ID!,
+    organizationId: process.env.ANTHROPIC_ORGANIZATION_ID!,
+    serviceAccountId: process.env.ANTHROPIC_SERVICE_ACCOUNT_ID!,
+    // Set this when your rule requires a workspace or to select a specific one.
+    workspaceId: process.env.ANTHROPIC_WORKSPACE_ID,
+    baseURL: 'https://api.anthropic.com',
+    fetch: globalThis.fetch,
+  }),
+);
+
+const anthropic = createAnthropic({
+  authToken: () => tokenCache.getToken(),
+  headers: { 'anthropic-beta': 'oauth-2025-04-20' },
+});
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-5-5'),
+  prompt: 'Explain workload identity federation in one sentence.',
+});
+```
+
+The AI SDK resolves `authToken` before each request and sends the returned token
+as a bearer credential. The Anthropic SDK helpers perform the OIDC exchange,
+cache the access token, and renew it as needed.
+
+Set the `oauth-2025-04-20` beta explicitly for these federated OAuth tokens,
+matching Anthropic's SDK. A bearer token or token callback alone does not imply
+workload identity federation. The exchange helper supplies its own token-endpoint
+headers. This example covers Messages API inference; it does not add WIF support
+to the Files, Skills, or Batch APIs, which have separate beta-header handling.
+
+Refresh is demand-driven: in the helper version above, `getToken()` starts a
+background exchange when the cached token has at most two minutes remaining,
+and waits for an exchange when at most 30 seconds remain. Concurrent requests
+share the pending exchange. Federation renews access by exchanging another
+identity token; it does not use a refresh token.
+
+Your workload's identity provider must supply fresh identity tokens. The file
+helper rereads the file on each exchange but does not rotate its contents.
+Anthropic rejects reuse of assertions with a `jti` by default, so arrange for a
+fresh assertion for each exchange. See the [WIF reference](https://platform.claude.com/docs/en/manage-claude/wif-reference)
+for token lifetimes and replay protection.
+
+This setup explicitly configures credentials; it does not enable the Anthropic
+client's automatic credential discovery or its invalidate-and-retry behavior on
+HTTP 401. Keep the helper version pinned and verify the integration when upgrading.
 
 ## Language Models
 
@@ -741,6 +857,13 @@ Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
 room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
 setting `max_tokens`. For known models, the combined value is capped at the
 model's maximum output token limit.
+
+With manual thinking (`thinking.type: 'enabled'`), a `required` or named
+`toolChoice` falls back to `auto` with a warning. For a named tool choice, only
+the selected tool is sent. This also applies when the top-level `reasoning`
+option enables manual thinking, including when structured output uses the
+internal JSON response tool. Tool use is no longer guaranteed: instruct the
+model to use the tool in your prompt and verify that a tool call was made.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
@@ -2287,6 +2410,8 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
+{/* model-capabilities:anthropic-language:start */}
+
 | Model               | Image Input | Object Generation | Tool Usage | Computer Use | Web Search | Tool Search | Compaction |
 | ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
 | `claude-opus-5-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
@@ -2299,13 +2424,15 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-6`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
-| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+
+{/* model-capabilities:anthropic-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

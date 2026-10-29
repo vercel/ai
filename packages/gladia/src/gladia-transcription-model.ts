@@ -4,6 +4,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -220,7 +223,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/upload',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -237,7 +243,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/pre-recorded',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.audio_url,
@@ -277,7 +286,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         validateUrl: true,
         credentialedOrigin: apiOrigin,
         trustedOrigin: apiOrigin,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,
@@ -338,45 +350,57 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const gladiaUploadResponseSchema = z.object({
-  audio_url: z.string(),
-});
+const gladiaUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionInitializeResponseSchema = z.object({
-  result_url: z.string(),
-});
+const gladiaTranscriptionInitializeResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      result_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionResultResponseSchema = z.object({
-  status: z.enum(['queued', 'processing', 'done', 'error']),
-  result: z
-    .object({
-      metadata: z.object({
-        audio_duration: z.number(),
-      }),
-      transcription: z.object({
-        full_transcript: z.string(),
-        languages: z.array(z.string()),
-        utterances: z.array(
-          z.object({
-            start: z.number(),
-            end: z.number(),
-            text: z.string(),
-            speaker: z.union([z.string(), z.number()]).nullish(),
-            confidence: z.number().nullish(),
-            language: z.string().nullish(),
-            words: z
-              .array(
-                z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
-                  confidence: z.number().nullish(),
-                }),
-              )
-              .nullish(),
+const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum(['queued', 'processing', 'done', 'error']),
+      result: z
+        .object({
+          metadata: z.object({
+            audio_duration: z.number(),
           }),
-        ),
-      }),
-    })
-    .nullish(),
-});
+          transcription: z.object({
+            full_transcript: z.string(),
+            languages: z.array(z.string()),
+            utterances: z.array(
+              z.object({
+                start: z.number(),
+                end: z.number(),
+                text: z.string(),
+                speaker: z.union([z.string(), z.number()]).nullish(),
+                confidence: z.number().nullish(),
+                language: z.string().nullish(),
+                words: z
+                  .array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                      confidence: z.number().nullish(),
+                    }),
+                  )
+                  .nullish(),
+              }),
+            ),
+          }),
+        })
+        .nullish(),
+    }),
+  ),
+);

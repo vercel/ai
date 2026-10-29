@@ -1,5 +1,8 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -112,7 +115,10 @@ export class FalSpeechModel implements SpeechModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: requestUrl,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -150,8 +156,12 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 }
 
-const falSpeechResponseSchema = z.object({
-  audio: z.object({ url: z.string() }),
-  duration_ms: z.number().optional(),
-  request_id: z.string().optional(),
-});
+const falSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio: z.object({ url: z.string() }),
+      duration_ms: z.number().optional(),
+      request_id: z.string().optional(),
+    }),
+  ),
+);

@@ -1,5 +1,6 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import type {
+  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -165,7 +166,11 @@ const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(future
 const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
 const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
 
+const sonnet55AnthropicModelId = 'us.anthropic.claude-sonnet-5-5';
+const sonnet55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(sonnet55AnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [sonnet55AnthropicGenerateUrl]: {},
   [futureAnthropicGenerateUrl]: {},
   [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
@@ -741,6 +746,48 @@ describe('request URL', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/amazon-bedrock-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.contentBlockDelta?.delta?.text != null,
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls[streamUrl].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `${JSON.stringify(event)}\n`),
+          ...(withError
+            ? [
+                `${JSON.stringify({ modelStreamErrorException: { message: 'Stream failed' } })}\n`,
+              ]
+            : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   beforeEach(() => {
     mockOptions = {
       success: true,
@@ -3135,6 +3182,28 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it.each(['portable', 'explicit'] as const)(
+    'should omit disabled thinking on Claude 3 in streams for %s configuration',
+    async source => {
+      setupMockEventStreamHandler();
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        ...(source === 'portable'
+          ? { reasoning: 'none' as const }
+          : {
+              providerOptions: {
+                amazonBedrock: { reasoningConfig: { type: 'disabled' } },
+              },
+            }),
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.additionalModelRequestFields).toBeUndefined();
+      expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+    },
+  );
 
   it('should transform reasoningConfig to thinking in stream requests', async () => {
     setupMockEventStreamHandler();
@@ -8535,10 +8604,10 @@ describe('doGenerate', () => {
       ).toBe('high');
     });
 
-    it('should map reasoning "xhigh" to effort "max" for newer Anthropic models', async () => {
+    it('should map reasoning "xhigh" to effort "high" for newer Anthropic models without xhigh effort', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
-      await newerAnthropicModel.doGenerate({
+      const result = await newerAnthropicModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'xhigh',
       });
@@ -8549,7 +8618,13 @@ describe('doGenerate', () => {
       });
       expect(
         requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBe('max');
+      ).toBe('high');
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+      });
     });
 
     it('should map reasoning "max" directly for newer Anthropic models', async () => {
@@ -8617,7 +8692,29 @@ describe('doGenerate', () => {
       ).toBe(1024);
     });
 
-    it.each(['medium', 'max'] as const)(
+    it('should map reasoning "max" to reasoning_effort "high" for OpenAI gpt-oss models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      const result = await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'high',
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+        },
+      ]);
+    });
+
+    it.each(['medium'] as const)(
       'should map reasoning "%s" directly to reasoning_effort for OpenAI gpt-oss models',
       async reasoning => {
         server.urls[openaiGenerateUrl].response = simpleResponse;
@@ -8986,7 +9083,9 @@ describe('doGenerate', () => {
         });
 
         const body = await server.calls[0].requestBodyJson;
-        expect(body.additionalModelRequestFields?.thinking).toBeUndefined();
+        expect(body.additionalModelRequestFields?.thinking).toEqual({
+          type: 'disabled',
+        });
         expect(
           body.additionalModelRequestFields?.output_config,
         ).toBeUndefined();
@@ -9064,9 +9163,9 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.thinking,
-      ).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'disabled',
+      });
       expect(
         requestBody.additionalModelRequestFields?.output_config,
       ).toBeUndefined();
@@ -9173,7 +9272,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should handle reasoning "none" for Anthropic models', async () => {
+    it('should omit thinking for reasoning "none" on Claude 3', async () => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
 
       await model.doGenerate({
@@ -9187,20 +9286,297 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should handle reasoning "none" for OpenAI models', async () => {
-      server.urls[openaiGenerateUrl].response = simpleResponse;
+    it('should send reasoning "none" directly for OpenAI models with unknown reasoning efforts', async () => {
+      server.urls[usOpenaiGenerateUrl].response = simpleResponse;
+      const usOpenaiModel = new AmazonBedrockChatLanguageModel(
+        usOpenaiModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          fetch: fakeFetchWithAuth,
+          generateId: () => 'test-id',
+        },
+      );
 
-      await openaiModel.doGenerate({
+      const result = await usOpenaiModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'none',
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning).toEqual({
+        effort: 'none',
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should disable reasoning for Nova 2 models with reasoning "none"', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      // Nova 2 reasoning is disabled unless a reasoning effort is sent.
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.reasoning_effort,
+        requestBody.additionalModelRequestFields?.reasoningConfig,
       ).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn for reasoning "none" on models without reasoning configuration', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'reasoning' }),
+      );
+    });
+
+    it('should map reasoning "none" to the lowest effort for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      const result = await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+      });
     });
   });
+});
+
+describe('disabled Anthropic thinking', () => {
+  async function request(
+    reasoningModelId: string,
+    options: Omit<LanguageModelV4CallOptions, 'prompt'>,
+  ) {
+    const url = `${baseUrl}/model/${encodeURIComponent(reasoningModelId)}/converse`;
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { role: 'assistant', content: [{ text: 'Hello' }] },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+    const reasoningModel = new AmazonBedrockChatLanguageModel(
+      reasoningModelId,
+      {
+        baseUrl: () => baseUrl,
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+    const { warnings } = await reasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+      ...options,
+    });
+    return { body: await server.calls[0].requestBodyJson, warnings };
+  }
+
+  it.each([
+    [anthropicModelId, 'explicit', false],
+    [legacyAnthropic37ModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'portable', true],
+    [sonnet5AnthropicModelId, 'explicit', true],
+  ] as const)(
+    'should serialize disabled thinking only when supported by %s (%s configuration)',
+    async (reasoningModelId, source, supportsThinking) => {
+      const { body, warnings } = await request(
+        reasoningModelId,
+        source === 'portable'
+          ? { reasoning: 'none' }
+          : {
+              providerOptions: {
+                amazonBedrock: { reasoningConfig: { type: 'disabled' } },
+              },
+            },
+      );
+
+      expect(body.additionalModelRequestFields).toEqual(
+        supportsThinking ? { thinking: { type: 'disabled' } } : undefined,
+      );
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it('should preserve request settings without adding a thinking budget or display', async () => {
+    const { body, warnings } = await request(newerAnthropicModelId, {
+      maxOutputTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+      providerOptions: {
+        amazonBedrock: {
+          reasoningConfig: {
+            type: 'disabled',
+            budgetTokens: 3000,
+            display: 'summarized',
+          },
+          additionalModelRequestFields: { custom: 'preserved' },
+        },
+      },
+    });
+
+    expect(body.additionalModelRequestFields).toEqual({
+      custom: 'preserved',
+      thinking: { type: 'disabled' },
+    });
+    expect(body.inferenceConfig).toEqual({
+      maxTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([
+    [sonnet55AnthropicModelId, 'between_tools'],
+    [opus55AnthropicModelId, 'adaptive'],
+  ] as const)(
+    'should use supported thinking for portable none on %s',
+    async (reasoningModelId, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        reasoning: 'none',
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: thinkingType },
+        ...(thinkingType === 'adaptive' && {
+          output_config: { effort: 'low' },
+        }),
+      });
+      expect(warnings).toEqual([
+        {
+          type: 'compatibility',
+          feature: 'reasoning',
+          details: `thinking cannot be disabled for ${reasoningModelId}. Using '${thinkingType}' thinking instead.`,
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    [sonnet55AnthropicModelId, 'between_tools'],
+    [opus55AnthropicModelId, 'adaptive'],
+  ] as const)(
+    'should warn and preserve effort when explicit disabled thinking is rejected on %s',
+    async (reasoningModelId, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: { type: 'disabled', maxReasoningEffort: 'high' },
+            additionalModelRequestFields: {
+              thinking: { type: 'disabled', budget_tokens: 3000 },
+            },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: thinkingType },
+        output_config: { effort: 'high' },
+      });
+      expect(warnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'providerOptions.amazonBedrock.reasoningConfig',
+        }),
+      ]);
+    },
+  );
+
+  it.each([
+    ['raw', undefined, 'max'],
+    ['typed over raw', 'high', 'high'],
+  ] as const)(
+    'should preserve %s effort when portable none falls back to adaptive thinking',
+    async (_source, typedEffort, expectedEffort) => {
+      const { body, warnings } = await request(opus55AnthropicModelId, {
+        reasoning: 'none',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig:
+              typedEffort != null
+                ? { maxReasoningEffort: typedEffort }
+                : undefined,
+            additionalModelRequestFields: { output_config: { effort: 'max' } },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        thinking: { type: 'adaptive' },
+        output_config: { effort: expectedEffort },
+      });
+      expect(warnings).toEqual([
+        expect.objectContaining({
+          type: 'compatibility',
+          feature: 'reasoning',
+        }),
+      ]);
+    },
+  );
+
+  it.each([
+    [opus5AnthropicModelId, 'typed', 'xhigh', 'disabled'],
+    [sonnet55AnthropicModelId, 'raw', 'max', 'between_tools'],
+  ] as const)(
+    'should lower incompatible %s %s %s effort for %s thinking',
+    async (reasoningModelId, source, effort, thinkingType) => {
+      const { body, warnings } = await request(reasoningModelId, {
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'disabled',
+              ...(source === 'typed' && { maxReasoningEffort: effort }),
+            },
+            additionalModelRequestFields: {
+              custom: 'preserved',
+              output_config: {
+                custom: 'also-preserved',
+                ...(source === 'raw' && { effort }),
+              },
+            },
+          },
+        },
+      });
+
+      expect(body.additionalModelRequestFields).toEqual({
+        custom: 'preserved',
+        thinking: { type: thinkingType },
+        output_config: { custom: 'also-preserved', effort: 'high' },
+      });
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature:
+            source === 'typed'
+              ? 'providerOptions.amazonBedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.amazonBedrock.additionalModelRequestFields.output_config.effort',
+        }),
+      );
+    },
+  );
 });
 
 it.each([

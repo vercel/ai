@@ -1,5 +1,112 @@
 # @ai-sdk/provider-utils
 
+## 5.0.71
+
+### Patch Changes
+
+- 61a315e: fix: map the top-level `reasoning` option consistently across providers
+
+  Providers now resolve reasoning the same way:
+
+  1. A provider-specific reasoning setting in `providerOptions` is sent unchanged. OpenAI no longer drops `providerOptions.openai.reasoningEffort` values that are not in its list for the model, and Fireworks no longer rewrites `providerOptions.fireworks.reasoningEffort`. Fireworks also sends top-level `reasoning` values directly instead of rounding them to `'high'` at most, except for model families known to reject `'none'` (GPT-OSS, GLM-5.3, Muse Spark) or `'minimal'` (Nemotron, Inkling).
+  2. Otherwise, `reasoning` maps to the closest level the model supports, rounding down, and rounds up only when there is no lower level. For example, `'xhigh'` now maps to `'high'` instead of `'max'` on Anthropic and Bedrock models without `xhigh` effort, and `'medium'` maps to `'low'` instead of `'high'` on DeepSeek, Kimi K3, and Mistral GLM-5.3 models.
+  3. `'none'` on a model that cannot disable reasoning maps to the model's lowest level with a compatibility warning, instead of being dropped or sending a request the API rejects. This affects GPT-6 models without `'none'`, xAI grok-4.5 and later, Groq GPT-OSS, Kimi K3, Perplexity, QuiverAI, Bedrock OpenAI `gpt-oss` models, and Gemini 2.5 Pro (minimum thinking budget). Gemini 3 and Anthropic and Bedrock `between_tools` mappings now emit the compatibility warning too.
+
+  `mapReasoningToProviderEffort` now accepts any `reasoning` value, returns an optional `providerOptionsEffort` unchanged, and rounds levels that are missing from the effort map to the closest supported level. `mapReasoningToProviderBudget` maps `'none'` to the minimum reasoning budget, always returns a budget, and uses the default percentage for levels missing from `budgetPercentages`. `OpenAICompatibleChatConfig` adds an optional `mapReasoning` function for mapping the top-level `reasoning` option.
+
+## 5.0.70
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+
+## 5.0.69
+
+### Patch Changes
+
+- e64ed82: use native Buffer base64 encoding when available. encoding a `Uint8Array` backed by a detached `ArrayBuffer` now throws a `TypeError` in runtimes with `Buffer` instead of returning an empty string
+
+## 5.0.68
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+
+## 5.0.67
+
+### Patch Changes
+
+- 8202f5b: feat(gateway): implement experimental streaming speech in the gateway provider
+
+  `GatewaySpeechModel` implements `Experimental_StreamingSpeechModelV4` and streams speech over the AI Gateway speech WebSocket (`/speech-model`, `ai-gateway-speech.v1` subprotocol). `@ai-sdk/provider-utils` adds the experimental speech-stream envelope (`experimental_parseSpeechStreamClientFrame`, `experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`) shared by clients and servers, plus the `EXPERIMENTAL_SPEECH_STREAM_*` frame type constants and `Experimental_SpeechStream*` frame types. Text-delta frames carry each text part's `voice` and `providerOptions`; the start frame carries `outputFormat` as an audio format object. Adds `gateway.experimental_speech`, callable like `speech(modelId)`, with a server-side `getToken()` that mints a speech-bound short-lived client secret for browser use.
+
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider@4.0.33
+
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+
+## 5.0.65
+
+### Patch Changes
+
+- b089ce8: Block `.internal` hostnames in download URL validation.
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+
+## 5.0.64
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 200c47f: Avoid retaining oversized backing buffers when reading response bodies, reducing memory usage for responses delivered in small chunks on runtimes such as Deno.
+- Updated dependencies [0c2a9de]
+  - @ai-sdk/provider@4.0.31
+
+## 5.0.63
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+
+## 5.0.62
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+
+## 5.0.60
+
+### Patch Changes
+
+- 2e89fa4: fix(provider-utils): keep case-sensitive url paths and query values
+
+## 5.0.59
+
+### Patch Changes
+
+- 9667bf2: docs(provider-utils): clarify how `ToolApprovalResponse.reason` is handled for approved and denied tool calls
+- 81663cc: fix(provider-utils): accept exact criteria labels in decision choice responses
+- Updated dependencies [e57803c]
+  - @ai-sdk/provider@4.0.27
+
 ## 5.0.58
 
 ### Patch Changes

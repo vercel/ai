@@ -5,6 +5,10 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -26,7 +30,7 @@ import {
 type MistralTranscriptionModelConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -71,9 +75,14 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       schema: mistralTranscriptionModelOptions,
     });
 
-    // Mistral documents these options as mutually incompatible. Rejecting the
-    // combination locally provides a stable SDK error instead of an API 4xx.
+    // Restrict only known legacy models so future and custom models can combine
+    // a pinned language with timestamps without an SDK update.
     if (
+      [
+        'voxtral-mini-2507',
+        'voxtral-mini-2602',
+        'voxtral-mini-latest',
+      ].includes(this.modelId) &&
       mistralOptions?.language != null &&
       mistralOptions.timestampGranularities != null
     ) {
@@ -81,6 +90,14 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
         argument: 'providerOptions',
         message:
           'providerOptions.mistral.language cannot be combined with providerOptions.mistral.timestampGranularities',
+      });
+    }
+
+    if (mistralOptions?.language != null && mistralOptions.returnLanguage) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.mistral.language cannot be combined with providerOptions.mistral.returnLanguage',
       });
     }
 
@@ -99,6 +116,11 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
 
     if (mistralOptions != null) {
       appendFormValue(formData, 'language', mistralOptions.language);
+      appendFormValue(
+        formData,
+        'return_language',
+        mistralOptions.returnLanguage,
+      );
       appendFormValue(formData, 'temperature', mistralOptions.temperature);
       appendFormValue(
         formData,
@@ -124,7 +146,10 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL}/audio/transcriptions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -229,29 +254,33 @@ function appendFormValue(
   formData.append(key, String(value));
 }
 
-const mistralTranscriptionResponseSchema = z.object({
-  model: z.string(),
-  text: z.string(),
-  language: z.string().nullish(),
-  segments: z
-    .array(
-      z.object({
-        type: z.literal('transcription_segment').nullish(),
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-        score: z.number().nullish(),
-        speaker_id: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_audio_seconds: z.number().nullish(),
-      request_count: z.number().nullish(),
-    })
-    .nullish(),
-});
+const mistralTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string(),
+      text: z.string(),
+      language: z.string().nullish(),
+      segments: z
+        .array(
+          z.object({
+            type: z.literal('transcription_segment').nullish(),
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            score: z.number().nullish(),
+            speaker_id: z.string().nullish(),
+          }),
+        )
+        .nullish(),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_audio_seconds: z.number().nullish(),
+          request_count: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);

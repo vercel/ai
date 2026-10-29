@@ -4,6 +4,9 @@ import type {
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   extractResponseHeaders,
@@ -294,7 +297,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         {
           method: 'GET',
           headers: combineHeaders(
-            this.config.headers?.(),
+            await resolve(this.config.headers),
             headers,
           ) as HeadersInit,
           signal: abortSignal,
@@ -346,7 +349,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       }),
       headers: {
         'Content-Type': 'application/octet-stream',
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
       },
       body: {
         content: options.audio,
@@ -367,7 +370,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/transcript',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.upload_url,
@@ -449,14 +455,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const assemblyaiUploadResponseSchema = z.object({
-  upload_url: z.string(),
-});
+const assemblyaiUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      upload_url: z.string(),
+    }),
+  ),
+);
 
-const assemblyaiSubmitResponseSchema = z.object({
-  id: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'error']),
-});
+const assemblyaiSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum(['queued', 'processing', 'completed', 'error']),
+    }),
+  ),
+);
 
 const assemblyaiWordSchema = z.object({
   start: z.number(),

@@ -1,5 +1,177 @@
 # @ai-sdk/langchain
 
+## 3.0.157
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 3.0.155
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 3.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 3.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 3.0.150
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+
+## 3.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider-utils@5.0.66
+
+## 3.0.148
+
+### Patch Changes
+
+- 7550632: fix(langchain): avoid `RangeError: Maximum call stack size exceeded` when converting large binary image and file parts
+- 5046699: Harden LangChain tool argument JSON parsing against prototype pollution while preserving the fallback for invalid arguments.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 3.0.147
+
+### Patch Changes
+
+- a9e0b2a: Fix stale `ai/react` import in the README
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 3.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 3.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 3.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
+## 3.0.143
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+
+## 3.0.142
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - ai@7.0.142
+
+## 3.0.141
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 3.0.140
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 3.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+
 ## 3.0.137
 
 ### Patch Changes

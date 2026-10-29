@@ -1,17 +1,61 @@
 ---
 title: Fal
-description: Learn how to use Fal AI models with the AI SDK.
+description: Learn how to use Fal with AI Gateway and the direct provider.
 ---
 
 # Fal Provider
 
 [Fal AI](https://fal.ai/) provides a generative media platform for developers with lightning-fast inference capabilities. Their platform offers optimized performance for running diffusion models, with speeds up to 4x faster than alternatives.
+Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for the shared models shown below, served by Gateway's supported providers, or use `@ai-sdk/fal` to send requests directly to Fal. Gateway does not currently route requests to Fal.
 
-## Setup
+```ts provider="fal" model="bfl/flux-pro-1.1"
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
+const { image } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'A sunlit mountain village in watercolor.',
+});
 
-<InstallPackages packages="@ai-sdk/fal" />
+console.log(image.base64);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The current [Gateway provider list](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options#available-providers) does not include Fal as an inference provider. The Gateway tab calls models also available from Fal, but Gateway routes them through its supported inference providers. It does not send the request to Fal. Use the direct tab to call Fal; do not set `providerOptions.gateway.order` to an unsupported provider slug.
+
+## Using `@ai-sdk/fal`
+
+For direct access to Fal, install `ai` and `@ai-sdk/fal`:
+
+<InstallPackages packages="ai @ai-sdk/fal" />
+
+Set your Fal API credential in the `FAL_API_KEY` environment variable:
+
+```bash
+export FAL_API_KEY=your_api_key_here
+```
+
+Use `@ai-sdk/fal` to authenticate with your Fal account and call its platform APIs directly. The Gateway alternative above uses a supported inference provider instead.
+
+<Note>
+  The following sections document the direct `@ai-sdk/fal` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -42,7 +86,11 @@ You can use the following optional settings to customize the Fal provider instan
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://fal.run`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `FAL_API_KEY` environment variable, falling back to `FAL_KEY`.

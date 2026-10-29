@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   StreamingToolCallTracker,
   combineHeaders,
   convertJsonResponseToolStream,
@@ -19,13 +21,16 @@ import {
   createProviderStreamError,
   generateId,
   isCustomReasoning,
+  lazySchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  zodSchema,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -42,7 +47,7 @@ import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -212,26 +217,25 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        if (this.modelId === 'qwen/qwen3.6-27b') {
-          reasoningEffort = 'none';
-        } else {
-          warnings.push({
-            type: 'unsupported',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning}" is not supported by this model.`,
-          });
-        }
+      const supportsNoneReasoning = this.modelId === 'qwen/qwen3.6-27b';
+      // GPT-OSS models always reason, so reasoning 'none' maps to the lowest
+      // effort. Other models do not reason, so there is nothing to disable.
+      const alwaysReasons = this.modelId.startsWith('openai/gpt-oss');
+
+      if (reasoning === 'none' && !supportsNoneReasoning && !alwaysReasons) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
       } else {
         reasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            ...(supportsNoneReasoning && { none: 'none' as const }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
-            max: 'high',
           },
           warnings,
         });
@@ -307,7 +311,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -327,12 +334,6 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (jsonResponseToolName == null && text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
-    }
-
     // reasoning:
     const reasoning = choice.message.reasoning;
     if (reasoning != null && reasoning.length > 0) {
@@ -340,6 +341,12 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
     }
 
     // tool calls:
@@ -394,7 +401,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler:
@@ -405,8 +415,9 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage:
@@ -434,7 +445,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
+          ParseResult<InferSchema<typeof groqChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -597,104 +608,112 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const groqChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({
-          cached_tokens: z.number().nullish(),
-        })
-        .nullish(),
-      completion_tokens_details: z
-        .object({
-          reasoning_tokens: z.number().nullish(),
-        })
-        .nullish(),
-    })
-    .nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
             content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
-                  index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function'),
                   function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+                    name: z.string(),
+                    arguments: z.string(),
                   }),
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
-      }),
-    ),
-    x_groq: z
-      .object({
-        usage: z
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          completion_tokens_details: z
+            .object({
+              reasoning_tokens: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const groqChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      z.object({
+        id: z.string().nullish(),
+        created: z.number().nullish(),
+        model: z.string().nullish(),
+        choices: z.array(
+          z.object({
+            delta: z
+              .object({
+                content: z.string().nullish(),
+                reasoning: z.string().nullish(),
+                tool_calls: z
+                  .array(
+                    z.object({
+                      index: z.number(),
+                      id: z.string().nullish(),
+                      type: z.literal('function').optional(),
+                      function: z.object({
+                        name: z.string().nullish(),
+                        arguments: z.string().nullish(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
+              })
+              .nullish(),
+            finish_reason: z.string().nullable().optional(),
+            index: z.number(),
+          }),
+        ),
+        x_groq: z
           .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-            total_tokens: z.number().nullish(),
-            prompt_tokens_details: z
+            usage: z
               .object({
-                cached_tokens: z.number().nullish(),
-              })
-              .nullish(),
-            completion_tokens_details: z
-              .object({
-                reasoning_tokens: z.number().nullish(),
+                prompt_tokens: z.number().nullish(),
+                completion_tokens: z.number().nullish(),
+                total_tokens: z.number().nullish(),
+                prompt_tokens_details: z
+                  .object({
+                    cached_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
+                completion_tokens_details: z
+                  .object({
+                    reasoning_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
               })
               .nullish(),
           })
           .nullish(),
-      })
-      .nullish(),
-  }),
-  groqErrorDataSchema,
-]);
+      }),
+      groqErrorDataSchema,
+    ]),
+  ),
+);

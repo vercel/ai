@@ -1,7 +1,9 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +14,10 @@ const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
   channels: [] as Array<{ emit(type: string, message: unknown): void }>,
   connects: [] as Array<
-    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+    (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
 }));
@@ -22,13 +27,22 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -70,7 +84,10 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       channelMocks.connects.push(connect);
@@ -81,6 +98,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       if (channelMocks.connectOnOpen) {
         await channelMocks.connects.at(-1)!({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
@@ -120,7 +138,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
@@ -332,7 +350,7 @@ describe('createCodex adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it('requires explicit bridge settings for a basic sandbox session', async () => {
@@ -493,6 +511,51 @@ describe('createCodex adapter', () => {
       expect(sentMessages.at(-1)).toMatchObject({
         type: 'start',
         model: 'agent-model',
+      });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards inline image content to the bridge', async () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const prompt: HarnessV1Prompt = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: convertBase64ToUint8Array(png),
+        },
+      ],
+    };
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt,
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: png },
+        ],
       });
     });
     await session.doDestroy();

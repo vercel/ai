@@ -12,11 +12,14 @@ import {
   type SharedV4ProviderReference,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createBinaryStreamResponseHandler,
   createJsonResponseHandler,
   deleteFromApi,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -38,22 +41,11 @@ import {
 interface XaiFilesConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
 type XaiFilesResponse = InferSchema<typeof xaiFilesResponseSchema>;
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
-}
 
 export class XaiFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
@@ -75,10 +67,10 @@ export class XaiFiles implements FilesV4 {
     return fileId;
   }
 
-  private getHeaders(
+  private async getHeaders(
     headers: Record<string, string | undefined> | undefined,
-  ): Record<string, string | undefined> {
-    return combineHeaders(this.config.headers(), headers);
+  ): Promise<Record<string, string | undefined>> {
+    return combineHeaders(await resolve(this.config.headers), headers);
   }
 
   async uploadFile({
@@ -104,7 +96,7 @@ export class XaiFiles implements FilesV4 {
       throw error;
     }
 
-    const requestHeaders = this.getHeaders(headers);
+    const requestHeaders = await this.getHeaders(headers);
     const url = `${this.config.baseURL}/files`;
 
     let response: XaiFilesResponse;
@@ -215,7 +207,7 @@ export class XaiFiles implements FilesV4 {
 
     const { value: response } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiFilesResponseSchema,
@@ -251,7 +243,7 @@ export class XaiFiles implements FilesV4 {
 
     const { value: content, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createBinaryStreamResponseHandler(),
       abortSignal,
@@ -278,7 +270,7 @@ export class XaiFiles implements FilesV4 {
 
     const { value: response } = await deleteFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiFileDeleteResponseSchema,

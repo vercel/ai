@@ -91,6 +91,38 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
+  it('keeps the question timeout and excludeDynamicSections on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        questionTimeoutMs: 600_000,
+        excludeDynamicSections: true,
+      }),
+    ).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+  });
+
+  it('keeps strict MCP config and the budget limit on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        strictMcpConfig: true,
+        maxBudgetUsd: 0.5,
+      }),
+    ).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
   it('accepts a start message', () => {
     expect(() =>
       inboundMessageSchema.parse({
@@ -107,6 +139,19 @@ describe('inboundMessageSchema', () => {
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a start message with text and image prompt content', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+        thinking: { type: 'disabled' },
       }),
     ).not.toThrow();
   });

@@ -135,6 +135,72 @@ it('reports unsupported provider options without passing them through', async ()
   expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
 });
 
+it.each(['jev-1.13.0', 'jev-1.14.0', 'jev-latest', 'jev-preview'])(
+  'sends the model ID or alias unchanged: %s',
+  async modelId => {
+    await provider.decisionModel(modelId).doDecide(options);
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      ...expectedRequest,
+      model: modelId,
+    });
+  },
+);
+
+describe('long context', () => {
+  it.each([true, false, undefined])(
+    'enables the header only when longContext is true: %s',
+    async longContext => {
+      const result = await model.doDecide({
+        ...options,
+        ...(longContext !== undefined && {
+          providerOptions: { typesafe: { longContext } },
+        }),
+      });
+      expect(
+        server.calls[0].requestHeaders['typesafe-danger-zone-long-context'],
+      ).toBe(longContext ? 'true' : undefined);
+      expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it('combines long context with image support and warns only for unknown options', async () => {
+    const result = await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+      providerOptions: { typesafe: { longContext: true, temperature: 0 } },
+      headers: { 'x-custom': 'custom' },
+    });
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'typesafe-danger-zone-images': 'true',
+      'typesafe-danger-zone-long-context': 'true',
+      'x-custom': 'custom',
+    });
+    expect(result.warnings).toEqual([
+      { type: 'unsupported', feature: 'providerOptions.typesafe.temperature' },
+    ]);
+  });
+
+  it.each(['true', 1, null])(
+    'rejects invalid longContext values: %j',
+    async longContext => {
+      await expect(
+        model.doDecide({
+          ...options,
+          providerOptions: { typesafe: { longContext } },
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+});
+
 it.each([
   {
     type: 'choice',
@@ -307,6 +373,7 @@ it('serializes and restores a model for workflow boundaries', async () => {
     'choice',
     'score',
     'boolean',
+    'box',
   ]);
 });
 
@@ -338,20 +405,379 @@ it('maps text and JSON parts to native text state', async () => {
   });
 });
 
-it('rejects file evidence before sending a text-only decision request', async () => {
-  await expect(
-    model.doDecide({
+describe('image input', () => {
+  it.each(['[animal-photo]', '__proto__', 'constructor', 'request'])(
+    'uses an explicit reference in assets, state, instructions, and criteria: %s',
+    async reference => {
+      const imageQuestions = {
+        cat: {
+          type: 'boolean' as const,
+          instructions: `Does ${reference} show a cat?`,
+          criteria: { true: { image: reference } },
+        },
+      };
+      const result = await model.doDecide({
+        state: [
+          {
+            type: 'file',
+            filename: 'unrelated-name.png',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+            providerOptions: { typesafe: { reference } },
+          },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: { type: 'data', data: '/9j/4A==' },
+          },
+        ],
+        questions: imageQuestions,
+      });
+      const multipart = await server.calls[0].requestBodyMultipart;
+      const body = JSON.parse(await multipart!.request.text());
+      const references = Object.keys(body.assets);
+      expect(references).toHaveLength(2);
+      expect(references).toContain(reference);
+      const generatedReference = references.find(key => key !== reference);
+      expect(body.state).toBe(`${reference}\n${generatedReference}`);
+      expect(body.assets[reference]).toEqual({
+        type: 'image',
+        part: 'image-0',
+      });
+      expect(multipart!['image-0'].name).toBe('unrelated-name.png');
+      expect(body.questions.cat).toEqual({
+        ...imageQuestions.cat,
+        type: 'noul',
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it.each(['', ' \t\n', 123, true, null])(
+    'rejects invalid references before HTTP: %j',
+    async reference => {
+      await expect(
+        model.doDecide({
+          ...options,
+          state: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+              providerOptions: { typesafe: { reference } },
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('keeps JSON state as an object when it already contains the reference', async () => {
+    await model.doDecide({
       ...options,
       state: [
+        { type: 'json', value: { photo: '[photo]', note: 'Box arrived wet.' } },
         {
           type: 'file',
           mediaType: 'image/png',
-          data: { type: 'data', data: 'AAAA' },
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[photo]' } },
         },
       ],
-    }),
-  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
-  expect(server.calls).toHaveLength(0);
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toEqual({ photo: '[photo]', note: 'Box arrived wet.' });
+    expect(body.assets).toEqual({
+      '[photo]': { type: 'image', part: 'image-1' },
+    });
+    expect(Object.keys(multipart!)).toEqual(['request', 'image-1']);
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+  });
+
+  it('leaves text state unchanged when it already contains the reference', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Is [photo] damaged?' },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: { typesafe: { reference: '[photo]' } },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Is [photo] damaged?');
+    expect(Object.keys(body.assets)).toEqual(['[photo]']);
+  });
+
+  it('finds references in nested JSON string values but not in object keys', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'json',
+          value: {
+            frames: [{ seconds_ago: 0, frame: 'Latest frame: [frame]' }],
+            '[label]': 'A key is not a reference.',
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[frame]' } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[label]' } },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe(
+      `${JSON.stringify({
+        frames: [{ seconds_ago: 0, frame: 'Latest frame: [frame]' }],
+        '[label]': 'A key is not a reference.',
+      })}\n[label]`,
+    );
+  });
+
+  it('sends a question-only image without touching state when insertReference is false', async () => {
+    await model.doDecide({
+      state: [
+        { type: 'json', value: { photo: '[found]' } },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: { typesafe: { reference: '[found]' } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: {
+            typesafe: { reference: '[poster]', insertReference: false },
+          },
+        },
+      ],
+      questions: {
+        same: {
+          type: 'boolean',
+          instructions: 'Is the dog in `photo` the dog in [poster]?',
+        },
+      },
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toEqual({ photo: '[found]' });
+    expect(Object.keys(body.assets)).toEqual(['[found]', '[poster]']);
+  });
+
+  it('inserts a reference already in state when insertReference is true', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Before: [photo]' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: {
+            typesafe: { reference: '[photo]', insertReference: true },
+          },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Before: [photo]\n[photo]');
+  });
+
+  it('inserts only the references that are not already placed', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Compare [before] with the new photo.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: {
+            typesafe: { reference: '[before]', insertReference: false },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[after]' } },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Compare [before] with the new photo.\n[after]');
+    expect(body.assets).toEqual({
+      '[before]': { type: 'image', part: 'image-1' },
+      '[after]': { type: 'image', part: 'image-2' },
+    });
+  });
+
+  it('rejects insertReference: false without an explicit reference before HTTP', async () => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+            providerOptions: { typesafe: { insertReference: false } },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions.typesafe.reference',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects duplicate image references before HTTP', async () => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: ['iVBORw==', '/9j/4A=='].map(data => ({
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data },
+          providerOptions: { typesafe: { reference: '[photo]' } },
+        })),
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions.typesafe.reference',
+      message: 'Duplicate TypeSafe image reference: [photo]',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('maps mixed text, JSON, and multiple images to referenced assets', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Compare these images.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: new Uint8Array([137, 80, 78, 71]) },
+        },
+        { type: 'json', value: { label: 'second' } },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    const references = Object.keys(body.assets);
+    expect(references).toHaveLength(2);
+    expect(references[0]).not.toBe(references[1]);
+    expect(body.state).toBe(
+      `Compare these images.\n${references[0]}\n{"label":"second"}\n${references[1]}`,
+    );
+    expect(Object.values(body.assets)).toEqual([
+      { type: 'image', part: 'image-1' },
+      { type: 'image', part: 'image-3' },
+    ]);
+    expect(Object.keys(multipart!)).toEqual(['request', 'image-1', 'image-3']);
+    expect(multipart!.request.type).toBe('application/json');
+    expect(multipart!['image-1'].type).toBe('image/png');
+    expect(multipart!['image-1'].name).toBe('image-1.png');
+    expect(new Uint8Array(await multipart!['image-1'].arrayBuffer())).toEqual(
+      new Uint8Array([137, 80, 78, 71]),
+    );
+    expect(multipart!['image-3'].type).toBe('image/jpeg');
+    expect(new Uint8Array(await multipart!['image-3'].arrayBuffer())).toEqual(
+      new Uint8Array([255, 216, 255, 224]),
+    );
+    expect(server.calls[0].requestHeaders['content-type']).toMatch(
+      /^multipart\/form-data; boundary=/,
+    );
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+  });
+
+  it('omits assets and the image header for text-only input', async () => {
+    await model.doDecide(options);
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty('assets');
+    expect(server.calls[0].requestHeaders).not.toHaveProperty(
+      'typesafe-danger-zone-images',
+    );
+  });
+
+  it('uses fresh references for each request', async () => {
+    const imageOptions = {
+      ...options,
+      state: [
+        {
+          type: 'file' as const,
+          mediaType: 'image/png',
+          data: { type: 'data' as const, data: 'iVBORw0KGgo=' },
+        },
+      ],
+    };
+    await model.doDecide(imageOptions);
+    await model.doDecide(imageOptions);
+    const first = await server.calls[0].requestBodyMultipart;
+    const second = await server.calls[1].requestBodyMultipart;
+    expect(JSON.parse(await first!.request.text()).state).not.toBe(
+      JSON.parse(await second!.request.text()).state,
+    );
+  });
+
+  it.each(['application/pdf', 'image/webp', 'image/gif', 'image'])(
+    'rejects unsupported or unrecognized media before HTTP: %s',
+    async mediaType => {
+      await expect(
+        model.doDecide({
+          ...options,
+          state: [
+            { type: 'file', mediaType, data: { type: 'data', data: 'AAAA' } },
+          ],
+        }),
+      ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    { type: 'url' as const, url: new URL('https://example.com/image.png') },
+    { type: 'reference' as const, reference: { typesafe: 'file-id' } },
+    { type: 'text' as const, text: 'not an image' },
+  ])('rejects unsupported file data before HTTP: $type', async data => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: [{ type: 'file', mediaType: 'image/png', data }],
+      }),
+    ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+    expect(server.calls).toHaveLength(0);
+  });
 });
 
 it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
@@ -361,5 +787,74 @@ it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       state: value,
     });
+  },
+);
+
+it.each([true, false])(
+  'sends box questions and enables the images header (image: %s)',
+  async withImage => {
+    const box = { top: 0.25, bottom: 0.82, left: 0.44, right: 0.84 };
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        ...nativeResponse,
+        answers: {
+          ...nativeResponse.answers,
+          target: { type: 'box', box, confidence: 0.92 },
+        },
+      },
+    };
+    const result = await model.doDecide({
+      ...options,
+      ...(withImage && {
+        state: [
+          {
+            type: 'file' as const,
+            mediaType: 'image/png',
+            data: { type: 'data' as const, data: new Uint8Array([1, 2, 3]) },
+          },
+        ],
+      }),
+      questions: {
+        ...questions,
+        target: { type: 'box', instructions: 'The mug' },
+      },
+    });
+    expect(model.supportedQuestionTypes).toContain('box');
+    expect(result.answers.target).toEqual({ type: 'box', box });
+    expect(result.providerMetadata?.typesafe?.confidence).toMatchObject({
+      target: 0.92,
+    });
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+    const body = withImage
+      ? JSON.parse(
+          await (await server.calls[0].requestBodyMultipart)!.request.text(),
+        )
+      : await server.calls[0].requestBodyJson;
+    expect(body.questions.target).toEqual({
+      type: 'box',
+      instructions: 'The mug',
+    });
+  },
+);
+
+it('warns about unsupported maxOutputTokens without sending it', async () => {
+  const result = await model.doDecide({ ...options, maxOutputTokens: 512 });
+  expect(result.warnings).toEqual([
+    { type: 'unsupported', feature: 'maxOutputTokens' },
+  ]);
+  expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
+});
+
+it.each([undefined, 'none', 'provider-default', 'high'] as const)(
+  'warns about unsupported reasoning without sending it: %s',
+  async reasoning => {
+    const result = await model.doDecide({ ...options, reasoning });
+    expect(result.warnings).toEqual(
+      reasoning == null ? [] : [{ type: 'unsupported', feature: 'reasoning' }],
+    );
+    expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
   },
 );

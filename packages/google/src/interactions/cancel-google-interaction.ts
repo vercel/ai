@@ -1,4 +1,6 @@
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   getRuntimeEnvironmentUserAgent,
   withUserAgentSuffix,
@@ -24,7 +26,7 @@ export async function cancelGoogleInteraction({
 }: {
   baseURL: string;
   interactionId: string | null | undefined;
-  headers: Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }): Promise<void> {
   if (interactionId == null || interactionId.length === 0) {
@@ -37,7 +39,10 @@ export async function cancelGoogleInteraction({
     const response = await fetch(url, {
       method: 'POST',
       headers: withUserAgentSuffix(
-        combineHeaders({ 'Content-Type': 'application/json' }, headers),
+        combineHeaders(
+          { 'Content-Type': 'application/json' },
+          await resolve(headers),
+        ),
         getRuntimeEnvironmentUserAgent(),
       ),
       body: '{}',

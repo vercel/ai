@@ -1,5 +1,212 @@
 # @ai-sdk/google-vertex
 
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [9f108f8]
+- Updated dependencies [b1bcea1]
+- Updated dependencies [61a315e]
+  - @ai-sdk/google@4.0.108
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/anthropic@4.0.92
+  - @ai-sdk/openai-compatible@3.0.81
+
+## 5.0.126
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 5.0.125
+
+### Patch Changes
+
+- 38a5b84: support Google Auth Library 11 in `@ai-sdk/google-vertex`
+
+## 5.0.124
+
+### Patch Changes
+
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/google@4.0.107
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 5.0.123
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+  - @ai-sdk/anthropic@4.0.89
+  - @ai-sdk/google@4.0.106
+
+## 5.0.122
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+- Updated dependencies [bbe2bd1]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/openai-compatible@3.0.78
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/anthropic@4.0.88
+  - @ai-sdk/google@4.0.105
+
+## 5.0.121
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/anthropic@4.0.87
+  - @ai-sdk/google@4.0.104
+  - @ai-sdk/openai-compatible@3.0.77
+
+## 5.0.120
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+- Updated dependencies [aac6026]
+  - @ai-sdk/anthropic@4.0.86
+  - @ai-sdk/google@4.0.103
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/openai-compatible@3.0.76
+  - @ai-sdk/provider-utils@5.0.66
+
+## 5.0.119
+
+### Patch Changes
+
+- 60e63b6: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [d39b41d]
+- Updated dependencies [754407e]
+- Updated dependencies [e619655]
+- Updated dependencies [bc1a2e9]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/anthropic@4.0.85
+  - @ai-sdk/google@4.0.102
+  - @ai-sdk/openai-compatible@3.0.75
+
+## 5.0.118
+
+### Patch Changes
+
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/anthropic@4.0.84
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/google@4.0.101
+  - @ai-sdk/openai-compatible@3.0.74
+
+## 5.0.117
+
+### Patch Changes
+
+- Updated dependencies [869601f]
+  - @ai-sdk/openai-compatible@3.0.73
+
+## 5.0.116
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [d08bb66]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/google@4.0.100
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/openai-compatible@3.0.72
+  - @ai-sdk/provider-utils@5.0.63
+
+## 5.0.115
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [ae42699]
+- Updated dependencies [0957554]
+  - @ai-sdk/google@4.0.99
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+  - @ai-sdk/openai-compatible@3.0.71
+
+## 5.0.114
+
+### Patch Changes
+
+- Updated dependencies [4cb3dec]
+  - @ai-sdk/google@4.0.98
+
+## 5.0.113
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [d6ed4b9]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai-compatible@3.0.70
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/google@4.0.97
+  - @ai-sdk/provider-utils@5.0.61
+
+## 5.0.112
+
+### Patch Changes
+
+- 40d0aec: feat(vertex-anthropic): forward 'providerOptions.vertex.labels' as a header
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+  - @ai-sdk/google@4.0.96
+  - @ai-sdk/openai-compatible@3.0.69
+
+## 5.0.111
+
+### Patch Changes
+
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+- Updated dependencies [bdbeba3]
+  - @ai-sdk/google@4.0.95
+
+## 5.0.110
+
+### Patch Changes
+
+- Updated dependencies [1ccc7fb]
+- Updated dependencies [2060ab9]
+- Updated dependencies [9667bf2]
+- Updated dependencies [c91c857]
+- Updated dependencies [e57803c]
+- Updated dependencies [2c6996e]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+  - @ai-sdk/anthropic@4.0.79
+  - @ai-sdk/google@4.0.94
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/openai-compatible@3.0.68
+
 ## 5.0.109
 
 ### Patch Changes

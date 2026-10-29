@@ -5,9 +5,14 @@ We suggest you read the following contributing guide we've created before submit
 
 https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
 
-AI SDK maintenance is becoming increasingly automated. High-quality issues, reproductions,
-failing tests, docs fixes, and focused clarifications are especially valuable. You do not
-need to send a complete bug fix for your contribution to be appreciated or credited.
+We use our own specialized agents to work on open issues. Please avoid opening pull
+requests to fix bug reports or implement feature requests authored by someone else,
+unless the purpose is to add useful context best expressed with code, such as a
+reproduction or failing test. Explain that context and link the issue below.
+
+High-quality issues, reproductions, failing tests, docs fixes, and focused clarifications
+are especially valuable. You do not need to send a complete bug fix for your
+contribution to be appreciated or credited.
 -->
 
 ## Background

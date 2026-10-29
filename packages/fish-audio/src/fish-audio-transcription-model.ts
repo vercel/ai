@@ -1,5 +1,8 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -100,7 +103,10 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: this.config.url({ path: '/v1/asr', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: fishAudioFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -146,21 +152,25 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const fishAudioTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  // `language` and `language_code` are undocumented but returned in practice.
-  // Human-readable name, e.g. `English`.
-  language: z.string().nullish(),
-  // ISO-639-1 code, e.g. `en`.
-  language_code: z.string().nullish(),
-  duration: z.number().nullish(),
-  segments: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const fishAudioTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      // `language` and `language_code` are undocumented but returned in practice.
+      // Human-readable name, e.g. `English`.
+      language: z.string().nullish(),
+      // ISO-639-1 code, e.g. `en`.
+      language_code: z.string().nullish(),
+      duration: z.number().nullish(),
+      segments: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

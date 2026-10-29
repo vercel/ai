@@ -1,5 +1,159 @@
 # @ai-sdk/llamaindex
 
+## 3.0.157
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+
+## 3.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 3.0.155
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 3.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 3.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 3.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 3.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 3.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 3.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
+## 3.0.148
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 3.0.147
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 3.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 3.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 3.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
+## 3.0.143
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+
+## 3.0.142
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - ai@7.0.142
+
+## 3.0.141
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 3.0.140
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 3.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+
 ## 3.0.137
 
 ### Patch Changes

@@ -2,6 +2,7 @@ import {
   tool,
   type Experimental_SandboxSession,
   type ToolApprovalResponse,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -87,6 +88,99 @@ const harness: HarnessV1 = {
   builtinTools: {},
   doStart: async () => fakeSession([]),
 };
+
+test.each([
+  {
+    toolName: 'bash',
+    nativeName: 'Bash',
+    input: { command: 'echo hello', description: 'Print hello' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        command: z.string(),
+        description: z.string().optional(),
+      }),
+    }),
+  },
+  {
+    toolName: 'write',
+    nativeName: 'Write',
+    input: { file_path: 'hello.txt', content: 'hello' },
+    builtinTool: tool({
+      inputSchema: z.object({ file_path: z.string(), content: z.string() }),
+    }),
+  },
+  {
+    toolName: 'edit',
+    nativeName: 'Edit',
+    input: { file_path: 'hello.txt', old_string: 'hello', new_string: 'hi' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        file_path: z.string(),
+        old_string: z.string(),
+        new_string: z.string(),
+      }),
+    }),
+  },
+])(
+  'preserves $nativeName in built-in tool approval metadata',
+  async ({ toolName, nativeName, input, builtinTool }) => {
+    const events: HarnessV1StreamPart[] = [
+      { type: 'stream-start' },
+      { type: 'tool-input-start', id: 'c1', toolName, providerExecuted: true },
+      { type: 'tool-input-delta', id: 'c1', delta: JSON.stringify(input) },
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName,
+        input: JSON.stringify(input),
+        providerExecuted: true,
+        nativeName,
+      },
+      { type: 'tool-input-end', id: 'c1' },
+      { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' },
+    ];
+    const { result, done } = runPrompt({
+      harness: { ...harness, harnessId: 'claude-code' },
+      session: fakeSession(events),
+      prompt: 'Run the shell command `echo hello`',
+      instructions: undefined,
+      tools: { [toolName]: builtinTool },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'error') throw part.error;
+      parts.push(part);
+    }
+    await done;
+    const expectedToolCall = {
+      type: 'tool-call',
+      toolCallId: 'c1',
+      toolName,
+      input,
+      providerExecuted: true,
+      providerMetadata: { 'claude-code': { nativeToolName: nativeName } },
+    };
+    expect(parts.find(part => part.type === 'tool-call')).toEqual(
+      expectedToolCall,
+    );
+    expect(parts.filter(part => part.type === 'tool-approval-request')).toEqual(
+      [
+        {
+          type: 'tool-approval-request',
+          approvalId: 'a1',
+          toolCall: expectedToolCall,
+        },
+      ],
+    );
+    const steps = await result.steps;
+    expect(steps[0]?.toolCalls).toEqual([expectedToolCall]);
+  },
+);
 
 const questionsHarness: HarnessV1 = {
   ...harness,
@@ -566,14 +660,12 @@ describe('runPrompt telemetry lifecycle', () => {
             toolCallId: 'fast-call',
             toolName: 'work',
             input: JSON.stringify({ label: 'fast' }),
-            stepToolCallCount: 2,
           });
           options.emit({
             type: 'tool-call',
             toolCallId: 'slow-call',
             toolName: 'work',
             input: JSON.stringify({ label: 'slow' }),
-            stepToolCallCount: 2,
           });
         });
         return {
@@ -1046,6 +1138,150 @@ describe('runPrompt step accounting', () => {
     expect(steps[0]!.toolCalls).toHaveLength(1);
     expect(steps[0]!.toolResults).toHaveLength(1);
     expect(await hasToolCall('weather')({ steps })).toBe(true);
+  });
+
+  test('preserves input and execution origin on interleaved tool results', async () => {
+    const hostLookup = tool({
+      inputSchema: z.object({ query: z.string() }),
+      execute: async () => 'host found',
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'native-success',
+          toolName: 'nativeLookup',
+          input: JSON.stringify({ query: 'native success' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'host-success',
+          toolName: 'hostLookup',
+          input: JSON.stringify({ query: 'host success' }),
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'native-failure',
+          toolName: 'nativeLookup',
+          input: JSON.stringify({ query: 'native failure' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'host-success',
+          toolName: 'hostLookup',
+          result: 'host found',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-failure',
+          toolName: 'nativeLookup',
+          result: 'native failed',
+          isError: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-success',
+          toolName: 'nativeLookup',
+          result: 'native found',
+          dynamic: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { hostLookup },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'native-success',
+        input: { query: 'native success' },
+        output: 'native found',
+        providerExecuted: true,
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'host-success',
+        input: { query: 'host success' },
+        output: 'host found',
+        providerExecuted: false,
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'native-failure',
+        input: { query: 'native failure' },
+        error: 'native failed',
+        providerExecuted: true,
+      }),
+    );
+
+    await expect(result.toolResults).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          toolCallId: 'native-success',
+          input: { query: 'native success' },
+          providerExecuted: true,
+        }),
+        expect.objectContaining({
+          toolCallId: 'host-success',
+          input: { query: 'host success' },
+          providerExecuted: false,
+        }),
+      ]),
+    );
+
+    const responseMessages = await result.responseMessages;
+    const assistantMessage = responseMessages.find(
+      message => message.role === 'assistant',
+    );
+    const toolMessage = responseMessages.find(
+      message => message.role === 'tool',
+    );
+    expect(assistantMessage?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'native-success',
+        }),
+      ]),
+    );
+    expect(toolMessage?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'host-success',
+        }),
+      ]),
+    );
+    expect(toolMessage?.content).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'native-success',
+        }),
+      ]),
+    );
   });
 
   test('surfaces a failed provider-executed tool result as a tool-error carrying the runtime message', async () => {
@@ -1541,7 +1777,399 @@ type SubmittedResult = {
   toolCallId: string;
   output: unknown;
   isError?: boolean;
+  toolResult?: Parameters<
+    HarnessV1PromptControl['submitToolResult']
+  >[0]['toolResult'];
 };
+
+describe('runPrompt tool model output', () => {
+  const unsupportedParts: Extract<
+    ToolResultOutput,
+    { type: 'content' }
+  >['value'] = [
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'url', url: new URL('https://example.com/image.png') },
+    },
+    { type: 'image-url', url: 'https://example.com/image.png' },
+    {
+      type: 'file-url',
+      url: 'https://example.com/file.pdf',
+      mediaType: 'application/pdf',
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'reference', reference: { test: 'image-id' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'application/pdf',
+      data: { type: 'data', data: 'cGRm' },
+    },
+  ];
+
+  test.each(unsupportedParts)(
+    'serializes an unsupported client continuation without failing: %j',
+    async part => {
+      const output: ToolResultOutput = {
+        type: 'content',
+        value: [{ type: 'text', text: 'keep the whole output' }, part],
+      };
+      const execute = vi.fn(async () => 'not reached');
+      const callback = vi.fn(
+        (): ToolResultOutput => ({ type: 'text', value: 'not reached' }),
+      );
+      const submitted: SubmittedResult[] = [];
+      const { result, done } = runPrompt({
+        harness,
+        session: fakeSession(finishEvents, submission =>
+          submitted.push(submission),
+        ),
+        mode: 'continue',
+        instructions: undefined,
+        tools: {
+          visualize: tool({
+            inputSchema: z.object({}),
+            execute,
+            toModelOutput: callback,
+          }),
+        },
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+        pendingToolResults: [
+          { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+        ],
+        toolResultContinuations: [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            output,
+            providerOptions: { test: { marker: 'preserved' } },
+          },
+        ],
+      });
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      await done;
+      expect(submitted).toEqual([
+        {
+          toolCallId: 'c1',
+          output,
+          isError: undefined,
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            providerOptions: { test: { marker: 'preserved' } },
+            output: { type: 'text', value: JSON.stringify(output) },
+          },
+        },
+      ]);
+      expect(execute).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      await expect(result.steps).resolves.toEqual([]);
+    },
+  );
+
+  test.each([
+    {
+      output: { type: 'content', value: [unsupportedParts[0]!] },
+      normalized: undefined,
+    },
+    {
+      output: {
+        type: 'content',
+        value: [
+          { type: 'image-data', mediaType: 'image/png', data: 'iVBORw==' },
+        ],
+      },
+      normalized: {
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+          },
+        ],
+      },
+    },
+  ] satisfies {
+    output: ToolResultOutput;
+    normalized: ToolResultOutput | undefined;
+  }[])(
+    'persists normalized client output on suspension and submits it exactly once on resume (%#)',
+    async ({ output, normalized }) => {
+      const pending: HarnessV1PendingToolResult[] = [];
+      const submitted: SubmittedResult[] = [];
+      const expected = normalized ?? {
+        type: 'text',
+        value: JSON.stringify(output),
+      };
+      const options = {
+        harness,
+        session: fakeSession(finishEvents, (submission: SubmittedResult) =>
+          submitted.push(submission),
+        ),
+        mode: 'continue' as const,
+        instructions: undefined,
+        tools: {},
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      };
+      const suspended = runPrompt({
+        ...options,
+        pendingToolResults: [
+          { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+        ],
+        toolResultContinuations: [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            output,
+          },
+        ],
+        isTurnSuspending: () => true,
+        onPendingToolResult: part => pending.push(part),
+      });
+      await suspended.result.consumeStream();
+      await suspended.done;
+      expect(submitted).toEqual([]);
+      expect(pending).toHaveLength(1);
+      expect(pending[0]?.completedResult?.toolResult?.output).toEqual(expected);
+      const resumed = runPrompt({ ...options, pendingToolResults: pending });
+      await resumed.result.consumeStream();
+      await resumed.done;
+      expect(submitted).toHaveLength(1);
+      expect(submitted[0]?.output).toEqual(output);
+      expect(submitted[0]?.toolResult?.output).toEqual(expected);
+    },
+  );
+
+  test('does not swallow fallback serialization errors', async () => {
+    const output: ToolResultOutput = {
+      type: 'content',
+      value: [unsupportedParts[0]!],
+    };
+    output.value.push({
+      type: 'custom',
+      providerOptions: { test: { circular: output as never } },
+    });
+    const submitted = vi.fn();
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(finishEvents, submitted),
+      mode: 'continue',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolResults: [
+        { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+      ],
+      toolResultContinuations: [
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          output,
+        },
+      ],
+      onTurnFailed,
+    });
+    await result.consumeStream();
+    await done;
+    expect(submitted).not.toHaveBeenCalled();
+    expect(onTurnFailed).toHaveBeenCalledOnce();
+    await expect(result.steps).rejects.toThrow(/circular/i);
+  });
+
+  test('keeps unsupported host callback output strict', async () => {
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          input: '{}',
+        },
+        ...finishEvents,
+      ],
+      tools: {
+        visualize: tool({
+          inputSchema: z.object({}),
+          execute: async () => ({ ok: true }),
+          toModelOutput: () => ({
+            type: 'content',
+            value: [unsupportedParts[0]!],
+          }),
+        }),
+      },
+    });
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        isError: true,
+        output: {
+          error: expect.stringContaining(
+            'Harnesses support only text and inline images',
+          ),
+        },
+      },
+    ]);
+  });
+
+  test.each([false, true])(
+    'converts once and preserves raw results (generator: %s)',
+    async generator => {
+      const raw = { status: 'ready' };
+      const callback = vi.fn(async function (
+        this: unknown,
+        options: { toolCallId: string; input: unknown; output: unknown },
+      ): Promise<ToolResultOutput> {
+        expect(this).toBe(visualize);
+        expect(options).toEqual({
+          toolCallId: 'visual',
+          input: {},
+          output: raw,
+        });
+        return {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'model-only' },
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: { type: 'data', data: new Uint8Array([137, 80, 78, 71]) },
+            },
+          ],
+        };
+      });
+      const execute = vi.fn(async () => raw);
+      const visualize = tool({
+        inputSchema: z.object({}),
+        execute: generator
+          ? async function* () {
+              yield { status: 'loading' };
+              yield await execute();
+            }
+          : execute,
+        toModelOutput: callback,
+      });
+      const submitted: SubmittedResult[] = [];
+      const { result, done } = runPrompt({
+        harness,
+        session: fakeSession(
+          [
+            {
+              type: 'tool-call',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              input: '{}',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              result: raw,
+            },
+            ...finishEvents,
+          ],
+          submission => submitted.push(submission),
+        ),
+        prompt: 'go',
+        instructions: undefined,
+        tools: { visualize } as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      await result.consumeStream();
+      await done;
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(submitted[0]?.output).toEqual(raw);
+      expect(submitted[0]?.toolResult?.output).toEqual({
+        type: 'content',
+        value: [
+          { type: 'text', text: 'model-only' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+          },
+        ],
+      });
+      expect(
+        (await result.toolResults).filter(part => !part.preliminary)[0]?.output,
+      ).toEqual(raw);
+      expect(
+        (await result.responseMessages).flatMap(message =>
+          typeof message.content === 'string'
+            ? []
+            : (message.content as unknown[]),
+        ),
+      ).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          output: submitted[0]?.toolResult?.output,
+        }),
+      );
+      expect(callback).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test('submits a callback failure as a tool error without re-execution', async () => {
+    const execute = vi.fn(async () => ({ ok: true }));
+    const callback = vi.fn(async () => {
+      throw new Error('conversion failed');
+    });
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          input: '{}',
+        },
+        ...finishEvents,
+      ],
+      tools: {
+        visualize: tool({
+          inputSchema: z.object({}),
+          execute,
+          toModelOutput: callback,
+        }),
+      },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: conversion failed' },
+        isError: true,
+      },
+    ]);
+  });
+});
 
 async function runHostToolScript(options: {
   events: HarnessV1StreamPart[];
@@ -2627,7 +3255,7 @@ describe('runPrompt host tool generator results', () => {
     expect(stopBoundaryCalls).toBe(0);
   });
 
-  test('surfaces every approval request from a counted tool-call step', async () => {
+  test('surfaces every approval request of a step before pausing', async () => {
     const pending: unknown[] = [];
     const weather = tool({
       description: 'Get weather',
@@ -2643,14 +3271,12 @@ describe('runPrompt host tool generator results', () => {
           toolCallId: 'c1',
           toolName: 'weather',
           input: JSON.stringify({ city: 'SF' }),
-          stepToolCallCount: 2,
         },
         {
           type: 'tool-call',
           toolCallId: 'c2',
           toolName: 'weather',
           input: JSON.stringify({ city: 'NYC' }),
-          stepToolCallCount: 2,
         },
       ]),
       prompt: 'go',
@@ -2731,6 +3357,15 @@ describe('runPrompt host tool generator results', () => {
         output: {
           type: 'execution-denied',
           reason: 'weather disabled',
+        },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'execution-denied',
+            reason: 'weather disabled',
+          },
         },
       },
     ]);
@@ -3529,6 +4164,7 @@ describe('runPrompt abort semantics', () => {
     await done;
 
     expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: expect.any(String),
       steps: [],
       reason,
@@ -3629,6 +4265,7 @@ describe('runPrompt abort semantics', () => {
     await done;
 
     expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: expect.any(String),
       callId: expect.any(String),
       steps: [],
       reason: expect.anything(),
@@ -3661,5 +4298,543 @@ describe('runPrompt abort semantics', () => {
     expect(chunkTypes).toContain('abort');
     expect(chunkTypes).not.toContain('error');
     expect(onEndCalls).toEqual([{ isAborted: true }]);
+  });
+});
+
+describe('runPrompt host input pauses', () => {
+  const usage = (total: number) => ({
+    inputTokens: {
+      total,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+  });
+  const boundary = (total: number): HarnessV1StreamPart => ({
+    type: 'finish-step',
+    finishReason: { unified: 'tool-calls', raw: 'host-input' },
+    usage: usage(total),
+  });
+
+  function scriptedSession(input: {
+    start: (emit: (part: HarnessV1StreamPart) => void) => void;
+    onSubmitToolResult?: (
+      submission: Parameters<HarnessV1PromptControl['submitToolResult']>[0],
+      emit: (part: HarnessV1StreamPart) => void,
+    ) => void;
+  }): HarnessV1Session {
+    const session = fakeSession([]);
+    return {
+      ...session,
+      doPromptTurn: async options => {
+        let resolveDone!: () => void;
+        const done = new Promise<void>(resolve => {
+          resolveDone = resolve;
+        });
+        queueMicrotask(() => {
+          input.start(part => {
+            options.emit(part);
+            if (part.type === 'finish') resolveDone();
+          });
+        });
+        return {
+          async submitToolResult(submission) {
+            input.onSubmitToolResult?.(submission, part => {
+              options.emit(part);
+              if (part.type === 'finish') resolveDone();
+            });
+          },
+          done,
+        };
+      },
+    };
+  }
+
+  const weather = tool({
+    description: 'Get weather',
+    inputSchema: z.object({ city: z.string() }),
+    execute: async ({ city }) => ({ city, temperature: 72 }),
+  });
+
+  test('surfaces the rest of the step and pauses at the next finish-step', async () => {
+    const pending: HarnessV1PendingToolApproval[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'native-1',
+          toolName: 'read',
+          input: JSON.stringify({ path: 'a.txt' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-1',
+          toolName: 'read',
+          result: 'file contents',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'NYC' }),
+        },
+        boundary(7),
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'must not appear' },
+        { type: 'text-end', id: 't1' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(pending.map(approval => approval.toolCallId)).toEqual(['c1', 'c2']);
+    expect(parts.some(part => part.type === 'text-delta')).toBe(false);
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.finishReason).toBe('tool-calls');
+    expect(steps[0]!.usage.inputTokens).toBe(7);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+      'tool-call',
+      'tool-result',
+      'tool-call',
+      'tool-approval-request',
+    ]);
+  });
+
+  test('ignores a finish-step while a host tool has not been echoed yet', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit(boundary(3));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          emit({
+            type: 'tool-result',
+            toolCallId: submission.toolCallId,
+            toolName: 'weather',
+            result: submission.output as { city: string },
+          });
+          emit(boundary(5));
+          emit(finishEvents[1]!);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.usage.inputTokens).toBe(5);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-result',
+    ]);
+  });
+
+  test('waits for the echo of host tool results before pausing', async () => {
+    const local = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return { local: true };
+      },
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'local-1',
+            toolName: 'local',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit(boundary(2));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          setTimeout(() => {
+            emit({
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'local',
+              result: submission.output as { local: boolean },
+            });
+          }, 10);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather, local } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(
+      parts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['local-1']);
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.usage.inputTokens).toBe(2);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-call',
+      'tool-approval-request',
+      'tool-result',
+    ]);
+  });
+
+  test.each([
+    { approved: true, fails: false, replay: false },
+    { approved: false, fails: false, replay: false },
+    { approved: true, fails: true, replay: false },
+    { approved: false, fails: true, replay: false },
+    { approved: true, fails: false, replay: true },
+    { approved: false, fails: false, replay: true },
+    { approved: true, fails: true, replay: true },
+    { approved: false, fails: true, replay: true },
+  ])(
+    'pauses for repeated built-in approvals without a host result echo (approved: $approved, fails: $fails, replay: $replay)',
+    async ({ approved, fails, replay }) => {
+      const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+      const pendingResults: HarnessV1PendingToolResult[] = [];
+      const submitted: SubmittedResult[] = [];
+      const execute = vi.fn(async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        if (fails) throw new Error('Ticket lookup failed');
+        return [{ id: 'AI-23503' }];
+      });
+      const bash = tool({
+        inputSchema: z.object({ command: z.string() }),
+      });
+      const listProjectTickets = tool({
+        inputSchema: z.object({}),
+        execute,
+        toModelOutput: ({ output }) => ({
+          type: 'json',
+          value: { tickets: output },
+        }),
+      });
+      const approvalHarness: HarnessV1 = {
+        ...harness,
+        builtinTools: { bash },
+        supportsBuiltinToolApprovals: true,
+      };
+      const bashCall: HarnessV1StreamPart = {
+        type: 'tool-call',
+        toolCallId: 'bash-1',
+        toolName: 'bash',
+        nativeName: 'Bash',
+        input: '{"command":"pwd"}',
+        providerExecuted: true,
+      };
+      const hostCall: HarnessV1StreamPart = {
+        type: 'tool-call',
+        toolCallId: 'host-1',
+        toolName: 'listProjectTickets',
+        input: '{}',
+        providerExecuted: false,
+        providerMetadata: { test: { source: 'original-call' } },
+      };
+      const approvalRequest: HarnessV1StreamPart = {
+        type: 'tool-approval-request',
+        approvalId: 'bash-1',
+        toolCallId: 'bash-1',
+      };
+      const session = scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit(bashCall);
+          emit(hostCall);
+          emit(approvalRequest);
+          emit(boundary(7));
+        },
+        onSubmitToolResult: submission => submitted.push(submission),
+      });
+      const options = {
+        harness: approvalHarness,
+        session,
+        instructions: undefined,
+        tools: { bash, listProjectTickets } as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      };
+      const paused = runPrompt({
+        ...options,
+        prompt: 'Run Bash and list the project tickets.',
+        toolApproval: { listProjectTickets: 'approved' },
+        onPendingToolApproval: approval => pendingApprovals.push(approval),
+        onPendingToolResult: pendingResult =>
+          pendingResults.push(pendingResult),
+      });
+
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of paused.result.fullStream) parts.push(part);
+      await paused.done;
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(submitted).toHaveLength(1);
+      expect(pendingApprovals).toEqual([
+        expect.objectContaining({
+          approvalId: 'bash-1',
+          toolCallId: 'bash-1',
+          kind: 'builtin',
+        }),
+      ]);
+      expect(pendingResults).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-1',
+          providerOptions: { test: { source: 'original-call' } },
+          completedResult: expect.objectContaining({
+            output: submitted[0]!.output,
+          }),
+        }),
+      ]);
+      expect(
+        parts.filter(part => part.type === 'tool-approval-request'),
+      ).toHaveLength(1);
+      expect(
+        parts.filter(
+          part => part.type === (fails ? 'tool-error' : 'tool-result'),
+        ),
+      ).toEqual([expect.objectContaining({ toolCallId: 'host-1' })]);
+      const steps = await paused.result.steps;
+      expect(steps).toHaveLength(1);
+      expect(steps[0]!.usage.inputTokens).toBe(7);
+      expect(steps[0]!.finishReason).toBe('tool-calls');
+      expect(steps[0]!.content.map(part => part.type)).toEqual([
+        'tool-call',
+        'tool-call',
+        'tool-approval-request',
+        fails ? 'tool-error' : 'tool-result',
+      ]);
+
+      const settledResults: string[] = [];
+      const nextApprovals: HarnessV1PendingToolApproval[] = [];
+      const nextResults: HarnessV1PendingToolResult[] = [];
+      const submitToolApproval = vi.fn(async () => {});
+      session.doContinueTurn = async continuationOptions => ({
+        ...(await fakeSession(
+          [
+            ...(replay ? [hostCall] : []),
+            { ...bashCall, toolCallId: 'bash-2' },
+            { ...approvalRequest, approvalId: 'bash-2', toolCallId: 'bash-2' },
+            boundary(3),
+          ],
+          submission => submitted.push(submission),
+        ).doContinueTurn(continuationOptions)),
+        submitToolApproval,
+      });
+      const pausedAgain = runPrompt({
+        ...options,
+        mode: 'continue',
+        pendingToolApprovals: pendingApprovals,
+        pendingToolResults: pendingResults,
+        toolApprovalContinuations: [
+          { type: 'tool-approval-response', approvalId: 'bash-1', approved },
+        ],
+        onPendingToolApproval: approval => nextApprovals.push(approval),
+        onPendingToolResult: pendingResult => nextResults.push(pendingResult),
+        onToolResultSettled: toolCallId => settledResults.push(toolCallId),
+      });
+      const pausedAgainParts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of pausedAgain.result.fullStream)
+        pausedAgainParts.push(part);
+      await pausedAgain.done;
+
+      expect(nextResults).toEqual(pendingResults);
+      expect(nextApprovals).toEqual([
+        expect.objectContaining({ approvalId: 'bash-2', kind: 'builtin' }),
+      ]);
+      expect(
+        pausedAgainParts.filter(
+          part => 'toolCallId' in part && part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(submitted).toHaveLength(2);
+
+      session.doContinueTurn = async continuationOptions => {
+        const continued = fakeSession(
+          [
+            { ...bashCall, toolCallId: 'bash-2' },
+            hostCall,
+            { ...approvalRequest, approvalId: 'bash-2', toolCallId: 'bash-2' },
+            {
+              type: 'tool-result',
+              toolCallId: 'bash-2',
+              toolName: 'bash',
+              result: approved ? WORK_DIR : 'Denied',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'host-1',
+              toolName: 'listProjectTickets',
+              result: submitted[0]!.output as string,
+              ...(fails ? { isError: true } : {}),
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'host-1',
+              toolName: 'listProjectTickets',
+              result: submitted[0]!.output as string,
+              ...(fails ? { isError: true } : {}),
+            },
+            hostCall,
+            boundary(0),
+            { type: 'text-start', id: 't1' },
+            { type: 'text-delta', id: 't1', delta: 'Done' },
+            { type: 'text-end', id: 't1' },
+            ...finishEvents,
+          ],
+          submission => submitted.push(submission),
+        );
+        return {
+          ...(await continued.doContinueTurn(continuationOptions)),
+          submitToolApproval,
+        };
+      };
+      const resumed = runPrompt({
+        ...options,
+        mode: 'continue',
+        pendingToolApprovals: nextApprovals,
+        pendingToolResults: nextResults,
+        toolApprovalContinuations: [
+          { type: 'tool-approval-response', approvalId: 'bash-2', approved },
+        ],
+        onToolResultSettled: toolCallId => settledResults.push(toolCallId),
+      });
+      const resumedParts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of resumed.result.fullStream)
+        resumedParts.push(part);
+      await resumed.done;
+
+      expect(submitToolApproval).toHaveBeenCalledWith({
+        approvalId: 'bash-1',
+        approved,
+        reason: undefined,
+      });
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(submitToolApproval).toHaveBeenCalledWith({
+        approvalId: 'bash-2',
+        approved,
+        reason: undefined,
+      });
+      expect(settledResults).toEqual(['host-1', 'host-1']);
+      expect(submitted).toEqual([submitted[0], submitted[0], submitted[0]]);
+      if (!fails) {
+        expect(pendingResults[0]!.completedResult!.toolResult!.output).toEqual({
+          type: 'json',
+          value: { tickets: [{ id: 'AI-23503' }] },
+        });
+      }
+      expect(
+        resumedParts.filter(
+          part =>
+            part.type === 'tool-call' || part.type === 'tool-approval-request',
+        ),
+      ).toEqual([]);
+      expect(
+        resumedParts.filter(
+          part =>
+            (part.type === 'tool-result' || part.type === 'tool-error') &&
+            part.toolCallId === 'host-1',
+        ),
+      ).toEqual([]);
+      expect(await resumed.result.text).toBe('Done');
+      expect(await resumed.result.finishReason).toBe('stop');
+    },
+  );
+
+  test('closes a step whose finish-step was ignored when the turn finishes', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.content.map(part => part.type)).toEqual(['tool-call']);
+    expect(await result.finishReason).toBe('stop');
   });
 });

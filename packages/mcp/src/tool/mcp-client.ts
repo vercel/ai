@@ -1,6 +1,7 @@
 import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
+  delay,
   dynamicTool,
   jsonSchema,
   retryWithExponentialBackoff,
@@ -49,6 +50,8 @@ import {
   ElicitationRequestSchema,
   ElicitResultSchema,
   InitializeResultSchema,
+  InputRequiredElicitationSchema,
+  InputRequiredResultSchema,
   LATEST_LEGACY_PROTOCOL_VERSION,
   LATEST_PROTOCOL_VERSION,
   ListResourceTemplatesResultSchema,
@@ -56,6 +59,7 @@ import {
   ListPromptsResultSchema,
   ListToolsResultSchema,
   ReadResourceResultSchema,
+  ResultSchema,
   GetPromptResultSchema,
   SUPPORTED_PROTOCOL_VERSIONS,
   type CallToolResult,
@@ -87,6 +91,8 @@ import {
 const CLIENT_VERSION = '1.0.0';
 const DEFAULT_MAX_TOOL_CALL_RETRIES = 0;
 const DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT = 1000;
+const MAX_INPUT_REQUIRED_ROUNDS = 10;
+const INPUT_REQUIRED_RETRY_DELAY = 250;
 const MODERN_PROTOCOL_ERROR_CODES = [-32020, -32021, -32022];
 
 const DEFAULT_RETRY_ERROR_CODES = [
@@ -217,13 +223,20 @@ function mcpToModelOutput({
   input: unknown;
   output: unknown;
 }): ToolResultOutput {
-  const result = output as CallToolResult;
-
-  if (!('content' in result) || !Array.isArray(result.content)) {
-    return { type: 'json', value: result as JSONValue };
+  if (typeof output === 'string') {
+    return { type: 'text', value: output };
   }
 
-  const convertedContent = result.content.map(
+  if (
+    output == null ||
+    typeof output !== 'object' ||
+    !('content' in output) ||
+    !Array.isArray(output.content)
+  ) {
+    return { type: 'json', value: (output ?? null) as JSONValue };
+  }
+
+  const convertedContent = output.content.map(
     (part: { type: string; [key: string]: unknown }) => {
       if (part.type === 'text' && 'text' in part) {
         return { type: 'text' as const, text: part.text as string };
@@ -393,11 +406,24 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
+  listPrompts(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListPromptsResult>;
+
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult>;
+
+  /** @deprecated Use `listPrompts` instead. */
   experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
+  /** @deprecated Use `getPrompt` instead. */
   experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
@@ -463,6 +489,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
   private protocolVersion = LATEST_LEGACY_PROTOCOL_VERSION;
   private toolHeaderBindings = new Map<string, MCPToolHeaderBinding[]>();
   private isClosed = true;
+  private readonly closeController = new AbortController();
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
   ) => Promise<ElicitResult> | ElicitResult;
@@ -685,7 +712,9 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         resultSchema: DiscoverResultSchema,
         options: {
           signal,
-          timeout: DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT,
+          timeout: this.transport.waitsForProtocolVersionDiscovery
+            ? undefined
+            : DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT,
         },
       });
 
@@ -697,6 +726,39 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         error.code != null &&
         MODERN_PROTOCOL_ERROR_CODES.includes(error.code)
       ) {
+        if (
+          error.code === -32022 &&
+          error.data != null &&
+          typeof error.data === 'object' &&
+          'supported' in error.data &&
+          Array.isArray(error.data.supported) &&
+          error.data.supported.every(version => typeof version === 'string')
+        ) {
+          const supportedVersions = error.data.supported;
+          if (
+            !supportedVersions.includes(this.protocolVersion) &&
+            supportedVersions.some(
+              version =>
+                version <= LATEST_LEGACY_PROTOCOL_VERSION &&
+                SUPPORTED_PROTOCOL_VERSIONS.includes(version),
+            )
+          ) {
+            throw new MCPClientError({
+              message:
+                `MCP server rejected protocol version ${this.protocolVersion} during discovery. ` +
+                `Server-supported versions: ${supportedVersions.join(', ')}. ` +
+                'The client does not automatically switch to legacy initialization after this error. ' +
+                'If this is a known legacy server, set protocolVersionDiscovery: false to use initialize.',
+              code: error.code,
+              data: error.data,
+              statusCode: error.statusCode,
+              url: error.url,
+              responseBody: error.responseBody,
+              cause: error,
+            });
+          }
+        }
+
         throw error;
       }
 
@@ -834,6 +896,139 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     resultSchema: T;
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
+    if (
+      this.isClosed ||
+      this.protocolEra !== 'modern' ||
+      !['tools/call', 'prompts/get', 'resources/read'].includes(request.method)
+    ) {
+      return this.requestOnce({ request, resultSchema, options });
+    }
+
+    options?.signal?.throwIfAborted();
+    const startedAt = Date.now();
+    let nextRequest = request;
+
+    for (let round = 0; ; round++) {
+      const timeout = getEffectiveTimeout({
+        timeout: options?.timeout,
+        maxTotalTimeout:
+          options?.maxTotalTimeout == null
+            ? undefined
+            : Math.max(0, options.maxTotalTimeout - (Date.now() - startedAt)),
+      });
+      const timeoutController = new AbortController();
+      const signal = AbortSignal.any([
+        this.closeController.signal,
+        timeoutController.signal,
+        ...(options?.signal == null ? [] : [options.signal]),
+      ]);
+      const timeoutError = new MCPClientError({
+        message: `Request timed out after ${timeout}ms`,
+      });
+      const timeoutId =
+        timeout == null
+          ? undefined
+          : setTimeout(() => timeoutController.abort(timeoutError), timeout);
+
+      try {
+        signal.throwIfAborted();
+        if (timeout === 0) throw timeoutError;
+
+        const result = await this.requestOnce({
+          request: nextRequest,
+          resultSchema: ResultSchema,
+          options: { signal },
+          allowInputRequired: true,
+        });
+
+        if (result.resultType !== 'input_required') {
+          return resultSchema.parse(result);
+        }
+
+        const { inputRequests, requestState } =
+          InputRequiredResultSchema.parse(result);
+        if (round === MAX_INPUT_REQUIRED_ROUNDS) {
+          throw new MCPClientError({
+            message: `Request still requires input after ${MAX_INPUT_REQUIRED_ROUNDS} rounds`,
+          });
+        }
+
+        const responses: Record<string, ElicitResult> = Object.create(null);
+        for (const [key, inputRequest] of Object.entries(inputRequests ?? {})) {
+          signal.throwIfAborted();
+          if (
+            inputRequest.method !== 'elicitation/create' ||
+            (inputRequest.params?.mode != null &&
+              inputRequest.params.mode !== 'form')
+          ) {
+            throw new MCPClientError({
+              message: `Unsupported input request: ${inputRequest.method}. Only form elicitation is supported.`,
+            });
+          }
+          if (!this.elicitationRequestHandler) {
+            throw new MCPClientError({
+              message:
+                'Server requested input, but no handler is registered. Use onElicitationRequest to handle elicitation.',
+            });
+          }
+
+          const parsedRequest =
+            InputRequiredElicitationSchema.parse(inputRequest);
+          const answer = await waitForAbort(
+            Promise.resolve(this.elicitationRequestHandler(parsedRequest)),
+            signal,
+          );
+          responses[key] = ElicitResultSchema.parse(answer);
+        }
+
+        const hasResponses = Object.keys(responses).length > 0;
+        if (!hasResponses) {
+          await delay(INPUT_REQUIRED_RETRY_DELAY, { abortSignal: signal });
+        }
+        signal.throwIfAborted();
+
+        // Rebuild from the original request so state and answers never leak
+        // from an earlier round into a later one.
+        nextRequest = {
+          ...request,
+          params: {
+            ...request.params,
+            ...(hasResponses ? { inputResponses: responses } : {}),
+            ...(requestState !== undefined ? { requestState } : {}),
+          },
+        };
+      } catch (error) {
+        if (signal.aborted) {
+          throw options?.signal?.aborted
+            ? new MCPClientError({
+                message: 'Request was aborted',
+                cause: options.signal.reason,
+              })
+            : signal.reason;
+        }
+        throw MCPClientError.isInstance(error)
+          ? error
+          : new MCPClientError({
+              message: 'Failed to process server response',
+              cause: error,
+            });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  private async requestOnce<T extends z.ZodType<object>>({
+    request,
+    resultSchema,
+    options,
+    allowInputRequired = false,
+  }: {
+    request: Request;
+    resultSchema: T;
+    options?: RequestOptions;
+    allowInputRequired?: boolean;
+  }): Promise<z.infer<T>> {
     return new Promise((resolve, reject) => {
       if (this.isClosed) {
         return reject(
@@ -938,10 +1133,12 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
               message: 'Modern MCP result is missing resultType',
             });
           }
-          if (response.result.resultType === 'input_required') {
+          if (
+            response.result.resultType === 'input_required' &&
+            !allowInputRequired
+          ) {
             throw new MCPClientError({
-              message:
-                'Server requested additional input, but multi round-trip requests are not supported yet',
+              message: `Input-required results are not supported for ${request.method} on protocol ${this.protocolVersion}`,
             });
           }
 
@@ -1432,7 +1629,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  experimental_listPrompts({
+  listPrompts({
     params,
     options,
   }: {
@@ -1442,7 +1639,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     return this.listPromptsInternal({ params, options });
   }
 
-  experimental_getPrompt({
+  getPrompt({
     name,
     arguments: args,
     options,
@@ -1452,6 +1649,20 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  /** @deprecated Use `listPrompts` instead. */
+  experimental_listPrompts(
+    options?: Parameters<MCPClient['listPrompts']>[0],
+  ): Promise<ListPromptsResult> {
+    return this.listPrompts(options);
+  }
+
+  /** @deprecated Use `getPrompt` instead. */
+  experimental_getPrompt(
+    args: Parameters<MCPClient['getPrompt']>[0],
+  ): Promise<GetPromptResult> {
+    return this.getPrompt(args);
   }
 
   complete(
@@ -1566,6 +1777,8 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     const error = new MCPClientError({
       message: 'Connection closed',
     });
+
+    this.closeController.abort(error);
 
     for (const handler of this.responseHandlers.values()) {
       handler(error);

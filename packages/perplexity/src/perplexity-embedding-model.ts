@@ -3,6 +3,10 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -27,7 +31,7 @@ import {
 type PerplexityEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -100,7 +104,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/embeddings`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -169,18 +173,22 @@ function decodeEmbedding(
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const perplexityEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.string() })),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      cost: z
+const perplexityEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ embedding: z.string() })),
+      usage: z
         .object({
-          input_cost: z.number().nullish(),
-          total_cost: z.number().nullish(),
-          currency: z.string().nullish(),
+          prompt_tokens: z.number(),
+          cost: z
+            .object({
+              input_cost: z.number().nullish(),
+              total_cost: z.number().nullish(),
+              currency: z.string().nullish(),
+            })
+            .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);

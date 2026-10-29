@@ -7,6 +7,8 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   convertBase64ToUint8Array,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -16,7 +18,7 @@ export type CartesiaRealtimeModelConfig = {
   provider: string;
   baseURL: string;
   version: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -89,7 +91,7 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
     const response = await fetchFn(`${this.config.baseURL}/access-token`, {
       method: 'POST',
       headers: {
-        ...this.config.headers(),
+        ...(await resolve(this.config.headers)),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

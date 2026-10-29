@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "1.0.40",
+  "version": "1.0.60",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -42,7 +42,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@hono/node-server": "^1.19.15",
     "ai": "workspace:*",
-    "hono": "^4.13.7"
+    "hono": "^4.13.11"
   },
   "devDependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -54,6 +54,7 @@
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "@vitejs/plugin-react": "^4.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

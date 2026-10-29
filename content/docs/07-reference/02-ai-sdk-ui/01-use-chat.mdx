@@ -70,6 +70,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               description: 'The API endpoint for chat requests.',
             },
             {
+              name: 'resumeStreamIsReplay',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Defaults to true. Resets the interrupted response on the first resumed start chunk and rebuilds it from the replay. Set to false for endpoints that only send the remaining chunks of the same response.',
+            },
+            {
               name: 'credentials',
               type: 'RequestCredentials',
               isOptional: true,
@@ -231,7 +238,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'string',
       isOptional: true,
       description:
-        'A unique identifier for the chat. If not provided, a random one will be generated.',
+        'A unique identifier for the chat. If not provided, a random one will be generated on first access, including when sending a message or resuming a stream.',
     },
     {
       name: 'messages',
@@ -310,7 +317,7 @@ Allows you to easily create a conversational user interface for your chatbot app
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               isOptional: true,
               description:
                 'The reason why the model finished generating the response. Undefined if the finish reason was not provided by the model.',

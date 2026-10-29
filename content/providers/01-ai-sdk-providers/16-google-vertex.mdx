@@ -1,11 +1,70 @@
 ---
 title: Google Vertex AI
-description: Learn how to use the Google Vertex AI provider.
+description: Learn how to use Google Vertex AI with AI Gateway and the direct provider.
 ---
 
 # Google Vertex Provider
 
 The Google Vertex provider for the [AI SDK](/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models), [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude), [xAI's Grok partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/grok), and [MaaS (Model as a Service) open models](https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/google-vertex` to connect directly to Google Vertex AI.
+
+```ts provider="google-vertex" model="google/gemini-4-argon"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['vertex']`. This sends the request to Google Vertex AI first, then falls back to other available providers of the same model if Google Vertex AI is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Google Vertex AI. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Google Vertex AI through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+Gateway uses the `vertex` route for Gemini on Google Vertex AI and handles Google Cloud authentication. The example does not use your `GOOGLE_VERTEX_PROJECT`, location, or service-account credentials; use the direct provider to connect to your own project.
+
+## Using `@ai-sdk/google-vertex`
+
+For direct access to Google Vertex AI, install `ai` and `@ai-sdk/google-vertex`:
+
+<InstallPackages packages="ai @ai-sdk/google-vertex" />
+
+Set your Google Cloud project, location, and the path to your service-account credentials file:
+
+```bash
+export GOOGLE_VERTEX_PROJECT=your_project_id
+export GOOGLE_VERTEX_LOCATION=us-central1
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+```
+
+The Node.js provider uses Google Application Default Credentials. You can also authenticate locally with `gcloud auth application-default login`. See the runtime sections below for Edge and Express Mode authentication.
+
+Use the direct provider for Google Cloud authentication, Vertex deployments, partner models, or Vertex-specific APIs. Gateway requests do not use your project configuration.
+
+<Note>
+  The following sections document the direct `@ai-sdk/google-vertex` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 <Note>
   The Google Vertex provider is compatible with both Node.js and Edge runtimes.
@@ -15,12 +74,6 @@ The Google Vertex provider for the [AI SDK](/docs) contains language model suppo
   Runtime](#google-vertex-anthropic-edge-runtime), and [Google Vertex MaaS Edge
   Runtime](#google-vertex-maas-edge-runtime) sections below.
 </Note>
-
-## Setup
-
-The Google Vertex, Google Vertex Anthropic, Google Vertex xAI, and Google Vertex MaaS providers are available in the `@ai-sdk/google-vertex` module. You can install it with
-
-<InstallPackages packages="@ai-sdk/google-vertex" />
 
 ## Google Vertex Provider Usage
 
@@ -239,7 +292,12 @@ const googleVertex = createGoogleVertex({
 
 ##### Optional Provider Settings
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
   It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
@@ -711,7 +769,44 @@ const { text } = await generateText({
   files to that location.
 </Note>
 
+For video file parts, pass `videoMetadata` through `providerOptions.googleVertex`
+to control clipping and frame rate. It works with Cloud Storage URLs and inline
+video data:
+
+```ts
+import type { FilePart } from 'ai';
+
+const videoPart = {
+  type: 'file',
+  data: new URL('gs://my-bucket/video.mp4'),
+  mediaType: 'video/mp4',
+  providerOptions: {
+    googleVertex: {
+      videoMetadata: {
+        startOffset: '60s',
+        endOffset: '120s',
+        fps: 1,
+      },
+    },
+  },
+} satisfies FilePart;
+```
+
+All three fields are optional. `startOffset` and `endOffset` are durations in
+seconds, such as `'60s'` or `'3.5s'`. `fps` must be in the range `(0, 24]` and
+defaults to `1`.
+
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Long decode
+
+Gemini 4 models such as `gemini-4-argon` support long decode on Vertex AI the
+same way as on the Gemini API: set `maxOutputTokens` above the per-request cap
+(up to 1M minus input) and the provider continues the response automatically.
+See [Long decode](/providers/ai-sdk-providers/google#long-decode) for details
+on budgets, usage across requests, and resuming with a continuation token.
+
+The Vertex AI Interactions API (preview) does not support long decode.
 
 ### Tool Result Files
 
@@ -953,6 +1048,7 @@ The following Zod features are known to not work with Google Vertex:
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ------------------------ | ----------- | ----------------- | ---------- | -------------- |
 | `gemini-nano-banana-2.1` | <Check />   | <Cross />         | <Cross />  | <Cross />      |
+| `gemini-4-argon`         | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.8-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
@@ -1597,6 +1693,34 @@ The following optional provider options are available for Anthropic models:
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+### Billing Labels
+
+Pass billing labels for Claude requests using `providerOptions.vertex.labels`.
+Labels are a map of string keys to string values and work with both
+`generateText` and `streamText`:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-sonnet-4-6@default'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    vertex: {
+      labels: { team: 'data-platform', feature: 'my-app' },
+    },
+  },
+});
+```
+
+The provider sends the labels as base64-encoded UTF-8 JSON in the
+`X-Vertex-AI-Labels` header. An explicitly supplied labels header takes
+precedence over `providerOptions.vertex.labels`.
+
+See [Google's billing labels documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls#add_a_label_to_a_partner_model_api_call)
+for label requirements and supported billing options.
 
 ### Reasoning
 

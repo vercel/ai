@@ -1,0 +1,195 @@
+---
+title: experimental_streamSpeech
+description: API Reference for experimental_streamSpeech.
+---
+
+# `experimental_streamSpeech()`
+
+<Note type="warning">
+  `experimental_streamSpeech` is an experimental feature.
+</Note>
+
+Streams speech audio from text, or from an array or stream of text deltas and
+text parts, using a speech model with streaming support.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+import { elevenLabs } from '@ai-sdk/elevenlabs';
+
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_flash_v2_5'),
+  text: 'Hello, world!',
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_streamSpeech as streamSpeech } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'SpeechModel',
+      description:
+        'The speech model to use. The model must implement the experimental streaming speech extension (`Experimental_StreamingSpeechModelV4`).',
+    },
+    {
+      name: 'text',
+      type: 'string | Iterable<string | Experimental_SpeechTextPart> | AsyncIterable<string | Experimental_SpeechTextPart> | ReadableStream<string | Experimental_SpeechTextPart>',
+      description:
+        "The text to convert to speech: a complete string, or an array, iterable, or stream of text deltas (e.g. the `textStream` of `streamText`) and/or text parts `{ type: 'text', text, voice?, providerOptions? }`. A part's `voice` selects its speaker on providers that support several voices per stream; single-voice providers error the stream when a part's voice differs from the call's voice. The end of the stream ends the input.",
+    },
+    {
+      name: 'voice',
+      type: 'string',
+      isOptional: true,
+      description: 'The voice to use for speech generation.',
+    },
+    {
+      name: 'outputFormat',
+      type: '{ type: string; rate?: number }',
+      isOptional: true,
+      description:
+        "The format of the output audio chunks, e.g. `{ type: 'audio/pcm', rate: 24000 }` or `{ type: 'audio/mpeg' }`. Supported formats are provider-specific.",
+    },
+    {
+      name: 'instructions',
+      type: 'string',
+      isOptional: true,
+      description: 'Instructions for the speech generation.',
+    },
+    {
+      name: 'speed',
+      type: 'number',
+      isOptional: true,
+      description: 'The speed of the speech generation.',
+    },
+    {
+      name: 'language',
+      type: 'string',
+      isOptional: true,
+      description:
+        'The language for speech generation (ISO 639-1 code), or "auto". Provider support varies.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'Record<string, JSONObject>',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description:
+        'Additional HTTP/WebSocket headers, if supported by the provider.',
+    },
+    {
+      name: 'includeRawChunks',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'When true, the provider includes raw provider chunks in `fullStream` as `raw` parts.',
+    },
+    {
+      name: 'onError',
+      type: '(event: { error: unknown }) => void | PromiseLike<void>',
+      isOptional: true,
+      description:
+        'Called for each `error` part the provider reports. Defaults to `console.error`.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'audioStream',
+      type: 'AsyncIterableStream<Uint8Array>',
+      description:
+        'Audio bytes in generation order. Shares one live stream with `fullStream`: only one of them can be accessed, once, before any result promise. `error` parts are skipped (they are reported via `onError`); the stream errors only when the speech stream itself fails.',
+    },
+    {
+      name: 'fullStream',
+      type: 'AsyncIterableStream<Experimental_SpeechStreamPart>',
+      description:
+        'A single-consumer live stream of `audio` (with `audio: Uint8Array` and `audioFormat`), `raw`, and `error` parts. Error parts are not fatal; the stream continues after them.',
+    },
+    {
+      name: 'usage',
+      type: 'Promise<{ inputCharacters?: number; inputTokens?: number; outputTokens?: number; raw?: JSONObject }>',
+      description: 'Usage information for the call, if known.',
+    },
+    {
+      name: 'warnings',
+      type: 'Promise<Warning[]>',
+      description:
+        'Warnings for the call, e.g. unsupported settings. Resolves when the provider emits the stream start.',
+    },
+    {
+      name: 'responses',
+      type: 'Promise<Array<SpeechModelResponseMetadata>>',
+      description: 'Response metadata (timestamp, model ID, headers, body).',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'Promise<Record<string, JSONObject>>',
+      description: 'Additional provider-specific metadata.',
+    },
+  ]}
+/>
+
+<Note>
+  The result promises settle as the stream is consumed. If you cancel the stream
+  early (for example by breaking out of a `for await` loop) or abort the call,
+  pending result promises reject immediately and the provider is signalled to
+  close its connection. A stream that is not read stalls under backpressure and
+  keeps the provider call open.
+</Note>
+
+## Errors
+
+- `UnsupportedFunctionalityError` is thrown synchronously when the model does
+  not support streaming speech.
+- `InvalidArgumentError` is thrown synchronously when `text` is not a string,
+  an iterable or async iterable, or a readable stream.
+- Provider `error` parts are not fatal. They appear in `fullStream`, are
+  skipped by `audioStream`, and are passed to `onError`.
+- If the stream ends without audio, the result rejects with
+  `NoSpeechGeneratedError`, whose `cause` is the last provider error part.
+- If the stream stops after audio but before it finished, the result rejects
+  with the last provider error part, or with a `StreamProviderError`.
+- If the provider call fails (for example an authentication error), the result
+  rejects with that error. Cancelling or aborting rejects with the
+  cancellation or abort reason.
+
+## Wire format (experimental)
+
+Streaming speech over WebSocket is serialized with the experimental
+speech-stream envelope defined in `@ai-sdk/provider-utils`
+(`experimental_parseSpeechStreamClientFrame`,
+`experimental_serializeSpeechStreamPart`, `experimental_parseSpeechStreamPart`):
+the client sends one `speech-stream.start` TEXT frame, input text as
+`speech-stream.text-delta` TEXT frames (each carrying its text part's `voice`
+and `providerOptions`), and a `speech-stream.text-done` TEXT frame; each server TEXT frame is one JSON-serialized speech stream part with
+base64 audio. AI Gateway implements the server side of this envelope.

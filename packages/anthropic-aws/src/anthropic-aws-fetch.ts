@@ -1,5 +1,8 @@
+import { LoadAPIKeyError } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  resolve,
+  type Resolvable,
   normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -120,7 +123,7 @@ function isAscii(value: string): boolean {
  * @returns A FetchFunction that adds the x-api-key header to requests.
  */
 export function createApiKeyFetchFunction(
-  apiKey: string,
+  apiKey: Resolvable<string>,
   fetch?: FetchFunction,
 ): FetchFunction {
   return async (
@@ -135,8 +138,18 @@ export function createApiKeyFetchFunction(
       getRuntimeEnvironmentUserAgent(),
     );
 
+    const resolvedApiKey = await resolve(apiKey);
+    if (
+      typeof apiKey !== 'string' &&
+      (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+    ) {
+      throw new LoadAPIKeyError({
+        message: 'Anthropic AWS API key must be a non-empty string.',
+      });
+    }
+
     const finalHeaders = combineHeaders(headersWithUserAgent, {
-      'x-api-key': apiKey,
+      'x-api-key': resolvedApiKey,
     });
 
     return effectiveFetch(input, {

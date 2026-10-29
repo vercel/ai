@@ -19,6 +19,8 @@ import {
   type VercelSandboxCreateParams,
 } from './utils';
 
+const TEMPLATE_VERSION = 3;
+
 export type VercelNativeSandboxSession = Sandbox;
 
 type VercelSandboxCreationSettings = VercelSandboxCreateParams & {
@@ -106,11 +108,15 @@ export async function createVercelNetworkSandboxSession(
       : 'image' in baseParams && baseParams.image != null
         ? { image: baseParams.image }
         : { runtime: baseParams.runtime };
-  const material = JSON.stringify([2, template.identity, selection]);
+  const material = JSON.stringify([
+    TEMPLATE_VERSION,
+    template.identity,
+    selection,
+  ]);
   const digest = new Uint8Array(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material)),
   );
-  const templateName = `ai-sdk-harness-v2-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
+  const templateName = `ai-sdk-harness-v${TEMPLATE_VERSION}-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
   const snapshotId = await withVercelSandboxAuthenticationError({
     settings,
     operation: () =>

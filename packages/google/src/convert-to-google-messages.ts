@@ -14,11 +14,12 @@ import {
   resolveProviderReference,
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
-import type {
-  GoogleContent,
-  GoogleContentPart,
-  GoogleFunctionResponsePart,
-  GooglePrompt,
+import {
+  googleVideoMetadataSchema,
+  type GoogleContent,
+  type GoogleContentPart,
+  type GoogleFunctionResponsePart,
+  type GooglePrompt,
 } from './google-prompt';
 import {
   codeExecutionInputSchema,
@@ -330,6 +331,12 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
+              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
+
               switch (part.data.type) {
                 case 'url': {
                   parts.push({
@@ -341,6 +348,7 @@ export function convertToGoogleMessages(
                           ? part.data.originalUrl
                           : part.data.url.toString(),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -359,6 +367,7 @@ export function convertToGoogleMessages(
                         provider: 'google',
                       }),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -372,6 +381,7 @@ export function convertToGoogleMessages(
                         new TextEncoder().encode(part.data.text),
                       ),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -381,6 +391,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       data: convertToBase64(part.data.data),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }

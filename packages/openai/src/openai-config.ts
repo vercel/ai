@@ -1,4 +1,5 @@
 import type {
+  Resolvable,
   FetchFunction,
   WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
@@ -11,9 +12,11 @@ type SerializedOpenAIConfig = Omit<Partial<OpenAIConfig>, 'headers'> & {
 
 export type OpenAIConfig = {
   provider: string;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
   baseURL?: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers?: () => OpenAIHeaders;
+  headers?: Resolvable<OpenAIHeaders>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   generateId?: () => string;

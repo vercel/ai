@@ -36,6 +36,13 @@ export interface SandboxChannelReconnectOptions {
 
 export interface SandboxChannelConnectOptions {
   readonly abortSignal: AbortSignal;
+
+  /**
+   * Why the channel is connecting: `'open'` for the initial
+   * {@link SandboxChannel.open} call, `'reconnect'` for an attempt to recover
+   * from a transient disconnect.
+   */
+  readonly reason: 'open' | 'reconnect';
 }
 
 export interface SandboxChannelOptions<TOut> {
@@ -296,6 +303,7 @@ export class SandboxChannel<
     try {
       const ws = await this.connect({
         abortSignal: abortController.signal,
+        reason: 'open',
       });
       this.wire(ws);
       this.ws = ws;
@@ -528,6 +536,7 @@ export class SandboxChannel<
         try {
           const ws = await this.connect({
             abortSignal: abortController.signal,
+            reason: 'reconnect',
           });
           if (this.terminal || this.closing) {
             closeWebSocket({ ws });
@@ -590,10 +599,11 @@ export class SandboxChannel<
 
   private connect({
     abortSignal,
+    reason,
   }: SandboxChannelConnectOptions): Promise<WebSocket> {
     return awaitWebSocketConnection({
       connection: Promise.resolve().then(() =>
-        this.connectThunk({ abortSignal }),
+        this.connectThunk({ abortSignal, reason }),
       ),
       abortSignal,
     });
@@ -625,7 +635,7 @@ export class SandboxChannel<
   }
 
   private rawSend(text: string): void {
-    if (this.connected && this.ws) {
+    if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
     } else {
       this.pendingSends.push(text);
@@ -633,9 +643,20 @@ export class SandboxChannel<
   }
 
   private flushPending(): void {
-    if (!this.connected || !this.ws) return;
-    const queued = this.pendingSends.splice(0);
-    for (const text of queued) this.ws.send(text);
+    let sent = 0;
+    try {
+      while (
+        sent < this.pendingSends.length &&
+        this.connected &&
+        this.ws &&
+        this.ws.readyState === this.ws.OPEN
+      ) {
+        this.ws.send(this.pendingSends[sent]);
+        sent++;
+      }
+    } finally {
+      this.pendingSends.splice(0, sent);
+    }
   }
 
   private enqueue(work: () => void | Promise<void>): void {

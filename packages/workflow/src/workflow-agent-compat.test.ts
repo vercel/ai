@@ -809,6 +809,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     it.each([
       ['content-filter', 'content-filter'],
       ['error', 'error'],
+      ['interrupted', 'interrupted'],
       ['other', 'other'],
       ['unknown', 'unknown'],
       ['no finish part', undefined],

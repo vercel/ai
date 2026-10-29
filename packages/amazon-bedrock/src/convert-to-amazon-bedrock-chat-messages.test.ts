@@ -448,6 +448,119 @@ describe('user messages', () => {
     });
   });
 
+  it('should make duplicate document names unique', async () => {
+    const filenames = [
+      'invoice.pdf',
+      'invoice.pdf',
+      'rates.v1.pdf',
+      'rates.v2.pdf',
+      '/workspace/.eve/attachments/ab12/a.pdf',
+      'invoice (2).pdf',
+      'document-1.pdf',
+      undefined,
+      `${'a'.repeat(201)}.pdf`,
+      `${'a'.repeat(201)}.pdf`,
+    ];
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: filenames.map(filename => ({
+          type: 'file' as const,
+          data: { type: 'data' as const, data: 'base64data' },
+          mediaType: 'application/pdf',
+          filename,
+        })),
+      },
+    ]);
+
+    expect(
+      messages[0].content.map(content =>
+        'document' in content ? content.document.name : undefined,
+      ),
+    ).toEqual([
+      'invoice',
+      'invoice (2)',
+      'rates',
+      'rates (2)',
+      'workspace',
+      'invoice (2) (2)',
+      'document-1',
+      'document-1 (2)',
+      'a'.repeat(200),
+      `${'a'.repeat(196)} (2)`,
+    ]);
+  });
+
+  it('should make document names unique across messages and tool results', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'base64data' },
+            mediaType: 'application/pdf',
+            filename: 'invoice.pdf',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'read-file',
+            input: {},
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'read-file',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'application/pdf',
+                  filename: 'invoice.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'base64data' },
+            mediaType: 'application/pdf',
+            filename: 'invoice.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0].content[0]).toMatchObject({
+      document: { name: 'invoice' },
+    });
+    expect(messages[2].content[0]).toMatchObject({
+      toolResult: { content: [{ document: { name: 'invoice (2)' } }] },
+    });
+    expect(messages[2].content[1]).toMatchObject({
+      document: { name: 'invoice (3)' },
+    });
+  });
+
   it('should use consistent document names for prompt cache effectiveness', async () => {
     const fileData1 = new Uint8Array([0, 1, 2, 3]);
     const fileData2 = new Uint8Array([4, 5, 6, 7]);

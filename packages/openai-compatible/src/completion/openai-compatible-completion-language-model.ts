@@ -10,6 +10,10 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -43,7 +47,7 @@ import {
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -215,7 +219,10 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -270,7 +277,10 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -380,26 +390,31 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
 }
 
 // Loose: the parsed value is returned as `usage.raw`.
-const usageSchema = z.looseObject({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
+const usageSchema = () =>
+  z.looseObject({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+  });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleCompletionResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const openaiCompatibleCompletionResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      text: z.string(),
-      finish_reason: z.string(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          text: z.string(),
+          finish_reason: z.string(),
+        }),
+      ),
+      usage: usageSchema().nullish(),
     }),
   ),
-  usage: usageSchema.nullish(),
-});
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -420,7 +435,7 @@ const createOpenAICompatibleCompletionChunkSchema = <
           index: z.number(),
         }),
       ),
-      usage: usageSchema.nullish(),
+      usage: usageSchema().nullish(),
     }),
     errorSchema,
   ]);

@@ -1,5 +1,216 @@
 # @ai-sdk/harness-fx
 
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/mcp@2.0.87
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.167
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [ade2a33]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/mcp@2.0.86
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+  - @ai-sdk/mcp@2.0.85
+
+## 1.0.80
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [84d7880]
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/mcp@2.0.84
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.79
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
+## 1.0.78
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.77
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+  - @ai-sdk/mcp@2.0.83
+
+## 1.0.75
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/mcp@2.0.82
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.74
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [060d419]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/mcp@2.0.81
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.73
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.72
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [2b8185e]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/mcp@2.0.80
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.70
+
+### Patch Changes
+
+- 984d1dd: feat(harness-fx): support native subscriptions with libfx 0.0.14 update
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+  - @ai-sdk/mcp@2.0.78
+
+## 1.0.68
+
+### Patch Changes
+
+- a0cd442: feat(harness-fx): reimplement adapter to use `libfx`, achieving clean host-sandbox separation and unlocking additional capabilities
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+  - @ai-sdk/harness-acp@1.0.92
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+  - @ai-sdk/harness-acp@1.0.91
+
+## 1.0.65
+
+### Patch Changes
+
+- ce45d8e: fix(harness-fx): use pinned latest fx release instead of uncontrolled latest
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+  - @ai-sdk/harness-acp@1.0.89
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+  - @ai-sdk/harness-acp@1.0.88
+
 ## 1.0.62
 
 ### Patch Changes

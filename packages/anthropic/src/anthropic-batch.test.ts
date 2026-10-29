@@ -263,6 +263,26 @@ describe('Anthropic batch', () => {
     expect(new Set(betas).size).toBe(betas.length);
   });
 
+  it.each(['batch-beta', [123], null])(
+    'rejects invalid batch-level betas %j before making an API request',
+    async anthropicBeta => {
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(
+        model.doStartBatch({
+          requests: [{ id: 'request-1', ...request('Hello') }],
+          providerOptions: { anthropic: { anthropicBeta } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
   it('rejects per-request betas before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',

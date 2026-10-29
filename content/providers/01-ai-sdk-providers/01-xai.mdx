@@ -1,18 +1,61 @@
 ---
 title: xAI Grok
-description: Learn how to use xAI Grok and Imagine.
+description: Learn how to use xAI with AI Gateway and the direct provider.
 ---
 
 # xAI Grok Provider
 
 The [xAI Grok](https://x.ai) provider contains language model support for the [xAI API](https://x.ai/api).
+You can use xAI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/xai`.
 
-## Setup
+```ts provider="xai" model="spacexai/grok-4.7"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The xAI Grok provider is available via the `@ai-sdk/xai` module. You can
-install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/xai" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/xai`
+
+For direct access to xAI, install `ai` and `@ai-sdk/xai`:
+
+<InstallPackages packages="ai @ai-sdk/xai" />
+
+Set your xAI API credential in the `XAI_API_KEY` environment variable:
+
+```bash
+export XAI_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/xai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/xai` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -40,10 +83,13 @@ You can use the following optional settings to customize the xAI provider instan
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.x.ai/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `XAI_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -286,6 +332,8 @@ const { text, sources } = await generateText({
 console.log(text);
 console.log('Citations:', sources);
 ```
+
+Each citation is returned as one `source`. With `streamText`, each citation is emitted once as a `source` stream part, as soon as it is added.
 
 #### Web Search Parameters
 

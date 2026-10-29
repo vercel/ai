@@ -1,11 +1,15 @@
 import type { TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   mediaTypeToExtension,
   postFormDataToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -21,7 +25,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: () => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
     },
   ) {}
@@ -66,7 +70,10 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
 
     const { value, rawValue, responseHeaders } = await postFormDataToApi({
       url: this.config.url(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -129,28 +136,32 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const responseSchema = z.object({
-  combinedPhrases: z.array(z.object({ text: z.string() })),
-  durationMilliseconds: z.number().nullish(),
-  phrases: z
-    .array(
-      z.object({
-        text: z.string(),
-        offsetMilliseconds: z.number().nullish(),
-        durationMilliseconds: z.number().nullish(),
-        locale: z.string().nullish(),
-        speaker: z.number().nullish(),
-        confidence: z.number().nullish(),
-        words: z
-          .array(
-            z.object({
-              text: z.string(),
-              offsetMilliseconds: z.number().nullish(),
-              durationMilliseconds: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      combinedPhrases: z.array(z.object({ text: z.string() })),
+      durationMilliseconds: z.number().nullish(),
+      phrases: z
+        .array(
+          z.object({
+            text: z.string(),
+            offsetMilliseconds: z.number().nullish(),
+            durationMilliseconds: z.number().nullish(),
+            locale: z.string().nullish(),
+            speaker: z.number().nullish(),
+            confidence: z.number().nullish(),
+            words: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  offsetMilliseconds: z.number().nullish(),
+                  durationMilliseconds: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
