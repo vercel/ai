@@ -188,15 +188,73 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
       openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
-    const isThinkingEnabled =
-      bedrockOptions.reasoningConfig?.type === 'enabled' ||
-      bedrockOptions.reasoningConfig?.type === 'adaptive';
 
     const {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsForcedToolUse,
+      rejectsThinkingDisabled,
+      rejectsThinkingDisabledAboveHighEffort,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    let thinkingType:
+      | 'enabled'
+      | 'disabled'
+      | 'adaptive'
+      | 'between_tools'
+      | undefined = bedrockOptions.reasoningConfig?.type;
+    let maxReasoningEffort = bedrockOptions.reasoningConfig?.maxReasoningEffort;
+
+    if (isAnthropicModel && thinkingType === 'disabled') {
+      if (
+        /claude-(?:instant|v?2|3-(?:5-)?(?:haiku|sonnet|opus))(?=[-.:]|$)/.test(
+          this.modelId,
+        )
+      ) {
+        // Claude 3.5 and earlier do not accept a thinking field, even disabled.
+        thinkingType = undefined;
+      } else if (rejectsThinkingDisabled) {
+        thinkingType = supportsBetweenToolsThinking
+          ? 'between_tools'
+          : 'adaptive';
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.bedrock.reasoningConfig',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using '${thinkingType}' thinking instead.`,
+        });
+      }
+
+      const effort =
+        maxReasoningEffort ??
+        bedrockOptions.additionalModelRequestFields?.output_config?.effort;
+
+      if (
+        ((thinkingType === 'disabled' &&
+          rejectsThinkingDisabledAboveHighEffort) ||
+          thinkingType === 'between_tools') &&
+        (effort === 'xhigh' || effort === 'max')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature:
+            maxReasoningEffort != null
+              ? 'providerOptions.bedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.bedrock.additionalModelRequestFields.output_config.effort',
+          details:
+            `effort '${effort}' is not supported by ${this.modelId} with '${thinkingType}' thinking. ` +
+            `The effort has been lowered to 'high'.`,
+        });
+        maxReasoningEffort = 'high';
+      }
+    }
+
+    const isThinkingEnabled =
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
 
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
@@ -304,7 +362,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       };
     }
 
-    const thinkingType = bedrockOptions.reasoningConfig?.type;
     const thinkingBudget =
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
@@ -323,7 +380,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    if (isAnthropicThinkingEnabled) {
+    if (isAnthropicModel) {
       if (thinkingBudget != null) {
         if (inferenceConfig.maxTokens != null) {
           inferenceConfig.maxTokens += thinkingBudget;
@@ -345,8 +402,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
+      } else if (
+        thinkingType === 'disabled' ||
+        thinkingType === 'between_tools'
+      ) {
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          thinking: { type: thinkingType },
+        };
       }
-    } else if (!isAnthropicModel) {
+    } else {
       if (bedrockOptions.reasoningConfig?.budgetTokens != null) {
         warnings.push({
           type: 'unsupported',
@@ -364,9 +429,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         });
       }
     }
-
-    const maxReasoningEffort =
-      bedrockOptions.reasoningConfig?.maxReasoningEffort;
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {

@@ -165,7 +165,11 @@ const futureMajorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(f
 const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
 const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
 
+const sonnet55AnthropicModelId = 'us.anthropic.claude-sonnet-5-5';
+const sonnet55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(sonnet55AnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [sonnet55AnthropicGenerateUrl]: {},
   [futureMajorAnthropicGenerateUrl]: {},
   [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
@@ -2709,6 +2713,22 @@ describe('doStream', () => {
     `);
   });
 
+  it('should omit disabled thinking on Claude 3 in stream requests', async () => {
+    setupMockEventStreamHandler();
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: { reasoningConfig: { type: 'disabled' } },
+      },
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(
+      (await server.calls[0].requestBodyJson).additionalModelRequestFields,
+    ).toBeUndefined();
+    expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+  });
+
   it('should transform reasoningConfig to thinking in stream requests', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -5123,6 +5143,136 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
   });
+
+  it.each([
+    [anthropicModelId, undefined],
+    [legacyAnthropic37ModelId, 'disabled'],
+    [sonnet55AnthropicModelId, 'between_tools'],
+    [opus55AnthropicModelId, 'adaptive'],
+  ] as const)(
+    'should resolve disabled thinking for %s',
+    async (modelId, type) => {
+      const url = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
+      prepareJsonFixtureResponse('bedrock-text');
+      server.urls[url].response = server.urls[generateUrl].response;
+      const reasoningModel = new BedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+      });
+
+      const { warnings } = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { bedrock: { reasoningConfig: { type: 'disabled' } } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.additionalModelRequestFields).toEqual(
+        type == null ? undefined : { thinking: { type } },
+      );
+      expect(warnings).toEqual(
+        type === 'adaptive' || type === 'between_tools'
+          ? [
+              expect.objectContaining({
+                type: 'unsupported',
+                feature: 'providerOptions.bedrock.reasoningConfig',
+              }),
+            ]
+          : [],
+      );
+    },
+  );
+
+  it('should preserve settings without adding a disabled thinking budget or display', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+    server.urls[newerAnthropicGenerateUrl].response =
+      server.urls[generateUrl].response;
+    const { warnings } = await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'disabled',
+            budgetTokens: 3000,
+            display: 'summarized',
+            maxReasoningEffort: 'high',
+          },
+          additionalModelRequestFields: {
+            custom: 'preserved',
+            output_config: { effort: 'max' },
+          },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.additionalModelRequestFields).toEqual({
+      custom: 'preserved',
+      thinking: { type: 'disabled' },
+      output_config: { effort: 'high' },
+    });
+    expect(body.inferenceConfig).toEqual({
+      maxTokens: 1024,
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 5,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([
+    [opus5AnthropicModelId, 'typed', 'disabled'],
+    [sonnet55AnthropicModelId, 'raw', 'between_tools'],
+  ] as const)(
+    'should lower incompatible disabled thinking effort for %s (%s)',
+    async (modelId, source, type) => {
+      prepareJsonFixtureResponse('bedrock-text');
+      const url = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
+      server.urls[url].response = server.urls[generateUrl].response;
+      const reasoningModel = new BedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+      });
+      const { warnings } = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              type: 'disabled',
+              ...(source === 'typed' && { maxReasoningEffort: 'xhigh' }),
+            },
+            additionalModelRequestFields: {
+              output_config: {
+                custom: 'preserved',
+                ...(source === 'raw' && { effort: 'max' }),
+              },
+            },
+          },
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).additionalModelRequestFields,
+      ).toEqual({
+        thinking: { type },
+        output_config: { custom: 'preserved', effort: 'high' },
+      });
+      expect(warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature:
+            source === 'typed'
+              ? 'providerOptions.bedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.bedrock.additionalModelRequestFields.output_config.effort',
+        }),
+      );
+    },
+  );
 
   it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
     prepareJsonFixtureResponse('bedrock-text');

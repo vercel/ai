@@ -626,6 +626,19 @@ final text. The provider therefore adds `budgetTokens` to `maxOutputTokens`
 when setting `maxTokens`. When `maxOutputTokens` is omitted, the provider adds
 `budgetTokens` to the default of `4096`.
 
+To disable Anthropic thinking, set
+`providerOptions.bedrock.reasoningConfig: { type: 'disabled' }`. The provider
+sends `thinking: { type: 'disabled' }` for models that support it, and omits the
+field for Claude 3.5 and earlier. Disabled thinking does not add a thinking
+budget or display setting.
+
+For models that require thinking, the provider uses `between_tools` when
+supported, or adaptive thinking otherwise, and returns an unsupported-setting
+warning. Explicit `maxReasoningEffort` takes precedence over raw
+`additionalModelRequestFields.output_config.effort`. When a model rejects
+disabled or `between_tools` thinking at `xhigh` or `max` effort, the provider
+lowers the effort to `high` with a warning.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
