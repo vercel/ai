@@ -914,7 +914,7 @@ retain the content their contracts require.
       type: 'Experimental_Steering',
       isOptional: true,
       description:
-        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
