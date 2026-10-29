@@ -69,6 +69,11 @@ export {
 } from './stop-condition';
 export {
   streamLanguageModelCall as experimental_streamLanguageModelCall,
+  type LanguageModelStreamPart,
+
+  /**
+   * @deprecated Use `LanguageModelStreamPart` instead. This alias will be removed in v8.
+   */
   type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
 } from './stream-language-model-call';
 export {
