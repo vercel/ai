@@ -53,9 +53,6 @@ export function addToolResultsToConversation({
     if (assistantMessage != null) {
       let content = [...assistantMessage.content];
 
-      // Track cumulative insertion offset so that previously spliced results
-      // adjust subsequent insertion positions.
-      let insertionOffset = 0;
       for (const position of [...providerExecutedToolResultPositions].sort(
         (a, b) => a.contentIndex - b.contentIndex,
       )) {
@@ -65,8 +62,7 @@ export function addToolResultsToConversation({
         }
 
         const [result, ...remainingResults] = results;
-        content.splice(position.contentIndex + insertionOffset, 0, result);
-        insertionOffset++;
+        content.splice(position.contentIndex, 0, result);
 
         if (remainingResults.length === 0) {
           providerResults.delete(position.toolCallId);

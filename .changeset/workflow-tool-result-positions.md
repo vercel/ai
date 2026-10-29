@@ -2,4 +2,4 @@
 '@ai-sdk/workflow': patch
 ---
 
-Adjust cumulative insertion offsets when placing provider-executed tool results into conversation messages.
+Add regression tests for provider-executed tool result placement in conversation messages.

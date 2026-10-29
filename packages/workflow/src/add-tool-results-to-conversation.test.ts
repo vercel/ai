@@ -43,9 +43,12 @@ describe('addToolResultsToConversation', () => {
         },
       ],
       providerExecutedToolCallIds: new Set(['call-1', 'call-2']),
+      // contentIndex values already account for provider-executed tool
+      // results: getAssistantMessageContent increments the index for each
+      // result part, so positions refer to the final merged array.
       providerExecutedToolResultPositions: [
         { toolCallId: 'call-1', contentIndex: 2 },
-        { toolCallId: 'call-2', contentIndex: 3 },
+        { toolCallId: 'call-2', contentIndex: 4 },
       ],
     });
 
@@ -80,7 +83,7 @@ describe('addToolResultsToConversation', () => {
     ]);
   });
 
-  it('preserves order when multiple positions share the same contentIndex', () => {
+  it('preserves order for consecutive provider-executed results on the same tool call', () => {
     const messages: LanguageModelV4Prompt = [
       {
         role: 'assistant',
@@ -115,7 +118,7 @@ describe('addToolResultsToConversation', () => {
       providerExecutedToolCallIds: new Set(['call-1']),
       providerExecutedToolResultPositions: [
         { toolCallId: 'call-1', contentIndex: 1 },
-        { toolCallId: 'call-1', contentIndex: 1 },
+        { toolCallId: 'call-1', contentIndex: 2 },
       ],
     });
 
