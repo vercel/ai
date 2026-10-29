@@ -1,6 +1,8 @@
 import { isAbsolute, posix } from 'node:path';
 import {
   extractLines,
+  type Experimental_SandboxDirectoryEntry as SandboxDirectoryEntry,
+  type Experimental_SandboxFileStat as SandboxFileStat,
   type Experimental_SandboxRunOptions as RunOptions,
   type Experimental_SandboxReadFileOptions as ReadFileOptions,
   type Experimental_SandboxReadBinaryFileOptions as ReadBinaryFileOptions,
@@ -8,6 +10,9 @@ import {
   type Experimental_SandboxWriteFileOptions as WriteFileOptions,
   type Experimental_SandboxWriteBinaryFileOptions as WriteBinaryFileOptions,
   type Experimental_SandboxWriteTextFileOptions as WriteTextFileOptions,
+  type Experimental_SandboxStatOptions as StatOptions,
+  type Experimental_SandboxListDirectoryOptions as ListDirectoryOptions,
+  type Experimental_SandboxDeleteFileOptions as DeleteFileOptions,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess as SandboxProcess,
   type Experimental_SandboxSpawnOptions as SpawnOptions,
@@ -61,7 +66,9 @@ export class JustBashSandboxSession implements SandboxSession {
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
       args: createBashArgs(command, env),
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(workingDirectory !== undefined
+        ? { cwd: this.resolvePath(workingDirectory) }
+        : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -98,7 +105,9 @@ export class JustBashSandboxSession implements SandboxSession {
       cmd: 'bash',
       args: createBashArgs(command, env),
       detached: true,
-      ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
+      ...(workingDirectory !== undefined
+        ? { cwd: this.resolvePath(workingDirectory) }
+        : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -158,8 +167,15 @@ export class JustBashSandboxSession implements SandboxSession {
     abortSignal,
   }: WriteBinaryFileOptions): Promise<void> {
     abortSignal?.throwIfAborted();
+    const fs = this.sandbox.bashEnvInstance.fs;
     const resolved = this.resolvePath(path);
-    await this.sandbox.bashEnvInstance.fs.writeFile(resolved, content);
+    // The just-bash filesystem would replace the directory, deleting its
+    // contents.
+    const existing = await fs.stat(resolved).catch(() => null);
+    if (existing?.isDirectory) {
+      throw new Error(`Cannot write ${path}: it is a directory.`);
+    }
+    await fs.writeFile(resolved, content);
   }
 
   async writeTextFile({
@@ -178,6 +194,78 @@ export class JustBashSandboxSession implements SandboxSession {
       ),
       abortSignal,
     });
+  }
+
+  async stat({
+    path,
+    abortSignal,
+  }: StatOptions): Promise<SandboxFileStat | null> {
+    abortSignal?.throwIfAborted();
+    const resolved = this.resolvePath(path);
+    try {
+      const stat = await this.sandbox.bashEnvInstance.fs.stat(resolved);
+      return {
+        type: stat.isFile ? 'file' : stat.isDirectory ? 'directory' : 'other',
+        size: stat.size,
+      };
+    } catch (error) {
+      if (isFileNotFoundError(error) || isNotDirectoryError(error)) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async listDirectory({
+    path,
+    abortSignal,
+  }: ListDirectoryOptions): Promise<Array<SandboxDirectoryEntry> | null> {
+    abortSignal?.throwIfAborted();
+    const fs = this.sandbox.bashEnvInstance.fs;
+    const resolved = this.resolvePath(path);
+    try {
+      if (fs.readdirWithFileTypes != null) {
+        const entries = await fs.readdirWithFileTypes(resolved);
+        return entries.map(entry => ({
+          name: entry.name,
+          type: toEntryType(entry),
+        }));
+      }
+
+      // `readdirWithFileTypes` is optional in custom just-bash filesystems.
+      const names = await fs.readdir(resolved);
+      return await Promise.all(
+        names.map(async name => ({
+          name,
+          type: toEntryType(await fs.lstat(posix.join(resolved, name))),
+        })),
+      );
+    } catch (error) {
+      if (isFileNotFoundError(error)) return null;
+      throw error;
+    }
+  }
+
+  async deleteFile({ path, abortSignal }: DeleteFileOptions): Promise<boolean> {
+    abortSignal?.throwIfAborted();
+    const fs = this.sandbox.bashEnvInstance.fs;
+    const resolved = this.resolvePath(path);
+    // A trailing slash refers to the directory a symbolic link points to, but
+    // the just-bash filesystem drops it, so follow the link instead.
+    const stat = await (
+      path.endsWith('/') ? fs.stat(resolved) : fs.lstat(resolved)
+    ).catch((error: unknown) => {
+      if (isFileNotFoundError(error) || isNotDirectoryError(error)) {
+        return null;
+      }
+      throw error;
+    });
+    if (stat == null) return false;
+    if (stat.isDirectory) {
+      throw new Error(`Cannot delete ${path}: it is a directory.`);
+    }
+    await fs.rm(resolved);
+    return true;
   }
 }
 
@@ -300,4 +388,24 @@ function isFileNotFoundError(error: unknown): boolean {
     typeof message === 'string' &&
     /no such file|not found|does not exist|ENOENT/i.test(message)
   );
+}
+
+function toEntryType(entry: {
+  isFile: boolean;
+  isDirectory: boolean;
+  isSymbolicLink: boolean;
+}): SandboxDirectoryEntry['type'] {
+  if (entry.isSymbolicLink) return 'symlink';
+  if (entry.isFile) return 'file';
+  if (entry.isDirectory) return 'directory';
+  return 'other';
+}
+
+// `ENOTDIR`: a parent is a file, so the path does not exist.
+function isNotDirectoryError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === 'ENOTDIR') return true;
+  const message = (error as { message?: unknown }).message;
+  return typeof message === 'string' && /ENOTDIR/.test(message);
 }

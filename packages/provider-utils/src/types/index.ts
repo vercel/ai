@@ -45,6 +45,11 @@ export type {
   SandboxWriteBinaryFileOptions as Experimental_SandboxWriteBinaryFileOptions,
   SandboxWriteTextFileOptions as Experimental_SandboxWriteTextFileOptions,
   WritableSandboxProcess as Experimental_WritableSandboxProcess,
+  SandboxStatOptions as Experimental_SandboxStatOptions,
+  SandboxListDirectoryOptions as Experimental_SandboxListDirectoryOptions,
+  SandboxDeleteFileOptions as Experimental_SandboxDeleteFileOptions,
+  SandboxFileStat as Experimental_SandboxFileStat,
+  SandboxDirectoryEntry as Experimental_SandboxDirectoryEntry,
 } from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {
