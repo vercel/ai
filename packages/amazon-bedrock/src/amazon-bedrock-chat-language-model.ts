@@ -19,6 +19,7 @@ import {
   createProviderStreamError,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getModelCapabilities,
   injectJsonInstructionIntoMessages,
   isCustomReasoning,
   mapReasoningToProviderBudget,
@@ -34,7 +35,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
-  getModelCapabilities,
+  anthropicLanguageModelCapabilities,
   sanitizeJsonSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
@@ -49,11 +50,8 @@ import {
   type AmazonBedrockChatModelId,
   type AmazonBedrockChatModelSettings,
 } from './amazon-bedrock-chat-language-model-options';
-import {
-  isAnthropicModel as detectAnthropicModel,
-  supportsNativeStructuredOutput,
-  supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
+import { isAnthropicModel as detectAnthropicModel } from './amazon-bedrock-anthropic-model-support';
+import { amazonBedrockModelCapabilities } from './amazon-bedrock-model-capabilities';
 import {
   amazonBedrockFailedResponseHandler,
   AmazonBedrockErrorSchema,
@@ -182,15 +180,13 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const warnings: SharedV4Warning[] = [];
 
-    const {
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      rejectsSamplingParameters,
-      rejectsForcedToolUse,
-      rejectsThinkingDisabled,
-      rejectsThinkingDisabledAboveHighEffort,
-      supportsBetweenToolsThinking,
-      isKnownModel,
-    } = getModelCapabilities(this.modelId);
+    // Capabilities of the Claude model, and the features that Bedrock accepts:
+    const { capabilities: claudeCapabilities, isKnownModel } =
+      getModelCapabilities(anthropicLanguageModelCapabilities, this.modelId);
+    const { capabilities: bedrockCapabilities } = getModelCapabilities(
+      amazonBedrockModelCapabilities,
+      this.modelId,
+    );
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -213,7 +209,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (rejectsSamplingParameters) {
+    if (!claudeCapabilities.samplingParameters) {
       if (temperature != null) {
         warnings.push({
           type: 'unsupported',
@@ -318,8 +314,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       ) {
         // Claude 3.5 and earlier do not accept a thinking field, even disabled.
         thinkingType = undefined;
-      } else if (rejectsThinkingDisabled) {
-        thinkingType = supportsBetweenToolsThinking
+      } else if (claudeCapabilities.thinking.disabled == null) {
+        thinkingType = claudeCapabilities.thinking.betweenTools
           ? 'between_tools'
           : 'adaptive';
 
@@ -353,7 +349,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
       if (
         ((thinkingType === 'disabled' &&
-          rejectsThinkingDisabledAboveHighEffort) ||
+          claudeCapabilities.thinking.disabled?.maxEffort === 'high') ||
           thinkingType === 'between_tools') &&
         (effort === 'xhigh' || effort === 'max')
       ) {
@@ -410,8 +406,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     }
 
     const modelSupportsNativeStructuredOutput =
-      supportsNativeStructuredOutput(this.modelId) &&
-      (modelSupportsStructuredOutput ||
+      bedrockCapabilities.nativeStructuredOutput &&
+      (claudeCapabilities.structuredOutput ||
         isThinkingEnabled ||
         this.config.modelFamily === 'anthropic');
 
@@ -428,13 +424,13 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      (rejectsForcedToolUse ||
+      (!claudeCapabilities.forcedToolUse ||
         (this.modelId.includes('claude-') &&
-          (!isKnownModel || !modelSupportsStructuredOutput) &&
-          !supportsNativeStructuredOutput(this.modelId) &&
+          (!isKnownModel || !claudeCapabilities.structuredOutput) &&
+          !bedrockCapabilities.nativeStructuredOutput &&
           structuredOutputMode !== 'jsonTool') ||
         (structuredOutputMode !== 'jsonTool' &&
-          !supportsStrictTools(this.modelId) &&
+          !bedrockCapabilities.strictTools &&
           tools != null &&
           tools.length > 0));
 
@@ -461,7 +457,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         reasoningBudgetTokens:
           amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
-        rejectsForcedToolUse,
+        rejectsForcedToolUse: !claudeCapabilities.forcedToolUse,
       });
 
     warnings.push(...toolWarnings);
@@ -1793,18 +1789,21 @@ function resolveAmazonBedrockReasoningConfig({
     isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
 
   if (isAnthropicModel) {
-    const capabilities = getModelCapabilities(modelId);
+    const { capabilities } = getModelCapabilities(
+      anthropicLanguageModelCapabilities,
+      modelId,
+    );
 
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
-    } else if (capabilities.supportsAdaptiveThinking) {
+    } else if (capabilities.thinking.adaptive != null) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
             ...amazonBedrockReasoningEffortMap,
-            ...(capabilities.supportsXhighEffort && {
+            ...(capabilities.thinking.adaptive.efforts.includes('xhigh') && {
               xhigh: 'xhigh' as const,
             }),
           },

@@ -24,6 +24,7 @@ import {
   createProviderStreamError,
   createToolNameMapping,
   generateId,
+  getModelCapabilities,
   isCustomReasoning,
   isProviderStreamError,
   mapReasoningToProviderBudget,
@@ -42,6 +43,12 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import {
+  anthropicEfforts,
+  type AnthropicEffort,
+  anthropicLanguageModelCapabilities,
+  type AnthropicLanguageModelCapabilities,
+} from './anthropic-language-model-capabilities';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -423,19 +430,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       customProviderOptions ?? {},
     );
 
-    const {
-      maxOutputTokens: maxOutputTokensForModel,
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      supportsAdaptiveThinking,
-      rejectsSamplingParameters,
-      supportsXhighEffort,
-      rejectsThinkingDisabledAboveHighEffort,
-      rejectsThinkingDisabled,
-      rejectsBudgetThinking,
-      rejectsForcedToolUse,
-      supportsBetweenToolsThinking,
-      isKnownModel,
-    } = getModelCapabilities(modelId);
+    const { capabilities, isKnownModel } = getModelCapabilities(
+      anthropicLanguageModelCapabilities,
+      modelId,
+    );
+    const maxOutputTokensForModel = capabilities.maxOutputTokens;
 
     if (!isKnownModel && maxOutputTokens == null) {
       warnings.push({
@@ -448,7 +447,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (rejectsSamplingParameters) {
+    if (!capabilities.samplingParameters) {
       if (temperature != null) {
         warnings.push({
           type: 'unsupported',
@@ -479,10 +478,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const supportsStructuredOutput =
       (config.supportsNativeStructuredOutput ?? true) &&
-      modelSupportsStructuredOutput;
+      capabilities.structuredOutput;
 
     const supportsStrictTools =
-      (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
+      (config.supportsStrictTools ?? true) && capabilities.structuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
@@ -495,7 +494,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // outputs when the model supports them.
     if (
       !useStructuredOutput &&
-      rejectsForcedToolUse &&
+      !capabilities.forcedToolUse &&
       supportsStructuredOutput &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null
@@ -600,11 +599,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
         modelId,
-        supportsAdaptiveThinking,
-        supportsXhighEffort,
-        rejectsThinkingDisabled,
-        supportsBetweenToolsThinking,
-        maxOutputTokensForModel,
+        capabilities,
         warnings,
       });
       if (reasoningConfig != null) {
@@ -623,10 +618,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // Some models always run adaptive thinking and reject `disabled` thinking
     // with a 400. Drop the unsupported setting and keep the request adaptive
     // so it still succeeds.
-    if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
+    if (
+      capabilities.thinking.disabled == null &&
+      anthropicOptions?.thinking != null
+    ) {
       const thinking = anthropicOptions.thinking;
 
-      if (thinking.type === 'disabled' && supportsBetweenToolsThinking) {
+      if (thinking.type === 'disabled' && capabilities.thinking.betweenTools) {
         warnings.push({
           type: 'unsupported',
           feature: 'providerOptions.anthropic.thinking',
@@ -651,38 +649,41 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // with a 400. Use adaptive thinking instead and let `effort` control how
     // much the model thinks.
     if (
-      rejectsBudgetThinking &&
+      !capabilities.thinking.budget &&
       anthropicOptions?.thinking?.type === 'enabled'
     ) {
       warnings.push({
         type: 'unsupported',
         feature: 'providerOptions.anthropic.thinking',
-        details: rejectsThinkingDisabled
-          ? `budget-based thinking is not supported by ${modelId}; it always uses adaptive thinking. ` +
-            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`
-          : `budget-based thinking is not supported by ${modelId}. ` +
-            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
+        details:
+          capabilities.thinking.disabled == null
+            ? `budget-based thinking is not supported by ${modelId}; it always uses adaptive thinking. ` +
+              `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`
+            : `budget-based thinking is not supported by ${modelId}. ` +
+              `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
       });
       anthropicOptions.thinking = { type: 'adaptive' };
     }
 
-    // Newer models only allow disabling thinking at effort levels up to and
-    // including `high`; at `xhigh` and `max` the API returns a 400. Lower
-    // the effort to `high` to preserve the explicit request to run without
-    // thinking.
+    // Newer models only allow disabling thinking up to a maximum effort (e.g.
+    // `high`); above it the API returns a 400. Lower the effort to the maximum
+    // to preserve the explicit request to run without thinking.
+    const maxEffortWithoutThinking = capabilities.thinking.disabled?.maxEffort;
     if (
-      rejectsThinkingDisabledAboveHighEffort &&
+      maxEffortWithoutThinking != null &&
       anthropicOptions?.thinking?.type === 'disabled' &&
-      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+      anthropicOptions.effort != null &&
+      anthropicEfforts.indexOf(anthropicOptions.effort) >
+        anthropicEfforts.indexOf(maxEffortWithoutThinking)
     ) {
       warnings.push({
         type: 'unsupported',
         feature: 'providerOptions.anthropic.effort',
         details:
           `effort '${anthropicOptions.effort}' is not supported by ${modelId} when thinking is disabled. ` +
-          `The effort has been lowered to 'high'.`,
+          `The effort has been lowered to '${maxEffortWithoutThinking}'.`,
       });
-      anthropicOptions.effort = 'high';
+      anthropicOptions.effort = maxEffortWithoutThinking;
     }
 
     // `between_tools` thinking is only accepted at `low`, `medium`, and
@@ -1097,7 +1098,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStrictTools,
             defaultEagerInputStreaming,
             rejectsForcedToolUse:
-              rejectsForcedToolUse || thinkingType === 'enabled',
+              !capabilities.forcedToolUse || thinkingType === 'enabled',
           }
         : {
             tools: tools ?? [],
@@ -1108,7 +1109,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStrictTools,
             defaultEagerInputStreaming,
             rejectsForcedToolUse:
-              rejectsForcedToolUse || thinkingType === 'enabled',
+              !capabilities.forcedToolUse || thinkingType === 'enabled',
           },
     );
 
@@ -3328,286 +3329,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 }
 
-/**
- * Returns the capabilities of a Claude model that are used for defaults and feature selection.
- *
- * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
- * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
- */
-export function getModelCapabilities(modelId: string): {
-  maxOutputTokens: number;
-  supportsStructuredOutput: boolean;
-  supportsAdaptiveThinking: boolean;
-  rejectsSamplingParameters: boolean;
-  supportsXhighEffort: boolean;
-  rejectsThinkingDisabledAboveHighEffort: boolean;
-  /**
-   * Thinking is always adaptive: `thinking.type` `disabled` and `enabled`
-   * are rejected with a 400.
-   */
-  rejectsThinkingDisabled: boolean;
-  /**
-   * Budget-based thinking (`thinking.type` `enabled` with `budget_tokens`) is
-   * rejected with a 400. Only adaptive thinking is supported.
-   */
-  rejectsBudgetThinking: boolean;
-  /**
-   * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
-   */
-  rejectsForcedToolUse: boolean;
-  /**
-   * Supports `thinking.type` `between_tools`, the lowest thinking setting on
-   * models that reject disabled thinking.
-   */
-  supportsBetweenToolsThinking: boolean;
-  isKnownModel: boolean;
-} {
-  if (modelId.includes('claude-sonnet-5-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: true,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-5-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-haiku-5-5')) {
-    // Thinking can be turned off, but only up to `high` effort.
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-fable-5-1')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-fable-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-sonnet-5')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-6') ||
-    modelId.includes('claude-opus-4-6')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5') ||
-    modelId.includes('claude-haiku-4-5')
-  ) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-4-1')) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-haiku')) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
-  ) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  } else if (modelId.includes('claude-')) {
-    // Known and legacy Claude families are handled above, so any remaining
-    // Claude ID is assumed to be newer than the known list. Keep it unknown so
-    // callers still receive the maxOutputTokens compatibility warning.
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  } else {
-    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
-    // keep conservative defaults.
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  }
-}
-
 export function hasDynamicFilteringWebToolWithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
@@ -3643,20 +3364,12 @@ export function hasDynamicFilteringWebToolWithoutCodeExecution(
 function resolveAnthropicReasoningConfig({
   reasoning,
   modelId,
-  supportsAdaptiveThinking,
-  supportsXhighEffort,
-  rejectsThinkingDisabled,
-  supportsBetweenToolsThinking,
-  maxOutputTokensForModel,
+  capabilities,
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   modelId: string;
-  supportsAdaptiveThinking: boolean;
-  supportsXhighEffort: boolean;
-  rejectsThinkingDisabled: boolean;
-  supportsBetweenToolsThinking: boolean;
-  maxOutputTokensForModel: number;
+  capabilities: AnthropicLanguageModelCapabilities;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
   if (!isCustomReasoning(reasoning)) {
@@ -3666,7 +3379,7 @@ function resolveAnthropicReasoningConfig({
   if (reasoning === 'none') {
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
-    if (supportsBetweenToolsThinking) {
+    if (capabilities.thinking.betweenTools) {
       warnings.push({
         type: 'compatibility',
         feature: 'reasoning',
@@ -3680,7 +3393,7 @@ function resolveAnthropicReasoningConfig({
     // Models that always run adaptive thinking cannot disable it. Use low
     // effort to keep thinking short instead of sending a request that the
     // API would reject.
-    if (rejectsThinkingDisabled) {
+    if (capabilities.thinking.disabled == null) {
       warnings.push({
         type: 'compatibility',
         feature: 'reasoning',
@@ -3694,16 +3407,14 @@ function resolveAnthropicReasoningConfig({
     return { thinking: { type: 'disabled' } };
   }
 
-  if (supportsAdaptiveThinking) {
-    const effort = mapReasoningToProviderEffort({
+  if (capabilities.thinking.adaptive != null) {
+    const effort = mapReasoningToProviderEffort<AnthropicEffort>({
       reasoning,
-      effortMap: {
-        low: 'low' as const,
-        medium: 'medium' as const,
-        high: 'high' as const,
-        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
-        max: 'max' as const,
-      },
+      effortMap: Object.fromEntries(
+        capabilities.thinking.adaptive.efforts.map(
+          effort => [effort, effort] as const,
+        ),
+      ),
       warnings,
     });
     return {
@@ -3714,8 +3425,8 @@ function resolveAnthropicReasoningConfig({
 
   const budgetTokens = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: maxOutputTokensForModel,
-    maxReasoningBudget: maxOutputTokensForModel,
+    maxOutputTokens: capabilities.maxOutputTokens,
+    maxReasoningBudget: capabilities.maxOutputTokens,
     warnings,
   });
   return { thinking: { type: 'enabled', budgetTokens } };

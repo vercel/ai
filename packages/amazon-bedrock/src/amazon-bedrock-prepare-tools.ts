@@ -5,20 +5,18 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { asSchema } from '@ai-sdk/provider-utils';
+import { asSchema, getModelCapabilities } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import {
-  isAnthropicModel as detectAnthropicModel,
-  supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
+import { isAnthropicModel as detectAnthropicModel } from './amazon-bedrock-anthropic-model-support';
 import type {
   AmazonBedrockTool,
   AmazonBedrockToolConfiguration,
 } from './amazon-bedrock-api-types';
 import type { AmazonBedrockChatModelSettings } from './amazon-bedrock-chat-language-model-options';
+import { amazonBedrockModelCapabilities } from './amazon-bedrock-model-capabilities';
 
 export async function prepareTools({
   tools,
@@ -186,7 +184,10 @@ export async function prepareTools({
       ? functionTools.filter(t => t.name === toolChoice.toolName)
       : functionTools;
 
-  const supportsStrictOnTools = supportsStrictTools(modelId);
+  const supportsStrictOnTools = getModelCapabilities(
+    amazonBedrockModelCapabilities,
+    modelId,
+  ).capabilities.strictTools;
 
   for (const tool of filteredFunctionTools) {
     const supportsStrictForTool =
