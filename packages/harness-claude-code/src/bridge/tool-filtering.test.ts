@@ -11,10 +11,7 @@ describe('resolveNativeTools', () => {
 
   it('maps allowlisted common tool names to native names', () => {
     expect(
-      resolveNativeTools({
-        mode: 'allow',
-        toolNames: ['read', 'Workflow'],
-      }),
+      resolveNativeTools({ mode: 'allow', toolNames: ['read', 'Workflow'] }),
     ).toEqual(['Read', 'Workflow']);
   });
 
