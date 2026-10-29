@@ -176,6 +176,8 @@ export type TelemetryOptions<
 
 /**
  * A transformation that is applied to the stream.
+ *
+ * @deprecated WorkflowAgent no longer accepts stream transformations.
  */
 export type StreamTextTransform<TTools extends ToolSet> = (options: {
   tools: TTools;
@@ -1263,15 +1265,6 @@ export type WorkflowAgentStreamOptions<
    * Defaults to false.
    */
   includeRawChunks?: boolean;
-
-  /**
-   * Optional stream transformations.
-   * They are applied in the order they are provided.
-   * The stream transformations must maintain the stream structure for streamText to work correctly.
-   */
-  experimental_transform?:
-    | StreamTextTransform<TTools>
-    | Array<StreamTextTransform<TTools>>;
 
   /**
    * Whether to send a 'finish' chunk to the writable stream when streaming completes.
@@ -2596,10 +2589,6 @@ export class WorkflowAgent<
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
       download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
-      experimental_transform: options.experimental_transform as
-        | StreamTextTransform<ToolSet>
-        | Array<StreamTextTransform<ToolSet>>
-        | undefined,
       experimental_sandbox: sandbox,
     });
 

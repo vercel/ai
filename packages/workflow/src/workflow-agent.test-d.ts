@@ -504,4 +504,10 @@ describe('WorkflowAgent types', () => {
     expectTypeOf<DynamicStartEvent['toolContext']>().toEqualTypeOf<undefined>();
     expectTypeOf<DynamicSuccessEvent['output']>().toEqualTypeOf<unknown>();
   });
+
+  it('does not accept stream transformations', () => {
+    expectTypeOf<WorkflowAgentStreamOptions>().not.toHaveProperty(
+      'experimental_transform',
+    );
+  });
 });

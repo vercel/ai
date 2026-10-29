@@ -1,21 +1,18 @@
 import type {
   LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { asArray, isAbortError } from '@ai-sdk/provider-utils';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
   NoOutputGeneratedError,
-  wrapLanguageModel,
   type LanguageModel,
   type ToolSet,
 } from 'ai';
 import { isOutputChunk, prepareRetries } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import { writeStreamPart } from './limit-stream-part-size.js';
-import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -131,27 +128,6 @@ async function streamModelStep(
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
-  const modelWithTransforms =
-    options?.experimental_transform == null
-      ? model
-      : wrapLanguageModel({
-          model,
-          middleware: {
-            specificationVersion: 'v4',
-            wrapStream: async ({ doStream }) => {
-              const { stream, ...result } = await doStream();
-
-              return {
-                ...result,
-                stream: applyStreamTransforms({
-                  stream,
-                  transforms: asArray(options.experimental_transform!),
-                  tools: tools ?? {},
-                }),
-              };
-            },
-          },
-        });
 
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
@@ -186,7 +162,7 @@ async function streamModelStep(
     try {
       const { stream } = await retry(() =>
         streamModelCall({
-          model: modelWithTransforms,
+          model,
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
@@ -530,54 +506,6 @@ async function streamModelStep(
     repairedToolCallIds: [...repairedToolCallIds],
     ...(hasTerminalError ? { terminalError } : {}),
   };
-}
-
-function applyStreamTransforms({
-  stream,
-  transforms,
-  tools,
-}: {
-  stream: ReadableStream<LanguageModelV4StreamPart>;
-  transforms: Array<StreamTextTransform<ToolSet>>;
-  tools: ToolSet;
-}): ReadableStream<LanguageModelV4StreamPart> {
-  const sourceReader = stream.getReader();
-  let stopped = false;
-
-  const stopStream = () => {
-    if (stopped) return;
-    stopped = true;
-    void sourceReader.cancel().catch(() => {});
-  };
-
-  let transformedStream = new ReadableStream<LanguageModelV4StreamPart>(
-    {
-      async pull(controller) {
-        if (stopped) {
-          controller.close();
-          return;
-        }
-        const { done, value } = await sourceReader.read();
-        if (done || stopped) {
-          controller.close();
-          return;
-        }
-        controller.enqueue(value);
-      },
-      cancel(reason) {
-        stopped = true;
-        return sourceReader.cancel(reason);
-      },
-    },
-    { highWaterMark: 0 },
-  );
-
-  for (const transform of transforms) {
-    transformedStream = transformedStream.pipeThrough(
-      transform({ tools, stopStream }),
-    );
-  }
-  return transformedStream;
 }
 
 function upsertTextContentPart({
