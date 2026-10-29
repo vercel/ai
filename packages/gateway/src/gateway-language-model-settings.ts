@@ -259,6 +259,7 @@ export type GatewayModelId =
   | 'openai/o3-mini'
   | 'openai/o3-pro'
   | 'openai/o4-mini'
+  | 'particle/particle-1'
   | 'perplexity/sonar'
   | 'poolside/laguna-s-2.1'
   | 'poolside/laguna-s-2.1-free'
