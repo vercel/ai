@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.63
+
+### Patch Changes
+
+- 28252da: use native Buffer base64 encoding when available. encoding a `Uint8Array` backed by a detached `ArrayBuffer` now throws a `TypeError` in runtimes with `Buffer` instead of returning an empty string
+
 ## 4.0.62
 
 ### Patch Changes
