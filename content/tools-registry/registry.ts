@@ -755,7 +755,7 @@ console.log(text);`,
     slug: 'mrscraper',
     name: 'MrScraper',
     description:
-      'Retrieve public web pages as Markdown, HTML, or screenshots (with automatic browser rendering), search Google for parsed organic results, and check MrScraper plan usage. Screenshots reach the model as images.',
+      'Retrieve public web pages as Markdown, HTML, or screenshots (with automatic browser rendering), search the web for parsed organic results, and check MrScraper plan usage. Screenshots reach the model as images.',
     packageName: '@mrscraper/ai-sdk',
     tags: ['scraping', 'search', 'web', 'screenshots'],
     apiKeyEnvName: 'MRSCRAPER_API_KEY',
