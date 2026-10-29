@@ -44,6 +44,7 @@ function runFixture({
     'api.ts',
     'internal/input.ts',
     'internal/file.ts',
+    'internal/guideline.ts',
     'internal/output.ts',
     'utils.ts',
     'package.json',

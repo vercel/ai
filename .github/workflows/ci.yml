@@ -40,11 +40,8 @@ jobs:
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
-      - name: Verify package README files
-        run: pnpm run verify:readmes
-
-      - name: Verify harness bridge package.json files
-        run: pnpm run verify:harness-bridge-package-json
+      - name: Run agent verifiers
+        run: pnpm run-verifiers
 
   konsistent:
     name: 'Code Consistency'

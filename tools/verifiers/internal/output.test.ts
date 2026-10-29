@@ -89,6 +89,7 @@ function createFixture({
     'tools/verifiers/api.ts',
     'tools/verifiers/internal/input.ts',
     'tools/verifiers/internal/file.ts',
+    'tools/verifiers/internal/guideline.ts',
     'tools/verifiers/internal/output.ts',
     'tools/verifiers/utils.ts',
     'tools/verifiers/package.json',

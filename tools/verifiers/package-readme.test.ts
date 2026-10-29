@@ -50,6 +50,7 @@ function runFixture({
     '.agents/verifiers/package.json',
     'tools/verifiers/api.ts',
     'tools/verifiers/internal/file.ts',
+    'tools/verifiers/internal/guideline.ts',
     'tools/verifiers/internal/input.ts',
     'tools/verifiers/internal/output.ts',
     'tools/verifiers/utils.ts',

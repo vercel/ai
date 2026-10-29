@@ -1,8 +1,8 @@
 import { globSync, statSync } from 'node:fs';
-import { matchesGlob, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse as parseYaml } from 'yaml';
 import { readTextFile } from './internal/file.ts';
+import { matchesFileMatcher, parseFrontmatter } from './internal/guideline.ts';
 import { getInputFiles } from './internal/input.ts';
 import {
   outputErrorLog,
@@ -13,10 +13,6 @@ import {
 import { getGuidelineFile } from './utils.ts';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
-
-type GuidelineFrontmatter = {
-  fileMatcher: string[];
-};
 
 export type FileVerifierViolation = {
   file: string;
@@ -82,47 +78,6 @@ export async function runVerifier(
     await outputErrorLog(guidelineFile, error);
     process.exitCode = 1;
   }
-}
-
-function parseFrontmatter(source: string): GuidelineFrontmatter {
-  const frontmatter = source.match(
-    /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/,
-  )?.[1];
-  if (frontmatter == null) {
-    throw new Error('Guideline file must contain YAML frontmatter.');
-  }
-
-  const parsed: unknown = parseYaml(frontmatter);
-  if (
-    parsed == null ||
-    typeof parsed !== 'object' ||
-    !('fileMatcher' in parsed) ||
-    !Array.isArray(parsed.fileMatcher) ||
-    !parsed.fileMatcher.every(pattern => typeof pattern === 'string')
-  ) {
-    throw new Error(
-      'Guideline frontmatter must contain fileMatcher: string[].',
-    );
-  }
-
-  return { fileMatcher: parsed.fileMatcher };
-}
-
-function matchesFileMatcher({
-  file,
-  fileMatcher,
-}: {
-  file: string;
-  fileMatcher: string[];
-}): boolean {
-  return (
-    fileMatcher.some(
-      pattern => !pattern.startsWith('!') && matchesGlob(file, pattern),
-    ) &&
-    !fileMatcher.some(
-      pattern => pattern.startsWith('!') && matchesGlob(file, pattern.slice(1)),
-    )
-  );
 }
 
 function captureFilePaths(fileMatcher: string[]): string[] {
