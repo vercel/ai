@@ -1,3 +1,4 @@
+import { APICallError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
@@ -32,6 +33,38 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  describe('errors', () => {
+    it('should surface the ElevenLabs error message and code', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'error',
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          detail: {
+            type: 'not_found',
+            code: 'model_not_found',
+            message: "A model with model_id 'scribe_v1' was not found.",
+            status: 'model_not_found',
+            request_id: 'req_test_transcription',
+          },
+        }),
+      };
+
+      const result = model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      await expect(result).rejects.toBeInstanceOf(APICallError);
+      await expect(result).rejects.toMatchObject({
+        message:
+          "A model with model_id 'scribe_v1' was not found. (model_not_found)",
+        statusCode: 404,
+        data: { detail: { request_id: 'req_test_transcription' } },
+      });
+    });
+  });
+
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
 

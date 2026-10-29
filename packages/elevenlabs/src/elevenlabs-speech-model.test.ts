@@ -1,3 +1,4 @@
+import { APICallError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createElevenLabs } from './elevenlabs-provider';
@@ -48,6 +49,36 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should surface the ElevenLabs error message and code', async () => {
+      server.urls['https://api.elevenlabs.io/v1/text-to-speech/*'].response = {
+        type: 'error',
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          detail: {
+            type: 'not_found',
+            code: 'voice_not_found',
+            message: "A voice with voice_id 'missing-voice' was not found.",
+            status: 'voice_not_found',
+            request_id: 'req_test_speech',
+          },
+        }),
+      };
+
+      const result = model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'missing-voice',
+      });
+
+      await expect(result).rejects.toBeInstanceOf(APICallError);
+      await expect(result).rejects.toMatchObject({
+        message:
+          "A voice with voice_id 'missing-voice' was not found. (voice_not_found)",
+        statusCode: 404,
+        data: { detail: { request_id: 'req_test_speech' } },
+      });
+    });
+
     it.each([undefined, false])(
       'preserves binary audio when withTimestamps is %s',
       async withTimestamps => {
