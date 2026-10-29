@@ -154,6 +154,18 @@ describe('HeyGenVideoModel', () => {
     });
   });
 
+  it('accepts the documented ultraquality enhancement and forwards it unchanged', async () => {
+    await createModel().doStart({
+      ...defaultOptions,
+      duration: 15,
+      providerOptions: { heygen: { promptEnhancement: 'ultraquality' } },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      duration: 15,
+      prompt_enhancement: 'ultraquality',
+    });
+  });
+
   it('submits text-to-video with explicit defaults and returns an operation', async () => {
     const result = await createModel().doStart(defaultOptions);
     expect(await server.calls[0].requestBodyJson).toEqual({
