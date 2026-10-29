@@ -130,6 +130,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const warnings: SharedV3Warning[] = [];
 
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      rejectsForcedToolUse,
+      isKnownModel,
+    } = getModelCapabilities(this.modelId);
+
     if (frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
@@ -149,6 +156,35 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         type: 'unsupported',
         feature: 'seed',
       });
+    }
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
     }
 
     if (temperature != null && temperature > 1) {
@@ -191,12 +227,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const isThinkingEnabled =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
-
-    const {
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      rejectsForcedToolUse,
-      isKnownModel,
-    } = getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
