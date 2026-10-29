@@ -1,5 +1,19 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.168
+
+### Patch Changes
+
+- ea39523: fix(sandbox-vercel): pass `persistent` through to live sandboxes created from a template snapshot, allowing `persistent: false`
+- 44a4261: fix(sandbox-vercel): reject network policy mutations when an existing Vercel Sandbox policy contains response rules instead of silently dropping request restrictions
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 1.0.167
 
 ### Patch Changes

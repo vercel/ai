@@ -1,5 +1,12 @@
 # @ai-sdk/topaz
 
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 3.0.17
 
 ### Patch Changes
