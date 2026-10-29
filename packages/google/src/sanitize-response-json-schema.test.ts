@@ -111,3 +111,25 @@ it('handles circular schemas without call stack overflow', () => {
 
   expect(() => sanitizeResponseJsonSchema(circularSchema)).not.toThrow();
 });
+
+it('sanitizes shared subschema objects referenced from multiple locations', () => {
+  const shared: JSONSchema7 = { type: 'string', const: 'shared' };
+  const schema: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      first: shared,
+      second: shared,
+    },
+  };
+
+  const sanitized = sanitizeResponseJsonSchema(schema);
+
+  expect(sanitized.properties?.first).toEqual({
+    type: 'string',
+    enum: ['shared'],
+  });
+  expect(sanitized.properties?.second).toEqual({
+    type: 'string',
+    enum: ['shared'],
+  });
+});

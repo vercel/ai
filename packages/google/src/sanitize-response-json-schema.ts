@@ -7,12 +7,12 @@ import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
  */
 export function sanitizeResponseJsonSchema(
   schema: JSONSchema7,
-  seen = new Set<JSONSchema7>(),
+  seen = new Map<JSONSchema7, JSONSchema7>(),
 ): JSONSchema7 {
-  if (seen.has(schema)) {
-    return schema;
+  const cached = seen.get(schema);
+  if (cached != null) {
+    return cached;
   }
-  seen.add(schema);
 
   const {
     const: constValue,
@@ -30,48 +30,53 @@ export function sanitizeResponseJsonSchema(
     $defs?: Record<string, JSONSchema7Definition>;
   };
 
-  return {
+  // Cache the sanitized object before recursing so that shared and circular
+  // subschemas resolve to the sanitized result instead of the original schema.
+  const sanitized: JSONSchema7 = {
     ...result,
     ...(constValue !== undefined ? { enum: [constValue] } : {}),
-    ...(properties != null
-      ? { properties: sanitizeDefinitions(properties, seen) }
-      : {}),
-    ...(items != null
-      ? {
-          items: Array.isArray(items)
-            ? items.map(item => sanitizeDefinition(item, seen))
-            : sanitizeDefinition(items, seen),
-        }
-      : {}),
-    ...(additionalProperties != null
-      ? {
-          additionalProperties:
-            typeof additionalProperties === 'boolean'
-              ? additionalProperties
-              : sanitizeDefinition(additionalProperties, seen),
-        }
-      : {}),
-    ...(anyOf != null
-      ? { anyOf: anyOf.map(def => sanitizeDefinition(def, seen)) }
-      : {}),
-    ...(oneOf != null
-      ? { oneOf: oneOf.map(def => sanitizeDefinition(def, seen)) }
-      : {}),
-    ...(allOf != null
-      ? { allOf: allOf.map(def => sanitizeDefinition(def, seen)) }
-      : {}),
-    ...(definitions != null
-      ? { definitions: sanitizeDefinitions(definitions, seen) }
-      : {}),
-    ...(schemaWithDefs.$defs != null
-      ? { $defs: sanitizeDefinitions(schemaWithDefs.$defs, seen) }
-      : {}),
   };
+  seen.set(schema, sanitized);
+
+  if (properties != null) {
+    sanitized.properties = sanitizeDefinitions(properties, seen);
+  }
+  if (items != null) {
+    sanitized.items = Array.isArray(items)
+      ? items.map(item => sanitizeDefinition(item, seen))
+      : sanitizeDefinition(items, seen);
+  }
+  if (additionalProperties != null) {
+    sanitized.additionalProperties =
+      typeof additionalProperties === 'boolean'
+        ? additionalProperties
+        : sanitizeDefinition(additionalProperties, seen);
+  }
+  if (anyOf != null) {
+    sanitized.anyOf = anyOf.map(def => sanitizeDefinition(def, seen));
+  }
+  if (oneOf != null) {
+    sanitized.oneOf = oneOf.map(def => sanitizeDefinition(def, seen));
+  }
+  if (allOf != null) {
+    sanitized.allOf = allOf.map(def => sanitizeDefinition(def, seen));
+  }
+  if (definitions != null) {
+    sanitized.definitions = sanitizeDefinitions(definitions, seen);
+  }
+  if (schemaWithDefs.$defs != null) {
+    (sanitized as typeof schemaWithDefs).$defs = sanitizeDefinitions(
+      schemaWithDefs.$defs,
+      seen,
+    );
+  }
+
+  return sanitized;
 }
 
 function sanitizeDefinitions(
   definitions: Record<string, JSONSchema7Definition>,
-  seen: Set<JSONSchema7>,
+  seen: Map<JSONSchema7, JSONSchema7>,
 ): Record<string, JSONSchema7Definition> {
   return Object.fromEntries(
     Object.entries(definitions).map(([name, definition]) => [
@@ -83,7 +88,7 @@ function sanitizeDefinitions(
 
 function sanitizeDefinition(
   definition: JSONSchema7Definition,
-  seen: Set<JSONSchema7>,
+  seen: Map<JSONSchema7, JSONSchema7>,
 ): JSONSchema7Definition {
   return typeof definition === 'boolean'
     ? definition
