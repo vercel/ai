@@ -40,6 +40,9 @@ jobs:
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
+      - name: Verify generated model capability documentation
+        run: pnpm run verify:model-capabilities-docs
+
       - name: Run agent verifiers
         run: pnpm run-verifiers
 

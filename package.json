@@ -26,6 +26,8 @@
     "validate:docs": "node tools/validate-properties-tables.mjs",
     "discover-guidelines": "node tools/discover-guidelines.mts",
     "run-verifiers": "node tools/run-verifiers.mts",
+    "generate:model-capabilities-docs": "node tools/generate-model-capabilities-docs.mjs",
+    "verify:model-capabilities-docs": "node tools/generate-model-capabilities-docs.mjs --check",
     "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",

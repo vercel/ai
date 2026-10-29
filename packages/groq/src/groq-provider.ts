@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -52,8 +54,9 @@ export interface GroqProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -75,16 +78,18 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     withoutTrailingSlash(options.baseURL) ?? 'https://api.groq.com/openai/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'GROQ_API_KEY',
-          description: 'Groq',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-groq/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'GROQ_API_KEY',
+            description: 'Groq',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-groq/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: GroqChatModelId) =>

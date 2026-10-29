@@ -1,5 +1,7 @@
 import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -18,7 +20,7 @@ import {
 type CohereRerankingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -70,7 +72,7 @@ export class CohereRerankingModel implements RerankingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/rerank`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         query,

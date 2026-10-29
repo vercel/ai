@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -23,7 +25,7 @@ export interface TopazProviderSettings {
    *
    * @see https://developer.topazlabs.com/getting-started/api-key-setup
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -76,17 +78,19 @@ export function createTopaz(
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'X-API-Key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'TOPAZ_API_KEY',
-          description: 'Topaz Labs',
-        }),
-        accept: 'application/json',
-        ...options.headers,
-      },
-      `ai-sdk-topaz/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'X-API-Key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'TOPAZ_API_KEY',
+            description: 'Topaz Labs',
+          }),
+          accept: 'application/json',
+          ...options.headers,
+        },
+        `ai-sdk-topaz/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: TopazImageModelId): ImageModelV4 =>

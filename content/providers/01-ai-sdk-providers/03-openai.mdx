@@ -99,10 +99,13 @@ You can use the following optional settings to customize the OpenAI provider ins
   chat models with `openai.chat('model-id')` instead, or use the
   [OpenAI-compatible provider](/providers/openai-compatible-providers).
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `OPENAI_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **name** _string_
 
@@ -3065,6 +3068,8 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-language:start */}
+
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3101,12 +3106,61 @@ The following optional provider options are available for OpenAI completion mode
 | `gpt-4o`              | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-4o-mini`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 
+{/* model-capabilities:openai-language:end */}
+
 <Note>
   The table above lists popular models. Please see the [OpenAI
   docs](https://platform.openai.com/docs/models) for a full list of available
   models. The table above lists popular models. You can also pass any available
   provider model ID as a string if needed.
 </Note>
+
+#### Request Capabilities
+
+Reasoning and sampling support depend on the selected model and request options.
+Conditional cells describe when a parameter is supported. "Not declared" means
+the catalog does not enumerate reasoning efforts; it does not mean every effort
+is supported.
+
+{/* model-capabilities:openai-language-request:start */}
+
+| Model                 | Reasoning | Reasoning Efforts                               | Temperature                                      | Top P                                            |
+| --------------------- | --------- | ----------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| `gpt-6-astra`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
+| `gpt-6.1-sol`         | <Check /> | `low`, `medium`, `high`, `xhigh`, `max`         | <Cross />                                        | <Cross />                                        |
+| `gpt-6.1-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-6-luna`          | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-6-sol`           | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.6`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.6-luna`        | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.6-sol`         | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.6-terra`       | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.5`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.4-pro`         | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.4`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.4-mini`        | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.4-nano`        | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.3-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.2-pro`         | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.2-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.2`             | <Check /> | `none`, `low`, `medium`, `high`, `xhigh`        | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-codex-mini`  | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-codex`       | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1-chat-latest` | <Check /> | Not declared                                    | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5.1`             | <Check /> | `none`, `low`, `medium`, `high`                 | Conditional: Only when reasoning effort is none. | Conditional: Only when reasoning effort is none. |
+| `gpt-5-pro`           | <Check /> | Not declared                                    | <Cross />                                        | <Cross />                                        |
+| `gpt-5`               | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
+| `gpt-5-mini`          | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
+| `gpt-5-nano`          | <Check /> | `minimal`, `low`, `medium`, `high`              | <Cross />                                        | <Cross />                                        |
+| `gpt-5-codex`         | <Check /> | Not declared                                    | <Cross />                                        | <Cross />                                        |
+| `gpt-5-chat-latest`   | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+| `gpt-4.1`             | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+| `gpt-4.1-mini`        | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+| `gpt-4.1-nano`        | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+| `gpt-4o`              | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+| `gpt-4o-mini`         | <Cross /> | Not declared                                    | <Check />                                        | <Check />                                        |
+
+{/* model-capabilities:openai-language-request:end */}
 
 ## Realtime Models
 
@@ -3136,8 +3190,9 @@ Live supports **browser WSS sessions through an application-owned relay with cli
 delegation**, using `experimental_useRealtime` for the browser runtime, and optional
 browser-direct WebRTC. Your application owns the agent and tool execution; Live
 delegations do not invoke `onToolCall`. For a low-level server adapter, obtain server-only connection
-settings with `liveModel.getServerWebSocketConfig()` and serialize commands with
-`liveModel.serializeClientEvent()`. Create one parser per connection with
+settings with `await liveModel.getServerWebSocketConfig()` and serialize commands with
+`liveModel.serializeClientEvent()`. Connection settings resolve asynchronously when
+using an asynchronous API key supplier. Create one parser per connection with
 `liveModel.createServerEventParser()` and pass incoming JSON to the returned
 function. It returns arrays of normalized events and retains each original event
 in `raw`.
@@ -3227,6 +3282,17 @@ relays. Continuous conversation semantics do not imply browser support for every
 provider codec or transport. The [Realtime guide](/docs/ai-sdk-core/realtime) covers
 legacy token-based, turn-based sessions.
 
+### Model Capabilities
+
+{/* model-capabilities:openai-realtime:start */}
+
+| Model          | Conversation | Transports        |
+| -------------- | ------------ | ----------------- |
+| `gpt-live-1`   | continuous   | websocket, webrtc |
+| `gpt-realtime` | turn-based   | websocket         |
+
+{/* model-capabilities:openai-realtime:end */}
+
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
@@ -3269,11 +3335,15 @@ The following optional provider options are available for OpenAI embedding model
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-embedding:start */}
+
 | Model                    | Default Dimensions | Custom Dimensions |
 | ------------------------ | ------------------ | ----------------- |
 | `text-embedding-3-large` | 3072               | <Check />         |
 | `text-embedding-3-small` | 1536               | <Check />         |
 | `text-embedding-ada-002` | 1536               | <Cross />         |
+
+{/* model-capabilities:openai-embedding:end */}
 
 ## Image Models
 
@@ -3379,6 +3449,8 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-image:start */}
+
 | Model                    | Sizes                                  |
 | ------------------------ | -------------------------------------- |
 | `gpt-image-2.5-flare`    | Standard presets and custom dimensions |
@@ -3389,6 +3461,8 @@ const { images } = await generateImage({
 | `gpt-image-1`            | 1024x1024, 1536x1024, 1024x1536        |
 | `dall-e-3`               | 1024x1024, 1792x1024, 1024x1792        |
 | `dall-e-2`               | 256x256, 512x512, 1024x1024            |
+
+{/* model-capabilities:openai-image:end */}
 
 Use `gpt-image-2.5-flare` for fast, general-purpose image generation and
 `gpt-image-2.5-sunburst` when editing precision and instruction following are
@@ -3547,6 +3621,8 @@ The following provider options are available:
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-transcription:start */}
+
 | Model                       | Transcription | Streaming | Duration  | Segments  | Language  |
 | --------------------------- | ------------- | --------- | --------- | --------- | --------- |
 | `whisper-1`                 | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
@@ -3556,6 +3632,8 @@ The following provider options are available:
 | `gpt-transcribe`            | <Check />     | <Check /> | <Cross /> | <Cross /> | <Check /> |
 | `gpt-live-transcribe`       | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-realtime-whisper`      | <Cross />     | <Check /> | <Cross /> | <Cross /> | <Cross /> |
+
+{/* model-capabilities:openai-transcription:end */}
 
 ## Translation Models
 
@@ -3597,9 +3675,13 @@ Unsupported source and output settings surface as call warnings.
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-speech-translation:start */}
+
 | Model                    | Translated Audio | Translated Text | Source Transcript |
 | ------------------------ | ---------------- | --------------- | ----------------- |
 | `gpt-realtime-translate` | <Check />        | <Check />       | <Check />         |
+
+{/* model-capabilities:openai-speech-translation:end */}
 
 ## Speech Models
 
@@ -3656,11 +3738,15 @@ const result = await generateSpeech({
 
 ### Model Capabilities
 
+{/* model-capabilities:openai-speech:start */}
+
 | Model             | Instructions |
 | ----------------- | ------------ |
-| `tts-1`           | <Check />    |
-| `tts-1-hd`        | <Check />    |
+| `tts-1`           | <Cross />    |
+| `tts-1-hd`        | <Cross />    |
 | `gpt-4o-mini-tts` | <Check />    |
+
+{/* model-capabilities:openai-speech:end */}
 
 ## Decision Models
 

@@ -6,6 +6,7 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -197,7 +198,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         path: '/v1/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -318,7 +322,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       stream: createElevenLabsRealtimeTranscriptionStream({
         abortSignal: options.abortSignal,
         audio: options.audio,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         includeLanguageDetection:
           streamingOptions?.includeLanguageDetection === true,
         includeRawChunks: options.includeRawChunks,

@@ -6,6 +6,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
@@ -31,7 +33,7 @@ export type GoogleFilesUploadOptions = {
 interface GoogleFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -53,10 +55,8 @@ export class GoogleFiles implements FilesV4 {
       schema: googleFilesUploadOptionsSchema,
     })) as GoogleFilesUploadOptions | undefined;
 
-    const resolvedHeaders = combineHeaders(
-      this.config.headers(),
-      options.headers,
-    );
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
     const fetchFn = this.config.fetch ?? globalThis.fetch;
 
     const warnings: Array<SharedV4Warning> = [];
@@ -74,7 +74,7 @@ export class GoogleFiles implements FilesV4 {
     const initResponse = await fetchFn(`${baseOrigin}/upload/v1beta/files`, {
       method: 'POST',
       headers: {
-        ...resolvedHeaders,
+        ...(await getHeaders()),
         'X-Goog-Upload-Protocol': 'resumable',
         'X-Goog-Upload-Command': 'start',
         'X-Goog-Upload-Header-Content-Length': String(fileBytes.length),
@@ -152,7 +152,7 @@ export class GoogleFiles implements FilesV4 {
       const { value: fileStatus } = await getFromApi({
         url: `${this.config.baseURL}/${filePath}`,
         validateUrl: false,
-        headers: combineHeaders(resolvedHeaders),
+        headers: await getHeaders(),
         successfulResponseHandler: createJsonResponseHandler(
           googleFileResponseSchema,
         ),

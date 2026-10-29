@@ -4,6 +4,8 @@ import {
   type Experimental_VideoModelV4 as VideoModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -15,7 +17,7 @@ import { VERSION } from './version';
 
 export interface HeyGenProviderSettings {
   /** API key. Defaults to the HEYGEN_API_KEY environment variable. */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /** API URL prefix. Defaults to https://api.heygen.com. */
   baseURL?: string;
   /** Additional headers to include in requests. */
@@ -40,16 +42,18 @@ export function createHeyGen(
       provider: 'heygen.video',
       baseURL,
       headers: () =>
-        withUserAgentSuffix(
-          {
-            'x-api-key': loadApiKey({
-              apiKey: options.apiKey,
-              environmentVariableName: 'HEYGEN_API_KEY',
-              description: 'HeyGen',
-            }),
-            ...options.headers,
-          },
-          `ai-sdk-heygen/${VERSION}`,
+        resolveWith(options.apiKey, apiKey =>
+          withUserAgentSuffix(
+            {
+              'x-api-key': loadApiKey({
+                apiKey,
+                environmentVariableName: 'HEYGEN_API_KEY',
+                description: 'HeyGen',
+              }),
+              ...options.headers,
+            },
+            `ai-sdk-heygen/${VERSION}`,
+          ),
         ),
       fetch: options.fetch,
     });

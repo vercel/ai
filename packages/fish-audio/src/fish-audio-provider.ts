@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -52,9 +54,10 @@ export interface FishAudioProvider extends ProviderV4 {
 
 export interface FishAudioProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -84,16 +87,18 @@ export function createFishAudio(
   const baseURL = options.baseURL?.replace(/\/$/, '') ?? DEFAULT_BASE_URL;
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'FISH_AUDIO_API_KEY',
-          description: 'Fish Audio',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-fish-audio/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'FISH_AUDIO_API_KEY',
+            description: 'Fish Audio',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fish-audio/${VERSION}`,
+      ),
     );
 
   const createSpeechModel = (modelId: FishAudioSpeechModelId) =>

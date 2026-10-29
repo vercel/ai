@@ -487,14 +487,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -620,10 +618,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const url = `${this.config.baseURL}/interactions`;
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-    );
+    const mergedHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     /*
      * `background: true` is incompatible with `stream: true` on POST. Drive
@@ -647,7 +643,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -709,13 +705,13 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     args: GoogleInteractionsRequestBody;
     warnings: Array<SharedV4Warning>;
     url: string;
-    mergedHeaders: Record<string, string | undefined>;
+    mergedHeaders: Resolvable<Record<string, string | undefined>>;
     options: LanguageModelV4CallOptions;
     pollingTimeoutMs: number | undefined;
   }): Promise<LanguageModelV4StreamResult> {
     const postResult = await postJsonToApi({
       url,
-      headers: mergedHeaders,
+      headers: await resolve(mergedHeaders),
       body: args,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
