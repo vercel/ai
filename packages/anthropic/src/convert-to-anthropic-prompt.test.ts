@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type {
+  JSONValue,
   LanguageModelV4FilePart,
   LanguageModelV4Prompt,
   SharedV4Warning,
@@ -5180,7 +5181,7 @@ describe('cache control', () => {
                 toolName: 'cityAttractions',
                 output: {
                   type: 'json',
-                  value: circularValue,
+                  value: circularValue as JSONValue,
                 },
               },
             ],
@@ -5199,6 +5200,47 @@ describe('cache control', () => {
               type: 'tool_result',
               tool_use_id: 'call-1',
               content: '{"id":"9007199254740993","self":"[Circular]"}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should serialize tool results that reuse non-circular objects', async () => {
+      const shared = { city: 'Paris' };
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content:
+                '{"first":{"city":"Paris"},"second":{"city":"Paris"}}',
               is_error: undefined,
               cache_control: undefined,
             },

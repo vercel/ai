@@ -1739,19 +1739,34 @@ function getAnthropicCaller(
 
 function serializeToolOutput(value: unknown): string {
   try {
-    const seen = new WeakSet();
-    return JSON.stringify(value, (_key, val) => {
+    const sanitize = (val: unknown, ancestors: Set<unknown>): unknown => {
       if (typeof val === 'bigint') {
         return val.toString();
       }
-      if (typeof val === 'object' && val !== null) {
-        if (seen.has(val)) {
-          return '[Circular]';
-        }
-        seen.add(val);
+      if (typeof val !== 'object' || val === null) {
+        return val;
       }
-      return val;
-    });
+      if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+        return val;
+      }
+      if (ancestors.has(val)) {
+        return '[Circular]';
+      }
+      ancestors.add(val);
+      try {
+        if (Array.isArray(val)) {
+          return val.map(item => sanitize(item, ancestors));
+        }
+        const result: Record<string, unknown> = {};
+        for (const [key, item] of Object.entries(val)) {
+          result[key] = sanitize(item, ancestors);
+        }
+        return result;
+      } finally {
+        ancestors.delete(val);
+      }
+    };
+    return JSON.stringify(sanitize(value, new Set()));
   } catch {
     return String(value);
   }
