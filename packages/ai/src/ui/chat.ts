@@ -11,6 +11,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import type { ChatTransport } from './chat-transport';
+import type { ToolInputParser } from './tool-input-parser';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 import { DefaultChatTransport } from './default-chat-transport';
 import {
@@ -194,6 +195,8 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
+  /** Create a parser for each JSON tool input; text-encoded input bypasses it. */
+  experimental_createToolInputParser?: () => ToolInputParser;
   /**
    * A unique identifier for the chat. If not provided, a random one will be
    * generated when first accessed.
@@ -266,6 +269,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
     | undefined;
   private readonly transport: ChatTransport<UI_MESSAGE>;
+  private readonly createToolInputParser: ChatInit<UI_MESSAGE>['experimental_createToolInputParser'];
   private onError?: ChatInit<UI_MESSAGE>['onError'];
   private onToolCall?: ChatInit<UI_MESSAGE>['onToolCall'];
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
@@ -298,6 +302,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onFinish,
     onData,
     sendAutomaticallyWhen,
+    experimental_createToolInputParser,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -312,6 +317,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
+    this.createToolInputParser = experimental_createToolInputParser;
   }
 
   /**
@@ -1120,6 +1126,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
+          createToolInputParser: this.createToolInputParser,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
           resetStateOnFirstMessageStart:
             trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,

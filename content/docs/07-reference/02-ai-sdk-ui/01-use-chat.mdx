@@ -327,6 +327,13 @@ Allows you to easily create a conversational user interface for your chatbot app
       ],
     },
     {
+      name: 'experimental_createToolInputParser',
+      type: '() => Experimental_ToolInputParser',
+      isOptional: true,
+      description:
+        'Creates an incremental parser for each JSON tool input. Each parser exposes push(delta), which returns a stable partial value, and dispose(), which releases resources. Text-encoded input bypasses it. Omit to use the default partial JSON parser. See readUIMessageStream for lifecycle details and an example.',
+    },
+    {
       name: 'onError',
       type: '(error: Error) => void',
       isOptional: true,
