@@ -562,13 +562,13 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
       ],
     },
     {
-      name: 'experimental_listPrompts',
+      name: 'listPrompts',
       type: `async (options?: {
         params?: PaginatedRequest['params'];
         options?: RequestOptions;
       }) => Promise<ListPromptsResult>`,
       description:
-        'Lists available prompts from the MCP server. This method is experimental and may change in the future.',
+        'Lists available prompts from the MCP server.',
       properties: [
         {
           type: 'options',
@@ -591,14 +591,14 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
       ],
     },
     {
-      name: 'experimental_getPrompt',
+      name: 'getPrompt',
       type: `async (args: {
         name: string;
         arguments?: Record<string, unknown>;
         options?: RequestOptions;
       }) => Promise<GetPromptResult>`,
       description:
-        'Retrieves a prompt by name, optionally passing arguments. This method is experimental and may change in the future.',
+        'Retrieves a prompt by name, optionally passing arguments.',
       properties: [
         {
           type: 'args',
@@ -667,13 +667,13 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 ```typescript
 import { createMCPClient } from '@ai-sdk/mcp';
 import { generateText } from 'ai';
-import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+import { StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 let client;
 
 try {
   client = await createMCPClient({
-    transport: new Experimental_StdioMCPTransport({
+    transport: new StdioMCPTransport({
       command: 'node server.js',
     }),
   });
