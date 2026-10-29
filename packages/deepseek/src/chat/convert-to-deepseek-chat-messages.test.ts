@@ -1319,7 +1319,11 @@ describe('convertToDeepSeekChatMessages', () => {
         modelId: 'deepseek-chat',
       });
 
-      const args = result.messages[0].tool_calls?.[0].function.arguments;
+      const message = result.messages[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
       expect(args).toContain('"id":"12345678901234567890"');
       expect(args).toContain('"self":"[Circular]"');
     });
@@ -1352,6 +1356,36 @@ describe('convertToDeepSeekChatMessages', () => {
       const content = result.messages[0].content as string;
       expect(content).toContain('"count":"999999999999999999"');
       expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', async () => {
+      const shared = { city: 'Paris' };
+
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-4',
+                toolName: 'getData',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      const content = result.messages[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
     });
   });
 });
