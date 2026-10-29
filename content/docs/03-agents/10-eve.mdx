@@ -7,15 +7,18 @@ description: Build production AI agents with eve, an open-source agent framework
 
 [eve](https://eve.dev) is an open-source agent framework for durable, long-running work. Build, govern, and evolve enterprise-grade agents that scale — with channels, durable runs, approvals, and testing built in.
 
+<Note type="warning">
+  eve is in beta. Its APIs and behavior may change before general availability.
+</Note>
+
 eve is built on the AI SDK:
 
 - `defineTool` uses the same shape as [`tool()`](/docs/ai-sdk-core/tools-and-tool-calling): a `description`, an `inputSchema` (Zod, any Standard Schema, or a JSON Schema object), and an `execute` function.
 - `defineAgent` accepts an [AI Gateway](https://vercel.com/ai-gateway) model ID such as `openai/gpt-6-luna-fast`, or any AI SDK `LanguageModel` from a [provider package](/providers).
 - Options like `reasoning` map to the AI SDK's model settings.
-- An AI SDK telemetry integration records every model call, tool call, and generation as an eve turn.
-- A [Chat SDK](/docs/agents/chat-platforms) channel bridges any `@chat-adapter/*` adapter to your agent.
+- A [Chat SDK](/docs/agents/chat-platforms) channel connects any Chat SDK adapter to your agent.
 
-## Built for production
+## Built for Production
 
 - **Channels** — Multiplayer and single-player chat across Slack, Teams, iMessage, WhatsApp, and the web. Channels are a framework primitive.
 - **Durable runs** — Checkpoints every step. Survives crashes, restarts, and days-long waits. Runs on crons, too.
@@ -26,7 +29,7 @@ eve is built on the AI SDK:
 - **MCP, OpenAPI, and subagents** — Connect to services over MCP and OpenAPI, or delegate to focused subagents. Credentials stay in the runtime.
 - **Testing** — Test agent behavior before and after every change.
 
-## Quick start
+## Quick Start
 
 Create a new agent project:
 
@@ -48,7 +51,7 @@ npx eve@latest init .
   SDK.
 </Note>
 
-## A minimal example
+## A Minimal Example
 
 An eve agent lives in an `agent/` directory. Replace the system prompt in `agent/instructions.md`:
 
@@ -82,7 +85,7 @@ export default defineAgent({
 });
 ```
 
-## When to choose eve
+## When to Choose eve
 
 The AI SDK gives you the primitives; eve is the production framework around them.
 
@@ -91,7 +94,7 @@ The AI SDK gives you the primitives; eve is the production framework around them
 - Use [Chat SDK](/docs/agents/chat-platforms) when you are adding an agent to chat platforms.
 - Use eve when you want a complete production agent — durable, long-running work across channels, schedules, and approvals — without assembling those pieces yourself.
 
-## Next steps
+## Next Steps
 
 - [eve documentation](https://eve.dev/docs) — the full project layout and guides
 - [eve on GitHub](https://github.com/vercel/eve) — source code and discussions
