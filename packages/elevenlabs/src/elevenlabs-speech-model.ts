@@ -10,7 +10,12 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createBinaryResponseHandler,
+  createJsonResponseHandler,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -18,8 +23,13 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
+import {
+  createMusicTimestampsResponseHandler,
+  type ElevenLabsMusicTimestampsResponse,
+} from './elevenlabs-music-response';
 import {
   elevenLabsSpeechModelOptionsSchema,
   type ElevenLabsSpeechModelOptions,
@@ -149,11 +159,11 @@ export class ElevenLabsSpeechModel
         });
       }
     }
-    if (elevenLabsOptions?.inputs != null) {
+    if (elevenLabsOptions?.inputs != null || this.modelId === 'eleven_v4') {
       return this.getDialogueArgs(
         options,
-        elevenLabsOptions,
-        elevenLabsOptions.inputs,
+        elevenLabsOptions ?? {},
+        elevenLabsOptions?.inputs ?? [{ text, voiceId: voice }],
         warnings,
       );
     }
@@ -263,7 +273,8 @@ export class ElevenLabsSpeechModel
     }
 
     return {
-      path: `/v1/text-to-speech/${voice as ElevenLabsSpeechVoiceId}`,
+      path: `/v1/text-to-speech/${encodeURIComponent(voice as ElevenLabsSpeechVoiceId)}`,
+      withTimestamps: elevenLabsOptions?.withTimestamps === true,
       requestBody,
       queryParams,
       warnings,
@@ -271,8 +282,7 @@ export class ElevenLabsSpeechModel
   }
 
   /**
-   * Multi-voice dialogue (`/v1/text-to-dialogue`) from
-   * `providerOptions.elevenlabs.inputs`, which replaces `text` and `voice`.
+   * Text to Dialogue from explicit inputs, or a single text/voice input for v4.
    */
   private getDialogueArgs(
     {
@@ -294,7 +304,7 @@ export class ElevenLabsSpeechModel
       });
     }
 
-    if (text.length > 0) {
+    if (text.length > 0 && elevenLabsOptions.inputs != null) {
       warnings.push({
         type: 'other',
         message:
@@ -305,7 +315,7 @@ export class ElevenLabsSpeechModel
     const ignoredOptions = {
       instructions,
       speed,
-      voice,
+      voice: elevenLabsOptions.inputs != null ? voice : undefined,
       'providerOptions.elevenlabs.applyLanguageTextNormalization':
         elevenLabsOptions.applyLanguageTextNormalization,
       'providerOptions.elevenlabs.voiceSettings.style': voiceSettings?.style,
@@ -376,6 +386,7 @@ export class ElevenLabsSpeechModel
 
     return {
       path: '/v1/text-to-dialogue',
+      withTimestamps: elevenLabsOptions.withTimestamps === true,
       requestBody,
       queryParams,
       warnings,
@@ -417,7 +428,7 @@ export class ElevenLabsSpeechModel
     const ignoredProviderOptions = [
       ...textToSpeechOnlyOptions,
       ...(isMusic ? soundEffectsOnlyOptions : musicOnlyOptions),
-      ...(isMusic ? [] : (['seed'] as const)),
+      ...(isMusic ? [] : (['seed', 'withTimestamps'] as const)),
     ];
     for (const option of ignoredProviderOptions) {
       if (elevenLabsOptions?.[option] != null) {
@@ -475,6 +486,9 @@ export class ElevenLabsSpeechModel
         ...(elevenLabsOptions?.seed != null && {
           seed: elevenLabsOptions.seed,
         }),
+        ...(elevenLabsOptions?.withTimestamps === true && {
+          with_timestamps: true,
+        }),
       };
     } else {
       const durationSeconds = elevenLabsOptions?.durationSeconds;
@@ -494,11 +508,16 @@ export class ElevenLabsSpeechModel
     }
 
     return {
-      path: isMusic ? '/v1/music' : '/v1/sound-generation',
+      path: isMusic
+        ? elevenLabsOptions?.withTimestamps === true
+          ? '/v1/music/detailed'
+          : '/v1/music'
+        : '/v1/sound-generation',
       requestBody,
       queryParams,
       requestedDurationMs,
       warnings,
+      withTimestamps: false,
     };
   }
 
@@ -506,19 +525,30 @@ export class ElevenLabsSpeechModel
     options: Parameters<SpeechModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { path, requestBody, queryParams, requestedDurationMs, warnings } =
+    const {
+      path,
+      requestBody,
+      queryParams,
+      requestedDurationMs,
+      warnings,
+      withTimestamps,
+    } =
       isMusicModelId(this.modelId) || isSoundEffectsModelId(this.modelId)
         ? await this.getAudioGenerationArgs(options)
         : { ...(await this.getArgs(options)), requestedDurationMs: undefined };
 
     const {
-      value: audio,
+      value,
       responseHeaders,
       rawValue: rawResponse,
-    } = await postJsonToApi({
+    } = await postJsonToApi<
+      | Uint8Array
+      | ElevenLabsSpeechTimestampsResponse
+      | ElevenLabsMusicTimestampsResponse
+    >({
       url: (() => {
         const baseUrl = this.config.url({
-          path,
+          path: `${path}${withTimestamps ? '/with-timestamps' : ''}`,
           modelId: this.modelId,
         });
         const queryString = new URLSearchParams(queryParams).toString();
@@ -527,13 +557,32 @@ export class ElevenLabsSpeechModel
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
-      successfulResponseHandler: createBinaryResponseHandler(),
+      successfulResponseHandler:
+        path === '/v1/music/detailed'
+          ? createMusicTimestampsResponseHandler()
+          : withTimestamps
+            ? createJsonResponseHandler(
+                elevenLabsSpeechTimestampsResponseSchema,
+              )
+            : createBinaryResponseHandler(),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
+    const envelope =
+      !(value instanceof Uint8Array) && 'audio_base64' in value
+        ? value
+        : undefined;
+    const musicEnvelope =
+      !(value instanceof Uint8Array) && 'audio' in value ? value : undefined;
+
     return {
-      audio,
+      audio:
+        value instanceof Uint8Array
+          ? value
+          : 'audio' in value
+            ? value.audio
+            : convertBase64ToUint8Array(value.audio_base64),
       warnings,
       request: {
         body: JSON.stringify(requestBody),
@@ -550,6 +599,27 @@ export class ElevenLabsSpeechModel
             outputFormat: queryParams.output_format,
           }),
           ...(requestedDurationMs != null && { requestedDurationMs }),
+          ...(musicEnvelope?.wordTimestamps != null && {
+            wordTimestamps: musicEnvelope.wordTimestamps,
+          }),
+          ...(envelope?.alignment != null && {
+            alignment: toAlignmentMetadata(envelope.alignment),
+          }),
+          ...(envelope?.normalized_alignment != null && {
+            normalizedAlignment: toAlignmentMetadata(
+              envelope.normalized_alignment,
+            ),
+          }),
+          ...(envelope?.voice_segments != null && {
+            voiceSegments: envelope.voice_segments.map(segment => ({
+              voiceId: segment.voice_id,
+              startTimeSeconds: segment.start_time_seconds,
+              endTimeSeconds: segment.end_time_seconds,
+              characterStartIndex: segment.character_start_index,
+              characterEndIndex: segment.character_end_index,
+              dialogueInputIndex: segment.dialogue_input_index,
+            })),
+          }),
         },
       },
     };
@@ -778,6 +848,7 @@ function getStreamWarnings(
   // HTTP-only options: neither WebSocket protocol carries them.
   for (const option of [
     'applyLanguageTextNormalization',
+    'withTimestamps',
     'inputs',
     'nextRequestIds',
     'nextText',
@@ -882,6 +953,7 @@ function toElevenLabsOutputFormat(outputFormat: string): string {
     pcm_24000: 'pcm_24000',
     pcm_44100: 'pcm_44100',
     ulaw: 'ulaw_8000',
+    wav: 'wav_44100',
   };
   return formatMap[outputFormat] || outputFormat;
 }
@@ -909,4 +981,47 @@ function getCompositionPlanDurationMs(
     return undefined;
   }
   return partDurationsMs.reduce((sum, durationMs) => sum + durationMs, 0);
+}
+
+const alignmentSchema = () =>
+  z.object({
+    characters: z.array(z.string()),
+    character_start_times_seconds: z.array(z.number()),
+    character_end_times_seconds: z.array(z.number()),
+  });
+
+const elevenLabsSpeechTimestampsResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_base64: z.string(),
+      alignment: alignmentSchema().nullish(),
+      normalized_alignment: alignmentSchema().nullish(),
+      voice_segments: z
+        .array(
+          z.object({
+            voice_id: z.string(),
+            start_time_seconds: z.number(),
+            end_time_seconds: z.number(),
+            character_start_index: z.number(),
+            character_end_index: z.number(),
+            dialogue_input_index: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
+
+type ElevenLabsSpeechTimestampsResponse = InferSchema<
+  typeof elevenLabsSpeechTimestampsResponseSchema
+>;
+
+function toAlignmentMetadata(
+  alignment: NonNullable<ElevenLabsSpeechTimestampsResponse['alignment']>,
+) {
+  return {
+    characters: alignment.characters,
+    characterStartTimesSeconds: alignment.character_start_times_seconds,
+    characterEndTimesSeconds: alignment.character_end_times_seconds,
+  };
 }

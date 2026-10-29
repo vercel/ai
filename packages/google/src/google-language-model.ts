@@ -1583,6 +1583,15 @@ function getMaxThinkingTokensForGemini25Model(modelId: string): number {
   return 24576;
 }
 
+/**
+ * Gemini 2.5 Pro cannot disable thinking and requires a thinking budget of at
+ * least 128 tokens. Other Gemini 2.5 models can disable thinking with a budget
+ * of 0.
+ */
+function getMinThinkingTokensForGemini25Model(modelId: string): number {
+  return modelId.toLowerCase().includes('2.5-pro') ? 128 : 0;
+}
+
 type GoogleThinkingConfig = NonNullable<
   InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
 >;
@@ -1624,20 +1633,17 @@ function resolveGemini3ThinkingConfig({
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
   const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: minimumThinkingLevel,
+      ...(minimumThinkingLevel === 'minimal' && {
+        minimal: 'minimal' as const,
+      }),
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'high',
-      max: 'high',
     },
     warnings,
   });
@@ -1695,8 +1701,10 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const minThinkingBudget = getMinThinkingTokensForGemini25Model(modelId);
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
@@ -1704,12 +1712,9 @@ function resolveGemini25ThinkingConfig({
     reasoning,
     maxOutputTokens: getMaxOutputTokensForGemini25Model(),
     maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 

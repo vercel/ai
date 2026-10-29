@@ -372,6 +372,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
         providerOptions: {
           elevenlabs: {
             ...(dialogue && { dialogue }),
+            withTimestamps: true,
             inputs: [{ text: 'Knock knock', voiceId: 'voice-a' }],
             musicLengthMs: 5000,
             durationSeconds: 2,
@@ -390,6 +391,7 @@ describe('ElevenLabsSpeechModel.doStream', () => {
             warning => 'feature' in warning && warning.feature,
           ),
       ).toEqual([
+        'providerOptions.elevenlabs.withTimestamps',
         'providerOptions.elevenlabs.inputs',
         'providerOptions.elevenlabs.musicLengthMs',
         'providerOptions.elevenlabs.durationSeconds',

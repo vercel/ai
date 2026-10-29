@@ -521,7 +521,7 @@ function resolveAlibabaThinking({
 
   return {
     enable_thinking: true,
-    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+    thinking_budget: thinkingBudget,
   };
 }
 
