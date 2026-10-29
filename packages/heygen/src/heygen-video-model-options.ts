@@ -28,8 +28,10 @@ const heygenVideoOptions = () =>
       .optional(),
     /** Output size class. Takes precedence over the standard resolution option. */
     resolution: z.enum(['480p', '768p', '1080p', '2k']).optional(),
-    /** Defaults to turbo. Use disabled to preserve the original prompt. */
-    promptEnhancement: z.enum(['turbo', 'quality', 'disabled']).optional(),
+    /** Defaults to quality. Use disabled to preserve the original prompt. */
+    promptEnhancement: z
+      .enum(['turbo', 'quality', 'ultraquality', 'disabled'])
+      .optional(),
     /** First frame, including an existing HeyGen asset. Cannot be combined with a standard image. */
     image: heygenVideoAssetSchema().optional(),
     /** Additional references, appended after standard inputReferences of the same kind. */
