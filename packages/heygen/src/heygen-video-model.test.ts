@@ -76,8 +76,99 @@ describe('HeyGenVideoModel', () => {
     },
   });
 
+<<<<<<< HEAD
   it('generates text-to-video with explicit defaults and returns completed metadata', async () => {
     const result = await createModel().doGenerate(defaultOptions);
+=======
+  it.each(['text_to_video', 'image_to_video'] as const)(
+    'supports 30-second %s clips at every resolution with compatible enhancement',
+    async mode => {
+      for (const resolution of ['480p', '768p', '1080p', '2k']) {
+        for (const promptEnhancement of [undefined, 'quality', 'turbo']) {
+          await createModel().doStart({
+            ...defaultOptions,
+            aspectRatio: '16:9',
+            duration: 30,
+            ...(mode === 'image_to_video' ? { image } : {}),
+            providerOptions: {
+              heygen: { mode, resolution, promptEnhancement },
+            },
+          });
+          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+            duration: 30,
+            mode,
+            resolution,
+          });
+        }
+      }
+    },
+  );
+
+  it.each(['text_to_video', 'image_to_video', 'reference_to_video'] as const)(
+    'passes long %s requests through without imposing provider duration limits',
+    async mode => {
+      for (const duration of [1, 16, 31, 60]) {
+        for (const promptEnhancement of ['quality', 'turbo', 'disabled']) {
+          await createModel().doStart({
+            ...defaultOptions,
+            duration,
+            ...(mode === 'image_to_video' ? { image } : {}),
+            ...(mode === 'reference_to_video'
+              ? { inputReferences: [video] }
+              : {}),
+            providerOptions: { heygen: { mode, promptEnhancement } },
+          });
+          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+            duration,
+            mode,
+            prompt_enhancement: promptEnhancement,
+          });
+        }
+      }
+    },
+  );
+
+  it('propagates a provider duration rejection without clamping or retrying', async () => {
+    server.urls[createURL].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          code: 'invalid_parameter',
+          message: 'Duration exceeds the limit for these settings',
+          param: 'duration',
+        },
+      }),
+    };
+    await expect(
+      createModel().doStart({ ...defaultOptions, duration: 31 }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      statusCode: 400,
+      message:
+        'Duration exceeds the limit for these settings (invalid_parameter) [duration]',
+    });
+    expect(server.calls).toHaveLength(1);
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      duration: 31,
+    });
+  });
+
+  it('accepts the documented ultraquality enhancement and forwards it unchanged', async () => {
+    await createModel().doStart({
+      ...defaultOptions,
+      duration: 15,
+      providerOptions: { heygen: { promptEnhancement: 'ultraquality' } },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      duration: 15,
+      prompt_enhancement: 'ultraquality',
+    });
+  });
+
+  it('submits text-to-video with explicit defaults and returns an operation', async () => {
+    const result = await createModel().doStart(defaultOptions);
+>>>>>>> 6f41ccc1f8 (fix(heygen): defer video duration limits to the provider (#24235))
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'heygen-video-1',
       mode: 'text_to_video',
@@ -268,8 +359,9 @@ describe('HeyGenVideoModel', () => {
     ['missing prompt', { prompt: undefined }],
     ['empty prompt', { prompt: '' }],
     ['long prompt', { prompt: 'x'.repeat(32001) }],
-    ['short duration', { duration: 4 }],
-    ['long duration', { duration: 16 }],
+    ['zero duration', { duration: 0 }],
+    ['negative duration', { duration: -1 }],
+    ['nonfinite duration', { duration: Number.POSITIVE_INFINITY }],
     ['fractional duration', { duration: 5.5 }],
     ['negative seed', { seed: -1 }],
     ['large seed', { seed: 4294967296 }],
