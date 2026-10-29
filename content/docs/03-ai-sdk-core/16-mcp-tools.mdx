@@ -742,6 +742,16 @@ mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
 
 ### Elicitation Response Actions
 
+On MCP `2026-07-28` connections, the same handler processes form elicitation
+requests embedded in `input_required` results from tools, prompts, and resource
+reads. The client retries the original request with the handler's answers and
+the server's unchanged `requestState` until it receives a final result, with a
+limit of 10 retries. State-only retries are delayed by 250 ms. Each round respects
+`timeout`, including time spent awaiting the handler, while `maxTotalTimeout`
+bounds the entire exchange. Missing handlers and unsupported input requests
+reject the operation. Older connections continue to use `elicitation/create`
+server requests.
+
 Your handler must return an object with an `action` field that can be one of:
 
 - `'accept'`: User provided the requested information. Must include `content` with the data.
