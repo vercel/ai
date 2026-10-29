@@ -25,7 +25,7 @@
     "fix": "ultracite fix",
     "validate:docs": "node tools/validate-properties-tables.mjs",
     "verify:readmes": "node .agents/verifiers/package-readme.ts",
-    "verify:harness-bridge-package-json": "node tools/verify-harness-bridge-package-json.mjs",
+    "verify:harness-bridge-package-json": "node .agents/verifiers/harness-bridge-assets.ts",
     "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",

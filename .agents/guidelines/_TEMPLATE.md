@@ -11,6 +11,7 @@ One-line description of what this set of guidelines covers.
 ## XX-1: Imperative one-line statement of the law
 
 - **Severity**: blocker | warning
+- **Applies to**: optional narrower scope than the `fileMatcher` frontmatter (prose description)
 - **Sources**: relevant decision/discussion links (e.g. issues, PRs, broader documentation)
 
 State the durable requirement and the serious consequence of violating it in one sentence.
