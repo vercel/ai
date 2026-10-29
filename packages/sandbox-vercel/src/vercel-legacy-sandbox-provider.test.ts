@@ -63,6 +63,12 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     currentSession: () => ({
       cwd: '/vercel/sandbox',
       networkPolicy,
+      sessionId: 'session',
+    }),
+    listSessions: async () => ({
+      async *[Symbol.asyncIterator]() {
+        yield { id: 'session', networkPolicy: { mode: 'custom' } };
+      },
     }),
   } as unknown as Sandbox;
   return {
