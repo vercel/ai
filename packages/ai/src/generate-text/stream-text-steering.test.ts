@@ -566,6 +566,99 @@ describe('streamText experimental_steering', () => {
     expect(steps[1].experimental_steeringMessages).toBeUndefined();
   });
 
+  describe('queue', () => {
+    it('should wait until the current task is done to deliver a queued message', async () => {
+      const steering = createSteering();
+      let outcome: Promise<SteeringOutcome> | undefined;
+
+      const model = createModel([
+        () => toolCallStream,
+        () => textStream('It is sunny in Paris.'),
+        () => textStream('The readme is updated.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: weather(() => {
+            outcome = steering.queue('Then update the readme.');
+            return 'sunny';
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      expect(await result.text).toBe('The readme is updated.');
+      expect(model.doStreamCalls).toHaveLength(3);
+      expect(lastUserText(model.doStreamCalls[1])).toBeUndefined();
+      expect(lastUserText(model.doStreamCalls[2])).toBe(
+        'Then update the readme.',
+      );
+      expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 2 });
+    });
+
+    it('should deliver one queued message per task in order', async () => {
+      const steering = createSteering();
+      const first = steering.queue('Then update the readme.');
+      const second = steering.queue('Then add a changelog entry.');
+
+      const model = createModel([
+        () => textStream('It is sunny in Paris.'),
+        () => textStream('The readme is updated.'),
+        () => textStream('The changelog is updated.'),
+      ]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls.map(lastUserText)).toEqual([
+        'What is the weather in Paris?',
+        'Then update the readme.',
+        'Then add a changelog entry.',
+      ]);
+      expect(await first).toMatchObject({ type: 'delivered', stepNumber: 1 });
+      expect(await second).toMatchObject({ type: 'delivered', stepNumber: 2 });
+      expect(
+        (await result.steps).map(step =>
+          step.experimental_steeringMessages?.map(message => message.content),
+        ),
+      ).toEqual([
+        undefined,
+        ['Then update the readme.'],
+        ['Then add a changelog entry.'],
+      ]);
+    });
+
+    it('should not deliver a queued message when the default stop condition ends the stream', async () => {
+      const steering = createSteering();
+      const outcome = steering.queue('Then update the readme.');
+
+      const model = createModel([() => textStream('It is sunny in Paris.')]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(await outcome).toMatchObject({
+        type: 'not-delivered',
+        reason: 'stop-condition',
+      });
+    });
+  });
+
   it('should throw when the steering object is used by two streams at once', async () => {
     const steering = createSteering();
     const model = createModel([

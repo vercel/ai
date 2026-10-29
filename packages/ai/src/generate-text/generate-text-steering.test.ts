@@ -622,6 +622,141 @@ describe('generateText experimental_steering', () => {
     expect(lastUserText(model.doGenerateCalls[1])).toBeUndefined();
   });
 
+  describe('queue', () => {
+    it('should wait until the current task is done to deliver a queued message', async () => {
+      const steering = createSteering();
+      let outcome: Promise<SteeringOutcome> | undefined;
+
+      const model = createModel([
+        () => toolCallResponse,
+        () => textResponse('It is sunny in Paris.'),
+        () => textResponse('The readme is updated.'),
+      ]);
+
+      const result = await generateText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => {
+              outcome = steering.queue('Then update the readme.');
+              return 'sunny';
+            },
+          }),
+        },
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      expect(model.doGenerateCalls).toHaveLength(3);
+      expect(lastUserText(model.doGenerateCalls[1])).toBeUndefined();
+      expect(lastUserText(model.doGenerateCalls[2])).toBe(
+        'Then update the readme.',
+      );
+      expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 2 });
+      expect(result.text).toBe('The readme is updated.');
+    });
+
+    it('should deliver one queued message per task in order', async () => {
+      const steering = createSteering();
+      const first = steering.queue('Then update the readme.');
+      const second = steering.queue('Then add a changelog entry.');
+
+      const model = createModel([
+        () => textResponse('It is sunny in Paris.'),
+        () => textResponse('The readme is updated.'),
+        () => textResponse('The changelog is updated.'),
+      ]);
+
+      await generateText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      expect(model.doGenerateCalls.map(lastUserText)).toEqual([
+        'What is the weather in Paris?',
+        'Then update the readme.',
+        'Then add a changelog entry.',
+      ]);
+      expect(await first).toMatchObject({ type: 'delivered', stepNumber: 1 });
+      expect(await second).toMatchObject({ type: 'delivered', stepNumber: 2 });
+    });
+
+    it('should deliver steering messages before queued messages', async () => {
+      const steering = createSteering();
+      const queued = steering.queue('Then update the readme.');
+
+      const model = createModel([
+        () => {
+          void steering.steer('Use Celsius.');
+          return textResponse('It is sunny in Paris.');
+        },
+        () => textResponse('It is 20 degrees.'),
+        () => textResponse('The readme is updated.'),
+      ]);
+
+      await generateText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        stopWhen: isStepCount(5),
+        experimental_steering: steering,
+      });
+
+      expect(model.doGenerateCalls.map(lastUserText)).toEqual([
+        'What is the weather in Paris?',
+        'Use Celsius.',
+        'Then update the readme.',
+      ]);
+      expect(await queued).toMatchObject({ type: 'delivered', stepNumber: 2 });
+    });
+
+    it('should not deliver a queued message when a stop condition ends the run', async () => {
+      const steering = createSteering();
+      const outcome = steering.queue('Then update the readme.', {
+        id: 'queued-1',
+      });
+
+      const model = createModel([() => textResponse('It is sunny in Paris.')]);
+
+      await generateText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      expect(model.doGenerateCalls).toHaveLength(1);
+      expect(await outcome).toMatchInlineSnapshot(`
+        {
+          "id": "queued-1",
+          "message": {
+            "content": "Then update the readme.",
+            "role": "user",
+          },
+          "reason": "stop-condition",
+          "type": "not-delivered",
+        }
+      `);
+    });
+
+    it('should not deliver a queued message after the run finished', async () => {
+      const steering = createSteering();
+      const model = createModel([() => textResponse('It is sunny in Paris.')]);
+
+      await generateText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      expect(
+        await steering.queue('Then update the readme.', { id: 'late' }),
+      ).toMatchObject({ type: 'not-delivered', reason: 'finished' });
+    });
+  });
+
   it('should throw when the steering object is used by two runs at once', async () => {
     const steering = createSteering();
     const model = createModel([

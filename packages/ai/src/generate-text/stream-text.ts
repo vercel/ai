@@ -3389,7 +3389,10 @@ class DefaultStreamTextResult<
                       clientToolCalls.length === 0 &&
                       pendingDeferredToolCalls.size === 0
                     ) {
-                      if (!steeringRun?.hasPendingMessages()) {
+                      if (
+                        !steeringRun?.hasPendingMessages() &&
+                        !steeringRun?.promoteQueuedMessage()
+                      ) {
                         return false;
                       }
 
