@@ -3270,5 +3270,31 @@ describe('top-level-only mediaType resolution', () => {
       expect(text).toContain('"count":"999999999999999999"');
       expect(text).toContain('"self":"[Circular]"');
     });
+
+    it('preserves reused non-circular objects in tool responses', async () => {
+      const shared = { city: 'Paris' };
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"first":{"city":"Paris"}');
+      expect(text).toContain('"second":{"city":"Paris"}');
+      expect(text).not.toContain('[Circular]');
+    });
   });
 });
