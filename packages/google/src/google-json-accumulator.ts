@@ -74,6 +74,9 @@ export class GoogleJSONAccumulator {
           (existingValue as string) + arg.stringValue,
         );
         delta += escaped;
+        if (arg.willContinue !== true) {
+          delta += this.closeOpenString();
+        }
         continue;
       }
 
@@ -81,8 +84,15 @@ export class GoogleJSONAccumulator {
       if (resolved == null) {
         // A value-less entry for a path without a value is an empty container
         // (an empty container has no leaves to stream). Value-less entries for
-        // existing paths are string or array terminators and are ignored.
-        if (existingValue !== undefined || arg.willContinue === true) continue;
+        // existing paths are string or array terminators. A string terminator
+        // closes the open string, an array terminator is ignored.
+        if (existingValue !== undefined) {
+          if (typeof existingValue === 'string' && arg.willContinue !== true) {
+            delta += this.closeOpenString();
+          }
+          continue;
+        }
+        if (arg.willContinue === true) continue;
 
         setNestedValue(
           this.accumulatedArgs,
@@ -116,6 +126,18 @@ export class GoogleJSONAccumulator {
   }
 
   /**
+   * Input: stringOpen=true
+   * Output: '"' (and stringOpen=false), or '' when no string is open
+   */
+  private closeOpenString(): string {
+    if (!this.stringOpen) {
+      return '';
+    }
+    this.stringOpen = false;
+    return '"';
+  }
+
+  /**
    * Input: pathStack=[] (first call) or pathStack=[root,...] (subsequent calls)
    * Output: '{' (first call) or '' (subsequent calls)
    */
@@ -139,12 +161,7 @@ export class GoogleJSONAccumulator {
     arg: PartialArg,
     valueJson: string,
   ): string {
-    let fragment = '';
-
-    if (this.stringOpen) {
-      fragment += '"';
-      this.stringOpen = false;
-    }
+    let fragment = this.closeOpenString();
 
     fragment += this.ensureRoot();
 
@@ -172,12 +189,7 @@ export class GoogleJSONAccumulator {
     targetSegments: PathSegment[],
     isArray: boolean,
   ): string {
-    let fragment = '';
-
-    if (this.stringOpen) {
-      fragment += '"';
-      this.stringOpen = false;
-    }
+    let fragment = this.closeOpenString();
 
     fragment += this.ensureRoot();
 
