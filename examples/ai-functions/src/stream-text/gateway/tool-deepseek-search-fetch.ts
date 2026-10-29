@@ -2,11 +2,8 @@ import { gateway, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const model = process.env.DEEPSEEK_TOOLS_MODEL;
-  if (!model)
-    throw new Error('Set DEEPSEEK_TOOLS_MODEL to a tool-calling model ID.');
   const result = streamText({
-    model,
+    model: 'openai/gpt-6-luna',
     prompt:
       'Search for DeepSeek API documentation, fetch one relevant page, and summarize it.',
     tools: {

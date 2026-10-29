@@ -19,7 +19,7 @@ export interface DeepSeekFetchInput {
 }
 
 export interface DeepSeekFetchResponse {
-  title: string;
+  title?: string | null;
   /** Page content as Markdown. */
   content: string;
 }
@@ -31,20 +31,6 @@ const deepseekFetchInputSchema = lazySchema(() =>
     z.object({
       url: z
         .string()
-        .max(8192)
-        .refine(value => {
-          try {
-            const url = new URL(value);
-            return (
-              (url.protocol === 'http:' || url.protocol === 'https:') &&
-              url.hostname.length > 0 &&
-              !url.username &&
-              !url.password
-            );
-          } catch {
-            return false;
-          }
-        }, 'Must be an HTTP(S) URL with a host and no username or password')
         .describe(
           'URL to fetch, at most 8192 characters; HTTP(S) only, without a username or password.',
         ),
@@ -55,7 +41,12 @@ const deepseekFetchInputSchema = lazySchema(() =>
 const deepseekFetchOutputSchema = lazySchema(() =>
   zodSchema(
     z.union([
-      z.object({ title: z.string(), content: z.string() }).passthrough(),
+      z
+        .object({
+          title: z.string().nullish().catch(undefined),
+          content: z.string(),
+        })
+        .passthrough(),
       deepseekToolErrorSchema,
     ]),
   ),

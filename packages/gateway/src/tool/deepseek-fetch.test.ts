@@ -20,7 +20,7 @@ describe('deepseekFetch', () => {
       await asSchema(deepseekFetch().inputSchema).jsonSchema,
     ).toMatchObject({
       required: ['url'],
-      properties: { url: { type: 'string', maxLength: 8192 } },
+      properties: { url: { type: 'string' } },
     });
   });
 
@@ -28,7 +28,7 @@ describe('deepseekFetch', () => {
     'file:///etc/passwd',
     'https://user:password@example.com',
     'not a URL',
-  ])('rejects invalid URL %s', async url => {
+  ])('leaves URL validation to the gateway (%s)', async url => {
     expect(
       (
         await safeValidateTypes({
@@ -36,11 +36,12 @@ describe('deepseekFetch', () => {
           schema: asSchema(deepseekFetch().inputSchema),
         })
       ).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it.each([
     { title: '', content: '# Markdown' },
+    { content: '# Markdown' },
     { title: 'Title', content: '' },
     { error: 'timeout', message: 'Timed out' },
   ])('accepts response %j', async value => {

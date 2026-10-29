@@ -30,16 +30,16 @@ export interface DeepSeekSearchInput {
 }
 
 export interface DeepSeekSearchResult {
-  authority: number;
-  content: string;
-  date: string | null;
-  rerank_score: number;
-  site_icon: string | null;
-  site_name: string | null;
-  snippet: string;
-  summary: string;
-  title: string;
-  url: string;
+  authority?: number | null;
+  content?: string | null;
+  date?: string | null;
+  rerank_score?: number | null;
+  site_icon?: string | null;
+  site_name?: string | null;
+  snippet?: string | null;
+  summary?: string | null;
+  title?: string | null;
+  url?: string | null;
 }
 
 export interface DeepSeekSearchResponse {
@@ -48,31 +48,24 @@ export interface DeepSeekSearchResponse {
 
 export type DeepSeekSearchOutput = DeepSeekSearchResponse | DeepSeekToolError;
 
-const questionSchema = z
-  .string()
-  .refine(
-    value => value.trim().length > 0 && Array.from(value).length <= 128,
-    'Must contain 1 to 128 Unicode characters and cannot be all whitespace',
-  );
-
 const deepseekSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      query: questionSchema.describe(
-        'Web search query, 1 to 128 Unicode characters. Supports site:, -site:, lang:, after:, before:, and quoted phrases.',
-      ),
+      query: z
+        .string()
+        .describe(
+          'Web search query, 1 to 128 Unicode characters. Supports site:, -site:, lang:, after:, before:, and quoted phrases.',
+        ),
       count: z
         .number()
-        .int()
-        .min(1)
-        .max(50)
         .optional()
         .describe('Number of results, 1 to 50 (default: 10).'),
       need_content: z
         .boolean()
         .optional()
         .describe('Include available page content (default: false).'),
-      ori_question: questionSchema
+      ori_question: z
+        .string()
         .nullable()
         .optional()
         .describe('Original user question, 1 to 128 Unicode characters.'),
@@ -88,16 +81,16 @@ const deepseekSearchOutputSchema = lazySchema(() =>
           results: z.array(
             z
               .object({
-                authority: z.number().int(),
-                content: z.string(),
-                date: z.string().nullable(),
-                rerank_score: z.number(),
-                site_icon: z.string().nullable(),
-                site_name: z.string().nullable(),
-                snippet: z.string(),
-                summary: z.string(),
-                title: z.string(),
-                url: z.string(),
+                authority: z.number().nullish().catch(undefined),
+                content: z.string().nullish().catch(undefined),
+                date: z.string().nullish().catch(undefined),
+                rerank_score: z.number().nullish().catch(undefined),
+                site_icon: z.string().nullish().catch(undefined),
+                site_name: z.string().nullish().catch(undefined),
+                snippet: z.string().nullish().catch(undefined),
+                summary: z.string().nullish().catch(undefined),
+                title: z.string().nullish().catch(undefined),
+                url: z.string().nullish().catch(undefined),
               })
               .passthrough(),
           ),

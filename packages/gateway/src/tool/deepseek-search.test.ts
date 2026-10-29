@@ -25,7 +25,7 @@ describe('deepseekSearch', () => {
       required: ['query'],
       properties: {
         query: { type: 'string' },
-        count: { minimum: 1, maximum: 50 },
+        count: { type: 'number' },
         need_content: { type: 'boolean' },
       },
     });
@@ -33,7 +33,7 @@ describe('deepseekSearch', () => {
   });
 
   it.each(['', ' ', 'x'.repeat(129), '😀'.repeat(129)])(
-    'rejects invalid query %j',
+    'leaves query validation to the gateway (%j)',
     async query => {
       expect(
         (
@@ -42,7 +42,7 @@ describe('deepseekSearch', () => {
             schema: asSchema(deepseekSearch().inputSchema),
           })
         ).success,
-      ).toBe(false);
+      ).toBe(true);
     },
   );
 
@@ -102,11 +102,26 @@ describe('deepseekSearch', () => {
     ).toBe(true);
   });
 
+  it.each([
+    {},
+    { url: 'https://example.com' },
+    { authority: 'unknown', summary: null, future_field: true },
+  ])('accepts partial and evolving result metadata (%j)', async item => {
+    expect(
+      (
+        await safeValidateTypes({
+          value: { results: [item] },
+          schema: asSchema(deepseekSearch().outputSchema),
+        })
+      ).success,
+    ).toBe(true);
+  });
+
   it('rejects malformed result bodies', async () => {
     expect(
       (
         await safeValidateTypes({
-          value: { results: [{}] },
+          value: { results: null },
           schema: asSchema(deepseekSearch().outputSchema),
         })
       ).success,

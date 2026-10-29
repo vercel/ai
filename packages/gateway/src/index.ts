@@ -69,14 +69,6 @@ export {
   GatewayResponseError,
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
-export { VERSION } from './version';
-
-/** @deprecated Use `GatewayDecisionModelId` instead. */
-export type GatewayEvaluationModelId = GatewayDecisionModelId;
-/** @deprecated Use `DecisionFallbackCondition` instead. */
-export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
-  DecisionFallbackCondition<QUESTION_ID>;
-
 export type {
   DeepSeekFetchConfig,
   DeepSeekFetchInput,
@@ -91,3 +83,11 @@ export type {
   DeepSeekSearchResult,
 } from './tool/deepseek-search';
 export type { DeepSeekToolError } from './tool/deepseek-tool-error';
+
+export { VERSION } from './version';
+
+/** @deprecated Use `GatewayDecisionModelId` instead. */
+export type GatewayEvaluationModelId = GatewayDecisionModelId;
+/** @deprecated Use `DecisionFallbackCondition` instead. */
+export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
+  DecisionFallbackCondition<QUESTION_ID>;

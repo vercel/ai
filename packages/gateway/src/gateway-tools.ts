@@ -11,12 +11,6 @@ import { takoSearch } from './tool/tako-search';
  * Gateway-specific provider-defined tools.
  */
 export const gatewayTools = {
-  /** Fetch a page as Markdown using DeepSeek. Executed by AI Gateway. */
-  deepseekFetch,
-
-  /** Search the web using DeepSeek. Executed by AI Gateway. */
-  deepseekSearch,
-
   /**
    * Fetch page content using Browserbase's lightweight Fetch API.
    *
@@ -32,6 +26,12 @@ export const gatewayTools = {
    * a browser session.
    */
   browserbaseSearch,
+
+  /** Fetch a page as Markdown using DeepSeek. Executed by AI Gateway. */
+  deepseekFetch,
+
+  /** Search the web using DeepSeek. Executed by AI Gateway. */
+  deepseekSearch,
 
   /**
    * Search the web using Exa for current information and token-efficient
