@@ -1,11 +1,11 @@
-import { elevenLabs } from '@ai-sdk/elevenlabs';
-import { transcribe } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'node:fs/promises';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: elevenLabs.transcription('scribe_v2'),
+    model: elevenlabs.transcription('scribe_v2'),
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {
       elevenlabs: { timestampsGranularity: 'character' },

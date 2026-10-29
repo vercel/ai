@@ -11,31 +11,9 @@ const model = provider.speech('eleven_multilingual_v2');
 
 const server = createTestServer({
   'https://api.elevenlabs.io/v1/text-to-speech/*': {},
-<<<<<<< HEAD
-});
-
-=======
-  'https://api.elevenlabs.io/v1/music': {},
-  'https://api.elevenlabs.io/v1/music/detailed': {},
-  'https://api.elevenlabs.io/v1/sound-generation': {},
   'https://api.elevenlabs.io/v1/text-to-dialogue': {},
   'https://api.elevenlabs.io/v1/text-to-dialogue/with-timestamps': {},
 });
-
-function prepareGenerationResponse(
-  url:
-    | 'https://api.elevenlabs.io/v1/music'
-    | 'https://api.elevenlabs.io/v1/sound-generation'
-    | 'https://api.elevenlabs.io/v1/text-to-dialogue',
-) {
-  const audio = new Uint8Array([0xff, 0xfb, 0x90, 0x64, 1, 2, 3, 4]);
-  server.urls[url].response = {
-    type: 'binary',
-    headers: { 'content-type': 'audio/mpeg' },
-    body: Buffer.from(audio),
-  };
-  return audio;
-}
 
 const alignment = {
   characters: ['H', 'i'],
@@ -49,7 +27,6 @@ const alignmentMetadata = {
   characterEndTimesSeconds: [0.123456789, 0.4],
 };
 
->>>>>>> 48ab95d62a (feat(elevenlabs): add speech and music timestamps (#24193))
 describe('ElevenLabsSpeechModel', () => {
   function prepareAudioResponse({
     headers,
@@ -71,8 +48,6 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
-<<<<<<< HEAD
-=======
     it.each([undefined, false])(
       'preserves binary audio when withTimestamps is %s',
       async withTimestamps => {
@@ -83,9 +58,7 @@ describe('ElevenLabsSpeechModel', () => {
         });
 
         expect(result.audio).toStrictEqual(audio);
-        expect(result.providerMetadata).toStrictEqual({
-          elevenlabs: { outputFormat: 'mp3_44100_128' },
-        });
+        expect(result.providerMetadata).toBeUndefined();
         expect(server.calls[0].requestUrl).toBe(
           'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_44100_128',
         );
@@ -129,7 +102,6 @@ describe('ElevenLabsSpeechModel', () => {
       expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
       expect(result.providerMetadata).toStrictEqual({
         elevenlabs: {
-          outputFormat: 'pcm_24000',
           alignment: alignmentMetadata,
           normalizedAlignment: alignmentMetadata,
         },
@@ -152,7 +124,7 @@ describe('ElevenLabsSpeechModel', () => {
       });
       expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
       expect(result.providerMetadata).toStrictEqual({
-        elevenlabs: { outputFormat: 'mp3_44100_128' },
+        elevenlabs: {},
       });
     });
 
@@ -175,7 +147,6 @@ describe('ElevenLabsSpeechModel', () => {
       expect(result.audio).toStrictEqual(new Uint8Array(0));
       expect(result.providerMetadata).toStrictEqual({
         elevenlabs: {
-          outputFormat: 'mp3_44100_128',
           alignment: {
             characters: [],
             characterStartTimesSeconds: [],
@@ -197,6 +168,16 @@ describe('ElevenLabsSpeechModel', () => {
                 audio_base64: 'AQID',
                 alignment,
                 normalized_alignment: alignment,
+                voice_segments: [
+                  {
+                    voice_id: 'test-voice',
+                    start_time_seconds: 0,
+                    end_time_seconds: 0.4,
+                    character_start_index: 0,
+                    character_end_index: 2,
+                    dialogue_input_index: 0,
+                  },
+                ],
               },
             }
           : { type: 'binary', body: Buffer.from([1, 2, 3]) };
@@ -223,175 +204,25 @@ describe('ElevenLabsSpeechModel', () => {
         });
         expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
         expect(result.warnings).toStrictEqual([]);
-      },
-    );
-
-    it('returns timestamps and voice segments for explicit dialogue inputs', async () => {
-      const modelId = 'eleven_v4';
-      server.urls[
-        'https://api.elevenlabs.io/v1/text-to-dialogue/with-timestamps'
-      ].response = {
-        type: 'json-value',
-        body: {
-          audio_base64: 'AQID',
-          alignment,
-          normalized_alignment: alignment,
-          voice_segments: ['first-voice', 'second-voice'].map(
-            (voice_id, index) => ({
-              voice_id,
-              start_time_seconds: index * 0.2,
-              end_time_seconds: (index + 1) * 0.2,
-              character_start_index: index,
-              character_end_index: index + 1,
-              dialogue_input_index: index,
-            }),
-          ),
-        },
-      };
-      const result = await provider.speech(modelId).doGenerate({
-        text: '',
-        providerOptions: {
-          elevenlabs: {
-            withTimestamps: true,
-            inputs: [
-              { text: 'H', voiceId: 'first-voice' },
-              { text: 'i', voiceId: 'second-voice' },
-            ],
-          },
-        },
-      });
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model_id: modelId,
-        inputs: [
-          { text: 'H', voice_id: 'first-voice' },
-          { text: 'i', voice_id: 'second-voice' },
-        ],
-      });
-      expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
-      expect(result.warnings).toStrictEqual([]);
-      expect(result.providerMetadata?.elevenlabs?.voiceSegments).toStrictEqual([
-        {
-          voiceId: 'first-voice',
-          startTimeSeconds: 0,
-          endTimeSeconds: 0.2,
-          characterStartIndex: 0,
-          characterEndIndex: 1,
-          dialogueInputIndex: 0,
-        },
-        {
-          voiceId: 'second-voice',
-          startTimeSeconds: 0.2,
-          endTimeSeconds: 0.4,
-          characterStartIndex: 1,
-          characterEndIndex: 2,
-          dialogueInputIndex: 1,
-        },
-      ]);
-    });
-
-    it.each([
-      [
-        'eleven_text_to_sound_v2',
-        'https://api.elevenlabs.io/v1/sound-generation',
-      ],
-    ] as const)(
-      'warns about timestamps for %s without changing its endpoint',
-      async (modelId, url) => {
-        const audio = prepareGenerationResponse(url);
-        const result = await provider.speech(modelId).doGenerate({
-          text: 'A short sound.',
-          providerOptions: { elevenlabs: { withTimestamps: true } },
-        });
-        expect(server.calls[0].requestUrl).toBe(
-          `${url}?output_format=mp3_44100_128`,
-        );
-        expect(result.audio).toStrictEqual(audio);
-        expect(result.warnings).toContainEqual(
-          expect.objectContaining({
-            type: 'unsupported',
-            feature: 'providerOptions.elevenlabs.withTimestamps',
-          }),
+        expect(
+          result.providerMetadata?.elevenlabs?.voiceSegments,
+        ).toStrictEqual(
+          withTimestamps
+            ? [
+                {
+                  voiceId: 'test-voice',
+                  startTimeSeconds: 0,
+                  endTimeSeconds: 0.4,
+                  characterStartIndex: 0,
+                  characterEndIndex: 2,
+                  dialogueInputIndex: 0,
+                },
+              ]
+            : undefined,
         );
       },
     );
 
-    it('returns lyric timestamps and audio from music generation', async () => {
-      const modelId = 'music_v2_5';
-      const nativeMetadata = {
-        words_timestamps: [{ word: 'Hello', start_ms: 200, end_ms: 500 }],
-      };
-      server.urls['https://api.elevenlabs.io/v1/music/detailed'].response = {
-        type: 'binary',
-        headers: { 'content-type': 'multipart/mixed; boundary=music' },
-        body: Buffer.concat([
-          Buffer.from(
-            `--music\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(nativeMetadata)}\r\n--music\r\nContent-Type: audio/mpeg\r\n\r\n`,
-          ),
-          Buffer.from([255, 0, 128, 1, 2, 3]),
-          Buffer.from('\r\n--music--\r\n'),
-        ]),
-      };
-      const result = await provider.speech(modelId).doGenerate({
-        text: 'A short song.',
-        providerOptions: {
-          elevenlabs: { withTimestamps: true, musicLengthMs: 3000 },
-        },
-      });
-      expect(server.calls[0].requestUrl).toBe(
-        'https://api.elevenlabs.io/v1/music/detailed?output_format=mp3_44100_128',
-      );
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        prompt: 'A short song.',
-        model_id: modelId,
-        music_length_ms: 3000,
-        with_timestamps: true,
-      });
-      expect(result.audio).toStrictEqual(
-        new Uint8Array([255, 0, 128, 1, 2, 3]),
-      );
-      expect(result.providerMetadata).toStrictEqual({
-        elevenlabs: {
-          outputFormat: 'mp3_44100_128',
-          requestedDurationMs: 3000,
-          wordTimestamps: [{ word: 'Hello', startMs: 200, endMs: 500 }],
-        },
-      });
-      expect(result.response.body).toStrictEqual(nativeMetadata);
-      expect(result.warnings).toStrictEqual([]);
-    });
-
-    it('should warn about and ignore streaming-only options', async () => {
-      prepareAudioResponse();
-      const result = await model.doGenerate({
-        text: 'Hello, world!',
-        providerOptions: { elevenlabs: { streaming: { autoMode: true } } },
-      });
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'providerOptions.elevenlabs.streaming',
-        }),
-      );
-      expect(server.calls[0].requestUrlSearchParams.get('auto_mode')).toBe(
-        null,
-      );
-    });
-
-    it('should warn about and ignore dialogue options', async () => {
-      prepareAudioResponse();
-      const result = await model.doGenerate({
-        text: 'Hello, world!',
-        providerOptions: { elevenlabs: { dialogue: { voices: ['a'] } } },
-      });
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'providerOptions.elevenlabs.dialogue',
-        }),
-      );
-    });
-
->>>>>>> 48ab95d62a (feat(elevenlabs): add speech and music timestamps (#24193))
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 
