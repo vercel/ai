@@ -108,11 +108,7 @@ describe('HeyGenVideoModel', () => {
     'passes long %s requests through without imposing provider duration limits',
     async mode => {
       for (const duration of [1, 16, 31, 60]) {
-        for (const promptEnhancement of [
-          'quality',
-          'ultraquality',
-          'disabled',
-        ]) {
+        for (const promptEnhancement of ['quality', 'turbo', 'disabled']) {
           await createModel().doStart({
             ...defaultOptions,
             duration,
