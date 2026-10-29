@@ -114,6 +114,26 @@ export const providers = [
       },
     ],
   },
+  {
+    catalogPath: 'packages/google/src/google-model-catalog.ts',
+    catalogExport: 'googleModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/15-google.mdx',
+    overviewLink: '[Google](/providers/ai-sdk-providers/google)',
+    tables: [
+      {
+        id: 'google-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Google Search', 'tools.googleSearch'],
+          ['URL Context', 'tools.urlContext'],
+        ],
+      },
+    ],
+  },
 ];
 
 function formatOptionalSupport(value) {
