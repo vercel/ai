@@ -3,8 +3,12 @@ export {
   AnthropicLanguageModel,
   /** @deprecated Use `AnthropicLanguageModel` instead. */
   AnthropicLanguageModel as AnthropicMessagesLanguageModel,
-  getModelCapabilities,
 } from '../anthropic-language-model';
+export {
+  anthropicLanguageModelCapabilities,
+  normalizeClaudeModelId,
+  type AnthropicLanguageModelCapabilities,
+} from '../anthropic-language-model-capabilities';
 export { anthropicTools } from '../anthropic-tools';
 export type {
   AnthropicModelId,

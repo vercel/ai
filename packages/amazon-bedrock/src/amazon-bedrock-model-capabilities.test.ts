@@ -1,11 +1,11 @@
+import { getModelCapabilities } from '@ai-sdk/provider-utils';
 import { expect, it } from 'vitest';
-import {
-  supportsNativeStructuredOutput,
-  supportsStrictTools,
-} from './amazon-bedrock-anthropic-model-support';
+import { amazonBedrockModelCapabilities } from './amazon-bedrock-model-capabilities';
 
 it.each([
   ['anthropic.claude-3-7-sonnet-20250219-v1:0', true, true],
+  ['anthropic.claude-3-sonnet-20240229-v1:0:200k', true, true],
+  ['anthropic.claude-v2:1', true, true],
   ['anthropic.claude-sonnet-4-20250514-v1:0', true, true],
   ['us.anthropic.claude-opus-4-1-20250805-v1:0', true, true],
   ['anthropic.claude-sonnet-4-5-20250929-v1:0', true, true],
@@ -25,6 +25,8 @@ it.each([
     true,
   ],
 ])('preserves Bedrock capabilities for %s', (modelId, native, strict) => {
-  expect(supportsNativeStructuredOutput(modelId as string)).toBe(native);
-  expect(supportsStrictTools(modelId as string)).toBe(strict);
+  expect(
+    getModelCapabilities(amazonBedrockModelCapabilities, modelId as string)
+      .capabilities,
+  ).toEqual({ nativeStructuredOutput: native, strictTools: strict });
 });

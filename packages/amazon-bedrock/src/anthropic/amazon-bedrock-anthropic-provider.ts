@@ -4,6 +4,7 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  getModelCapabilities,
   loadOptionalSetting,
   loadSetting,
   resolve,
@@ -20,10 +21,7 @@ import {
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from '../amazon-bedrock-sigv4-fetch';
-import {
-  supportsNativeStructuredOutput,
-  supportsStrictTools,
-} from '../amazon-bedrock-anthropic-model-support';
+import { amazonBedrockModelCapabilities } from '../amazon-bedrock-model-capabilities';
 import { resolveAmazonBedrockBaseURL } from '../resolve-amazon-bedrock-base-url';
 import { createAmazonBedrockAnthropicFetch } from './amazon-bedrock-anthropic-fetch';
 import type { AmazonBedrockAnthropicModelId } from './amazon-bedrock-anthropic-options';
@@ -258,8 +256,13 @@ export function createAmazonBedrockAnthropic(
     return withUserAgentSuffix(baseHeaders, `ai-sdk-amazon-bedrock/${VERSION}`);
   };
 
-  const createChatModel = (modelId: AmazonBedrockAnthropicModelId) =>
-    new AnthropicLanguageModel(modelId, {
+  const createChatModel = (modelId: AmazonBedrockAnthropicModelId) => {
+    const { capabilities } = getModelCapabilities(
+      amazonBedrockModelCapabilities,
+      modelId,
+    );
+
+    return new AnthropicLanguageModel(modelId, {
       provider: 'bedrock.anthropic.messages',
       baseURL: getBaseURL(),
       headers: getHeaders,
@@ -367,9 +370,10 @@ export function createAmazonBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      supportsNativeStructuredOutput: supportsNativeStructuredOutput(modelId),
-      supportsStrictTools: supportsStrictTools(modelId),
+      supportsNativeStructuredOutput: capabilities.nativeStructuredOutput,
+      supportsStrictTools: capabilities.strictTools,
     });
+  };
 
   const provider = function (modelId: AmazonBedrockAnthropicModelId) {
     if (new.target) {

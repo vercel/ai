@@ -1,0 +1,339 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`anthropicLanguageModelCapabilities > returns the capabilities of all known model IDs 1`] = `
+{
+  "claude-3-haiku-20240307": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 4096,
+    "samplingParameters": true,
+    "structuredOutput": false,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-fable-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+    },
+  },
+  "claude-fable-5-1": {
+    "forcedToolUse": false,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+    },
+  },
+  "claude-haiku-4-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-haiku-4-5-20251001": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-haiku-5-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "disabled": {
+        "maxEffort": "high",
+      },
+    },
+  },
+  "claude-opus-4-0": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 32000,
+    "samplingParameters": true,
+    "structuredOutput": false,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-1": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 32000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-1-20250805": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 32000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-20250514": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 32000,
+    "samplingParameters": true,
+    "structuredOutput": false,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-5-20251101": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-6": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-7": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-4-8": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-opus-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {
+        "maxEffort": "high",
+      },
+    },
+  },
+  "claude-opus-5-5": {
+    "forcedToolUse": false,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+    },
+  },
+  "claude-sonnet-4-0": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": false,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-4-20250514": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": false,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-4-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-4-5-20250929": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 64000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-4-6": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": true,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-5": {
+    "forcedToolUse": true,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "budget": true,
+      "disabled": {},
+    },
+  },
+  "claude-sonnet-5-5": {
+    "forcedToolUse": false,
+    "maxOutputTokens": 128000,
+    "samplingParameters": false,
+    "structuredOutput": true,
+    "thinking": {
+      "adaptive": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+      },
+      "betweenTools": true,
+    },
+  },
+}
+`;

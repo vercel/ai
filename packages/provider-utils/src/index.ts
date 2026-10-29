@@ -70,6 +70,13 @@ export {
   mapReasoningToProviderEffort,
 } from './map-reasoning-to-provider';
 export { type MaybePromiseLike } from './maybe-promise-like';
+export {
+  defineModelCapabilities,
+  getModelCapabilities,
+  type ModelCapabilities,
+  type ModelCapabilitiesEntry,
+  type ModelCapabilitiesMatch,
+} from './model-capabilities';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export { normalizeHeaders } from './normalize-headers';
 export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
