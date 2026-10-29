@@ -80,8 +80,6 @@ run(async () => {
       mcpServers: {
         counter: {
           url: `http://127.0.0.1:${port}/mcp`,
-          auth: false,
-          lifecycle: 'eager',
         },
       },
     }),

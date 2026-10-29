@@ -19,6 +19,10 @@ The content sync generates `apps/docs/content/` from three reviewed sources:
 - v5 documentation from the commit pinned in
   `scripts/sync-content.mjs`.
 
+`dev:site` syncs only v7 so the dev server starts faster; v5 and v6 pages
+return 404. Set `DOCS_ALL_VERSIONS=1` to include them. Builds always include
+every version.
+
 Generated content, Fumadocs source files, and Next.js output are ignored by
 Git. Run the complete local validation with:
 
@@ -30,7 +34,7 @@ To run the versioned-search browser regression, start the docs server on port
 3217, then run the test from the repository root (requires Playwright Chromium):
 
 ```bash
-pnpm --filter ai-sdk-docs dev:site --port 3217
+DOCS_ALL_VERSIONS=1 pnpm --filter ai-sdk-docs dev:site --port 3217
 node --test apps/docs/scripts/search.e2e.mjs
 ```
 

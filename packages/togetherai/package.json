@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/togetherai",
-  "version": "3.0.68",
+  "version": "3.0.81",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -50,6 +50,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "zod": "3.25.76"

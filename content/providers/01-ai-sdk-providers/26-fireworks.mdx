@@ -1,17 +1,64 @@
 ---
 title: Fireworks
-description: Learn how to use Fireworks models with the AI SDK.
+description: Learn how to use Fireworks with AI Gateway and the direct provider.
 ---
 
 # Fireworks Provider
 
 [Fireworks](https://fireworks.ai/) is a platform for running and testing LLMs through their [API](https://readme.fireworks.ai/).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/fireworks` to connect directly to Fireworks.
 
-## Setup
+```ts provider="fireworks" model="openai/gpt-oss-120b"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Fireworks provider is available via the `@ai-sdk/fireworks` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/fireworks" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['fireworks']`. This sends the request to Fireworks first, then falls back to other available providers of the same model if Fireworks is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Fireworks. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Fireworks through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/fireworks`
+
+For direct access to Fireworks, install `ai` and `@ai-sdk/fireworks`:
+
+<InstallPackages packages="ai @ai-sdk/fireworks" />
+
+Set your Fireworks API credential in the `FIREWORKS_API_KEY` environment variable:
+
+```bash
+export FIREWORKS_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/fireworks`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/fireworks` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -64,11 +111,9 @@ const model = fireworks('accounts/fireworks/models/firefunction-v1');
 ### Reasoning Models
 
 For models that support reasoning effort, use the top-level `reasoning` parameter.
-Fireworks maps `'minimal'` to `'low'` and `'xhigh'` or `'max'` to `'high'`, returning
-a compatibility warning whenever it coerces the effort. Streaming calls include
-the warning in the `stream-start` event. Explicit
-`providerOptions.fireworks.reasoningEffort` takes precedence over the top-level
-setting.
+Most Fireworks models accept every reasoning effort from `'none'` to `'max'`.
+GPT-OSS, GLM-5.3 and Muse Spark models cannot disable reasoning, and Nemotron
+and Inkling models do not support `'minimal'`.
 
 Fireworks exposes the thinking of `deepseek-r1` in the generated text using the `<think>` tag.
 You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:

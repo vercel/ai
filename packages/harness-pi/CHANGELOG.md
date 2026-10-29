@@ -1,5 +1,220 @@
 # @ai-sdk/harness-pi
 
+## 1.0.170
+
+### Patch Changes
+
+- c85285b: refactor(harness-pi): resolve sandbox paths on first use so session start makes no sandbox calls
+
+  Starting a Pi session no longer resolves the sandbox `HOME` or the `fileToolPathPolicy` denied roots. The harness resolves them the first time a native file tool runs or a turn has skills to write, and retries the resolution on the next use if it fails. Skills that an earlier process wrote and the current turn no longer passes are removed the first time a native file tool runs. A turn without skills or native file tool calls makes no sandbox calls.
+
+  A denied root that cannot be resolved now fails the native file tool call that needs it instead of failing session start.
+
+- c85285b: refactor(harness-pi): drop the workspace mirror and list sandbox skills from settings
+
+  The harness no longer copies the sandbox workspace to the host or patches Node's `fs` module to serve that copy at the sandbox path. Pi used the copy only to discover `AGENTS.md`, `CLAUDE.md` and project skills, so Pi no longer reads those files from the sandbox workspace. Native file tools resolve relative paths against the sandbox work directory directly.
+
+  Put project context in `instructions` instead. For skills that already exist in the sandbox, the new `resources.skills` setting lists them to the model; each must exist at `filePath`, and the model reads it with the `read` tool, which can read the skill's directory. Pi reads no project settings, context files or skills from the host.
+
+  Inline extensions no longer see a host copy of the workspace, including when the sandbox shares the host filesystem. Read project files through `session.sandboxSession`.
+
+- c85285b: feat(harness-pi): keep the Pi session in lifecycle data
+
+  The `data` of both lifecycle states (`continue-turn` and `resume-session`) is now `{ entries, pendingToolBatch? }`: the Pi session header followed by its entries, plus the tool batch that was waiting on host input. Pi keeps the session in memory and restores it from those entries, migrating entries recorded under an older Pi session version. Nothing is written to or read from the sandbox for session state, so stopping, suspending and resuming a session make no sandbox calls. `sessionFileName` is gone from lifecycle data.
+
+  A rebuild of the Pi session for a changed tool set now keeps the conversation. It used to start the rebuilt session with an empty history.
+
+  Breaking: a state recorded before this version (`{ sessionFileName }`) still passes `lifecycleStateSchema` but resumes as a fresh session, so conversations suspended across the upgrade lose their history. A pending tool batch in such a state is dropped, because there is no journal to replay it against.
+
+  Deferred MCP tools that `tool_search` loaded in an earlier turn are not re-activated when the session is rebuilt from entries, as before.
+
+- c85285b: feat(harness-pi): keep the Pi session in an optional caller-provided append-only `sessionStorage`, so lifecycle state holds only the id of the entry the session ends at
+
+  The harness appends each new Pi session entry with its `entryId`, `parentEntryId` and Pi session `version`, through the optional `appendMany` when the storage has it. A storage can ignore a retried append, and `read` can return only the entries that lead to `leafId`.
+
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.167
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.166
+
+### Patch Changes
+
+- 893ade1: feat(harness): consistently use `harnessStateDirectoryPath()` for session storage of in-process harnesses
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.164
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.162
+
+### Patch Changes
+
+- 36e4ce7: fix(harness-pi): ensure `/skill` command reads skill file from sandbox
+- 7fcc24e: fix(harness-pi): validate cold-resume tool calls against host state
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.159
+
+### Patch Changes
+
+- 62b54a5: feat(harness-pi): add support for image input
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.157
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.155
+- @ai-sdk/provider-utils@5.0.63
+
+## 1.0.156
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.155
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
+## 1.0.154
+
+### Patch Changes
+
+- 90983d7: feat(harness-pi): add configurable writable sandbox roots for Pi's native file tools
+- d10fa3e: feat(harness-pi): pass the harness session to extension factories
+
+  Each `extensionFactories` entry now receives a second argument, a `PiHarnessExtensionSession` with the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. An extension can now run work against the session's sandbox with the session's instructions, such as a tool that delegates to a child Pi session. Existing `(pi) => void` factories keep working unchanged.
+
+- 9323fdb: feat(harness-pi): serve mcpServers with Pi's native MCP and tool_search
+
+  `mcpServers` is now served by Pi's built-in MCP extension and its `tool_search` tool instead of `pi-mcp-adapter`, which is no longer a dependency. Each entry is Pi's `McpServerConfig`: stdio `{ command, args, env, cwd }` or streamable HTTP `{ url, headers, timeout }`, plus `exposure`, `toolExposure`, `enabled` and `description`. The setting stays typed as `Record<string, unknown>` like the other harnesses; type entries with the exported `PiMcpServerConfig`. Fields that only the adapter understood, such as `lifecycle`, are no longer supported.
+
+  Tool names are always `mcp__<server>__<tool>`, with `-` in either name replaced by `_`, so a server named `brand-ai` now yields `mcp__brand_ai__<tool>`. `exposure` defaults to `direct`, which declares a server's tools to the model. `deferred` tools stay undeclared until the model loads them through `tool_search` and then calls them by name. Pi's own default, `codemode`, is not supported because the harness does not load Pi's codemode extension; an entry that asks for it fails session start, as does an entry Pi rejects.
+
+  `mcpSettings.toolPrefix` and `mcpSettings.outputGuard` are deprecated. A `toolPrefix` other than `'mcp'` or `outputGuard: false` now fails session start, since native MCP cannot honor either. Pi truncates text results over 20 KB and writes the full text to a file in the host temp directory.
+
+  The harness has no sign-in flow, so an HTTP server that requires authentication must carry an `Authorization` header or `auth.provider`; with the header, OAuth never runs. The harness reads no `mcp.json` and neither reads nor writes `mcp.log` or `mcp-auth.json`, so a sign-in stored by the Pi CLI is never sent. `@earendil-works/pi-ai` is no longer a direct dependency.
+
+- 286e0c7: fix(harness-pi): return images from the read tool as image blocks
+
+  The `read` tool decoded every file as UTF-8, so the model received an image as unreadable text. The tool now runs Pi's own `createReadToolDefinition` over the sandbox: PNG, JPEG, GIF, WebP and BMP files come back as image blocks that Pi resizes, and text reads keep Pi's truncation and paging notices. The tool still takes `file_path`, and path mapping and `fileToolPathPolicy` apply as before.
+
+- 8ae0804: fix(harness-pi): judge a turn by its last attempt and keep suspend errors out of the stream
+
+  A turn that Pi recovered by retrying a failed request (rate limit, overload, context overflow after compaction) ended with an `error` part, because the first terminal error seen was kept for the whole turn. The last assistant message now decides the outcome, so a recovered turn ends with `finish`.
+
+  Once `doSuspendTurn` has begun, every terminal or thrown error of the turn being cut belongs to the suspend and no longer emits an `error` part. Before, only errors that looked like an abort were kept silent, and a request Pi started on an already-aborted signal reports `stopReason: 'error'` ("This operation was aborted") while a provider can also fail during the cut. Reporting such an error ended the slice as failed with the unfinished turn nested in its resume state, and a session built from that state refused every later prompt.
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.153
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.151
+
+### Patch Changes
+
+- 1da6adb: fix(harness-pi): preserve meaningful tool result envelopes and emit JSON-safe empty text results
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.150
 
 ### Patch Changes

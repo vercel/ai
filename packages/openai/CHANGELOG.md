@@ -1,5 +1,153 @@
 # @ai-sdk/openai
 
+## 4.0.104
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- 599a97f: fix(openai): read transcription duration from `usage` for duration-billed `json` responses
+
+  `durationInSeconds` now falls back to `usage.seconds` when `usage.type` is `duration` and the response has no top-level `duration` (e.g. `gpt-transcribe` with the default `json` response format).
+
+- 8375141: Support streaming transcription with `gpt-live-transcribe` and `gpt-transcribe`. For these models the `language` provider option is sent as a single-entry `languages` list. `gpt-transcribe` warns about and omits `streaming.delay`, which it does not support. `gpt-live-transcribe` rejects non-streaming transcription, since it has no REST endpoint.
+- 7eac057: fix(openai): strip `propertyNames` schemas that omit `type: 'string'` (e.g. Zod 3 records with constrained keys) instead of throwing an unsupported functionality error
+- 436374e: fix(openai): report unfinished web searches as tool errors
+- 9026c7d: fix(openai): only send transcription response format and timestamp defaults when needed
+
+  Transcription requests no longer send `response_format=verbose_json` or `timestamp_granularities[]=segment` unless the caller sets them or the model needs them. Previously, any `providerOptions.openai` value (such as a `prompt`) caused `verbose_json` to be sent for models like `gpt-transcribe`, which rejected the request.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.103
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.102
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 4.0.100
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.99
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- c787919: Defer construction of provider validation schemas until first use to reduce package import time.
+- 0257b47: feat(openai): support 12h prompt cache writes and cache prewarming
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 4.0.98
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 8b728ec: fix(openai): preserve detected language codes in transcription responses
+- 3cb1dae: fix(openai): forward shell_call timeout_ms and max_output_length to the shell tool and round-trip max_output_length
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.97
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.96
+
+### Patch Changes
+
+- 2be133e: chore(openai): deprecate 'webSearchPreview()' tool
+- fa98094: feat(openai): support ordered 'additional_tools' from tool results
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.95
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.93
+
+### Patch Changes
+
+- 216e2c9: fix(openai): send assistant text with content instead of an item reference when its reasoning was removed
+
+  With reasoning models and `store: true`, pruning reasoning (e.g. `pruneMessages({ reasoning: 'all' })`) caused follow-up requests to fail with "Item 'msg\_...' of type 'message' was provided without its required 'reasoning' item". Assistant text parts are now only sent as item references when they are preceded by reasoning in the same assistant message.
+
+## 4.0.92
+
+### Patch Changes
+
+- 6aedb07: fix(openai): replay web search results when response storage is disabled
+- e57803c: Expose complete retrieved web-search URLs and file-search documents as sources, and normalize inline references separately as citations on text parts and text-end events. Preserve citation-derived sources when retrieval data is unavailable, including web-search-preview and Azure responses. Keep raw annotations, citation titles, and text locations available. Deduplicate file-search passages by file ID.
+- 1f7e5ad: fix(openai): JSON-encode custom tool input deltas for progressive UI updates
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 4.0.91
 
 ### Patch Changes

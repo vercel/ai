@@ -1,5 +1,178 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.169
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.167
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.166
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.164
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.162
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.160
+
+### Patch Changes
+
+- f2c2a20: feat(harness-opencode): add support for image input
+  - @ai-sdk/harness@1.0.158
+
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.156
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+
+## 1.0.154
+
+### Patch Changes
+
+- 4131de3: feat(harness-opencode): support native built-in tool filtering
+- 3f0c878: fix(harness-opencode): continue turns paused for a tool approval or tool result instead of hanging
+- 25ec1b2: fix(harness-opencode): install `ripgrep` universally via NPM
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.153
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.151
+
+### Patch Changes
+
+- 4affc19: fix(harness-opencode): pass host tool schemas by file to avoid OpenCode spawn failures
+- 409da36: fix(harness-opencode): keep observation metadata out of native tool arguments
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.150
 
 ### Patch Changes

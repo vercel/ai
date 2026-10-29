@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -380,26 +382,31 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
 }
 
 // Loose: the parsed value is returned as `usage.raw`.
-const usageSchema = z.looseObject({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
+const usageSchema = () =>
+  z.looseObject({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+  });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleCompletionResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const openaiCompatibleCompletionResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      text: z.string(),
-      finish_reason: z.string(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          text: z.string(),
+          finish_reason: z.string(),
+        }),
+      ),
+      usage: usageSchema().nullish(),
     }),
   ),
-  usage: usageSchema.nullish(),
-});
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -420,7 +427,7 @@ const createOpenAICompatibleCompletionChunkSchema = <
           index: z.number(),
         }),
       ),
-      usage: usageSchema.nullish(),
+      usage: usageSchema().nullish(),
     }),
     errorSchema,
   ]);

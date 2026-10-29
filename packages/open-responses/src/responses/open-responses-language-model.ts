@@ -17,7 +17,6 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createProviderStreamError,
-  isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -336,24 +335,21 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       schema: openResponsesLanguageModelOptions,
     });
 
-    const resolvedReasoningEffort =
-      openResponsesOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning)
-        ? reasoning === 'none'
-          ? 'none'
-          : mapReasoningToProviderEffort({
-              reasoning,
-              effortMap: {
-                minimal: 'low',
-                low: 'low',
-                medium: 'medium',
-                high: 'high',
-                xhigh: 'xhigh',
-                max: 'max',
-              },
-              warnings,
-            })
-        : undefined);
+    const resolvedReasoningEffort = mapReasoningToProviderEffort({
+      reasoning,
+      providerOptionsEffort: openResponsesOptions?.reasoningEffort,
+      // The Open Responses efforts, plus 'max', which is passed through so
+      // that compatible servers can interpret it.
+      effortMap: {
+        none: 'none',
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      },
+      warnings,
+    });
 
     return {
       body: {
@@ -655,8 +651,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     let activeReasoningId: string | undefined;
     let hasToolCalls = false;
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     const toolCallsByItemId = new Map<
@@ -691,6 +688,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (!parseResult.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: parseResult.error });
               return;
             }
@@ -712,6 +710,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                       part.type === 'tool-input-start';
                   }
                 } catch (error) {
+                  finishReason = { unified: 'error', raw: undefined };
                   controller.enqueue({ type: 'error', error });
                 }
                 return;
@@ -860,6 +859,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                   hasToolCalls ||= part.type === 'tool-call';
                 }
               } catch (error) {
+                finishReason = { unified: 'error', raw: undefined };
                 controller.enqueue({ type: 'error', error });
               }
             }

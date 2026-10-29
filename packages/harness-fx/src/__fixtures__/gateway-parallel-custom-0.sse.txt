@@ -1,0 +1,29 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"c83edfc3-e48c-9048-b839-8a2ea82f0091","modelId":"grok-4.7","timestamp":"2026-10-15T00:41:32.000Z"}
+
+data: {"type":"reasoning-start","id":"reasoning-rs_c83edfc3-e48c-9048-b839-8a2ea82f0091","providerMetadata":{"xai":{"itemId":"rs_c83edfc3-e48c-9048-b839-8a2ea82f0091"}}}
+
+data: {"type":"reasoning-end","id":"reasoning-rs_c83edfc3-e48c-9048-b839-8a2ea82f0091","providerMetadata":{"xai":{"reasoningEncryptedContent":"5NUKPP7q2/gYwT3adFgEGYHnEcgn4jITW9OQsxZJVXJChCeWoXms+ZYXOQAIw+QOHuRfmi1b0LTwOCgmQtPOEIj/K/eorZWqdik+IkjwwJ1Fq8uxFo4zDhpEkg59lronc5+o6nw644VtrKGB8xH3OrYdTyJhP7eZ6eUCYdd5lxzgv9e02f3Zq4h4UCr2s6yaIgSO5+FMBLGJEqTNc1LP/YRX/cR7hbbIX8gvDFhrmxvT+Ss7r8iQmA","itemId":"rs_c83edfc3-e48c-9048-b839-8a2ea82f0091"}}}
+
+data: {"type":"tool-input-start","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-0","toolName":"weather"}
+
+data: {"type":"tool-input-delta","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-0","delta":"{\"city\":\"Paris\"}"}
+
+data: {"type":"tool-input-end","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-0"}
+
+data: {"type":"tool-call","toolCallId":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-0","toolName":"weather","input":"{\"city\":\"Paris\"}"}
+
+data: {"type":"tool-input-start","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-1","toolName":"weather"}
+
+data: {"type":"tool-input-delta","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-1","delta":"{\"city\":\"Tokyo\"}"}
+
+data: {"type":"tool-input-end","id":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-1"}
+
+data: {"type":"tool-call","toolCallId":"call-fbf0a350-5238-497e-97d2-fd4330a9d913-1","toolName":"weather","input":"{\"city\":\"Tokyo\"}"}
+
+data: {"type":"finish","finishReason":{"unified":"tool-calls","raw":"completed"},"usage":{"inputTokens":{"total":2186,"noCache":1034,"cacheRead":1152},"outputTokens":{"total":48,"text":17,"reasoning":31},"raw":{"input_tokens":2186,"output_tokens":48,"total_tokens":2234,"input_tokens_details":{"cached_tokens":1152},"output_tokens_details":{"reasoning_tokens":31},"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":29320000,"context_details":{"input_tokens":2186,"output_tokens":51}}},"providerMetadata":{"xai":{"costInUsdTicks":29320000,"serviceTier":"default"},"gateway":{"routing":{"originalModelId":"spacexai/grok-4.7","resolvedProvider":"xai","fallbacksAvailable":[],"planningReasoning":"System credentials planned for: xai. Total execution order: xai(system)","canonicalSlug":"xai/grok-4.7","finalProvider":"xai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"xai/grok-4.7","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"xai","credentialType":"system","success":true,"startTime":1792024892439,"endTime":1792024893470,"providerRequestId":"c83edfc3-e48c-9048-b839-8a2ea82f0091","statusCode":200,"providerResponseId":"c83edfc3-e48c-9048-b839-8a2ea82f0091"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"no_pin"},"clientSessionId":"JX6wLq14h9h7","clientSessionIdSource":"explicit"},"cost":"0.002932","marketCost":"0.002932","surchargeCost":"0.0001","gatewayCost":"0.003032","inferenceCost":"0.002932","inputInferenceCost":"0.002644","outputInferenceCost":"0.000288","providerAllowlistCost":"0.0001","generationId":"gen_01M4YG3N07B5D5ZSFMZYCMW2RZ"}}}
+
+DONE
+
+

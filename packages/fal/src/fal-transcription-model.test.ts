@@ -13,6 +13,7 @@ const model = provider.transcription('wizper');
 const server = createTestServer({
   'https://queue.fal.run/fal-ai/wizper': {},
   'https://queue.fal.run/fal-ai/wizper/requests/test-id': {},
+  'https://queue.fal.run/fal-ai/wizper/requests/abc%2F..%2F..%2Finternal': {},
 });
 
 function prepareJsonFixtureResponse(headers?: Record<string, string>) {
@@ -39,6 +40,44 @@ function prepareJsonFixtureResponse(headers?: Record<string, string>) {
 describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse());
+
+    it('should encode the request ID as a single URL path segment', async () => {
+      const requestId = 'abc/../../internal';
+
+      server.urls['https://queue.fal.run/fal-ai/wizper'].response = {
+        type: 'json-value',
+        body: {
+          status: 'IN_QUEUE',
+          request_id: requestId,
+          response_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}/result`,
+          status_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}`,
+          cancel_url: `https://queue.fal.run/fal-ai/wizper/requests/${requestId}/cancel`,
+          logs: null,
+          metrics: {},
+          queue_position: 0,
+        },
+      };
+      server.urls[
+        'https://queue.fal.run/fal-ai/wizper/requests/abc%2F..%2F..%2Finternal'
+      ].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello from the Versal AISDK.',
+          chunks: [
+            { timestamp: [0, 2.508], text: 'Hello from the Versal AISDK.' },
+          ],
+          languages: ['en'],
+        },
+      };
+
+      await model.doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      expect(server.calls[1].requestUrl).toBe(
+        `https://queue.fal.run/fal-ai/wizper/requests/${encodeURIComponent(
+          requestId,
+        )}`,
+      );
+    });
 
     it('should pass the model', async () => {
       await model.doGenerate({

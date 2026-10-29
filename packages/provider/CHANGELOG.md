@@ -1,5 +1,60 @@
 # @ai-sdk/provider
 
+## 4.0.34
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+
+## 4.0.33
+
+### Patch Changes
+
+- 85d84a1: feat(provider): add experimental streaming speech model spec
+
+  Adds `Experimental_StreamingSpeechModelV4`, a `SpeechModelV4` extension with `doStream()` that takes the input text as a stream of text parts (each with an optional per-part `voice` and `providerOptions`) and returns a stream of audio parts, plus `Experimental_`-prefixed stream option, text part, part, result, and usage types. The stable `SpeechModelV4` is unchanged.
+
+## 4.0.32
+
+### Patch Changes
+
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+## 4.0.31
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+
+## 4.0.30
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+
+## 4.0.29
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+
+## 4.0.28
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+
+## 4.0.27
+
+### Patch Changes
+
+- e57803c: Add an optional shared citation representation to generated text and text-end stream events, separate from retrieved sources. Preserve citations in core result content and UI message text parts, including validation and persistence, without changing content or stream event discriminants.
+
 ## 4.0.26
 
 ### Patch Changes

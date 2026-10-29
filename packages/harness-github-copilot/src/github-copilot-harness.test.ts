@@ -20,10 +20,11 @@ describe('createGitHubCopilot', () => {
     mocks.createACP.mockClear();
   });
 
-  it('configures the GitHub Copilot ACP implementation', () => {
+  it('configures the GitHub Copilot ACP agent', () => {
     createGitHubCopilot();
 
     const settings = lastSettings();
+    expect(settings.nonTextContentTypes).toEqual(['image']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,

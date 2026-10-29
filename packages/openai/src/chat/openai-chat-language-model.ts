@@ -26,7 +26,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  getOpenAILanguageModelCapabilities,
+  resolveOpenAIReasoningEffort,
+} from '../openai-language-model-capabilities';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -52,6 +55,8 @@ import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -119,25 +124,37 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
-    // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    let resolvedReasoningEffort =
-      openaiOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
+    // Some models reject function tools unless reasoning is disabled, even
+    // when no reasoning effort is sent, so reasoning is set to 'none'.
+    const requiresNoReasoningEffort =
+      !modelCapabilities.supportsChatFunctionToolsWithReasoning &&
+      openaiOptions.reasoningEffort == null &&
+      (tools?.some(tool => tool.type === 'function') ?? false);
 
     if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
+      requiresNoReasoningEffort &&
+      isCustomReasoning(reasoning) &&
+      reasoning !== 'none'
     ) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+        type: 'compatibility',
+        feature: 'reasoning',
+        details: `${this.modelId} does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.`,
       });
-      resolvedReasoningEffort = undefined;
     }
+
+    const resolvedReasoningEffort = requiresNoReasoningEffort
+      ? 'none'
+      : resolveOpenAIReasoningEffort({
+          providerReasoningEffort: openaiOptions.reasoningEffort,
+          reasoning,
+          // Only the Responses API supports `max`.
+          supportedReasoningEfforts:
+            modelCapabilities.supportedReasoningEfforts?.filter(
+              effort => effort !== 'max',
+            ),
+          warnings,
+        });
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -182,7 +199,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: this.config.requestModelId ?? this.modelId,
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
@@ -244,7 +261,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportedReasoningEfforts != null &&
+      modelCapabilities.supportsConfigurationUpdate &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
@@ -404,7 +421,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
       headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
@@ -504,7 +521,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/chat/completions',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -530,8 +547,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;

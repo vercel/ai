@@ -1,6 +1,9 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { isRecord } from '@ai-sdk/provider-utils';
 
+const ROOT_ERROR =
+  'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)';
+
 const SCHEMA_ARRAY_KEYS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
 const SCHEMA_MAP_KEYS = [
   'properties',
@@ -22,8 +25,9 @@ const SCHEMA_SINGLE_KEYS = [
 /**
  * Normalizes a JSON Schema to the subset Moonshot's MFJS validator accepts:
  * `object` root required, tuple `items` become `prefixItems`, and `type` next
- * to `anyOf` moves into the branches. Everything else passes through. The
- * full original schema is still used for AI SDK result validation.
+ * to `anyOf` moves into the branches below the root. Everything else passes
+ * through. The full original schema is still used for AI SDK result
+ * validation.
  */
 export function normalizeJsonSchemaForMFJS(schema: unknown): unknown {
   return normalizeDefinition(schema, true);
@@ -33,21 +37,26 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
   if (typeof definition === 'boolean' || !isRecord(definition)) {
     if (isRoot) {
       throw new UnsupportedFunctionalityError({
-        functionality:
-          'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+        functionality: ROOT_ERROR,
       });
     }
     return definition;
   }
 
-  if (isRoot && definition.type !== 'object') {
+  // A root union of objects (Zod z.union / discriminatedUnion of objects) is
+  // an object; MFJS only needs the root to say so.
+  const root =
+    isRoot && definition.type === undefined && isObjectUnion(definition)
+      ? { type: 'object', ...definition }
+      : definition;
+
+  if (isRoot && root.type !== 'object') {
     throw new UnsupportedFunctionalityError({
-      functionality:
-        'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+      functionality: ROOT_ERROR,
     });
   }
 
-  const result: Record<string, unknown> = { ...definition };
+  const result: Record<string, unknown> = { ...root };
 
   // Existing prefixItems stay first (they are positional).
   if (Array.isArray(result.items)) {
@@ -61,8 +70,13 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
     result.items = normalizeDefinition(result.items, false);
   }
 
-  // MFJS requires type to live inside anyOf items.
-  if (typeof result.type === 'string' && Array.isArray(result.anyOf)) {
+  // MFJS requires type to live inside anyOf items, except at the root, which
+  // must keep type "object" (moving it leaves a typeless root that 400s).
+  if (
+    !isRoot &&
+    typeof result.type === 'string' &&
+    Array.isArray(result.anyOf)
+  ) {
     const parentType = result.type;
     delete result.type;
     result.anyOf = result.anyOf.map(branch =>
@@ -99,4 +113,48 @@ function normalizeDefinition(definition: unknown, isRoot: boolean): unknown {
   }
 
   return result;
+}
+
+/**
+ * Every `anyOf`/`oneOf` on the root is a non-empty union of object schemas.
+ * Local `$ref`s (`#/$defs/X`, `#/definitions/X`) are resolved one hop. A
+ * nullable branch (`type: ['object', 'null']`) is not an object: Moonshot
+ * requires an object root, so such unions keep throwing.
+ */
+function isObjectUnion(definition: Record<string, unknown>): boolean {
+  const unions = (['anyOf', 'oneOf'] as const)
+    .map(key => definition[key])
+    .filter(value => value !== undefined);
+  return (
+    unions.length > 0 &&
+    unions.every(
+      branches =>
+        Array.isArray(branches) &&
+        branches.length > 0 &&
+        branches.every(branch => isObjectSchema(branch, definition)),
+    )
+  );
+}
+
+function isObjectSchema(
+  branch: unknown,
+  root: Record<string, unknown>,
+): boolean {
+  const resolved = resolveLocalRef(branch, root);
+  return (
+    isRecord(resolved) &&
+    (resolved.type === 'object' ||
+      (resolved.type === undefined && isRecord(resolved.properties)))
+  );
+}
+
+function resolveLocalRef(
+  branch: unknown,
+  root: Record<string, unknown>,
+): unknown {
+  if (!isRecord(branch) || typeof branch.$ref !== 'string') return branch;
+  const match = /^#\/(\$defs|definitions)\/([^/]+)$/.exec(branch.$ref);
+  if (match == null) return branch;
+  const defs = root[match[1]];
+  return isRecord(defs) ? defs[match[2]] : branch;
 }

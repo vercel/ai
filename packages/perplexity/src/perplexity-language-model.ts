@@ -11,6 +11,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -32,7 +33,7 @@ import { convertToPerplexityInput } from './convert-to-perplexity-input';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import {
   perplexityAgentChunkSchema,
-  perplexityAgentResponseSchema,
+  perplexityAgentResponseSchemaValidator,
   perplexityErrorSchema,
   perplexityErrorToMessage,
   type PerplexityAgentTool,
@@ -54,9 +55,13 @@ type PerplexityAgentConfig = {
   fetch?: FetchFunction;
 };
 
-type PerplexityOutputItem = z.infer<typeof perplexityOutputItemSchema>;
-type PerplexitySearchResult = z.infer<typeof perplexitySearchResultSchema>;
-type PerplexityUsage = z.infer<typeof perplexityUsageSchema>;
+type PerplexityOutputItem = z.infer<
+  ReturnType<typeof perplexityOutputItemSchema>
+>;
+type PerplexitySearchResult = z.infer<
+  ReturnType<typeof perplexitySearchResultSchema>
+>;
+type PerplexityUsage = z.infer<ReturnType<typeof perplexityUsageSchema>>;
 type PerplexityUrlSource = Extract<
   LanguageModelV4Content,
   { type: 'source'; sourceType: 'url' }
@@ -95,6 +100,7 @@ function getResponseMetadata(response: {
 
 function getProviderMetadata(
   usage: PerplexityUsage | null | undefined,
+  searchQueries: string[],
 ): SharedV4ProviderMetadata {
   const cost = usage?.cost;
   const numSearchQueries = usage?.tool_calls_details
@@ -110,6 +116,7 @@ function getProviderMetadata(
         numSearchQueries,
       },
       images: null,
+      searchQueries: searchQueries.length > 0 ? searchQueries : null,
       cost:
         cost == null
           ? null
@@ -166,6 +173,22 @@ function hasSearchResultId(source: PerplexityUrlSource): boolean {
 
 function getSearchResults(item: PerplexityOutputItem) {
   return item.type === 'search_results' ? (item.results ?? []) : [];
+}
+
+/**
+ * Appends web search queries in the order Perplexity ran them, skipping
+ * duplicates. The same queries can arrive in reasoning events, output items,
+ * and the completed response.
+ */
+function collectSearchQueries(
+  target: string[],
+  queries: readonly string[] | null | undefined,
+) {
+  for (const query of queries ?? []) {
+    if (!target.includes(query)) {
+      target.push(query);
+    }
+  }
 }
 
 function getFetchedSources(item: PerplexityOutputItem) {
@@ -265,26 +288,20 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     let reasoningConfig = agentOptions.reasoning;
     if (reasoningConfig == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-        });
-      } else {
-        const effort = mapReasoningToProviderEffort({
-          reasoning,
-          effortMap: {
-            minimal: 'minimal',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            xhigh: 'xhigh',
-            max: 'xhigh',
-          },
-          warnings,
-        });
-        reasoningConfig = effort == null ? undefined : { effort };
-      }
+      // Reasoning cannot be disabled, so reasoning 'none' maps to the lowest
+      // effort.
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: {
+          minimal: 'minimal',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'xhigh',
+        },
+        warnings,
+      });
+      reasoningConfig = effort == null ? undefined : { effort };
     }
 
     const body: Record<string, unknown> = {
@@ -339,7 +356,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         errorToMessage: perplexityErrorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
-        perplexityAgentResponseSchema,
+        perplexityAgentResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -359,6 +376,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const content: LanguageModelV4Content[] = [];
     const sourceIndexesByUrl = new Map<string, number>();
+    const searchQueries: string[] = [];
     let hasFunctionCall = false;
 
     const addSource = (source: PerplexityUrlSource) => {
@@ -393,6 +411,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           }
         }
       } else if (item.type === 'search_results') {
+        collectSearchQueries(searchQueries, item.queries);
         for (const result of getSearchResults(item)) {
           addSource(createSource(result, this.config.generateId));
         }
@@ -453,7 +472,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         body: rawResponse,
       },
       warnings,
-      providerMetadata: getProviderMetadata(response.usage),
+      providerMetadata: getProviderMetadata(response.usage, searchQueries),
     };
   }
 
@@ -478,8 +497,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: PerplexityUsage | undefined;
@@ -489,13 +509,14 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     const textStates = new Map<string, { text: string; ended: boolean }>();
     const emittedSourceUrls = new Set<string>();
     const pendingSourcesByUrl = new Map<string, PerplexityUrlSource>();
+    const searchQueries: string[] = [];
     const seenFunctionCalls = new Set<string>();
     const generateId = this.config.generateId;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof perplexityAgentChunkSchema>>,
+          ParseResult<InferSchema<typeof perplexityAgentChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -666,6 +687,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                   }
                 }
               }
+              if (item.type === 'search_results') {
+                collectSearchQueries(searchQueries, item.queries);
+              }
               for (const result of getSearchResults(item)) {
                 emitSource(createSource(result, generateId));
               }
@@ -740,7 +764,12 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 break;
               }
 
-              case 'response.reasoning.search_queries':
+              case 'response.reasoning.search_queries': {
+                emitReasoningThought(value.thought);
+                collectSearchQueries(searchQueries, value.queries);
+                break;
+              }
+
               case 'response.reasoning.fetch_url_queries': {
                 emitReasoningThought(value.thought);
                 break;
@@ -823,6 +852,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                     }),
                     raw: rawFinishReason,
                   };
+                } else if (finishReason.unified === 'interrupted') {
+                  // The terminal event arrived without response details.
+                  finishReason = { unified: 'other', raw: undefined };
                 }
                 break;
               }
@@ -857,7 +889,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertPerplexityUsage(usage),
-              providerMetadata: getProviderMetadata(usage),
+              providerMetadata: getProviderMetadata(usage, searchQueries),
             });
           },
         }),

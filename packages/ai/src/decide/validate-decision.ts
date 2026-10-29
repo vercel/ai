@@ -3,7 +3,6 @@ import {
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
   type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
-import { filePartSchema, textPartSchema } from '../prompt/content-part';
 import type { DecisionState } from './decision-state';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
@@ -17,28 +16,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function isJSON(value: unknown, ancestors = new Set<object>()): boolean {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean')
-    return true;
+/**
+ * Checks the JSON constraints that types cannot express: finite numbers, no
+ * cycles, and no array holes. These would otherwise be silently changed by
+ * `JSON.stringify` or make it throw.
+ */
+function isSerializableJSON(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
   if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value !== 'object' || (!Array.isArray(value) && !isRecord(value)))
-    return false;
+  if (value == null || typeof value !== 'object') return true;
   if (ancestors.has(value)) return false;
   ancestors.add(value);
-  const valid =
-    Object.getOwnPropertySymbols(value).length === 0 &&
-    (Array.isArray(value)
-      ? Array.from(value).every(item => isJSON(item, ancestors))
-      : Object.values(value).every(item => isJSON(item, ancestors)));
+  const valid = Array.isArray(value)
+    ? Array.from(value.keys()).every(
+        index => index in value && isSerializableJSON(value[index], ancestors),
+      )
+    : Object.values(value).every(item => isSerializableJSON(item, ancestors));
   ancestors.delete(value);
   return valid;
-}
-
-function isInput(value: unknown): boolean {
-  return (
-    (typeof value === 'string' || Array.isArray(value) || isRecord(value)) &&
-    isJSON(value)
-  );
 }
 
 function invalidInput(
@@ -56,45 +53,43 @@ export function validateDecisionInput({
   state: DecisionState;
   questions: Readonly<Record<string, DecisionQuestion>>;
 }) {
-  const validState = Array.isArray(state)
-    ? Array.from(state).every(part => {
-        if (!isRecord(part)) return false;
-        switch (part.type) {
-          case 'text':
-            return textPartSchema.safeParse(part).success;
-          case 'file':
-            return filePartSchema.safeParse(part).success;
-          case 'json':
-            return isJSON(part.value);
-          default:
-            return false;
-        }
-      })
-    : (typeof state === 'string' || isRecord(state)) && isJSON(state);
-  if (!validState) {
+  if (
+    Array.isArray(state) &&
+    Array.from(state.keys()).some(index => !(index in state))
+  ) {
+    invalidInput('state', state, 'state parts must not contain array holes');
+  }
+
+  const stateJSON = Array.isArray(state)
+    ? state.flatMap(part => (part.type === 'json' ? [part.value] : []))
+    : state;
+  if (!isSerializableJSON(stateJSON)) {
     invalidInput(
       'state',
       state,
-      'must be a string, JSON object, or array of text, file, or json parts',
+      'JSON content must not contain non-finite numbers, cycles, or array holes',
     );
   }
-  if (!isRecord(questions) || Object.keys(questions).length === 0) {
+
+  if (Object.keys(questions).length === 0) {
     invalidInput('questions', questions, 'must be a nonempty question map');
   }
 
   for (const [id, question] of Object.entries(questions)) {
     const parameter = `questions.${id}`;
-    if (!isRecord(question) || !isInput(question.instructions)) {
+    if (
+      !isSerializableJSON(question.instructions) ||
+      ('criteria' in question && !isSerializableJSON(question.criteria))
+    ) {
       invalidInput(
         parameter,
         question,
-        'instructions must be a JSON-compatible string, object, or array',
+        'instructions and criteria must not contain non-finite numbers, cycles, or array holes',
       );
     }
-    const criteria = question.criteria;
     switch (question.type) {
       case 'choice':
-        if (!isRecord(criteria) || Object.keys(criteria).length === 0) {
+        if (Object.keys(question.criteria).length === 0) {
           invalidInput(
             parameter,
             question,
@@ -103,18 +98,29 @@ export function validateDecisionInput({
         }
         break;
       case 'score':
-        if (!Array.isArray(criteria) || criteria.length < 2) {
+        if (question.criteria.length === 0) {
           invalidInput(
             parameter,
             question,
-            'score criteria must contain at least two ordered levels',
+            'score criteria must contain at least one ordered level',
           );
         }
         break;
-      case 'boolean':
-        if (criteria === undefined) continue;
+      case 'boolean': {
+        const criteria = question.criteria;
         if (
-          !isRecord(criteria) ||
+          question.instructions == null &&
+          (criteria == null ||
+            !Object.values(criteria).some(value => value != null))
+        ) {
+          invalidInput(
+            parameter,
+            question,
+            'boolean questions require instructions or at least one non-null criterion',
+          );
+        }
+        if (
+          criteria != null &&
           Object.keys(criteria).some(key => key !== 'true' && key !== 'false')
         ) {
           invalidInput(
@@ -124,22 +130,7 @@ export function validateDecisionInput({
           );
         }
         break;
-      default:
-        invalidInput(
-          parameter,
-          question,
-          'question type must be choice, score, or boolean',
-        );
-    }
-    if (
-      !isJSON(criteria) ||
-      Object.values(criteria).some(value => value !== null && !isInput(value))
-    ) {
-      invalidInput(
-        parameter,
-        question,
-        'criteria descriptions must be JSON-compatible strings, objects, arrays, or null',
-      );
+      }
     }
   }
 }
@@ -304,6 +295,25 @@ export function validateDecisionAnswers({
               `Question "${id}" score must equal the probability-weighted mean within the declared rounding precision.`,
             );
           }
+        }
+        break;
+      }
+      case 'box': {
+        const box = answer.box;
+        if (
+          !isRecord(box) ||
+          !hasExactKeys(box, ['top', 'bottom', 'left', 'right']) ||
+          !isProbability(box.left) ||
+          !isProbability(box.right) ||
+          !isProbability(box.top) ||
+          !isProbability(box.bottom) ||
+          !(box.left < box.right) ||
+          !(box.top < box.bottom)
+        ) {
+          invalidAnswer(
+            answers,
+            `Question "${id}" must return box edges in [0, 1] with left < right and top < bottom.`,
+          );
         }
         break;
       }
