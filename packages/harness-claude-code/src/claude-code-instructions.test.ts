@@ -37,8 +37,12 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     onReconnect(): () => void {
       return () => {};
     }
-    send(msg: Record<string, unknown>): void {
+    send(
+      msg: Record<string, unknown>,
+      { onSent }: { onSent?: () => void } = {},
+    ): void {
       sentMessages.push(msg);
+      if (onSent) queueMicrotask(onSent);
     }
     beginClose(): void {}
     isClosed(): boolean {

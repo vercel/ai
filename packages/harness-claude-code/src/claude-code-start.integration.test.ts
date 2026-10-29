@@ -14,11 +14,15 @@ async function startTurn({
   acceptBeforeDrop = false,
   finishBeforeReconnect = false,
   idempotentStart = true,
+  startDuringReconnect = false,
+  submitDuringReconnect = false,
 }: {
   drop: boolean;
   acceptBeforeDrop?: boolean;
   finishBeforeReconnect?: boolean;
   idempotentStart?: boolean;
+  startDuringReconnect?: boolean;
+  submitDuringReconnect?: boolean;
 }) {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' });
   await once(server, 'listening');
@@ -31,16 +35,34 @@ async function startTurn({
   let legs = 0;
   let state = 'waiting';
   let lastSeq = 0;
+  let disconnectIdle: () => void;
+  let sendReconnectHello: () => void;
+  let resolveReconnect: () => void;
+  const reconnecting = new Promise<void>(resolve => {
+    resolveReconnect = resolve;
+  });
   server.on('connection', socket => {
     const leg = ++legs;
-    socket.send(
-      JSON.stringify({
-        type: 'bridge-hello',
-        state,
-        lastSeq,
-        capabilities: { idempotentStart },
-      }),
-    );
+    const sendHello = () => {
+      socket.send(
+        JSON.stringify({
+          type: 'bridge-hello',
+          state,
+          lastSeq,
+          capabilities: {
+            idempotentStart,
+            experimental_userMessageResponses: submitDuringReconnect,
+          },
+        }),
+      );
+    };
+    if (leg === 1) disconnectIdle = () => socket.close(1001, 'idle drop');
+    if (startDuringReconnect && leg === 2) {
+      sendReconnectHello = sendHello;
+      resolveReconnect();
+    } else {
+      sendHello();
+    }
     const finish = () => {
       state = 'waiting';
       lastSeq = 1;
@@ -57,11 +79,23 @@ async function startTurn({
       const message = JSON.parse(String(raw)) as {
         type: string;
         startId?: string;
+        messageId?: string;
       };
       frames.push({ leg, ...message });
       if (message.type === 'resume' && acceptedIds.size > 0) finish();
+      if (message.type === 'user-message') {
+        const accepted = acceptedIds.size > 0;
+        socket.send(
+          JSON.stringify({
+            type: 'user-message-response',
+            messageId: message.messageId,
+            accepted,
+          }),
+        );
+        if (accepted && state === 'running') finish();
+      }
       if (message.type !== 'start') return;
-      if (drop && leg === 1) {
+      if (drop && leg === (startDuringReconnect ? 2 : 1)) {
         if (acceptBeforeDrop) {
           acceptedIds.add(message.startId!);
           state = finishBeforeReconnect ? 'waiting' : 'running';
@@ -72,7 +106,8 @@ async function startTurn({
       }
       if (acceptedIds.has(message.startId!)) return;
       acceptedIds.add(message.startId!);
-      finish();
+      state = 'running';
+      if (!submitDuringReconnect) finish();
     });
   });
   const abort = new AbortController();
@@ -117,6 +152,10 @@ async function startTurn({
     abort.abort();
     await session.doDestroy?.();
   });
+  if (startDuringReconnect) {
+    disconnectIdle!();
+    await reconnecting;
+  }
   const events: string[] = [];
   const control = await session.doPromptTurn({
     prompt: 'Hello',
@@ -126,6 +165,13 @@ async function startTurn({
     abortSignal: abort.signal,
     emit: event => events.push(event.type),
   });
+  if (submitDuringReconnect) {
+    const submission = control.submitUserMessage!('Follow-up');
+    sendReconnectHello!();
+    await Promise.all([submission, control.done]);
+  } else if (startDuringReconnect) {
+    sendReconnectHello!();
+  }
   return { control, frames, acceptedIds, events };
 }
 
@@ -152,6 +198,71 @@ describe('Claude Code turn start delivery', () => {
     expect(acceptedIds.size).toBe(1);
     expect(events).toEqual(['finish']);
   });
+
+  it.each([false, true])(
+    'starts a turn submitted during an idle reconnect (idempotent starts: %s)',
+    async idempotentStart => {
+      const { control, frames, acceptedIds, events } = await startTurn({
+        drop: false,
+        startDuringReconnect: true,
+        idempotentStart,
+      });
+      await control.done;
+      expect(frames.map(frame => frame.type)).toEqual(['resume', 'start']);
+      expect(frames.filter(frame => frame.type === 'start')[0].leg).toBe(2);
+      expect(acceptedIds.size).toBe(1);
+      expect(events).toEqual(['finish']);
+    },
+  );
+
+  it.each([false, true])(
+    'preserves queued start ordering before user messages (idempotent starts: %s)',
+    async idempotentStart => {
+      const { control, frames, events } = await startTurn({
+        drop: false,
+        startDuringReconnect: true,
+        submitDuringReconnect: true,
+        idempotentStart,
+      });
+      await control.done;
+      expect(frames.slice(0, 3).map(frame => frame.type)).toEqual([
+        'resume',
+        'start',
+        'user-message',
+      ]);
+      expect(frames.filter(frame => frame.type === 'start')).toHaveLength(1);
+      expect(frames.some(frame => frame.type === 'abort')).toBe(false);
+      expect(events).toEqual(['finish']);
+    },
+  );
+
+  it.each([false, true])(
+    'recovers a start first sent after an idle reconnect and then lost (idempotent starts: %s)',
+    async idempotentStart => {
+      const { control, frames, acceptedIds, events } = await startTurn({
+        drop: true,
+        startDuringReconnect: true,
+        idempotentStart,
+      });
+      if (idempotentStart) {
+        await control.done;
+        const starts = frames.filter(frame => frame.type === 'start');
+        expect(starts.map(frame => frame.leg)).toEqual([2, 3]);
+        expect(starts[1].startId).toBe(starts[0].startId);
+        expect(acceptedIds.size).toBe(1);
+        expect(events).toEqual(['finish']);
+      } else {
+        await expect(control.done).rejects.toThrow(
+          'does not support safe start retries',
+        );
+        expect(
+          frames
+            .filter(frame => frame.type === 'start')
+            .map(frame => frame.leg),
+        ).toEqual([2]);
+      }
+    },
+  );
 
   it.each([
     { finishBeforeReconnect: false, idempotentStart: true },

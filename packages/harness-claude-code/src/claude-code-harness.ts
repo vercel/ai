@@ -1454,6 +1454,7 @@ function createSession({
       : undefined;
     const unsubs: Array<() => void> = [];
     let pendingStart: Extract<InboundMessage, { type: 'start' }> | undefined;
+    let awaitingStartSend = false;
     let startCursor = 0;
     let startTimer: ReturnType<typeof setTimeout> | undefined;
     const clearPendingStart = () => {
@@ -1485,6 +1486,20 @@ function createSession({
       pendingReject!(err);
     };
 
+    const sendPendingStart = () => {
+      if (pendingStart == null) return;
+      awaitingStartSend = true;
+      try {
+        channel.send(pendingStart, {
+          onSent: () => {
+            awaitingStartSend = false;
+          },
+        });
+      } catch (error) {
+        awaitingStartSend = false;
+        throw error;
+      }
+    };
     const failStart = (error: Error) => {
       settleError(error);
       channel.beginClose();
@@ -1495,7 +1510,7 @@ function createSession({
     };
     unsubs.push(
       channel.onReconnect(() => {
-        if (pendingStart == null || isSettled) return;
+        if (pendingStart == null || isSettled || awaitingStartSend) return;
         const hello = getBridgeHello();
         if (
           hello?.state !== 'waiting' ||
@@ -1505,7 +1520,7 @@ function createSession({
           return;
         }
         if (hello?.capabilities?.idempotentStart === true) {
-          channel.send(pendingStart);
+          sendPendingStart();
         } else {
           failStart(
             new Error(
@@ -1649,7 +1664,7 @@ function createSession({
           );
         }, turnStartTimeoutMs);
         startTimer.unref?.();
-        channel.send(pendingStart);
+        sendPendingStart();
       },
     };
   };

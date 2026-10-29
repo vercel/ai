@@ -134,7 +134,7 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
-- `turnStartTimeoutMs`: maximum time from sending a turn's start to its first
+- `turnStartTimeoutMs`: maximum time from submitting a turn's start to its first
   bridge event, defaulting to 120 seconds. If no event arrives, the turn fails
   and the connection closes. This is not a timeout on the complete turn.
 - `reconnect`: reconnect timing after an established bridge WebSocket
@@ -148,6 +148,8 @@ Settings:
   supports idempotent starts, so a dropped frame does not leave the turn
   waiting forever or launch the agent twice. An older bridge that is still
   waiting for a lost start causes the turn to fail instead of retrying unsafely.
+  A turn submitted while disconnected queues its start for first delivery on
+  reconnection; this first delivery also works with older bridges.
 - `onDebug`: callback for bridge connection lifecycle events:
   `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
   means the connection is closed for good, so a host that caches idle sessions
