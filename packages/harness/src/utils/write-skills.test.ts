@@ -2,23 +2,44 @@ import { describe, expect, it } from 'vitest';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { writeSkills } from './write-skills';
 
-function makeSandbox() {
+function makeSandbox({
+  supportsBatchWrites = true,
+  failFirstBatchAfter,
+}: {
+  supportsBatchWrites?: boolean;
+  failFirstBatchAfter?: number;
+} = {}) {
   const files = new Map<string, string>();
   const directories = new Set<string>();
   const runs: string[] = [];
   const writes: Array<{ path: string; content: string }> = [];
+  const batchWrites: Array<Array<{ path: string; content: string }>> = [];
+
+  function writeTextFile({ path, content }: { path: string; content: string }) {
+    writes.push({ path, content });
+    files.set(path, content);
+    const skillDirectory = path.match(/^(.+\/skills\/[^/]+)\//)?.[1];
+    if (skillDirectory != null) directories.add(skillDirectory);
+  }
 
   const sandbox = {
     async run({ command }: { command: string }) {
       runs.push(command);
-      if (command.startsWith('test ! -e ')) {
-        const [target] = quotedValues(command);
-        const exists =
-          directories.has(target!) ||
-          Array.from(files).some(([filePath]) =>
-            filePath.startsWith(`${target}/`),
-          );
-        return { exitCode: exists ? 1 : 0, stdout: '', stderr: '' };
+      if (command.startsWith('for skill_dir in ')) {
+        const targets = quotedValues(command);
+        const conflict = targets.find(
+          target =>
+            directories.has(target) ||
+            Array.from(files).some(
+              ([filePath]) =>
+                filePath === target || filePath.startsWith(`${target}/`),
+            ),
+        );
+        return {
+          exitCode: conflict == null ? 0 : 1,
+          stdout: conflict ?? '',
+          stderr: '',
+        };
       }
       if (command.startsWith('mv -f ')) {
         const [source, target] = quotedValues(command);
@@ -40,15 +61,33 @@ function makeSandbox() {
     async readTextFile({ path }: { path: string }) {
       return files.get(path) ?? null;
     },
-    async writeTextFile({ path, content }: { path: string; content: string }) {
-      writes.push({ path, content });
-      files.set(path, content);
-      const skillDirectory = path.match(/^(.+\/skills\/[^/]+)\//)?.[1];
-      if (skillDirectory != null) directories.add(skillDirectory);
+    async writeTextFile(options: { path: string; content: string }) {
+      writeTextFile(options);
     },
+    ...(supportsBatchWrites
+      ? {
+          async writeTextFiles({
+            files: batch,
+          }: {
+            files: Array<{ path: string; content: string }>;
+          }) {
+            batchWrites.push(batch);
+            for (const [index, file] of batch.entries()) {
+              if (
+                batchWrites.length === 1 &&
+                failFirstBatchAfter !== undefined &&
+                index === failFirstBatchAfter
+              ) {
+                throw new Error('batch write failed');
+              }
+              writeTextFile(file);
+            }
+          },
+        }
+      : {}),
   } as unknown as Experimental_SandboxSession;
 
-  return { sandbox, files, directories, runs, writes };
+  return { sandbox, files, directories, runs, writes, batchWrites };
 }
 
 function quotedValues(command: string): string[] {
@@ -84,6 +123,22 @@ describe('writeSkills', () => {
     expect(state.files.get('/home/user/.agents/skills/demo/reference.md')).toBe(
       '# Reference',
     );
+    expect(state.batchWrites).toEqual([
+      [
+        {
+          path: '/home/user/.agents/skills/demo/reference.md',
+          content: '# Reference',
+        },
+        {
+          path: '/home/user/.agents/skills/demo/SKILL.md',
+          content:
+            '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
+        },
+      ],
+    ]);
+    expect(
+      state.runs.filter(command => command.startsWith('for skill_dir in ')),
+    ).toHaveLength(1);
     expect(
       JSON.parse(
         state.files.get(
@@ -102,6 +157,25 @@ describe('writeSkills', () => {
         "version": 1,
       }
     `);
+  });
+
+  it('falls back to individual writes when batch writes are unavailable', async () => {
+    const state = makeSandbox({ supportsBatchWrites: false });
+
+    await writeSkills({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
+      skills: [demoSkill],
+    });
+
+    expect(state.batchWrites).toEqual([]);
+    expect(
+      state.files.get('/home/user/.agents/skills/demo/SKILL.md'),
+    ).toContain('Use reference.md.');
+    expect(state.files.get('/home/user/.agents/skills/demo/reference.md')).toBe(
+      '# Reference',
+    );
   });
 
   it('does not write or delete anything when all skill hashes match', async () => {
@@ -189,6 +263,11 @@ describe('writeSkills', () => {
     expect(
       manifest.skills.map((skill: { name: string }) => skill.name),
     ).toEqual(['alpha', 'zeta']);
+    expect(state.batchWrites).toHaveLength(1);
+    expect(state.batchWrites[0]).toHaveLength(2);
+    expect(
+      state.runs.filter(command => command.startsWith('for skill_dir in ')),
+    ).toHaveLength(1);
   });
 
   it('rejects collisions with skill directories not owned by the manifest', async () => {
@@ -245,6 +324,48 @@ describe('writeSkills', () => {
     );
     expect(state.files.has('/home/user/.agents/skills/demo/SKILL.md')).toBe(
       true,
+    );
+  });
+
+  it('leaves a pending manifest after partial batch failure and recovers on retry', async () => {
+    const state = makeSandbox({ failFirstBatchAfter: 1 });
+    const options = {
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
+      skills: [demoSkill],
+    };
+
+    await expect(writeSkills(options)).rejects.toThrow('batch write failed');
+
+    const manifestPath =
+      '/home/user/.agents/skills/.ai-sdk-harness-skills.json';
+    expect(JSON.parse(state.files.get(manifestPath)!)).toMatchObject({
+      state: 'pending',
+      skills: [{ name: 'demo' }],
+    });
+    expect(
+      state.writes.filter(write => write.path.includes('/skills/demo/')),
+    ).toEqual([
+      {
+        path: '/home/user/.agents/skills/demo/reference.md',
+        content: '# Reference',
+      },
+    ]);
+    expect(state.batchWrites).toHaveLength(1);
+
+    await expect(writeSkills(options)).resolves.toMatchObject({
+      changed: true,
+      written: ['demo'],
+    });
+
+    expect(state.batchWrites).toHaveLength(2);
+    expect(JSON.parse(state.files.get(manifestPath)!)).toMatchObject({
+      state: 'complete',
+      skills: [{ name: 'demo' }],
+    });
+    expect(state.files.get('/home/user/.agents/skills/demo/SKILL.md')).toBe(
+      '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
     );
   });
 
