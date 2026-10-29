@@ -68,16 +68,20 @@ export class DefaultGeneratedFile implements GeneratedFile {
     mediaType,
     providerMetadata,
   }: {
-    data: string | Uint8Array;
+    data: string | Uint8Array | ArrayBuffer;
     mediaType: string;
     providerMetadata?: Record<string, JSONObject>;
   }) {
-    if (isUint8Array(data)) {
+    if (data instanceof Uint8Array) {
       this.base64Data = undefined;
-      this.uint8ArrayData =
-        data instanceof Uint8Array
-          ? data
-          : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+      this.uint8ArrayData = data;
+    } else if (isUint8Array(data)) {
+      this.base64Data = undefined;
+      this.uint8ArrayData = new Uint8Array(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength,
+      );
     } else if (isArrayBuffer(data)) {
       this.base64Data = undefined;
       this.uint8ArrayData = new Uint8Array(data);
