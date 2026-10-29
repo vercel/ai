@@ -1,6 +1,13 @@
 export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
-export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
+export {
+  filterActiveTools,
+
+  /**
+   * @deprecated Use `filterActiveTools` instead.
+   */
+  filterActiveTools as experimental_filterActiveTools,
+} from './filter-active-tools';
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextAbortEvent,
