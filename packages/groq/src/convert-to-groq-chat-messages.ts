@@ -9,6 +9,37 @@ import {
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 
+function sanitizeForSerialization(
+  val: unknown,
+  ancestors: Set<unknown>,
+): unknown {
+  if (typeof val === 'bigint') {
+    return val.toString();
+  }
+  if (typeof val !== 'object' || val === null) {
+    return val;
+  }
+  if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+    return val;
+  }
+  if (ancestors.has(val)) {
+    return '[Circular]';
+  }
+  ancestors.add(val);
+  try {
+    if (Array.isArray(val)) {
+      return val.map(item => sanitizeForSerialization(item, ancestors));
+    }
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(val)) {
+      result[key] = sanitizeForSerialization(item, ancestors);
+    }
+    return result;
+  } finally {
+    ancestors.delete(val);
+  }
+}
+
 function serializeGroqToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
     return input;
@@ -16,19 +47,7 @@ function serializeGroqToolCallArguments(input: unknown): string {
 
   if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
     try {
-      const seen = new WeakSet();
-      return JSON.stringify(input, (_key, value) => {
-        if (typeof value === 'bigint') {
-          return value.toString();
-        }
-        if (typeof value === 'object' && value !== null) {
-          if (seen.has(value)) {
-            return '[Circular]';
-          }
-          seen.add(value);
-        }
-        return value;
-      });
+      return JSON.stringify(sanitizeForSerialization(input, new Set()));
     } catch {
       return '{}';
     }
@@ -39,19 +58,7 @@ function serializeGroqToolCallArguments(input: unknown): string {
 
 function safeStringifyGroqToolOutput(value: unknown): string {
   try {
-    const seen = new WeakSet();
-    return JSON.stringify(value, (_key, val) => {
-      if (typeof val === 'bigint') {
-        return val.toString();
-      }
-      if (typeof val === 'object' && val !== null) {
-        if (seen.has(val)) {
-          return '[Circular]';
-        }
-        seen.add(val);
-      }
-      return val;
-    });
+    return JSON.stringify(sanitizeForSerialization(value, new Set()));
   } catch {
     return String(value);
   }
