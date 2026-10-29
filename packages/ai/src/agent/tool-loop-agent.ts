@@ -295,6 +295,7 @@ export class ToolLoopAgent<
     experimental_sandbox: sandbox,
     experimental_steering: steering,
     experimental_transform,
+    transform = experimental_transform,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -320,7 +321,7 @@ export class ToolLoopAgent<
       timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
       experimental_steering: steering,
-      experimental_transform,
+      transform,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
         (onStart ?? experimental_onStart) as

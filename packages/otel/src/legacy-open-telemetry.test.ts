@@ -3552,7 +3552,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
           execute: async () => 'result1',
         },
       },
-      experimental_transform: upperCaseToolResultTransform,
+      transform: upperCaseToolResultTransform,
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
@@ -3792,7 +3792,7 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
         }),
       },
       prompt: 'test-input',
-      experimental_transform: upperCaseTransform,
+      transform: upperCaseTransform,
       experimental_telemetry: {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),

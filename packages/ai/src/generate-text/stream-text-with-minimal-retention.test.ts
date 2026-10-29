@@ -234,7 +234,7 @@ describe.each([
     const result = generate({
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
-      experimental_transform: () =>
+      transform: () =>
         new TransformStream({
           transform(part, controller) {
             controller.enqueue(

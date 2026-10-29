@@ -31,7 +31,8 @@ import type { Steering } from '../generate-text/steering';
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param experimental_steering - A steering object that adds user messages to the run at the next step boundary. Only supported by `ToolLoopAgent`. Optional.
  * @param options - The options for the agent. Optional.
- * @param experimental_transform - Stream transformations. Optional.
+ * @param transform - Stream transformations. Optional.
+ * @param experimental_transform - Deprecated alias for `transform`. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.
  * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
  * @param onUIMessageStepEnd - Callback with the accumulated UI message after each step. Optional.
@@ -76,6 +77,10 @@ export async function pipeAgentUIStreamToResponse<
   experimental_sandbox?: SandboxSession;
   experimental_steering?: Steering;
   options?: CALL_OPTIONS;
+  transform?: Arrayable<StreamTextTransform<TOOLS>>;
+  /**
+   * @deprecated Use `transform` instead.
+   */
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamResponseInit &
   AgentUIMessageStreamOptions<TOOLS, UI_MESSAGE>): Promise<void> {

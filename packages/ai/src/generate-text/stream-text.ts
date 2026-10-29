@@ -494,7 +494,8 @@ function streamTextInternal<
     experimental_repairToolCall,
     repairToolCall = experimental_repairToolCall,
     experimental_refineToolInput: refineToolInput,
-    experimental_transform: transform,
+    experimental_transform,
+    transform = experimental_transform,
     experimental_download: download,
     includeRawChunks,
     onChunk,
@@ -674,6 +675,13 @@ function streamTextInternal<
        * Optional stream transformations.
        * They are applied in the order they are provided.
        * The stream transformations must maintain the stream structure for streamText to work correctly.
+       */
+      transform?: Arrayable<StreamTextTransform<TOOLS>>;
+
+      /**
+       * Optional stream transformations.
+       *
+       * @deprecated Use `transform` instead.
        */
       experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 

@@ -544,7 +544,7 @@ for await (const part of result.stream) {
 
 ### Stream transformation
 
-You can use the `experimental_transform` option to transform the stream.
+You can use the `transform` option to transform the stream.
 This is useful for e.g. filtering, changing, or smoothing the text stream.
 
 The transformations are applied before the callbacks are invoked and the promises are resolved.
@@ -561,7 +561,7 @@ import { smoothStream, streamText } from 'ai';
 const result = streamText({
   model,
   prompt,
-  experimental_transform: smoothStream(),
+  transform: smoothStream(),
 });
 ```
 
@@ -694,7 +694,7 @@ You can also provide multiple transformations. They are applied in the order the
 const result = streamText({
   model,
   prompt,
-  experimental_transform: [firstTransform, secondTransform],
+  transform: [firstTransform, secondTransform],
 });
 ```
 

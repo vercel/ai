@@ -171,6 +171,13 @@ export type AgentStreamParameters<
    * They are applied in the order they are provided.
    * The stream transformations must maintain the stream structure for streamText to work correctly.
    */
+  transform?: Arrayable<StreamTextTransform<TOOLS>>;
+
+  /**
+   * Optional stream transformations.
+   *
+   * @deprecated Use `transform` instead.
+   */
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 };
 

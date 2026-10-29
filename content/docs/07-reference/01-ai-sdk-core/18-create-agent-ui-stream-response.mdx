@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     uiMessages: messages,
     abortSignal: request.signal, // optional: aborts when the client disconnects
     // experimental_sandbox, // optional: passed through to tool execution
-    // ...other UIMessageStreamOptions like sendSources, experimental_transform, etc.
+    // ...other UIMessageStreamOptions like sendSources, transform, etc.
   });
 }
 ```
@@ -93,11 +93,17 @@ export async function POST(request: Request) {
         'Optional agent call options, for agents with generic parameter `CALL_OPTIONS`.',
     },
     {
-      name: 'experimental_transform',
+      name: 'transform',
       type: 'StreamTextTransform | StreamTextTransform[]',
       isRequired: false,
       description:
         'Optional stream transforms to post-process text output—the same as in lower-level streaming APIs.',
+    },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | StreamTextTransform[]',
+      isRequired: false,
+      description: 'Deprecated alias for `transform`.',
     },
     {
       name: 'onStepEnd',
