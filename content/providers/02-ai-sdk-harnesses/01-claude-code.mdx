@@ -112,7 +112,10 @@ Settings:
   its calls in parallel and allows it in plan mode; calls to other host tools
   run one at a time. `alwaysLoad: true` sends the tool's definition from the
   first request when Claude Code's tool search is on, instead of deferring it
-  until the model looks it up.
+  until the model looks it up. When Claude Code's base URL is not
+  `api.anthropic.com`, as behind AI Gateway, it turns tool search off unless
+  `ENABLE_TOOL_SEARCH` turns it on, for example
+  `env: { ENABLE_TOOL_SEARCH: 'true' }`.
 - `maxTurns`: maximum internal turns before yielding.
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
