@@ -1,4 +1,4 @@
-# Workflow
+# AI SDK - Workflow
 
 WorkflowAgent is a class for building durable AI agents that can maintain state across workflow steps, call tools, and handle interruptions gracefully.
 

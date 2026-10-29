@@ -3,8 +3,7 @@
 `HarnessV1` adapter backed by an
 [Agent Client Protocol](https://agentclientprotocol.com/) version 1 agent.
 The adapter ships a bridge process that runs inside a sandbox and talks to the
-host over a WebSocket on a sandbox-proxied loopback port. The configured ACP
-agent runs alongside the bridge inside the sandbox.
+host over a WebSocket on a sandbox-proxied loopback port.
 
 -> **Note**: This package is experimental.
 

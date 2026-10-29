@@ -26,7 +26,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { getResponseMetadata } from '../get-response-metadata';
-import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import {
+  supportsNoneReasoningEffort,
+  supportsReasoningEffort,
+} from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -285,18 +288,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           feature: 'reasoning',
           details: `reasoning "${reasoning}" is not supported by this model.`,
         });
-      } else if (reasoning === 'none') {
-        resolvedReasoningEffort = 'none';
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            ...(supportsNoneReasoningEffort(modelId) && {
+              none: 'none' as const,
+            }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
-            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            ...(modelId === 'grok-4.6' && { xhigh: 'xhigh' as const }),
           },
           warnings,
         });
@@ -1303,10 +1305,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               if (part.type === 'message') {
+                const blockId = `text-${part.id}`;
+                const streamed = contentBlocks[blockId] != null;
+
                 for (const contentPart of part.content) {
                   if (contentPart.text && contentPart.text.length > 0) {
-                    const blockId = `text-${part.id}`;
-
                     // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
                       contentBlocks[blockId] = { type: 'text' };
@@ -1323,7 +1326,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     }
                   }
 
-                  if (contentPart.annotations) {
+                  if (!streamed && contentPart.annotations) {
                     for (const annotation of contentPart.annotations) {
                       if (
                         annotation.type === 'url_citation' &&

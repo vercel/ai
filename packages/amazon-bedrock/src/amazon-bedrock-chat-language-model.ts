@@ -335,17 +335,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           }
         }
 
-        if (hasExplicitDisabledThinking || thinkingType === 'adaptive') {
-          warnings.push({
-            type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
-            feature: hasExplicitDisabledThinking
-              ? 'providerOptions.amazonBedrock.reasoningConfig'
-              : 'reasoning',
-            details:
-              `thinking cannot be disabled for ${this.modelId}. ` +
-              `Using '${thinkingType}' thinking instead.`,
-          });
-        }
+        warnings.push({
+          type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
+          feature: hasExplicitDisabledThinking
+            ? 'providerOptions.amazonBedrock.reasoningConfig'
+            : 'reasoning',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using '${thinkingType}' thinking instead.`,
+        });
       }
 
       const effort =
@@ -1721,27 +1719,38 @@ export {
   type AmazonBedrockReasoningMetadata,
 } from './amazon-bedrock-reasoning-metadata';
 
-const amazonBedrockReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high' | 'max'>
-> = {
-  minimal: 'low',
+// Effort maps only list the supported levels. Other levels are mapped to the
+// closest supported level by mapReasoningToProviderEffort.
+const amazonBedrockReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'max',
   max: 'max',
-};
+} as const;
 
-const amazonNovaReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high'>
-> = {
-  minimal: 'low',
+const amazonNovaReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'high',
-  max: 'high',
-};
+} as const;
+
+const openAIGptOssReasoningEffortMap = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+// The reasoning efforts of other OpenAI models are not known, so reasoning
+// values are sent directly.
+const openAIReasoningEffortMap = {
+  none: 'none',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  max: 'max',
+} as const;
 
 function isNova2ReasoningModel(modelId: string): boolean {
   return modelId.includes('amazon.nova-2-lite-v1:0');
@@ -1779,7 +1788,6 @@ function resolveAmazonBedrockReasoningConfig({
     return result;
   }
 
-  const hasPortableReasoning = reasoning !== 'none';
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
   const supportsPortableReasoning =
     isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
@@ -1794,7 +1802,12 @@ function resolveAmazonBedrockReasoningConfig({
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({
           reasoning,
-          effortMap: amazonBedrockReasoningEffortMap,
+          effortMap: {
+            ...amazonBedrockReasoningEffortMap,
+            ...(capabilities.supportsXhighEffort && {
+              xhigh: 'xhigh' as const,
+            }),
+          },
           warnings,
         });
       result.reasoningConfig = {
@@ -1811,25 +1824,34 @@ function resolveAmazonBedrockReasoningConfig({
           maxReasoningBudget: capabilities.maxOutputTokens,
           warnings,
         });
-      if (budgetTokens != null) {
-        result.reasoningConfig = {
-          ...reasoningConfig,
-          type: reasoningConfig?.type ?? 'enabled',
-          budgetTokens,
-        };
-      }
+      result.reasoningConfig = {
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'enabled',
+        budgetTokens,
+      };
     }
-  } else if (hasPortableReasoning) {
+  } else if (reasoning === 'none' && isNovaReasoningModel) {
+    // Nova 2 reasoning is disabled unless a reasoning effort is sent, so
+    // there is nothing to add.
+  } else {
     if (supportsPortableReasoning) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
-        mapReasoningToProviderEffort({
+        // OpenAI efforts such as 'none' are sent as `reasoning_effort` even
+        // though they are not accepted in the reasoningConfig provider option.
+        (mapReasoningToProviderEffort({
           reasoning,
           effortMap: isNovaReasoningModel
             ? amazonNovaReasoningEffortMap
-            : amazonBedrockReasoningEffortMap,
+            : isOpenAIModel
+              ? modelId.includes('openai.gpt-oss-')
+                ? openAIGptOssReasoningEffortMap
+                : openAIReasoningEffortMap
+              : amazonBedrockReasoningEffortMap,
           warnings,
-        });
+        }) as NonNullable<
+          AmazonBedrockLanguageModelChatOptions['reasoningConfig']
+        >['maxReasoningEffort']);
       result.reasoningConfig = {
         ...reasoningConfig,
         ...(isNovaReasoningModel && {

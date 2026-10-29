@@ -1,3 +1,25 @@
+import type {
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import { mapReasoningToProviderEffort } from '@ai-sdk/provider-utils';
+
+type OpenAIReasoningEffort = Exclude<
+  LanguageModelV4CallOptions['reasoning'],
+  'provider-default' | undefined
+>;
+
+// Unknown model families send the reasoning value directly.
+const ALL_OPENAI_REASONING_EFFORTS: readonly OpenAIReasoningEffort[] = [
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+];
+
 export type OpenAILanguageModelCapabilities = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -5,7 +27,17 @@ export type OpenAILanguageModelCapabilities = {
   supportsPriorityProcessing: boolean;
   supportsConfigurationUpdate: boolean;
   supportsAsyncToolCalling: boolean;
-  supportedReasoningEfforts: readonly string[] | undefined;
+  /**
+   * Reasoning efforts supported by the model family, or `undefined` when they
+   * are not known.
+   */
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
+
+  /**
+   * Whether function tools can be combined with a reasoning effort other than
+   * `none` in the Chat Completions API.
+   */
+  supportsChatFunctionToolsWithReasoning: boolean;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -23,6 +55,15 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion?.variant?.startsWith('chat') ?? false);
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
+
+  // Pro, codex, and chat variants are excluded because their supported
+  // efforts are not known.
+  const isStandardGpt5Model =
+    gptVersion?.major === 5 &&
+    (gptVersion.variant == null ||
+      /^(?:(?:mini|nano|sol|luna|terra)(?:-\d{4}-\d{2}-\d{2})?|\d{4}-\d{2}-\d{2})$/.test(
+        gptVersion.variant,
+      ));
 
   const isGpt6OrLaterModelWithNoneEffort =
     modelId === 'gpt-6-sol' ||
@@ -68,11 +109,35 @@ export function getOpenAILanguageModelCapabilities(
       ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
       : isGpt6OrLaterModel
         ? ['low', 'medium', 'high', 'xhigh', 'max']
-        : undefined,
+        : isStandardGpt5Model
+          ? getGpt5ReasoningEfforts(gptVersion.minor ?? 0)
+          : undefined,
+    // GPT-5.6 rejects function tools with reasoning in the Chat Completions API.
+    supportsChatFunctionToolsWithReasoning: !(
+      gptVersion?.major === 5 && (gptVersion.minor ?? 0) >= 6
+    ),
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,
   };
+}
+
+function getGpt5ReasoningEfforts(
+  minor: number,
+): readonly OpenAIReasoningEffort[] {
+  if (minor === 0) {
+    return ['minimal', 'low', 'medium', 'high'];
+  }
+
+  if (minor === 1) {
+    return ['none', 'low', 'medium', 'high'];
+  }
+
+  if (minor < 6) {
+    return ['none', 'low', 'medium', 'high', 'xhigh'];
+  }
+
+  return ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
 }
 
 function getOSeriesVersion(modelId: string): number | undefined {
@@ -98,4 +163,34 @@ function getGptVersion(modelId: string):
     minor: match[2] == null ? undefined : Number(match[2]),
     variant: match[3],
   };
+}
+
+/**
+ * Resolves the reasoning effort to send to OpenAI.
+ *
+ * A reasoning effort from provider options is sent unchanged. Otherwise the
+ * top-level reasoning value is mapped to the closest effort that the model
+ * family supports, or sent directly when the supported efforts are not known.
+ */
+export function resolveOpenAIReasoningEffort({
+  providerReasoningEffort,
+  reasoning,
+  supportedReasoningEfforts,
+  warnings,
+}: {
+  providerReasoningEffort: string | null | undefined;
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  supportedReasoningEfforts: readonly OpenAIReasoningEffort[] | undefined;
+  warnings: SharedV4Warning[];
+}): string | undefined {
+  return mapReasoningToProviderEffort({
+    reasoning,
+    providerOptionsEffort: providerReasoningEffort,
+    effortMap: Object.fromEntries(
+      (supportedReasoningEfforts ?? ALL_OPENAI_REASONING_EFFORTS).map(
+        effort => [effort, effort],
+      ),
+    ),
+    warnings,
+  });
 }

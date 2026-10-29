@@ -148,6 +148,12 @@ const result = await generateSpeech({
 });
 ```
 
+- **withTimestamps** _boolean_
+
+  Return speech character alignment or music lyric word timestamps alongside
+  the generated audio. Defaults to `false`. Timestamps are available in
+  `result.providerMetadata.elevenlabs`.
+
 - **languageCode** _string or null_  
   Optional. Language code (ISO 639-1) used to enforce a language for the model. Currently, only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, providing a language code will result in an error.
 
@@ -198,6 +204,56 @@ const result = await generateSpeech({
 
 - **enableLogging** _boolean_  
   Optional. Whether to enable request logging for this API call. Defaults to the account-level setting.
+
+### Speech Timestamps
+
+Set `withTimestamps` to receive character-level alignment for both the original
+and normalized text:
+
+```ts
+import { elevenLabs } from '@ai-sdk/elevenlabs';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: elevenLabs.speech('eleven_v4'),
+  text: 'Hello from ElevenLabs!',
+  voice: 'JBFqnCBsd6RMkjVDRZzb',
+  providerOptions: {
+    elevenlabs: { withTimestamps: true },
+  },
+});
+
+console.log(result.providerMetadata?.elevenlabs);
+```
+
+The audio remains available in `result.audio`. Provider metadata contains:
+
+- `alignment`: original text `characters`, `characterStartTimesSeconds`, and
+  `characterEndTimesSeconds` arrays.
+- `normalizedAlignment`: the same fields for normalized text, such as spoken
+  numbers and dates.
+- `voiceSegments`: for Text to Dialogue responses, the `voiceId`,
+  `startTimeSeconds`, `endTimeSeconds`, `characterStartIndex`,
+  `characterEndIndex` (exclusive), and `dialogueInputIndex` for each segment.
+
+Times are in seconds. Alignment and voice segments are included only when
+supplied by ElevenLabs; empty arrays are preserved.
+
+For multi-voice dialogue, combine `withTimestamps` with `inputs`. The returned
+`voiceSegments` associate each segment with its voice and input index. This
+option applies to `generateSpeech`. Sound effects ignore it and produce a warning.
+
+`eleven_v4` automatically uses the Text to Dialogue API with a single input
+containing `text` and `voice`, with or without timestamps. `voiceSettings.stability`
+and `voiceSettings.similarityBoost` map to dialogue settings. The `speed`,
+`voiceSettings.style`, `voiceSettings.useSpeakerBoost`, and
+`applyLanguageTextNormalization` options are unsupported on this route and
+produce warnings. `previousText` and `nextText` map to `previous_text` and
+`future_text`; the dialogue API limits each to 100 characters.
+
+Other speech models use the Text to Speech API and its `/with-timestamps`
+variant when enabled. This includes `eleven_multilingual_v2`, `eleven_v3`,
+`eleven_flash_v2_5`, and `eleven_flash_v2`.
 
 ### Model Capabilities
 
@@ -291,6 +347,18 @@ const result = await generateSpeech({
 
 When the length is known, from `musicLengthMs` or the plan's sections or
 chunks, it is reported in `providerMetadata.elevenlabs.requestedDurationMs`.
+
+#### Lyric timestamps
+
+Set `providerOptions.elevenlabs.withTimestamps` to `true` with a music model to
+return lyric timing alongside the audio. This uses the detailed music endpoint
+and preserves the normal `result.audio` output.
+
+`result.providerMetadata.elevenlabs.wordTimestamps` contains an array of
+`{ word, startMs, endMs }` objects. Unlike speech alignment, these times are in
+milliseconds. Empty arrays are preserved; the field is omitted when the provider
+does not supply lyric timing. Both text prompts and composition plans are
+supported.
 
 ### Sound effects
 
@@ -523,6 +591,24 @@ The following provider options are available:
   Allowed values: `'pcm_s16le_16'`, `'other'`.
   For `'pcm_s16le_16'`, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order.
   Latency will be lower than with passing an encoded waveform.
+
+### Transcription Timestamps
+
+Scribe batch transcription returns word timing in `result.segments`, using
+`startSecond` and `endSecond`. Word timestamps are requested by default.
+Use `timestampsGranularity: 'character'` for character timing as well:
+
+```ts
+providerOptions: {
+  elevenlabs: { timestampsGranularity: 'character' },
+},
+```
+
+`result.providerMetadata.elevenlabs.words` preserves each token's native
+`start`, `end`, `type`, `speaker_id`, and optional `characters` array. Each
+character has `text`, `start`, and `end`; these times are in seconds.
+For realtime Scribe, set `streaming.includeTimestamps: true` and read the
+timestamped word segments from `await result.segments` after the stream finishes.
 
 ### Model Capabilities
 

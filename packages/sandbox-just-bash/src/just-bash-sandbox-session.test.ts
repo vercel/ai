@@ -1,5 +1,5 @@
 import { Sandbox } from 'just-bash';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JustBashSandboxSession } from './just-bash-sandbox-session';
 
 const decoder = new TextDecoder();
@@ -162,6 +162,51 @@ describe('JustBashSandboxSession', () => {
   });
 
   describe('spawn', () => {
+    it('rejects writable stdin before setup or command execution', async () => {
+      const nativeSandbox = await Sandbox.create({ cwd: '/work' });
+      const runCommand = vi.spyOn(nativeSandbox, 'runCommand');
+      const exec = vi.spyOn(nativeSandbox.bashEnvInstance, 'exec');
+      const session = new JustBashSandboxSession(nativeSandbox);
+
+      const result = session.spawn({
+        command: 'echo unexpected > /work/unexpected.txt',
+        stdin: true,
+      });
+
+      await expect(result).rejects.toThrow(
+        'just-bash does not support writable stdin.',
+      );
+      expect(runCommand).not.toHaveBeenCalled();
+      expect(exec).not.toHaveBeenCalled();
+      expect(
+        await session.readTextFile({ path: '/work/unexpected.txt' }),
+      ).toBeNull();
+    });
+
+    it.each([undefined, false])(
+      'omits stdin when the option is %s',
+      async stdin => {
+        const proc = await sandbox.spawn({
+          command: 'echo hello',
+          ...(stdin === undefined ? {} : { stdin }),
+        });
+
+        expect(proc).not.toHaveProperty('stdin');
+        expect(await collect(proc.stdout)).toBe('hello\n');
+        expect(await proc.wait()).toEqual({ exitCode: 0 });
+      },
+    );
+
+    it('preserves a pre-aborted signal when writable stdin is requested', async () => {
+      const ac = new AbortController();
+      const error = new Error('already cancelled');
+      ac.abort(error);
+
+      await expect(
+        sandbox.spawn({ command: 'cat', stdin: true, abortSignal: ac.signal }),
+      ).rejects.toBe(error);
+    });
+
     it('installs realpath before starting the first process', async () => {
       const proc = await sandbox.spawn({ command: 'realpath /work' });
       const [stdout, { exitCode }] = await Promise.all([

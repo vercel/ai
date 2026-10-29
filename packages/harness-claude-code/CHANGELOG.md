@@ -1,5 +1,23 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.171
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.170
+
+### Patch Changes
+
+- 09b3e1d: feat(harness-claude-code): add maxBudgetUsd and strictMcpConfig settings
+- 6e3e999: add questionTimeoutMs and excludeDynamicSections settings
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
 ## 1.0.169
 
 ### Patch Changes

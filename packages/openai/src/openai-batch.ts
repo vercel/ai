@@ -47,7 +47,7 @@ import {
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
 import {
-  mapWebSearchOutput,
+  mapWebSearchResult,
   OpenAIResponsesLanguageModel,
   openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
@@ -812,9 +812,7 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          ...(part.status === 'failed' || part.status === 'incomplete'
-            ? { isError: true, result: { status: part.status } }
-            : { result: mapWebSearchOutput(part.action) }),
+          ...mapWebSearchResult(part),
           dynamic: true,
         });
         break;
