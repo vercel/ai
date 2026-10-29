@@ -117,4 +117,31 @@ describe('cloneModelMessages', () => {
     expect(clonedMeta.timestamp.getTime()).toBe(1700000000000);
     expect(clonedMeta.timestamp).not.toBe(date);
   });
+
+  it('preserves own __proto__ keys without changing the prototype', () => {
+    const payload = JSON.parse('{"__proto__":"value","name":"result"}');
+    const original = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'myTool',
+            output: payload,
+          },
+        ],
+      },
+    ] as unknown as ModelMessage[];
+
+    const cloned = cloneModelMessages(original);
+    const clonedOutput = (cloned[0].content[0] as any).output;
+
+    expect(
+      Object.prototype.hasOwnProperty.call(clonedOutput, '__proto__'),
+    ).toBe(true);
+    expect(clonedOutput.__proto__).toBe('value');
+    expect(Object.getPrototypeOf(clonedOutput)).toBe(Object.prototype);
+    expect(clonedOutput.name).toBe('result');
+  });
 });

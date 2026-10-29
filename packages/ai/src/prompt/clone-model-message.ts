@@ -67,7 +67,12 @@ function cloneValue<T>(value: T, seen: Map<unknown, unknown>): T {
   const copy: Record<string, unknown> = {};
   seen.set(value, copy);
   for (const [key, val] of Object.entries(value)) {
-    copy[key] = cloneValue(val, seen);
+    Object.defineProperty(copy, key, {
+      value: cloneValue(val, seen),
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
   }
   return copy as T;
 }
