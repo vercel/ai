@@ -172,6 +172,7 @@ function createPermissionOptions(input: {
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
   emittedToolCallIds: Set<string>;
+  approvalDecisions: Map<string, { approved: boolean; reason?: string }>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -211,20 +212,26 @@ function createPermissionOptions(input: {
       toolInput: Record<string, unknown>,
       options: { toolUseID: string },
     ) => {
-      if (toolName.startsWith('mcp__harness-tools__')) {
-        return { behavior: 'allow', updatedInput: toolInput };
-      }
       if (
-        !inactiveNativeTools.has(toolName) &&
-        !nativeToolRequiresApproval({
-          nativeName: toolName,
-          permissionMode,
-        })
+        !needsHostApproval({ toolName, permissionMode, inactiveNativeTools })
       ) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
 
       const approvalId = options.toolUseID;
+      /*
+       * The permission ask rules still apply after the approval hook allowed a
+       * resumed deferred call, so apply that decision instead of asking the
+       * host again.
+       */
+      if (input.approvalDecisions.get(approvalId)?.approved === true) {
+        input.approvalDecisions.delete(approvalId);
+        return {
+          behavior: 'allow',
+          updatedInput: toolInput,
+          toolUseID: approvalId,
+        };
+      }
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
       if (!input.emittedToolCallIds.has(approvalId)) {
@@ -363,6 +370,81 @@ function createPermissionSettings(input: {
   return {
     permissions: { ask: [...askRules] },
     sandbox: { autoAllowBashIfSandboxed: false },
+  };
+}
+
+function needsHostApproval(input: {
+  toolName: string;
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
+}): boolean {
+  if (input.toolName.startsWith('mcp__harness-tools__')) return false;
+  return (
+    input.inactiveNativeTools.has(input.toolName) ||
+    nativeToolRequiresApproval({
+      nativeName: input.toolName,
+      permissionMode: input.permissionMode,
+    })
+  );
+}
+
+/*
+ * Defers a call that needs host approval, so Claude Code ends the turn and
+ * keeps the call in the transcript instead of holding it in this process.
+ * Resuming the session without a prompt fires the hook again for the same
+ * call, and the host's decision is applied then. This survives a bridge
+ * restart because nothing waits in memory.
+ */
+function createApprovalPreToolUseHook(input: {
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
+  decisions: Map<string, { approved: boolean; reason?: string }>;
+  deferredToolUseIds: Set<string>;
+  nativeToolCallNames: Map<string, string>;
+}): HookCallback {
+  return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
+    const toolName = (hookInput as { tool_name?: unknown }).tool_name;
+    if (
+      toolUseID == null ||
+      typeof toolName !== 'string' ||
+      toolName === 'AskUserQuestion'
+    ) {
+      return {};
+    }
+    const decision = input.decisions.get(toolUseID);
+    if (decision != null) {
+      // A bridge that resumes another bridge's deferred call never saw its
+      // tool_use, so record the name for the tool result that follows.
+      input.nativeToolCallNames.set(toolUseID, toolName);
+      if (!decision.approved) input.decisions.delete(toolUseID);
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          ...(decision.approved
+            ? { permissionDecision: 'allow' }
+            : {
+                permissionDecision: 'deny',
+                permissionDecisionReason: decision.reason ?? 'Denied',
+              }),
+        },
+      };
+    }
+    if (
+      !needsHostApproval({
+        toolName,
+        permissionMode: input.permissionMode,
+        inactiveNativeTools: input.inactiveNativeTools,
+      })
+    ) {
+      return {};
+    }
+    input.deferredToolUseIds.add(toolUseID);
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'defer',
+      },
+    };
   };
 }
 
@@ -542,7 +624,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const inactiveNativeTools = resolveInactiveNativeTools(
     start.builtinToolFiltering,
   );
+  const permissionMode = start.permissionMode ?? 'allow-all';
+  const approvalDecisions = new Map<
+    string,
+    { approved: boolean; reason?: string }
+  >();
   const permissionOptions = createPermissionOptions({
+    approvalDecisions,
     start,
     inactiveNativeTools,
     turn,
@@ -555,6 +643,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
+  const deferredToolUseIds = new Set<string>();
+  const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    permissionMode,
+    inactiveNativeTools: new Set(inactiveNativeTools),
+    decisions: approvalDecisions,
+    deferredToolUseIds,
+    nativeToolCallNames: streamEventState.nativeToolCallNames,
+  });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
@@ -565,7 +661,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
   });
 
-  const q = claudeSdk.query({
+  const queryArgs = {
     prompt: queryInput.input,
     options: {
       ...(start.model ? { model: start.model } : {}),
@@ -608,6 +704,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
+          ...(permissionMode === 'allow-all'
+            ? []
+            : [{ hooks: [approvalPreToolUseHook] }]),
           {
             matcher: 'AskUserQuestion',
             hooks: [questionPreToolUseHook],
@@ -652,6 +751,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       cwd: workdir,
       abortSignal: abortCtl.signal,
     },
+  };
+  let deferredToolUseId = start.deferredToolUseId;
+  let resumingDeferredCall = false;
+  let q = deferredToolUseId == null ? claudeSdk.query(queryArgs) : undefined;
+  const hostAborted = new Promise<undefined>(resolve => {
+    if (abortCtl.signal.aborted) resolve(undefined);
+    abortCtl.signal.addEventListener('abort', () => resolve(undefined), {
+      once: true,
+    });
   });
 
   gracefulAbort = () => {
@@ -663,11 +771,68 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
     hardAbortTimer.unref?.();
     void Promise.resolve()
-      .then(() => q.interrupt())
+      .then(() => q?.interrupt())
       .catch(() => abortCtl.abort());
   };
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
+
+  /*
+   * Claude Code ended the turn at a call that needs host approval. Every other
+   * call the hook deferred in the same message was dropped by Claude Code,
+   * which can only resume one deferred call, so report those as not run.
+   */
+  let deferredDecision:
+    | Promise<{ approved: boolean; reason?: string }>
+    | undefined;
+  const requestDeferredApproval = (call: {
+    toolUseId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+  }) => {
+    for (const droppedToolUseId of deferredToolUseIds) {
+      if (droppedToolUseId === call.toolUseId) continue;
+      const nativeName =
+        streamEventState.nativeToolCallNames.get(droppedToolUseId) ?? 'unknown';
+      emit({
+        type: 'tool-result',
+        toolCallId: droppedToolUseId,
+        toolName: toCommonName(nativeName),
+        result:
+          'Claude Code can wait for only one approval at a time, so this call did not run.',
+        isError: true,
+      });
+      streamEventState.pendingStepToolUseIds.delete(droppedToolUseId);
+    }
+    deferredToolUseIds.clear();
+    streamEventState.approvalRequestedToolUseIds.add(call.toolUseId);
+    streamEventState.nativeToolCallNames.set(call.toolUseId, call.toolName);
+    if (!streamEventState.emittedToolCallIds.has(call.toolUseId)) {
+      streamEventState.emittedToolCallIds.add(call.toolUseId);
+      emit({
+        type: 'tool-call',
+        toolCallId: call.toolUseId,
+        toolName: toCommonName(call.toolName),
+        nativeName: call.toolName,
+        input: JSON.stringify(call.toolInput ?? {}),
+        providerExecuted: true,
+        ...(isExternalMcpTool(call.toolName) ? { dynamic: true } : {}),
+      });
+    }
+    // Register before asking, so an answer that arrives while the deferred
+    // query is still being disposed is not missed.
+    deferredDecision = turn.requestToolApproval(call.toolUseId);
+    emit({
+      type: 'tool-approval-request',
+      approvalId: call.toolUseId,
+      toolCallId: call.toolUseId,
+    });
+    markWaitingOnHostInput({
+      state: streamEventState,
+      emit,
+      toolUseId: call.toolUseId,
+    });
+  };
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
 
@@ -700,8 +865,48 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     toCommonName,
   });
 
+  /*
+   * Yields the messages of every query in this turn. When Claude Code defers a
+   * call for host approval, wait for the decision and resume the session
+   * without a prompt so the same call runs with that decision.
+   */
+  async function* messages(): AsyncGenerator<ClaudeMessage> {
+    for (;;) {
+      if (deferredToolUseId != null) {
+        const toolUseId = deferredToolUseId;
+        const decision = await Promise.race([
+          deferredDecision ?? turn.requestToolApproval(toolUseId),
+          hostAborted,
+        ]).finally(() =>
+          clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
+        );
+        deferredDecision = undefined;
+        if (decision == null || abortCtl.signal.aborted) return;
+        approvalDecisions.set(toolUseId, decision);
+        deferredToolUseId = undefined;
+        resumingDeferredCall = true;
+        q = claudeSdk.query({
+          prompt: withoutInitialMessage(queryInput.input),
+          options: {
+            ...queryArgs.options,
+            ...(lastClaudeSessionId != null
+              ? { continue: undefined, resume: lastClaudeSessionId }
+              : {}),
+          },
+        });
+      }
+      for await (const msg of q as AsyncIterable<ClaudeMessage>) {
+        yield msg;
+        if (deferredToolUseId != null) break;
+      }
+      if (deferredToolUseId == null || abortCtl.signal.aborted) return;
+      queryInput.retire();
+      await disposeQuery(q);
+    }
+  }
+
   try {
-    for await (const msg of q as AsyncIterable<ClaudeMessage>) {
+    for await (const msg of messages()) {
       if (abortCtl.signal.aborted) break;
 
       const type = msg.type;
@@ -719,6 +924,25 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
 
       emitStreamEvent(msg);
+
+      if (
+        type === 'result' &&
+        msg.terminal_reason === 'tool_deferred' &&
+        msg.deferred_tool_use?.id != null
+      ) {
+        const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
+        if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+        if (typeof msg.total_cost_usd === 'number') {
+          totalCostUsd = msg.total_cost_usd;
+        }
+        deferredToolUseId = msg.deferred_tool_use.id;
+        requestDeferredApproval({
+          toolUseId: msg.deferred_tool_use.id,
+          toolName: msg.deferred_tool_use.name,
+          toolInput: msg.deferred_tool_use.input,
+        });
+        continue;
+      }
 
       if (type === 'result') {
         if (msg.subtype === 'success') {
@@ -767,7 +991,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
-          if (!queryInput.answersSentMessage(msg)) continue;
+          if (!resumingDeferredCall && !queryInput.answersSentMessage(msg)) {
+            continue;
+          }
           queryInput.observeResult();
           if (!queryInput.hasActiveUserMessages()) {
             queryInput.close();
@@ -815,13 +1041,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     // through an interrupt or error path can otherwise leak that process —
     // observed as orphaned `claude` processes holding the very conversation
     // the next turn continues.
-    try {
-      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
-        undefined,
-      );
-    } catch {
-      // Best effort; the abort controller tears the process down otherwise.
-    }
+    await disposeQuery(q);
   }
 
   if (emittedTerminalError) return;
@@ -864,6 +1084,8 @@ function createQueryInput({
   hasActiveUserMessages(): boolean;
   answersSentMessage(result: ClaudeMessage): boolean;
   observeResult(): void;
+  /** Stops the current query's input from taking more user messages. */
+  retire(): void;
   readonly hasObservedResult: boolean;
 } {
   let closed = false;
@@ -922,6 +1144,31 @@ function createQueryInput({
   });
 
   const messageIterator = userMessages[Symbol.asyncIterator]();
+  /*
+   * A query that ends at a deferred call can still be waiting for the next
+   * user message. Pull through one shared buffer and only hand a message to
+   * the input of the live query, so the resumed query receives it.
+   */
+  let liveInputId = 0;
+  let bufferedMessage:
+    | IteratorResult<Experimental_BridgeUserMessage>
+    | undefined;
+  let pulling: Promise<void> | undefined;
+  const takeMessage = async (inputId: number) => {
+    for (;;) {
+      if (inputId !== liveInputId) return undefined;
+      if (bufferedMessage != null) {
+        const message = bufferedMessage;
+        bufferedMessage = undefined;
+        return message;
+      }
+      pulling ??= messageIterator.next().then(result => {
+        bufferedMessage = result;
+        pulling = undefined;
+      });
+      await pulling;
+    }
+  };
 
   return {
     close,
@@ -970,11 +1217,15 @@ function createQueryInput({
     observeResult: () => {
       observedResult = true;
     },
+    retire: () => {
+      liveInputId++;
+    },
     get hasObservedResult() {
       return observedResult;
     },
     input: {
       [Symbol.asyncIterator]() {
+        const inputId = ++liveInputId;
         let sentInitial = false;
         return {
           async next() {
@@ -994,8 +1245,8 @@ function createQueryInput({
                 done: false,
               };
             }
-            const nextMessage = await messageIterator.next();
-            if (nextMessage.done) {
+            const nextMessage = await takeMessage(inputId);
+            if (nextMessage == null || nextMessage.done) {
               return {
                 value: undefined,
                 done: true,
@@ -1019,6 +1270,40 @@ function createQueryInput({
       },
     },
   };
+}
+
+/*
+ * Resuming a deferred call must not send a prompt: Claude Code would answer
+ * it and drop the call. The stream stays open for steering messages.
+ */
+function withoutInitialMessage(
+  input: AsyncIterable<unknown>,
+): AsyncIterable<unknown> {
+  return {
+    [Symbol.asyncIterator]() {
+      const iterator = input[Symbol.asyncIterator]();
+      let skipped = false;
+      return {
+        async next() {
+          if (!skipped) {
+            skipped = true;
+            await iterator.next();
+          }
+          return iterator.next();
+        },
+      };
+    },
+  };
+}
+
+async function disposeQuery(query: unknown): Promise<void> {
+  try {
+    await (
+      query as { return?: (value?: unknown) => Promise<unknown> } | undefined
+    )?.return?.(undefined);
+  } catch {
+    // Best effort; the abort controller tears the process down otherwise.
+  }
 }
 
 function addUsage(
