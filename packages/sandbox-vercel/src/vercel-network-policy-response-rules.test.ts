@@ -7,7 +7,10 @@ import { VercelNetworkSandboxSession } from './vercel-network-sandbox-session';
 
 const fixture = JSON.parse(
   readFileSync(
-    new URL('./__fixtures__/issue-24035.json', import.meta.url),
+    new URL(
+      './__fixtures__/network-policy-response-rules-readback.json',
+      import.meta.url,
+    ),
     'utf8',
   ),
 ) as {
