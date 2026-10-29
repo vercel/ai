@@ -1,5 +1,11 @@
 # @ai-sdk/angular
 
+## 2.0.320
+
+### Patch Changes
+
+- ai@6.0.319
+
 ## 2.0.319
 
 ### Patch Changes
