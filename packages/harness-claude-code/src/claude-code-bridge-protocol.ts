@@ -37,6 +37,10 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  maxBudgetUsd: z.number().optional(),
+  strictMcpConfig: z.boolean().optional(),
+  questionTimeoutMs: z.number().optional(),
+  excludeDynamicSections: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),
   forwardSubagentText: z.boolean().optional(),
   env: z.record(z.string(), z.string()).optional(),
@@ -63,6 +67,10 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   // a resume that itself started a new thread. Mutually exclusive with
   // `continue` in the SDK, so the bridge sends one or the other.
   resumeSessionId: z.string().optional(),
+  // A tool call the previous bridge deferred while it waited for host
+  // approval. The bridge resumes `resumeSessionId` without a prompt once the
+  // host answers, so Claude Code runs that same call.
+  deferredToolUseId: z.string().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

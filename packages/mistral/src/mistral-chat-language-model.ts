@@ -72,6 +72,16 @@ const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
   'voxtral-small-latest',
 ]);
 
+// GLM-5.3 models accept only low, high, and max reasoning effort and cannot
+// disable reasoning. Omitting reasoning_effort uses max.
+// https://docs.mistral.ai/studio/conversations/reasoning (2026-10-26)
+const modelsWithLowHighMaxReasoningEffort = new Set<MistralChatModelId>([
+  'zai-glm-5',
+  'zai-glm-5-3',
+  'zai-glm-5-3-flash',
+  'zai-glm-latest',
+]);
+
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -143,24 +153,18 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
-                warnings,
-              })
-          : undefined);
+      const supportsLowHighMax = modelsWithLowHighMaxReasoningEffort.has(
+        this.modelId,
+      );
+
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: supportsLowHighMax
+          ? { low: 'low', high: 'high', max: 'max' }
+          : { none: 'none', high: 'high' },
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',

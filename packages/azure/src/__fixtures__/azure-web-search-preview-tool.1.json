@@ -1,37 +1,138 @@
 {
-  "id": "resp_015f6a6b41cacae400691daacaec1c8193aa7694e479437a70",
+  "id": "resp_07630a2aea58432e006ae0f4d99fdc8195b9ed669d20685802",
   "object": "response",
-  "created_at": 1763551946,
+  "created_at": 1793127641,
   "status": "completed",
+  "access_programs": null,
   "background": false,
-  "content_filters": null,
+  "completed_at": 1793127648,
+  "content_filters": [
+    {
+      "blocked": false,
+      "source_type": "prompt",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "jailbreak": {
+          "detected": false,
+          "filtered": false
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 1919,
+        "check_offset": 0
+      }
+    },
+    {
+      "blocked": false,
+      "source_type": "completion",
+      "content_filter_raw": [],
+      "content_filter_results": {
+        "protected_material_code": {
+          "detected": false,
+          "filtered": false
+        },
+        "protected_material_text": {
+          "detected": false,
+          "filtered": false
+        },
+        "hate": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "sexual": {
+          "filtered": false,
+          "severity": "safe"
+        },
+        "violence": {
+          "filtered": false,
+          "severity": "low"
+        },
+        "self_harm": {
+          "filtered": false,
+          "severity": "safe"
+        }
+      },
+      "content_filter_offsets": {
+        "start_offset": 0,
+        "end_offset": 26302,
+        "check_offset": 0
+      }
+    }
+  ],
   "error": null,
+  "frequency_penalty": 0,
   "incomplete_details": null,
   "instructions": null,
   "max_output_tokens": null,
   "max_tool_calls": null,
   "model": "gpt-4.1-mini",
+  "moderation": null,
   "output": [
     {
-      "id": "ws_015f6a6b41cacae400691daacb83288193836c60a7c57507fd",
+      "id": "ws_07630a2aea58432e006ae0f4da43ac819598dbc092045bb135",
       "type": "web_search_call",
-      "status": "searching",
+      "status": "completed",
       "action": {
         "type": "search",
-        "query": "top news stories November 19, 2025"
+        "queries": [
+          "top news stories today"
+        ],
+        "query": "top news stories today",
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://www.nbcnews.com/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.cnn.com/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.cbsnews.com/"
+          },
+          {
+            "type": "url",
+            "url": "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtVnVHZ0pWVXlnQVAB"
+          },
+          {
+            "type": "url",
+            "url": "https://abcnews.com/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.nbcnews.com/latest-stories"
+          },
+          {
+            "type": "url",
+            "url": "https://news.google.com/"
+          },
+          {
+            "type": "url",
+            "url": "https://www.washingtonpost.com/"
+          }
+        ]
       }
     },
     {
-      "id": "ws_015f6a6b41cacae400691daacdbd0081938887c66406662377",
-      "type": "web_search_call",
-      "status": "searching",
-      "action": {
-        "type": "search",
-        "query": "major news stories November 19, 2025"
-      }
-    },
-    {
-      "id": "msg_015f6a6b41cacae400691daacf3e70819397c7d2d5d05e1605",
+      "id": "msg_07630a2aea58432e006ae0f4dbb68c819598cead62ed251416",
       "type": "message",
       "status": "completed",
       "content": [
@@ -40,23 +141,61 @@
           "annotations": [
             {
               "type": "url_citation",
-              "end_index": 576,
-              "start_index": 453,
-              "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
-              "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025"
+              "end_index": 453,
+              "start_index": 417,
+              "title": "NBC News - Breaking Headlines and Video Reports on World, U.S. and ...",
+              "url": "https://www.nbcnews.com/"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 482,
+              "start_index": 455,
+              "title": "Breaking News, Latest News and Videos | CNN",
+              "url": "https://www.cnn.com/"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 520,
+              "start_index": 484,
+              "title": "CBS News | Breaking News, Top Stories & Exclusive Coverage",
+              "url": "https://www.cbsnews.com/"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 565,
+              "start_index": 526,
+              "title": "Google News - Headlines",
+              "url": "https://news.google.com/"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 1055,
+              "start_index": 1023,
+              "title": "ABC News - Breaking News, Latest News and Videos",
+              "url": "https://abcnews.com/"
+            },
+            {
+              "type": "url_citation",
+              "end_index": 2154,
+              "start_index": 2100,
+              "title": "The Washington Post - Breaking news and latest headlines, U.S. news ...",
+              "url": "https://www.washingtonpost.com/"
             }
           ],
           "logprobs": [],
-          "text": "Here are three major news stories from today, November 19, 2025:\n\n1. President Donald Trump hosted Saudi Crown Prince Mohammed bin Salman (MBS) at the White House. Trump defended the Saudi prince over the 2018 murder of journalist Jamal Khashoggi, dismissing it as \"things happened\" and praising MBS's human rights record. The visit included a lavish military parade and the announcement of a $1.3 trillion investment pledge by Saudi Arabia in the U.S. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)\n\n2. The U.S. House of Representatives voted overwhelmingly (427-1) to compel the Justice Department to release all unclassified files related to Jeffrey Epstein. This followed a shift from Trump who had initially opposed the release. The resolution now moves to the Senate for consideration. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)\n\n3. Spain pledged €817 million (approximately $1.2 billion) in military and other aid to Ukraine to help bolster Kyiv’s air defenses against ongoing Russian attacks. The aid is part of a 10-year bilateral security and defense agreement signed in 2024 and includes purchasing U.S. military equipment under NATO’s prioritization. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)\n\nIf you want more details or other news stories, feel free to ask!"
+          "text": "Here is a summary of the top news stories today from multiple major news sources:\n\n1. Israeli General Election:\n- Israelis are voting in a critical election seen as a referendum on Prime Minister Benjamin Netanyahu's leadership after three years of war. Voter turnout is the highest in decades with record early voting. Netanyahu’s future and the direction of the country are at stake in this highly watched election [NBC News](https://www.nbcnews.com/), [CNN](https://www.cnn.com/), [CBS News](https://www.cbsnews.com/), and [Google News](https://news.google.com/).\n\n2. U.S. Midterm Elections:\n- With just one week left before the 2026 U.S. midterm elections, key races are heating up as early voting surges. Democrats currently lead in several battleground Senate races. There is significant political tension, including legal challenges and claims of election fraud. Spending on the midterms has reached record levels, surpassing previous elections [NBC News](https://www.nbcnews.com/), [CNN](https://www.cnn.com/), and [ABC News](https://abcnews.com/).\n\n3. Brazil Election Fallout:\n- Luiz Inacio Lula da Silva defeated Flavio Bolsonaro in the recent Brazilian presidential election. Bolsonaro’s party has acknowledged the defeat, though Bolsonaro himself has not conceded. Former U.S. President Trump has called the Brazil election “rigged,” echoing claims of fraud ahead of the U.S. midterms [Google News](https://news.google.com/), [NBC News](https://www.nbcnews.com/).\n\n4. U.K. Terror Plot Charges:\n- Two men have been charged in the U.K. in connection with an alleged Iran-linked terror plot targeting the RAF Fairford air base, which is used by both British and U.S. forces [CBS News](https://www.cbsnews.com/).\n\n5. Miscellaneous:\n- The CDC warns of rising threats from drug-resistant germs causing thousands of deaths annually in the U.S.\n- Celebrities news includes the death of Emmy-winning actress Susan Saint James.\n- Legal and political battles continue around the U.S. Department of Justice actions and investigations involving prominent figures [NBC News](https://www.nbcnews.com/), [The Washington Post](https://www.washingtonpost.com/).\n\nThese stories highlight ongoing global political shifts, electoral battles in the U.S. and Israel, and security concerns internationally. For more in-depth reading, please refer to the cited news sources."
         }
       ],
       "role": "assistant"
     }
   ],
   "parallel_tool_calls": true,
+  "presence_penalty": 0,
   "previous_response_id": null,
   "prompt_cache_key": null,
+  "prompt_cache_retention": "in_memory",
   "reasoning": {
+    "context": null,
     "effort": null,
     "summary": null
   },
@@ -71,9 +210,30 @@
     "verbosity": "medium"
   },
   "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 1
+    }
+  },
   "tools": [
     {
       "type": "web_search_preview",
+      "search_content_types": [
+        "text"
+      ],
       "search_context_size": "medium",
       "user_location": {
         "type": "approximate",
@@ -88,15 +248,16 @@
   "top_p": 1,
   "truncation": "disabled",
   "usage": {
-    "input_tokens": 10188,
+    "input_tokens": 5434,
     "input_tokens_details": {
+      "cache_write_tokens": 0,
       "cached_tokens": 0
     },
-    "output_tokens": 405,
+    "output_tokens": 534,
     "output_tokens_details": {
       "reasoning_tokens": 0
     },
-    "total_tokens": 10593
+    "total_tokens": 5968
   },
   "user": null,
   "metadata": {}

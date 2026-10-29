@@ -1,5 +1,41 @@
 # @ai-sdk/google-vertex
 
+## 5.0.126
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 5.0.125
+
+### Patch Changes
+
+- 38a5b84: support Google Auth Library 11 in `@ai-sdk/google-vertex`
+
+## 5.0.124
+
+### Patch Changes
+
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/google@4.0.107
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 5.0.123
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+  - @ai-sdk/anthropic@4.0.89
+  - @ai-sdk/google@4.0.106
+
 ## 5.0.122
 
 ### Patch Changes

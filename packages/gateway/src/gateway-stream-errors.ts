@@ -10,7 +10,10 @@ export async function errorControllerWithGatewayError<PART>(
   error: unknown,
   authMethod: 'api-key' | 'oidc' | undefined,
 ): Promise<void> {
-  controller.error(await asGatewayError(error, authMethod));
+  // Cancellation errors are rethrown by asGatewayError and must still reach the stream.
+  controller.error(
+    await asGatewayError(error, authMethod).catch(error => error),
+  );
 }
 
 /**

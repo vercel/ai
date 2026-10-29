@@ -1,4 +1,4 @@
-# AI SDK Web Fetch Tool
+# AI SDK - Web Fetch Tool
 
 A first-party, provider-independent web fetch tool for the [AI SDK](https://ai-sdk.dev/docs).
 

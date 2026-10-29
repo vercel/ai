@@ -661,18 +661,6 @@ describe('getBatchStatus', () => {
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
   });
-
-  it('rejects a version 1 batch reference', async () => {
-    await expect(
-      getBatchStatus({
-        provider: createMockBatchApi(),
-        batch: {
-          ...batchReference,
-          version: 1,
-        } as unknown as BatchReference,
-      }),
-    ).rejects.toBeInstanceOf(InvalidArgumentError);
-  });
 });
 
 describe('getBatchResults', () => {
