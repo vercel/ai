@@ -1876,6 +1876,36 @@ describe('parallel tool calls', () => {
     expect(content).toContain('"count":"100"');
     expect(content).toContain('"self":"[Circular]"');
   });
+
+  it('should preserve reused non-circular objects with $ref in tool-result', async () => {
+    const shared: any = { id: 1 };
+    const schema: any = {
+      $ref: '#/components/schemas/Item',
+      first: shared,
+      second: shared,
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: schema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"first":{"id":1}');
+    expect(content).toContain('"second":{"id":1}');
+    expect(content).not.toContain('[Circular]');
+  });
 });
 
 describe('tool results with thought signatures', () => {
