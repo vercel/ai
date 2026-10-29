@@ -846,6 +846,60 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
 
+  test('maps a dotted AI Gateway model id to the id Claude Code expects', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      model: 'anthropic/claude-opus-5.5',
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test('keeps a context window suffix on the gateway model id', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5[1m]' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+      },
+    });
+  });
+
+  test('merges model overrides into the permission settings', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test.each(['claude-opus-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for %s',
+    async model => {
+      state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
       ...state.start,
