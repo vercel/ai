@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.206
+
+### Patch Changes
+
+- 0d40f58: Fix disabled Anthropic thinking in Converse requests by forwarding `reasoningConfig: { type: 'disabled' }` for supported models and omitting the field for Claude 3.5 and earlier. Apply model-specific thinking fallbacks and effort limits with warnings, preserving explicit reasoning effort.
+
 ## 4.0.205
 
 ### Patch Changes
