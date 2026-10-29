@@ -114,6 +114,7 @@ describe('DevToolsTelemetry', () => {
       'ai.embedMany',
       'ai.rerank',
       'ai.generateSpeech',
+      'ai.generateImage',
       'ai.transcribe',
     ]) {
       await integration.onStart!({ operationId, callId: 'x' } as any);

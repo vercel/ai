@@ -24,6 +24,7 @@ import {
   embedMany,
   experimental_decide,
   experimental_evaluate,
+  generateImage,
   generateObject,
   generateText,
   streamObject,
@@ -34,8 +35,10 @@ import {
 import {
   Experimental_DecisionMockModelV4,
   MockEmbeddingModelV4,
+  MockImageModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
+import { APICallError } from '@ai-sdk/provider';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -2600,6 +2603,186 @@ describe('OpenTelemetry', () => {
 
       for (const span of sdkTrace.exporter.getFinishedSpans()) {
         expect('gen_ai.usage.input_tokens' in span.attributes).toBe(false);
+      }
+    });
+  });
+
+  describe('generateImage integration', () => {
+    const pngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
+    function createImageModel(doGenerate?: MockImageModelV4['doGenerate']) {
+      return new MockImageModelV4({
+        provider: 'openai.image',
+        modelId: 'gpt-image-1',
+        maxImagesPerCall: 1,
+        doGenerate:
+          doGenerate ??
+          (async () => ({
+            images: [pngBase64],
+            warnings: [],
+            usage: { inputTokens: 10, outputTokens: 1, totalTokens: 11 },
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-image-1-2025',
+              headers: undefined,
+            },
+          })),
+      });
+    }
+
+    it('records an operation span with a child span per image model call', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateImage({
+        model: createImageModel(),
+        prompt: 'sunny day at the beach',
+        n: 2,
+        size: '1024x1024',
+        seed: 7,
+        telemetry: { integrations: integration },
+      });
+
+      const spans = sdkTrace.exporter.getFinishedSpans();
+      const rootSpan = spans.find(span => span.parentSpanContext == null)!;
+      const childSpans = spans.filter(span => span !== rootSpan);
+
+      expect(spans).toHaveLength(3);
+      expect(rootSpan.name).toBe('ai.generateImage gpt-image-1');
+      expect(rootSpan.attributes).toMatchObject({
+        'gen_ai.operation.name': 'ai.generateImage',
+        'gen_ai.provider.name': 'openai',
+        'gen_ai.request.model': 'gpt-image-1',
+        'gen_ai.output.type': 'image',
+        'gen_ai.request.choice.count': 2,
+        'gen_ai.request.seed': 7,
+        'ai.request.size': '1024x1024',
+        'ai.request.text': 'sunny day at the beach',
+        'ai.response.images': JSON.stringify([
+          { mediaType: 'image/png', byteLength: 67 },
+          { mediaType: 'image/png', byteLength: 67 },
+        ]),
+      });
+      expect('gen_ai.usage.input_tokens' in rootSpan.attributes).toBe(false);
+
+      for (const childSpan of childSpans) {
+        expect(childSpan.name).toBe('ai.generateImage gpt-image-1');
+        expect(childSpan.parentSpanContext?.spanId).toBe(
+          rootSpan.spanContext().spanId,
+        );
+        expect(childSpan.attributes).toMatchObject({
+          'gen_ai.request.choice.count': 1,
+          'gen_ai.response.model': 'gpt-image-1-2025',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 1,
+          'ai.response.images': JSON.stringify([
+            { mediaType: 'image/png', byteLength: 67 },
+          ]),
+        });
+      }
+
+      expect(JSON.stringify(spans.map(span => span.attributes))).not.toContain(
+        pngBase64,
+      );
+    });
+
+    it('ends a failed image model call span with an error when a retry succeeds', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      let attempt = 0;
+
+      await generateImage({
+        model: createImageModel(async () => {
+          attempt++;
+          if (attempt === 1) {
+            throw new APICallError({
+              message: 'rate limited',
+              url: 'https://example.com',
+              requestBodyValues: {},
+              statusCode: 429,
+              responseHeaders: { 'retry-after-ms': '0' },
+              isRetryable: true,
+            });
+          }
+          return {
+            images: [pngBase64],
+            warnings: [],
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-image-1',
+              headers: undefined,
+            },
+          };
+        }),
+        prompt: 'sunny day at the beach',
+        telemetry: { integrations: integration },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          parent: span.parentSpanContext == null ? 'root' : 'child',
+          status: span.status.code,
+          message: span.status.message,
+        })),
+      ).toStrictEqual([
+        {
+          parent: 'child',
+          status: SpanStatusCode.ERROR,
+          message: 'rate limited',
+        },
+        { parent: 'child', status: SpanStatusCode.UNSET, message: undefined },
+        { parent: 'root', status: SpanStatusCode.UNSET, message: undefined },
+      ]);
+    });
+
+    it('records errors on open spans when generation fails', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await expect(
+        generateImage({
+          model: createImageModel(async () => {
+            throw new Error('generation failed');
+          }),
+          prompt: 'sunny day at the beach',
+          maxRetries: 0,
+          telemetry: { integrations: integration },
+        }),
+      ).rejects.toThrow('generation failed');
+
+      const spans = sdkTrace.exporter.getFinishedSpans();
+      expect(spans).toHaveLength(2);
+      for (const span of spans) {
+        expect(span.status).toStrictEqual({
+          code: SpanStatusCode.ERROR,
+          message: 'generation failed',
+        });
+      }
+    });
+
+    it('honors recordInputs and recordOutputs', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateImage({
+        model: createImageModel(),
+        prompt: {
+          text: 'private prompt',
+          images: ['https://example.com/input.png'],
+        },
+        telemetry: {
+          recordInputs: false,
+          recordOutputs: false,
+          integrations: integration,
+        },
+      });
+
+      for (const span of sdkTrace.exporter.getFinishedSpans()) {
+        expect(span.attributes['ai.request.text']).toBeUndefined();
+        expect(span.attributes['ai.request.images']).toBeUndefined();
+        expect(span.attributes['gen_ai.input.messages']).toBeUndefined();
+        expect(span.attributes['ai.response.images']).toBeUndefined();
       }
     });
   });

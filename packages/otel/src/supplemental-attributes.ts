@@ -29,6 +29,7 @@ export type OpenTelemetrySpanType =
   | 'tool'
   | 'embedding'
   | 'reranking'
+  | 'imageModel'
   | 'experimental_decision';
 
 export type EnrichSpan = (options: {

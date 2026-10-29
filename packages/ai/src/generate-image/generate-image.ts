@@ -9,6 +9,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
+  createIdGenerator,
   detectMediaType,
   withUserAgentSuffix,
   type DataContent,
@@ -21,11 +22,15 @@ import {
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { ImageModel } from '../types/image-model';
 import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
+import { getBase64OrBinaryByteLength } from '../util/get-base64-or-binary-byte-length';
 import { getOwn } from '../util/get-own';
+import { notify } from '../util/notify';
 import { setOwn } from '../util/set-own';
 import { prepareRetries } from '../util/prepare-retries';
 import { RetryError } from '../util/retry-error';
@@ -36,6 +41,18 @@ import type {
 } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
+import type {
+  GenerateImageEndEvent,
+  GenerateImageInputFile,
+  GenerateImageOutputFile,
+  GenerateImageStartEvent,
+  ImageModelCallStartEvent,
+} from './image-events';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 const gatewayCostMetadataKeys = [
   'cost',
@@ -81,6 +98,7 @@ export type GenerateImagePrompt =
  * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the generated images.
  */
@@ -96,6 +114,8 @@ export async function generateImage({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  telemetry,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The image model to use.
@@ -167,6 +187,18 @@ export async function generateImage({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
 
@@ -175,182 +207,294 @@ export async function generateImage({
     `ai/${VERSION}`,
   );
 
-  const { retry } = prepareRetries({
+  const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
     additionalRetryableError: error =>
       error instanceof RetryableNoImageResultError,
   });
 
-  // default to 1 if the model has not specified limits on
-  // how many images can be generated in a single call
-  const maxImagesPerCallWithDefault =
-    maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
+  const { prompt, files, mask } = normalizePrompt(promptArg);
 
-  // parallelize calls to the model:
-  const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
-  const callImageCounts = Array.from({ length: callCount }, (_, i) => {
-    if (i < callCount - 1) {
-      return maxImagesPerCallWithDefault;
-    }
+  const callId = generateCallId();
+  const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-    const remainder = n % maxImagesPerCallWithDefault;
-    return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
-  });
+  const startEvent: GenerateImageStartEvent = {
+    callId,
+    operationId: 'ai.generateImage',
+    provider: model.provider,
+    modelId: model.modelId,
+    prompt,
+    images: files?.map(getInputFileMetadata),
+    mask: mask == null ? undefined : getInputFileMetadata(mask),
+    n,
+    maxImagesPerCall,
+    size,
+    aspectRatio,
+    seed,
+    maxRetries,
+    headers,
+    providerOptions,
+  };
 
-  const resultGroups = await Promise.all(
-    callImageCounts.map(async callImageCount => {
-      const callResults: Array<ImageModelV4Result> = [];
+  return await runInTracingChannelSpan({
+    type: 'generateImage',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [telemetryDispatcher.onStart],
+      });
 
       try {
-        await retry(async () => {
-          const { prompt, files, mask } = normalizePrompt(promptArg);
+        // default to 1 if the model has not specified limits on
+        // how many images can be generated in a single call
+        const maxImagesPerCallWithDefault =
+          maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
 
-          const result = await model.doGenerate({
-            prompt,
-            files,
-            mask,
-            n: callImageCount,
-            abortSignal,
-            headers: headersWithUserAgent,
-            size,
-            aspectRatio,
-            seed,
-            providerOptions: providerOptions ?? {},
-          });
-
-          callResults.push(result);
-
-          if (result.images.length === 0 && result.isRetryable !== false) {
-            throw new RetryableNoImageResultError();
+        // parallelize calls to the model:
+        const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
+        const callImageCounts = Array.from({ length: callCount }, (_, i) => {
+          if (i < callCount - 1) {
+            return maxImagesPerCallWithDefault;
           }
 
-          return result;
+          const remainder = n % maxImagesPerCallWithDefault;
+          return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
         });
 
-        return callResults;
-      } catch (error) {
-        const noImageResultError =
-          error instanceof RetryableNoImageResultError
-            ? error
-            : RetryError.isInstance(error) &&
-                error.lastError instanceof RetryableNoImageResultError
-              ? error.lastError
-              : undefined;
+        const resultGroups = await Promise.all(
+          callImageCounts.map(async callImageCount => {
+            const callResults: Array<ImageModelV4Result> = [];
 
-        if (noImageResultError != null) {
-          return callResults;
+            try {
+              await retry(async () => {
+                const modelCallStartEvent: ImageModelCallStartEvent = {
+                  callId,
+                  imageCallId: generateCallId(),
+                  operationId: 'ai.generateImage.doGenerate',
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  n: callImageCount,
+                };
+
+                await notify({
+                  event: modelCallStartEvent,
+                  callbacks: [telemetryDispatcher.onImageModelCallStart],
+                });
+
+                let result: ImageModelV4Result;
+                try {
+                  result = await model.doGenerate({
+                    prompt,
+                    files,
+                    mask,
+                    n: callImageCount,
+                    abortSignal,
+                    headers: headersWithUserAgent,
+                    size,
+                    aspectRatio,
+                    seed,
+                    providerOptions: providerOptions ?? {},
+                  });
+                } catch (error) {
+                  await notify({
+                    event: { ...modelCallStartEvent, error },
+                    callbacks: [telemetryDispatcher.onImageModelCallError],
+                  });
+                  throw error;
+                }
+
+                if (telemetryDispatcher.onImageModelCallEnd != null) {
+                  await notify({
+                    event: {
+                      ...modelCallStartEvent,
+                      images: result.images.map(image => ({
+                        mediaType: getImageMediaType(image),
+                        byteLength: getBase64OrBinaryByteLength(image),
+                      })),
+                      usage: result.usage,
+                      warnings: result.warnings,
+                      providerMetadata: result.providerMetadata,
+                      response: getTelemetryResponseMetadata(result.response),
+                    },
+                    callbacks: [telemetryDispatcher.onImageModelCallEnd],
+                  });
+                }
+
+                callResults.push(result);
+
+                if (
+                  result.images.length === 0 &&
+                  result.isRetryable !== false
+                ) {
+                  throw new RetryableNoImageResultError();
+                }
+
+                return result;
+              });
+
+              return callResults;
+            } catch (error) {
+              const noImageResultError =
+                error instanceof RetryableNoImageResultError
+                  ? error
+                  : RetryError.isInstance(error) &&
+                      error.lastError instanceof RetryableNoImageResultError
+                    ? error.lastError
+                    : undefined;
+
+              if (noImageResultError != null) {
+                return callResults;
+              }
+
+              throw error;
+            }
+          }),
+        );
+        const results = resultGroups.flat();
+
+        // collect result images, warnings, and response metadata
+        const images: Array<GeneratedFile> = [];
+        const calls: Array<GenerateImageCall> = [];
+        const warnings: Array<Warning> = [];
+        const responses: Array<ImageModelResponseMetadata> = [];
+        const providerMetadata: ImageModelV4ProviderMetadata = {};
+        let totalUsage: ImageModelUsage = {
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        };
+        for (const result of results) {
+          const callImages = result.images.map(
+            (image, index) =>
+              new DefaultGeneratedFile({
+                data: image,
+                mediaType: getImageMediaType(image),
+                providerMetadata: getImageProviderMetadata(
+                  result.providerMetadata,
+                  index,
+                ),
+              }),
+          );
+          images.push(...callImages);
+          calls.push({
+            images: callImages,
+            providerMetadata: result.providerMetadata,
+            response: result.response,
+            warnings: result.warnings,
+            usage: result.usage,
+          });
+          warnings.push(...result.warnings);
+
+          if (result.usage != null) {
+            totalUsage = addImageModelUsage(totalUsage, result.usage);
+          }
+
+          if (result.providerMetadata) {
+            for (const [providerName, metadata] of Object.entries(
+              result.providerMetadata,
+            )) {
+              if (providerName === 'gateway') {
+                const currentEntry = providerMetadata[providerName];
+                if (currentEntry != null && typeof currentEntry === 'object') {
+                  const currentGatewayMetadata =
+                    currentEntry as GatewayCostMetadata;
+                  const newGatewayMetadata = metadata as GatewayCostMetadata;
+
+                  providerMetadata[providerName] = {
+                    ...(currentEntry as object),
+                    ...(metadata as object),
+                    ...Object.fromEntries(
+                      gatewayCostMetadataKeys.flatMap(key => {
+                        const total = addDecimalStrings(
+                          currentGatewayMetadata[key],
+                          newGatewayMetadata[key],
+                        );
+
+                        return total == null ? [] : [[key, total]];
+                      }),
+                    ),
+                  } as ImageModelV4ProviderMetadata[string];
+                } else {
+                  providerMetadata[providerName] = {
+                    ...(metadata as object),
+                  } as ImageModelV4ProviderMetadata[string];
+                }
+                const imagesValue = (
+                  providerMetadata[providerName] as { images?: unknown }
+                ).images;
+                if (Array.isArray(imagesValue) && imagesValue.length === 0) {
+                  delete (
+                    providerMetadata[providerName] as { images?: unknown }
+                  ).images;
+                }
+              } else {
+                const currentEntry = getOwn(providerMetadata, providerName) ?? {
+                  images: [],
+                };
+                currentEntry.images.push(...metadata.images);
+                setOwn(providerMetadata, providerName, currentEntry);
+              }
+            }
+          }
+
+          responses.push(result.response);
         }
 
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
+
+        if (!images.length) {
+          throw new NoImageGeneratedError({ calls, responses });
+        }
+
+        if (telemetryDispatcher.onEnd != null) {
+          const outputImages: Array<GenerateImageOutputFile> = results
+            .flatMap((result): Array<string | Uint8Array> => result.images)
+            .map((image, index) => ({
+              mediaType: images[index].mediaType,
+              byteLength: getBase64OrBinaryByteLength(image),
+            }));
+
+          const endEvent: GenerateImageEndEvent = {
+            callId,
+            operationId: 'ai.generateImage',
+            provider: model.provider,
+            modelId: model.modelId,
+            images: outputImages,
+            usage: totalUsage,
+            warnings,
+            providerMetadata,
+            responses: responses.map(getTelemetryResponseMetadata),
+          };
+
+          await notify({
+            event: endEvent,
+            callbacks: [telemetryDispatcher.onEnd],
+          });
+        }
+
+        return new DefaultGenerateImageResult({
+          images,
+          calls,
+          warnings,
+          responses,
+          providerMetadata,
+          usage: totalUsage,
+        });
+      } catch (error) {
+        await telemetryDispatcher.onError?.({ callId, error });
         throw error;
       }
-    }),
-  );
-  const results = resultGroups.flat();
-
-  // collect result images, warnings, and response metadata
-  const images: Array<GeneratedFile> = [];
-  const calls: Array<GenerateImageCall> = [];
-  const warnings: Array<Warning> = [];
-  const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV4ProviderMetadata = {};
-  let totalUsage: ImageModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
-  };
-  for (const result of results) {
-    const callImages = result.images.map(
-      (image, index) =>
-        new DefaultGeneratedFile({
-          data: image,
-          mediaType:
-            detectMediaType({
-              data: image,
-              topLevelType: 'image',
-            }) ?? 'image/png',
-          providerMetadata: getImageProviderMetadata(
-            result.providerMetadata,
-            index,
-          ),
-        }),
-    );
-    images.push(...callImages);
-    calls.push({
-      images: callImages,
-      providerMetadata: result.providerMetadata,
-      response: result.response,
-      warnings: result.warnings,
-      usage: result.usage,
-    });
-    warnings.push(...result.warnings);
-
-    if (result.usage != null) {
-      totalUsage = addImageModelUsage(totalUsage, result.usage);
-    }
-
-    if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries(
-        result.providerMetadata,
-      )) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            const currentGatewayMetadata = currentEntry as GatewayCostMetadata;
-            const newGatewayMetadata = metadata as GatewayCostMetadata;
-
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...(metadata as object),
-              ...Object.fromEntries(
-                gatewayCostMetadataKeys.flatMap(key => {
-                  const total = addDecimalStrings(
-                    currentGatewayMetadata[key],
-                    newGatewayMetadata[key],
-                  );
-
-                  return total == null ? [] : [[key, total]];
-                }),
-              ),
-            } as ImageModelV4ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] = {
-              ...(metadata as object),
-            } as ImageModelV4ProviderMetadata[string];
-          }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
-          }
-        } else {
-          const currentEntry = getOwn(providerMetadata, providerName) ?? {
-            images: [],
-          };
-          currentEntry.images.push(...metadata.images);
-          setOwn(providerMetadata, providerName, currentEntry);
-        }
-      }
-    }
-
-    responses.push(result.response);
-  }
-
-  logWarnings({ warnings, provider: model.provider, model: model.modelId });
-
-  if (!images.length) {
-    throw new NoImageGeneratedError({ calls, responses });
-  }
-
-  return new DefaultGenerateImageResult({
-    images,
-    calls,
-    warnings,
-    responses,
-    providerMetadata,
-    usage: totalUsage,
+    },
   });
 }
 
@@ -405,6 +549,35 @@ export function getImageProviderMetadata(
   }
 
   return imageMetadata;
+}
+
+function getImageMediaType(image: string | Uint8Array): string {
+  return (
+    detectMediaType({
+      data: image,
+      topLevelType: 'image',
+    }) ?? 'image/png'
+  );
+}
+
+function getInputFileMetadata(file: ImageModelV4File): GenerateImageInputFile {
+  return file.type === 'url'
+    ? { type: 'url', url: file.url }
+    : {
+        type: 'file',
+        mediaType: file.mediaType,
+        byteLength: getBase64OrBinaryByteLength(file.data),
+      };
+}
+
+function getTelemetryResponseMetadata(
+  response: ImageModelResponseMetadata,
+): ImageModelResponseMetadata {
+  return {
+    timestamp: response.timestamp,
+    modelId: response.modelId,
+    headers: response.headers,
+  };
 }
 
 async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
