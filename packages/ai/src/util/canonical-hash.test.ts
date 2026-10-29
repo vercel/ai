@@ -42,6 +42,18 @@ describe('canonicalJSON', () => {
     const d = new Date('2026-01-01T00:00:00.000Z');
     expect(canonicalJSON(d)).toBe('"2026-01-01T00:00:00.000Z"');
   });
+
+  it('serializes objects whose toJSON returns their receiver', () => {
+    const value: Record<string, unknown> = { name: 'x' };
+    value.toJSON = () => value;
+    expect(canonicalJSON(value)).toBe('{"name":"x"}');
+  });
+
+  it('throws on circular structures instead of overflowing the stack', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(() => canonicalJSON(circular)).toThrow(TypeError);
+  });
 });
 
 describe('hashCanonical', () => {
