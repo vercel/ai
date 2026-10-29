@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { readTextFile } from './file.ts';
+import { type fileExists, readTextFile } from './file.ts';
 
 function createFixture({
   context,
@@ -31,6 +31,10 @@ function createFixture({
   copyFileSync(
     new URL('../package.json', import.meta.url),
     join(root, 'tools/verifiers/package.json'),
+  );
+  copyFileSync(
+    new URL('../utils.ts', import.meta.url),
+    join(root, 'tools/verifiers/utils.ts'),
   );
 
   for (const [file, contents] of Object.entries(files)) {
@@ -53,6 +57,57 @@ test('returns the full UTF-8 contents of a repo-relative file', async () => {
     source,
     readFileSync(new URL('file.ts', import.meta.url), 'utf8'),
   );
+});
+
+test('fileExists is exported from utils and returns true for an existing file', async context => {
+  const { root } = createFixture({
+    context,
+    files: { 'fixtures/with spaces/[example].txt': '' },
+  });
+  const utils: { fileExists: typeof fileExists } = await import(
+    pathToFileURL(join(root, 'tools/verifiers/utils.ts')).href
+  );
+
+  assert.equal(
+    await utils.fileExists('fixtures/with spaces/[example].txt'),
+    true,
+  );
+});
+
+test('fileExists returns false for missing files and directories', async context => {
+  const { moduleUrl } = createFixture({
+    context,
+    files: { 'fixtures/existing.txt': '' },
+  });
+  const fileModule: { fileExists: typeof fileExists } = await import(moduleUrl);
+
+  assert.equal(await fileModule.fileExists('missing.txt'), false);
+  assert.equal(await fileModule.fileExists('fixtures'), false);
+  assert.equal(
+    await fileModule.fileExists('fixtures/existing.txt/child.txt'),
+    false,
+  );
+});
+
+test('fileExists resolves repo-relative paths independently of the working directory', context => {
+  const { moduleUrl } = createFixture({
+    context,
+    files: { '.agents/guidelines/example.md': '# Example Guidelines\n' },
+  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      `import { fileExists } from ${JSON.stringify(moduleUrl)};
+       console.log(await fileExists('.agents/guidelines/example.md'));`,
+    ],
+    { cwd: tmpdir(), encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'true\n');
+  assert.equal(result.stderr, '');
 });
 
 test('preserves line endings, Unicode, whitespace, and special path characters', async context => {
