@@ -26,6 +26,12 @@ import type { Sandbox, Command } from '@vercel/sandbox';
 const NOT_FOUND_EXIT_CODE = 3;
 const WRONG_TYPE_EXIT_CODE = 4;
 
+// The path methods run these scripts instead of using `sandbox.fs`, which
+// reports every error other than "No such file or directory" as `EACCES` (so a
+// path under a file rejects instead of being missing) and passes paths without
+// `--` (so a path starting with `-` is read as an option).
+// TODO: replace the scripts with native Vercel Sandbox SDK APIs when available.
+
 // `[ -e ]` is false both for missing paths and for paths that cannot be
 // resolved (permissions, symbolic link loops), so open the path to get the
 // reason. Not `stat -L`, because BSD `stat -L` succeeds for a broken link.
@@ -50,6 +56,8 @@ size=$(stat -L -c %s -- "$1" 2>/dev/null || stat -L -f %z -- "$1") || exit 1
 printf '%s %s' "$type" "$size"
 `;
 
+// Not `sandbox.fs.readdir`, which separates entries with newlines and splits
+// type from name on `|`, so names containing either are listed wrong.
 // `cd -P` so that `link/..` lists the same directory `[ -d ]` checked, and
 // `./` so that `CDPATH` and a directory named `-` are not special. `nullglob`
 // would list an unreadable directory as empty, so check `-r` first.
@@ -73,6 +81,8 @@ for name in *; do
 done
 `;
 
+// Not `sandbox.fs.unlink`, which also reports a directory as `EACCES`, so it
+// cannot be told apart from other errors.
 // delete the symlink itself even when it points to a dir or to a file or to nothing
 const DELETE_FILE_SCRIPT = `${EXIT_MISSING_FUNCTION}
 if [ -d "$1" ] && [ ! -L "$1" ]; then
@@ -115,6 +125,7 @@ export class VercelSandboxSession implements SandboxSession {
 
   // `currentSession()` throws until a stopped sandbox is resumed, and
   // `resume()` is private, so run a command, which resumes it.
+  // TODO: replace with a native Vercel Sandbox SDK API when available.
   private async currentSession(abortSignal: AbortSignal | undefined) {
     try {
       return this.sandbox.currentSession();
@@ -266,6 +277,8 @@ export class VercelSandboxSession implements SandboxSession {
   }: WriteBinaryFileOptions): Promise<void> {
     abortSignal?.throwIfAborted();
     const parent = posix.dirname(path);
+    // `sandbox.mkDir` creates only a single directory.
+    // TODO: replace with a native Vercel Sandbox SDK API when available.
     if (parent && parent !== '.' && parent !== '/') {
       await this.sandbox.runCommand({
         cmd: 'mkdir',
