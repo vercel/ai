@@ -250,19 +250,22 @@ export class JustBashSandboxSession implements SandboxSession {
     abortSignal?.throwIfAborted();
     const fs = this.sandbox.bashEnvInstance.fs;
     const resolved = this.resolvePath(path);
-    try {
-      const stat = await fs.lstat(resolved);
-      if (stat.isDirectory) {
-        throw new Error(`Cannot delete ${path}: it is a directory.`);
-      }
-      await fs.rm(resolved);
-      return true;
-    } catch (error) {
+    // A trailing slash refers to the directory a symbolic link points to, but
+    // the just-bash filesystem drops it, so follow the link instead.
+    const stat = await (
+      path.endsWith('/') ? fs.stat(resolved) : fs.lstat(resolved)
+    ).catch((error: unknown) => {
       if (isFileNotFoundError(error) || isNotDirectoryError(error)) {
-        return false;
+        return null;
       }
       throw error;
+    });
+    if (stat == null) return false;
+    if (stat.isDirectory) {
+      throw new Error(`Cannot delete ${path}: it is a directory.`);
     }
+    await fs.rm(resolved);
+    return true;
   }
 }
 

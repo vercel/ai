@@ -26,21 +26,18 @@ import type { Sandbox, Command } from '@vercel/sandbox';
 const NOT_FOUND_EXIT_CODE = 3;
 const WRONG_TYPE_EXIT_CODE = 4;
 
-// when `[ -e ]` (which checks existance) is false, also check if the parent directories are searchable
-// because otherwise it's a false negative (file doesn't exist) when the directory just can't be accessed
+// `[ -e ]` is false both for missing paths and for paths that cannot be
+// resolved (permissions, symbolic link loops), so open the path to get the
+// reason. Not `stat -L`, because BSD `stat -L` succeeds for a broken link.
+// The error message ends with the reason; the path before it is user-supplied.
 const EXIT_MISSING_FUNCTION = `
 exit_missing() {
-  ancestor=$1
-  while [ ! -e "$ancestor" ] && [ ! -L "$ancestor" ]; do
-    parent=$(dirname -- "$ancestor")
-    [ "$parent" = "$ancestor" ] && break
-    ancestor=$parent
-  done
-  if [ "$ancestor" != "$1" ] && [ -d "$ancestor" ] && [ ! -x "$ancestor" ]; then
-    echo "Permission denied" >&2
-    exit 1
-  fi
-  exit ${NOT_FOUND_EXIT_CODE}
+  error=$(LC_ALL=C; : 2>&1 < "$1")
+  case $error in
+    *": No such file or directory" | *": Not a directory") exit ${NOT_FOUND_EXIT_CODE} ;;
+  esac
+  echo "\${error:-Cannot access $1}" >&2
+  exit 1
 }
 `;
 
@@ -53,14 +50,18 @@ size=$(stat -L -c %s -- "$1" 2>/dev/null || stat -L -f %z -- "$1") || exit 1
 printf '%s %s' "$type" "$size"
 `;
 
-// `cd -P` so that `link/..` lists the same directory `[ -d ]` checked.
+// `cd -P` so that `link/..` lists the same directory `[ -d ]` checked, and
+// `./` so that `CDPATH` and a directory named `-` are not special. `nullglob`
+// would list an unreadable directory as empty, so check `-r` first.
 const LIST_DIRECTORY_SCRIPT = `${EXIT_MISSING_FUNCTION}
 if [ ! -d "$1" ]; then
   [ -e "$1" ] || exit_missing "$1"
   echo "Not a directory" >&2
   exit ${WRONG_TYPE_EXIT_CODE}
 fi
-cd -P -- "$1" || exit 1
+case $1 in /*) dir=$1 ;; *) dir=./$1 ;; esac
+cd -P -- "$dir" || exit 1
+[ -r . ] || { echo "Permission denied" >&2; exit 1; }
 shopt -s dotglob nullglob
 for name in *; do
   if [ -L "$name" ]; then type=symlink
@@ -103,10 +104,27 @@ export class VercelSandboxSession implements SandboxSession {
   // - vercel sandbox resolves relative `cwd` against `/` instead of the sandbox's working directory
   // - join paths directly instead of using `posix.join` so that symlinks are followed
 
-  private resolveWorkingDirectory(workingDirectory: string): string {
+  private async resolveWorkingDirectory(
+    workingDirectory: string,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<string> {
     if (posix.isAbsolute(workingDirectory)) return workingDirectory;
-    const cwd = this.sandbox.currentSession().cwd;
+    const { cwd } = await this.currentSession(abortSignal);
     return cwd === '/' ? `/${workingDirectory}` : `${cwd}/${workingDirectory}`;
+  }
+
+  // `currentSession()` throws until a stopped sandbox is resumed, and
+  // `resume()` is private, so run a command, which resumes it.
+  private async currentSession(abortSignal: AbortSignal | undefined) {
+    try {
+      return this.sandbox.currentSession();
+    } catch {
+      await this.sandbox.runCommand({
+        cmd: 'true',
+        ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
+      });
+      return this.sandbox.currentSession();
+    }
   }
 
   async run({
@@ -125,7 +143,12 @@ export class VercelSandboxSession implements SandboxSession {
       cmd: 'bash',
       args: ['-c', command],
       ...(workingDirectory !== undefined
-        ? { cwd: this.resolveWorkingDirectory(workingDirectory) }
+        ? {
+            cwd: await this.resolveWorkingDirectory(
+              workingDirectory,
+              abortSignal,
+            ),
+          }
         : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
@@ -163,7 +186,12 @@ export class VercelSandboxSession implements SandboxSession {
       detached: true,
       ...(stdin === true ? { stdin: true } : {}),
       ...(workingDirectory !== undefined
-        ? { cwd: this.resolveWorkingDirectory(workingDirectory) }
+        ? {
+            cwd: await this.resolveWorkingDirectory(
+              workingDirectory,
+              abortSignal,
+            ),
+          }
         : {}),
       ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),

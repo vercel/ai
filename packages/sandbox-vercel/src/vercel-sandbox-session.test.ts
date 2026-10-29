@@ -179,6 +179,29 @@ describe('VercelSandboxSession', () => {
       );
     });
 
+    it('resumes a stopped sandbox before resolving a relative workingDirectory', async () => {
+      let resumed = false;
+      const { sandbox, spies } = makeMockSandbox({
+        currentSession: () => {
+          if (!resumed) throw new Error('No active session.');
+          return { cwd: '/vercel/sandbox' };
+        },
+      } as unknown as Partial<Sandbox>);
+      spies.runCommand.mockImplementation(async () => {
+        resumed = true;
+        return makeMockCommand({ logs: [], exitCode: 0 }).handle;
+      });
+
+      await new VercelSandboxSession(sandbox).run({
+        command: 'ls',
+        workingDirectory: 'project',
+      });
+
+      expect(spies.runCommand).toHaveBeenLastCalledWith(
+        expect.objectContaining({ cwd: '/vercel/sandbox/project' }),
+      );
+    });
+
     it('throws on pre-aborted signal', async () => {
       const { sandbox } = makeMockSandbox();
       const ac = new AbortController();
@@ -949,12 +972,16 @@ describe('VercelSandboxSession', () => {
 
 // Runs the adapter's path scripts with the local bash instead of a Vercel
 // Sandbox, so the scripts themselves are tested.
-function createLocalSandbox(directory: string): Sandbox {
+function createLocalSandbox(
+  directory: string,
+  env: Record<string, string> = {},
+): Sandbox {
   return {
     name: 'sbx_test',
     runCommand: async ({ cmd, args }: { cmd: string; args: string[] }) => {
       const result = spawnSync(cmd, args, {
         cwd: directory,
+        env: { ...process.env, ...env },
         encoding: 'utf8',
       });
       return {
@@ -1050,6 +1077,38 @@ describe('VercelSandboxSession path methods', () => {
       },
     );
 
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects instead of returning null when a symbolic link target is not searchable',
+      async () => {
+        await mkdir(join(directory, 'locked', 'target'), { recursive: true });
+        await symlink(
+          join(directory, 'locked', 'target'),
+          join(directory, 'locked-link'),
+        );
+        await chmod(join(directory, 'locked'), 0o000);
+        try {
+          await expect(sandbox.stat({ path: 'locked-link' })).rejects.toThrow(
+            'Permission denied',
+          );
+          await expect(
+            sandbox.listDirectory({ path: 'locked-link' }),
+          ).rejects.toThrow('Permission denied');
+        } finally {
+          await chmod(join(directory, 'locked'), 0o755);
+        }
+      },
+    );
+
+    it('rejects for a symbolic link loop', async () => {
+      await symlink(join(directory, 'loop'), join(directory, 'loop'));
+      await expect(sandbox.stat({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+      await expect(sandbox.listDirectory({ path: 'loop' })).rejects.toThrow(
+        'Too many levels of symbolic links',
+      );
+    });
+
     it('rejects when the signal is already aborted', async () => {
       const controller = new AbortController();
       controller.abort();
@@ -1139,6 +1198,39 @@ describe('VercelSandboxSession path methods', () => {
     it('returns null for a broken symbolic link', async () => {
       expect(await sandbox.listDirectory({ path: 'broken-link' })).toBeNull();
     });
+
+    it.skipIf(process.getuid?.() === 0)(
+      'rejects for a directory that can be entered but not read',
+      async () => {
+        await chmod(join(directory, 'dir'), 0o311);
+        try {
+          await expect(sandbox.listDirectory({ path: 'dir' })).rejects.toThrow(
+            'Permission denied',
+          );
+        } finally {
+          await chmod(join(directory, 'dir'), 0o755);
+        }
+      },
+    );
+
+    it('lists a directory named `-`', async () => {
+      await mkdir(join(directory, '-'));
+      await writeFile(join(directory, '-', 'inside.txt'), '');
+      expect(await sandbox.listDirectory({ path: '-' })).toEqual([
+        { name: 'inside.txt', type: 'file' },
+      ]);
+    });
+
+    it('ignores CDPATH', async () => {
+      await mkdir(join(directory, 'other', 'dir'), { recursive: true });
+      await writeFile(join(directory, 'other', 'dir', 'wrong.txt'), '');
+      const withCdpath = new VercelSandboxSession(
+        createLocalSandbox(directory, { CDPATH: join(directory, 'other') }),
+      );
+      expect(await withCdpath.listDirectory({ path: 'dir' })).toEqual([
+        { name: 'nested.txt', type: 'file' },
+      ]);
+    });
   });
 
   describe('deleteFile', () => {
@@ -1161,6 +1253,14 @@ describe('VercelSandboxSession path methods', () => {
     it('deletes a symbolic link to a directory but not the directory', async () => {
       expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
       expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
+    it('rejects for a symbolic link to a directory with a trailing slash', async () => {
+      await expect(sandbox.deleteFile({ path: 'dir-link/' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(await sandbox.stat({ path: 'dir-link' })).not.toBeNull();
       expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
     });
 

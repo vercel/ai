@@ -321,6 +321,24 @@ describe('JustBashSandboxSession', () => {
       expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
     });
 
+    it('deleteFile rejects for a directory whose name contains "not found"', async () => {
+      await sandbox.run({ command: 'mkdir -p "build/not found"' });
+      await expect(
+        sandbox.deleteFile({ path: 'build/not found' }),
+      ).rejects.toThrow('it is a directory');
+      expect(await sandbox.stat({ path: 'build/not found' })).not.toBeNull();
+    });
+
+    it('deleteFile rejects for a symbolic link to a directory with a trailing slash', async () => {
+      await expect(sandbox.deleteFile({ path: 'dir-link/' })).rejects.toThrow(
+        'it is a directory',
+      );
+      expect(
+        (await sandbox.listDirectory({ path: '.' }))?.map(entry => entry.name),
+      ).toContain('dir-link');
+      expect(await sandbox.stat({ path: 'dir/nested.txt' })).not.toBeNull();
+    });
+
     it('deleteFile deletes a symbolic link to a directory but not the directory', async () => {
       expect(await sandbox.deleteFile({ path: 'dir-link' })).toBe(true);
       expect(await sandbox.stat({ path: 'dir-link' })).toBeNull();
