@@ -116,6 +116,43 @@ describe('doGenerate', () => {
       );
     });
 
+    it('preserves Scribe word and character timestamps in provider metadata', async () => {
+      const words = [
+        {
+          text: 'Hi',
+          type: 'word',
+          start: 0,
+          end: 0.4,
+          speaker_id: 'speaker_0',
+          characters: [
+            { text: 'H', start: 0, end: 0.2 },
+            { text: 'i', start: 0.2, end: 0.4 },
+          ],
+        },
+      ];
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'json-value',
+        body: {
+          language_code: 'eng',
+          language_probability: 1,
+          text: 'Hi',
+          words,
+        },
+      };
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { elevenlabs: { timestampsGranularity: 'character' } },
+      });
+      expect(
+        (await server.calls[0].requestBodyMultipart)?.timestamps_granularity,
+      ).toBe('character');
+      expect(result.segments).toStrictEqual([
+        { text: 'Hi', startSecond: 0, endSecond: 0.4 },
+      ]);
+      expect(result.providerMetadata).toStrictEqual({ elevenlabs: { words } });
+    });
+
     it('should pass provider options correctly', async () => {
       await model.doGenerate({
         audio: audioData,
@@ -219,7 +256,9 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: { elevenlabs: { words: expect.any(Array) } },
+      });
     });
   });
 });

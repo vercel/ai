@@ -11,7 +11,21 @@ const model = provider.speech('eleven_multilingual_v2');
 
 const server = createTestServer({
   'https://api.elevenlabs.io/v1/text-to-speech/*': {},
+  'https://api.elevenlabs.io/v1/text-to-dialogue': {},
+  'https://api.elevenlabs.io/v1/text-to-dialogue/with-timestamps': {},
 });
+
+const alignment = {
+  characters: ['H', 'i'],
+  character_start_times_seconds: [0, 0.123456789],
+  character_end_times_seconds: [0.123456789, 0.4],
+};
+
+const alignmentMetadata = {
+  characters: ['H', 'i'],
+  characterStartTimesSeconds: [0, 0.123456789],
+  characterEndTimesSeconds: [0.123456789, 0.4],
+};
 
 describe('ElevenLabsSpeechModel', () => {
   function prepareAudioResponse({
@@ -34,6 +48,181 @@ describe('ElevenLabsSpeechModel', () => {
   }
 
   describe('doGenerate', () => {
+    it.each([undefined, false])(
+      'preserves binary audio when withTimestamps is %s',
+      async withTimestamps => {
+        const audio = prepareAudioResponse();
+        const result = await model.doGenerate({
+          text: 'Hi',
+          providerOptions: { elevenlabs: { withTimestamps } },
+        });
+
+        expect(result.audio).toStrictEqual(audio);
+        expect(result.providerMetadata).toBeUndefined();
+        expect(server.calls[0].requestUrl).toBe(
+          'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_44100_128',
+        );
+      },
+    );
+
+    it('returns timestamped audio and metadata from Text to Speech', async () => {
+      const modelId = 'eleven_multilingual_v2';
+      const body = {
+        audio_base64: 'AQID',
+        alignment,
+        normalized_alignment: alignment,
+      };
+      server.urls['https://api.elevenlabs.io/v1/text-to-speech/*'].response = {
+        type: 'json-value',
+        headers: { 'request-id': 'tts-request' },
+        body,
+      };
+
+      const result = await provider.speech(modelId).doGenerate({
+        text: 'Hi',
+        voice: 'test-voice',
+        outputFormat: 'pcm_24000',
+        headers: { 'custom-header': 'custom-value' },
+        providerOptions: {
+          elevenlabs: { withTimestamps: true, seed: 0, enableLogging: false },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.elevenlabs.io/v1/text-to-speech/test-voice/with-timestamps?output_format=pcm_24000&enable_logging=false',
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        text: 'Hi',
+        model_id: modelId,
+        seed: 0,
+      });
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'custom-header': 'custom-value',
+      });
+      expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
+      expect(result.providerMetadata).toStrictEqual({
+        elevenlabs: {
+          alignment: alignmentMetadata,
+          normalizedAlignment: alignmentMetadata,
+        },
+      });
+      expect(result.response.headers?.['request-id']).toBe('tts-request');
+      expect(result.response.body).toStrictEqual(body);
+    });
+
+    it.each([
+      {},
+      { alignment: null, normalized_alignment: null, voice_segments: null },
+    ])('accepts absent or null timestamp metadata: %j', async metadata => {
+      server.urls['https://api.elevenlabs.io/v1/text-to-speech/*'].response = {
+        type: 'json-value',
+        body: { audio_base64: 'AQID', ...metadata },
+      };
+      const result = await model.doGenerate({
+        text: 'Hi',
+        providerOptions: { elevenlabs: { withTimestamps: true } },
+      });
+      expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
+      expect(result.providerMetadata).toStrictEqual({
+        elevenlabs: {},
+      });
+    });
+
+    it('preserves empty audio and alignment arrays', async () => {
+      server.urls['https://api.elevenlabs.io/v1/text-to-speech/*'].response = {
+        type: 'json-value',
+        body: {
+          audio_base64: '',
+          alignment: {
+            characters: [],
+            character_start_times_seconds: [],
+            character_end_times_seconds: [],
+          },
+        },
+      };
+      const result = await model.doGenerate({
+        text: 'Hi',
+        providerOptions: { elevenlabs: { withTimestamps: true } },
+      });
+      expect(result.audio).toStrictEqual(new Uint8Array(0));
+      expect(result.providerMetadata).toStrictEqual({
+        elevenlabs: {
+          alignment: {
+            characters: [],
+            characterStartTimesSeconds: [],
+            characterEndTimesSeconds: [],
+          },
+        },
+      });
+    });
+
+    it.each([undefined, true])(
+      'routes eleven_v4 to Text to Dialogue with withTimestamps=%s',
+      async withTimestamps => {
+        const url =
+          `https://api.elevenlabs.io/v1/text-to-dialogue${withTimestamps ? '/with-timestamps' : ''}` as const;
+        server.urls[url].response = withTimestamps
+          ? {
+              type: 'json-value',
+              body: {
+                audio_base64: 'AQID',
+                alignment,
+                normalized_alignment: alignment,
+                voice_segments: [
+                  {
+                    voice_id: 'test-voice',
+                    start_time_seconds: 0,
+                    end_time_seconds: 0.4,
+                    character_start_index: 0,
+                    character_end_index: 2,
+                    dialogue_input_index: 0,
+                  },
+                ],
+              },
+            }
+          : { type: 'binary', body: Buffer.from([1, 2, 3]) };
+
+        const result = await provider.speech('eleven_v4').doGenerate({
+          text: 'Hi',
+          voice: 'test-voice',
+          outputFormat: 'mp3_192',
+          providerOptions: {
+            elevenlabs: {
+              withTimestamps,
+              voiceSettings: { stability: 0, similarityBoost: 0.75 },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${url}?output_format=mp3_44100_192`,
+        );
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          inputs: [{ text: 'Hi', voice_id: 'test-voice' }],
+          model_id: 'eleven_v4',
+          settings: { stability: 0, similarity: 0.75 },
+        });
+        expect(result.audio).toStrictEqual(new Uint8Array([1, 2, 3]));
+        expect(result.warnings).toStrictEqual([]);
+        expect(
+          result.providerMetadata?.elevenlabs?.voiceSegments,
+        ).toStrictEqual(
+          withTimestamps
+            ? [
+                {
+                  voiceId: 'test-voice',
+                  startTimeSeconds: 0,
+                  endTimeSeconds: 0.4,
+                  characterStartIndex: 0,
+                  characterEndIndex: 2,
+                  dialogueInputIndex: 0,
+                },
+              ]
+            : undefined,
+        );
+      },
+    );
+
     it('should generate speech with required parameters', async () => {
       prepareAudioResponse();
 

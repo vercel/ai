@@ -113,6 +113,11 @@ const result = await generateSpeech({
 });
 ```
 
+- **withTimestamps** _boolean_
+
+  Return character-level timestamps alongside the audio. Defaults to `false`.
+  Alignment is available in `result.providerMetadata.elevenlabs`.
+
 - **languageCode** _string or null_  
   Optional. Language code (ISO 639-1) used to enforce a language for the model. Currently, only Turbo v2.5 and Flash v2.5 support language enforcement. For other models, providing a language code will result in an error.
 
@@ -167,10 +172,44 @@ const result = await generateSpeech({
 - **enableLogging** _boolean_  
   Optional. Whether to enable request logging for this API call. Defaults to the account-level setting.
 
+### Speech Timestamps
+
+```ts
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: elevenlabs.speech('eleven_v4'),
+  text: 'Hello from ElevenLabs!',
+  voice: 'JBFqnCBsd6RMkjVDRZzb',
+  providerOptions: { elevenlabs: { withTimestamps: true } },
+});
+
+console.log(result.providerMetadata.elevenlabs);
+```
+
+The audio remains in `result.audio`. Provider metadata can contain:
+
+- `alignment`: original text `characters`, `characterStartTimesSeconds`, and
+  `characterEndTimesSeconds` arrays.
+- `normalizedAlignment`: the same fields for normalized text.
+- `voiceSegments`: Eleven v4 segment objects with `voiceId`, `startTimeSeconds`,
+  `endTimeSeconds`, `characterStartIndex`, `characterEndIndex` (exclusive), and
+  `dialogueInputIndex`.
+
+Times are in seconds. Fields are omitted when not supplied by the provider;
+empty arrays are preserved. Eleven v4 uses the Text to Dialogue endpoint with
+one input containing `text` and `voice`, with or without timestamps. Its supported
+voice settings are `stability` and `similarityBoost`. Speed, style, speaker boost,
+and language text normalization produce unsupported warnings. `previousText`
+and `nextText` map to the dialogue API's continuity fields, each limited to 100
+characters.
+
 ### Model Capabilities
 
 | Model                    | Instructions        |
 | ------------------------ | ------------------- |
+| `eleven_v4`              | <Check size={18} /> |
 | `eleven_v3`              | <Check size={18} /> |
 | `eleven_multilingual_v2` | <Check size={18} /> |
 | `eleven_flash_v2_5`      | <Check size={18} /> |
@@ -249,6 +288,16 @@ The following provider options are available:
   Allowed values: `'pcm_s16le_16'`, `'other'`.
   For `'pcm_s16le_16'`, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order.
   Latency will be lower than with passing an encoded waveform.
+
+### Transcription Timestamps
+
+Scribe batch transcription returns word timing in `result.segments` as
+`startSecond` and `endSecond`. Word timestamps are requested by default.
+Set `timestampsGranularity: 'character'` for character timing as well.
+
+`result.providerMetadata.elevenlabs.words` preserves the native word tokens,
+including `start`, `end`, `type`, `speaker_id`, and optional `characters`. Each
+character has `text`, `start`, and `end`. All transcription times are in seconds.
 
 ### Model Capabilities
 
