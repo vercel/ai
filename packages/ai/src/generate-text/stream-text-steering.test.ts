@@ -637,6 +637,40 @@ describe('streamText experimental_steering', () => {
       ]);
     });
 
+    it.each(['length', 'content-filter'] as const)(
+      'should not deliver a queued message when the response finished with %s',
+      async finishReason => {
+        const steering = createSteering();
+        const outcome = steering.queue('Then update the readme.');
+
+        const model = createModel([
+          () => [
+            ...textStream('It is sunny').slice(0, -1),
+            {
+              type: 'finish',
+              finishReason: { unified: finishReason, raw: finishReason },
+              usage,
+            },
+          ],
+        ]);
+
+        const result = streamText({
+          model,
+          prompt: 'What is the weather in Paris?',
+          stopWhen: isStepCount(5),
+          experimental_steering: steering,
+        });
+
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(1);
+        expect(await outcome).toMatchObject({
+          type: 'not-delivered',
+          reason: 'finished',
+        });
+      },
+    );
+
     it('should not deliver a queued message when the default stop condition ends the stream', async () => {
       const steering = createSteering();
       const outcome = steering.queue('Then update the readme.');

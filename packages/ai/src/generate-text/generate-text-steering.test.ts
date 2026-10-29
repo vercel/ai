@@ -741,6 +741,34 @@ describe('generateText experimental_steering', () => {
       `);
     });
 
+    it.each(['length', 'content-filter'] as const)(
+      'should not deliver a queued message when the response finished with %s',
+      async finishReason => {
+        const steering = createSteering();
+        const outcome = steering.queue('Then update the readme.');
+
+        const model = createModel([
+          () => ({
+            ...textResponse('It is sunny'),
+            finishReason: { unified: finishReason, raw: finishReason },
+          }),
+        ]);
+
+        await generateText({
+          model,
+          prompt: 'What is the weather in Paris?',
+          stopWhen: isStepCount(5),
+          experimental_steering: steering,
+        });
+
+        expect(model.doGenerateCalls).toHaveLength(1);
+        expect(await outcome).toMatchObject({
+          type: 'not-delivered',
+          reason: 'finished',
+        });
+      },
+    );
+
     it('should not deliver a queued message after the run finished', async () => {
       const steering = createSteering();
       const model = createModel([() => textResponse('It is sunny in Paris.')]);

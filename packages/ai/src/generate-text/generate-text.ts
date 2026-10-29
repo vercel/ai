@@ -981,9 +981,14 @@ async function generateTextInternal<
           clientToolCalls.length === 0 &&
           pendingDeferredToolCalls.size === 0
         ) {
+          // queued messages wait for a task that was not cut off:
+          const isTruncated =
+            steps[steps.length - 1].finishReason === 'length' ||
+            steps[steps.length - 1].finishReason === 'content-filter';
+
           if (
             !steeringRun?.hasPendingMessages() &&
-            !steeringRun?.promoteQueuedMessage()
+            (isTruncated || !steeringRun?.promoteQueuedMessage())
           ) {
             return false;
           }
