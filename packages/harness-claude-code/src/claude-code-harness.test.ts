@@ -1258,6 +1258,31 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends host tool hints to the bridge', async () => {
+    const toolHints = { search: { readOnly: true, alwaysLoad: true } };
+    const harness = createClaudeCode({ toolHints });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Search the docs.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ toolHints });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -1344,9 +1369,10 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends environment configuration when rerunning a continued turn', async () => {
+  it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
-    const harness = createClaudeCode({ env });
+    const toolHints = { search: { readOnly: true } };
+    const harness = createClaudeCode({ env, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1369,7 +1395,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ env, continue: true });
+    expect(lastStart()).toMatchObject({ env, toolHints, continue: true });
 
     await session.doDestroy();
   });

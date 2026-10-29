@@ -107,6 +107,12 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
   MCP configuration, such as a project `.mcp.json` or user settings.
+- `toolHints`: Claude Code hints for host tools, keyed by tool name.
+  `readOnly: true` marks a tool without side effects, so Claude Code can run
+  its calls in parallel and allows it in plan mode; calls to other host tools
+  run one at a time. `alwaysLoad: true` sends the tool's definition from the
+  first request when Claude Code's tool search is on, instead of deferring it
+  until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
