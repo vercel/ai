@@ -76,16 +76,12 @@ describe('HeyGenVideoModel', () => {
     },
   });
 
-<<<<<<< HEAD
-  it('generates text-to-video with explicit defaults and returns completed metadata', async () => {
-    const result = await createModel().doGenerate(defaultOptions);
-=======
   it.each(['text_to_video', 'image_to_video'] as const)(
     'supports 30-second %s clips at every resolution with compatible enhancement',
     async mode => {
       for (const resolution of ['480p', '768p', '1080p', '2k']) {
         for (const promptEnhancement of [undefined, 'quality', 'turbo']) {
-          await createModel().doStart({
+          await createModel().doGenerate({
             ...defaultOptions,
             aspectRatio: '16:9',
             duration: 30,
@@ -94,7 +90,11 @@ describe('HeyGenVideoModel', () => {
               heygen: { mode, resolution, promptEnhancement },
             },
           });
-          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+          expect(
+            await server.calls
+              .filter(call => call.requestMethod === 'POST')
+              .at(-1)?.requestBodyJson,
+          ).toMatchObject({
             duration: 30,
             mode,
             resolution,
@@ -109,7 +109,7 @@ describe('HeyGenVideoModel', () => {
     async mode => {
       for (const duration of [1, 16, 31, 60]) {
         for (const promptEnhancement of ['quality', 'turbo', 'disabled']) {
-          await createModel().doStart({
+          await createModel().doGenerate({
             ...defaultOptions,
             duration,
             ...(mode === 'image_to_video' ? { image } : {}),
@@ -118,7 +118,11 @@ describe('HeyGenVideoModel', () => {
               : {}),
             providerOptions: { heygen: { mode, promptEnhancement } },
           });
-          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+          expect(
+            await server.calls
+              .filter(call => call.requestMethod === 'POST')
+              .at(-1)?.requestBodyJson,
+          ).toMatchObject({
             duration,
             mode,
             prompt_enhancement: promptEnhancement,
@@ -141,7 +145,7 @@ describe('HeyGenVideoModel', () => {
       }),
     };
     await expect(
-      createModel().doStart({ ...defaultOptions, duration: 31 }),
+      createModel().doGenerate({ ...defaultOptions, duration: 31 }),
     ).rejects.toMatchObject({
       name: 'AI_APICallError',
       statusCode: 400,
@@ -155,7 +159,7 @@ describe('HeyGenVideoModel', () => {
   });
 
   it('accepts the documented ultraquality enhancement and forwards it unchanged', async () => {
-    await createModel().doStart({
+    await createModel().doGenerate({
       ...defaultOptions,
       duration: 15,
       providerOptions: { heygen: { promptEnhancement: 'ultraquality' } },
@@ -166,9 +170,8 @@ describe('HeyGenVideoModel', () => {
     });
   });
 
-  it('submits text-to-video with explicit defaults and returns an operation', async () => {
-    const result = await createModel().doStart(defaultOptions);
->>>>>>> 6f41ccc1f8 (fix(heygen): defer video duration limits to the provider (#24235))
+  it('generates text-to-video with explicit defaults and returns completed metadata', async () => {
+    const result = await createModel().doGenerate(defaultOptions);
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'heygen-video-1',
       mode: 'text_to_video',
