@@ -11,6 +11,8 @@ import {
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -39,7 +41,7 @@ import type { OpenAICompatibleImageModelId } from './openai-compatible-image-set
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -136,7 +138,10 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
       path: isEditing ? '/images/edits' : '/images/generations',
       modelId: this.modelId,
     });
-    const requestHeaders = combineHeaders(this.config.headers?.(), headers);
+    const requestHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     // Image editing mode - use form data and /images/edits endpoint
     if (isEditing) {
@@ -165,7 +170,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
       return {
         images: await this.getImages(response.data, {
           url,
-          headers: requestHeaders,
+          headers,
           abortSignal,
         }),
         warnings,
@@ -202,7 +207,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
     return {
       images: await this.getImages(response.data, {
         url,
-        headers: requestHeaders,
+        headers,
         abortSignal,
       }),
       warnings,
@@ -219,7 +224,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
     data: InferSchema<typeof openaiCompatibleImageResponseSchema>['data'],
     options: {
       url: string;
-      headers: Record<string, string | undefined>;
+      headers: Record<string, string | undefined> | undefined;
       abortSignal: AbortSignal | undefined;
     },
   ): Promise<string[] | Uint8Array[]> {
@@ -246,7 +251,10 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
           validateUrl: true,
           trustedOrigin: options.url,
           credentialedOrigin: options.url,
-          headers: options.headers,
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
           abortSignal: options.abortSignal,
           fetch: this.config.fetch,
           successfulResponseHandler: createBinaryResponseHandler(),

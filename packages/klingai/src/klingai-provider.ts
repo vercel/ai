@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -21,7 +23,7 @@ export interface KlingAIProviderSettings {
    * This is the recommended way to authenticate. When set, it takes precedence
    * over the legacy `accessKey` / `secretKey` pair.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * KlingAI Access key. Default value is taken from the `KLINGAI_ACCESS_KEY`
    * environment variable.
@@ -78,7 +80,7 @@ export function createKlingAI(
 
   const getHeaders = async () => {
     const token = await resolveKlingAIAuthToken({
-      apiKey: options.apiKey,
+      apiKey: await resolve(options.apiKey),
       accessKey: options.accessKey,
       secretKey: options.secretKey,
     });

@@ -1,5 +1,6 @@
 import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -140,7 +141,10 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler,

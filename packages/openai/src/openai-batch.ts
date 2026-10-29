@@ -19,6 +19,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertAsyncIteratorToReadableStream,
   createJsonLinesResponseHandler,
@@ -267,7 +268,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: uploadedFile } = await postToApi({
       url: this.getUrl('/files'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         content: formData,
         values: {
@@ -291,7 +295,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: batch } = await postJsonToApi({
       url: this.getUrl('/batches'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         input_file_id: uploadedFile.id,
         endpoint: openaiBatchEndpoint,
@@ -357,7 +364,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       url: this.getUrl(
         `/batches/${encodeURIComponent(options.batchId)}/cancel`,
       ),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {},
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -381,7 +391,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: page } = await getFromApi({
       url: url.toString(),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchListResponseSchema,
@@ -437,7 +450,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   ): Promise<OpenAIBatchResponse> {
     const { value: batch } = await getFromApi({
       url: this.getUrl(`/batches/${encodeURIComponent(options.batchId)}`),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchResponseSchema,
@@ -461,7 +477,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       const { value: lines } = await getFromApi({
         url: this.getUrl(`/files/${encodeURIComponent(fileId)}/content`),
         headers: combineHeaders(
-          this.options.config.headers?.(),
+          await resolve(this.options.config.headers),
           options.headers,
         ),
         failedResponseHandler: openaiFailedResponseHandler,

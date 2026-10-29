@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createCerebras } from './cerebras-provider';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, resolve } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 
 // Add type assertion for the mocked class
@@ -78,7 +78,7 @@ describe('CerebrasProvider', () => {
       const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
         .calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       await fetchMock('https://api.cerebras.ai/v1/test', {
         method: 'POST',

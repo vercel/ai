@@ -1,5 +1,7 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -21,7 +23,7 @@ import {
 interface MistralSpeechModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -147,7 +149,7 @@ export class MistralSpeechModel implements SpeechModelV4 {
       url: `${this.config.baseURL}/audio/speech`,
       headers: combineHeaders(
         { 'Content-Type': 'application/json' },
-        this.config.headers?.(),
+        await resolve(this.config.headers),
         options.headers,
       ),
       body: {

@@ -14,6 +14,8 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -38,7 +40,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: (path: string) => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
@@ -99,7 +101,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
       web_grounding: webGrounding,
     };
     const requestOptions = {
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       failedResponseHandler: maiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         maiImageResponseSchema,

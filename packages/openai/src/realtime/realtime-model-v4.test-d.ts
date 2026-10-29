@@ -50,7 +50,9 @@ it('accepts Live as a realtime model while retaining its continuous capabilities
   expectTypeOf(model.capabilities.transports).toEqualTypeOf<
     readonly ['websocket', 'webrtc']
   >();
-  expectTypeOf(model.getServerWebSocketConfig()).toEqualTypeOf<{
+  expectTypeOf<
+    Awaited<ReturnType<typeof model.getServerWebSocketConfig>>
+  >().toEqualTypeOf<{
     url: string;
     headers: Record<string, string>;
   }>();

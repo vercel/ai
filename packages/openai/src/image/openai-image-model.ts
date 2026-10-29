@@ -4,6 +4,7 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -144,7 +145,7 @@ export class OpenAIImageModel implements ImageModelV4 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers?.(), headers),
+        headers: combineHeaders(await resolve(this.config.headers), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -234,7 +235,7 @@ export class OpenAIImageModel implements ImageModelV4 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         prompt,
