@@ -298,9 +298,11 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
-async function startWithFakeBridgeSocket() {
+async function startWithFakeBridgeSocket(
+  settings?: Parameters<typeof createClaudeCode>[0],
+) {
   connectOnOpen = true;
-  const harness = createClaudeCode();
+  const harness = createClaudeCode(settings);
   return harness.doStart({
     sessionId: 's1',
     sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -325,6 +327,7 @@ describe('createClaudeCode adapter', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -1847,6 +1850,86 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('bridge WebSocket startup', () => {
+    it('clears the startup deadline when the caller aborts', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const abort = new AbortController();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+        abortSignal: abort.signal,
+      });
+      const done = expect(control.done).rejects.toThrow('cancelled');
+      abort.abort(new Error('cancelled'));
+      await done;
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
+
+    it('fails a silent turn after the startup deadline', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      const done = expect(control.done).rejects.toThrow(
+        'did not emit a turn event within 100ms',
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      await done;
+      expect(sentMessages).toContainEqual({ type: 'abort' });
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
+
+    it('clears the startup deadline on the first bridge event', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      dispatchChannelEvent({ type: 'text-delta', id: 'm', delta: 'Hello' });
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(sentMessages).not.toContainEqual({ type: 'abort' });
+      dispatchChannelEvent({ type: 'finish' });
+      await control.done;
+      await session.doDestroy();
+    });
+
     it('exposes steering when the bridge advertises acknowledged user messages', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {

@@ -96,6 +96,77 @@ function connect(port: number): Promise<Client> {
 }
 
 describe('runBridge', () => {
+  it('deduplicates a start that is waiting for the previous turn to tear down', async () => {
+    let releaseTurn!: () => void;
+    const gate = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    const starts: BridgeTurn[] = [];
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        starts.push(turn);
+        turn.emit({ type: 'text-delta', delta: 'started' });
+        if (starts.length === 1) await gate;
+        else turn.emit({ type: 'finish' });
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(frame => frame.type === 'bridge-hello');
+    client.send({ type: 'start', startId: 'turn-1' });
+    await client.waitFor(frame => frame.type === 'text-delta');
+    client.send({ type: 'start', startId: 'turn-2' });
+    client.send({ type: 'start', startId: 'turn-2' });
+    await vi.waitFor(() => expect(starts[0].abortSignal.aborted).toBe(true));
+    expect(starts).toHaveLength(1);
+    releaseTurn();
+    await client.waitFor(frame => frame.type === 'finish');
+    expect(starts).toHaveLength(2);
+  });
+
+  it('ignores duplicate start identifiers while running and after finishing', async () => {
+    let releaseTurn!: () => void;
+    const gate = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    const starts: BridgeTurn[] = [];
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        starts.push(turn);
+        turn.emit({ type: 'text-delta', delta: 'started' });
+        await gate;
+        turn.emit({ type: 'finish' });
+      },
+    });
+    const client = await connect(handle.port);
+    await expect(
+      client.waitFor(frame => frame.type === 'bridge-hello'),
+    ).resolves.toMatchObject({ capabilities: { idempotentStart: true } });
+    client.send({ type: 'start', startId: 'turn-1' });
+    await client.waitFor(frame => frame.type === 'text-delta');
+    client.send({ type: 'start', startId: 'turn-1' });
+    client.send({ type: 'resume', lastSeenEventId: 0 });
+    await vi.waitFor(() => {
+      expect(
+        client.frames.filter(frame => frame.type === 'text-delta'),
+      ).toHaveLength(2);
+    });
+    expect(starts).toHaveLength(1);
+    expect(starts[0].abortSignal.aborted).toBe(false);
+    releaseTurn();
+    await client.waitFor(frame => frame.type === 'finish');
+
+    const replacement = await connect(handle.port);
+    await replacement.waitFor(frame => frame.type === 'bridge-hello');
+    replacement.send({ type: 'start', startId: 'turn-1' });
+    replacement.send({ type: 'resume', lastSeenEventId: 0 });
+    await replacement.waitFor(frame => frame.type === 'finish');
+    expect(starts).toHaveLength(1);
+    expect(replacement.seqs()).toEqual([1, 2]);
+
+    replacement.send({ type: 'start', startId: 'turn-2' });
+    await vi.waitFor(() => expect(starts).toHaveLength(2));
+  });
+
   it('rejects when the requested port is already in use', async () => {
     const handle = await startBridge({ onStart: async () => {} });
 

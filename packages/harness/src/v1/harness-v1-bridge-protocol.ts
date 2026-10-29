@@ -114,6 +114,7 @@ export const harnessV1BridgeResponseFormatSchema: z.ZodType<HarnessV1ResponseFor
  */
 export const harnessV1BridgeStartBaseSchema = z.object({
   type: z.literal('start'),
+  startId: z.string().optional(),
   prompt: z.string(),
   tools: z.array(harnessV1BridgeToolWireSchema).optional(),
   model: z.string().optional(),
@@ -138,6 +139,7 @@ export const harnessV1BridgeHelloSchema = z.object({
   lastSeq: z.number().optional(),
   capabilities: z
     .object({
+      idempotentStart: z.boolean().nullish(),
       experimental_userMessageResponses: z.boolean().optional(),
     })
     .optional(),

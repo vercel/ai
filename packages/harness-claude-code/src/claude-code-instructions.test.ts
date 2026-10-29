@@ -34,6 +34,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       return () => {};
     }
     onClose(): void {}
+    onReconnect(): () => void {
+      return () => {};
+    }
     send(msg: Record<string, unknown>): void {
       sentMessages.push(msg);
     }

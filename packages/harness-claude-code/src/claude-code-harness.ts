@@ -50,6 +50,7 @@ import {
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
+  generateId,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
@@ -164,6 +165,8 @@ export type ClaudeCodeHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
+  readonly turnStartTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -1026,7 +1029,9 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
       });
       let supportsUserMessageResponses = false;
+      let bridgeHello: BridgeHello | undefined;
       const onHello = (hello: BridgeHello) => {
+        bridgeHello = hello;
         supportsUserMessageResponses =
           hello.capabilities?.experimental_userMessageResponses === true;
       };
@@ -1102,6 +1107,8 @@ export function createClaudeCode(
             sandboxHomeDir,
             mcpServers: settings.mcpServers,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
+            getBridgeHello: () => bridgeHello,
+            turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1277,6 +1284,8 @@ export function createClaudeCode(
         sandboxHomeDir,
         mcpServers: settings.mcpServers,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
+        getBridgeHello: () => bridgeHello,
+        turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
       });
     },
   };
@@ -1319,6 +1328,8 @@ function createSession({
   sandboxHomeDir,
   mcpServers,
   supportsUserMessageResponses,
+  getBridgeHello,
+  turnStartTimeoutMs,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
@@ -1355,6 +1366,8 @@ function createSession({
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
   supportsUserMessageResponses: () => boolean;
+  getBridgeHello: () => BridgeHello | undefined;
+  turnStartTimeoutMs: number;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1385,7 +1398,10 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): HarnessV1PromptControl => {
+  }): {
+    control: HarnessV1PromptControl;
+    sendStart: (message: Extract<InboundMessage, { type: 'start' }>) => void;
+  } => {
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -1400,7 +1416,15 @@ function createSession({
         })
       : undefined;
     const unsubs: Array<() => void> = [];
+    let pendingStart: Extract<InboundMessage, { type: 'start' }> | undefined;
+    let startCursor = 0;
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
+    const clearPendingStart = () => {
+      pendingStart = undefined;
+      clearTimeout(startTimer);
+    };
     const forward = (event: HarnessV1StreamPart) => {
+      clearPendingStart();
       try {
         turnOpts.emit(event);
       } catch {}
@@ -1410,6 +1434,7 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
@@ -1417,10 +1442,42 @@ function createSession({
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
+
+    const failStart = (error: Error) => {
+      settleError(error);
+      channel.beginClose();
+      try {
+        channel.send({ type: 'abort' });
+      } catch {}
+      channel.close();
+    };
+    unsubs.push(
+      channel.onReconnect(() => {
+        if (pendingStart == null || isSettled) return;
+        const hello = getBridgeHello();
+        if (
+          hello?.state !== 'waiting' ||
+          hello.lastSeq == null ||
+          hello.lastSeq > startCursor
+        ) {
+          return;
+        }
+        if (hello?.capabilities?.idempotentStart === true) {
+          channel.send(pendingStart);
+        } else {
+          failStart(
+            new Error(
+              'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
+            ),
+          );
+        }
+      }),
+    );
 
     const eventTypes = [
       'stream-start',
@@ -1508,7 +1565,7 @@ function createSession({
       }
     }
 
-    return {
+    const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         channel.send({
           type: 'tool-result',
@@ -1537,6 +1594,27 @@ function createSession({
           }),
       done,
     };
+    return {
+      control,
+      sendStart: message => {
+        if (isSettled) return;
+        startCursor = Math.max(
+          channel.lastSeenEventId ?? 0,
+          getBridgeHello()?.lastSeq ?? 0,
+        );
+        pendingStart = { ...message, startId: generateId() };
+        startTimer = setTimeout(() => {
+          if (isSettled || pendingStart == null) return;
+          failStart(
+            new Error(
+              `claude-code bridge did not emit a turn event within ${turnStartTimeoutMs}ms.`,
+            ),
+          );
+        }, turnStartTimeoutMs);
+        startTimer.unref?.();
+        channel.send(pendingStart);
+      },
+    };
   };
 
   const prepareTurn = async (turnOpts: {
@@ -1544,7 +1622,7 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): Promise<HarnessV1PromptControl> => {
+  }): Promise<ReturnType<typeof wireTurn>> => {
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -1577,7 +1655,7 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      const control = await prepareTurn(promptOpts);
+      const { control, sendStart } = await prepareTurn(promptOpts);
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1636,12 +1714,12 @@ function createSession({
       pendingResumeFlag = false;
       // Recovery starts a native turn once. Later continuations attach to it.
       rerunContinue = false;
-      channel.send(startMessage);
+      sendStart(startMessage);
 
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const control = await prepareTurn(continueOpts);
+      const { control, sendStart } = await prepareTurn(continueOpts);
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1661,7 +1739,7 @@ function createSession({
       if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         rerunContinue = false;
         pendingResumeFlag = false;
-        channel.send({
+        sendStart({
           type: 'start' as const,
           /*
            * A continuation nudge rather than an empty prompt: `continue: true`
