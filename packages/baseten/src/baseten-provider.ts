@@ -164,7 +164,7 @@ export function createBaseten(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/baseten/${VERSION}`,
+      `ai-sdk-baseten/${VERSION}`,
     );
 
   interface CommonModelConfig {
@@ -203,6 +203,7 @@ export function createBaseten(
           errorStructure: basetenErrorStructure,
           // Or stream_options.include_usage is omitted and streams report no usage.
           includeUsage: true,
+          supportsStructuredOutputs: true,
         });
       } else if (customURL.includes('/predict')) {
         throw new Error(
@@ -215,6 +216,7 @@ export function createBaseten(
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
       includeUsage: true,
+      supportsStructuredOutputs: true,
     });
   };
 

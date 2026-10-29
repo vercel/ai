@@ -248,7 +248,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'AI provides automation and efficiency.',
+                  data: Buffer.from(
+                    'AI provides automation and efficiency.',
+                  ).toString('base64'),
                 },
                 mediaType: 'text/plain',
                 filename: 'ai-benefits.txt',
@@ -272,7 +274,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'This is a test document.',
+                  data: Buffer.from('This is a test document.').toString(
+                    'base64',
+                  ),
                 },
                 mediaType: 'text/plain',
                 filename: 'test.txt',
@@ -715,9 +719,9 @@ describe('doGenerate', () => {
       expect(usage).toMatchInlineSnapshot(`
         {
           "inputTokens": {
-            "cacheRead": undefined,
+            "cacheRead": 448,
             "cacheWrite": undefined,
-            "noCache": 507,
+            "noCache": 59,
             "total": 507,
           },
           "outputTokens": {
@@ -726,11 +730,107 @@ describe('doGenerate', () => {
             "total": 10,
           },
           "raw": {
-            "input_tokens": 507,
-            "output_tokens": 10,
+            "billed_units": {
+              "input_tokens": 12,
+              "output_tokens": 7,
+            },
+            "cached_tokens": 448,
+            "tokens": {
+              "input_tokens": 507,
+              "output_tokens": 10,
+            },
           },
         }
       `);
+    });
+
+    it('should preserve extra top-level and nested fields in raw usage', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: {
+              input_tokens: 12,
+              output_tokens: 7,
+              billing_tier: 'standard',
+            },
+            tokens: {
+              input_tokens: 507,
+              output_tokens: 10,
+              tokenizer: 'command',
+            },
+            cached_tokens: 448,
+            provider_usage_id: 'usage-123',
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 507,
+          noCache: 59,
+          cacheRead: 448,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: {
+            input_tokens: 12,
+            output_tokens: 7,
+            billing_tier: 'standard',
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+            tokenizer: 'command',
+          },
+          cached_tokens: 448,
+          provider_usage_id: 'usage-123',
+        },
+      });
+    });
+
+    it('should validate cached token usage', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: {
+              input_tokens: 12,
+              output_tokens: 7,
+            },
+            tokens: {
+              input_tokens: 507,
+              output_tokens: 10,
+            },
+            cached_tokens: '448',
+          },
+        },
+      };
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should send additional response information', async () => {
@@ -756,6 +856,44 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/cohere-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.type === 'content-delta',
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+          ...(withError ? ['data: {invalid-json}\n\n'] : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-text');
@@ -790,6 +928,185 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should preserve extra top-level and nested fields in raw usage', async () => {
+      const rawUsage = {
+        billed_units: {
+          input_tokens: 12,
+          output_tokens: 7,
+          billing_tier: 'standard',
+        },
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+          tokenizer: 'command',
+        },
+        cached_tokens: 448,
+        provider_usage_id: 'usage-123',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: 507,
+              noCache: 59,
+              cacheRead: 448,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 10,
+              text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it('should finish successfully when billed units are absent', async () => {
+      const rawUsage = {
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+        },
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: 507,
+              noCache: 507,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 10,
+              text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it.each([
+      {
+        field: 'billed input tokens',
+        usage: {
+          billed_units: {
+            input_tokens: '12',
+            output_tokens: 7,
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+          },
+          cached_tokens: 448,
+        },
+      },
+      {
+        field: 'cached tokens',
+        usage: {
+          billed_units: {
+            input_tokens: 12,
+            output_tokens: 7,
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+          },
+          cached_tokens: '448',
+        },
+      },
+    ])('should validate streamed $field', async ({ usage }) => {
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        {
+          type: 'stream-start',
+          warnings: [],
+        },
+        {
+          type: 'error',
+          error: expect.any(Error),
+        },
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'error',
+            raw: undefined,
+          },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ]);
     });
   });
 

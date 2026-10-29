@@ -2,7 +2,7 @@ import ChatIdProvider from '@/components/chat-id-provider';
 import ACPHarnessChat from '@/components/acp-harness-chat';
 
 export const metadata = {
-  title: 'ACP: Grok Build — AI SDK Checkout',
+  title: 'Grok Build — AI SDK Checkout',
 };
 
 const STORAGE_KEY = 'harness-grok-build-ai-sdk-coding-chat-id';
@@ -13,7 +13,7 @@ export default function GrokBuildAiSdkCodingPage() {
       <ACPHarnessChat
         apiRoute="/api/harness/grok-build/ai-sdk-coding"
         exampleLabel="AI SDK Checkout"
-        harnessLabel="ACP: Grok Build"
+        harnessLabel="Grok Build"
       />
     </ChatIdProvider>
   );

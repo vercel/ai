@@ -1,9 +1,11 @@
 import type {
   EmbeddingModelV4Embedding,
   LanguageModelV4,
+  LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -96,23 +98,33 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
   'https://our-gateway.example.com/azure/chat/completions': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses':
+    {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
 
+type TestServerURL = keyof typeof server.urls;
+
 describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
-        total_tokens: 34,
-      },
-    } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
+    function prepareJsonResponse(
+      {
+        content = '',
+        usage = {
+          input_tokens: 4,
+          output_tokens: 30,
+          total_tokens: 34,
+        },
+      } = {},
+      url: TestServerURL = 'https://test-resource.openai.azure.com/openai/v1/responses',
+    ) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'resp_67c97c0203188190a025beb4a75242bc',
@@ -192,7 +204,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -215,7 +227,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -272,15 +284,64 @@ describe('responses (default language model)', () => {
         `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
+
+    it('should include explicit message item types for Foundry project endpoints', async () => {
+      const foundryURL =
+        'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses';
+      prepareJsonResponse({}, foundryURL);
+
+      const foundryProvider = createAzure({
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        apiKey: 'test-api-key',
+      });
+
+      await foundryProvider('test-deployment').doGenerate({
+        prompt: [
+          { role: 'system', content: 'You are concise.' },
+          { role: 'user', content: [{ type: 'text', text: 'Say hi.' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi.' }] },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Say it again.' }],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are concise.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say hi.' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hi.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say it again.' }],
+        },
+      ]);
+    });
   });
 });
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
-      ].response = {
+    function prepareJsonResponse({
+      content = '',
+      url = 'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+    }: { content?: string; url?: TestServerURL } = {}) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -358,7 +419,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -377,6 +438,88 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+
+    it.each([
+      {
+        name: 'complete Azure OpenAI v1',
+        baseURL: 'https://test-resource.openai.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry v1',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai/v1/',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Cognitive Services',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Cognitive Services v1',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry project',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry project v1',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+    ] satisfies Array<{
+      name: string;
+      baseURL: string;
+      expectedURL: string;
+      responseURL: TestServerURL;
+    }>)(
+      'should use $name baseURL correctly',
+      async ({ baseURL, expectedURL, responseURL }) => {
+        prepareJsonResponse({ url: responseURL });
+
+        const provider = createAzure({
+          baseURL,
+          apiKey: 'test-api-key',
+        });
+
+        await provider.chat('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestUrl).toBe(expectedURL);
+      },
+    );
 
     it('should use custom gateway baseURL as-is', async () => {
       server.urls[
@@ -617,8 +760,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
@@ -637,6 +783,8 @@ describe('deepseek', () => {
           "raw": {
             "completion_tokens": 1720,
             "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
             "total_tokens": 1739,
           },
         },
@@ -723,7 +871,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -813,6 +961,15 @@ describe('embedding', () => {
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
+
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');
 
@@ -876,7 +1033,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -884,6 +1041,20 @@ describe('embedding', () => {
 
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
+
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
 
   describe('doGenerate', () => {
     function prepareJsonResponse() {
@@ -981,7 +1152,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1122,6 +1293,7 @@ describe('responses', () => {
             "output_tokens_details": {
               "reasoning_tokens": 0,
             },
+            "total_tokens": 22,
           },
         }
       `);
@@ -1204,7 +1376,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1646,7 +1818,16 @@ describe('responses', () => {
           ],
         });
       });
-      it('should stream web search preview results include', async () => {
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -1688,6 +1869,117 @@ describe('responses', () => {
       });
       it('should generate with reasoning encrypted content', async () => {
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search tool', () => {
+      it('should expose toolSearch as an Azure tool', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.toolSearch(),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.tool_search',
+        });
+      });
+
+      const toolSearchTools = (
+        providerOptionsName: 'azure' | 'openai',
+      ): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.tool_search',
+          name: 'toolSearch',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+          providerOptions: {
+            [providerOptionsName]: { deferLoading: true },
+          },
+        },
+      ];
+
+      it.each(['azure', 'openai'] as const)(
+        'should defer function tools marked with providerOptions.%s',
+        async providerOptionsName => {
+          prepareJsonFixtureResponse('azure-text.1');
+
+          await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: toolSearchTools(providerOptionsName),
+          });
+
+          expect((await server.calls[0].requestBodyJson).tools)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "function",
+              },
+            ]
+          `);
+        },
+      );
+
+      it('should defer function tools marked with providerOptions.azure when streaming', async () => {
+        prepareChunksFixtureResponse('azure-text.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: toolSearchTools('azure'),
+        });
+        await convertReadableStreamToArray(stream);
+
+        expect((await server.calls[0].requestBodyJson).tools)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ]
+        `);
       });
     });
 
@@ -1824,6 +2116,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -1852,29 +2203,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -1908,6 +2236,7 @@ describe('responses', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 75,
               },
             },
           },
@@ -2025,7 +2354,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      it('should stream web search preview results include', async () => {
+      it('should retain streamed web search preview citation sources', async () => {
         prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
         const result = await createModel('test-deployment').doStream({
           prompt: TEST_PROMPT,
@@ -2038,9 +2367,18 @@ describe('responses', () => {
             },
           ],
         });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
       });
     });
 
@@ -2065,4 +2403,93 @@ describe('responses', () => {
       });
     });
   });
+});
+
+describe('resourceName validation', () => {
+  it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });

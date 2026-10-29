@@ -16,7 +16,7 @@ run(async () => {
   > = [];
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

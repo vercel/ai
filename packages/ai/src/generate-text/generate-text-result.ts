@@ -175,7 +175,8 @@ export interface GenerateTextResult<
    * The generated output according to the `output` specification.
    *
    * @throws {NoOutputGeneratedError} When no output is available, for example
-   * when the final step does not finish with a `stop` reason.
+   * when the final step finishes with a `tool-calls` reason, or when it
+   * contains no text and does not finish with a `stop` reason.
    */
   readonly output: InferCompleteOutput<OUTPUT>;
 }

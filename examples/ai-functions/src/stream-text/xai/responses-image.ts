@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-4.5'),
+    model: xai.responses('grok-4.7'),
     messages: [
       {
         role: 'user',

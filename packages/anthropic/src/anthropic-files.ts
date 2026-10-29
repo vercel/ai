@@ -9,8 +9,10 @@ import {
   createJsonResponseHandler,
   lazySchema,
   postFormDataToApi,
+  resolve,
   zodSchema,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
@@ -32,7 +34,7 @@ const anthropicUploadFileResponseSchema = lazySchema(() =>
 interface AnthropicFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -49,10 +51,14 @@ export class AnthropicFiles implements FilesV4 {
     data,
     mediaType,
     filename,
+    abortSignal,
+    headers,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([fileBytes as Uint8Array<ArrayBuffer>], {
+      type: mediaType,
+    });
 
     const formData = new FormData();
     if (filename != null) {
@@ -63,14 +69,17 @@ export class AnthropicFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers(), {
-        'anthropic-beta': 'files-api-2025-04-14',
-      }),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        { 'anthropic-beta': 'files-api-2025-04-14' },
+        headers,
+      ),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicUploadFileResponseSchema,
       ),
+      abortSignal,
       fetch: this.config.fetch,
     });
 

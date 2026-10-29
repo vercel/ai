@@ -3,7 +3,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { APICallError, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
 import { readFile } from 'node:fs/promises';
@@ -115,6 +115,36 @@ describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
 
+    describe('duration', () => {
+      const words = [{ text: 'Hello', type: 'word', start: 0, end: 2.06 }];
+
+      it.each([
+        ['includes trailing silence', 4.24, words, 4.24],
+        ['does not require word timestamps', 4.24, null, 4.24],
+        ['preserves a reported zero', 0, words, 0],
+        ['falls back when audio duration is absent', undefined, words, 2.06],
+        ['falls back when audio duration is null', null, words, 2.06],
+      ])('%s', async (_name, audioDuration, words, expectedDuration) => {
+        server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+          type: 'json-value',
+          body: {
+            audio_duration_secs: audioDuration,
+            language_code: 'en',
+            language_probability: 1,
+            text: 'Hello',
+            words,
+          },
+        };
+
+        const result = await model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        });
+
+        expect(result.durationInSeconds).toBe(expectedDuration);
+      });
+    });
+
     it('should pass the model', async () => {
       await model.doGenerate({
         audio: audioData,
@@ -151,7 +181,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/elevenlabs/0.0.0-test`,
+        `ai-sdk-elevenlabs/0.0.0-test`,
       );
     });
 
@@ -164,6 +194,76 @@ describe('doGenerate', () => {
       expect(result.text).toMatchInlineSnapshot(
         `"Hello from the Vercel AI SDK."`,
       );
+    });
+
+    it('should preserve word metadata in provider metadata', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'json-value',
+        body: {
+          language_code: 'eng',
+          language_probability: 1,
+          text: 'hi (laughter)',
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          elevenlabs: {
+            diarize: true,
+          },
+        },
+      });
+
+      expect(result.providerMetadata).toEqual({
+        elevenlabs: {
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      });
     });
 
     it('should pass provider options correctly', async () => {
@@ -197,6 +297,43 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it.each([
+      ['without provider options', undefined, ['true']],
+      ['with empty provider options', {}, ['true']],
+      ['with an unrelated provider option', { languageCode: 'en' }, ['true']],
+      ['when explicitly disabled', { diarize: false }, ['false']],
+    ])(
+      'should send diarize once %s',
+      async (_name, elevenlabsOptions, expectedDiarizeValues) => {
+        let diarizeValues: FormDataEntryValue[] | undefined;
+        const provider = createElevenLabs({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            diarizeValues = (init!.body as FormData).getAll('diarize');
+            return Response.json(
+              JSON.parse(
+                fs.readFileSync(
+                  'src/__fixtures__/elevenlabs-transcription.json',
+                  'utf8',
+                ),
+              ),
+            );
+          },
+        });
+
+        await provider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions:
+            elevenlabsOptions == null
+              ? undefined
+              : { elevenlabs: elevenlabsOptions },
+        });
+
+        expect(diarizeValues).toEqual(expectedDiarizeValues);
+      },
+    );
   });
 
   describe('response headers', () => {
@@ -268,7 +405,41 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
+    });
+  });
+
+  describe('errors', () => {
+    it('should surface the ElevenLabs error message and code', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'error',
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          detail: {
+            type: 'not_found',
+            code: 'model_not_found',
+            message: "A model with model_id 'scribe_v1' was not found.",
+            status: 'model_not_found',
+            request_id: 'req_test_transcription',
+          },
+        }),
+      };
+
+      const result = model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      await expect(result).rejects.toBeInstanceOf(APICallError);
+      await expect(result).rejects.toMatchObject({
+        message:
+          "A model with model_id 'scribe_v1' was not found. (model_not_found)",
+        statusCode: 404,
+        data: { detail: { request_id: 'req_test_transcription' } },
+      });
     });
   });
 });

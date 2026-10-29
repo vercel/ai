@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         // deterministic input so the entire flow can be exercised without
         // microphone permissions or browser-side resampling.
         const speech = await generateSpeech({
-          model: openai.speech('tts-1'),
+          model: openai.speech('gpt-4o-mini-tts'),
           text,
           outputFormat: 'pcm',
           abortSignal: abortController.signal,

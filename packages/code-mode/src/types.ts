@@ -78,40 +78,6 @@ export interface CodeModeInterruptExecutionContext<
   resolution: TResolution;
 }
 
-export type CodeModeContinuationLedgerEntry =
-  | {
-      kind: 'tool';
-      name: string;
-      inputJson: string;
-      toolCallId: string;
-      status: 'fulfilled';
-      dateNowMs: number;
-      valueJson: string;
-    }
-  | {
-      kind: 'tool';
-      name: string;
-      inputJson: string;
-      toolCallId: string;
-      status: 'rejected';
-      dateNowMs: number;
-      error: SerializableError;
-    }
-  | {
-      kind: 'tool';
-      name: string;
-      inputJson: string;
-      toolCallId: string;
-      interruptId: string;
-      interruptPayload: CodeModeInterruptPayload;
-      status: 'interrupted';
-    };
-
-export interface CodeModeDeterminismState {
-  dateNowMs: number;
-  randomSeed: string;
-}
-
 export interface CodeModeContinuationAuth {
   alg: 'HMAC-SHA256';
   nonce: string;
@@ -120,16 +86,51 @@ export interface CodeModeContinuationAuth {
   signature: string;
 }
 
+/**
+ * Opaque continuation state for an interrupted code-mode invocation.
+ *
+ * @remarks
+ * The token and compatibility metadata are authenticated. Applications should
+ * persist this value without reading or modifying its fields.
+ */
 export interface CodeModeContinuation {
-  version: 1;
+  version: 2;
   js: string;
   outerToolCallId: string;
-  determinism: CodeModeDeterminismState;
-  ledger: CodeModeContinuationLedgerEntry[];
+  toolNames: string[];
+  token: string;
+  pendingInterruptions: CodeModePendingInterruption[];
+  resolutions: CodeModePendingResolution[];
   auth: CodeModeContinuationAuth;
 }
 
 export type UnsignedCodeModeContinuation = Omit<CodeModeContinuation, 'auth'>;
+
+/**
+ * Authenticated compatibility metadata for one interruption returned by
+ * `run`.
+ *
+ * @internal
+ */
+export interface CodeModePendingInterruption {
+  runInterruptionId: string;
+  interruptId: string;
+  toolName: string;
+  toolCallId: string;
+  input: unknown;
+  payload: CodeModeInterruptPayload;
+}
+
+/**
+ * A resolution collected while exposing a batched `run` interruption through
+ * code mode's one-at-a-time continuation API.
+ *
+ * @internal
+ */
+export interface CodeModePendingResolution {
+  runInterruptionId: string;
+  value: unknown;
+}
 
 export interface CodeModeInterrupt<
   TPayload extends CodeModeInterruptPayload = CodeModeInterruptPayload,
@@ -159,8 +160,21 @@ export type CodeModeApprovalInterrupt =
  * Execution limits applied to each sandbox invocation.
  */
 export interface CodeModeExecutionPolicy {
-  /** @defaultValue `30_000` */
+  /**
+   * Wall-clock limit for one invocation, including time spent waiting on
+   * tools.
+   *
+   * @defaultValue `30_000`
+   */
   timeoutMs?: number;
+  /**
+   * CPU time limit for sandboxed code in one invocation. Time spent waiting on
+   * tools does not count toward it. Only takes effect when lower than
+   * `timeoutMs`. Each continuation resume starts with a fresh budget.
+   *
+   * @defaultValue `10_000`
+   */
+  cpuTimeoutMs?: number;
   /** @defaultValue `64 * 1024 * 1024` */
   memoryLimitBytes?: number;
   /** @defaultValue `2 * 1024 * 1024` */
@@ -198,6 +212,23 @@ export interface CodeModeOptions {
   };
 }
 
+/**
+ * Options for the code-mode tool caller used with `experimental_toolCallers`.
+ */
+export interface CodeModeToolOptions extends CodeModeOptions {
+  /**
+   * Controls how host tools are presented to the model.
+   *
+   * - `'description'`: include host-tool signatures in the provider-visible
+   *   code-mode tool description.
+   * - `'conversation'`: keep the code-mode tool definition stable and announce
+   *   the current host-tool catalog in a user message.
+   *
+   * @defaultValue `'description'`
+   */
+  toolDiscovery?: 'description' | 'conversation';
+}
+
 export interface CodeModeContinuationSecurityOptions {
   signingKey?: string | Uint8Array;
   /**
@@ -216,35 +247,4 @@ export interface RunCodeModeInput {
   options?: CodeModeOptions;
   continuation?: CodeModeContinuation;
   interruptResolution?: CodeModeInterruptResolution;
-}
-
-/**
- * Fully normalized runtime options.
- *
- * @internal
- */
-export interface NormalizedCodeModeOptions {
-  timeoutMs: number;
-  memoryLimitBytes: number;
-  maxStackSizeBytes: number;
-  maxResultBytes: number;
-  maxConsoleOutputBytes: number;
-  maxSourceBytes: number;
-  maxToolInputBytes: number;
-  maxToolOutputBytes: number;
-  maxBridgeRequests: number;
-  maxInFlightBridgeRequests: number;
-}
-
-/**
- * Serializable representation of an error crossing the worker boundary.
- *
- * @internal
- */
-export interface SerializableError {
-  name: string;
-  message: string;
-  stack?: string;
-  code?: string;
-  details?: unknown;
 }

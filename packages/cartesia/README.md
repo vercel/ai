@@ -7,10 +7,8 @@ contains Sonic 3.5 speech generation, Ink-Whisper batch transcription, and Ink 2
 
 ## Setup
 
-The Cartesia provider is available in the `@ai-sdk/cartesia` module. You can install it with
-
 ```bash
-npm i @ai-sdk/cartesia
+npm i ai @ai-sdk/cartesia
 ```
 
 ## Skill for Coding Agents
@@ -21,15 +19,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `cartesia` from `@ai-sdk/cartesia`:
-
-```ts
-import { cartesia } from '@ai-sdk/cartesia';
-```
-
-## Example
+## Usage
 
 ```ts
 import { cartesia } from '@ai-sdk/cartesia';
@@ -42,6 +32,4 @@ const { audio } = await generateSpeech({
 });
 ```
 
-## Documentation
-
-Please check out the **[Cartesia provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/cartesia)** for more information.
+See the [Cartesia Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/cartesia) for more information.

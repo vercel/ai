@@ -21,6 +21,7 @@ expectTypeOf(
 
 const options = {
   language: 'en',
+  returnLanguage: false,
   temperature: 0.2,
   diarize: true,
   contextBias: ['Vercel', 'AI_SDK'],

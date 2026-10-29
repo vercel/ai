@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage } = await generateText({
-    model: openai.chat('gpt-4o'),
+    model: openai.chat('gpt-4.1'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       openai: {

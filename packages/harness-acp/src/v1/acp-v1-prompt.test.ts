@@ -4,11 +4,11 @@ import {
 } from '@ai-sdk/harness';
 import { describe, expect, it } from 'vitest';
 import {
-  convertHarnessPromptToACPTextBlocks,
-  prependACPInitialGuidance,
+  convertHarnessPromptToACPContentBlocks,
+  prependACPInstructionGuidance,
 } from './acp-v1-prompt';
 
-describe('convertHarnessPromptToACPTextBlocks', () => {
+describe('convertHarnessPromptToACPContentBlocks', () => {
   it.each([
     {
       name: 'string prompt',
@@ -34,13 +34,47 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
         { type: 'text', text: 'Second' },
       ],
     },
+    {
+      name: 'inline image file',
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this' },
+          {
+            type: 'file',
+            data: new Uint8Array([1, 2, 3]),
+            mediaType: 'image/png',
+          },
+        ],
+      },
+      expected: [
+        { type: 'text', text: 'Describe this' },
+        { type: 'image', data: 'AQID', mimeType: 'image/png' },
+      ],
+    },
+    {
+      name: 'inline image part',
+      prompt: {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            image: 'data:image/png;base64,AQID',
+          },
+        ],
+      },
+      expected: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }],
+    },
   ] satisfies Array<{
     name: string;
     prompt: HarnessV1Prompt;
-    expected: Array<{ type: 'text'; text: string }>;
-  }>)('maps a $name to ACP text blocks', ({ prompt, expected }) => {
+    expected: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; data: string; mimeType: string }
+    >;
+  }>)('maps a $name to ACP content blocks', ({ prompt, expected }) => {
     expect(
-      convertHarnessPromptToACPTextBlocks({
+      convertHarnessPromptToACPContentBlocks({
         prompt,
         harnessId: 'portable-acp',
       }),
@@ -49,27 +83,13 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
 
   it.each([
     {
-      name: 'legacy image part',
-      part: { type: 'image', image: new Uint8Array() },
-      category: 'image content',
-    },
-    {
-      name: 'image file',
-      part: {
-        type: 'file',
-        data: new Uint8Array(),
-        mediaType: 'image/png',
-      },
-      category: 'image content',
-    },
-    {
       name: 'audio file',
       part: {
         type: 'file',
         data: new Uint8Array(),
         mediaType: 'audio/mpeg',
       },
-      category: 'audio content',
+      category: "files of media type 'audio/mpeg'",
     },
     {
       name: 'embedded resource file',
@@ -78,17 +98,17 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
         data: { type: 'text', text: 'reference' },
         mediaType: 'text/plain',
       },
-      category: 'embedded resource content with media type "text/plain"',
+      category: "files of media type 'text/plain'",
     },
     {
       name: 'other future part',
       part: { type: 'resource_link', uri: 'file:///reference.md' },
-      category: 'content parts of type "resource_link"',
+      category: 'content parts other than text, image, or file parts',
     },
   ])('rejects $name precisely', ({ part, category }) => {
     let error: unknown;
     try {
-      convertHarnessPromptToACPTextBlocks({
+      convertHarnessPromptToACPContentBlocks({
         prompt: {
           role: 'user',
           content: [part],
@@ -105,23 +125,34 @@ describe('convertHarnessPromptToACPTextBlocks', () => {
       message: expect.stringContaining(category),
     });
   });
+
+  it('rejects remote image URLs', () => {
+    expect(() =>
+      convertHarnessPromptToACPContentBlocks({
+        prompt: {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/image.png'),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+        harnessId: 'portable-acp',
+      }),
+    ).toThrow('remote image URLs');
+  });
 });
 
-describe('prependACPInitialGuidance', () => {
-  it('prepends delimited instructions and a compact skill catalog', () => {
-    const result = prependACPInitialGuidance({
+describe('prependACPInstructionGuidance', () => {
+  it('prepends delimited instructions without skill guidance', () => {
+    const result = prependACPInstructionGuidance({
       prompt: [
         { type: 'text', text: 'First' },
         { type: 'text', text: 'Second' },
       ],
       instructions: 'Prefer concise answers.',
-      skills: [
-        {
-          name: 'release-notes',
-          description: 'Prepare release notes.',
-          path: '/home/user/.ai-sdk/harness-acp/demo/session/skills/release-notes/SKILL.md',
-        },
-      ],
     });
 
     expect(result).toEqual([
@@ -133,24 +164,23 @@ describe('prependACPInitialGuidance', () => {
           '<instructions>\n' +
           'Prefer concise answers.\n' +
           '</instructions>\n' +
-          '<available-skills>\n' +
-          'Load a skill only when relevant by reading its SKILL.md file at the listed absolute path.\n' +
-          '- release-notes: Prepare release notes. (/home/user/.ai-sdk/harness-acp/demo/session/skills/release-notes/SKILL.md)\n' +
-          '</available-skills>\n' +
           '</session-guidance>',
       },
       { type: 'text', text: 'First' },
       { type: 'text', text: 'Second' },
     ]);
-    expect(result[0]?.text).not.toContain('Complete private skill content');
+    const guidance = result[0];
+    if (guidance?.type !== 'text') {
+      throw new Error('Expected the guidance block to be text.');
+    }
+    expect(guidance.text).not.toContain('available-skills');
   });
 
   it('does not add an empty guidance block', () => {
     expect(
-      prependACPInitialGuidance({
+      prependACPInstructionGuidance({
         prompt: [{ type: 'text', text: 'Hello' }],
         instructions: '',
-        skills: [],
       }),
     ).toEqual([{ type: 'text', text: 'Hello' }]);
   });

@@ -1,21 +1,22 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
   });
-  let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
-    session = await agent.createSession();
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt: 'In one sentence, what is the capital of France?',
@@ -23,10 +24,8 @@ run(async () => {
     await printFullStream({ result });
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
-  } catch (error) {
-    process.exitCode = 1;
-    throw error;
   } finally {
     await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

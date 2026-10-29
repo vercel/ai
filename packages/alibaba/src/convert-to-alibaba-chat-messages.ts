@@ -28,13 +28,26 @@ function formatImageUrl({ part }: { part: LanguageModelV4FilePart }): string {
 export function convertToAlibabaChatMessages({
   prompt,
   cacheControlValidator,
+  preserveThinking = false,
 }: {
   prompt: LanguageModelV4Prompt;
   cacheControlValidator?: CacheControlValidator;
+  preserveThinking?: boolean;
 }): AlibabaChatPrompt {
   const messages: AlibabaChatPrompt = [];
 
+  // TODO use findLastIndex once we use ES2023
+  let lastUserMessageIndex = -1;
+  for (let i = prompt.length - 1; i >= 0; i--) {
+    if (prompt[i].role === 'user') {
+      lastUserMessageIndex = i;
+      break;
+    }
+  }
+
+  let index = -1;
   for (const { role, content, ...message } of prompt) {
+    index++;
     const messageCacheControl = cacheControlValidator?.getCacheControl(
       message.providerOptions,
     );
@@ -118,6 +131,7 @@ export function convertToAlibabaChatMessages({
 
       case 'assistant': {
         let text = '';
+        let reasoningContent = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -142,19 +156,38 @@ export function convertToAlibabaChatMessages({
               break;
             }
             case 'reasoning': {
-              // Reasoning content is handled separately in the response
-              // but may appear in assistant messages during multi-turn conversations
-              text += part.text;
+              // Reasoning from the current round (after the last user
+              // message) always accompanies tool calls. Earlier rounds are
+              // replayed only when preserved thinking is enabled.
+              if (preserveThinking || index > lastUserMessageIndex) {
+                reasoningContent += part.text;
+              }
               break;
             }
           }
         }
 
+        if (
+          text.length === 0 &&
+          toolCalls.length === 0 &&
+          reasoningContent.length === 0
+        ) {
+          break;
+        }
+
         messages.push({
           role: 'assistant',
-          content: messageCacheControl
-            ? [{ type: 'text', text, cache_control: messageCacheControl }]
-            : text || null,
+          content:
+            text.length === 0 &&
+            toolCalls.length === 0 &&
+            reasoningContent.length > 0
+              ? null
+              : messageCacheControl
+                ? [{ type: 'text', text, cache_control: messageCacheControl }]
+                : text || null,
+          ...(reasoningContent.length > 0
+            ? { reasoning_content: reasoningContent }
+            : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

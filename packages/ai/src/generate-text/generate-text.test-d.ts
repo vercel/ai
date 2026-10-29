@@ -25,6 +25,14 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  it('should accept toolCallConcurrency', async () => {
+    await generateText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({
@@ -182,7 +190,11 @@ describe('generateText types', () => {
       const result = await generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
-        output: Output.array({ element: z.string() }),
+        output: Output.array({
+          element: z.string(),
+          minItems: 1,
+          maxItems: 3,
+        }),
       });
 
       expectTypeOf<typeof result.output>().toEqualTypeOf<string[]>();
@@ -454,6 +466,12 @@ describe('generateText types', () => {
             requestId: string;
           }>();
         },
+        onStepError: ({ runtimeContext }) => {
+          expectTypeOf(runtimeContext).toEqualTypeOf<{
+            userId: string;
+            requestId: string;
+          }>();
+        },
         onFinish: ({ runtimeContext }) => {
           expectTypeOf(runtimeContext).toEqualTypeOf<{
             userId: string;
@@ -572,16 +590,9 @@ describe('generateText types', () => {
               writeFile: async () => {},
               writeBinaryFile: async () => {},
               writeTextFile: async () => {},
-              spawn: async () => ({
-                stdout: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                stderr: new ReadableStream<Uint8Array>({
-                  start: c => c.close(),
-                }),
-                wait: async () => ({ exitCode: 0 }),
-                kill: async () => {},
-              }),
+              spawn: async () => {
+                throw new Error('spawn is not implemented in this mock.');
+              },
             },
           }),
         });
@@ -600,7 +611,7 @@ describe('generateText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

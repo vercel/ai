@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
@@ -182,6 +185,89 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
   });
 
   it('should extract usage', async () => {
@@ -632,6 +718,126 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map unsupported top-level reasoning for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'minimal',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'low',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      },
+    ]);
+  });
+
+  it('should map max reasoning to xhigh for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-sol').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'max',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'xhigh',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+      },
+    ]);
+  });
+
+  describe('GPT-5.6 with function tools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'test-tool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+    const toolsWarning = {
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'gpt-5.6-luna does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.',
+    };
+
+    it('should send reasoning effort none with a warning when reasoning is requested', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+        tools,
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toStrictEqual([toolsWarning]);
+    });
+
+    it.each(['none', 'provider-default', undefined] as const)(
+      'should send reasoning effort none without a warning when reasoning is %s',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'none',
+        );
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it('should send providerOptions reasoningEffort unchanged', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        tools,
+        providerOptions: { openai: { reasoningEffort: 'low' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should not change reasoning without tools', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+  });
+
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -727,6 +933,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should warn that reasoningSummary is not supported by the chat API', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o3');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningSummary: 'detailed' },
+      },
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -819,7 +1047,7 @@ describe('doGenerate', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -1037,6 +1265,66 @@ describe('doGenerate', () => {
       `);
 
       expect(warnings).toEqual([]);
+    });
+
+    it('should remove string propertyNames from response schemas and warn', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              variables: {
+                type: 'object',
+                propertyNames: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+                additionalProperties: { type: 'string' },
+              },
+            },
+            required: ['variables'],
+            additionalProperties: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toStrictEqual([
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ]);
     });
 
     it('should use json_schema & strict with responseFormat json', async () => {
@@ -1571,6 +1859,111 @@ describe('doGenerate', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('openai-text');
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should send provider reasoning effort %s unchanged for GPT-6 models',
+      async reasoningEffort => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: reasoningEffort,
+        });
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: 'low',
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'compatibility',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
+        },
+      ]);
+    });
+
     it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
       prepareJsonFixtureResponse('openai-text');
 
@@ -1969,6 +2362,46 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send prompt cache retention for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { promptCacheRetention: '24h' } },
+    });
+
+    expect((await server.calls[0].requestBodyJson).prompt_cache_retention).toBe(
+      '24h',
+    );
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -2306,9 +2739,89 @@ describe('doGenerate', () => {
     expect(requestBody.service_tier).toBe('fast');
     expect(result.warnings).toEqual([]);
   });
+
+  it('should send serviceTier ultrafast processing setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.6-sol');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          serviceTier: 'ultrafast',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5.6-sol",
+        "service_tier": "ultrafast",
+      }
+    `);
+  });
 });
 
 describe('doStream', () => {
+  it.each([
+    [undefined, 'interrupted'],
+    [null, 'interrupted'],
+    ['stop', 'stop'],
+    ['length', 'length'],
+    ['tool_calls', 'tool-calls'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finish_reason %j to %s',
+    async (raw, unified) => {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            id: 'chat-1',
+            object: 'chat.completion.chunk',
+            created: 1,
+            model: 'gpt-4o',
+            choices: [
+              {
+                index: 0,
+                delta: { content: 'Partial answer' },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+          ...(raw === undefined
+            ? []
+            : [
+                `data: ${JSON.stringify({
+                  choices: [{ index: 0, delta: {}, finish_reason: raw }],
+                })}\n\n`,
+                'data: [DONE]\n\n',
+              ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Partial answer',
+      });
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: { unified, raw: raw ?? undefined },
+        }),
+      ]);
+    },
+  );
+
   it('should stream text after Azure content filter chunks', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -3347,9 +3860,16 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "code": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
             "message": "stream failed after output",
-            "param": null,
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",

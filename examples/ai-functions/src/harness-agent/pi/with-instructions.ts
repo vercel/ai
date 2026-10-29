@@ -1,23 +1,25 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createPi } from './_create';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
 
+const pi = createPi();
+
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    timeout: 10 * 60 * 1000,
-  });
   const agent = new HarnessAgent({
     harness: pi,
-    sandbox,
     instructions:
       'Answer every question in German, even when the user requests another language.',
   });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const first = await agent.generate({
       session,
       prompt: 'In one sentence, what is the capital of France?',
@@ -31,11 +33,12 @@ run(async () => {
     console.log('second text:', second.text);
     console.log('finishReason:', second.finishReason);
     console.log('usage:', second.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
+
+    if (!/\bist\b/i.test(second.text)) {
+      throw new Error('Reply is not in German, violating the system prompt');
+    }
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

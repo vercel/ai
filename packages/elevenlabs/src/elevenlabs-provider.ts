@@ -59,7 +59,8 @@ export interface ElevenLabsProviderSettings {
 
   /**
    * Custom WebSocket implementation. Required in runtimes whose native
-   * WebSocket constructor does not support headers for realtime transcription.
+   * WebSocket constructor does not support headers, for realtime
+   * transcription and streaming speech.
    */
   webSocket?: WebSocketConstructor;
 }
@@ -80,7 +81,7 @@ export function createElevenLabs(
         }),
         ...options.headers,
       },
-      `ai-sdk/elevenlabs/${VERSION}`,
+      `ai-sdk-elevenlabs/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
@@ -98,6 +99,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {

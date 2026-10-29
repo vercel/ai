@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     messages: [
       {
         role: 'user',
@@ -15,23 +15,29 @@ run(async () => {
           },
           {
             type: 'file',
-            data: `Artificial Intelligence (AI) has revolutionized many industries by providing:
+            data: {
+              type: 'text',
+              text: `Artificial Intelligence (AI) has revolutionized many industries by providing:
 1. Automation of repetitive tasks
 2. Enhanced decision-making through data analysis
 3. Improved customer service through chatbots
 4. Predictive analytics for better planning
 5. Cost reduction through efficiency gains`,
+            },
             mediaType: 'text/plain',
             filename: 'ai-benefits.txt',
           },
           {
             type: 'file',
-            data: `Machine Learning, a subset of AI, offers additional advantages:
+            data: {
+              type: 'text',
+              text: `Machine Learning, a subset of AI, offers additional advantages:
 - Pattern recognition in large datasets
 - Personalized recommendations
 - Fraud detection and prevention
 - Medical diagnosis assistance
 - Natural language processing capabilities`,
+            },
             mediaType: 'text/plain',
             filename: 'ml-advantages.txt',
           },

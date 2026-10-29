@@ -1,12 +1,18 @@
 import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
+import { socialCard } from '@/lib/og';
 import Link from 'next/link';
 import { tools } from '@/lib/tools-registry';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/resources/tools' },
   title: 'AI SDK Tools Registry',
   description:
     'Add powerful functionality to your agents with just a few lines of code.',
+  ...socialCard(
+    'AI SDK Tools Registry',
+    'Add powerful functionality to your agents with just a few lines of code.',
+  ),
 };
 
 const ToolsPage = () => (

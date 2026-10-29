@@ -76,6 +76,44 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass Voxtral 3 delivery controls and preserve inline tags', async () => {
+    prepareJsonResponse();
+    const result = await provider.speech('voxtral-mini-tts-3-0').doGenerate({
+      text: '[emotion=happy] I like tomato soup.',
+      voice: 'gb_jane_neutral',
+      providerOptions: {
+        mistral: {
+          expressiveness: 1.5,
+          phonemeHints: { tomato: ['t', 'ə', 'm', 'ɑ', 't', 'oʊ'] },
+        },
+      },
+    });
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'voxtral-mini-tts-3-0',
+      input: '[emotion=happy] I like tomato soup.',
+      voice_id: 'gb_jane_neutral',
+      expressiveness: 1.5,
+      phoneme_hints: { tomato: ['t', 'ə', 'm', 'ɑ', 't', 'oʊ'] },
+      response_format: 'mp3',
+      stream: false,
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each([
+    { expressiveness: 0.9 },
+    { expressiveness: 5.1 },
+    { phonemeHints: { tomato: [] } },
+    { phonemeHints: { tomato: [''] } },
+  ])('should reject invalid delivery controls: %j', async options => {
+    await expect(
+      provider.speech('voxtral-mini-tts-3-0').doGenerate({
+        text: 'I like tomato soup.',
+        providerOptions: { mistral: options },
+      }),
+    ).rejects.toThrow('invalid mistral provider options');
+  });
+
   it('should map refAudio to ref_audio and prefer it over voice', async () => {
     prepareJsonResponse();
 
@@ -183,7 +221,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/mistral/0.0.0-test',
+      'ai-sdk-mistral/0.0.0-test',
     );
   });
 

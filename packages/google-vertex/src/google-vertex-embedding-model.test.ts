@@ -64,6 +64,52 @@ describe('GoogleVertexEmbeddingModel', () => {
       prepareJsonFixtureResponse('google-vertex-embedding');
     });
 
+    describe.each(['predict', 'embedContent'] as const)(
+      '%s dimensions',
+      endpoint => {
+        it.each([
+          {
+            dimensions: undefined,
+            providerDimensions: undefined,
+            expected: undefined,
+          },
+          { dimensions: 256, providerDimensions: undefined, expected: 256 },
+          { dimensions: undefined, providerDimensions: 512, expected: 512 },
+          { dimensions: 256, providerDimensions: 512, expected: 512 },
+        ])(
+          'maps $dimensions with provider override $providerDimensions to $expected',
+          async ({ dimensions, providerDimensions, expected }) => {
+            server.urls[GEMINI_EMBEDDING_2_URL].response = {
+              type: 'json-value',
+              body: { embedding: { values: [0.1, 0.2, 0.3] } },
+            };
+            const embeddingModel =
+              endpoint === 'predict'
+                ? model
+                : new GoogleVertexEmbeddingModel(
+                    'gemini-embedding-2',
+                    mockConfig,
+                  );
+
+            await embeddingModel.doEmbed({
+              values: [testValues[0]],
+              dimensions,
+              providerOptions: {
+                googleVertex: { outputDimensionality: providerDimensions },
+              },
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            const config =
+              endpoint === 'predict'
+                ? body.parameters
+                : body.embedContentConfig;
+            expect(config.outputDimensionality).toBe(expected);
+          },
+        );
+      },
+    );
+
     it('should extract embeddings', async () => {
       const { embeddings } = await model.doEmbed({
         values: testValues,
@@ -257,13 +303,27 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(result.usage).toStrictEqual({ tokens: 4 });
     });
 
-    it('should limit gemini-embedding-2 to one value per call', () => {
-      const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
-        'gemini-embedding-2',
-        mockConfig,
-      );
+    describe('maxEmbeddingsPerCall', () => {
+      it('should limit predict endpoint models to 250 values per call', () => {
+        const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+          'gemini-embedding-001',
+          mockConfig,
+        );
 
-      expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(1);
+        expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(250);
+      });
+
+      it.each(['gemini-embedding-2', 'gemini-embedding-2-preview'] as const)(
+        'should limit %s to one value per call',
+        modelId => {
+          const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+            modelId,
+            mockConfig,
+          );
+
+          expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(1);
+        },
+      );
     });
   });
 
@@ -326,12 +386,12 @@ describe('GoogleVertexEmbeddingModel', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google-vertex/0.0.0-test`,
+      `ai-sdk-google-vertex/0.0.0-test`,
     );
   });
 
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(251).fill('test');
 
     await expect(
       model.doEmbed({

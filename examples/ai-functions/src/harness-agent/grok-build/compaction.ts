@@ -1,7 +1,9 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { grokBuild } from '@ai-sdk/harness-grok-build';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createGrokBuild } from './_create';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const grokBuild = createGrokBuild();
 
 /*
  * ACP v1 has no portable manual compaction API. This example deliberately
@@ -9,21 +11,24 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
  * behavior is visible to callers.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({ harness: grokBuild });
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({ harness: grokBuild, sandbox });
 
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     await agent.generate({
       session,
       prompt: 'Reply with exactly ready.',
     });
     await session.compact();
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

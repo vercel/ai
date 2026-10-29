@@ -5,7 +5,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type MistralTranscriptionModelId = 'voxtral-mini-latest' | (string & {});
+export type MistralTranscriptionModelId =
+  | 'voxtral-mini-2602'
+  | 'voxtral-mini-latest'
+  | 'voxtral-mini-transcribe-3-0'
+  | 'voxtral-mini-transcribe-3'
+  | 'voxtral-mini-transcribe-latest'
+  | 'voxtral-small-transcribe-3-0'
+  | 'voxtral-small-transcribe-3'
+  | 'voxtral-small-transcribe-latest'
+  | (string & {});
 
 // https://docs.mistral.ai/api/endpoint/audio/transcriptions
 export const mistralTranscriptionModelOptions = lazySchema(() =>
@@ -18,12 +27,18 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
       language: z.string().min(1).optional(),
 
       /**
+       * Return the detected language. Cannot be combined with `language`.
+       */
+      returnLanguage: z.boolean().optional(),
+
+      /**
        * The sampling temperature.
        */
       temperature: z.number().optional(),
 
       /**
        * The timestamp granularities to include in the transcription response.
+       * Voxtral 3 supports segment timestamps only.
        */
       timestampGranularities: z
         .array(z.enum(['segment', 'word']))
@@ -32,6 +47,7 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
 
       /**
        * Whether to identify speakers in the transcription.
+       * Voxtral 3 requires segment timestamps when diarization is enabled.
        */
       diarize: z.boolean().optional(),
 
@@ -39,21 +55,11 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
        * Words or phrases to guide the model toward correct spellings of names,
        * technical terms, or domain-specific vocabulary.
        *
-       * Mistral requires each item to omit commas and whitespace. Use
-       * underscores to represent multi-word phrases.
+       * Voxtral 3 also accepts phrases and descriptions of the recording,
+       * including spaces and punctuation. Entries share the context window
+       * with the audio.
        */
-      contextBias: z
-        .array(
-          z
-            .string()
-            .min(1)
-            .regex(
-              /^[^\s,]+$/,
-              'Context bias items must not contain commas or whitespace.',
-            ),
-        )
-        .max(100)
-        .optional(),
+      contextBias: z.array(z.string().min(1)).optional(),
     }),
   ),
 );

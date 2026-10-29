@@ -1,5 +1,4 @@
 import type {
-  LanguageModelV4Content,
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
@@ -16,8 +15,7 @@ import {
   type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { NoOutputGeneratedError } from '../error';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import { ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -64,7 +62,8 @@ import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
-import type { ContentPart } from './content-part';
+import { convertLanguageModelContent } from './convert-language-model-content';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -74,21 +73,22 @@ import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
+  GenerateTextStepStartEvent,
 } from './generate-text-events';
+import { DefaultGenerateTextResult } from './default-generate-text-result';
 import type { GenerateTextResult } from './generate-text-result';
-import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { text, type Output } from './output';
-import type { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
-import { convertToReasoningOutputs } from './reasoning-output';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -97,6 +97,12 @@ import {
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
+import {
+  startSteeringRun,
+  type Steering,
+  type SteeringNotDeliveredReason,
+  type SteeringRun,
+} from './steering';
 import {
   isStepCount,
   isStopConditionMet,
@@ -108,24 +114,28 @@ import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import {
+  appendToolCallerMessages,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
 } from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
-import type { TypedToolError } from './tool-error';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { validateToolContext } from './validate-tool-context';
 import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
-import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
+import {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from './tool-call-concurrency';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -172,6 +182,7 @@ export type GenerateTextInclude = {
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolChoice - The tool choice strategy. Default: 'auto'.
  * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
+ * @param toolCallConcurrency - Maximum number of tool calls that may execute concurrently within a step. Set to 1 for sequential execution. Default: unlimited.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -205,6 +216,7 @@ export type GenerateTextInclude = {
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
+ * @param experimental_steering - A steering object that adds user messages to the generation at the next step boundary.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  * @param onStart - Callback invoked when generation begins, before any LLM calls.
@@ -223,6 +235,7 @@ export type GenerateTextInclude = {
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onStepError - Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -233,339 +246,406 @@ export async function generateText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
->({
-  model: modelArg,
-  tools,
-  toolChoice,
-  instructions,
-  system,
-  prompt,
-  messages,
-  allowSystemInMessages,
-  maxRetries: maxRetriesArg,
-  abortSignal,
-  timeout,
-  headers,
-  stopWhen = isStepCount(1),
-  experimental_sandbox: sandbox,
-  output,
-  toolApproval,
-  experimental_toolCallers,
-  experimental_toolApprovalSecret,
-  experimental_telemetry,
-  telemetry = experimental_telemetry,
-  providerOptions,
-  activeTools,
-  toolOrder,
-  prepareStep,
-  experimental_repairToolCall,
-  repairToolCall = experimental_repairToolCall,
-  experimental_refineToolInput: refineToolInput,
-  experimental_download: download,
-  runtimeContext = {} as RUNTIME_CONTEXT,
-  toolsContext = {} as InferToolSetContext<TOOLS>,
-  experimental_include,
-  include = experimental_include,
-  _internal: {
-    generateId = originalGenerateId,
-    generateCallId = originalGenerateCallId,
-    now = originalNow,
-  } = {},
-  onStart,
-  experimental_onStart,
-  onStepStart,
-  experimental_onStepStart,
-  onLanguageModelCallStart,
-  experimental_onLanguageModelCallStart,
-  onLanguageModelCallEnd,
-  experimental_onLanguageModelCallEnd,
-  onToolExecutionStart,
-  onToolExecutionEnd,
-  experimental_onToolCallStart,
-  experimental_onToolCallFinish,
-  onStepEnd,
-  onStepFinish,
-  onFinish,
-  onEnd = onFinish,
-  ...settings
-}: LanguageModelCallOptions &
-  RequestOptions<TOOLS> &
-  Prompt &
-  ToolsContextParameter<TOOLS> & {
-    /**
-     * The language model to use.
-     */
-    model: LanguageModel;
+>(
+  options: GenerateTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+  const steeringRun = startSteeringRun(options.experimental_steering);
 
-    /**
-     * The tool choice strategy. Default: 'auto'.
-     */
-    toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+  try {
+    return await generateTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>(
+      options,
+      steeringRun,
+    );
+  } catch (error) {
+    // the call can fail before its loop starts, e.g. when the prompt is invalid:
+    steeringRun?.end(options.abortSignal?.aborted ? 'aborted' : 'error');
+    throw error;
+  }
+}
 
-    /**
-     * Condition for stopping the generation when there are tool results in the last step.
-     * When the condition is an array, any of the conditions can be met to stop the generation.
-     *
-     * @default isStepCount(1)
-     */
-    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+type GenerateTextOptions<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = Parameters<typeof generateTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>>[0];
 
-    /**
-     * Optional telemetry configuration.
-     */
-    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+async function generateTextInternal<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string>,
+>(
+  {
+    model: modelArg,
+    tools,
+    toolChoice,
+    instructions,
+    system,
+    prompt,
+    messages,
+    allowSystemInMessages,
+    maxRetries: maxRetriesArg,
+    abortSignal,
+    timeout,
+    headers,
+    stopWhen = isStepCount(1),
+    experimental_sandbox: sandbox,
+    output,
+    toolApproval,
+    experimental_toolCallers,
+    experimental_toolApprovalSecret,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
+    providerOptions,
+    activeTools,
+    toolOrder,
+    toolCallConcurrency,
+    prepareStep,
+    experimental_repairToolCall,
+    repairToolCall = experimental_repairToolCall,
+    experimental_refineToolInput: refineToolInput,
+    experimental_download: download,
+    runtimeContext = {} as RUNTIME_CONTEXT,
+    toolsContext = {} as InferToolSetContext<TOOLS>,
+    experimental_include,
+    include = experimental_include,
+    _internal: {
+      generateId = originalGenerateId,
+      generateCallId = originalGenerateCallId,
+      now = originalNow,
+    } = {},
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onLanguageModelCallStart,
+    experimental_onLanguageModelCallStart,
+    onLanguageModelCallEnd,
+    experimental_onLanguageModelCallEnd,
+    onToolExecutionStart,
+    onToolExecutionEnd,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
+    onStepEnd,
+    onStepError,
+    onStepFinish,
+    onFinish,
+    onEnd = onFinish,
+    ...settings
+  }: LanguageModelCallOptions &
+    RequestOptions<TOOLS> &
+    Prompt &
+    ToolsContextParameter<TOOLS> & {
+      /**
+       * The language model to use.
+       */
+      model: LanguageModel;
 
-    /**
-     * Optional telemetry configuration.
-     *
-     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
-     */
-    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
+      /**
+       * The tool choice strategy. Default: 'auto'.
+       */
+      toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
-    /**
-     * Additional provider-specific options. They are passed through
-     * to the provider from the AI SDK and enable provider-specific
-     * functionality that can be fully encapsulated in the provider.
-     */
-    providerOptions?: ProviderOptions;
+      /**
+       * Condition for stopping the generation when there are tool results in the last step.
+       * When the condition is an array, any of the conditions can be met to stop the generation.
+       *
+       * @default isStepCount(1)
+       */
+      stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
-    /**
-     * The sandbox environment that is passed through to tool execution.
-     */
-    experimental_sandbox?: SandboxSession;
+      /**
+       * Optional telemetry configuration.
+       */
+      telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
-    /**
-     * Runtime context. Treat runtime context as immutable.
-     * If you need to mutate runtime context, update it in `prepareStep`.
-     */
-    runtimeContext?: RUNTIME_CONTEXT;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions<
+        RUNTIME_CONTEXT,
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Limits the tools that are available for the model to call without
-     * changing the tool call and result types in the result.
-     */
-    activeTools?: ActiveTools<NoInfer<TOOLS>>;
+      /**
+       * Additional provider-specific options. They are passed through
+       * to the provider from the AI SDK and enable provider-specific
+       * functionality that can be fully encapsulated in the provider.
+       */
+      providerOptions?: ProviderOptions;
 
-    /**
-     * Controls the order in which tools are sent to the provider.
-     *
-     * The list can be partial. Tools not listed in `toolOrder` are sent after
-     * the listed tools, sorted alphabetically. This can improve provider-side
-     * caching by keeping tool definitions in a stable order.
-     */
-    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+      /**
+       * The sandbox environment that is passed through to tool execution.
+       */
+      experimental_sandbox?: SandboxSession;
 
-    /**
-     * Optional specification for parsing structured outputs from the LLM response.
-     */
-    output?: OUTPUT;
+      /**
+       * A steering object created with `experimental_createSteering()`.
+       * Messages sent with it are added to the generation at the next step
+       * boundary.
+       */
+      experimental_steering?: Steering;
 
-    /**
-     * Optional tool approval configuration.
-     *
-     * This configuration takes precedence over tool-defined approval settings.
-     */
-    toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+      /**
+       * Runtime context. Treat runtime context as immutable.
+       * If you need to mutate runtime context, update it in `prepareStep`.
+       */
+      runtimeContext?: RUNTIME_CONTEXT;
 
-    /**
-     * Configures which caller tools may invoke each tool.
-     */
-    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+      /**
+       * Limits the tools that are available for the model to call without
+       * changing the tool call and result types in the result.
+       */
+      activeTools?: ActiveTools<NoInfer<TOOLS>>;
 
-    /**
-     * Secret for HMAC-signing tool approval requests. When set, the server
-     * signs each approval request at issuance and verifies the signature when
-     * the approval is replayed, preventing client-forged approvals.
-     */
-    experimental_toolApprovalSecret?: string | Uint8Array;
+      /**
+       * Controls the order in which tools are sent to the provider.
+       *
+       * The list can be partial. Tools not listed in `toolOrder` are sent after
+       * the listed tools, sorted alphabetically. This can improve provider-side
+       * caching by keeping tool definitions in a stable order.
+       */
+      toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
-    /**
-     * Custom download function to use for URLs.
-     *
-     * By default, files are downloaded if the model does not support the URL for the given media type.
-     */
-    experimental_download?: DownloadFunction | undefined;
+      /**
+       * Maximum number of tool calls that may execute concurrently within a step.
+       *
+       * Set to `1` to execute tool calls sequentially in the order they were
+       * generated. By default, all tool calls execute concurrently.
+       */
+      toolCallConcurrency?: number;
 
-    /**
-     * Optional function that you can use to provide different settings for a step.
-     */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+      /**
+       * Optional specification for parsing structured outputs from the LLM response.
+       */
+      output?: OUTPUT;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     */
-    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+      /**
+       * Optional tool approval configuration.
+       *
+       * This configuration takes precedence over tool-defined approval settings.
+       */
+      toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
-    /**
-     * A function that attempts to repair a tool call that failed to parse.
-     *
-     * @deprecated Use `repairToolCall` instead.
-     */
-    experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+      /**
+       * Configures which caller tools may invoke each tool.
+       */
+      experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
 
-    /**
-     * Optional mapping of tool names to functions that refine parsed tool inputs.
-     *
-     * The refined input must have the same type shape as the tool input. Refined
-     * inputs are used for tool execution, outputs, callbacks, and telemetry.
-     */
-    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
+      /**
+       * Secret for HMAC-signing tool approval requests. When set, the server
+       * signs each approval request at issuance and verifies the signature when
+       * the approval is replayed, preventing client-forged approvals.
+       */
+      experimental_toolApprovalSecret?: string | Uint8Array;
 
-    /**
-     * Callback that is called when the generateText operation begins,
-     * before any LLM calls are made.
-     */
-    onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Custom download function to use for URLs.
+       *
+       * By default, files are downloaded if the model does not support the URL for the given media type.
+       */
+      experimental_download?: DownloadFunction | undefined;
 
-    /**
-     * Callback that is called when the generateText operation begins,
-     * before any LLM calls are made.
-     *
-     * @deprecated Use `onStart` instead.
-     */
-    experimental_onStart?: GenerateTextOnStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * Optional function that you can use to provide different settings for a step.
+       */
+      prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     */
-    onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       */
+      repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when a step (LLM call) begins,
-     * before the provider is called.
-     *
-     * @deprecated Use `onStepStart` instead.
-     */
-    experimental_onStepStart?: GenerateTextOnStepStartCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>,
-      NoInfer<OUTPUT>
-    >;
+      /**
+       * A function that attempts to repair a tool call that failed to parse.
+       *
+       * @deprecated Use `repairToolCall` instead.
+       */
+      experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     */
-    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Optional mapping of tool names to functions that refine parsed tool inputs.
+       *
+       * The refined input must have the same type shape as the tool input. Refined
+       * inputs are used for tool execution, outputs, callbacks, and telemetry.
+       */
+      experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called immediately before the provider model call begins.
-     *
-     * @deprecated Use `onLanguageModelCallStart` instead.
-     */
-    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+      /**
+       * Callback that is called when the generateText operation begins,
+       * before any LLM calls are made.
+       */
+      onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     */
-    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called when the generateText operation begins,
+       * before any LLM calls are made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
+      experimental_onStart?: GenerateTextOnStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called after the model response has been normalized and parsed,
-     * but before any client-side tool execution begins.
-     *
-     * @deprecated Use `onLanguageModelCallEnd` instead.
-     */
-    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
-      NoInfer<TOOLS>
-    >;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       */
+      onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     */
-    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called when a step (LLM call) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
+      experimental_onStepStart?: GenerateTextOnStepStartCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
 
-    /**
-     * Callback that is called right before a tool's execute function runs.
-     *
-     * @deprecated Use `onToolExecutionStart` instead.
-     */
-    experimental_onToolCallStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       */
+      onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     */
-    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called immediately before the provider model call begins.
+       *
+       * @deprecated Use `onLanguageModelCallStart` instead.
+       */
+      experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
-    /**
-     * Callback that is called right after a tool's execute function completes (or errors).
-     *
-     * @deprecated Use `onToolExecutionEnd` instead.
-     */
-    experimental_onToolCallFinish?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       */
+      onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     */
-    onStepEnd?: GenerateTextOnStepEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called after the model response has been normalized and parsed,
+       * but before any client-side tool execution begins.
+       *
+       * @deprecated Use `onLanguageModelCallEnd` instead.
+       */
+      experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called when each step (LLM call) ends, including intermediate steps.
-     *
-     * @deprecated Use `onStepEnd` instead.
-     */
-    onStepFinish?: GenerateTextOnStepFinishCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       */
+      onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Callback that is called when all steps are finished and the response is complete.
-     */
-    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+      /**
+       * Callback that is called right before a tool's execute function runs.
+       *
+       * @deprecated Use `onToolExecutionStart` instead.
+       */
+      experimental_onToolCallStart?: OnToolExecutionStartCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Callback that is called when all steps are finished and the response is complete.
-     *
-     * @deprecated Use `onEnd` instead.
-     */
-    onFinish?: GenerateTextOnEndCallback<
-      NoInfer<TOOLS>,
-      NoInfer<RUNTIME_CONTEXT>
-    >;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       */
+      onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     * Disabling inclusion can help reduce memory usage when processing
-     * large payloads like images.
-     *
-     * By default, request bodies, request messages, and response bodies are
-     * excluded.
-     */
-    include?: GenerateTextInclude;
+      /**
+       * Callback that is called right after a tool's execute function completes (or errors).
+       *
+       * @deprecated Use `onToolExecutionEnd` instead.
+       */
+      experimental_onToolCallFinish?: OnToolExecutionEndCallback<
+        NoInfer<TOOLS>
+      >;
 
-    /**
-     * Settings for controlling what data is included in step results.
-     *
-     * @deprecated Use `include` instead.
-     */
-    experimental_include?: GenerateTextInclude;
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       */
+      onStepEnd?: GenerateTextOnStepEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
 
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      generateId?: IdGenerator;
-      generateCallId?: IdGenerator;
-      now?: () => number;
-    };
-  }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
+      /**
+       * Callback that is called when a step that started fails before it
+       * produces a step result. `onStepEnd` is not called for such a step.
+       */
+      onStepError?: GenerateTextOnStepErrorCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>,
+        NoInfer<OUTPUT>
+      >;
+
+      /**
+       * Callback that is called when each step (LLM call) ends, including intermediate steps.
+       *
+       * @deprecated Use `onStepEnd` instead.
+       */
+      onStepFinish?: GenerateTextOnStepFinishCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
+
+      /**
+       * Callback that is called when all steps are finished and the response is complete.
+       */
+      onEnd?: GenerateTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
+
+      /**
+       * Callback that is called when all steps are finished and the response is complete.
+       *
+       * @deprecated Use `onEnd` instead.
+       */
+      onFinish?: GenerateTextOnEndCallback<
+        NoInfer<TOOLS>,
+        NoInfer<RUNTIME_CONTEXT>
+      >;
+
+      /**
+       * Settings for controlling what data is included in step results.
+       * Disabling inclusion can help reduce memory usage when processing
+       * large payloads like images.
+       *
+       * By default, request bodies, request messages, and response bodies are
+       * excluded.
+       */
+      include?: GenerateTextInclude;
+
+      /**
+       * Settings for controlling what data is included in step results.
+       *
+       * @deprecated Use `include` instead.
+       */
+      experimental_include?: GenerateTextInclude;
+
+      /**
+       * Internal. For test use only. May change without notice.
+       */
+      _internal?: {
+        generateId?: IdGenerator;
+        generateCallId?: IdGenerator;
+        now?: () => number;
+      };
+    },
+  steeringRun: SteeringRun | undefined,
+): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   // assign default values to include:
   include = {
     requestBody: include?.requestBody ?? false,
@@ -573,10 +653,16 @@ export async function generateText<
     responseBody: include?.responseBody ?? false,
   };
 
+  const resolvedToolCallConcurrency =
+    prepareToolCallConcurrency(toolCallConcurrency);
   const model = resolveLanguageModel(modelArg);
   const resolvedToolCallers = resolveToolCallerConfiguration({
     tools,
     toolCallers: experimental_toolCallers,
+  });
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: resolvedToolCallers,
   });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
@@ -700,6 +786,16 @@ export async function generateText<
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
 
+    // the step that has started but not ended, reported to onStepError when
+    // the call fails before the step produces a result:
+    let openStep:
+      | GenerateTextStepStartEvent<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>,
+          NoInfer<OUTPUT>
+        >
+      | undefined;
+
     try {
       const initialMessages = initialPrompt.messages;
       const initialResponseMessages: Array<ResponseMessage> = [];
@@ -712,6 +808,7 @@ export async function generateText<
       const {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
+        invalidToolApprovals,
       } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
         approvedToolApprovals: approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -722,6 +819,7 @@ export async function generateText<
         toolsContext,
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
+        refineToolInput,
       });
 
       const deniedToolApprovals = [
@@ -734,7 +832,8 @@ export async function generateText<
 
       if (
         deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0
+        localApprovedToolApprovals.length > 0 ||
+        invalidToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
@@ -765,6 +864,7 @@ export async function generateText<
             }),
           executeToolInTelemetryContext: telemetryDispatcher.executeTool,
           runInTracingChannelSpan,
+          toolCallConcurrency: resolvedToolCallConcurrency,
         });
 
         const toolContent: Array<any> = [];
@@ -786,6 +886,24 @@ export async function generateText<
             toolCallId: output.toolCallId,
             toolName: output.toolName,
             output: modelOutput,
+          });
+        }
+
+        // Report invalid approved tool calls to the model without executing
+        // them. Repairing the input after approval would change the operation
+        // that the user authorized.
+        for (const toolApproval of invalidToolApprovals) {
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: toolApproval.toolCall.toolCallId,
+            toolName: toolApproval.toolCall.toolName,
+            output: await createToolModelOutput({
+              toolCallId: toolApproval.toolCall.toolCallId,
+              input: toolApproval.toolCall.input,
+              tool: getOwn(tools, toolApproval.toolCall.toolName),
+              output: toolApproval.error,
+              errorMode: 'text',
+            }),
           });
         }
 
@@ -840,6 +958,49 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
+      // why waiting steering messages are not delivered when the loop ends:
+      let steeringEndReason: SteeringNotDeliveredReason = 'finished';
+
+      const shouldStartNextStep = async () => {
+        if (steps[steps.length - 1].finishReason === 'interrupted') {
+          return false;
+        }
+
+        // Continue only after all client tool calls have been executed or denied:
+        if (
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+          clientToolCalls.length
+        ) {
+          steeringEndReason = 'waiting-for-tool-results';
+          return false;
+        }
+
+        // Continue if there are client results, pending deferred provider
+        // results, or steering messages:
+        if (
+          clientToolCalls.length === 0 &&
+          pendingDeferredToolCalls.size === 0
+        ) {
+          if (!steeringRun?.hasPendingMessages()) {
+            return false;
+          }
+
+          // steering messages do not continue a failed step:
+          if (steps[steps.length - 1].finishReason === 'error') {
+            steeringEndReason = 'error';
+            return false;
+          }
+        }
+
+        // continue until a stop condition is met:
+        if (await isStopConditionMet({ stopConditions, steps })) {
+          steeringEndReason = 'stop-condition';
+          return false;
+        }
+
+        return true;
+      };
+
       do {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
@@ -852,6 +1013,11 @@ export async function generateText<
           timeoutMs: stepTimeoutMs,
         });
         const stepNumber = steps.length;
+
+        const steeringMessages = steeringRun?.takeMessages() ?? [];
+        if (steeringMessages.length > 0) {
+          messagesForNextStep = [...messagesForNextStep, ...steeringMessages];
+        }
 
         try {
           await runInTracingChannelSpan({
@@ -873,6 +1039,9 @@ export async function generateText<
                 messages: stepInputMessages,
                 initialMessages,
                 responseMessages: accumulatedResponseMessages,
+                ...(steeringMessages.length > 0
+                  ? { experimental_steeringMessages: steeringMessages }
+                  : {}),
                 runtimeContext,
                 toolsContext,
                 experimental_sandbox: sandbox,
@@ -890,16 +1059,6 @@ export async function generateText<
                 prepareStepResult?.system ??
                 instructionsForNextStep;
 
-              const promptMessages = await convertToLanguageModelPrompt({
-                prompt: {
-                  instructions: stepInstructions,
-                  messages: prepareStepResult?.messages ?? stepInputMessages,
-                },
-                supportedUrls: await stepModel.supportedUrls,
-                download,
-                provider: stepModel.provider.split('.')[0],
-              });
-
               runtimeContext =
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
@@ -909,10 +1068,14 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
               const {
-                executionTools: stepExecutionTools,
+                executionTools,
                 modelTools: stepModelTools,
+                toolCallerMessages,
               } = prepareToolsForToolCallers({
-                tools: stepActiveTools,
+                tools: prepareToolSearch(stepActiveTools, {
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                }),
                 toolCallers: resolvedToolCallers,
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
@@ -935,9 +1098,32 @@ export async function generateText<
               const stepToolChoice = prepareToolChoice({
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
+              const stepExecutionTools =
+                stepToolChoice.type === 'none' ? undefined : executionTools;
 
-              const stepMessages =
-                prepareStepResult?.messages ?? stepInputMessages;
+              const stepMessages = appendToolCallerMessages({
+                messages: prepareStepResult?.messages ?? stepInputMessages,
+                toolCallerMessages,
+              });
+
+              // steering messages are delivered when they are in the messages
+              // that are sent to the model after prepareStep:
+              const deliveredSteeringMessages =
+                steeringRun?.resolveTakenMessages({
+                  stepNumber,
+                  sentMessages: stepMessages,
+                }) ?? [];
+
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                abortSignal: mergedAbortSignal,
+                provider: stepModel.provider.split('.')[0],
+              });
 
               const stepProviderOptions = mergeObjects(
                 providerOptions,
@@ -949,32 +1135,36 @@ export async function generateText<
                 stepSettings: prepareStepResult,
               });
 
+              const stepStartEvent = {
+                callId,
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                stepNumber,
+                instructions: stepInstructions,
+                messages: stepMessages,
+                tools,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+                toolOrder: stepToolOrder,
+                steps: [...steps],
+                providerOptions: stepProviderOptions,
+                output,
+                runtimeContext,
+                promptMessages,
+                stepTools,
+                stepToolChoice,
+                toolsContext,
+              };
+
               await notify({
-                event: {
-                  callId,
-                  provider: stepModel.provider,
-                  modelId: stepModel.modelId,
-                  stepNumber,
-                  instructions: stepInstructions,
-                  messages: stepMessages,
-                  tools,
-                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                  activeTools: prepareStepResult?.activeTools ?? activeTools,
-                  toolOrder: stepToolOrder,
-                  steps: [...steps],
-                  providerOptions: stepProviderOptions,
-                  output,
-                  runtimeContext,
-                  promptMessages,
-                  stepTools,
-                  stepToolChoice,
-                  toolsContext,
-                },
+                event: stepStartEvent,
                 callbacks: [
                   resolvedOnStepStart,
                   telemetryDispatcher.onStepStart,
                 ],
               });
+
+              openStep = stepStartEvent;
 
               const languageModelCallContext = {
                 provider: stepModel.provider,
@@ -1049,14 +1239,24 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools: stepExecutionTools as TOOLS,
-                      repairToolCall,
-                      refineToolInput,
+                      tools: stepModelTools as TOOLS,
+                      // tool calls are rejected with tool choice none,
+                      // so user callbacks must not process them:
+                      repairToolCall:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : repairToolCall,
+                      refineToolInput:
+                        stepToolChoice.type === 'none'
+                          ? undefined
+                          : refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
                     }),
                   ),
               );
+
               const toolApprovalRequests: Record<
                 string,
                 ToolApprovalRequestOutput<TOOLS>
@@ -1067,13 +1267,18 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const modelCallContent = asContent({
+              const generatedFileDataCache: Parameters<
+                typeof convertLanguageModelContent
+              >[0]['generatedFileDataCache'] = new WeakMap();
+              const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: [],
                 toolApprovalRequests: [],
                 toolApprovalResponses: [],
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               await notify({
@@ -1116,6 +1321,30 @@ export async function generateText<
                 ],
               });
 
+              const enforcedToolChoice =
+                stepToolChoice.type === 'auto' ? undefined : stepToolChoice;
+
+              if (
+                enforcedToolChoice != null &&
+                (enforcedToolChoice.type === 'none'
+                  ? stepToolCalls.length > 0
+                  : currentModelResponse.finishReason.unified !==
+                      'interrupted' &&
+                    !stepToolCalls.some(
+                      toolCall =>
+                        enforcedToolChoice.type === 'required' ||
+                        toolCall.toolName === enforcedToolChoice.toolName,
+                    ))
+              ) {
+                throw new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  content: currentModelResponse.content,
+                });
+              }
+
               // notify the tools that the tool calls are available:
               for (const toolCall of stepToolCalls) {
                 if (toolCall.invalid) {
@@ -1130,23 +1359,34 @@ export async function generateText<
                   continue;
                 }
 
-                if (tool.onInputStart != null) {
-                  await tool.onInputStart({
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
+                if (
+                  tool.onInputStart != null ||
+                  tool.onInputAvailable != null
+                ) {
+                  const context = await validateToolContext({
+                    toolName: toolCall.toolName,
+                    context: getOwn(toolsContext, toolCall.toolName),
+                    contextSchema: tool.contextSchema,
                   });
-                }
 
-                if (tool?.onInputAvailable != null) {
-                  await tool.onInputAvailable({
-                    input: toolCall.input,
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
-                  });
+                  if (tool.onInputStart != null) {
+                    await tool.onInputStart({
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
+
+                  if (tool.onInputAvailable != null) {
+                    await tool.onInputAvailable({
+                      input: toolCall.input,
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
                 }
 
                 const toolApprovalStatus = await resolveToolApproval({
@@ -1180,6 +1420,9 @@ export async function generateText<
                       type: 'tool-approval-request',
                       approvalId,
                       toolCall,
+                      ...(toolApprovalStatus.reason != null
+                        ? { reason: toolApprovalStatus.reason }
+                        : {}),
                       ...(signature != null ? { signature } : {}),
                     };
                     blockedToolCallIds.add(toolCall.toolCallId);
@@ -1259,7 +1502,12 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (stepExecutionTools != null) {
+              if (
+                stepExecutionTools != null &&
+                isToolExecutionAllowedFinishReason(
+                  currentModelResponse.finishReason.unified,
+                )
+              ) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
@@ -1292,6 +1540,7 @@ export async function generateText<
                   executeToolInTelemetryContext:
                     telemetryDispatcher.executeTool,
                   runInTracingChannelSpan,
+                  toolCallConcurrency: resolvedToolCallConcurrency,
                 });
 
                 for (const result of toolExecutionResults) {
@@ -1352,13 +1601,15 @@ export async function generateText<
               }
 
               // content:
-              const stepContent = asContent({
+              const stepContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: clientToolOutputs,
                 toolApprovalRequests: Object.values(toolApprovalRequests),
                 toolApprovalResponses,
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               const stepResponseMessages = await toResponseMessages({
@@ -1406,6 +1657,7 @@ export async function generateText<
                   request: stepRequest,
                   response: stepResponse,
                   toolsContext,
+                  steeringMessages: deliveredSteeringMessages,
                 });
 
               logWarnings({
@@ -1417,6 +1669,8 @@ export async function generateText<
               steps.push(currentStepResult);
               instructionsForNextStep = stepInstructions;
               messagesForNextStep = [...stepMessages, ...stepResponseMessages];
+
+              openStep = undefined;
 
               await notify({
                 event: currentStepResult,
@@ -1431,17 +1685,9 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
-        ((clientToolCalls.length > 0 &&
-          clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+      } while (await shouldStartNextStep());
+
+      steeringRun?.end(steeringEndReason);
 
       const lastStep = steps[steps.length - 1];
 
@@ -1514,12 +1760,22 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
-      // parse output only if the last step was finished with "stop":
+      // parse output for stop responses and non-empty responses that are not
+      // tool calls:
       let resolvedOutput;
-      if (lastStep.finishReason === 'stop') {
+      if (
+        lastStep.finishReason === 'stop' ||
+        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+      ) {
         const outputSpecification = output ?? text();
+        // Select the structured output without changing the complete response
+        // content, text, or messages exposed to callers.
+        const textForOutput =
+          (await outputSpecification.responseFormat)?.type === 'json'
+            ? (currentModelResponse!.structuredOutputText ?? lastStep.text)
+            : lastStep.text;
         resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: lastStep.text },
+          { text: textForOutput },
           {
             response: lastStep.response,
             usage: lastStep.usage,
@@ -1535,8 +1791,19 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      const wrappedError = wrapGatewayError(error);
+
+      steeringRun?.end(mergedAbortSignal?.aborted ? 'aborted' : 'error');
+
+      // generateText has no onAbort, so aborts and timeouts also end the step here:
+      if (openStep != null) {
+        await notify({
+          event: { ...openStep, error: wrappedError },
+          callbacks: [onStepError, telemetryDispatcher.onStepError],
+        });
+      }
       await telemetryDispatcher.onError?.({ callId, error });
-      throw wrapGatewayError(error);
+      throw wrappedError;
     }
   };
 
@@ -1560,6 +1827,7 @@ async function executeTools<TOOLS extends ToolSet>({
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1575,340 +1843,35 @@ async function executeTools<TOOLS extends ToolSet>({
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency: number | undefined;
 }): Promise<
   Array<{
     output: ToolOutput<TOOLS>;
     toolExecutionMs: number;
   }>
 > {
-  const toolResults = await Promise.all(
-    toolCalls.map(
-      async toolCall =>
-        await executeToolCall({
-          toolCall,
-          tools,
-          callId,
-          messages,
-          abortSignal,
-          timeout,
-          experimental_sandbox: sandbox,
-          toolsContext,
-          onToolExecutionStart,
-          onToolExecutionEnd,
-          executeToolInTelemetryContext,
-          runInTracingChannelSpan,
-        }),
-    ),
-  );
+  const toolResults = await mapWithConcurrency({
+    items: toolCalls,
+    concurrency: toolCallConcurrency,
+    abortSignal,
+    execute: async toolCall =>
+      await executeToolCall({
+        toolCall,
+        tools,
+        callId,
+        messages,
+        abortSignal,
+        timeout,
+        experimental_sandbox: sandbox,
+        toolsContext,
+        onToolExecutionStart,
+        onToolExecutionEnd,
+        executeToolInTelemetryContext,
+        runInTracingChannelSpan,
+      }),
+  });
 
   return toolResults.filter(
     (result): result is NonNullable<typeof result> => result != null,
   );
-}
-
-class DefaultGenerateTextResult<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context,
-  OUTPUT extends Output,
-> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-  readonly totalUsage: LanguageModelUsage;
-  private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
-
-  constructor(options: {
-    initialResponseMessages: Array<ResponseMessage>;
-    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
-    output: InferCompleteOutput<OUTPUT> | undefined;
-    totalUsage: LanguageModelUsage;
-  }) {
-    this.initialResponseMessages = options.initialResponseMessages;
-    this.steps = options.steps;
-    this._output = options.output;
-    this.totalUsage = options.totalUsage;
-  }
-
-  private readonly initialResponseMessages: Array<ResponseMessage>;
-
-  get finalStep() {
-    return this.steps.at(-1)!;
-  }
-
-  get content() {
-    return this.steps.flatMap(step => step.content);
-  }
-
-  get text() {
-    return this.finalStep.text;
-  }
-
-  get files() {
-    return this.steps.flatMap(step => step.files);
-  }
-
-  get reasoningText() {
-    return this.finalStep.reasoningText;
-  }
-
-  get reasoning() {
-    return convertToReasoningOutputs(this.finalStep.reasoning);
-  }
-
-  get toolCalls() {
-    return this.steps.flatMap(step => step.toolCalls);
-  }
-
-  get staticToolCalls() {
-    return this.steps.flatMap(step => step.staticToolCalls);
-  }
-
-  get dynamicToolCalls() {
-    return this.steps.flatMap(step => step.dynamicToolCalls);
-  }
-
-  get toolResults() {
-    return this.steps.flatMap(step => step.toolResults);
-  }
-
-  get staticToolResults() {
-    return this.steps.flatMap(step => step.staticToolResults);
-  }
-
-  get dynamicToolResults() {
-    return this.steps.flatMap(step => step.dynamicToolResults);
-  }
-
-  get sources() {
-    return this.steps.flatMap(step => step.sources);
-  }
-
-  get finishReason() {
-    return this.finalStep.finishReason;
-  }
-
-  get rawFinishReason() {
-    return this.finalStep.rawFinishReason;
-  }
-
-  get warnings() {
-    return this.steps.flatMap(step => step.warnings ?? []);
-  }
-
-  get providerMetadata() {
-    return this.finalStep.providerMetadata;
-  }
-
-  get response() {
-    return this.finalStep.response;
-  }
-
-  get responseMessages() {
-    return [
-      ...this.initialResponseMessages,
-      ...this.steps.flatMap(step => step.response.messages),
-    ];
-  }
-
-  get request() {
-    return this.finalStep.request;
-  }
-
-  get usage() {
-    return this.totalUsage;
-  }
-
-  get output() {
-    if (this._output == null) {
-      throw new NoOutputGeneratedError();
-    }
-
-    return this._output;
-  }
-}
-
-function asContent<TOOLS extends ToolSet>({
-  content,
-  toolCalls,
-  toolOutputs,
-  toolApprovalRequests,
-  toolApprovalResponses,
-  tools,
-}: {
-  content: Array<LanguageModelV4Content>;
-  toolCalls: Array<TypedToolCall<TOOLS>>;
-  toolOutputs: Array<ToolOutput<TOOLS>>;
-  toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
-  toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
-  tools: TOOLS | undefined;
-}): Array<ContentPart<TOOLS>> {
-  const contentParts: Array<ContentPart<TOOLS>> = [];
-  const toolOutputsWithApprovalResponses: Array<ToolOutput<TOOLS>> = [];
-  const toolOutputsWithoutApprovalResponses: Array<ToolOutput<TOOLS>> = [];
-  const toolCallIdsWithApprovalResponses = new Set(
-    toolApprovalResponses.map(
-      toolApprovalResponse => toolApprovalResponse.toolCall.toolCallId,
-    ),
-  );
-
-  for (const part of content) {
-    switch (part.type) {
-      case 'text':
-      case 'reasoning':
-      case 'custom':
-      case 'source':
-        contentParts.push(part);
-        break;
-
-      case 'file':
-      case 'reasoning-file': {
-        contentParts.push({
-          type: part.type as 'file' | 'reasoning-file',
-          file: new DefaultGeneratedFile({
-            data:
-              part.data.type === 'data'
-                ? part.data.data
-                : part.data.url.toString(),
-            mediaType: part.mediaType,
-          }),
-          ...(part.providerMetadata != null
-            ? { providerMetadata: part.providerMetadata }
-            : {}),
-        });
-        break;
-      }
-
-      case 'tool-call': {
-        contentParts.push(
-          toolCalls.find(toolCall => toolCall.toolCallId === part.toolCallId)!,
-        );
-        break;
-      }
-
-      case 'tool-result': {
-        const toolCall = toolCalls.find(
-          toolCall => toolCall.toolCallId === part.toolCallId,
-        );
-
-        // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
-        // When a server tool (like code_execution) triggers a client tool, the server tool's
-        // result may be deferred to a later turn. In this case, there's no matching tool-call
-        // in the current response.
-        if (toolCall == null) {
-          const tool = getOwn(tools, part.toolName);
-          const supportsDeferredResults =
-            tool?.type === 'provider' && tool.supportsDeferredResults;
-
-          if (!supportsDeferredResults) {
-            throw new Error(`Tool call ${part.toolCallId} not found.`);
-          }
-
-          // Create tool result without tool call input (deferred result)
-          if (part.isError) {
-            contentParts.push({
-              type: 'tool-error' as const,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName as keyof TOOLS & string,
-              input: undefined,
-              error: part.result,
-              providerExecuted: true,
-              dynamic: part.dynamic,
-              ...(part.providerMetadata != null
-                ? { providerMetadata: part.providerMetadata }
-                : {}),
-              ...(tool?.metadata != null
-                ? { toolMetadata: tool.metadata }
-                : {}),
-            } as TypedToolError<TOOLS>);
-          } else {
-            contentParts.push({
-              type: 'tool-result' as const,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName as keyof TOOLS & string,
-              input: undefined,
-              output: part.result,
-              providerExecuted: true,
-              dynamic: part.dynamic,
-              ...(part.providerMetadata != null
-                ? { providerMetadata: part.providerMetadata }
-                : {}),
-              ...(tool?.metadata != null
-                ? { toolMetadata: tool.metadata }
-                : {}),
-            } as TypedToolResult<TOOLS>);
-          }
-          break;
-        }
-
-        if (part.isError) {
-          contentParts.push({
-            type: 'tool-error' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            error: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-            ...(toolCall.toolMetadata != null
-              ? { toolMetadata: toolCall.toolMetadata }
-              : {}),
-          } as TypedToolError<TOOLS>);
-        } else {
-          contentParts.push({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            output: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-            ...(toolCall.toolMetadata != null
-              ? { toolMetadata: toolCall.toolMetadata }
-              : {}),
-          } as TypedToolResult<TOOLS>);
-        }
-        break;
-      }
-
-      case 'tool-approval-request': {
-        const toolCall = toolCalls.find(
-          toolCall => toolCall.toolCallId === part.toolCallId,
-        );
-
-        if (toolCall == null) {
-          throw new ToolCallNotFoundForApprovalError({
-            toolCallId: part.toolCallId,
-            approvalId: part.approvalId,
-          });
-        }
-
-        contentParts.push({
-          type: 'tool-approval-request' as const,
-          approvalId: part.approvalId,
-          toolCall,
-        });
-        break;
-      }
-    }
-  }
-
-  for (const toolOutput of toolOutputs) {
-    if (toolCallIdsWithApprovalResponses.has(toolOutput.toolCallId)) {
-      toolOutputsWithApprovalResponses.push(toolOutput);
-    } else {
-      toolOutputsWithoutApprovalResponses.push(toolOutput);
-    }
-  }
-
-  return [
-    ...contentParts,
-    ...toolOutputsWithoutApprovalResponses,
-    ...toolApprovalRequests,
-    ...toolApprovalResponses,
-    ...toolOutputsWithApprovalResponses,
-  ];
 }

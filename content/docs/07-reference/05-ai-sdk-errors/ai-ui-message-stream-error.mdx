@@ -5,10 +5,12 @@ description: Learn how to fix AI_UIMessageStreamError
 
 # AI_UIMessageStreamError
 
-This error occurs when a UI message stream contains invalid or out-of-sequence chunks.
+This error occurs when a UI message stream reports an error or contains invalid
+or out-of-sequence chunks.
 
 Common causes:
 
+- Receiving an `error` chunk in a completion data stream
 - Receiving a `text-delta` chunk without a preceding `text-start` chunk
 - Receiving a `text-end` chunk without a preceding `text-start` chunk
 - Receiving a `reasoning-delta` chunk without a preceding `reasoning-start` chunk
@@ -21,7 +23,9 @@ This error often surfaces when an upstream request fails **before any tokens are
 ## Properties
 
 - `chunkType`: The type of chunk that caused the error (e.g., `text-delta`, `reasoning-end`, `tool-input-delta`)
-- `chunkId`: The ID associated with the failing chunk (part ID or toolCallId)
+- `chunkId`: The ID associated with the failing chunk (part ID or toolCallId).
+  This is an empty string for chunks, such as completion `error` chunks, that do
+  not have an ID.
 - `message`: The error message with details about what went wrong
 
 ## Checking for this Error

@@ -27,10 +27,10 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(
-          weatherPiHarnessAgent,
+        const { session } = await resumeOrCreateSession({
+          agent: weatherPiHarnessAgent,
           chatId,
-        );
+        });
 
         const result = await weatherPiHarnessAgent.stream({
           session,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           toUIMessageStream({
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },

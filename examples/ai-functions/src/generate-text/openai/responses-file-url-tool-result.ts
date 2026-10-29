@@ -31,7 +31,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: openai.responses('gpt-4.1-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'Please read the PDF document using the tool provided and return a summary of it.',
     tools: {

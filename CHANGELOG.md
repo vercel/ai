@@ -33,7 +33,6 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/huggingface](./packages/huggingface/CHANGELOG.md)
 - [@ai-sdk/hume](./packages/hume/CHANGELOG.md)
 - [@ai-sdk/klingai](./packages/klingai/CHANGELOG.md)
-- [@ai-sdk/lmnt](./packages/lmnt/CHANGELOG.md)
 - [@ai-sdk/luma](./packages/luma/CHANGELOG.md)
 - [@ai-sdk/minimax](./packages/minimax/CHANGELOG.md)
 - [@ai-sdk/mistral](./packages/mistral/CHANGELOG.md)
@@ -47,7 +46,6 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/replicate](./packages/replicate/CHANGELOG.md)
 - [@ai-sdk/revai](./packages/revai/CHANGELOG.md)
 - [@ai-sdk/togetherai](./packages/togetherai/CHANGELOG.md)
-- [@ai-sdk/vercel](./packages/vercel/CHANGELOG.md)
 - [@ai-sdk/voyage](./packages/voyage/CHANGELOG.md)
 - [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
 

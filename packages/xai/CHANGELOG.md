@@ -1,5 +1,508 @@
 # @ai-sdk/xai
 
+## 5.0.32
+
+### Patch Changes
+
+- 0eb8de6: fix(xai): stop emitting each citation twice when streaming responses with web or X search
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 5.0.30
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 5.0.29
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 5.0.28
+
+### Patch Changes
+
+- 43ad966: Report `interrupted` when a stream ends cleanly without its provider completion signal, preserving partial output without emitting an error solely for the interruption.
+
+  This applies to OpenAI (Chat, Responses, and Completions), Anthropic, Google (Generate Content and Interactions), Alibaba, Amazon Bedrock Converse, Cohere, DeepSeek, Groq, Hugging Face Responses, Mistral Chat, Moonshot AI, Open Responses, Perplexity, and xAI Responses. It also covers cutoffs in later Anthropic messages and Google automatic continuations.
+
+  **Compatibility notice:** These streams previously fell back to `other` or omitted the finish part. Applications must now handle `interrupted` in finish-reason switches, mappings, and custom validation. Check `finishReason === 'interrupted'` to detect incomplete responses; interruption alone does not trigger error handling.
+
+  Explicit unknown completion reasons still map to `other`. Actual provider, parsing, and transport errors retain their error paths; affected error paths that previously left the finish reason as `other` now report `error`. OpenAI-compatible remains unchanged.
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 5.0.27
+
+### Patch Changes
+
+- 39a776b: Add a shared encodePathSegment helper and use it to encode provider-returned identifiers in credentialed follow-up request paths.
+- 9b368c2: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 5.0.26
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 5.0.25
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 5.0.24
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 5.0.22
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 5.0.21
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 5.0.20
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 5.0.18
+
+### Patch Changes
+
+- fab95c1: fix(xai): allow up to 20 `allowedXHandles` / `excludedXHandles` in the `xSearch` tool
+
+## 5.0.17
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 5.0.16
+
+### Patch Changes
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 0c82824: fix(xai): preserve or report unavailable speaker diarization
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 5.0.15
+
+### Patch Changes
+
+- 30f32bd: feat(xai): add grok-imagine-image-2.0 image model id
+- 0a84440: feat(xai): add `auto` image quality option
+- 08d7f0a: feat(xai): add `1.5k` image resolution provider option
+- 7c41e41: feat(xai): support transcription model ids, `vadThreshold`, and `opus` audio format
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 5.0.14
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 5.0.13
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 5.0.12
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 5.0.11
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 5.0.10
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 5.0.9
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 5.0.8
+
+### Patch Changes
+
+- 5434a34: feat(xai): add missing video provider options
+- 0a5dd0f: feat(xai): add missing Responses API provider options
+
+## 5.0.7
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 5.0.6
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.5
+
+### Patch Changes
+
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 5.0.3
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
+## 4.0.59
+
+### Patch Changes
+
+- 6e405ae: fix(xai): preserve `additionalProperties: false` in tool schemas
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.58
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- 0096850: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.57
+
+### Patch Changes
+
+- 4b8c4fa: feat(xai): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.55
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.54
+
+### Patch Changes
+
+- 048ce06: feat(batch): surface the uploaded input file on the batch start result (`providerMetadata.<provider>.inputFileId` / `inputFileExpiresAt`) and accept an `inputFileExpiresAfter` provider option on the OpenAI and xAI batch input file upload
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.52
+
+### Patch Changes
+
+- f1513f0: feat(xai): implement `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` on the xAI files interface, support `expiresAfter` upload TTLs (integer 3600–2592000 seconds, emitted before the file part as xAI requires) and streaming uploads via `{ type: 'stream' }` data, expose `byteSize`/`createdAt`/`expiresAt` on upload results, and thread `abortSignal`/`headers` through all file operations; blank and dot-segment file ids are rejected/encoded so they cannot retarget request paths
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.51
+
+### Patch Changes
+
+- e07b577: feat: add tool calling support to batch
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.48
+
+### Patch Changes
+
+- 6843788: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.46
+
+### Patch Changes
+
+- 41e7760: Preserve complete xAI Responses usage objects in raw usage metadata.
+
+## 4.0.45
+
+### Patch Changes
+
+- 7de3612: Encode provider-returned identifiers before using them in credentialed follow-up request paths.
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- 3f8fa93: feat(xai): batch API support
+- dfa7305: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.42
+
+### Patch Changes
+
+- ef05760: fix(provider/xai): report image moderation blocks as content policy errors
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.40
+
+### Patch Changes
+
+- 1ffa1d2: feat(xai): speech timestamps, pronunciation replacements, provider metadata, and error parsing
+
+  - Add `withTimestamps` and `replace` provider options for text to speech. With
+    `withTimestamps`, the JSON envelope is decoded and the audio returned as
+    usual, while duration, content type, and character-level alignment are
+    exposed via `providerMetadata.xai`.
+  - Return `providerMetadata.xai.traceId` (from the `x-trace-id` response
+    header) on every speech response.
+  - Parse the text to speech error shape (`{"error":"..."}`) so `APICallError`
+    messages carry xAI's real error detail instead of the HTTP reason phrase.
+
+## 4.0.39
+
+### Patch Changes
+
+- 646c86e: fix(provider/xai): report video moderation blocks and missing URLs as an error status instead of throwing
+
+## 4.0.38
+
+### Patch Changes
+
+- 484293f: feat(xai): support the priority service tier on chat and responses
+
+## 4.0.37
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
 ## 4.0.36
 
 ### Patch Changes

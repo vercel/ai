@@ -12,6 +12,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  mapReasoningToProviderEffort,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -124,7 +125,7 @@ export function createFireworks(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/fireworks/${VERSION}`,
+      `ai-sdk-fireworks/${VERSION}`,
     );
 
   interface CommonModelConfig {
@@ -146,6 +147,13 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
+      supportsStructuredOutputs: true,
+      mapReasoning: ({ reasoning, warnings }) =>
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: getFireworksReasoningEffortMap(modelId),
+          warnings,
+        }),
       transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
@@ -159,21 +167,11 @@ export function createFireworks(
           reasoningHistory: __,
           promptCacheKey: ___,
           serviceTier: ____,
-          reasoning_effort,
           ...rest
         } = args;
 
         return {
           ...rest,
-          ...(reasoning_effort != null && {
-            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
-            reasoning_effort:
-              reasoning_effort === 'minimal'
-                ? 'low'
-                : reasoning_effort === 'xhigh'
-                  ? 'high'
-                  : reasoning_effort,
-          }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,
           }),
@@ -229,3 +227,31 @@ export function createFireworks(
 }
 
 export const fireworks = createFireworks();
+
+// Model families that always reason and reject reasoning effort 'none'.
+const modelsWithoutNoneReasoningEffort = /^(?:gpt-oss|glm-5p3|muse-spark)/;
+
+// Model families that reject reasoning effort 'minimal'.
+const modelsWithoutMinimalReasoningEffort = /^(?:nemotron|inkling)/;
+
+/**
+ * Fireworks accepts every reasoning effort for most models, so reasoning
+ * values are sent directly, except to model families known to reject them.
+ */
+function getFireworksReasoningEffortMap(modelId: string) {
+  const modelName = modelId.slice(modelId.lastIndexOf('/') + 1);
+
+  return {
+    ...(!modelsWithoutNoneReasoningEffort.test(modelName) && {
+      none: 'none' as const,
+    }),
+    ...(!modelsWithoutMinimalReasoningEffort.test(modelName) && {
+      minimal: 'minimal' as const,
+    }),
+    low: 'low' as const,
+    medium: 'medium' as const,
+    high: 'high' as const,
+    xhigh: 'xhigh' as const,
+    max: 'max' as const,
+  };
+}

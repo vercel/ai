@@ -67,7 +67,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/deepgram/0.0.0-test`,
+        `ai-sdk-deepgram/0.0.0-test`,
       );
     });
 
@@ -80,6 +80,15 @@ describe('doGenerate', () => {
       expect(result.text).toMatchInlineSnapshot(
         `"galileo was an american robotic space program that studied the planet jupiter and its moons as well as several other solar system bodies named after the italian astronomer galileo galilei the galileo spacecraft consisted of an orbiter and an atmospheric entry probe it was delivered into earth orbit on october eighteen nineteen eighty nine by space shuttle atlantis on the sts-thirty four mission and arrived at jupiter on december seven nineteen ninety five after gravity assist flybys of venus and earth and became the first spacecraft to orbit jupiter"`,
       );
+    });
+
+    it('should return audio duration as usage in seconds', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.usage).toStrictEqual({ seconds: 36.744 });
     });
 
     it('should pass detectLanguage as detect_language query parameter', async () => {
@@ -109,6 +118,56 @@ describe('doGenerate', () => {
       });
 
       expect(result.language).toBe('en');
+    });
+
+    it('should not send diarize by default', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const requestUrl = server.calls[0].requestUrl;
+      expect(requestUrl).not.toContain('diarize');
+    });
+
+    it('should pass diarize when explicitly enabled', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            diarize: true,
+          },
+        },
+      });
+
+      const requestUrl = server.calls[0].requestUrl;
+      expect(requestUrl).toContain('diarize=true');
+    });
+
+    it('should pass keyterm, paragraphs, intents, sentiment, and replace as query parameters', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            keyterm: 'galileo',
+            paragraphs: true,
+            intents: true,
+            sentiment: true,
+            redact: 'numbers',
+            replace: '[redacted]',
+          },
+        },
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.get('keyterm')).toBe('galileo');
+      expect(url.searchParams.get('paragraphs')).toBe('true');
+      expect(url.searchParams.get('intents')).toBe('true');
+      expect(url.searchParams.get('sentiment')).toBe('true');
+      expect(url.searchParams.get('redact')).toBe('numbers');
+      expect(url.searchParams.get('replace')).toBe('[redacted]');
     });
   });
 

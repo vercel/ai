@@ -10,4 +10,5 @@ export const codex = createCodex();
 export { createCodex } from './codex-harness';
 export { VERSION } from './version';
 export type { CodexHarnessSettings } from './codex-harness';
-export type { CodexAuthOptions } from './codex-auth';
+export type { CodexAuthenticationMode } from './codex-auth';
+export type { JSONObject } from '@ai-sdk/provider';

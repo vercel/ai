@@ -1,6 +1,7 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   getFromApi,
   lazySchema,
   resolve,
@@ -115,7 +116,7 @@ export class GatewaySpendReport {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });

@@ -3,6 +3,8 @@ import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../util/value-of';
 
+const inputSchemaInputSymbol = Symbol('ai-sdk-tool-call-input-schema-input');
+
 type BaseToolCall = {
   type: 'tool-call';
   toolCallId: string;
@@ -16,7 +18,7 @@ type BaseToolCall = {
  * with an `input` type inferred from that tool's input schema.
  */
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: BaseToolCall & {
+  [NAME in keyof TOOLS]-?: BaseToolCall & {
     toolName: NAME & string;
     input: InferToolInput<TOOLS[NAME]>;
     dynamic?: false | undefined;
@@ -58,3 +60,27 @@ export type DynamicToolCall = BaseToolCall & {
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;
+
+export function setToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+  inputSchemaInput: unknown,
+): TypedToolCall<TOOLS> {
+  Object.defineProperty(toolCall, inputSchemaInputSymbol, {
+    value: inputSchemaInput,
+  });
+  return toolCall;
+}
+
+export function getToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+): { value: unknown } | undefined {
+  return inputSchemaInputSymbol in toolCall
+    ? {
+        value: (
+          toolCall as TypedToolCall<TOOLS> & {
+            [inputSchemaInputSymbol]: unknown;
+          }
+        )[inputSchemaInputSymbol],
+      }
+    : undefined;
+}

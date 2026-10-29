@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     stopWhen: isStepCount(5),
     tools: {
       currentLocation: tool({

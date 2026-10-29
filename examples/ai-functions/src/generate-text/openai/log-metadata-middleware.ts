@@ -18,7 +18,7 @@ const logProviderMetadataMiddleware: LanguageModelMiddleware = {
 run(async () => {
   const { text } = await generateText({
     model: wrapLanguageModel({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       middleware: logProviderMetadataMiddleware,
     }),
     providerOptions: {
