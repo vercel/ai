@@ -14,6 +14,7 @@ import {
 } from 'ai';
 import { isOutputChunk, prepareRetries } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
+import { writeStreamPart } from './limit-stream-part-size.js';
 import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -476,7 +477,7 @@ async function streamModelStep(
             serializedTools?.[part.toolName]?.hasOwnValidator
           )
         ) {
-          await writer.write(part);
+          await writeStreamPart(writer, part);
         }
       }
 
