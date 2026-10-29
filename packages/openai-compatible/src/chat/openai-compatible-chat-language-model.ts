@@ -290,6 +290,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       providerOptions,
     );
 
+    const reasoningEffort =
+      compatibleOptions.reasoningEffort !== undefined
+        ? compatibleOptions.reasoningEffort
+        : isCustomReasoning(reasoning)
+          ? this.config.mapReasoning != null
+            ? this.config.mapReasoning({ reasoning, warnings })
+            : reasoning
+          : undefined;
+
     return {
       metadataKey,
       args: {
@@ -335,13 +344,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           ),
         ),
 
-        reasoning_effort:
-          compatibleOptions.reasoningEffort ??
-          (isCustomReasoning(reasoning)
-            ? this.config.mapReasoning != null
-              ? this.config.mapReasoning({ reasoning, warnings })
-              : reasoning
-            : undefined),
+        // only write reasoning_effort when it has a value: an explicit `null` must be
+        // sent as `null`, and an unset option must not overwrite a raw
+        // `reasoning_effort` passed through provider options:
+        ...(reasoningEffort !== undefined
+          ? { reasoning_effort: reasoningEffort }
+          : {}),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
