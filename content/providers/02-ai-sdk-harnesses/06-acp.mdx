@@ -381,9 +381,8 @@ export const codexACPHarness = createACP({
     type: 'session-config-option',
     path: 'model',
   },
-  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
-  // Defined in the Tool Call Classification section above.
   resolveHostToolCall: resolveCodexACPHostToolCall,
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -496,17 +495,6 @@ export const cursorACPHarness = createACP({
   },
   // Cursor reports MCP tool calls with a
   // `{ providerIdentifier, toolName, args }` raw input.
-  isMcpToolCall: toolCall => {
-    const rawInput = toolCall.rawInput as
-      | { providerIdentifier?: unknown; toolName?: unknown; args?: unknown }
-      | undefined;
-    return (
-      typeof rawInput?.providerIdentifier === 'string' &&
-      typeof rawInput.toolName === 'string' &&
-      rawInput.args != null &&
-      typeof rawInput.args === 'object'
-    );
-  },
   resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
     const rawInput = toolCall.rawInput as
       | { providerIdentifier?: unknown; toolName?: unknown; args?: unknown }
@@ -524,6 +512,17 @@ export const cursorACPHarness = createACP({
       toolName: rawInput.toolName,
       input: rawInput.args as Record<string, unknown>,
     };
+  },
+  isMcpToolCall: toolCall => {
+    const rawInput = toolCall.rawInput as
+      | { providerIdentifier?: unknown; toolName?: unknown; args?: unknown }
+      | undefined;
+    return (
+      typeof rawInput?.providerIdentifier === 'string' &&
+      typeof rawInput.toolName === 'string' &&
+      rawInput.args != null &&
+      typeof rawInput.args === 'object'
+    );
   },
   credentialEnv: ['CURSOR_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
@@ -592,12 +591,6 @@ export const grokBuildACPHarness = createACP({
   // Grok Build calls MCP tools through its `use_tool` meta-tool, with a
   // `{ tool_name, tool_input }` raw input where `tool_name` is
   // `${serverName}__${toolName}`.
-  isMcpToolCall: toolCall => {
-    const metadata = toolCall._meta?.['x.ai/tool'] as
-      | { namespace?: unknown }
-      | undefined;
-    return metadata?.namespace === 'mcp';
-  },
   resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
     const rawInput = toolCall.rawInput as
       | { tool_name?: unknown; tool_input?: unknown }
@@ -616,6 +609,12 @@ export const grokBuildACPHarness = createACP({
       toolName,
       input: rawInput.tool_input as Record<string, unknown>,
     };
+  },
+  isMcpToolCall: toolCall => {
+    const metadata = toolCall._meta?.['x.ai/tool'] as
+      | { namespace?: unknown }
+      | undefined;
+    return metadata?.namespace === 'mcp';
   },
   credentialEnv: ['XAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {

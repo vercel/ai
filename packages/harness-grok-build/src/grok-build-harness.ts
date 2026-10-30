@@ -315,11 +315,11 @@ export function createGrokBuild(
       type: 'session-model',
       path: 'modelId',
     },
+    resolveHostToolCall: resolveGrokBuildHostToolCall,
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
     },
-    resolveHostToolCall: resolveGrokBuildHostToolCall,
     mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'grok-build',

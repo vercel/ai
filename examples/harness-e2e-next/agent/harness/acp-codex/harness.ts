@@ -55,8 +55,8 @@ const resolveCodexACPHostToolCall: ACPResolveHostToolCall = ({
 export const codexACPHarness = createACP({
   harnessId,
   builtinTools: codexACPBuiltinTools,
-  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   resolveHostToolCall: resolveCodexACPHostToolCall,
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   source: {
     type: 'npm-locked',
     packageJson: readFileSync(

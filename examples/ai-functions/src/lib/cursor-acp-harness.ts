@@ -51,6 +51,7 @@ export function createCursorACP({
     nonTextContentTypes: ['image'],
     harnessId: 'cursor-acp',
     mcpServers,
+    resolveHostToolCall: resolveCursorACPHostToolCall,
     isMcpToolCall: toolCall => {
       const rawInput = toolCall.rawInput;
       return (
@@ -60,7 +61,6 @@ export function createCursorACP({
         isRecord(rawInput.args)
       );
     },
-    resolveHostToolCall: resolveCursorACPHostToolCall,
     mintBridgeToken,
     port,
     portEndpoint,

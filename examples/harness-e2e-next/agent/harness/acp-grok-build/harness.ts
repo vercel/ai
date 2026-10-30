@@ -27,11 +27,11 @@ const resolveGrokBuildHostToolCall: ACPResolveHostToolCall = ({
 export const grokBuildACPHarness = createACP({
   harnessId,
   builtinTools: grokBuildACPBuiltinTools,
+  resolveHostToolCall: resolveGrokBuildHostToolCall,
   isMcpToolCall: toolCall => {
     const metadata = toolCall._meta?.['x.ai/tool'];
     return isRecord(metadata) && metadata.namespace === 'mcp';
   },
-  resolveHostToolCall: resolveGrokBuildHostToolCall,
   source: {
     type: 'install-command',
     command:

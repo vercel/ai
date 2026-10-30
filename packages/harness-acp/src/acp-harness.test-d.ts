@@ -18,8 +18,8 @@ const source: ACPV1Settings['source'] = {
 };
 
 const toolCallSettings = {
-  isMcpToolCall: () => false,
   resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
 } satisfies Pick<ACPHarnessSettings, 'isMcpToolCall' | 'resolveHostToolCall'>;
 
 describe('createACP built-in tool inference', () => {

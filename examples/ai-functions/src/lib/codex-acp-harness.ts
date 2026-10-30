@@ -136,8 +136,8 @@ export function createCodexACP({
     harnessId: 'codex-acp',
     auth,
     mcpServers,
-    isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     resolveHostToolCall: resolveCodexACPHostToolCall,
+    isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     askUserQuestions: codexACPAskUserQuestions,
     clientCapabilities: {
       elicitation: { form: {} },

@@ -488,9 +488,9 @@ export function createGitHubCopilot(
     },
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
+    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
-    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,

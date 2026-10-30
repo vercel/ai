@@ -263,8 +263,8 @@ const agentSettings = {
     type: 'session-config-option' as const,
     path: 'model',
   },
-  isMcpToolCall: () => false,
   resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
 } as const;
 
 const permissionModeMapping = {
@@ -2565,8 +2565,8 @@ describe('createACP', () => {
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
       modelMapping: agentSettings.modelMapping,
-      isMcpToolCall: agentSettings.isMcpToolCall,
       resolveHostToolCall: agentSettings.resolveHostToolCall,
+      isMcpToolCall: agentSettings.isMcpToolCall,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',

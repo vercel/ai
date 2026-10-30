@@ -369,6 +369,7 @@ export function createCursor(
     startupTimeoutMs: settings.startupTimeoutMs,
     reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
+    resolveHostToolCall: resolveCursorHostToolCall,
     isMcpToolCall: toolCall => {
       const rawInput = toolCall.rawInput;
       return (
@@ -378,7 +379,6 @@ export function createCursor(
         isRecord(rawInput.args)
       );
     },
-    resolveHostToolCall: resolveCursorHostToolCall,
     mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'cursor',
