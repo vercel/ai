@@ -355,7 +355,12 @@ default `"auto"` mode uses native structured outputs through
 `output_config.format`. These models reject forced tool use, so the
 `"jsonTool"` mode cannot be used with them. If you
 request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
-emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
+emits a warning. The same fallback applies when these models are served through
+providers that otherwise default to the JSON tool, such as the Amazon Bedrock
+Anthropic and Google Vertex Anthropic providers. Self-referencing schemas,
+which native structured outputs reject, keep the JSON tool; if the model then
+answers in text without calling it, the text is returned as the response.
+Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
 
