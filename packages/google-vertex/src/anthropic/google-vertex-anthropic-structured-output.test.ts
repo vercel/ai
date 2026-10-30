@@ -1,6 +1,6 @@
-import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
+import type { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
-import { createGoogleVertexAnthropic } from './google-vertex-anthropic-provider';
+import { createVertexAnthropic } from './google-vertex-anthropic-provider';
 
 const SCHEMA = {
   type: 'object' as const,
@@ -9,14 +9,14 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-const CALL: LanguageModelV4CallOptions = {
+const CALL: LanguageModelV3CallOptions = {
   prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
   responseFormat: { type: 'json', schema: SCHEMA },
 };
 
 async function generate(modelId: string) {
   let body: Record<string, any> = {};
-  const provider = createGoogleVertexAnthropic({
+  const provider = createVertexAnthropic({
     project: 'test-project',
     location: 'global',
     fetch: async (_url, init) => {

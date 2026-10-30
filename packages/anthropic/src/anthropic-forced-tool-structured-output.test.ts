@@ -1,15 +1,15 @@
 import type {
   JSONSchema7,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Prompt,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
-import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 
 const URL = 'https://api.anthropic.com/v1/messages';
 
-const TEST_PROMPT: LanguageModelV4Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -41,7 +41,7 @@ const CIRCULAR_SCHEMA: JSONSchema7 = {
 // Mirrors provider adapters (e.g. Bedrock, Vertex) that disable native
 // structured outputs by default.
 function createModel(modelId: string) {
-  return new AnthropicLanguageModel(modelId, {
+  return new AnthropicMessagesLanguageModel(modelId, {
     provider: 'test-provider.messages',
     baseURL: 'https://api.anthropic.com/v1',
     headers: { 'x-api-key': 'test-api-key' },
@@ -50,7 +50,7 @@ function createModel(modelId: string) {
   });
 }
 
-function jsonCall(schema: JSONSchema7): LanguageModelV4CallOptions {
+function jsonCall(schema: JSONSchema7): LanguageModelV3CallOptions {
   return { prompt: TEST_PROMPT, responseFormat: { type: 'json', schema } };
 }
 

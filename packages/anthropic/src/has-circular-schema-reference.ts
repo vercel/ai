@@ -1,5 +1,4 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
-import { isRecord } from '@ai-sdk/provider-utils';
 
 // Keywords whose values are maps of name -> schema rather than a schema.
 const SCHEMA_MAP_KEYWORDS = new Set([
@@ -109,4 +108,8 @@ function resolvePointer(schema: JSONSchema7, pointer: string): unknown {
   }
 
   return current;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
