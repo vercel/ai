@@ -63,6 +63,7 @@ import {
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -419,13 +420,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
-    // outputs when the model supports them.
+    // outputs even when the provider disables them by default (Bedrock,
+    // Vertex), unless they would reject the schema or lose data from it.
     if (
       !useStructuredOutput &&
       rejectsForcedToolUse &&
-      supportsStructuredOutput &&
+      modelSupportsStructuredOutput &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat.schema != null &&
+      supportsNativeStructuredOutputSchema(responseFormat.schema)
     ) {
       warnings.push({
         type: 'unsupported',
