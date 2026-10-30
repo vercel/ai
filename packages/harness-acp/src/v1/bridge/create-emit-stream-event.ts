@@ -113,6 +113,12 @@ export function createEmitStreamEvent({
         toolCall: {
           sessionUpdate: 'tool_call_update',
           ...toolCall,
+          rawInput:
+            toolCall.rawInput === undefined
+              ? correlation.getToolCall({
+                  toolCallId: toolCall.toolCallId,
+                })?.rawInput
+              : toolCall.rawInput,
         },
       });
     },
