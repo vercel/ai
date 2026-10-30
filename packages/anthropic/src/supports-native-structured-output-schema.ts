@@ -6,9 +6,9 @@ import {
 } from './has-circular-schema-reference';
 
 // Anthropic rejects schemas with more than 24 optional properties in total,
-// and optional properties in nested objects compound ("Schema is too complex"
-// from 13). Stay at or below the largest count that always compiled.
-const MAX_OPTIONAL_PROPERTIES = 12;
+// and grammar compilation fails earlier as optional properties add up: from 13
+// on Bedrock and the Anthropic API, from 11 on Vertex (compilation timeout).
+const MAX_OPTIONAL_PROPERTIES = 10;
 
 const SUBSCHEMA_KEYWORDS = [
   'additionalProperties',

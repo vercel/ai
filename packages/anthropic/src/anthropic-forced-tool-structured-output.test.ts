@@ -134,11 +134,11 @@ describe('structured outputs for models that reject forced tool use', () => {
       },
     ],
     [
-      'more than 12 optional properties',
+      'more than 10 optional properties',
       {
         type: 'object',
         properties: Object.fromEntries(
-          Array.from({ length: 13 }, (_, i) => [`f${i}`, { type: 'string' }]),
+          Array.from({ length: 11 }, (_, i) => [`f${i}`, { type: 'string' }]),
         ),
         additionalProperties: false,
       },
