@@ -121,6 +121,7 @@ describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
 
   afterEach(() => {
+    vi.useRealTimers();
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
     for (const directory of tempDirectories.splice(0)) {
@@ -667,13 +668,30 @@ describe('OpenCode bridge turn settlement', () => {
     {
       name: 'sends the tool call before an approval OpenCode asks for while the call is pending',
       reportsRunning: true,
+      waitForTimeout: false,
     },
     {
-      name: 'still sends an approval whose tool call is never reported',
+      name: 'flushes an approval whose tool call is never reported when the stream ends',
       reportsRunning: false,
+      waitForTimeout: false,
     },
-  ])('$name', async ({ reportsRunning }) => {
+    {
+      name: 'sends an approval after five seconds if the tool call is never reported',
+      reportsRunning: false,
+      waitForTimeout: true,
+    },
+  ])('$name', async ({ reportsRunning, waitForTimeout }) => {
+    if (waitForTimeout) vi.useFakeTimers();
     const emit = vi.fn();
+    const requestToolApproval = vi.fn(async () => ({ approved: true }));
+    let markStreamPaused!: () => void;
+    const streamPaused = new Promise<void>(resolve => {
+      markStreamPaused = resolve;
+    });
+    let resumeStream!: () => void;
+    const streamResumed = new Promise<void>(resolve => {
+      resumeStream = resolve;
+    });
     bridgeMock.start = {
       type: 'start',
       operation: 'prompt',
@@ -683,7 +701,7 @@ describe('OpenCode bridge turn settlement', () => {
     bridgeMock.turn = {
       emit,
       requestToolResult: vi.fn(),
-      requestToolApproval: vi.fn(async () => ({ approved: true })),
+      requestToolApproval,
       experimental_userMessages: createUserMessages(),
       abortSignal: new AbortController().signal,
       firstTurn: true,
@@ -735,6 +753,10 @@ describe('OpenCode bridge turn settlement', () => {
                     '*** Begin Patch\n*** Add File: notes.txt\n+hi\n*** End Patch\n',
                 });
               }
+              if (waitForTimeout) {
+                markStreamPaused();
+                await streamResumed;
+              }
               yield {
                 type: 'session.next.step.failed',
                 properties: {
@@ -755,7 +777,44 @@ describe('OpenCode bridge turn settlement', () => {
     };
     setBridgeArgv();
 
-    await import('./index');
+    const bridge = import('./index');
+    try {
+      if (waitForTimeout) {
+        await streamPaused;
+        await vi.advanceTimersByTimeAsync(4_999);
+        expect(emit).not.toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'tool-approval-request' }),
+        );
+        expect(requestToolApproval).not.toHaveBeenCalled();
+        expect(permissionReplyMock).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(1);
+        expect(
+          emit.mock.calls.filter(
+            ([message]) => message.type === 'tool-approval-request',
+          ),
+        ).toEqual([
+          [
+            {
+              type: 'tool-approval-request',
+              approvalId: 'edit-request',
+              toolCallId: 'patch-call',
+            },
+          ],
+        ]);
+        expect(requestToolApproval).toHaveBeenCalledExactlyOnceWith(
+          'edit-request',
+        );
+        expect(permissionReplyMock).toHaveBeenCalledExactlyOnceWith({
+          requestID: 'edit-request',
+          directory: '/tmp/opencode-bridge-test',
+          reply: 'once',
+        });
+      }
+    } finally {
+      resumeStream();
+      await bridge;
+    }
 
     const sent = emit.mock.calls.map(([message]) => message);
     const approvalIndex = sent.findIndex(
