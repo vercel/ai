@@ -1,0 +1,111 @@
+---
+title: UberLLM
+description: Use the UberLLM OpenAI compatible API with the AI SDK.
+---
+
+# UberLLM Provider
+
+[UberLLM](https://uberllm.dev) is an API marketplace for chat, image, video and music models. Each request is sent to a third-party inference provider that serves the requested model, and costs what that provider charged for it. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The UberLLM provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use UberLLM, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const uberllm = createOpenAICompatible({
+  name: 'uberllm',
+  baseURL: 'https://api.uberllm.dev/v1',
+  apiKey: process.env.UBERLLM_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  You can create an API key in the [UberLLM dashboard](https://uberllm.dev/dashboard/keys).
+  Make sure to set the `UBERLLM_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create UberLLM models using a provider instance. The first argument is the model ID from the [model catalog](https://uberllm.dev/models), e.g. `deepseek/deepseek-v4-flash` or `anthropic/claude-sonnet-5.5`.
+
+```ts
+const model = uberllm('deepseek/deepseek-v4-flash');
+```
+
+### Example
+
+You can use UberLLM language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const uberllm = createOpenAICompatible({
+  name: 'uberllm',
+  baseURL: 'https://api.uberllm.dev/v1',
+  apiKey: process.env.UBERLLM_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: uberllm('deepseek/deepseek-v4-flash'),
+  prompt: 'Say hello in one short sentence.',
+});
+
+console.log(text);
+```
+
+UberLLM language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const uberllm = createOpenAICompatible({
+  name: 'uberllm',
+  baseURL: 'https://api.uberllm.dev/v1',
+  apiKey: process.env.UBERLLM_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: uberllm('deepseek/deepseek-v4-flash'),
+  prompt: 'Count from 1 to 5.',
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```
+
+## Image Models
+
+Image models are created with `uberllm.imageModel()` and used with `generateImage`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateImage } from 'ai';
+
+const uberllm = createOpenAICompatible({
+  name: 'uberllm',
+  baseURL: 'https://api.uberllm.dev/v1',
+  apiKey: process.env.UBERLLM_API_KEY,
+});
+
+const { image } = await generateImage({
+  model: uberllm.imageModel('black-forest-labs/flux.2-klein-4b'),
+  prompt: 'A red bicycle on a white background',
+  size: '1024x1024',
+});
+```
+
+Video and music models are asynchronous jobs on UberLLM's REST API and are not available through `@ai-sdk/openai-compatible`. See the [UberLLM docs](https://uberllm.dev/docs/media).
