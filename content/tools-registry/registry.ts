@@ -236,6 +236,39 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
+    slug: 'hyperresearch',
+    name: 'Hyperresearch',
+    description:
+      'Hyperresearch Answers gives agents cited, quote-checked answers. hyperresearchAnswer takes one factual question and returns one short answer with the quotes it rests on, each checked word for word against its page, or not_found instead of a guess. hyperresearchSearch returns ranked raw sources from the open web and about 45 structured sources (company filings, statistics agencies, scholarly indexes, books, government records), with verbatim passages.',
+    packageName: '@hyperresearch/ai-sdk',
+    tags: ['search', 'web', 'answers', 'citations'],
+    apiKeyEnvName: 'HYPERRESEARCH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @hyperresearch/ai-sdk',
+      npm: 'npm install @hyperresearch/ai-sdk',
+      yarn: 'yarn add @hyperresearch/ai-sdk',
+      bun: 'bun add @hyperresearch/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { hyperresearchAnswer, hyperresearchSearch } from '@hyperresearch/ai-sdk';
+
+const { text } = await generateText({
+  model: 'google/gemini-3.1-pro-preview',
+  prompt: 'How old must a US senator be? Cite the source.',
+  tools: {
+    answer: hyperresearchAnswer(),
+    search: hyperresearchSearch(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://hyperresearch.ai/docs/answers/ai-sdk',
+    apiKeyUrl: 'https://console.hyperresearch.ai/#/keys',
+    websiteUrl: 'https://hyperresearch.ai/answers',
+    npmUrl: 'https://www.npmjs.com/package/@hyperresearch/ai-sdk',
+  },
+  {
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
