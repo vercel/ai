@@ -163,20 +163,32 @@ describe('ACP permission controller', () => {
       },
     );
 
-    it('resolves a symlinked working directory before comparing locations', async () => {
-      const alias = path.join(sandboxDir, 'workspace-alias');
-      await symlink(workDir, alias, 'dir');
-      await expect(
-        areACPToolLocationsTrusted({
-          workDir: alias,
-          toolCall: {
-            toolCallId: 'call-1',
-            kind: 'read',
-            locations: [{ path: path.join(alias, 'file.txt') }],
-          },
-        }),
-      ).resolves.toBe(true);
-    });
+    it.each([
+      {
+        description: 'aliased',
+        location: (dir: string) => path.join(dir, 'file.txt'),
+      },
+      {
+        description: 'canonical',
+        location: () => path.join(workDir, 'file.txt'),
+      },
+    ] as const)(
+      'resolves a symlinked working directory before comparing $description locations',
+      async ({ location }) => {
+        const alias = path.join(sandboxDir, 'workspace-alias');
+        await symlink(workDir, alias, 'dir');
+        await expect(
+          areACPToolLocationsTrusted({
+            workDir: alias,
+            toolCall: {
+              toolCallId: 'call-1',
+              kind: 'read',
+              locations: [{ path: location(alias) }],
+            },
+          }),
+        ).resolves.toBe(true);
+      },
+    );
 
     it('requires approval if the working directory cannot be resolved', async () => {
       const missingWorkDir = path.join(sandboxDir, 'missing');

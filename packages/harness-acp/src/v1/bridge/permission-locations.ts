@@ -28,13 +28,11 @@ export async function areACPToolLocationsTrusted({
 
       // Keep the original components for realpath: normalizing a symlink
       // followed by `..` first can change which file the agent will access.
-      const absolutePath = path.posix.isAbsolute(location.path)
-        ? location.path
-        : `${workDir}/${location.path}`;
-      if (!isInsidePath(workDir, path.posix.resolve(absolutePath))) {
-        return false;
-      }
-      const canonicalPath = await resolvePermissionPath(absolutePath);
+      const canonicalPath = await resolvePermissionPath(
+        path.posix.isAbsolute(location.path)
+          ? location.path
+          : `${workDir}/${location.path}`,
+      );
       if (
         canonicalPath == null ||
         !isInsidePath(canonicalWorkDir, canonicalPath)
