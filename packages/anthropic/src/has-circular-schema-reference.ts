@@ -30,7 +30,7 @@ export function hasCircularSchemaReference(schema: JSONSchema7): boolean {
       return false;
     }
 
-    const target = resolvePointer(schema, pointer);
+    const target = resolveSchemaPointer(schema, pointer);
     if (target === undefined) {
       return false;
     }
@@ -80,7 +80,10 @@ function collectLocalRefs(node: unknown, refs: string[] = []): string[] {
   return refs;
 }
 
-function resolvePointer(schema: JSONSchema7, pointer: string): unknown {
+export function resolveSchemaPointer(
+  schema: JSONSchema7,
+  pointer: string,
+): unknown {
   if (pointer === '#') {
     return schema;
   }
