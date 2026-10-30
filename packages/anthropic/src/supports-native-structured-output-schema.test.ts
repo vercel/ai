@@ -115,14 +115,14 @@ describe('supportsNativeStructuredOutputSchema', () => {
   });
 
   describe('optional properties', () => {
-    it('accepts 12 optional properties', () => {
-      expect(supportsNativeStructuredOutputSchema(optionalObject(12))).toBe(
+    it('accepts 10 optional properties', () => {
+      expect(supportsNativeStructuredOutputSchema(optionalObject(10))).toBe(
         true,
       );
     });
 
-    it('rejects 13 optional properties', () => {
-      expect(supportsNativeStructuredOutputSchema(optionalObject(13))).toBe(
+    it('rejects 11 optional properties', () => {
+      expect(supportsNativeStructuredOutputSchema(optionalObject(11))).toBe(
         false,
       );
     });
@@ -131,7 +131,7 @@ describe('supportsNativeStructuredOutputSchema', () => {
       expect(
         supportsNativeStructuredOutputSchema({
           type: 'object',
-          properties: { a: { type: 'string' }, nested: optionalObject(12) },
+          properties: { a: { type: 'string' }, nested: optionalObject(10) },
           required: ['nested'],
           additionalProperties: false,
         }),
@@ -143,7 +143,7 @@ describe('supportsNativeStructuredOutputSchema', () => {
         supportsNativeStructuredOutputSchema({
           type: 'object',
           properties: {
-            items: { type: 'array', items: optionalObject(7, 'i') },
+            items: { type: 'array', items: optionalObject(5, 'i') },
             union: { anyOf: [optionalObject(3, 'a'), optionalObject(3, 'b')] },
           },
           required: ['items', 'union'],
@@ -165,8 +165,8 @@ describe('supportsNativeStructuredOutputSchema', () => {
           $defs: { D: optionalObject(count, 'd') },
         }) as JSONSchema7;
 
-      expect(supportsNativeStructuredOutputSchema(schema(6))).toBe(true);
-      expect(supportsNativeStructuredOutputSchema(schema(7))).toBe(false);
+      expect(supportsNativeStructuredOutputSchema(schema(5))).toBe(true);
+      expect(supportsNativeStructuredOutputSchema(schema(6))).toBe(false);
     });
 
     it('ignores definitions that are never referenced', () => {
