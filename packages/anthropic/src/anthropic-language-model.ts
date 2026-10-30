@@ -24,6 +24,7 @@ import {
   createProviderStreamError,
   createToolNameMapping,
   generateId,
+  getModelCapabilities,
   isCustomReasoning,
   isProviderStreamError,
   mapReasoningToProviderBudget,
@@ -42,7 +43,11 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { getAnthropicModelCapabilities } from './anthropic-model-catalog';
+import {
+  anthropicLanguageModelCatalog,
+  type AnthropicEffort,
+  type AnthropicLanguageModelCapabilities,
+} from './anthropic-model-catalog';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -425,18 +430,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     );
 
     const {
-      maxOutputTokens: maxOutputTokensForModel,
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      supportsAdaptiveThinking,
-      rejectsSamplingParameters,
-      supportsXhighEffort,
-      rejectsThinkingDisabledAboveHighEffort,
-      rejectsThinkingDisabled,
-      rejectsBudgetThinking,
-      rejectsForcedToolUse,
-      supportsBetweenToolsThinking,
+      capabilities: {
+        maxOutputTokens: maxOutputTokensForModel,
+        structuredOutput: modelSupportsStructuredOutput,
+        samplingParameters,
+        temperatureAndTopP,
+        forcedToolUse,
+        reasoning: reasoningCapabilities,
+      },
       isKnownModel,
-    } = getAnthropicModelCapabilities(modelId);
+    } = getModelCapabilities(anthropicLanguageModelCatalog, modelId);
+    const rejectsForcedToolUse = !forcedToolUse;
+    const rejectsThinkingDisabled =
+      reasoningCapabilities.disabled === 'unsupported';
 
     if (!isKnownModel && maxOutputTokens == null) {
       warnings.push({
@@ -449,7 +455,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (rejectsSamplingParameters) {
+    if (!samplingParameters) {
       if (temperature != null) {
         warnings.push({
           type: 'unsupported',
@@ -475,8 +481,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         topP = undefined;
       }
     }
-
-    const isAnthropicModel = isKnownModel || modelId.includes('claude-');
 
     const supportsStructuredOutput =
       (config.supportsNativeStructuredOutput ?? true) &&
@@ -601,10 +605,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
         modelId,
-        supportsAdaptiveThinking,
-        supportsXhighEffort,
-        rejectsThinkingDisabled,
-        supportsBetweenToolsThinking,
+        reasoningCapabilities,
         maxOutputTokensForModel,
         warnings,
       });
@@ -627,7 +628,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
       const thinking = anthropicOptions.thinking;
 
-      if (thinking.type === 'disabled' && supportsBetweenToolsThinking) {
+      if (thinking.type === 'disabled' && reasoningCapabilities.betweenTools) {
         warnings.push({
           type: 'unsupported',
           feature: 'providerOptions.anthropic.thinking',
@@ -652,7 +653,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // with a 400. Use adaptive thinking instead and let `effort` control how
     // much the model thinks.
     if (
-      rejectsBudgetThinking &&
+      !reasoningCapabilities.budget &&
       anthropicOptions?.thinking?.type === 'enabled'
     ) {
       warnings.push({
@@ -672,7 +673,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // the effort to `high` to preserve the explicit request to run without
     // thinking.
     if (
-      rejectsThinkingDisabledAboveHighEffort &&
+      reasoningCapabilities.disabled === 'up-to-high-effort' &&
       anthropicOptions?.thinking?.type === 'disabled' &&
       (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
     ) {
@@ -978,7 +979,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       // Only check temperature/topP mutual exclusivity for known Anthropic models
       // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
       // API (e.g. Minimax) may require both parameters to be set.
-      if (isAnthropicModel && topP != null && temperature != null) {
+      if (!temperatureAndTopP && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
@@ -3329,8 +3330,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 }
 
-export { getAnthropicModelCapabilities as getModelCapabilities } from './anthropic-model-catalog';
-
 export function hasDynamicFilteringWebToolWithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
@@ -3366,19 +3365,13 @@ export function hasDynamicFilteringWebToolWithoutCodeExecution(
 function resolveAnthropicReasoningConfig({
   reasoning,
   modelId,
-  supportsAdaptiveThinking,
-  supportsXhighEffort,
-  rejectsThinkingDisabled,
-  supportsBetweenToolsThinking,
+  reasoningCapabilities,
   maxOutputTokensForModel,
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   modelId: string;
-  supportsAdaptiveThinking: boolean;
-  supportsXhighEffort: boolean;
-  rejectsThinkingDisabled: boolean;
-  supportsBetweenToolsThinking: boolean;
+  reasoningCapabilities: AnthropicLanguageModelCapabilities['reasoning'];
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
@@ -3389,7 +3382,7 @@ function resolveAnthropicReasoningConfig({
   if (reasoning === 'none') {
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
-    if (supportsBetweenToolsThinking) {
+    if (reasoningCapabilities.betweenTools) {
       warnings.push({
         type: 'compatibility',
         feature: 'reasoning',
@@ -3403,7 +3396,7 @@ function resolveAnthropicReasoningConfig({
     // Models that always run adaptive thinking cannot disable it. Use low
     // effort to keep thinking short instead of sending a request that the
     // API would reject.
-    if (rejectsThinkingDisabled) {
+    if (reasoningCapabilities.disabled === 'unsupported') {
       warnings.push({
         type: 'compatibility',
         feature: 'reasoning',
@@ -3417,16 +3410,12 @@ function resolveAnthropicReasoningConfig({
     return { thinking: { type: 'disabled' } };
   }
 
-  if (supportsAdaptiveThinking) {
-    const effort = mapReasoningToProviderEffort({
+  if (reasoningCapabilities.efforts != null) {
+    const effort = mapReasoningToProviderEffort<AnthropicEffort>({
       reasoning,
-      effortMap: {
-        low: 'low' as const,
-        medium: 'medium' as const,
-        high: 'high' as const,
-        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
-        max: 'max' as const,
-      },
+      effortMap: Object.fromEntries(
+        reasoningCapabilities.efforts.map(effort => [effort, effort]),
+      ),
       warnings,
     });
     return {

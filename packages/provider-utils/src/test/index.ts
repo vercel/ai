@@ -4,4 +4,5 @@ export * from './convert-async-iterable-to-array';
 export * from './convert-readable-stream-to-array';
 export * from './convert-response-stream-to-array';
 export * from './is-node-version';
+export * from './known-model-id';
 export * from './mock-id';

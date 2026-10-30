@@ -1,14 +1,15 @@
+// Every language model catalog declares these capabilities.
 const overviewColumns = [
-  ['Image Input', 'inputs.image'],
-  ['Object Generation', 'objectGeneration'],
-  ['Tool Usage', 'tools.usage'],
-  ['Tool Streaming', 'tools.streaming'],
+  ['Image Input', model => formatSupport(model.inputs.image)],
+  ['Object Generation', model => formatSupport(model.objectGeneration)],
+  ['Tool Usage', model => formatSupport(model.tools.usage)],
+  ['Tool Streaming', model => formatSupport(model.tools.streaming)],
 ];
 
-export function renderCapabilityTable(entries, { capability, columns }) {
+export function renderCapabilityTable(catalog, columns) {
   return renderTable(
     ['Model', ...columns.map(([heading]) => heading)],
-    renderCapabilityRows(entries, capability, columns),
+    renderCapabilityRows(catalog, columns),
   );
 }
 
@@ -32,7 +33,7 @@ export function replaceGeneratedTable(source, id, table) {
   );
 }
 
-export function replaceOverviewRows(source, provider, entries) {
+export function replaceOverviewRows(source, provider, catalog) {
   const lines = source.split('\n');
   const indices = lines.flatMap((line, index) =>
     line.startsWith('|') && line.split('|')[1]?.trim() === provider
@@ -66,7 +67,7 @@ export function replaceOverviewRows(source, provider, entries) {
     .split('|')
     .slice(1, -1)
     .map(cell => cell.trim().length);
-  const rows = renderCapabilityRows(entries, 'language', overviewColumns).map(
+  const rows = renderCapabilityRows(catalog, overviewColumns).map(
     row => renderRow([provider, ...row], widths),
   );
   lines.splice(indices[0], indices.length, ...rows);
@@ -76,30 +77,14 @@ export function replaceOverviewRows(source, provider, entries) {
 export function formatSupport(value) {
   if (value === true) return '<Check />';
   if (value === false) return '<Cross />';
-  if (value === 'unknown') return 'Unknown';
-  if (
-    value != null &&
-    typeof value === 'object' &&
-    typeof value.condition === 'string'
-  ) {
-    return `Conditional: ${value.condition}`;
-  }
   throw new Error(`Invalid capability value: ${String(value)}`);
 }
 
-function renderCapabilityRows(entries, capability, columns) {
-  return entries
-    .filter(([, { capabilities }]) => capabilities[capability] != null)
-    .map(([modelId, { capabilities }]) => [
-      `\`${modelId}\``,
-      ...columns.map(([, path, format = formatSupport]) =>
-        format(readPath(capabilities[capability], path)),
-      ),
-    ]);
-}
-
-function readPath(value, path) {
-  return path.split('.').reduce((current, key) => current?.[key], value);
+function renderCapabilityRows(catalog, columns) {
+  return Object.entries(catalog.knownModels).map(([modelId, capabilities]) => [
+    `\`${modelId}\``,
+    ...columns.map(([, render]) => render(capabilities)),
+  ]);
 }
 
 function formatCell(value) {

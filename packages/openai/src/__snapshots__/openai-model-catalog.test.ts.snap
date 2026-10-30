@@ -1,0 +1,3092 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`embedding model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "text-embedding-3-large": {
+    "customDimensions": true,
+    "defaultDimensions": 3072,
+  },
+  "text-embedding-3-small": {
+    "customDimensions": true,
+    "defaultDimensions": 1536,
+  },
+  "text-embedding-ada-002": {
+    "customDimensions": false,
+    "defaultDimensions": 1536,
+  },
+}
+`;
+
+exports[`image model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "chatgpt-image-latest": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": undefined,
+  },
+  "dall-e-2": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": "b64_json",
+    "sizes": [
+      "256x256",
+      "512x512",
+      "1024x1024",
+    ],
+  },
+  "dall-e-3": {
+    "fileInput": false,
+    "maskInput": false,
+    "maxImagesPerCall": 1,
+    "responseFormat": "b64_json",
+    "sizes": [
+      "1024x1024",
+      "1792x1024",
+      "1024x1792",
+    ],
+  },
+  "gpt-image-1": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": [
+      "1024x1024",
+      "1536x1024",
+      "1024x1536",
+    ],
+  },
+  "gpt-image-1-mini": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": [
+      "1024x1024",
+      "1536x1024",
+      "1024x1536",
+    ],
+  },
+  "gpt-image-1.5": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": [
+      "1024x1024",
+      "1536x1024",
+      "1024x1536",
+    ],
+  },
+  "gpt-image-2": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": [
+      "1024x1024",
+      "1536x1024",
+      "1024x1536",
+    ],
+  },
+  "gpt-image-2.5-flare": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": "custom",
+  },
+  "gpt-image-2.5-flare-2026-09-08": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": "custom",
+  },
+  "gpt-image-2.5-sunburst": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": "custom",
+  },
+  "gpt-image-2.5-sunburst-2026-09-08": {
+    "fileInput": true,
+    "maskInput": true,
+    "maxImagesPerCall": 10,
+    "responseFormat": undefined,
+    "sizes": "custom",
+  },
+}
+`;
+
+exports[`language model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "gpt-3.5-turbo": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-3.5-turbo-0125": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-3.5-turbo-1106": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-3.5-turbo-16k": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1-2025-04-14": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1-mini-2025-04-14": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1-nano": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4.1-nano-2025-04-14": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-2024-05-13": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-2024-08-06": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-2024-11-20": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-audio-preview": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": true,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-audio-preview-2024-12-17": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": true,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-audio-preview-2025-06-03": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": true,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini-2024-07-18": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini-audio-preview": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": true,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini-audio-preview-2024-12-17": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": true,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini-search-preview": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": false,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-mini-search-preview-2025-03-11": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": false,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-search-preview": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": false,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-4o-search-preview-2025-03-11": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": false,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": true,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-2025-08-07": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-chat-latest": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": false,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": undefined,
+    "reasoningOptions": false,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "system",
+    "tools": {
+      "streaming": false,
+      "usage": false,
+    },
+  },
+  "gpt-5-codex": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-mini-2025-08-07": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-nano": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-nano-2025-08-07": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "minimal",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-pro": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5-pro-2025-10-06": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1-2025-11-13": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1-chat-latest": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1-codex": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1-codex-max": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.1-codex-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2-2025-12-11": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2-chat-latest": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2-codex": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2-pro": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.2-pro-2025-12-11": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.3-chat-latest": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.3-codex": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-2026-03-05": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-mini-2026-03-17": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-nano": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-nano-2026-03-17": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-pro": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.4-pro-2026-03-05": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": undefined,
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.5": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.5-2026-04-23": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.6": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": false,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.6-luna": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": false,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.6-sol": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": false,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-5.6-terra": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": false,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": true,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": true,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-6-astra": {
+    "asyncToolCalling": true,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": true,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": false,
+    },
+    "reasoning": {
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": false,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-6-luna": {
+    "asyncToolCalling": true,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": true,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": false,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": false,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-6-sol": {
+    "asyncToolCalling": true,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": true,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": false,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": false,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-6.1-sol": {
+    "asyncToolCalling": true,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": true,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": false,
+    },
+    "reasoning": {
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": false,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "gpt-6.1-terra": {
+    "asyncToolCalling": true,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": true,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": true,
+      "retention": false,
+    },
+    "reasoning": {
+      "efforts": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+      ],
+      "logprobs": false,
+      "samplingWithEffortNone": true,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o1": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o1-2024-12-17": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": false,
+      "priority": false,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o3": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o3-2025-04-16": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o3-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o3-mini-2025-01-31": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": false,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o4-mini": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+  "o4-mini-2025-04-16": {
+    "asyncToolCalling": false,
+    "chat": {
+      "functionToolsWithReasoning": true,
+      "temperature": true,
+    },
+    "configurationUpdates": false,
+    "inputs": {
+      "audio": false,
+      "image": true,
+    },
+    "objectGeneration": true,
+    "promptCache": {
+      "options": false,
+      "retention": true,
+    },
+    "reasoning": {
+      "logprobs": true,
+      "samplingWithEffortNone": false,
+    },
+    "reasoningOptions": true,
+    "serviceTiers": {
+      "flex": true,
+      "priority": true,
+    },
+    "systemMessageRole": "developer",
+    "tools": {
+      "streaming": true,
+      "usage": true,
+    },
+  },
+}
+`;
+
+exports[`openaiLanguageModelCatalog > resolves model IDs that are not listed 1`] = `
+{
+  "ft:gpt-4o-mini-2024-07-18:my-org::abc123": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": false,
+        "retention": true,
+      },
+      "reasoning": undefined,
+      "reasoningOptions": false,
+      "serviceTiers": {
+        "flex": false,
+        "priority": true,
+      },
+      "systemMessageRole": "system",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "ft:o4-mini-2025-04-16:my-org::abc123": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": false,
+        "retention": true,
+      },
+      "reasoning": {
+        "logprobs": true,
+        "samplingWithEffortNone": false,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "gpt-10.1": {
+    "capabilities": {
+      "asyncToolCalling": true,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": true,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": true,
+        "retention": false,
+      },
+      "reasoning": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+        "logprobs": false,
+        "samplingWithEffortNone": false,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "gpt-5.4-2026-03-05": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": false,
+        "retention": true,
+      },
+      "reasoning": {
+        "efforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+        ],
+        "logprobs": true,
+        "samplingWithEffortNone": true,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "gpt-5.7": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": false,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": true,
+        "retention": true,
+      },
+      "reasoning": {
+        "efforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+        "logprobs": true,
+        "samplingWithEffortNone": true,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "gpt-5.7-nano": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": false,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": true,
+        "retention": true,
+      },
+      "reasoning": {
+        "efforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+        "logprobs": true,
+        "samplingWithEffortNone": true,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": false,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "gpt-7": {
+    "capabilities": {
+      "asyncToolCalling": true,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": true,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": true,
+        "retention": false,
+      },
+      "reasoning": {
+        "efforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+        ],
+        "logprobs": false,
+        "samplingWithEffortNone": false,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+  "llama-3.1-8b": {
+    "capabilities": {
+      "asyncToolCalling": true,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": true,
+      "inputs": {
+        "audio": true,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": true,
+        "retention": true,
+      },
+      "reasoning": undefined,
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "system",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": false,
+  },
+  "o5": {
+    "capabilities": {
+      "asyncToolCalling": false,
+      "chat": {
+        "functionToolsWithReasoning": true,
+        "temperature": true,
+      },
+      "configurationUpdates": false,
+      "inputs": {
+        "audio": false,
+        "image": true,
+      },
+      "objectGeneration": true,
+      "promptCache": {
+        "options": false,
+        "retention": true,
+      },
+      "reasoning": {
+        "logprobs": true,
+        "samplingWithEffortNone": false,
+      },
+      "reasoningOptions": true,
+      "serviceTiers": {
+        "flex": true,
+        "priority": true,
+      },
+      "systemMessageRole": "developer",
+      "tools": {
+        "streaming": true,
+        "usage": true,
+      },
+    },
+    "isKnownModel": true,
+  },
+}
+`;
+
+exports[`speech model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "gpt-4o-mini-tts": {
+    "instructions": true,
+  },
+  "gpt-4o-mini-tts-2025-03-20": {
+    "instructions": true,
+  },
+  "gpt-4o-mini-tts-2025-12-15": {
+    "instructions": true,
+  },
+  "tts-1": {
+    "instructions": false,
+  },
+  "tts-1-1106": {
+    "instructions": false,
+  },
+  "tts-1-hd": {
+    "instructions": false,
+  },
+  "tts-1-hd-1106": {
+    "instructions": false,
+  },
+}
+`;
+
+exports[`speech translation model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "gpt-realtime-translate": {
+    "sourceTranscript": true,
+    "translatedAudio": true,
+    "translatedText": true,
+  },
+}
+`;
+
+exports[`transcription model catalog > resolves the capabilities of every model ID 1`] = `
+{
+  "gpt-4o-mini-transcribe": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "gpt-4o-mini-transcribe-2025-03-20": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "gpt-4o-mini-transcribe-2025-12-15": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "gpt-4o-transcribe": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "gpt-4o-transcribe-diarize": {
+    "chunkingStrategy": "auto",
+    "duration": true,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": "diarized_json",
+    "segments": true,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "gpt-live-transcribe": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "languages",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": true,
+    "streamingDelay": true,
+    "transcription": false,
+  },
+  "gpt-realtime-whisper": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": false,
+    "languageField": "language",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": true,
+    "streamingDelay": true,
+    "transcription": false,
+  },
+  "gpt-transcribe": {
+    "chunkingStrategy": undefined,
+    "duration": false,
+    "language": true,
+    "languageField": "languages",
+    "responseFormat": undefined,
+    "segments": false,
+    "streaming": true,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+  "whisper-1": {
+    "chunkingStrategy": undefined,
+    "duration": true,
+    "language": true,
+    "languageField": "language",
+    "responseFormat": "verbose_json",
+    "segments": true,
+    "streaming": false,
+    "streamingDelay": false,
+    "transcription": true,
+  },
+}
+`;

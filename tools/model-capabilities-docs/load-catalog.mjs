@@ -2,6 +2,15 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
+// Packages that catalogs may import at runtime, resolved to source files that
+// have no runtime imports of their own.
+const packageSources = {
+  '@ai-sdk/provider-utils': new URL(
+    '../../packages/provider-utils/src/model-catalog.ts',
+    import.meta.url,
+  ),
+};
+
 export async function loadCatalog(entryUrl) {
   const compiled = new Map();
   const sourceRoot = new URL('./', entryUrl);
@@ -51,16 +60,21 @@ export async function loadCatalog(entryUrl) {
       const specifier = statement.moduleSpecifier;
       if (specifier == null) continue;
       const name = specifier.text;
-      if (!name.startsWith('./') && !name.startsWith('../')) {
-        throw new Error(`Catalog runtime imports must be local: ${name}`);
+      const isPackage = Object.hasOwn(packageSources, name);
+      if (!isPackage && !name.startsWith('./') && !name.startsWith('../')) {
+        throw new Error(
+          `Catalog runtime imports must be local or one of ${Object.keys(packageSources).join(', ')}: ${name}`,
+        );
       }
-      const dependency = new URL(name, url);
+      const dependency = isPackage
+        ? packageSources[name]
+        : new URL(name, url);
       if (!dependency.pathname.endsWith('.ts')) {
         dependency.pathname = dependency.pathname.endsWith('.js')
           ? dependency.pathname.slice(0, -3) + '.ts'
           : dependency.pathname + '.ts';
       }
-      if (!dependency.href.startsWith(sourceRoot.href)) {
+      if (!isPackage && !dependency.href.startsWith(sourceRoot.href)) {
         throw new Error(
           `Catalog dependency is outside provider sources: ${name}`,
         );

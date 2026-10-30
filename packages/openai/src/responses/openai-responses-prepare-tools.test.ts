@@ -287,14 +287,12 @@ describe('prepareResponsesTools', () => {
         {
           type: 'unsupported',
           feature: 'async tool calling for "get_weather"',
-          details:
-            'Async tool calling is only supported by GPT-6 and later models.',
+          details: 'The model does not support async tool calling.',
         },
         {
           type: 'unsupported',
           feature: 'async tool calling for "write_sql"',
-          details:
-            'Async tool calling is only supported by GPT-6 and later models.',
+          details: 'The model does not support async tool calling.',
         },
       ]);
     });

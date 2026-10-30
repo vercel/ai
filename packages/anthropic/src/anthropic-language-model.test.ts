@@ -17,7 +17,6 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
-import { getModelCapabilities } from './anthropic-language-model';
 import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
@@ -13150,240 +13149,6 @@ describe('AnthropicLanguageModel', () => {
   });
 });
 
-describe('getModelCapabilities', () => {
-  it('should return correct capabilities for claude-opus-4-8', () => {
-    expect(getModelCapabilities('claude-opus-4-8')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-fable-5', () => {
-    expect(getModelCapabilities('claude-fable-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": true,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": true,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-fable-5-1', () => {
-    expect(getModelCapabilities('claude-fable-5-1')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": true,
-        "rejectsForcedToolUse": true,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": true,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-opus-4-7', () => {
-    expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-sonnet-5', () => {
-    expect(getModelCapabilities('claude-sonnet-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-opus-4-6', () => {
-    const caps = getModelCapabilities('claude-opus-4-6');
-    expect(caps.rejectsSamplingParameters).toBe(false);
-    expect(caps.supportsXhighEffort).toBe(false);
-    expect(caps.supportsAdaptiveThinking).toBe(true);
-  });
-
-  it('should return correct capabilities for claude-sonnet-4-6', () => {
-    const caps = getModelCapabilities('claude-sonnet-4-6');
-    expect(caps.rejectsSamplingParameters).toBe(false);
-    expect(caps.supportsXhighEffort).toBe(false);
-    expect(caps.supportsAdaptiveThinking).toBe(true);
-  });
-
-  it('should return correct capabilities for claude-opus-5', () => {
-    expect(getModelCapabilities('claude-opus-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": true,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return current-generation capabilities for an unknown Claude model', () => {
-    expect(getModelCapabilities('claude-future-9')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": false,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": true,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should recognize an unknown platform-prefixed Claude model', () => {
-    expect(getModelCapabilities('us.anthropic.claude-future-9-20990101-v1:0'))
-      .toMatchInlineSnapshot(`
-        {
-          "isKnownModel": false,
-          "maxOutputTokens": 128000,
-          "rejectsBudgetThinking": false,
-          "rejectsForcedToolUse": false,
-          "rejectsSamplingParameters": true,
-          "rejectsThinkingDisabled": false,
-          "rejectsThinkingDisabledAboveHighEffort": true,
-          "supportsAdaptiveThinking": true,
-          "supportsBetweenToolsThinking": false,
-          "supportsStructuredOutput": true,
-          "supportsXhighEffort": true,
-        }
-      `);
-  });
-
-  it.each([
-    'anthropic.claude-3-5-sonnet-20241022-v2:0',
-    'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
-    'anthropic.claude-v2:1',
-    'anthropic.claude-instant-v1',
-  ])(
-    'should retain conservative capabilities for legacy Claude model %s',
-    modelId => {
-      expect(getModelCapabilities(modelId)).toMatchInlineSnapshot(`
-        {
-          "isKnownModel": false,
-          "maxOutputTokens": 4096,
-          "rejectsBudgetThinking": false,
-          "rejectsForcedToolUse": false,
-          "rejectsSamplingParameters": false,
-          "rejectsThinkingDisabled": false,
-          "rejectsThinkingDisabledAboveHighEffort": false,
-          "supportsAdaptiveThinking": false,
-          "supportsBetweenToolsThinking": false,
-          "supportsStructuredOutput": false,
-          "supportsXhighEffort": false,
-        }
-      `);
-    },
-  );
-
-  it('should match a known model before the forward-compatible fallback', () => {
-    expect(getModelCapabilities('claude-opus-4-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 64000,
-        "rejectsBudgetThinking": false,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": false,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": false,
-        "supportsAdaptiveThinking": false,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": false,
-      }
-    `);
-  });
-
-  it.each([
-    ['claude-sonnet-4@20250514', 64000],
-    ['claude-opus-4@20250514', 32000],
-  ])('should recognize the Vertex model ID %s', (modelId, maxOutputTokens) => {
-    expect(getModelCapabilities(modelId)).toMatchObject({
-      isKnownModel: true,
-      maxOutputTokens,
-    });
-  });
-
-  it('should return conservative capabilities for an unknown non-Claude model', () => {
-    expect(getModelCapabilities('third-party-future-model'))
-      .toMatchInlineSnapshot(`
-        {
-          "isKnownModel": false,
-          "maxOutputTokens": 4096,
-          "rejectsBudgetThinking": false,
-          "rejectsForcedToolUse": false,
-          "rejectsSamplingParameters": false,
-          "rejectsThinkingDisabled": false,
-          "rejectsThinkingDisabledAboveHighEffort": false,
-          "supportsAdaptiveThinking": false,
-          "supportsBetweenToolsThinking": false,
-          "supportsStructuredOutput": false,
-          "supportsXhighEffort": false,
-        }
-      `);
-  });
-});
-
 describe('effort with thinking disabled', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
@@ -13850,24 +13615,6 @@ describe('claude-opus-5-5 specific behavior', () => {
     },
   };
 
-  it('should return capabilities that always use adaptive thinking and reject forced tool use', () => {
-    expect(getModelCapabilities('claude-opus-5-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": true,
-        "rejectsForcedToolUse": true,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": true,
-        "rejectsThinkingDisabledAboveHighEffort": true,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
   it('should not send thinking by default', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
@@ -14170,24 +13917,6 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     },
   };
 
-  it('should return capabilities that reject disabled thinking and forced tool use', () => {
-    expect(getModelCapabilities('claude-sonnet-5-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": true,
-        "rejectsForcedToolUse": true,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": true,
-        "rejectsThinkingDisabledAboveHighEffort": true,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": true,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
   it('should not send thinking by default', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
@@ -14437,24 +14166,6 @@ describe('claude-haiku-5-5 specific behavior', () => {
       ),
     };
   }
-
-  it('should return known capabilities that allow disabling thinking up to high effort', () => {
-    expect(getModelCapabilities('claude-haiku-5-5')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsBudgetThinking": true,
-        "rejectsForcedToolUse": false,
-        "rejectsSamplingParameters": true,
-        "rejectsThinkingDisabled": false,
-        "rejectsThinkingDisabledAboveHighEffort": true,
-        "supportsAdaptiveThinking": true,
-        "supportsBetweenToolsThinking": false,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
 
   it('should not warn about an unknown model and use the 128k output limit', async () => {
     prepareJsonFixtureResponse('anthropic-text');

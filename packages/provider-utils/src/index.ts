@@ -71,6 +71,20 @@ export {
 } from './map-reasoning-to-provider';
 export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
+export {
+  defineModelCatalog,
+  getModelCapabilities,
+  type EmbeddingModelCapabilities,
+  type ImageModelCapabilities,
+  type LanguageModelCapabilities,
+  type ModelCatalog,
+  type ModelCatalogEntry,
+  type ModelCatalogMatch,
+  type RealtimeModelCapabilities,
+  type SpeechModelCapabilities,
+  type SpeechTranslationModelCapabilities,
+  type TranscriptionModelCapabilities,
+} from './model-catalog';
 export { normalizeHeaders } from './normalize-headers';
 export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';

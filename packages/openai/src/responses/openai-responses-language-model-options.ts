@@ -14,7 +14,29 @@ import { z } from 'zod/v4';
  */
 export const TOP_LOGPROBS_MAX = 20;
 
-export const openaiResponsesReasoningModelIds = [
+export const openaiResponsesModelIds = [
+  'gpt-4.1',
+  'gpt-4.1-2025-04-14',
+  'gpt-4.1-mini',
+  'gpt-4.1-mini-2025-04-14',
+  'gpt-4.1-nano',
+  'gpt-4.1-nano-2025-04-14',
+  'gpt-4o',
+  'gpt-4o-2024-05-13',
+  'gpt-4o-2024-08-06',
+  'gpt-4o-2024-11-20',
+  'gpt-4o-audio-preview',
+  'gpt-4o-audio-preview-2024-12-17',
+  'gpt-4o-search-preview',
+  'gpt-4o-search-preview-2025-03-11',
+  'gpt-4o-mini-search-preview',
+  'gpt-4o-mini-search-preview-2025-03-11',
+  'gpt-4o-mini',
+  'gpt-4o-mini-2024-07-18',
+  'gpt-3.5-turbo-0125',
+  'gpt-3.5-turbo',
+  'gpt-3.5-turbo-1106',
+  'gpt-5-chat-latest',
   'o1',
   'o1-2024-12-17',
   'o3',
@@ -62,32 +84,6 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-6.1-terra',
   'gpt-6-luna',
   'gpt-6-sol',
-] as const;
-
-export const openaiResponsesModelIds = [
-  'gpt-4.1',
-  'gpt-4.1-2025-04-14',
-  'gpt-4.1-mini',
-  'gpt-4.1-mini-2025-04-14',
-  'gpt-4.1-nano',
-  'gpt-4.1-nano-2025-04-14',
-  'gpt-4o',
-  'gpt-4o-2024-05-13',
-  'gpt-4o-2024-08-06',
-  'gpt-4o-2024-11-20',
-  'gpt-4o-audio-preview',
-  'gpt-4o-audio-preview-2024-12-17',
-  'gpt-4o-search-preview',
-  'gpt-4o-search-preview-2025-03-11',
-  'gpt-4o-mini-search-preview',
-  'gpt-4o-mini-search-preview-2025-03-11',
-  'gpt-4o-mini',
-  'gpt-4o-mini-2024-07-18',
-  'gpt-3.5-turbo-0125',
-  'gpt-3.5-turbo',
-  'gpt-3.5-turbo-1106',
-  'gpt-5-chat-latest',
-  ...openaiResponsesReasoningModelIds,
 ] as const;
 
 export type OpenAIResponsesModelId =

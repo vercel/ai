@@ -4,10 +4,6 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import {
-  getOpenAIImageModelEntry,
-  openaiImageModelMaxImagesPerCall,
-} from '../openai-model-catalog';
 
 export type OpenAIImageModelId =
   | 'dall-e-3'
@@ -22,22 +18,6 @@ export type OpenAIImageModelId =
   | 'gpt-image-2.5-sunburst-2026-09-08'
   | 'chatgpt-image-latest'
   | (string & {});
-
-export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> =
-  openaiImageModelMaxImagesPerCall;
-
-export function hasDefaultResponseFormat(modelId: string): boolean {
-  return (
-    getOpenAIImageModelEntry(modelId).requestConfig.image.responseFormat ===
-    'provider-default'
-  );
-}
-
-export function getMaxImagesPerCall(modelId: OpenAIImageModelId): number {
-  return (
-    getOpenAIImageModelEntry(modelId).capabilities.image.maxImagesPerCall ?? 1
-  );
-}
 
 const baseImageModelOptionsObject = () =>
   z.object({

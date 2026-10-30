@@ -1,141 +1,156 @@
 import { formatSupport } from './render-tables.mjs';
 
-// Register a provider here to generate its docs from its source catalog.
-// Table IDs match the model-capabilities markers in the provider's MDX file.
-// Columns are [heading, capability path, optional formatter].
-// Omit overviewLink for providers that do not appear in the language overview.
+// Register a provider here to generate its docs from its source catalogs.
+// Each table lists the known models of one exported catalog. Table IDs match
+// the model-capabilities markers in the provider's MDX file. Columns are
+// [heading, function from model capabilities to cell text].
+// Omit overview for providers that do not appear in the language overview.
 export const providers = [
   {
     catalogPath: 'packages/openai/src/openai-model-catalog.ts',
-    catalogExport: 'openaiModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/03-openai.mdx',
-    overviewLink: '[OpenAI](/providers/ai-sdk-providers/openai)',
+    overview: {
+      link: '[OpenAI](/providers/ai-sdk-providers/openai)',
+      catalog: 'openaiLanguageModelCatalog',
+    },
     tables: [
       {
         id: 'openai-language',
-        capability: 'language',
+        catalog: 'openaiLanguageModelCatalog',
         columns: [
-          ['Image Input', 'inputs.image'],
-          ['Audio Input', 'inputs.audio'],
-          ['Object Generation', 'objectGeneration'],
-          ['Tool Usage', 'tools.usage'],
+          ['Image Input', model => formatSupport(model.inputs.image)],
+          ['Audio Input', model => formatSupport(model.inputs.audio)],
+          ['Object Generation', model => formatSupport(model.objectGeneration)],
+          ['Tool Usage', model => formatSupport(model.tools.usage)],
         ],
       },
       {
         id: 'openai-language-request',
-        capability: 'language',
+        catalog: 'openaiLanguageModelCatalog',
         columns: [
-          ['Reasoning', 'reasoning.support'],
+          ['Reasoning', model => formatSupport(model.reasoning != null)],
           [
             'Reasoning Efforts',
-            'reasoning.efforts',
-            values =>
-              values == null
+            model =>
+              model.reasoning?.efforts == null
                 ? 'Not declared'
-                : values.map(value => `\`${value}\``).join(', '),
+                : model.reasoning.efforts.map(value => `\`${value}\``).join(', '),
           ],
-          ['Temperature', 'sampling.temperature', formatOptionalSupport],
-          ['Top P', 'sampling.topP', formatOptionalSupport],
+          ['Temperature', formatOpenAISamplingSupport],
+          ['Top P', formatOpenAISamplingSupport],
         ],
       },
       {
         id: 'openai-realtime',
-        capability: 'realtime',
+        catalog: 'openaiRealtimeModelCatalog',
         columns: [
-          ['Conversation', 'conversation', String],
-          ['Transports', 'transports', values => values.join(', ')],
+          ['Conversation', model => model.conversation],
+          ['Transports', model => model.transports.join(', ')],
         ],
       },
       {
         id: 'openai-embedding',
-        capability: 'embedding',
+        catalog: 'openaiEmbeddingModelCatalog',
         columns: [
-          ['Default Dimensions', 'defaultDimensions', String],
-          ['Custom Dimensions', 'customDimensions'],
+          ['Default Dimensions', model => String(model.defaultDimensions)],
+          ['Custom Dimensions', model => formatSupport(model.customDimensions)],
         ],
       },
       {
         id: 'openai-image',
-        capability: 'image',
+        catalog: 'openaiImageModelCatalog',
         columns: [
           [
             'Sizes',
-            'sizes',
-            value =>
-              Array.isArray(value) ? value.join(', ') : value.description,
+            model =>
+              model.sizes == null
+                ? 'Not declared'
+                : model.sizes === 'custom'
+                  ? 'Standard presets and custom dimensions'
+                  : model.sizes.join(', '),
           ],
         ],
       },
       {
         id: 'openai-transcription',
-        capability: 'transcription',
+        catalog: 'openaiTranscriptionModelCatalog',
         columns: [
-          ['Transcription', 'transcription'],
-          ['Streaming', 'streaming'],
-          ['Duration', 'duration'],
-          ['Segments', 'segments'],
-          ['Language', 'language'],
+          ['Transcription', model => formatSupport(model.transcription)],
+          ['Streaming', model => formatSupport(model.streaming)],
+          ['Duration', model => formatSupport(model.duration)],
+          ['Segments', model => formatSupport(model.segments)],
+          ['Language', model => formatSupport(model.language)],
         ],
       },
       {
         id: 'openai-speech-translation',
-        capability: 'speechTranslation',
+        catalog: 'openaiSpeechTranslationModelCatalog',
         columns: [
-          ['Translated Audio', 'translatedAudio'],
-          ['Translated Text', 'translatedText'],
-          ['Source Transcript', 'sourceTranscript'],
+          ['Translated Audio', model => formatSupport(model.translatedAudio)],
+          ['Translated Text', model => formatSupport(model.translatedText)],
+          [
+            'Source Transcript',
+            model => formatSupport(model.sourceTranscript),
+          ],
         ],
       },
       {
         id: 'openai-speech',
-        capability: 'speech',
-        columns: [['Instructions', 'instructions']],
+        catalog: 'openaiSpeechModelCatalog',
+        columns: [['Instructions', model => formatSupport(model.instructions)]],
       },
     ],
   },
   {
     catalogPath: 'packages/anthropic/src/anthropic-model-catalog.ts',
-    catalogExport: 'anthropicModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/05-anthropic.mdx',
-    overviewLink: '[Anthropic](/providers/ai-sdk-providers/anthropic)',
+    overview: {
+      link: '[Anthropic](/providers/ai-sdk-providers/anthropic)',
+      catalog: 'anthropicLanguageModelCatalog',
+    },
     tables: [
       {
         id: 'anthropic-language',
-        capability: 'language',
+        catalog: 'anthropicLanguageModelCatalog',
         columns: [
-          ['Image Input', 'inputs.image'],
-          ['Object Generation', 'objectGeneration'],
-          ['Tool Usage', 'tools.usage'],
-          ['Computer Use', 'tools.computerUse'],
-          ['Web Search', 'tools.webSearch'],
-          ['Tool Search', 'tools.toolSearch'],
-          ['Compaction', 'compaction'],
+          ['Image Input', model => formatSupport(model.inputs.image)],
+          ['Object Generation', model => formatSupport(model.objectGeneration)],
+          ['Tool Usage', model => formatSupport(model.tools.usage)],
+          ['Computer Use', model => formatSupport(model.tools.computerUse)],
+          ['Web Search', model => formatSupport(model.tools.webSearch)],
+          ['Tool Search', model => formatSupport(model.tools.toolSearch)],
+          ['Compaction', model => formatSupport(model.compaction)],
         ],
       },
     ],
   },
   {
     catalogPath: 'packages/google/src/google-model-catalog.ts',
-    catalogExport: 'googleModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/15-google.mdx',
-    overviewLink: '[Google](/providers/ai-sdk-providers/google)',
+    overview: {
+      link: '[Google](/providers/ai-sdk-providers/google)',
+      catalog: 'googleLanguageModelCatalog',
+    },
     tables: [
       {
         id: 'google-language',
-        capability: 'language',
+        catalog: 'googleLanguageModelCatalog',
         columns: [
-          ['Image Input', 'inputs.image'],
-          ['Object Generation', 'objectGeneration'],
-          ['Tool Usage', 'tools.usage'],
-          ['Tool Streaming', 'tools.streaming'],
-          ['Google Search', 'tools.googleSearch'],
-          ['URL Context', 'tools.urlContext'],
+          ['Image Input', model => formatSupport(model.inputs.image)],
+          ['Object Generation', model => formatSupport(model.objectGeneration)],
+          ['Tool Usage', model => formatSupport(model.tools.usage)],
+          ['Tool Streaming', model => formatSupport(model.tools.streaming)],
+          ['Google Search', model => formatSupport(model.tools.googleSearch)],
+          ['URL Context', model => formatSupport(model.tools.urlContext)],
         ],
       },
     ],
   },
 ];
 
-function formatOptionalSupport(value) {
-  return formatSupport(value ?? 'unknown');
+function formatOpenAISamplingSupport(model) {
+  if (model.reasoning == null) return formatSupport(true);
+  return model.reasoning.samplingWithEffortNone
+    ? 'Conditional: Only when reasoning effort is none.'
+    : formatSupport(false);
 }

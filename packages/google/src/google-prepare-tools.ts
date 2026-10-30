@@ -4,7 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { GoogleModelId } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getModelCapabilities } from '@ai-sdk/provider-utils';
+import { googleLanguageModelCatalog } from './google-model-catalog';
 
 type FunctionTool = Extract<
   NonNullable<LanguageModelV4CallOptions['tools']>[number],
@@ -53,8 +54,12 @@ export function prepareTools({
 
   const toolWarnings: SharedV4Warning[] = [];
 
-  const { supportsGemini2Tools, supportsFileSearch, usesGemini3Features } =
-    getGoogleModelCapabilities(modelId);
+  const {
+    providerTools: supportsProviderTools,
+    fileSearch: supportsFileSearch,
+    mixed: supportsMixedTools,
+  } = getModelCapabilities(googleLanguageModelCatalog, modelId).capabilities
+    .tools;
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -64,7 +69,7 @@ export function prepareTools({
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
   const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderTools && !usesGemini3Features) {
+  if (hasFunctionTools && hasProviderTools && !supportsMixedTools) {
     toolWarnings.push({
       type: 'unsupported',
       feature: `combination of function and provider-defined tools`,
@@ -78,48 +83,46 @@ export function prepareTools({
     ProviderTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ googleSearch: { ...tool.args } });
           } else {
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details: 'Google Search requires Gemini 2.0 or newer.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
         case 'google.enterprise_web_search':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ enterpriseWebSearch: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details: 'Enterprise Web Search requires Gemini 2.0 or newer.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
         case 'google.url_context':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'The URL context tool is not supported with other Gemini models than Gemini 2.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
         case 'google.code_execution':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'The code execution tool is not supported with other Gemini models than Gemini 2.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
@@ -130,13 +133,12 @@ export function prepareTools({
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'The file search tool is only supported with Gemini 2.5 models and Gemini 3 models.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
         case 'google.vertex_rag_store':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({
               retrieval: {
                 vertex_rag_store: {
@@ -151,20 +153,18 @@ export function prepareTools({
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'The RAG store tool is not supported with other Gemini models than Gemini 2.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
         case 'google.google_maps':
-          if (supportsGemini2Tools) {
+          if (supportsProviderTools) {
             googleTools.push({ googleMaps: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.',
+              details: `${modelId} does not support this tool.`,
             });
           }
           break;
@@ -177,7 +177,7 @@ export function prepareTools({
       }
     });
 
-    if (hasFunctionTools && usesGemini3Features && googleTools.length > 0) {
+    if (hasFunctionTools && supportsMixedTools && googleTools.length > 0) {
       const functionDeclarations: GoogleFunctionDeclaration[] = [];
       for (const tool of tools) {
         if (tool.type === 'function') {

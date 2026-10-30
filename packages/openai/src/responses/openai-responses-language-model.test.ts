@@ -15,12 +15,13 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
+import { getModelCapabilities } from '@ai-sdk/provider-utils';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { openaiLanguageModelCatalog } from '../openai-model-catalog';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
-  openaiResponsesReasoningModelIds,
   type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-language-model-options';
 import type { OpenaiResponsesTextProviderMetadata } from './openai-responses-provider-metadata';
@@ -218,11 +219,14 @@ const CLIENT_TOOL_SEARCH_TOOLS: Array<
   },
 ];
 
-const nonReasoningModelIds = openaiResponsesModelIds.filter(
+const reasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
-    !openaiResponsesReasoningModelIds.includes(
-      modelId as (typeof openaiResponsesReasoningModelIds)[number],
-    ),
+    getModelCapabilities(openaiLanguageModelCatalog, modelId).capabilities
+      .reasoning != null,
+);
+
+const nonReasoningModelIds = openaiResponsesModelIds.filter(
+  modelId => !reasoningModelIds.includes(modelId),
 );
 
 function createModel(
@@ -637,7 +641,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
-      it.each(openaiResponsesReasoningModelIds)(
+      it.each(reasoningModelIds)(
         'should remove and warn about unsupported settings for reasoning model %s',
         async modelId => {
           const { warnings } = await createModel(modelId).doGenerate({
@@ -1205,7 +1209,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it.each(openaiResponsesReasoningModelIds)(
+      it.each(reasoningModelIds)(
         'should send reasoningEffort and reasoningSummary provider options for %s',
         async modelId => {
           const { warnings } = await createModel(modelId).doGenerate({
@@ -1265,6 +1269,66 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send reasoning options for unknown model IDs without adding defaults', async () => {
+        const { warnings } = await createModel('custom-model').doGenerate({
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            ...TEST_PROMPT,
+          ],
+          reasoning: 'high',
+          temperature: 0.5,
+          providerOptions: {
+            openai: {
+              reasoningMode: 'pro',
+              serviceTier: 'flex',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'custom-model',
+          input: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          temperature: 0.5,
+          service_tier: 'flex',
+          reasoning: {
+            effort: 'high',
+            mode: 'pro',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should omit reasoning options when reasoning is disabled with forceReasoning', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              forceReasoning: false,
+              reasoningEffort: 'low',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning,
+        ).toBeUndefined();
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'reasoningEffort',
+            details:
+              'reasoningEffort is not supported for non-reasoning models',
+          },
+        ]);
       });
 
       it('should send xhigh reasoningEffort for codex-max model', async () => {
@@ -2150,8 +2214,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
-            details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+            details: 'reasoningEffortUpdate is not supported by gpt-5.6',
           },
         ]);
       });
@@ -2225,7 +2288,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'promptCacheRetention',
             details:
-              'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+              'promptCacheRetention is not supported by gpt-6-astra; use promptCacheOptions instead',
           },
         ]);
       });
@@ -2290,8 +2353,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             type: 'unsupported',
             feature: 'serviceTier',
-            details:
-              'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+            details: 'priority processing is not available for gpt-5-nano',
           },
         ]);
       });
@@ -3576,7 +3638,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should gate async tools to GPT-6 and later models', async () => {
+      it('should gate async tools to models that support them', async () => {
         const asyncTools: Array<LanguageModelV4FunctionTool> = [
           {
             ...TEST_TOOLS[0],
@@ -3598,8 +3660,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(unsupportedResult.warnings).toContainEqual({
           type: 'unsupported',
           feature: 'async tool calling for "weather"',
-          details:
-            'Async tool calling is only supported by GPT-6 and later models.',
+          details: 'The model does not support async tool calling.',
         });
 
         await createModel('gpt-99').doGenerate({

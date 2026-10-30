@@ -29,12 +29,13 @@ import {
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  getModelCapabilities,
   type FetchFunction,
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import {
-  getModelCapabilities,
+  anthropicLanguageModelCatalog,
   sanitizeJsonSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
@@ -183,14 +184,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     const {
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      rejectsSamplingParameters,
-      rejectsForcedToolUse,
-      rejectsThinkingDisabled,
-      rejectsThinkingDisabledAboveHighEffort,
-      supportsBetweenToolsThinking,
+      capabilities: {
+        structuredOutput: modelSupportsStructuredOutput,
+        samplingParameters,
+        forcedToolUse,
+        reasoning: claudeReasoning,
+      },
       isKnownModel,
-    } = getModelCapabilities(this.modelId);
+    } = getModelCapabilities(anthropicLanguageModelCatalog, this.modelId);
+    const rejectsForcedToolUse = !forcedToolUse;
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -213,7 +215,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (rejectsSamplingParameters) {
+    if (!samplingParameters) {
       if (temperature != null) {
         warnings.push({
           type: 'unsupported',
@@ -318,8 +320,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       ) {
         // Claude 3.5 and earlier do not accept a thinking field, even disabled.
         thinkingType = undefined;
-      } else if (rejectsThinkingDisabled) {
-        thinkingType = supportsBetweenToolsThinking
+      } else if (claudeReasoning.disabled === 'unsupported') {
+        thinkingType = claudeReasoning.betweenTools
           ? 'between_tools'
           : 'adaptive';
 
@@ -353,7 +355,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
       if (
         ((thinkingType === 'disabled' &&
-          rejectsThinkingDisabledAboveHighEffort) ||
+          claudeReasoning.disabled === 'up-to-high-effort') ||
           thinkingType === 'between_tools') &&
         (effort === 'xhigh' || effort === 'max')
       ) {
@@ -1793,18 +1795,22 @@ function resolveAmazonBedrockReasoningConfig({
     isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
 
   if (isAnthropicModel) {
-    const capabilities = getModelCapabilities(modelId);
+    const { capabilities } = getModelCapabilities(
+      anthropicLanguageModelCatalog,
+      modelId,
+    );
+    const adaptiveEfforts = capabilities.reasoning.efforts;
 
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
-    } else if (capabilities.supportsAdaptiveThinking) {
+    } else if (adaptiveEfforts != null) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
             ...amazonBedrockReasoningEffortMap,
-            ...(capabilities.supportsXhighEffort && {
+            ...(adaptiveEfforts.includes('xhigh') && {
               xhigh: 'xhigh' as const,
             }),
           },

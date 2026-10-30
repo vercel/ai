@@ -2397,7 +2397,7 @@ describe('doGenerate', () => {
         type: 'unsupported',
         feature: 'promptCacheRetention',
         details:
-          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+          'promptCacheRetention is not supported by gpt-6-astra; use promptCacheOptions instead',
       },
     ]);
   });
@@ -2438,7 +2438,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "temperature is not supported for the search preview models and has been removed.",
+          "details": "temperature is not supported by gpt-4o-search-preview and has been removed.",
           "feature": "temperature",
           "type": "unsupported",
         },
@@ -2463,7 +2463,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "temperature is not supported for the search preview models and has been removed.",
+          "details": "temperature is not supported by gpt-4o-mini-search-preview and has been removed.",
           "feature": "temperature",
           "type": "unsupported",
         },
@@ -2488,7 +2488,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "temperature is not supported for the search preview models and has been removed.",
+          "details": "temperature is not supported by gpt-4o-mini-search-preview-2025-03-11 and has been removed.",
           "feature": "temperature",
           "type": "unsupported",
         },
@@ -2544,7 +2544,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "flex processing is only available for o3, o4-mini, and gpt-5 models",
+          "details": "flex processing is not available for gpt-4o-mini",
           "feature": "serviceTier",
           "type": "unsupported",
         },
@@ -2619,7 +2619,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "details": "priority processing is not available for gpt-3.5-turbo",
           "feature": "serviceTier",
           "type": "unsupported",
         },
@@ -2713,7 +2713,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "details": "priority processing is not available for gpt-3.5-turbo",
           "feature": "serviceTier",
           "type": "unsupported",
         },

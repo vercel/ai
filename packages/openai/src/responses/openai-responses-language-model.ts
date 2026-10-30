@@ -23,6 +23,7 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
+  getModelCapabilities,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -37,7 +38,10 @@ import {
   type OpenAIConfig,
 } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
+import {
+  getOpenAIReasoningCapabilities,
+  openaiLanguageModelCatalog,
+} from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -222,14 +226,16 @@ export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
  * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
  */
 function getConfigurationUpdateUnsupportedReason({
+  modelId,
   modelCapabilities,
   options,
 }: {
+  modelId: string;
   modelCapabilities: { configurationUpdates: boolean };
   options: OpenAILanguageModelResponsesOptions | undefined;
 }): string | undefined {
   if (!modelCapabilities.configurationUpdates) {
-    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+    return `reasoningEffortUpdate is not supported by ${modelId}`;
   }
 
   if (
@@ -303,10 +309,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions;
   }) {
     const warnings: SharedV4Warning[] = [];
-    const {
-      capabilities: { language: modelCapabilities },
-      requestConfig: { language: modelRequestConfig },
-    } = getOpenAILanguageModelEntry(modelId);
+    const { capabilities: modelCapabilities } = getModelCapabilities(
+      openaiLanguageModelCatalog,
+      modelId,
+    );
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -348,20 +354,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
       providerReasoningEffort: openaiOptions?.reasoningEffort,
       reasoning,
-      supportedReasoningEfforts: modelCapabilities.reasoning.efforts,
+      supportedReasoningEfforts: modelCapabilities.reasoning?.efforts,
       warnings,
     });
+
+    const reasoningCapabilities = getOpenAIReasoningCapabilities(
+      modelCapabilities,
+      openaiOptions?.forceReasoning,
+    );
+    const isReasoningModel = reasoningCapabilities != null;
+
+    // Unknown models accept reasoning options without being treated as
+    // reasoning models, unless reasoning is disabled with `forceReasoning`.
+    const sendsReasoningOptions =
+      isReasoningModel ||
+      (openaiOptions?.forceReasoning !== false &&
+        modelCapabilities.reasoningOptions);
 
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
         ? openaiOptions.reasoningSummary
-        : resolvedReasoningEffort != null && resolvedReasoningEffort !== 'none'
+        : isReasoningModel &&
+            resolvedReasoningEffort != null &&
+            resolvedReasoningEffort !== 'none'
           ? 'detailed'
           : undefined;
-
-    const isReasoningModel =
-      openaiOptions?.forceReasoning ??
-      modelCapabilities.reasoning.support === true;
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
@@ -405,12 +422,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       customProviderToolNames,
       outputSchemaToolNames,
-      supportsAsyncToolCalling: modelCapabilities.tools.async,
+      supportsAsyncToolCalling: modelCapabilities.asyncToolCalling,
       providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
       getConfigurationUpdateUnsupportedReason({
+        modelId,
         modelCapabilities,
         options: openaiOptions,
       });
@@ -423,7 +441,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           openaiOptions?.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelRequestConfig.systemMessageMode),
+            : modelCapabilities.systemMessageRole),
         providerOptionsName,
         configurationUpdateUnsupportedReason,
         explicitMessageItemType: config.explicitMessageItemType,
@@ -451,7 +469,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
-    const supportedReasoningEfforts = modelCapabilities.reasoning.efforts;
+    const supportedReasoningEfforts = modelCapabilities.reasoning?.efforts;
     const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
       effort != null && supportedReasoningEfforts?.includes(effort) === false
         ? `${modelId} only supports the following reasoning efforts: ${supportedReasoningEfforts.join(', ')}`
@@ -645,7 +663,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       }),
 
       // model-specific settings:
-      ...(isReasoningModel &&
+      ...(sendsReasoningOptions &&
         (resolvedReasoningEffort != null ||
           resolvedReasoningSummary != null ||
           openaiOptions?.reasoningMode != null ||
@@ -675,14 +693,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'promptCacheRetention',
-        details:
-          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+        details: `promptCacheRetention is not supported by ${modelId}; use promptCacheOptions instead`,
       });
     }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
-    if (isReasoningModel) {
+    if (reasoningCapabilities != null) {
       // Input updates change the effort used to validate sampling parameters.
       let effectiveReasoningEffort = resolvedReasoningEffort;
       for (const item of input) {
@@ -696,7 +713,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       if (
         !(
           effectiveReasoningEffort === 'none' &&
-          modelCapabilities.reasoning.sampling === 'reasoning-effort-none'
+          reasoningCapabilities.samplingWithEffortNone
         )
       ) {
         if (baseArgs.temperature != null) {
@@ -718,7 +735,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         if (
-          modelCapabilities.endpoints.responses.logprobsRequireNonReasoning &&
+          !reasoningCapabilities.logprobs &&
           (baseArgs.top_logprobs != null ||
             baseArgs.include?.includes('message.output_text.logprobs'))
         ) {
@@ -737,7 +754,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           });
         }
       }
-    } else {
+    } else if (!sendsReasoningOptions) {
       if (openaiOptions?.reasoningEffort != null) {
         warnings.push({
           type: 'unsupported',
@@ -779,8 +796,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'serviceTier',
-        details:
-          'flex processing is only available for o3, o4-mini, and gpt-5 models',
+        details: `flex processing is not available for ${modelId}`,
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
@@ -795,8 +811,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'serviceTier',
-        details:
-          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+        details: `priority processing is not available for ${modelId}`,
       });
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;

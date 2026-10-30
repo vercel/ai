@@ -193,7 +193,7 @@ it('should add warnings for file search on unsupported models', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "details": "The file search tool is only supported with Gemini 2.5 models and Gemini 3 models.",
+        "details": "gemini-1.5-flash-8b does not support this tool.",
         "feature": "provider-defined tool google.file_search",
         "type": "unsupported",
       },
@@ -903,7 +903,7 @@ it('should add warnings for google search on unsupported models', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "details": "Google Search requires Gemini 2.0 or newer.",
+        "details": "gemini-1.5-flash does not support this tool.",
         "feature": "provider-defined tool google.google_search",
         "type": "unsupported",
       },
@@ -927,7 +927,7 @@ it('should add warnings for google maps on unsupported models', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "details": "The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.",
+        "details": "gemini-1.5-flash does not support this tool.",
         "feature": "provider-defined tool google.google_maps",
         "type": "unsupported",
       },

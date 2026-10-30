@@ -4,9 +4,10 @@ import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeModelV4 as RealtimeModelV4,
 } from '@ai-sdk/provider';
+import { getModelCapabilities } from '@ai-sdk/provider-utils';
 import { OpenAIRealtimeModelLive } from '../live/openai-realtime-model-live';
 import {
-  getOpenAIRealtimeModelEntry,
+  openaiRealtimeModelCatalog,
   type OpenAIKnownLiveModelId,
 } from '../openai-model-catalog';
 import {
@@ -48,7 +49,8 @@ function resolveRealtimeApi(
     return api;
   }
 
-  return getOpenAIRealtimeModelEntry(modelId).requestConfig.realtime.api;
+  return getModelCapabilities(openaiRealtimeModelCatalog, modelId).capabilities
+    .api;
 }
 
 export function createOpenAIRealtimeFactory(

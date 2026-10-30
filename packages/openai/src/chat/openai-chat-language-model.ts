@@ -18,6 +18,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  getModelCapabilities,
   isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
@@ -28,7 +29,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
+import {
+  getOpenAIReasoningCapabilities,
+  openaiLanguageModelCatalog,
+} from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -122,15 +126,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
-    const {
-      capabilities: { language: modelCapabilities },
-      requestConfig: { language: modelRequestConfig },
-    } = getOpenAILanguageModelEntry(this.modelId);
+    const { capabilities: modelCapabilities } = getModelCapabilities(
+      openaiLanguageModelCatalog,
+      this.modelId,
+    );
 
     // Some models reject function tools unless reasoning is disabled, even
     // when no reasoning effort is sent, so reasoning is set to 'none'.
     const requiresNoReasoningEffort =
-      !modelCapabilities.endpoints.chat.functionToolsWithReasoning &&
+      !modelCapabilities.chat.functionToolsWithReasoning &&
       openaiOptions.reasoningEffort == null &&
       (tools?.some(tool => tool.type === 'function') ?? false);
 
@@ -153,15 +157,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           reasoning,
           // Only the Responses API supports `max`.
           supportedReasoningEfforts:
-            modelCapabilities.reasoning.efforts?.filter(
+            modelCapabilities.reasoning?.efforts?.filter(
               effort => effort !== 'max',
             ),
           warnings,
         });
 
-    const isReasoningModel =
-      openaiOptions.forceReasoning ??
-      modelCapabilities.reasoning.support === true;
+    const reasoningCapabilities = getOpenAIReasoningCapabilities(
+      modelCapabilities,
+      openaiOptions.forceReasoning,
+    );
+    const isReasoningModel = reasoningCapabilities != null;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -185,7 +191,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelRequestConfig.systemMessageMode),
+            : modelCapabilities.systemMessageRole),
       },
     );
 
@@ -272,19 +278,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'promptCacheRetention',
-        details:
-          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+        details: `promptCacheRetention is not supported by ${this.modelId}; use promptCacheOptions instead`,
       });
     }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
-    if (isReasoningModel) {
+    if (reasoningCapabilities != null) {
       // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         resolvedReasoningEffort !== 'none' ||
-        modelCapabilities.reasoning.sampling !== 'reasoning-effort-none'
+        !reasoningCapabilities.samplingWithEffortNone
       ) {
         if (baseArgs.temperature != null) {
           baseArgs.temperature = undefined;
@@ -350,14 +355,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (!modelCapabilities.endpoints.chat.temperatureWithoutReasoning) {
+    } else if (!modelCapabilities.chat.temperature) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported',
           feature: 'temperature',
-          details:
-            'temperature is not supported for the search preview models and has been removed.',
+          details: `temperature is not supported by ${this.modelId} and has been removed.`,
         });
       }
     }
@@ -370,8 +374,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'serviceTier',
-        details:
-          'flex processing is only available for o3, o4-mini, and gpt-5 models',
+        details: `flex processing is not available for ${this.modelId}`,
       });
       baseArgs.service_tier = undefined;
     }
@@ -385,8 +388,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'serviceTier',
-        details:
-          'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
+        details: `priority processing is not available for ${this.modelId}`,
       });
       baseArgs.service_tier = undefined;
     }

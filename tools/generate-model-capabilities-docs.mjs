@@ -27,12 +27,12 @@ const [overviewSource, providerDocs] = await Promise.all([
 ]);
 
 let overviewContent = overviewSource;
-for (const { overviewLink, entries } of providerDocs) {
-  if (overviewLink != null) {
+for (const { overview } of providerDocs) {
+  if (overview != null) {
     overviewContent = replaceOverviewRows(
       overviewContent,
-      overviewLink,
-      entries,
+      overview.link,
+      overview.catalog,
     );
   }
 }
@@ -63,29 +63,36 @@ if (check && updates.length > 0) {
 
 async function generateProviderDocs({
   catalogPath,
-  catalogExport,
   docsPath,
-  overviewLink,
+  overview,
   tables,
 }) {
   const [module, source] = await Promise.all([
     loadCatalog(new URL(catalogPath, repoRoot)),
     readFile(new URL(docsPath, repoRoot), 'utf8'),
   ]);
-  const catalog = module[catalogExport];
-  if (catalog == null) {
-    throw new Error(
-      `Missing catalog export ${catalogExport} in ${catalogPath}`,
-    );
-  }
-  const entries = Object.entries(catalog);
+  const getCatalog = name => {
+    const catalog = module[name];
+    if (catalog?.knownModels == null) {
+      throw new Error(`Missing catalog export ${name} in ${catalogPath}`);
+    }
+    return catalog;
+  };
   let content = source;
   for (const table of tables) {
     content = replaceGeneratedTable(
       content,
       table.id,
-      renderCapabilityTable(entries, table),
+      renderCapabilityTable(getCatalog(table.catalog), table.columns),
     );
   }
-  return { path: docsPath, source, content, overviewLink, entries };
+  return {
+    path: docsPath,
+    source,
+    content,
+    overview:
+      overview == null
+        ? undefined
+        : { link: overview.link, catalog: getCatalog(overview.catalog) },
+  };
 }

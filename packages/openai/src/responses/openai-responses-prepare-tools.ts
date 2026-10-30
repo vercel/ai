@@ -712,7 +712,7 @@ function resolveAsyncToolOption({
   toolWarnings.push({
     type: 'unsupported',
     feature: `async tool calling for "${toolName}"`,
-    details: 'Async tool calling is only supported by GPT-6 and later models.',
+    details: 'The model does not support async tool calling.',
   });
 }
 

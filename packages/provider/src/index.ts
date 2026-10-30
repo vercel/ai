@@ -9,14 +9,6 @@ export * from './json-value/index';
 export * from './language-model-middleware/index';
 export * from './embedding-model-middleware/index';
 export * from './language-model/index';
-export type {
-  ModelCapabilities,
-  ModelCapability,
-  ModelEntry,
-  ModelProviderOptions,
-  ProviderOptionDefinition,
-  ProviderOptionDefinitions,
-} from './model-capabilities';
 export * from './provider/index';
 export * from './realtime-model/v4/index';
 export * from './reranking-model/index';

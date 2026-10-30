@@ -4160,7 +4160,7 @@ describe('doGenerate', () => {
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
-            "details": "Google Search requires Gemini 2.0 or newer.",
+            "details": "gemini-1.0-pro does not support this tool.",
             "feature": "provider-defined tool google.google_search",
             "type": "unsupported",
           },
@@ -8211,7 +8211,7 @@ describe('doStream', () => {
           "type": "stream-start",
           "warnings": [
             {
-              "details": "Google Search requires Gemini 2.0 or newer.",
+              "details": "gemini-1.0-pro does not support this tool.",
               "feature": "provider-defined tool google.google_search",
               "type": "unsupported",
             },

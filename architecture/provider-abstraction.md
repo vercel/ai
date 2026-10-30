@@ -3,8 +3,8 @@
 This document explains how AI functions, model specifications, and provider implementations connect in the AI SDK.
 It starts with an abstract high-level view and then details each V4 model type, including the AI functions that use it and small UML diagrams.
 
-See [Model capabilities](model-capabilities.md) for the shared metadata contract
-and provider profiles that drive runtime behavior and generated documentation.
+See [Model capabilities](model-capabilities.md) for the model catalogs
+that drive runtime behavior and generated documentation.
 
 ## High-Level Architecture
 

@@ -10,6 +10,7 @@ import {
   convertToFormData,
   createJsonResponseHandler,
   downloadBlob,
+  getModelCapabilities,
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
@@ -19,11 +20,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAIImageModelEntry } from '../openai-model-catalog';
+import {
+  openaiImageModelCatalog,
+  type OpenAIImageModelCapabilities,
+} from '../openai-model-catalog';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
-  getMaxImagesPerCall,
-  hasDefaultResponseFormat,
   openaiImageModelEditOptions,
   openaiImageModelGenerationOptions,
   type OpenAIImageModelEditOptions,
@@ -56,8 +58,13 @@ export class OpenAIImageModel implements ImageModelV4 {
     return new OpenAIImageModel(options.modelId, options.config);
   }
 
+  private get capabilities(): OpenAIImageModelCapabilities {
+    return getModelCapabilities(openaiImageModelCatalog, this.modelId)
+      .capabilities;
+  }
+
   get maxImagesPerCall(): number {
-    return getMaxImagesPerCall(this.modelId);
+    return this.capabilities.maxImagesPerCall;
   }
 
   get supportsFileInputs(): boolean | undefined {
@@ -65,9 +72,7 @@ export class OpenAIImageModel implements ImageModelV4 {
       return this.config.imageInputCapabilities.supportsFileInputs;
     }
 
-    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
-      .fileInput;
-    return typeof support === 'boolean' ? support : undefined;
+    return this.capabilities.fileInput;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -75,9 +80,7 @@ export class OpenAIImageModel implements ImageModelV4 {
       return this.config.imageInputCapabilities.supportsMaskInputs;
     }
 
-    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
-      .maskInput;
-    return typeof support === 'boolean' ? support : undefined;
+    return this.capabilities.maskInput;
   }
 
   get provider(): string {
@@ -236,9 +239,7 @@ export class OpenAIImageModel implements ImageModelV4 {
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
         user: openaiOptions.user,
-        ...(!hasDefaultResponseFormat(this.modelId)
-          ? { response_format: 'b64_json' }
-          : {}),
+        response_format: this.capabilities.responseFormat,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
