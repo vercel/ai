@@ -96,11 +96,16 @@ pnpm discover-guidelines --paths 'packages/*/README.md' --paths 'packages/*/tsco
 
 # Gets the list of guideline files that apply to any files currently staged in git
 pnpm discover-guidelines --staged
+
+# Gets the list of guideline files that apply to any modified non-ignored files, whether staged, tracked, or neither
+pnpm discover-guidelines --modified
 ```
+
+Use `--modified` to select staged and unstaged tracked changes, plus untracked files not ignored by Git. Use only one of `--paths`, `--staged`, or `--modified`. Only `--paths` may be repeated; repeated `--staged` or `--modified` flags are errors.
 
 If any guideline files are returned from the command, read their contents to learn about the guidelines to follow.
 
-Many guideline files are accompanied by matching verifier scripts in `.agents/verifiers`. Run `pnpm run-verifiers` with the same `--paths` or `--staged` flags that `pnpm discover-guidelines` accepts to deterministically check whether the given files satisfy the guidelines. Verifiers aren't necessarily comprehensive; but when they flag something, it is a clear guideline violation.
+Many guideline files are accompanied by matching verifier scripts in `.agents/verifiers`. Run `pnpm run-verifiers` with the same `--paths`, `--staged`, or `--modified` flags that `pnpm discover-guidelines` accepts to deterministically check whether the given files satisfy the guidelines. Verifiers aren't necessarily comprehensive; but when they flag something, it is a clear guideline violation.
 
 ### Running Examples
 

@@ -17,10 +17,23 @@ export function getInputFiles({
     options: {
       paths: { type: 'string', multiple: true },
       staged: { type: 'boolean' },
+      modified: { type: 'boolean' },
     },
     allowPositionals: true,
     tokens: true,
   });
+  const selectionFlags = new Set<string>();
+  for (const token of tokens) {
+    if (token.kind !== 'option') continue;
+    if (token.name !== 'paths' && selectionFlags.has(token.name)) {
+      throw new Error(`--${token.name} may only be provided once.`);
+    }
+    selectionFlags.add(token.name);
+  }
+  if (selectionFlags.size > 1) {
+    throw new Error('Use only one of --paths, --staged, or --modified.');
+  }
+
   const paths: string[] = [];
   let acceptingPaths = false;
   for (const token of tokens) {
@@ -34,9 +47,9 @@ export function getInputFiles({
     }
   }
 
-  if (paths.length === 0 && !values.staged) {
+  if (paths.length === 0 && !values.staged && !values.modified) {
     if (defaultPaths.length === 0) {
-      throw new Error('Pass --paths <path> ... or --staged.');
+      throw new Error('Pass --paths <path> ... or --staged or --modified.');
     }
     paths.push(...defaultPaths);
   }
@@ -61,6 +74,21 @@ export function getInputFiles({
     files = [...new Set(globSync(patterns, { cwd: repoRoot }))].filter(file =>
       statSync(resolve(repoRoot, file), { throwIfNoEntry: false })?.isFile(),
     );
+  } else if (values.modified) {
+    const commands = [
+      ['diff', '--staged', '--name-only', '-z'],
+      ['diff', '--name-only', '-z'],
+      ['ls-files', '--others', '--exclude-standard', '-z'],
+    ];
+    files = [
+      ...new Set(
+        commands.flatMap(args =>
+          execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' })
+            .split('\0')
+            .filter(file => file.length > 0),
+        ),
+      ),
+    ];
   } else if (values.staged) {
     files = execFileSync('git', ['diff', '--staged', '--name-only', '-z'], {
       cwd: repoRoot,

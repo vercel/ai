@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import childProcess from 'node:child_process';
-import {
+import fs, {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
@@ -40,6 +40,10 @@ async function createFixture({
     'file.ts',
     'guideline.ts',
     '../package.json',
+    '../utils.ts',
+    '../../discover-guidelines.mts',
+    '../../run-verifiers.mts',
+    '../../../.agents/verifiers/package.json',
   ]) {
     const target = join(root, 'tools/verifiers/internal', name);
     mkdirSync(dirname(target), { recursive: true });
@@ -73,7 +77,23 @@ async function createFixture({
   } = await import(
     pathToFileURL(join(root, 'tools/verifiers/internal/discovery.ts')).href
   );
-  return { root, ...discovery };
+  return {
+    root,
+    ...discovery,
+    runCli({
+      script,
+      args = [],
+    }: {
+      script: 'discover-guidelines' | 'run-verifiers';
+      args?: string[];
+    }) {
+      return childProcess.spawnSync(
+        process.execPath,
+        [join(root, `tools/${script}.mts`), ...args],
+        { cwd: tmpdir(), encoding: 'utf8' },
+      );
+    },
+  };
 }
 
 test('discovers guidelines and their individual files from variadic globs and directory prefixes', async context => {
@@ -100,13 +120,13 @@ test('discovers guidelines and their individual files from variadic globs and di
   ]);
 });
 
-test('repeated paths are deduplicated and override staged discovery', async context => {
+test('repeated and variadic paths are deduplicated without invoking Git', async context => {
   const { getInputFiles } = await createFixture({
     context,
     args: [
-      '--staged',
       '--paths',
       'packages/example/README.md',
+      'packages/example/src',
       '--paths',
       'packages/example/README.md',
     ],
@@ -116,12 +136,74 @@ test('repeated paths are deduplicated and override staged discovery', async cont
   });
   syncBuiltinESMExports();
   try {
-    assert.deepEqual(getInputFiles(), ['packages/example/README.md']);
+    assert.deepEqual(getInputFiles(), [
+      'packages/example/README.md',
+      'packages/example/src/index.ts',
+    ]);
+    assert.equal(git.mock.callCount(), 0);
   } finally {
     git.mock.restore();
     syncBuiltinESMExports();
   }
 });
+
+for (const args of [
+  ['--paths', 'packages', '--staged'],
+  ['--staged', '--paths', 'packages'],
+  ['--paths', 'packages', '--modified'],
+  ['--modified', '--paths', 'packages'],
+  ['--staged', '--modified'],
+  ['--modified', '--staged'],
+  ['--paths', 'packages', '--staged', '--modified'],
+]) {
+  test(`rejects mixed selection flags before discovery ${JSON.stringify(args)}`, async context => {
+    const { getInputFiles, runCli } = await createFixture({ context, args });
+    const git = context.mock.method(childProcess, 'execFileSync', () => {
+      throw new Error('Git must not be invoked');
+    });
+    const glob = context.mock.method(fs, 'globSync', () => {
+      throw new Error('Globs must not be expanded');
+    });
+    syncBuiltinESMExports();
+    try {
+      assert.throws(getInputFiles, {
+        message: 'Use only one of --paths, --staged, or --modified.',
+      });
+      assert.equal(git.mock.callCount(), 0);
+      assert.equal(glob.mock.callCount(), 0);
+      for (const script of ['discover-guidelines', 'run-verifiers'] as const) {
+        const result = runCli({ script, args });
+        assert.equal(result.status, 1, result.stderr);
+        assert.equal(result.stdout, '');
+        assert.match(
+          result.stderr,
+          /Use only one of --paths, --staged, or --modified\./,
+        );
+      }
+    } finally {
+      git.mock.restore();
+      glob.mock.restore();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+for (const flag of ['--staged', '--modified']) {
+  test(`rejects repeated ${flag} flags`, async context => {
+    const args = [flag, flag];
+    const { getInputFiles, runCli } = await createFixture({ context, args });
+
+    assert.throws(getInputFiles, {
+      message: `${flag} may only be provided once.`,
+    });
+    for (const script of ['discover-guidelines', 'run-verifiers'] as const) {
+      const result = runCli({ script, args });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '');
+      assert.ok(result.stderr.includes(`${flag} may only be provided once.`));
+    }
+  });
+}
 
 test('file discovery skips dangling symlinks', async context => {
   const { root, getInputFiles } = await createFixture({
@@ -200,6 +282,170 @@ test('staged discovery preserves deleted paths and filenames containing spaces',
   }
 });
 
+test('modified discovery combines staged, unstaged, and untracked paths without duplicates', async context => {
+  const { root, getInputFiles } = await createFixture({
+    context,
+    args: ['--modified'],
+  });
+  const commands = [
+    ['diff', '--staged', '--name-only', '-z'],
+    ['diff', '--name-only', '-z'],
+    ['ls-files', '--others', '--exclude-standard', '-z'],
+  ];
+  const staged = [
+    'packages/staged/README.md',
+    'packages/both/README.md',
+    'packages/deleted/README.md',
+    'packages/renamed/README.md',
+    'packages/ignored-but-tracked/README.md',
+  ];
+  const unstaged = [
+    'packages/unstaged/README.md',
+    'packages/both/README.md',
+    'packages/with spaces/README.md',
+    'packages/tab\tand\nnewline/日本語.ts',
+  ];
+  const untracked = ['packages/new/README.md', 'packages/new/src/index.ts'];
+  const outputs = [staged, unstaged, untracked];
+  let commandIndex = 0;
+  const git = context.mock.method(
+    childProcess,
+    'execFileSync',
+    (
+      ...[command, args, options]: [
+        string,
+        string[],
+        { cwd: string; encoding: string },
+      ]
+    ) => {
+      assert.equal(command, 'git');
+      assert.deepEqual(args, commands[commandIndex]);
+      assert.equal(realpathSync(options.cwd), realpathSync(root));
+      assert.equal(options.encoding, 'utf8');
+      return `${outputs[commandIndex++].join('\0')}\0`;
+    },
+  );
+  syncBuiltinESMExports();
+  try {
+    assert.deepEqual(getInputFiles(), [
+      ...staged,
+      'packages/unstaged/README.md',
+      'packages/with spaces/README.md',
+      'packages/tab\tand\nnewline/日本語.ts',
+      ...untracked,
+    ]);
+    assert.equal(git.mock.callCount(), 3);
+  } finally {
+    git.mock.restore();
+    syncBuiltinESMExports();
+  }
+});
+
+test('modified discovery does not fall back to default paths when no changes exist', async context => {
+  const { getInputFiles } = await createFixture({
+    context,
+    args: ['--modified'],
+  });
+  const git = context.mock.method(childProcess, 'execFileSync', () => '');
+  syncBuiltinESMExports();
+  try {
+    assert.deepEqual(getInputFiles(), []);
+    assert.deepEqual(
+      getInputFiles({ defaultPaths: ['packages/example/src'] }),
+      [],
+    );
+    assert.equal(git.mock.callCount(), 6);
+  } finally {
+    git.mock.restore();
+    syncBuiltinESMExports();
+  }
+});
+
+for (const failureIndex of [0, 1, 2]) {
+  test(`modified discovery propagates failure of Git command ${failureIndex + 1}`, async context => {
+    const { getInputFiles } = await createFixture({
+      context,
+      args: ['--modified'],
+    });
+    const error = new Error('Git failed');
+    let commandIndex = 0;
+    const git = context.mock.method(childProcess, 'execFileSync', () => {
+      if (commandIndex++ === failureIndex) throw error;
+      return '';
+    });
+    syncBuiltinESMExports();
+    try {
+      assert.throws(getInputFiles, actual => actual === error);
+      assert.equal(git.mock.callCount(), failureIndex + 1);
+    } finally {
+      git.mock.restore();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+test('both CLIs discover non-ignored untracked files using modified selection', async context => {
+  const { root, runCli } = await createFixture({ context });
+  childProcess.execFileSync('git', ['init', '--quiet', root]);
+  writeFileSync(
+    join(root, '.gitignore'),
+    'packages/example/src/\npackages/ignored/\n',
+  );
+  for (const name of ['new with spaces', 'ignored']) {
+    mkdirSync(join(root, `packages/${name}`), { recursive: true });
+    writeFileSync(join(root, `packages/${name}/README.md`), 'Example');
+  }
+  writeFileSync(
+    join(root, '.agents/verifiers/readme.ts'),
+    '#!/usr/bin/env node\nconsole.log(JSON.stringify(process.argv.slice(2)));\n',
+    { mode: 0o755 },
+  );
+
+  const discovery = runCli({
+    script: 'discover-guidelines',
+    args: ['--modified'],
+  });
+  assert.equal(discovery.status, 0, discovery.stderr);
+  assert.equal(discovery.stderr, '');
+  assert.equal(
+    discovery.stdout,
+    'Ensure you have read the following guidelines:\n' +
+      '- `.agents/guidelines/readme.md`\n',
+  );
+
+  const verification = runCli({
+    script: 'run-verifiers',
+    args: ['--modified'],
+  });
+  assert.equal(verification.status, 0, verification.stderr);
+  assert.equal(verification.stderr, '');
+  assert.equal(
+    verification.stdout,
+    `Verifier results:\n${JSON.stringify([
+      '--file',
+      'packages/example/README.md',
+      '--file',
+      'packages/new with spaces/README.md',
+    ])}\n`,
+  );
+});
+
+test('both CLIs report no applicable results for an empty modified selection', async context => {
+  const { root, runCli } = await createFixture({ context });
+  childProcess.execFileSync('git', ['init', '--quiet', root]);
+  writeFileSync(join(root, '.gitignore'), '*\n');
+
+  for (const [script, subject] of [
+    ['discover-guidelines', 'guidelines'],
+    ['run-verifiers', 'verifiers'],
+  ] as const) {
+    const result = runCli({ script, args: ['--modified'] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, '');
+    assert.equal(result.stdout, `No applicable ${subject} found.\n`);
+  }
+});
+
 for (const args of [
   ['--paths', 'unrelated.txt'],
   ['--paths', 'packages/excluded/README.md'],
@@ -222,6 +468,8 @@ for (const args of [
   ['--paths'],
   ['unexpected'],
   ['--unknown'],
+  ['--modified', 'unexpected'],
+  ['--modified=false'],
 ]) {
   test(`rejects invalid discovery arguments ${JSON.stringify(args)}`, async context => {
     const { getInputFiles } = await createFixture({ context, args });
@@ -253,4 +501,12 @@ test('matches explicitly supplied files independently of input arguments and fil
       },
     ],
   );
+});
+
+test('missing input errors list all supported selection modes', async context => {
+  const { getInputFiles } = await createFixture({ context });
+
+  assert.throws(getInputFiles, {
+    message: 'Pass --paths <path> ... or --staged or --modified.',
+  });
 });
