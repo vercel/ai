@@ -3,8 +3,30 @@ import type {
   RequestPermissionRequest,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
-import { describe, expect, it, vi } from 'vitest';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createACPPermissionController } from './permission-controller';
+import { areACPToolLocationsTrusted } from './permission-locations';
+
+let sandboxDir: string;
+let workDir: string;
+let otherWorkDir: string;
+
+beforeEach(async () => {
+  sandboxDir = await mkdtemp(path.join(tmpdir(), 'acp-permissions-'));
+  workDir = path.join(sandboxDir, 'session-1');
+  otherWorkDir = path.join(sandboxDir, 'session-2');
+  await mkdir(workDir);
+  await mkdir(otherWorkDir);
+  await writeFile(path.join(workDir, 'file.txt'), 'workspace');
+  await writeFile(path.join(otherWorkDir, 'file.txt'), 'other workspace');
+});
+
+afterEach(async () => {
+  await rm(sandboxDir, { recursive: true, force: true });
+});
 
 const options: RequestPermissionRequest['options'] = [
   { optionId: 'allow-always', name: 'Allow always', kind: 'allow_always' },
@@ -17,10 +39,12 @@ function permissionRequest({
   toolCallId,
   kind = 'execute',
   requestOptions = options,
+  toolCall = {},
 }: {
   toolCallId: string;
   kind?: ToolCallUpdate['kind'];
   requestOptions?: RequestPermissionRequest['options'];
+  toolCall?: Partial<ToolCallUpdate>;
 }): RequestPermissionRequest {
   return {
     sessionId: 'session-1',
@@ -29,6 +53,8 @@ function permissionRequest({
       kind,
       status: 'pending',
       rawInput: { command: 'pwd' },
+      locations: [{ path: path.join(workDir, 'file.txt') }],
+      ...toolCall,
     },
     options: [...requestOptions],
   };
@@ -79,6 +105,106 @@ function getApprovalId({ events }: { events: BridgeEvent[] }): string {
 }
 
 describe('ACP permission controller', () => {
+  describe('location resolution', () => {
+    beforeEach(async () => {
+      await mkdir(path.join(workDir, 'nested'));
+      await mkdir(path.join(otherWorkDir, 'nested'));
+      await symlink(otherWorkDir, path.join(workDir, 'external'), 'dir');
+      await symlink(
+        path.join(otherWorkDir, 'nested'),
+        path.join(workDir, 'external-nested'),
+        'dir',
+      );
+      await symlink(
+        path.join(workDir, 'nested'),
+        path.join(workDir, 'internal'),
+        'dir',
+      );
+      await symlink(
+        path.join(otherWorkDir, 'missing'),
+        path.join(workDir, 'dangling'),
+      );
+      await symlink('loop', path.join(workDir, 'loop'));
+    });
+
+    it.each([
+      { location: 'file.txt', trusted: true },
+      { location: './nested/../file.txt', trusted: true },
+      { location: '.', trusted: true },
+      { location: '..config', trusted: true },
+      { location: 'new/nested/file.txt', trusted: true },
+      { location: 'internal/new/file.txt', trusted: true },
+      { location: '../session-2/file.txt', trusted: false },
+      { location: '../session-1-other/file.txt', trusted: false },
+      { location: 'external/file.txt', trusted: false },
+      { location: 'external/new/file.txt', trusted: false },
+      { location: 'external-nested/../file.txt', trusted: false },
+      { location: 'dangling', trusted: false },
+      { location: 'dangling/new/file.txt', trusted: false },
+      { location: 'loop', trusted: false },
+      { location: 'file.txt/child', trusted: false },
+      { location: 'missing/../file.txt', trusted: false },
+      { location: '', trusted: false },
+      { location: ' ', trusted: false },
+      { location: 'file\0.txt', trusted: false },
+    ])(
+      'resolves $location as trusted=$trusted',
+      async ({ location, trusted }) => {
+        await expect(
+          areACPToolLocationsTrusted({
+            workDir,
+            toolCall: {
+              toolCallId: 'call-1',
+              kind: 'edit',
+              locations: [{ path: location }],
+            },
+          }),
+        ).resolves.toBe(trusted);
+      },
+    );
+
+    it('resolves a symlinked working directory before comparing locations', async () => {
+      const alias = path.join(sandboxDir, 'workspace-alias');
+      await symlink(workDir, alias, 'dir');
+      await expect(
+        areACPToolLocationsTrusted({
+          workDir: alias,
+          toolCall: {
+            toolCallId: 'call-1',
+            kind: 'read',
+            locations: [{ path: path.join(alias, 'file.txt') }],
+          },
+        }),
+      ).resolves.toBe(true);
+    });
+
+    it('requires approval if the working directory cannot be resolved', async () => {
+      const missingWorkDir = path.join(sandboxDir, 'missing');
+      await expect(
+        areACPToolLocationsTrusted({
+          workDir: missingWorkDir,
+          toolCall: {
+            toolCallId: 'call-1',
+            kind: 'read',
+            locations: [{ path: path.join(missingWorkDir, 'file.txt') }],
+          },
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it.each(['think', 'fetch'] as const)(
+      'allows %s without file locations',
+      async kind => {
+        await expect(
+          areACPToolLocationsTrusted({
+            workDir,
+            toolCall: { toolCallId: 'call-1', kind },
+          }),
+        ).resolves.toBe(true);
+      },
+    );
+  });
+
   it.each([
     { approved: true, expectedOptionId: 'allow-once' },
     { approved: false, expectedOptionId: 'reject-once' },
@@ -89,6 +215,7 @@ describe('ACP permission controller', () => {
       const order: string[] = [];
       const controller = createACPPermissionController({
         turn: fake.turn,
+        workDir,
         sessionId: 'session-1',
         permissionMode: 'allow-all',
         hasPermissionModeMapping: true,
@@ -136,6 +263,7 @@ describe('ACP permission controller', () => {
     const onHostToolPermissionAllowed = vi.fn();
     const controller = createACPPermissionController({
       turn: fake.turn,
+      workDir,
       sessionId: 'session-1',
       permissionMode: 'allow-all',
       hasPermissionModeMapping: true,
@@ -176,6 +304,7 @@ describe('ACP permission controller', () => {
     const emitToolCall = vi.fn();
     const controller = createACPPermissionController({
       turn: fake.turn,
+      workDir,
       sessionId: 'session-1',
       permissionMode: 'allow-all',
       hasPermissionModeMapping: true,
@@ -200,6 +329,7 @@ describe('ACP permission controller', () => {
     const fake = createFakeTurn();
     const controller = createACPPermissionController({
       turn: fake.turn,
+      workDir,
       sessionId: 'session-1',
       permissionMode: 'allow-all',
       hasPermissionModeMapping: true,
@@ -237,6 +367,7 @@ describe('ACP permission controller', () => {
       const emitToolCall = vi.fn();
       const controller = createACPPermissionController({
         turn: fake.turn,
+        workDir,
         sessionId: 'session-1',
         permissionMode,
         hasPermissionModeMapping: false,
@@ -268,6 +399,7 @@ describe('ACP permission controller', () => {
       const fake = createFakeTurn();
       const controller = createACPPermissionController({
         turn: fake.turn,
+        workDir,
         sessionId: 'session-1',
         permissionMode,
         hasPermissionModeMapping: false,
@@ -288,6 +420,150 @@ describe('ACP permission controller', () => {
     },
   );
 
+  describe.each([
+    { permissionMode: 'allow-reads', kind: 'read' },
+    { permissionMode: 'allow-reads', kind: 'search' },
+    { permissionMode: 'allow-edits', kind: 'read' },
+    { permissionMode: 'allow-edits', kind: 'search' },
+    { permissionMode: 'allow-edits', kind: 'edit' },
+    { permissionMode: 'allow-edits', kind: 'delete' },
+    { permissionMode: 'allow-edits', kind: 'move' },
+  ] as const)(
+    '$permissionMode $kind location checks',
+    ({ permissionMode, kind }) => {
+      it.each(['absolute', 'relative', 'mixed'] as const)(
+        'requires approval for %s locations outside the workspace',
+        async locationType => {
+          const fake = createFakeTurn();
+          const emitToolCall = vi.fn();
+          const controller = createACPPermissionController({
+            turn: fake.turn,
+            workDir,
+            sessionId: 'session-1',
+            permissionMode,
+            hasPermissionModeMapping: false,
+            emitToolCall,
+            claimHostToolPermission: async () => undefined,
+          });
+          const externalPath = path.join(otherWorkDir, 'file.txt');
+          const toolCall = {
+            title: 'Access paths outside trusted directories',
+            rawInput: { path: externalPath },
+            locations:
+              locationType === 'relative'
+                ? [{ path: '../session-2/file.txt' }]
+                : locationType === 'mixed'
+                  ? [
+                      { path: path.join(workDir, 'file.txt') },
+                      { path: externalPath },
+                    ]
+                  : [{ path: externalPath }],
+          };
+          const permission = permissionRequest({
+            toolCallId: 'call-1',
+            kind,
+            toolCall,
+          });
+          const request = controller.requestPermission(permission);
+          await vi.waitFor(() => {
+            expect(fake.events).toContainEqual(
+              expect.objectContaining({ type: 'tool-approval-request' }),
+            );
+          });
+          const approvalId = getApprovalId({ events: fake.events });
+          expect(emitToolCall).toHaveBeenCalledExactlyOnceWith({
+            toolCall: permission.toolCall,
+          });
+          fake.respond({ approvalId, approved: false });
+          await expect(request).resolves.toEqual({
+            outcome: { outcome: 'selected', optionId: 'reject-once' },
+          });
+        },
+      );
+    },
+  );
+
+  it.each([undefined, null, []])(
+    'requires approval when file locations are %s, even with a rawInput path',
+    async locations => {
+      const fake = createFakeTurn();
+      const controller = createACPPermissionController({
+        turn: fake.turn,
+        workDir,
+        sessionId: 'session-1',
+        permissionMode: 'allow-reads',
+        hasPermissionModeMapping: false,
+        emitToolCall: () => {},
+        claimHostToolPermission: async () => undefined,
+      });
+      const request = controller.requestPermission(
+        permissionRequest({
+          toolCallId: 'call-1',
+          kind: 'read',
+          toolCall: {
+            locations,
+            rawInput: { path: path.join(workDir, 'file.txt') },
+          },
+        }),
+      );
+      await vi.waitFor(() => expect(fake.events.length).toBeGreaterThan(0));
+      const approvalId = getApprovalId({ events: fake.events });
+      fake.respond({ approvalId, approved: true });
+      await expect(request).resolves.toEqual({
+        outcome: { outcome: 'selected', optionId: 'allow-once' },
+      });
+    },
+  );
+
+  it('preserves allow-all for external file locations', async () => {
+    const fake = createFakeTurn();
+    const controller = createACPPermissionController({
+      turn: fake.turn,
+      workDir,
+      sessionId: 'session-1',
+      permissionMode: 'allow-all',
+      hasPermissionModeMapping: false,
+      emitToolCall: () => {},
+      claimHostToolPermission: async () => undefined,
+    });
+    await expect(
+      controller.requestPermission(
+        permissionRequest({
+          toolCallId: 'call-1',
+          kind: 'edit',
+          toolCall: {
+            locations: [{ path: path.join(otherWorkDir, 'file.txt') }],
+          },
+        }),
+      ),
+    ).resolves.toEqual({
+      outcome: { outcome: 'selected', optionId: 'allow-once' },
+    });
+    expect(fake.events).toEqual([]);
+  });
+
+  it('cancels permissions while file locations are being checked', async () => {
+    const fake = createFakeTurn();
+    const controller = createACPPermissionController({
+      turn: fake.turn,
+      workDir,
+      sessionId: 'session-1',
+      permissionMode: 'allow-reads',
+      hasPermissionModeMapping: false,
+      emitToolCall: () => {},
+      claimHostToolPermission: async () => undefined,
+    });
+    const request = controller.requestPermission(
+      permissionRequest({ toolCallId: 'call-1', kind: 'read' }),
+    );
+    await Promise.resolve();
+    controller.cancelAll();
+    await expect(request).resolves.toEqual({
+      outcome: { outcome: 'cancelled' },
+    });
+    expect(fake.events).toEqual([]);
+  });
+
   it.each([
     { permissionMode: 'allow-reads', kind: 'read' },
     { permissionMode: 'allow-edits', kind: 'edit' },
@@ -298,6 +574,7 @@ describe('ACP permission controller', () => {
       const fake = createFakeTurn();
       const controller = createACPPermissionController({
         turn: fake.turn,
+        workDir,
         sessionId: 'session-1',
         permissionMode,
         hasPermissionModeMapping: true,
