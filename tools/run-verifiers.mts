@@ -52,7 +52,7 @@ try {
 
     if (exitCode === 2) {
       logError(
-        'You must fix these violations. Refer to the referenced guideline files for more information.',
+        'You must fix these violations. Refer to the referenced guideline files for more information. Modifying any of the verifiers is STRICTLY PROHIBITED.',
       );
     }
     process.exitCode = exitCode;

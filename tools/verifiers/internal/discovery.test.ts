@@ -507,7 +507,7 @@ process.exitCode = ${exitCode};
         ? ''
         : 'Child verifier failure\n' +
             (exitCode === 2
-              ? 'You must fix these violations. Refer to the referenced guideline files for more information.\n'
+              ? 'You must fix these violations. Refer to the referenced guideline files for more information. Modifying any of the verifiers is STRICTLY PROHIBITED.\n'
               : ''),
     );
   });

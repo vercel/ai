@@ -104,9 +104,13 @@ test('fileExists resolves repo-relative paths independently of the working direc
       '--input-type=module',
       '--eval',
       `import { fileExists } from ${JSON.stringify(moduleUrl)};
-       console.log(await fileExists('.agents/guidelines/example.md'));`,
+       console.log(String(await fileExists('.agents/guidelines/example.md')));`,
     ],
-    { cwd: tmpdir(), encoding: 'utf8' },
+    {
+      cwd: tmpdir(),
+      encoding: 'utf8',
+      env: { ...process.env, NO_COLOR: undefined, FORCE_COLOR: '1' },
+    },
   );
 
   assert.equal(result.status, 0, result.stderr);
