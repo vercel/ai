@@ -447,12 +447,12 @@ Things to keep in mind:
 
 #### Long decode with the Interactions API
 
-With the [Interactions API](#interactions-api), long decode requires
-`background: true`. The server runs every request itself, so no client-side
-continuation is needed, and `usage` covers all requests. Set an explicit
-`maxOutputTokens` above 65,536 (without it, you get a single 64K request) and
-keep `store` enabled (the default). The provider polls the interaction (or
-streams it, reconnecting when the connection drops) until it finishes.
+With the [Interactions API](#interactions-api), the AI SDK currently requires
+`background: true` for long decode. The server runs every request itself, so no
+client-side continuation is needed, and `usage` covers all requests. Set an
+explicit `maxOutputTokens` above 65,536 and keep `store` enabled (the default).
+The provider polls the interaction (or streams it, reconnecting when the
+connection drops) until it finishes.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -471,10 +471,14 @@ const result = await generateText({
 });
 ```
 
-Without `background: true`, an interaction generates at most 65,536 tokens.
-Requests with a higher `maxOutputTokens` are rejected by the API, and an
-interaction that reaches the cap finishes with `length`. Long decode is not
-available with the Vertex AI Interactions API.
+Foreground client-side continuation is not yet supported by the AI SDK.
+If you do not set `maxOutputTokens`, non-streaming calls (`generateText`)
+default to 32,768 tokens and streaming calls (`streamText`) to 65,536 tokens.
+An interaction that reaches its limit finishes with `length`. Long decode is
+not available with the Vertex AI Interactions API.
+
+The token budget includes both thinking and output tokens. To retain the previous
+64K budget for a non-streaming call, set `maxOutputTokens: 65_536` explicitly.
 
 ### File Inputs
 
