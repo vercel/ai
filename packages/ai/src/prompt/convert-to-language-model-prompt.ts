@@ -541,14 +541,15 @@ function getDownloadableFilePart(
 }
 
 /**
- * Resolves the file data for a remote tool result content part: the downloaded
+ * Resolves file data and media type for a remote tool result content part: the downloaded
  * bytes when the asset was fetched, otherwise the URL reference. `originalUrl`
  * is preserved when the URL string does not round-trip through `URL`.
  */
-function resolveDownloadedFileData({
+function resolveDownloadedFile({
   url,
   originalUrl,
   downloadedAssets,
+  mediaType,
 }: {
   url: URL;
   originalUrl: string;
@@ -556,16 +557,22 @@ function resolveDownloadedFileData({
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
-}): LanguageModelV4FilePart['data'] {
-  const downloadedFile = downloadedAssets[url.toString()];
-
-  return downloadedFile != null
-    ? { type: 'data', data: downloadedFile.data }
-    : {
+  mediaType: string;
+}): Pick<LanguageModelV4FilePart, 'data' | 'mediaType'> {
+  const convertedPart = convertPartToLanguageModelPart(
+    {
+      type: 'file',
+      data: {
         type: 'url',
         url,
         ...(url.toString() !== originalUrl ? { originalUrl } : {}),
-      };
+      },
+      mediaType,
+    },
+    downloadedAssets,
+  ) as LanguageModelV4FilePart;
+
+  return { data: convertedPart.data, mediaType: convertedPart.mediaType };
 }
 
 /**
@@ -706,12 +713,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: resolveDownloadedFileData({
+            ...resolveDownloadedFile({
               url,
               originalUrl: item.url,
               downloadedAssets,
+              mediaType,
             }),
-            mediaType,
             providerOptions: item.providerOptions,
           };
         }
@@ -774,12 +781,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: resolveDownloadedFileData({
+            ...resolveDownloadedFile({
               url,
               originalUrl: item.url,
               downloadedAssets,
+              mediaType: 'image',
             }),
-            mediaType: 'image',
             providerOptions: item.providerOptions,
           };
         }
