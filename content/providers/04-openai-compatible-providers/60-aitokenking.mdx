@@ -1,0 +1,92 @@
+---
+title: AI Token King
+description: Use the AI Token King OpenAI compatible API with the AI SDK.
+---
+
+# AI Token King Provider
+
+[AI Token King](https://aitokenking.com.tw/?from=vercel-ai-sdk) is a gateway that exposes models from several labs behind a single OpenAI-compatible endpoint and a single API key.
+Because the API is OpenAI compatible, you can use it with the AI SDK through the `@ai-sdk/openai-compatible` package.
+
+## Setup
+
+The AI Token King provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+### AI Token King Setup
+
+1. Create an API key in the [AI Token King console](https://aitokenking.com.tw/?from=vercel-ai-sdk).
+2. Export it:
+
+```bash
+export AITOKENKING_API_KEY=<your api key>
+```
+
+## Provider Instance
+
+To use AI Token King, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const aitokenking = createOpenAICompatible({
+  name: 'aitokenking',
+  baseURL: 'https://api.aitokenking.com.tw/api/v1',
+  apiKey: process.env.AITOKENKING_API_KEY,
+});
+```
+
+## Language Models
+
+You can create AI Token King models using a provider instance.
+The first argument is the model id as the gateway serves it — ids are passed through unchanged, so use the id exactly as it appears in your console's model list.
+
+```ts
+const model = aitokenking('gpt-5-nano');
+```
+
+### Example
+
+You can use AI Token King language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const aitokenking = createOpenAICompatible({
+  name: 'aitokenking',
+  baseURL: 'https://api.aitokenking.com.tw/api/v1',
+  apiKey: process.env.AITOKENKING_API_KEY,
+});
+
+const { text } = await generateText({
+  model: aitokenking('gpt-5-nano'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+console.log(text);
+```
+
+AI Token King language models are also able to generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const aitokenking = createOpenAICompatible({
+  name: 'aitokenking',
+  baseURL: 'https://api.aitokenking.com.tw/api/v1',
+  apiKey: process.env.AITOKENKING_API_KEY,
+});
+
+const result = streamText({
+  model: aitokenking('gpt-5-nano'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
