@@ -1,5 +1,79 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.170
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+
+## 1.0.167
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.165
+
+## 1.0.164
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+
+## 1.0.163
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+
 ## 1.0.159
 
 ### Patch Changes

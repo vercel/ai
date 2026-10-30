@@ -6,7 +6,11 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  resolve,
+  type Resolvable,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import {
   getRealtimeBaseURL,
   getRealtimeWebSocketURL,
@@ -32,7 +36,7 @@ function getWebSocketURL(baseURL: string): string {
 export type GoogleRealtimeModelConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -54,7 +58,7 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     options: RealtimeModelV4ClientSecretOptions,
   ): Promise<RealtimeModelV4ClientSecretResult> {
     const fetchFn = this.config.fetch ?? fetch;
-    const headers = this.config.headers();
+    const headers = await resolve(this.config.headers);
     const apiKey = headers['x-goog-api-key'];
 
     if (!apiKey) {

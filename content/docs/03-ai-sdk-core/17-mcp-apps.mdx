@@ -153,18 +153,13 @@ In production, add any policy and user approval checks your app needs before for
 
 ## Render With React
 
-In your React chat UI, render normal message parts as usual and pass tool parts to `experimental_MCPAppRenderer`.
-
-<Note type="warning">
-  `experimental_MCPAppRenderer` is experimental and may change in a future
-  release.
-</Note>
+In your React chat UI, render normal message parts as usual and pass tool parts to `MCPAppRenderer`.
 
 ```tsx filename="app/page.tsx"
 'use client';
 
 import {
-  experimental_MCPAppRenderer as MCPAppRenderer,
+  MCPAppRenderer,
   useChat,
   type MCPAppBridgeHandlers,
   type MCPAppMetadata,
@@ -242,7 +237,7 @@ export default function Chat() {
 }
 ```
 
-For ordinary tools, `experimental_MCPAppRenderer` renders the provided `fallback` (or nothing when no fallback is provided). For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
+For ordinary tools, `MCPAppRenderer` renders the provided `fallback` (or nothing when no fallback is provided). For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
 
 ## Best Practices
 

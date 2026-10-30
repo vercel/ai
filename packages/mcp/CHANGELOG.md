@@ -1,5 +1,71 @@
 # @ai-sdk/mcp
 
+## 2.0.88
+
+### Patch Changes
+
+- c3af430: Handle MCP 2026-07-28 input-required results through the registered elicitation handler and retry the original tool, prompt, or resource request with its answers and request state.
+
+  Preserve the browser fetch receiver in MCP HTTP and SSE transports to prevent illegal-invocation errors.
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 2.0.86
+
+### Patch Changes
+
+- ade2a33: Improve unsupported-version discovery errors when a server advertises a compatible legacy version. Include the requested and advertised versions and explain how to explicitly select legacy initialization with `protocolVersionDiscovery: false`, while preserving the original error details and avoiding automatic legacy fallback.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 2.0.84
+
+### Patch Changes
+
+- 84d7880: Fix MCP tool output conversion throwing on primitive or nullish results returned by output schemas or execute wrappers. Convert strings to text and normalize undefined outputs to JSON null while preserving MCP content conversion.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 2.0.81
 
 ### Patch Changes

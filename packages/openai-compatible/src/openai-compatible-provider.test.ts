@@ -1,3 +1,4 @@
+import { resolve } from '@ai-sdk/provider-utils';
 import { createOpenAICompatible } from './openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
@@ -44,7 +45,7 @@ describe('OpenAICompatibleProvider', () => {
   });
 
   describe('createOpenAICompatible', () => {
-    it('should create provider with correct configuration', () => {
+    it('should create provider with correct configuration', async () => {
       const options = {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
@@ -59,7 +60,7 @@ describe('OpenAICompatibleProvider', () => {
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -72,7 +73,7 @@ describe('OpenAICompatibleProvider', () => {
       );
     });
 
-    it('should create headers without authorization when no apiKey provided', () => {
+    it('should create headers without authorization when no apiKey provided', async () => {
       const options = {
         baseURL: 'https://api.example.com',
         name: 'test-provider',
@@ -85,7 +86,7 @@ describe('OpenAICompatibleProvider', () => {
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         'custom-header': 'value',
@@ -103,7 +104,7 @@ describe('OpenAICompatibleProvider', () => {
       queryParams: { 'Custom-Param': 'value' },
     };
 
-    it('should create chat model with correct configuration', () => {
+    it('should create chat model with correct configuration', async () => {
       const provider = createOpenAICompatible(defaultOptions);
 
       provider.chatModel('chat-model');
@@ -111,7 +112,7 @@ describe('OpenAICompatibleProvider', () => {
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -124,7 +125,7 @@ describe('OpenAICompatibleProvider', () => {
       );
     });
 
-    it('should create completion model with correct configuration', () => {
+    it('should create completion model with correct configuration', async () => {
       const provider = createOpenAICompatible(defaultOptions);
 
       provider.completionModel('completion-model');
@@ -132,7 +133,7 @@ describe('OpenAICompatibleProvider', () => {
       const constructorCall =
         OpenAICompatibleCompletionLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -145,14 +146,14 @@ describe('OpenAICompatibleProvider', () => {
       ).toBe('https://api.example.com/v1/completions?Custom-Param=value');
     });
 
-    it('should create embedding model with correct configuration', () => {
+    it('should create embedding model with correct configuration', async () => {
       const provider = createOpenAICompatible(defaultOptions);
 
       provider.embeddingModel('embedding-model');
 
       const constructorCall = OpenAICompatibleEmbeddingModelMock.mock.calls[0];
       const config = constructorCall[1];
-      const headers = config.headers!();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',

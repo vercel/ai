@@ -679,7 +679,7 @@ describe('AnthropicLanguageModel', () => {
         expect(result.warnings).toEqual([]);
       });
 
-      it('should map reasoning "xhigh" to adaptive thinking with effort "max"', async () => {
+      it('should map reasoning "xhigh" to adaptive thinking with effort "high"', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
         const result = await provider('claude-sonnet-4-6').doGenerate({
@@ -690,13 +690,13 @@ describe('AnthropicLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
           thinking: { type: 'adaptive', display: 'summarized' },
-          output_config: { effort: 'max' },
+          output_config: { effort: 'high' },
         });
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
         });
       });
 
@@ -7460,6 +7460,155 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      'empty',
+      'metadata-only',
+      'empty-text',
+      'empty-reasoning',
+      'empty-tool-input',
+      'later-message',
+      'partial-text',
+      'partial-reasoning',
+      'partial-tool-input',
+      'tool-call',
+    ] as const)(
+      'only emits an interrupted finish after output (%s)',
+      async scenario => {
+        const messageStart = (id: string, content: unknown[] = []) => ({
+          type: 'message_start',
+          message: {
+            id,
+            type: 'message',
+            role: 'assistant',
+            content,
+            model: 'claude-3-haiku-20240307',
+            stop_reason: null,
+            usage: { input_tokens: 10, output_tokens: 1 },
+          },
+        });
+        const textStart = {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        };
+        const textDelta = (text: string) => ({
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text },
+        });
+        const events: unknown[] = [];
+        if (scenario === 'later-message') {
+          events.push(
+            messageStart('msg-previous'),
+            textStart,
+            textDelta('Previous answer'),
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 3 },
+            },
+            { type: 'message_stop' },
+          );
+        }
+        if (scenario !== 'empty') {
+          events.push(
+            messageStart(
+              'msg-current',
+              scenario === 'tool-call'
+                ? [
+                    {
+                      type: 'tool_use',
+                      id: 'tool-1',
+                      name: 'test-tool',
+                      input: {},
+                    },
+                  ]
+                : [],
+            ),
+          );
+        }
+        if (scenario === 'empty-text' || scenario === 'partial-text') {
+          events.push(
+            textStart,
+            textDelta(scenario === 'partial-text' ? 'Partial' : ''),
+          );
+        }
+        if (
+          scenario === 'empty-reasoning' ||
+          scenario === 'partial-reasoning'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'thinking', thinking: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'thinking_delta',
+                thinking: scenario === 'partial-reasoning' ? 'Thinking' : '',
+              },
+            },
+          );
+        }
+        if (
+          scenario === 'empty-tool-input' ||
+          scenario === 'partial-tool-input'
+        ) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'tool-1',
+                name: 'test-tool',
+                input: {},
+              },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: scenario === 'partial-tool-input' ? '{' : '',
+              },
+            },
+          );
+        }
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: true,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(
+          parts
+            .filter(part => part.type === 'finish')
+            .map(part => part.finishReason),
+        ).toEqual(
+          scenario === 'later-message'
+            ? [{ unified: 'stop', raw: 'end_turn' }]
+            : [
+                  'partial-text',
+                  'partial-reasoning',
+                  'partial-tool-input',
+                  'tool-call',
+                ].includes(scenario)
+              ? [{ unified: 'interrupted', raw: undefined }]
+              : [],
+        );
+      },
+    );
+
     it('reports interruption for a later message even when an earlier message completed', async () => {
       const messageStart = (id: string) => ({
         type: 'message_start',
@@ -7508,6 +7657,11 @@ describe('AnthropicLanguageModel', () => {
         { unified: 'stop', raw: 'end_turn' },
         { unified: 'interrupted', raw: undefined },
       ]);
+      const finishes = parts.filter(part => part.type === 'finish');
+      expect(finishes[1].usage).toEqual(finishes[0].usage);
+      expect(finishes[1].providerMetadata).toEqual(
+        finishes[0].providerMetadata,
+      );
     });
 
     it.each([
@@ -7574,15 +7728,17 @@ describe('AnthropicLanguageModel', () => {
               raw: messageStop ? stopReason : undefined,
             },
             usage: expect.objectContaining({
-              inputTokens: expect.objectContaining({ total: 10 }),
-            }),
-            providerMetadata: expect.objectContaining({
-              anthropic: expect.objectContaining({
-                usage: expect.objectContaining({ input_tokens: 10 }),
+              inputTokens: expect.objectContaining({
+                total: messageStop ? 10 : undefined,
               }),
             }),
           }),
         ]);
+        if (!messageStop) {
+          expect(parts.find(part => part.type === 'finish')).not.toHaveProperty(
+            'providerMetadata',
+          );
+        }
       },
     );
 
@@ -13500,7 +13656,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.output_config?.effort).toBe('xhigh');
   });
 
-  it('should map xhigh reasoning effort to max for claude-opus-4-6', async () => {
+  it('should map xhigh reasoning effort to high for claude-opus-4-6', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     await provider('claude-opus-4-6').doGenerate({
@@ -13509,7 +13665,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.output_config?.effort).toBe('max');
+    expect(requestBody.output_config?.effort).toBe('high');
   });
 
   it('should include task_budget in output_config and add beta header', async () => {
@@ -14166,7 +14322,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     });
   });
 
-  it('should map reasoning "none" to between_tools thinking', async () => {
+  it('should map reasoning "none" to between_tools thinking with a compatibility warning', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     const result = await provider('claude-sonnet-5-5').doGenerate({
@@ -14177,7 +14333,14 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.thinking).toEqual({ type: 'between_tools' });
     expect(requestBody.output_config).toBeUndefined();
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          "reasoning 'none' is not supported by claude-sonnet-5-5; thinking cannot be disabled. Using 'between_tools' thinking, the lowest thinking setting, instead.",
+      },
+    ]);
   });
 
   it('should map reasoning "xhigh" to adaptive thinking with effort "xhigh"', async () => {

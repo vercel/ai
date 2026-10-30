@@ -1,5 +1,103 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.170
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- ea39523: fix(sandbox-vercel): pass `persistent` through to live sandboxes created from a template snapshot, allowing `persistent: false`
+- 44a4261: fix(sandbox-vercel): reject network policy mutations when an existing Vercel Sandbox policy contains response rules instead of silently dropping request restrictions
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.167
+
+### Patch Changes
+
+- 177291a: fix(sandbox-vercel): bump template versions to invalidate stale templates
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- 57086ff: chore(provider-utils): export types for `Experimental_SandboxSession`'s method inputs
+- 269f4c0: feat(sandbox-vercel): support `stdin` arg on `spawn()` by updating to latest SDK
+- 95348b3: feat(provider-utils): change `Experimental_SandboxSession`'s `spawn()` method to support optional `stdin` arg for a process with writable input stream
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.164
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.163
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 1.0.159
 
 ### Patch Changes

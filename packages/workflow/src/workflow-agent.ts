@@ -21,7 +21,7 @@ import {
   isStepCount,
   NoOutputGeneratedError,
   type GenerateTextResult,
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,

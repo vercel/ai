@@ -1,0 +1,113 @@
+{
+  "id": "gen_01M61Z0TSYNGYR7HK99EKHZE2S",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_01GrVAU3aYADH3XmCRgKqtvY",
+      "name": "host",
+      "input": {
+        "bounded": 124,
+        "exclusive": 42,
+        "text": "sample123",
+        "items": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    }
+  ],
+  "model": "claude-sonnet-5-5",
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 630,
+    "output_tokens": 124,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "speed": "standard",
+    "service_tier": "standard",
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    }
+  },
+  "provider_metadata": {
+    "anthropic": {
+      "usage": {
+        "input_tokens": 630,
+        "output_tokens": 124,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global",
+        "speed": "standard"
+      },
+      "cacheCreationInputTokens": 0,
+      "stopSequence": null,
+      "iterations": null,
+      "container": null,
+      "contextManagement": null
+    },
+    "gateway": {
+      "routing": {
+        "originalModelId": "claude-sonnet-5-5",
+        "resolvedProvider": "anthropic",
+        "fallbacksAvailable": [
+          "bedrock",
+          "vertexAnthropic",
+          "claudeaws"
+        ],
+        "planningReasoning": "System credentials planned for: anthropic, bedrock, vertexAnthropic, claudeaws. Total execution order: anthropic(system) → bedrock(system) → vertexAnthropic(system) → claudeaws(system)",
+        "canonicalSlug": "anthropic/claude-sonnet-5.5",
+        "finalProvider": "anthropic",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "anthropic/claude-sonnet-5.5",
+            "success": true,
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "provider": "anthropic",
+                "credentialType": "system",
+                "success": true,
+                "startTime": 1793214933885,
+                "endTime": 1793214935156,
+                "providerRequestId": "req_011CgVAqkdAyqaES88Yft2oi",
+                "statusCode": 200,
+                "providerResponseId": "msg_011CgVAqkvHtioZ4bjE2ZL2Z"
+              }
+            ]
+          }
+        ],
+        "totalProviderAttemptCount": 1,
+        "affinity": {
+          "outcome": "skipped_below_min_prefix"
+        },
+        "clientSessionId": "a7e1414a47744f5c334086e5a1a53926",
+        "clientSessionIdSource": "fingerprint"
+      },
+      "cost": "0.0025",
+      "marketCost": "0.0025",
+      "surchargeCost": "0",
+      "gatewayCost": "0.0025",
+      "inferenceCost": "0.0025",
+      "inputInferenceCost": "0.00126",
+      "outputInferenceCost": "0.00124",
+      "generationId": "gen_01M61Z0TSYNGYR7HK99EKHZE2S"
+    }
+  }
+}

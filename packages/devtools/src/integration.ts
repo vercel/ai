@@ -2,6 +2,7 @@ import type {
   GenerateTextStartEvent,
   GenerateTextStepStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepStartEvent,
   GenerateObjectStepEndEvent,
@@ -42,6 +43,19 @@ export interface DevToolsTelemetryOptions {
 }
 
 const activeSteps = new Map<string, StepState>();
+
+async function failStep(stepState: StepState, error: unknown) {
+  activeSteps.delete(stepState.stepId);
+  await updateStepResult(stepState.stepId, {
+    duration_ms: Date.now() - stepState.startTime,
+    output: null,
+    usage: null,
+    error: error instanceof Error ? error.message : String(error),
+    raw_request: null,
+    raw_response: null,
+    raw_chunks: null,
+  });
+}
 
 let signalHandlersRegistered = false;
 const registerSignalHandlers = () => {
@@ -410,6 +424,19 @@ export function DevToolsTelemetry(
       state.stepStates.delete(stepResult.stepNumber);
     },
 
+    onStepError: async event => {
+      const stepErrorEvent = event as GenerateTextStepErrorEvent<ToolSet>;
+
+      const state = callStates.get(stepErrorEvent.callId);
+      if (!state) return;
+
+      const stepState = state.stepStates.get(stepErrorEvent.stepNumber);
+      if (!stepState) return;
+
+      await failStep(stepState, stepErrorEvent.error);
+      state.stepStates.delete(stepErrorEvent.stepNumber);
+    },
+
     onEnd: async event => {
       const endEvent = event as { callId: string };
       callStates.delete(endEvent.callId);
@@ -426,21 +453,9 @@ export function DevToolsTelemetry(
       if (!state) return;
 
       const cause = errorObj?.error ?? error;
-      const errorMessage =
-        cause instanceof Error ? cause.message : String(cause);
 
       for (const [, stepState] of state.stepStates) {
-        activeSteps.delete(stepState.stepId);
-        const durationMs = Date.now() - stepState.startTime;
-        await updateStepResult(stepState.stepId, {
-          duration_ms: durationMs,
-          output: null,
-          usage: null,
-          error: errorMessage,
-          raw_request: null,
-          raw_response: null,
-          raw_chunks: null,
-        });
+        await failStep(stepState, cause);
       }
 
       callStates.delete(callId);

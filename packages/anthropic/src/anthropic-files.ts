@@ -9,8 +9,10 @@ import {
   createJsonResponseHandler,
   lazySchema,
   postFormDataToApi,
+  resolve,
   zodSchema,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
@@ -32,7 +34,7 @@ const anthropicUploadFileResponseSchema = lazySchema(() =>
 interface AnthropicFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -68,7 +70,7 @@ export class AnthropicFiles implements FilesV4 {
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
       headers: combineHeaders(
-        this.config.headers(),
+        await resolve(this.config.headers),
         { 'anthropic-beta': 'files-api-2025-04-14' },
         headers,
       ),

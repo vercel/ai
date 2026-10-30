@@ -91,7 +91,12 @@ You can use the following optional settings to customize the AI Gateway provider
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   API key or Vercel access token that is being sent using the `Authorization`
   header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
@@ -463,6 +468,69 @@ console.log(ranking);
 ```
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
+
+## Streaming Speech Models
+
+<Note type="warning">
+  Streaming speech is experimental and the API may change in patch releases.
+</Note>
+
+Speech models that support streaming can be used with
+`experimental_streamSpeech`. The gateway provider connects to AI Gateway over a
+WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
+Gateway WebSocket auth is carried in the subprotocols, so no header-capable
+WebSocket implementation is needed.
+
+Streaming speech works only with models that the
+[AI Gateway model catalog](https://vercel.com/ai-gateway/models) lists with
+streaming speech support. The model ID below is illustrative; check the catalog
+for current availability.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  text: textStream, // a string, or an array or stream of strings and/or text parts
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
+### Streaming Speech in the Browser
+
+To stream speech from browser code without exposing your Gateway credential,
+mint a short-lived client secret on your server with
+`gateway.experimental_speech.getToken()` and pass the token to the browser.
+The token is bound to the streaming speech surface and the requested model.
+
+```ts
+// Server
+import { gateway } from '@ai-sdk/gateway';
+
+const { token } = await gateway.experimental_speech.getToken({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  expiresAfterSeconds: 60,
+});
+```
+
+```ts
+// Browser
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const gateway = createGateway({ apiKey: token });
+
+const result = streamSpeech({
+  model: gateway.experimental_speech('elevenlabs/eleven-flash-v2.5'),
+  text: textStream,
+});
+```
 
 ## Realtime Models
 

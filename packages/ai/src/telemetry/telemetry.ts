@@ -22,6 +22,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
 } from '../generate-text/generate-text-events';
 import type {
@@ -59,7 +60,13 @@ export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
     TelemetryOptions,
     'integrations' | 'isEnabled' | 'includeRuntimeContext'
-  >;
+  > & {
+    /**
+     * The version of the `ai` package that emitted this event.
+     * Absent in older releases.
+     */
+    readonly aiVersion?: string;
+  };
 
 type BivariantCallback<EVENT> = {
   bivarianceHack(event: EVENT): PromiseLike<void> | void;
@@ -110,6 +117,7 @@ export interface TelemetryDispatcher {
   onStepEnd?: Callback<GenerateTextStepEndEvent>;
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
+  onStepError?: Callback<GenerateTextStepErrorEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
@@ -201,6 +209,12 @@ export interface Telemetry {
    * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when a step that started fails before it produces a step result.
+   * Use it to close step-level spans. The call then ends with `onError`.
+   */
+  onStepError?: Callback<InferTelemetryEvent<GenerateTextStepErrorEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.

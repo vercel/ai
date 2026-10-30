@@ -51,6 +51,12 @@ export type ClaudeMessage = {
   total_cost_usd?: number;
   structured_output?: unknown;
   tool_use_result?: unknown;
+  terminal_reason?: string;
+  deferred_tool_use?: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  };
 };
 
 type MessageBlock = {
@@ -194,7 +200,14 @@ export function createEmitStreamEvent({
     // Emit `stream-start` once, on the first message, carrying the model the
     // CLI resolved to (the `system`/`init` message reports it — this is the
     // default model when none was configured).
-    if (!streamStarted) {
+    /*
+     * `command_lifecycle` frames are skipped here. The CLI's stdin reader
+     * forwards them (e.g. `queued` and `started` for the prompt) straight to
+     * the output stream, independently of the engine that yields
+     * `system`/`init` at the start of each turn, so they can arrive before
+     * `init`. They produce no stream parts.
+     */
+    if (!streamStarted && type !== 'command_lifecycle') {
       const initModel =
         type === 'system' &&
         msg.subtype === 'init' &&

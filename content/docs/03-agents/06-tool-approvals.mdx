@@ -352,3 +352,4 @@ Every serverless instance that might handle a request needs the same secret, sin
 - Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
 - Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).
+- Chat SDK's `createChatTools` marks its write tools and `getUser` as needing approval. A `toolApproval` rule overrides those defaults; see [Chat Platforms](/docs/agents/chat-platforms#give-the-agent-chat-tools).

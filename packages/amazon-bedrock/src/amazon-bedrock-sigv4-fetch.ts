@@ -1,5 +1,8 @@
+import { LoadAPIKeyError } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  resolve,
+  type Resolvable,
   normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -124,7 +127,7 @@ function isAscii(value: string): boolean {
  * @returns A FetchFunction that adds Authorization header with Bearer token to requests.
  */
 export function createApiKeyFetchFunction(
-  apiKey: string,
+  apiKey: Resolvable<string>,
   fetch?: FetchFunction,
 ): FetchFunction {
   return async (
@@ -140,8 +143,18 @@ export function createApiKeyFetchFunction(
       getRuntimeEnvironmentUserAgent(),
     );
 
+    const resolvedApiKey = await resolve(apiKey);
+    if (
+      typeof apiKey !== 'string' &&
+      (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+    ) {
+      throw new LoadAPIKeyError({
+        message: 'Amazon Bedrock API key must be a non-empty string.',
+      });
+    }
+
     const finalHeaders = combineHeaders(headersWithUserAgent, {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${typeof apiKey === 'string' ? resolvedApiKey : resolvedApiKey.trim()}`,
     });
 
     return effectiveFetch(input, {

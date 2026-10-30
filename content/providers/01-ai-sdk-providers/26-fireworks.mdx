@@ -86,10 +86,13 @@ You can use the following optional settings to customize the Fireworks provider 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.fireworks.ai/inference/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `FIREWORKS_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -111,11 +114,9 @@ const model = fireworks('accounts/fireworks/models/firefunction-v1');
 ### Reasoning Models
 
 For models that support reasoning effort, use the top-level `reasoning` parameter.
-Fireworks maps `'minimal'` to `'low'` and `'xhigh'` or `'max'` to `'high'`, returning
-a compatibility warning whenever it coerces the effort. Streaming calls include
-the warning in the `stream-start` event. Explicit
-`providerOptions.fireworks.reasoningEffort` takes precedence over the top-level
-setting.
+Most Fireworks models accept every reasoning effort from `'none'` to `'max'`.
+GPT-OSS, GLM-5.3 and Muse Spark models cannot disable reasoning, and Nemotron
+and Inkling models do not support `'minimal'`.
 
 Fireworks exposes the thinking of `deepseek-r1` in the generated text using the `<think>` tag.
 You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:

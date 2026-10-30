@@ -1,5 +1,120 @@
 # @ai-sdk/workflow
 
+## 2.0.91
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 2.0.90
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 2.0.89
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 2.0.88
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 2.0.86
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 2.0.85
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 2.0.84
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 2.0.83
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 2.0.81
+
+### Patch Changes
+
+- 0a5d0e7: Fix `toolChoice: 'none'` by forwarding it to the Hugging Face Responses API and rejecting tool calls before local execution in `generateText`, `streamText`, and `WorkflowAgent`. Streamed tool parts are withheld so client-side tools cannot act on them, and `repairToolCall` and `experimental_refineToolInput` are not invoked for rejected tool calls.
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+- 08335ae: Retain custom content parts (e.g. `openai.compaction`) in `WorkflowAgent.stream()` step results and subsequent model requests
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 2.0.80
 
 ### Patch Changes

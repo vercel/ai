@@ -1,5 +1,94 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [f4c5f1e]
+- Updated dependencies [e10aebb]
+- Updated dependencies [b0d51fe]
+  - @ai-sdk/anthropic@4.0.94
+
+## 2.0.86
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/anthropic@4.0.93
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/anthropic@4.0.92
+
+## 2.0.84
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/anthropic@4.0.89
+
+## 2.0.81
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/anthropic@4.0.88
+
+## 2.0.80
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/anthropic@4.0.87
+
+## 2.0.79
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+- Updated dependencies [aac6026]
+  - @ai-sdk/anthropic@4.0.86
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 2.0.78
 
 ### Patch Changes

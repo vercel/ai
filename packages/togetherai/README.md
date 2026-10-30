@@ -6,10 +6,8 @@ The **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/toget
 
 ## Setup
 
-The Together.ai provider is available in the `@ai-sdk/togetherai` module. You can install it with
-
 ```bash
-npm i @ai-sdk/togetherai
+npm i ai @ai-sdk/togetherai
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `togetherai` from `@ai-sdk/togetherai`:
-
-```ts
-import { togetherai } from '@ai-sdk/togetherai';
-```
-
-## Example
+## Usage
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
@@ -40,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for more information.
+See the [Together.ai Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai) for more information.

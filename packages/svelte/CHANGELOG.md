@@ -1,5 +1,100 @@
 # @ai-sdk/svelte
 
+## 5.0.159
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 5.0.158
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+
+## 5.0.157
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 5.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 5.0.155
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 5.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 5.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 5.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 5.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 5.0.150
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+
+## 5.0.149
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 5.0.148
 
 ### Patch Changes

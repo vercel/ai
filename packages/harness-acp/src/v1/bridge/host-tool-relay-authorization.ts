@@ -1,11 +1,8 @@
 import type { SessionUpdate, ToolCallUpdate } from '@agentclientprotocol/sdk';
 import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
+import type { HostToolCall } from './host-tool-call-resolver';
 import { mergeObservedToolCall } from './merge-observed-tool-call';
-import {
-  resolveHostToolCall,
-  type HostToolCall,
-} from './resolve-host-tool-call';
 
 type ObservedCall = {
   toolCall?: ACPToolCall;
@@ -17,15 +14,14 @@ type ObservedCall = {
 const DEFAULT_AUTHORIZATION_WAIT_MS = 10_000;
 
 export function createHostToolRelayAuthorization({
-  serverName,
-  toolNames,
   ttlMs = DEFAULT_AUTHORIZATION_WAIT_MS,
 }: {
-  serverName: string;
-  toolNames: ReadonlyArray<string>;
   ttlMs?: number;
-}): {
-  observeUpdate(options: { update: SessionUpdate }): void;
+} = {}): {
+  observeUpdate(options: {
+    update: SessionUpdate;
+    hostToolCall?: HostToolCall;
+  }): void;
   authorizePermission(options: {
     toolCallId: string;
     call: HostToolCall;
@@ -65,7 +61,13 @@ export function createHostToolRelayAuthorization({
     }
   };
 
-  const observe = ({ toolCall }: { toolCall: ToolCallUpdate }) => {
+  const observe = ({
+    toolCall,
+    hostToolCall,
+  }: {
+    toolCall: ToolCallUpdate;
+    hostToolCall: HostToolCall | undefined;
+  }) => {
     if (closed) return;
     const previous = observedCalls.get(toolCall.toolCallId);
     if (previous?.consumed || previous?.terminal) return;
@@ -91,13 +93,7 @@ export function createHostToolRelayAuthorization({
       return;
     }
 
-    const call =
-      permissionCall ??
-      resolveHostToolCall({
-        toolCall: merged,
-        serverName,
-        toolNames,
-      });
+    const call = permissionCall ?? hostToolCall;
     if (call == null) {
       authorizations.delete(toolCall.toolCallId);
       return;
@@ -106,12 +102,12 @@ export function createHostToolRelayAuthorization({
   };
 
   return {
-    observeUpdate: ({ update }) => {
+    observeUpdate: ({ update, hostToolCall }) => {
       if (
         update.sessionUpdate === 'tool_call' ||
         update.sessionUpdate === 'tool_call_update'
       ) {
-        observe({ toolCall: update });
+        observe({ toolCall: update, hostToolCall });
       }
     },
     authorizePermission: ({ toolCallId, call }) => {

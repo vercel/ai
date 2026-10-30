@@ -1,5 +1,102 @@
 # @ai-sdk/harness-acp
 
+## 1.0.110
+
+### Patch Changes
+
+- 03dac28: feat(harness-acp): require new `resolveHostToolCall()` callback and `isMcpToolCall()` callback for harness-owned control of these non-ACP details
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.106
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.104
+
+### Patch Changes
+
+- 39aae54: fix(harness): ensure harness adapters always resolve the model used
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.103
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.102
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.101
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
 ## 1.0.98
 
 ### Patch Changes

@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -27,6 +29,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
+import { getXaiTranscriptionModelEntry } from './xai-model-catalog';
 import {
   xaiTranscriptionModelOptionsSchema,
   type XaiTranscriptionModelId,
@@ -36,7 +39,7 @@ import {
 interface XaiTranscriptionModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   _internal?: {
@@ -129,7 +132,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/stt`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -215,7 +221,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: xaiOptions,
     });
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     return {
       request: { body: url.toString() },
@@ -489,7 +498,8 @@ function getXaiSttParams(
   options: XaiTranscriptionModelOptions | undefined,
 ) {
   return {
-    model: modelId || undefined,
+    model:
+      getXaiTranscriptionModelEntry(modelId).requestConfig.transcription.model,
     sample_rate: options?.sampleRate,
     language: options?.language,
     multichannel: options?.multichannel,

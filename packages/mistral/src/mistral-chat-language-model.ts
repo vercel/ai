@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -44,33 +46,15 @@ import {
 } from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
+import { getMistralLanguageModelEntry } from './mistral-model-catalog';
 
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
-
-// Known non-reasoning models from https://api.mistral.ai/v1/models
-// (2026-10-06). Unknown IDs inherit current reasoning configuration support.
-const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
-  'codestral-2508',
-  'codestral-latest',
-  'ministral-14b-2512',
-  'ministral-14b-latest',
-  'ministral-3b-2512',
-  'ministral-3b-latest',
-  'ministral-8b-2512',
-  'ministral-8b-latest',
-  'mistral-code-fim-latest',
-  'mistral-code-latest',
-  'mistral-large-latest',
-  'mistral-large-2512',
-  'voxtral-small-2507',
-  'voxtral-small-latest',
-]);
 
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -137,30 +121,20 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort = !modelsWithoutReasoningEffort.has(
+    const { reasoning: reasoningCapabilities } = getMistralLanguageModelEntry(
       this.modelId,
-    );
+    ).capabilities.language;
 
     let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
-                warnings,
-              })
-          : undefined);
+    if (reasoningCapabilities.support) {
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: Object.fromEntries(
+          reasoningCapabilities.efforts.map(effort => [effort, effort]),
+        ),
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
@@ -263,7 +237,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -342,7 +319,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

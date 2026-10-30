@@ -9,6 +9,7 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
   parseProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
@@ -26,9 +27,7 @@ type OpenAICompatibleChatConfig = ConstructorParameters<
 export type ZaiChatConfig = {
   provider: string;
   baseURL: string;
-  headers?:
-    | Record<string, string | undefined>
-    | (() => Record<string, string | undefined>);
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 

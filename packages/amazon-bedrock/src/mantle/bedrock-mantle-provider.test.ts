@@ -5,6 +5,7 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import { resolve } from '@ai-sdk/provider-utils';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
@@ -251,7 +252,7 @@ describe('bedrock-mantle-provider', () => {
     ).toBe('https://custom-mantle.example.com/v1/chat/completions');
   });
 
-  it('should include custom headers with user-agent suffix', () => {
+  it('should include custom headers with user-agent suffix', async () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createBedrockMantle({
       region: 'us-east-1',
@@ -266,7 +267,7 @@ describe('bedrock-mantle-provider', () => {
     ];
     const config = constructorCall[1];
 
-    const resolvedHeaders = config.headers!();
+    const resolvedHeaders = (await resolve(config.headers))!;
     expect(resolvedHeaders).toMatchObject(customHeaders);
     expect(resolvedHeaders['user-agent']).toContain('ai-sdk-amazon-bedrock/');
   });

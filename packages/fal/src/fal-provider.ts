@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -26,7 +28,7 @@ export interface FalProviderSettings {
    * fal.ai API key. Default value is taken from the `FAL_API_KEY` environment
    * variable, falling back to `FAL_KEY`.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -132,14 +134,16 @@ function loadFalApiKey({
 export function createFal(options: FalProviderSettings = {}): FalProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Key ${loadFalApiKey({
-          apiKey: options.apiKey,
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-fal/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Key ${loadFalApiKey({
+            apiKey,
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fal/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: FalImageModelId) =>

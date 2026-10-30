@@ -225,11 +225,29 @@ const acpQuestionResolvedSchema = z.object({
   requestId: z.string(),
 });
 
+const acpHostToolCallResolutionRequestSchema = z.object({
+  type: z.literal('acp-host-tool-call-resolution-request'),
+  requestId: z.string(),
+  toolCall: acpToolCallCandidateSchema.shape.toolCall,
+  serverName: z.string(),
+  toolNames: z.array(z.string()),
+});
+
+export const acpHostToolCallResolutionResultSchema = z.object({
+  hostToolCall: z
+    .object({
+      toolName: z.string(),
+      input: z.record(z.string(), z.unknown()),
+    })
+    .nullable(),
+});
+
 export const outboundMessageSchema = z.union([
   harnessV1BridgeOutboundMessageSchema,
   acpToolCallCandidateSchema,
   acpQuestionRequestSchema,
   acpQuestionResolvedSchema,
+  acpHostToolCallResolutionRequestSchema,
 ]);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
