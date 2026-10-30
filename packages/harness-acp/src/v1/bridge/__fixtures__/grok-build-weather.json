@@ -1,0 +1,63 @@
+[
+  {
+    "type": "update",
+    "value": {
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call-0d1f3a91-a96a-4527-a058-eee185ef8d5b-1",
+      "title": "use_tool",
+      "rawInput": {
+        "tool_name": "ai-sdk-harness-tools__weather",
+        "tool_input": { "city": "Paris" }
+      },
+      "_meta": {
+        "x.ai/tool": {
+          "version": 1,
+          "name": "use_tool",
+          "kind": "use_tool",
+          "namespace": "grok_build",
+          "label": "Use Tool",
+          "read_only": false
+        }
+      }
+    }
+  },
+  {
+    "type": "update",
+    "value": {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call-0d1f3a91-a96a-4527-a058-eee185ef8d5b-1",
+      "kind": "other",
+      "title": "ai-sdk-harness-tools__weather",
+      "locations": [],
+      "rawInput": {
+        "variant": "UseTool",
+        "tool_name": "ai-sdk-harness-tools__weather",
+        "tool_input": { "city": "Paris" }
+      },
+      "_meta": {
+        "x.ai/tool": {
+          "version": 1,
+          "name": "use_tool",
+          "kind": "use_tool",
+          "namespace": "grok_build",
+          "label": "Use Tool",
+          "read_only": false
+        }
+      }
+    }
+  },
+  {
+    "type": "update",
+    "value": {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call-0d1f3a91-a96a-4527-a058-eee185ef8d5b-1",
+      "status": "completed",
+      "rawOutput": {
+        "type": "MCP",
+        "tool_name": "weather",
+        "server_name": "ai-sdk-harness-tools",
+        "output": { "OkayOutput": "{\"city\":\"Paris\",\"celsius\":12}" }
+      }
+    }
+  }
+]
