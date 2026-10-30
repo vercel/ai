@@ -1,5 +1,11 @@
 # @ai-sdk/harness-acp
 
+## 1.0.110
+
+### Patch Changes
+
+- 03dac28: feat(harness-acp): require new `resolveHostToolCall()` callback and `isMcpToolCall()` callback for harness-owned control of these non-ACP details
+
 ## 1.0.109
 
 ### Patch Changes
