@@ -33,10 +33,7 @@ export async function areACPToolLocationsTrusted({
           ? location.path
           : `${workDir}/${location.path}`,
       );
-      if (
-        canonicalPath == null ||
-        !isInsidePath(canonicalWorkDir, canonicalPath)
-      ) {
+      if (!isInsidePath(canonicalWorkDir, canonicalPath)) {
         return false;
       }
     }
@@ -47,36 +44,37 @@ export async function areACPToolLocationsTrusted({
   }
 }
 
-async function resolvePermissionPath(
-  inputPath: string,
-): Promise<string | undefined> {
+// Resolves the nearest existing ancestor for new files. A dangling symlink is
+// an existing entry whose realpath fails, so it cannot be auto-approved.
+async function resolvePermissionPath(inputPath: string): Promise<string> {
   let existingPath = inputPath;
   const missingSegments: string[] = [];
-  for (;;) {
-    try {
-      await lstat(existingPath);
-    } catch (error) {
-      if (
-        error == null ||
-        typeof error !== 'object' ||
-        !('code' in error) ||
-        error.code !== 'ENOENT'
-      ) {
-        throw error;
-      }
-      const parent = path.posix.dirname(existingPath);
-      const segment = path.posix.basename(existingPath);
-      if (parent === existingPath || segment === '..' || segment === '.') {
-        return undefined;
-      }
-      missingSegments.unshift(segment);
-      existingPath = parent;
-      continue;
+  while (!(await entryExists(existingPath))) {
+    const parent = path.posix.dirname(existingPath);
+    const segment = path.posix.basename(existingPath);
+    if (parent === existingPath || segment === '..' || segment === '.') {
+      throw new Error(`Unable to resolve path ${JSON.stringify(inputPath)}.`);
     }
+    missingSegments.unshift(segment);
+    existingPath = parent;
+  }
+  return path.posix.join(await realpath(existingPath), ...missingSegments);
+}
 
-    // Resolve the nearest existing ancestor for new files. A dangling symlink
-    // is an existing entry whose realpath fails, so it cannot be auto-approved.
-    return path.posix.join(await realpath(existingPath), ...missingSegments);
+async function entryExists(entryPath: string): Promise<boolean> {
+  try {
+    await lstat(entryPath);
+    return true;
+  } catch (error) {
+    if (
+      error != null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
+      return false;
+    }
+    throw error;
   }
 }
 
