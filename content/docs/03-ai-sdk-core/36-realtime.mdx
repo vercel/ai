@@ -16,6 +16,11 @@ For OpenAI Live's continuous JSON/PCM16 WSS relay runtime and application-handle
 client delegation, see
 [`experimental_useRealtime`](/docs/reference/ai-sdk-ui/use-realtime#continuous-conversations).
 
+For Mistral's managed microphone-to-speaker conversations, use
+[`mistral.experimental_realtime()`](/providers/ai-sdk-providers/mistral#realtime-voice-agents)
+with `api.provider`. Its provider-owned LiveKit transport handles audio, and
+your server creates and closes the sessions.
+
 The typical flow is:
 
 1. The browser calls your setup endpoint.
@@ -269,7 +274,7 @@ realtime.addToolOutput(toolCallId, {
 
 ## Supported Providers
 
-Realtime models are available on providers that expose realtime WebSocket APIs:
+The following providers support the token-based WebSocket flow above:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -297,3 +302,7 @@ secret on your server. The browser uses that token to open the Gateway
 WebSocket; the SDK handles the Gateway-specific WebSocket subprotocols for you.
 See the [AI Gateway realtime docs](/providers/ai-sdk-providers/ai-gateway#realtime)
 for Gateway-specific token and provider option details.
+
+[Mistral voice agents](/providers/ai-sdk-providers/mistral#realtime-voice-agents)
+use `mistral.experimental_realtime('mistral-small-latest')` with a managed session
+endpoint (`api.provider`). LiveKit is handled internally by the Mistral provider.
