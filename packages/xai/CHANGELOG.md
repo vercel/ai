@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 5.0.35
+
+### Patch Changes
+
+- 89b76ce: Centralize xAI language, image, speech, transcription, and realtime capabilities in a shared model catalog, preserving request policies and generating capability tables from the same declarations.
+
 ## 5.0.34
 
 ### Patch Changes

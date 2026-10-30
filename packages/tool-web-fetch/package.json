@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/tool-web-fetch",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Provider-independent web fetch tool for the AI SDK",
   "type": "module",
   "license": "Apache-2.0",
