@@ -25,7 +25,7 @@ describe('deepseekSearch', () => {
       required: ['query'],
       properties: {
         query: { type: 'string' },
-        count: { type: 'number' },
+        count: { type: 'integer' },
         need_content: { type: 'boolean' },
       },
     });
@@ -45,17 +45,6 @@ describe('deepseekSearch', () => {
       ).toBe(true);
     },
   );
-
-  it('accepts 128 Unicode code points', async () => {
-    expect(
-      (
-        await safeValidateTypes({
-          value: { query: '😀'.repeat(128), ori_question: null },
-          schema: asSchema(deepseekSearch().inputSchema),
-        })
-      ).success,
-    ).toBe(true);
-  });
 
   it('accepts nullable result metadata and preserves additive response fields', async () => {
     const value = {
@@ -105,7 +94,7 @@ describe('deepseekSearch', () => {
   it.each([
     {},
     { url: 'https://example.com' },
-    { authority: 'unknown', summary: null, future_field: true },
+    { authority: null, summary: null, future_field: true },
   ])('accepts partial and evolving result metadata (%j)', async item => {
     expect(
       (

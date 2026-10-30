@@ -5,9 +5,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
 import {
-  deepseekToolErrorSchema,
-  type DeepSeekToolError,
-} from './deepseek-tool-error';
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
 
 export interface DeepSeekFetchConfig {
   /** Pin the target URL instead of allowing the model to choose it. */
@@ -24,7 +24,7 @@ export interface DeepSeekFetchResponse {
   content: string;
 }
 
-export type DeepSeekFetchOutput = DeepSeekFetchResponse | DeepSeekToolError;
+export type DeepSeekFetchOutput = DeepSeekFetchResponse | GatewayToolError;
 
 const deepseekFetchInputSchema = lazySchema(() =>
   zodSchema(
@@ -43,11 +43,11 @@ const deepseekFetchOutputSchema = lazySchema(() =>
     z.union([
       z
         .object({
-          title: z.string().nullish().catch(undefined),
+          title: z.string().nullish(),
           content: z.string(),
         })
         .passthrough(),
-      deepseekToolErrorSchema,
+      gatewayToolErrorSchema(),
     ]),
   ),
 );

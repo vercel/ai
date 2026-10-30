@@ -4,6 +4,10 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
+import {
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
 
 const parallelSearchModes = [
   'turbo',
@@ -153,23 +157,7 @@ export interface ParallelSearchResponse {
   session_id?: string;
 }
 
-export interface ParallelSearchError {
-  /** Error type */
-  error:
-    | 'api_error'
-    | 'configuration_error'
-    | 'execution_error'
-    | 'gateway_rate_limit'
-    | 'invalid_input'
-    | 'rate_limit'
-    | 'timeout'
-    | 'unknown'
-    | 'unknown_tool';
-  /** HTTP status code if applicable */
-  statusCode?: number;
-  /** Human-readable error message */
-  message: string;
-}
+export type ParallelSearchError = GatewayToolError;
 
 export interface ParallelSearchInput {
   /**
@@ -375,21 +363,7 @@ const parallelSearchOutputSchema = lazySchema(() =>
         session_id: z.string().optional(),
       }),
       // Error response
-      z.object({
-        error: z.enum([
-          'api_error',
-          'configuration_error',
-          'execution_error',
-          'gateway_rate_limit',
-          'invalid_input',
-          'rate_limit',
-          'timeout',
-          'unknown',
-          'unknown_tool',
-        ]),
-        statusCode: z.number().optional(),
-        message: z.string(),
-      }),
+      gatewayToolErrorSchema(),
     ]),
   ),
 );

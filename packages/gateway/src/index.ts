@@ -69,20 +69,6 @@ export {
   GatewayResponseError,
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
-export type {
-  DeepSeekFetchConfig,
-  DeepSeekFetchInput,
-  DeepSeekFetchOutput,
-  DeepSeekFetchResponse,
-} from './tool/deepseek-fetch';
-export type {
-  DeepSeekSearchConfig,
-  DeepSeekSearchInput,
-  DeepSeekSearchOutput,
-  DeepSeekSearchResponse,
-  DeepSeekSearchResult,
-} from './tool/deepseek-search';
-export type { DeepSeekToolError } from './tool/deepseek-tool-error';
 
 export { VERSION } from './version';
 

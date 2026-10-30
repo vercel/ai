@@ -5,9 +5,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
 import {
-  deepseekToolErrorSchema,
-  type DeepSeekToolError,
-} from './deepseek-tool-error';
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
 
 export interface DeepSeekSearchConfig {
   /** Pin the query instead of allowing the model to choose it. */
@@ -46,7 +46,7 @@ export interface DeepSeekSearchResponse {
   results: DeepSeekSearchResult[];
 }
 
-export type DeepSeekSearchOutput = DeepSeekSearchResponse | DeepSeekToolError;
+export type DeepSeekSearchOutput = DeepSeekSearchResponse | GatewayToolError;
 
 const deepseekSearchInputSchema = lazySchema(() =>
   zodSchema(
@@ -58,6 +58,7 @@ const deepseekSearchInputSchema = lazySchema(() =>
         ),
       count: z
         .number()
+        .int()
         .optional()
         .describe('Number of results, 1 to 50 (default: 10).'),
       need_content: z
@@ -81,22 +82,22 @@ const deepseekSearchOutputSchema = lazySchema(() =>
           results: z.array(
             z
               .object({
-                authority: z.number().nullish().catch(undefined),
-                content: z.string().nullish().catch(undefined),
-                date: z.string().nullish().catch(undefined),
-                rerank_score: z.number().nullish().catch(undefined),
-                site_icon: z.string().nullish().catch(undefined),
-                site_name: z.string().nullish().catch(undefined),
-                snippet: z.string().nullish().catch(undefined),
-                summary: z.string().nullish().catch(undefined),
-                title: z.string().nullish().catch(undefined),
-                url: z.string().nullish().catch(undefined),
+                authority: z.number().nullish(),
+                content: z.string().nullish(),
+                date: z.string().nullish(),
+                rerank_score: z.number().nullish(),
+                site_icon: z.string().nullish(),
+                site_name: z.string().nullish(),
+                snippet: z.string().nullish(),
+                summary: z.string().nullish(),
+                title: z.string().nullish(),
+                url: z.string().nullish(),
               })
               .passthrough(),
           ),
         })
         .passthrough(),
-      deepseekToolErrorSchema,
+      gatewayToolErrorSchema(),
     ]),
   ),
 );

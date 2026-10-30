@@ -932,6 +932,9 @@ const result = await generateText({
 
 console.log(result.text);
 console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
 ```
 
 Search configuration uses camelCase:
@@ -953,7 +956,9 @@ metadata. An empty `results` array is a successful search with no matches.
 Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
 password, and returns `{ title, content }`. The content is Markdown. You can
 pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
-Both output types also include structured tool errors.
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
 
 See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
 underlying APIs.
