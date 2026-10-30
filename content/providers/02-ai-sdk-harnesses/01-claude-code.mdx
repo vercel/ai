@@ -114,8 +114,8 @@ Settings:
   first request when Claude Code's tool search is on, instead of deferring it
   until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
-- `settings`: invocation-specific native Claude Code settings, provided as an
-  inline JSON object or a settings file path inside the sandbox.
+- `skillOverrides`: per-skill visibility overrides. Values can be `on`,
+  `name-only`, `user-invocable-only`, or `off`.
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
 - `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
@@ -153,21 +153,19 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
-### Native Settings
+### Skill Overrides
 
-Use `settings` to pass invocation-specific native Claude Code settings without
-changing shared user-level configuration. For example, selectively disable
-bundled skills that are not appropriate for an embedded agent:
+Use `skillOverrides` to control how named skills are exposed to Claude Code
+without changing shared user-level configuration. Values can be `'on'`,
+`'name-only'`, `'user-invocable-only'`, or `'off'`:
 
 ```ts
 const harness = createClaudeCode({
-  settings: {
-    skillOverrides: {
-      'update-config': 'off',
-      'fewer-permission-prompts': 'off',
-      'keybindings-help': 'off',
-      init: 'off',
-    },
+  skillOverrides: {
+    'update-config': 'off',
+    'fewer-permission-prompts': 'off',
+    'keybindings-help': 'off',
+    init: 'off',
   },
 });
 ```
@@ -175,21 +173,6 @@ const harness = createClaudeCode({
 Skills without an override keep their Claude Code defaults, so other bundled
 skills such as `code-review`, `simplify`, and `claude-api` remain available
 when provided by the installed Claude Code runtime.
-
-`settings` also accepts a file path:
-
-```ts
-const harness = createClaudeCode({
-  settings: '/vercel/sandbox/claude-settings.json',
-});
-```
-
-The path is resolved by Claude Code inside the sandbox, not on the host running
-your application. Inline settings and settings files can configure
-permissions, hooks, commands, environment values, and other executable
-behavior, so only supply trusted values. The adapter continues to enforce the
-configured harness permission mode and built-in tool approval boundaries in
-addition to the native settings.
 
 ## Structured Output
 
