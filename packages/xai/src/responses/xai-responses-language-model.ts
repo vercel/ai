@@ -28,10 +28,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { getResponseMetadata } from '../get-response-metadata';
-import {
-  supportsNoneReasoningEffort,
-  supportsReasoningEffort,
-} from '../supports-reasoning-effort';
+import { getXaiLanguageModelEntry } from '../xai-model-catalog';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -282,9 +279,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const { portable: reasoningCapabilities } =
+      getXaiLanguageModelEntry(modelId).capabilities.language.reasoning;
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(modelId)) {
+      if (!reasoningCapabilities.configurable) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -294,13 +293,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            ...(supportsNoneReasoningEffort(modelId) && {
+            ...(reasoningCapabilities.none && {
               none: 'none' as const,
             }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            ...(modelId === 'grok-4.6' && { xhigh: 'xhigh' as const }),
+            ...(reasoningCapabilities.xhigh && { xhigh: 'xhigh' as const }),
           },
           warnings,
         });

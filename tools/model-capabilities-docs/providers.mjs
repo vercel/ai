@@ -3,13 +3,11 @@ import { formatSupport } from './render-tables.mjs';
 // Register a provider here to generate its docs from its source catalog.
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
-// Omit overviewLink for providers that do not appear in the language overview.
 export const providers = [
   {
     catalogPath: 'packages/openai/src/openai-model-catalog.ts',
     catalogExport: 'openaiModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/03-openai.mdx',
-    overviewLink: '[OpenAI](/providers/ai-sdk-providers/openai)',
     tables: [
       {
         id: 'openai-language',
@@ -97,7 +95,6 @@ export const providers = [
     catalogPath: 'packages/anthropic/src/anthropic-model-catalog.ts',
     catalogExport: 'anthropicModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/05-anthropic.mdx',
-    overviewLink: '[Anthropic](/providers/ai-sdk-providers/anthropic)',
     tables: [
       {
         id: 'anthropic-language',
@@ -118,7 +115,6 @@ export const providers = [
     catalogPath: 'packages/google/src/google-model-catalog.ts',
     catalogExport: 'googleModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/15-google.mdx',
-    overviewLink: '[Google](/providers/ai-sdk-providers/google)',
     tables: [
       {
         id: 'google-language',
@@ -138,7 +134,6 @@ export const providers = [
     catalogPath: 'packages/mistral/src/mistral-model-catalog.ts',
     catalogExport: 'mistralModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/20-mistral.mdx',
-    overviewLink: '[Mistral](/providers/ai-sdk-providers/mistral)',
     tables: [
       {
         id: 'mistral-language',
@@ -173,8 +168,61 @@ export const providers = [
       },
     ],
   },
+  {
+    catalogPath: 'packages/xai/src/xai-model-catalog.ts',
+    catalogExport: 'xaiModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/01-xai.mdx',
+    tables: [
+      {
+        id: 'xai-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Reasoning', 'reasoning.support'],
+        ],
+      },
+      {
+        id: 'xai-image',
+        capability: 'image',
+        columns: [
+          ['Resolution', 'resolutions', formatCodeList],
+          ['Aspect Ratios', 'aspectRatios', formatCodeList],
+          ['Image Editing', 'fileInput'],
+        ],
+      },
+      {
+        id: 'xai-speech',
+        capability: 'speech',
+        formatModelId: modelId => modelId || 'default',
+        columns: [
+          ['Language', 'language'],
+          ['Speed', 'speed'],
+          ['Output Formats', 'outputFormats', values => values.join(', ')],
+        ],
+      },
+      {
+        id: 'xai-transcription',
+        capability: 'transcription',
+        formatModelId: modelId => modelId || 'default',
+        columns: [
+          ['Request/Response', 'transcription'],
+          ['Streaming', 'streaming'],
+          ['Word Timestamps', 'wordTimestamps'],
+          ['Diarization', 'diarization'],
+          ['Multichannel', 'multichannel'],
+        ],
+      },
+    ],
+  },
 ];
 
 function formatOptionalSupport(value) {
   return formatSupport(value ?? 'unknown');
+}
+
+function formatCodeList(values) {
+  return values.map(value => `\`${value}\``).join(', ');
 }
