@@ -1604,10 +1604,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
 
-        // Server-side fallback marker: the AI SDK has no content primitive for
-        // a model hop, so drop it. The hop is still observable via
-        // usage.iterations.
         case 'fallback': {
+          content.push({
+            type: 'text',
+            text: '',
+            providerMetadata: {
+              anthropic: {
+                type: 'fallback',
+                from: part.from,
+                to: part.to,
+              },
+            },
+          });
           break;
         }
       }
@@ -1851,10 +1859,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               const part = value.content_block;
               const contentBlockType = part.type;
 
-              // Server-side fallback marker: the AI SDK has no content
-              // primitive for a model hop, so drop it. The hop is still
-              // observable via usage.iterations.
               if (contentBlockType === 'fallback') {
+                const providerMetadata = {
+                  anthropic: {
+                    type: 'fallback',
+                    from: part.from,
+                    to: part.to,
+                  },
+                };
+                controller.enqueue({
+                  type: 'text-start',
+                  id: String(value.index),
+                  providerMetadata,
+                });
+                controller.enqueue({
+                  type: 'text-end',
+                  id: String(value.index),
+                  providerMetadata,
+                });
                 return;
               }
 

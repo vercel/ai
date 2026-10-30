@@ -1768,16 +1768,30 @@ describe('AnthropicMessagesLanguageModel', () => {
         ).toBeUndefined();
       });
 
-      it('should drop the fallback content block and surface the fallback iteration', async () => {
+      it('should preserve the fallback content block and surface the fallback iteration', async () => {
         prepareJsonFixtureResponse('anthropic-fallback');
 
         const result = await provider('claude-fable-5').doGenerate({
           prompt: TEST_PROMPT,
         });
 
-        // The `fallback` content block is dropped; only the served answer text remains.
         expect(result.content).toMatchInlineSnapshot(`
           [
+            {
+              "providerMetadata": {
+                "anthropic": {
+                  "from": {
+                    "model": "claude-fable-5",
+                  },
+                  "to": {
+                    "model": "claude-opus-4-8",
+                  },
+                  "type": "fallback",
+                },
+              },
+              "text": "",
+              "type": "text",
+            },
             {
               "text": "The printing press was invented by Johannes Gutenberg around 1440.",
               "type": "text",
@@ -7004,7 +7018,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should drop the streamed fallback content block and surface the fallback iteration', async () => {
+    it('should preserve the streamed fallback content block and surface the fallback iteration', async () => {
       prepareChunksFixtureResponse('anthropic-fallback');
 
       const { stream } = await provider('claude-fable-5').doStream({
@@ -7013,8 +7027,31 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
-      // No content parts are emitted for the dropped `fallback` block; only
-      // the served answer text streams through.
+      expect(result.slice(2, 4)).toEqual([
+        {
+          type: 'text-start',
+          id: '0',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: { model: 'claude-fable-5' },
+              to: { model: 'claude-opus-4-8' },
+            },
+          },
+        },
+        {
+          type: 'text-end',
+          id: '0',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: { model: 'claude-fable-5' },
+              to: { model: 'claude-opus-4-8' },
+            },
+          },
+        },
+      ]);
+
       const textDeltas = result
         .filter(part => part.type === 'text-delta')
         .map(part => (part.type === 'text-delta' ? part.delta : ''))
@@ -7044,6 +7081,59 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve a mid-output fallback boundary between reasoning blocks', async () => {
+      prepareChunksFixtureResponse('anthropic-fallback-mid-output');
+
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(
+        result
+          .filter(
+            part =>
+              part.type === 'reasoning-start' ||
+              part.type === 'reasoning-end' ||
+              part.type === 'text-start' ||
+              part.type === 'text-end',
+          )
+          .map(part => ({
+            type: part.type,
+            id: part.id,
+            providerMetadata:
+              'providerMetadata' in part ? part.providerMetadata : undefined,
+          })),
+      ).toEqual([
+        { type: 'reasoning-start', id: '0', providerMetadata: undefined },
+        { type: 'reasoning-end', id: '0', providerMetadata: undefined },
+        {
+          type: 'text-start',
+          id: '1',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: { model: 'claude-opus-5-5' },
+              to: { model: 'claude-opus-4-8' },
+            },
+          },
+        },
+        {
+          type: 'text-end',
+          id: '1',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: { model: 'claude-opus-5-5' },
+              to: { model: 'claude-opus-4-8' },
+            },
+          },
+        },
+        { type: 'reasoning-start', id: '2', providerMetadata: undefined },
+        { type: 'reasoning-end', id: '2', providerMetadata: undefined },
+      ]);
     });
 
     it('should stream reasoning deltas', async () => {
