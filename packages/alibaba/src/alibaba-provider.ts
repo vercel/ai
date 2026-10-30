@@ -1,9 +1,10 @@
 import {
-  NoSuchModelError,
+  LoadSettingError,
   type EmbeddingModelV4,
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type ImageModelV4,
 } from '@ai-sdk/provider';
 import {
   type Resolvable,
@@ -20,6 +21,8 @@ import type { AlibabaEmbeddingModelId } from './alibaba-embedding-model-options'
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
+import type { AlibabaImageModelId } from './image/alibaba-image-model-options';
+import { AlibabaImageModel } from './image/alibaba-image-model';
 
 export type { AlibabaErrorData } from './alibaba-error';
 export { alibabaFailedResponseHandler } from './alibaba-error';
@@ -56,6 +59,16 @@ export interface AlibabaProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: AlibabaImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: AlibabaImageModelId): ImageModelV4;
 }
 
 export interface AlibabaProviderSettings {
@@ -104,6 +117,11 @@ export interface AlibabaProviderSettings {
    * @default true
    */
   includeUsage?: boolean;
+
+  /**
+   *
+   */
+  imageGenerationBaseURL?: string;
 }
 
 /**
@@ -164,6 +182,21 @@ export function createAlibaba(
       fetch: options.fetch,
     });
 
+  const createImageModel = (modelId: AlibabaImageModelId) => {
+    if (!options.imageGenerationBaseURL) {
+      throw new LoadSettingError({
+        message:
+          'imageGenerationBaseURL is not set. Please set it in the provider settings.',
+      });
+    }
+    return new AlibabaImageModel(modelId, {
+      provider: 'alibaba.image',
+      baseURL: options.imageGenerationBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = function (modelId: AlibabaChatModelId) {
     if (new.target) {
       throw new Error(
@@ -182,9 +215,8 @@ export function createAlibaba(
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider;
 }
