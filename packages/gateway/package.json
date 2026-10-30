@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "3.0.225",
+  "version": "3.0.226",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
