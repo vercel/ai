@@ -7,7 +7,7 @@ import type {
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import type { ToolResultPart } from '@ai-sdk/provider-utils';
-import type { ACPToolCall } from '../acp-tool-call';
+import type { ACPResolveHostToolCall, ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
 
@@ -173,7 +173,16 @@ export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
-  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Classifies an ACP tool call that did not resolve to a host tool as a
+   * dynamic MCP tool call.
+   */
+  readonly isMcpToolCall: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Resolves an ACP tool call to the host tool it invokes. Host tools are
+   * exposed to the ACP agent through the harness-owned MCP server.
+   */
+  readonly resolveHostToolCall: ACPResolveHostToolCall;
   readonly auth?: ACPAuthenticationMode;
   /**
    * Resolves adapter-owned authentication on the host before any environment
@@ -287,6 +296,12 @@ export function validateACPV1Settings({
     throw new Error(
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
     );
+  }
+  if (typeof settings.isMcpToolCall !== 'function') {
+    throw new Error('ACP isMcpToolCall must be a function.');
+  }
+  if (typeof settings.resolveHostToolCall !== 'function') {
+    throw new Error('ACP resolveHostToolCall must be a function.');
   }
 
   const { source } = settings;
