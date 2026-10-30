@@ -63,44 +63,4 @@ try {
 }
 ```
 
-The adapter needs a sandbox session with an exposed port. The caller owns the
-sandbox lifecycle: ending the harness session does not stop the sandbox.
-
-## Runtime configuration
-
-Use `env` to add environment variables to the Claude Code process. Configured
-values override variables inherited from the sandbox bridge process.
-
-```ts
-const harness = createClaudeCode({
-  env: {
-    DEPLOYMENT_ENV: 'staging',
-  },
-});
-```
-
-Pass invocation-specific native Claude Code settings with `settings`. This can
-selectively disable bundled skills without changing shared user settings:
-
-```ts
-const harness = createClaudeCode({
-  settings: {
-    skillOverrides: {
-      'update-config': 'off',
-      'fewer-permission-prompts': 'off',
-      init: 'off',
-    },
-  },
-});
-```
-
-`settings` also accepts a settings file path resolved inside the sandbox. Only
-supply trusted settings because native Claude Code settings can configure
-permissions, hooks, commands, and environment values.
-
-Sub-agent messages and task/background notifications are surfaced as `raw`
-stream parts. `agentProgressSummaries` adds periodic summaries to raw
-`task_progress` messages, while `forwardSubagentText` includes sub-agent text
-and thinking messages in the raw stream.
-
 See the [Claude Code Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/claude-code) for more information.
