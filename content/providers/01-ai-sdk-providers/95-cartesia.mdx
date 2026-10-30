@@ -112,10 +112,10 @@ You can use the following optional settings to customize the Cartesia provider i
 You can create models that call the [Cartesia text-to-speech API](https://docs.cartesia.ai/api-reference/tts/bytes)
 using the `.speech()` factory method.
 
-The first argument is the model id, e.g. `sonic-3.5`.
+The first argument is the model id, e.g. `sonic-3.6`.
 
 ```ts
-const model = cartesia.speech('sonic-3.5');
+const model = cartesia.speech('sonic-3.6');
 ```
 
 You can use the model with the `generateSpeech` function. Cartesia requires a `voice` id:
@@ -125,7 +125,7 @@ import { generateSpeech } from 'ai';
 import { cartesia } from '@ai-sdk/cartesia';
 
 const result = await generateSpeech({
-  model: cartesia.speech('sonic-3.5'),
+  model: cartesia.speech('sonic-3.6'),
   text: 'Hello, world!',
   voice: '694f9389-aac1-45b6-b726-9d9369183238',
 });
@@ -138,7 +138,7 @@ import { generateSpeech } from 'ai';
 import { cartesia, type CartesiaSpeechModelOptions } from '@ai-sdk/cartesia';
 
 const result = await generateSpeech({
-  model: cartesia.speech('sonic-3.5'),
+  model: cartesia.speech('sonic-3.6'),
   text: 'Hello, world!',
   voice: '694f9389-aac1-45b6-b726-9d9369183238',
   providerOptions: {
@@ -187,13 +187,19 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model          |
-| -------------- |
-| `sonic-3.5`    |
-| `sonic-3`      |
-| `sonic-2`      |
-| `sonic-turbo`  |
-| `sonic-latest` |
+| Model       |
+| ----------- |
+| `sonic-3.6` |
+| `sonic-3.5` |
+| `sonic-3`   |
+
+<Note>
+  `sonic-2`, `sonic-turbo` and the `sonic-3-2025-10-27` snapshot retire on
+  October 20, 2026. Requests to a retired model fail with a `model_sunsetted`
+  error. Switch to `sonic-3.6`. See [Deprecated
+  models](https://docs.cartesia.ai/build-with-cartesia/tts-models/api-changes)
+  for the full schedule.
+</Note>
 
 ## Realtime Transcription Models
 
