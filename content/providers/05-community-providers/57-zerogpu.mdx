@@ -1,0 +1,256 @@
+---
+title: ZeroGPU
+description: Learn how to use the ZeroGPU provider for the AI SDK.
+---
+
+# ZeroGPU
+
+[ZeroGPU](https://zerogpu.ai) is a compute-efficient inference provider for apps and agents. It serves purpose-built small and nano language models on an edge network, for the repeatable tasks frontier models shouldn't run, alongside open-weight and frontier LLMs, embeddings, text-to-speech and speech-to-text.
+
+The ZeroGPU provider for the AI SDK supports:
+
+- **Text generation**: streaming, tool calling, structured output and image input
+- **Classification and extraction**: IAB taxonomy, signal extraction, GLiNER entity extraction and zero-shot classification models
+- **Embeddings**: 384-dimensional sentence and retrieval embeddings
+- **Speech**: text-to-speech and speech-to-text
+
+Learn more in the [ZeroGPU documentation](https://docs.zerogpu.ai).
+
+## Setup
+
+The ZeroGPU provider is available in the `@zerogpu/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@zerogpu/ai-sdk-provider" />
+
+Get an API key from the [ZeroGPU dashboard](https://platform.zerogpu.ai/dashboard) and set it as an environment variable:
+
+```bash
+ZEROGPU_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `zerogpu` from `@zerogpu/ai-sdk-provider`:
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createZeroGPU` and create a provider instance with your settings:
+
+```ts
+import { createZeroGPU } from '@zerogpu/ai-sdk-provider';
+
+const zerogpu = createZeroGPU({
+  apiKey: process.env.ZEROGPU_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the ZeroGPU provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.zerogpu.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ZEROGPU_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+You can create language models using a provider instance.
+The first argument is the model ID, for example:
+
+```ts
+const model = zerogpu('gpt-oss-120b');
+```
+
+### Example
+
+You can use ZeroGPU language models to generate text with the `generateText` function:
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: zerogpu('gpt-oss-120b'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+ZeroGPU language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Classification and Extraction Models
+
+ZeroGPU's classification and extraction models are called with `generateText` and return their result as a JSON string.
+They don't support streaming.
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: zerogpu('zlm-v1-iab-classify-edge'),
+  prompt: 'Apple released a new MacBook laptop today.',
+});
+
+const classification = JSON.parse(text);
+```
+
+The GLiNER models take their task configuration through the `metadata` provider option:
+
+```ts
+const { text } = await generateText({
+  model: zerogpu('gliner2.5-base-v1'),
+  prompt: 'The app is built with Python 3.11 and uses PostgreSQL 15.',
+  providerOptions: {
+    zerogpu: {
+      metadata: {
+        usecase: 'ner',
+        labels: ['programming language', 'database'],
+        threshold: 0.3,
+      },
+    },
+  },
+});
+```
+
+`deberta-v3-small` classifies text against labels that you pass as instructions, e.g. `instructions: '[Sports,Technology,Finance]'`.
+
+### Provider Options
+
+The following optional provider options are available for ZeroGPU language models:
+
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high'_
+
+  The reasoning effort for models that support adjustable reasoning.
+  You can also use the AI SDK `reasoning` option.
+
+- **metadata** _Record&lt;string, unknown&gt;_
+
+  Task configuration for the GLiNER models: `usecase` (`ner`, `json` or `classification`), `labels`, `schema` and `threshold`.
+
+- **categories** _string[]_
+
+  Signal categories to extract with `zlm-v1-signal-extract`.
+
+- **maxKeywords** _number_
+
+  The maximum number of keywords returned by `zlm-v1-signal-extract`.
+
+### Model Capabilities
+
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `deepseek-v4.1-flash`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `glm-5.3-flash`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-nano`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.6-luna`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6-luna`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-oss-120b`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3-30b-a3b-fp8`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen3.6-35b-a3b`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.1-8b-instruct-fast` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `llama-3.2-3b-instruct-fast` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `LFM2.5-1.2B-Instruct`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `LFM2.5-1.2B-Thinking`       | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `zlm-v1-tool-decisions`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+The classification and extraction models are `zlm-v1-iab-classify-edge`, `zlm-v2-iab-classify-edge-enriched`, `zlm-v1-iab-domain-classifier`, `zlm-v1-signal-extract`, `gliner2.5-base-v1`, `gliner2.5-multi-v1`, `gliner2.5-decide-v1` and `deberta-v3-small`.
+
+<Note>
+  Please see the [ZeroGPU model
+  catalog](https://docs.zerogpu.ai/docs/model-catalog) for the full list of
+  available models and their input and output formats. You can also pass any
+  available provider model ID as a string if needed.
+</Note>
+
+## Embedding Models
+
+You can create models that call the ZeroGPU embeddings API using the `.embeddingModel()` factory method.
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: zerogpu.embeddingModel('bge-small-en-v1.5'),
+  value: 'sunny day at the beach',
+});
+```
+
+| Model               | Default Dimensions |
+| ------------------- | ------------------ |
+| `bge-small-en-v1.5` | 384                |
+| `all-minilm-l6-v2`  | 384                |
+
+## Speech Models
+
+You can create models that call the ZeroGPU speech API using the `.speech()` factory method.
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+import { generateSpeech } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { audio } = await generateSpeech({
+  model: zerogpu.speech('chatterbox-nano'),
+  text: 'Hello from ZeroGPU!',
+  voice: 'alloy',
+});
+
+await writeFile('./speech.mp3', audio.uint8Array);
+```
+
+| Model             | Instructions        | Speed               | Language            | Output Formats                 |
+| ----------------- | ------------------- | ------------------- | ------------------- | ------------------------------ |
+| `chatterbox-nano` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | mp3, wav, opus, aac, flac, pcm |
+
+`outputFormat` can be `mp3` (default), `wav`, `opus`, `aac`, `flac` or `pcm`.
+The optional provider options `seed`, `temperature`, `topP`, `topK` and `repetitionPenalty` are also available.
+
+## Transcription Models
+
+You can create models that call the ZeroGPU transcription API using the `.transcription()` factory method.
+
+```ts
+import { zerogpu } from '@zerogpu/ai-sdk-provider';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: zerogpu.transcription('whisper-tiny'),
+  audio: await readFile('./audio.mp3'),
+});
+
+console.log(result.text);
+```
+
+| Model          | Transcription       | Duration            | Segments            | Language            |
+| -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper-tiny` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+The optional provider options `language` (ISO-639-1, e.g. `en`) and `temperature` are available.
+
+## Additional Resources
+
+- [ZeroGPU Provider Repository](https://github.com/zerogpu/ai-sdk-provider)
+- [NPM Package](https://www.npmjs.com/package/@zerogpu/ai-sdk-provider)
+- [ZeroGPU Documentation](https://docs.zerogpu.ai)
+- [ZeroGPU Model Catalog](https://docs.zerogpu.ai/docs/model-catalog)
+- [ZeroGPU Dashboard](https://platform.zerogpu.ai/dashboard)
