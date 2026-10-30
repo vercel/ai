@@ -1,5 +1,18 @@
 # @ai-sdk/provider
 
+## 4.0.35
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+
+## 4.0.34
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+
 ## 4.0.33
 
 ### Patch Changes

@@ -42,6 +42,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { getAnthropicModelCapabilities } from './anthropic-model-catalog';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -435,7 +436,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rejectsForcedToolUse,
       supportsBetweenToolsThinking,
       isKnownModel,
-    } = getModelCapabilities(modelId);
+    } = getAnthropicModelCapabilities(modelId);
 
     if (!isKnownModel && maxOutputTokens == null) {
       warnings.push({
@@ -1151,15 +1152,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   private async getHeaders({
     betas,
+    configHeaders,
     headers,
     providerOptions,
   }: {
     betas: Set<string>;
+    configHeaders: Record<string, string | undefined> | undefined;
     headers: Record<string, string | undefined> | undefined;
     providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
     const combinedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+      configHeaders,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
@@ -1169,13 +1172,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       : combinedHeaders;
   }
 
-  private async getBetasFromHeaders(
+  private getBetasFromHeaders(
+    configHeaders: Record<string, string | undefined> | undefined,
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
-
     const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
@@ -1249,6 +1249,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args,
       warnings,
@@ -1260,7 +1264,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1279,6 +1286,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -1896,6 +1904,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4StreamResult> {
     'use step';
 
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args: body,
       warnings,
@@ -1907,7 +1919,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: true,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1923,6 +1938,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       url,
       headers: await this.getHeaders({
         betas,
+        configHeaders,
         headers: options.headers,
         providerOptions: options.providerOptions,
       }),
@@ -3313,285 +3329,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 }
 
-/**
- * Returns the capabilities of a Claude model that are used for defaults and feature selection.
- *
- * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
- * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
- */
-export function getModelCapabilities(modelId: string): {
-  maxOutputTokens: number;
-  supportsStructuredOutput: boolean;
-  supportsAdaptiveThinking: boolean;
-  rejectsSamplingParameters: boolean;
-  supportsXhighEffort: boolean;
-  rejectsThinkingDisabledAboveHighEffort: boolean;
-  /**
-   * Thinking is always adaptive: `thinking.type` `disabled` and `enabled`
-   * are rejected with a 400.
-   */
-  rejectsThinkingDisabled: boolean;
-  /**
-   * Budget-based thinking (`thinking.type` `enabled` with `budget_tokens`) is
-   * rejected with a 400. Only adaptive thinking is supported.
-   */
-  rejectsBudgetThinking: boolean;
-  /**
-   * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
-   */
-  rejectsForcedToolUse: boolean;
-  /**
-   * Supports `thinking.type` `between_tools`, the lowest thinking setting on
-   * models that reject disabled thinking.
-   */
-  supportsBetweenToolsThinking: boolean;
-  isKnownModel: boolean;
-} {
-  if (modelId.includes('claude-sonnet-5-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: true,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-5-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-haiku-5-5')) {
-    // Thinking can be turned off, but only up to `high` effort.
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-fable-5-1')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: true,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-fable-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: true,
-      rejectsBudgetThinking: true,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-sonnet-5')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-6') ||
-    modelId.includes('claude-opus-4-6')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5') ||
-    modelId.includes('claude-haiku-4-5')
-  ) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-4-1')) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-haiku')) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: true,
-    };
-  } else if (
-    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
-  ) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  } else if (modelId.includes('claude-')) {
-    // Known and legacy Claude families are handled above, so any remaining
-    // Claude ID is assumed to be newer than the known list. Keep it unknown so
-    // callers still receive the maxOutputTokens compatibility warning.
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  } else {
-    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
-    // keep conservative defaults.
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      rejectsThinkingDisabled: false,
-      rejectsBudgetThinking: false,
-      rejectsForcedToolUse: false,
-      supportsBetweenToolsThinking: false,
-      isKnownModel: false,
-    };
-  }
-}
+export { getAnthropicModelCapabilities as getModelCapabilities } from './anthropic-model-catalog';
 
 export function hasDynamicFilteringWebToolWithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
@@ -3652,6 +3390,13 @@ function resolveAnthropicReasoningConfig({
     // `between_tools` is the lowest thinking setting on models that support
     // it: no upfront thinking, only short progress notes between tool calls.
     if (supportsBetweenToolsThinking) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; thinking cannot be disabled. ` +
+          `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+      });
       return { thinking: { type: 'between_tools' } };
     }
 
@@ -3676,11 +3421,10 @@ function resolveAnthropicReasoningConfig({
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: {
-        minimal: 'low' as const,
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
         max: 'max' as const,
       },
       warnings,
@@ -3697,9 +3441,6 @@ function resolveAnthropicReasoningConfig({
     maxReasoningBudget: maxOutputTokensForModel,
     warnings,
   });
-  if (budgetTokens == null) {
-    return undefined;
-  }
   return { thinking: { type: 'enabled', budgetTokens } };
 }
 

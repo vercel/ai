@@ -12,7 +12,7 @@ import {
   type Context,
 } from '@ai-sdk/provider-utils';
 import {
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   InvalidToolInputError,
   isDeepEqualData,
   type ActiveTools,

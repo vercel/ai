@@ -1,5 +1,59 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.76
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.75
+
+### Patch Changes
+
+- 3e5a123: fix(elevenlabs): map the generic HTTP speech output format `wav` to the native `wav_44100` format instead of forwarding an unsupported value.
+- 48ab95d: Add the `withTimestamps` provider option for speech character alignment and music lyric word timing in provider metadata. Route `eleven_v4` speech through Text to Dialogue, including its timestamp endpoint and voice segment metadata.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.74
+
+### Patch Changes
+
+- 7062ab6: fix(elevenlabs): parse ElevenLabs error bodies (detail object/array/string) so error messages and request ids are preserved
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.71
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 3.0.70
 
 ### Patch Changes

@@ -1,5 +1,71 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+  - @ai-sdk/harness-acp@1.0.108
+
+## 1.0.106
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/harness-acp@1.0.107
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [726a1cc]
+  - @ai-sdk/harness-acp@1.0.106
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+  - @ai-sdk/harness-acp@1.0.105
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [39aae54]
+- Updated dependencies [e64ed82]
+  - @ai-sdk/harness-acp@1.0.104
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.102
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness-acp@1.0.103
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 1.0.101
 
 ### Patch Changes

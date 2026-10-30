@@ -1,5 +1,60 @@
 # @ai-sdk/gateway
 
+## 4.0.131
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- f850782: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.130
+
+### Patch Changes
+
+- 9ca8bcf: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500. Propagate these errors from speech and transcription input streams to their output streams without leaving reads pending or causing unhandled rejections.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 4.0.129
+
+### Patch Changes
+
+- 9f19c79: chore(provider/gateway): update gateway model settings files
+
+## 4.0.128
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 4.0.126
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 4.0.125
 
 ### Patch Changes

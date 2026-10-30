@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -29,7 +31,7 @@ import {
 type PerplexityEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -102,7 +104,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/embeddings`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,

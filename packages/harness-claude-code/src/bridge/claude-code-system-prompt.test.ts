@@ -21,4 +21,19 @@ describe('createClaudeCodeSystemPrompt', () => {
       }
     `);
   });
+
+  it('excludes dynamic sections from the Claude Code preset', () => {
+    expect(
+      createClaudeCodeSystemPrompt('Answer every question in German.', {
+        excludeDynamicSections: true,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "append": "Answer every question in German.",
+        "excludeDynamicSections": true,
+        "preset": "claude_code",
+        "type": "preset",
+      }
+    `);
+  });
 });

@@ -6,6 +6,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   connectToWebSocket,
   convertToBase64,
@@ -101,7 +102,10 @@ export class OpenAISpeechTranslationModel implements SpeechTranslationModelV4 {
       });
     }
 
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
     const sessionUpdate = buildOpenAIRealtimeSpeechTranslationSession({
       targetLanguage: options.targetLanguage,
     });

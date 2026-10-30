@@ -1,4 +1,4 @@
-# AI SDK: React provider
+# AI SDK - React integration
 
 [React](https://react.dev/) UI components for the [AI SDK](https://ai-sdk.dev/docs):
 

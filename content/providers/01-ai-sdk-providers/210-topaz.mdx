@@ -83,7 +83,11 @@ const topaz = createTopaz({
 
 You can use the following optional settings to customize the Topaz Labs provider instance:
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent as the `X-API-Key` header.
   It defaults to the `TOPAZ_API_KEY` environment variable.

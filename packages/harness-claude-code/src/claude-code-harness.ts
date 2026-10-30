@@ -46,6 +46,7 @@ import {
   waitForBridgeReady,
   writeSkills,
   type BridgeHello,
+  type SandboxChannelDebugEvent,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
@@ -99,10 +100,55 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Claude Code hints for host tools, keyed by tool name.
+   *
+   * - `readOnly`: the tool has no side effects. Claude Code can run read-only
+   *   tool calls in parallel, and runs each call to any other host tool on
+   *   its own. It also allows read-only tools in plan mode, so mark only
+   *   tools that change nothing.
+   * - `alwaysLoad`: when Claude Code's tool search is on, it defers MCP tools
+   *   until the model looks them up; this sends the tool's definition from
+   *   the first request instead.
+   */
+  readonly toolHints?: Readonly<
+    Record<
+      string,
+      { readonly readOnly?: boolean; readonly alwaysLoad?: boolean }
+    >
+  >;
+  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
+   */
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
+  /**
+   * Maximum estimated spend in USD for each Claude query. When it is exceeded,
+   * the query stops and the turn ends with an error. Unset means no limit.
+   */
+  readonly maxBudgetUsd?: number;
+  /**
+   * Only use the MCP servers configured with `mcpServers`, and ignore any other
+   * MCP configuration such as a project `.mcp.json` or user settings.
+   */
+  readonly strictMcpConfig?: boolean;
+  /**
+   * Maximum milliseconds Claude waits for an answer to an `AskUserQuestion`
+   * question before the question fails. Unset means the Claude Code default.
+   */
+  readonly questionTimeoutMs?: number;
+  /**
+   * Moves per-session sections (working directory, memory, git status) out of
+   * the Claude Code system prompt and into the first user message, so the
+   * system prompt can be cached across sessions.
+   */
+  readonly excludeDynamicSections?: boolean;
   /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
@@ -149,6 +195,14 @@ export type ClaudeCodeHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * Called with bridge connection lifecycle events: reconnect attempts,
+   * successful reconnects, and `reconnect-failed` once the connection is
+   * closed for good. Hosts that cache idle sessions can use it to reattach
+   * before sending the next prompt. The `cause` of a failed reconnect can
+   * contain connection details, so avoid logging it as is.
+   */
+  readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -1028,6 +1082,7 @@ export function createClaudeCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
+            onDebug: settings.onDebug,
           });
           const finishListenerAttachment = isContinue
             ? attachChannel.beginListenerAttachment()
@@ -1048,6 +1103,11 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            skillOverrides: settings.skillOverrides,
+            maxBudgetUsd: settings.maxBudgetUsd,
+            strictMcpConfig: settings.strictMcpConfig,
+            questionTimeoutMs: settings.questionTimeoutMs,
+            excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1066,6 +1126,7 @@ export function createClaudeCode(
             sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             mcpServers: settings.mcpServers,
+            toolHints: settings.toolHints,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
@@ -1191,6 +1252,7 @@ export function createClaudeCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
+        onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -1217,6 +1279,11 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        skillOverrides: settings.skillOverrides,
+        maxBudgetUsd: settings.maxBudgetUsd,
+        strictMcpConfig: settings.strictMcpConfig,
+        questionTimeoutMs: settings.questionTimeoutMs,
+        excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1226,6 +1293,15 @@ export function createClaudeCode(
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
+        ...(respawnStrategy === 'rerun'
+          ? {
+              deferredToolUseId: (
+                startOpts.continueFrom ?? startOpts.resumeFrom?.continueFrom
+              )?.pendingToolApprovals?.find(
+                approval => approval.kind === 'builtin',
+              )?.toolCallId,
+            }
+          : {}),
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -1236,6 +1312,7 @@ export function createClaudeCode(
         sandbox: toolSafeSandboxSession,
         sandboxHomeDir,
         mcpServers: settings.mcpServers,
+        toolHints: settings.toolHints,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
@@ -1255,6 +1332,11 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  skillOverrides,
+  maxBudgetUsd,
+  strictMcpConfig,
+  questionTimeoutMs,
+  excludeDynamicSections,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1264,6 +1346,7 @@ function createSession({
   continueOnFirstPrompt,
   resumeSessionId,
   rerunContinue,
+  deferredToolUseId,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -1274,6 +1357,7 @@ function createSession({
   sandbox,
   sandboxHomeDir,
   mcpServers,
+  toolHints,
   supportsUserMessageResponses,
 }: {
   sessionId: string;
@@ -1282,6 +1366,11 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
+  maxBudgetUsd: number | undefined;
+  strictMcpConfig: boolean | undefined;
+  questionTimeoutMs: number | undefined;
+  excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1296,6 +1385,12 @@ function createSession({
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
+  /**
+   * Built-in tool call the previous bridge deferred while it waited for host
+   * approval. The respawned bridge resumes it once the host answers instead
+   * of starting a new turn.
+   */
+  deferredToolUseId?: string;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
@@ -1306,6 +1401,7 @@ function createSession({
   sandbox: SandboxSession;
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
+  toolHints: ClaudeCodeHarnessSettings['toolHints'];
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
@@ -1559,6 +1655,13 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+        ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+        ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+        ...(excludeDynamicSections !== undefined
+          ? { excludeDynamicSections }
+          : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1570,6 +1673,7 @@ function createSession({
           ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(toolHints == null ? {} : { toolHints }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1630,6 +1734,13 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+          ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+          ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+          ...(excludeDynamicSections !== undefined
+            ? { excludeDynamicSections }
+            : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),
@@ -1641,12 +1752,14 @@ function createSession({
             ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
+          ...(toolHints == null ? {} : { toolHints }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           ...(lastClaudeSessionId
             ? { resumeSessionId: lastClaudeSessionId }
             : { continue: true }),
+          ...(deferredToolUseId != null ? { deferredToolUseId } : {}),
         });
       }
 

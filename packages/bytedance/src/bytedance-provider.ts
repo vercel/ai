@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   type FetchFunction,
@@ -19,7 +21,7 @@ export interface ByteDanceProviderSettings {
    * ByteDance Ark API key. Default value is taken from the `ARK_API_KEY`
    * environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -71,15 +73,16 @@ export function createByteDance(
 ): ByteDanceProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ARK_API_KEY',
-      description: 'ByteDance ModelArk',
-    })}`,
-    'Content-Type': 'application/json',
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'ARK_API_KEY',
+        description: 'ByteDance ModelArk',
+      })}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }));
 
   const createVideoModel = (modelId: ByteDanceVideoModelId) =>
     new ByteDanceVideoModel(modelId, {

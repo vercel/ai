@@ -1,5 +1,71 @@
 # @ai-sdk/harness
 
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 1.0.168
+
+### Patch Changes
+
+- 033f8d9: fix(harness): preserve execution-denied outputs for denied host tool calls without invoking the tool's `toModelOutput` converter
+- e7a8988: fix(harness): preserve differing runtime-native tool names in `providerMetadata[harnessId].nativeToolName` on tool calls and their approval requests
+- 2c12e25: fix(harness): fix completed host tool results being silently lost when a WebSocket enters CLOSING before the channel detects the disconnect
+- 6eab0f7: Fix turns hanging when a built-in tool approval and a host tool call share an assistant message. Pause for the approval without waiting for runtime echoes of completed host tools, preserving their results and original call metadata across consecutive approval pauses and session resumes until the runtime echo arrives, without executing them again or emitting duplicate results.
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.167
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.166
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 1.0.164
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 1.0.163
 
 ### Patch Changes
