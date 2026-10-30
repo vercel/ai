@@ -12,7 +12,10 @@ import { fileExists } from './verifiers/utils.ts';
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
 try {
-  const inputFiles = getInputFiles({ defaultPaths: ['.'] });
+  const inputFiles: string[] = [];
+  for (const file of getInputFiles({ defaultPaths: ['.'] })) {
+    if (await fileExists(file)) inputFiles.push(file);
+  }
   const verifiers: { verifierFile: string; files: string[] }[] = [];
   for (const { guidelineFile, files } of await getApplicableGuidelines(
     inputFiles,
