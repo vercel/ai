@@ -1,7 +1,12 @@
 import type { ActiveSessionMessage } from '@agentclientprotocol/sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { HostToolCall } from './host-tool-call-resolver';
 import { createHostToolCorrelation } from './host-tool-correlation';
-import { loadWeatherApprovalFixture } from './__fixtures__/weather-approval-fixture';
+import { createFixtureHostToolCallResolver } from './__fixtures__/fixture-host-tool-call-resolver';
+import {
+  loadGrokBuildWeatherFixture,
+  loadWeatherApprovalFixture,
+} from './__fixtures__/weather-approval-fixture';
 
 describe('createHostToolCorrelation', () => {
   afterEach(() => {
@@ -78,7 +83,7 @@ describe('createHostToolCorrelation', () => {
     },
   );
 
-  it.each(['cursor', 'github-copilot', 'fx'])(
+  it.each(['cursor', 'github-copilot'])(
     'matches the observed %s call independently of permission display titles',
     async harness => {
       vi.useFakeTimers();
@@ -100,7 +105,7 @@ describe('createHostToolCorrelation', () => {
               'mcp__ai-sdk-harness-tools__get_weather',
             ]) {
               expect(
-                correlation.claimHostToolPermission({
+                await correlation.claimHostToolPermission({
                   toolCall: { ...event.value.toolCall, title, name },
                 }),
               ).toMatchInlineSnapshot(`
@@ -114,7 +119,7 @@ describe('createHostToolCorrelation', () => {
             }
           }
           expect(
-            correlation.claimHostToolPermission({
+            await correlation.claimHostToolPermission({
               toolCall: { ...event.value.toolCall, rawInput: undefined },
             }),
           ).toMatchInlineSnapshot(`
@@ -131,29 +136,18 @@ describe('createHostToolCorrelation', () => {
     },
   );
 
-  it.each([
-    {
-      server: 'ai-sdk-harness-tools',
-      tool: 'get_weather',
-      arguments: { city: 'Austin' },
-    },
-    {
-      origin: 'ai-sdk-harness-tools',
-      operation: 'get_weather',
-      arguments: { city: 'Austin' },
-    },
-    {
+  it('accepts a permission whose own resolution matches the observation', async () => {
+    const rawInput = {
       tool_name: 'ai-sdk-harness-tools__get_weather',
       tool_input: { city: 'Austin' },
-    },
-  ])('accepts equivalent permission envelopes: %j', rawInput => {
+    };
     const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
     for (const event of loadWeatherApprovalFixture({ harness: 'cursor' })) {
       if (event.type === 'update')
         correlation.update({ message: update(event.value) });
       else
         expect(
-          correlation.claimHostToolPermission({
+          await correlation.claimHostToolPermission({
             toolCall: { ...event.value.toolCall, rawInput },
           }),
         ).toMatchInlineSnapshot(`
@@ -168,7 +162,7 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it('retains use_tool only for an observed deferred envelope', () => {
+  it('retains use_tool only for an observed deferred envelope', async () => {
     const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
     const toolCall = deferredToolPermission({
       toolCallId: 'deferred',
@@ -183,7 +177,7 @@ describe('createHostToolCorrelation', () => {
       }),
     });
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall: {
           toolCallId: toolCall.toolCallId,
           name: 'use_tool',
@@ -201,43 +195,14 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it.each([
-    { tool_name: 'ai-sdk-harness-tools__get_weather' },
-    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: null },
-    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: [] },
-    { tool_name: 'other-server__get_weather', tool_input: { city: 'Austin' } },
-    {
-      tool_name: 'ai-sdk-harness-tools__get_weather',
-      tool_input: { city: 'Austin' },
-      server: 'ai-sdk-harness-tools',
-      tool: 'get_weather',
-      arguments: { city: 'Austin' },
-    },
-  ])(
-    'does not fall back to title identity for an unresolved envelope: %j',
-    rawInput => {
-      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
-      expect(
-        correlation.claimHostToolPermission({
-          toolCall: {
-            toolCallId: 'unobserved',
-            title: 'mcp__ai-sdk-harness-tools__get_weather',
-            rawInput,
-          },
-        }),
-      ).toBeUndefined();
-      correlation.close();
-    },
-  );
-
-  it('accepts explicitly supplied normalized Cursor arguments that match the observation', () => {
+  it('accepts explicitly supplied normalized Cursor arguments that match the observation', async () => {
     const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
     for (const event of loadWeatherApprovalFixture({ harness: 'cursor' })) {
       if (event.type === 'update')
         correlation.update({ message: update(event.value) });
       else
         expect(
-          correlation.claimHostToolPermission({
+          await correlation.claimHostToolPermission({
             toolCall: { ...event.value.toolCall, rawInput: { city: 'Austin' } },
           }),
         ).toMatchInlineSnapshot(`
@@ -252,7 +217,7 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it.each(['cursor', 'github-copilot', 'fx'])(
+  it.each(['cursor', 'github-copilot'])(
     'claims the captured %s permission after the buffer expires',
     async harness => {
       vi.useFakeTimers();
@@ -267,7 +232,7 @@ describe('createHostToolCorrelation', () => {
           await vi.advanceTimersByTimeAsync(2000);
           expect(semantic).toMatchInlineSnapshot(`[]`);
           expect(
-            correlation.claimHostToolPermission({
+            await correlation.claimHostToolPermission({
               toolCall: event.value.toolCall,
             }),
           ).toMatchInlineSnapshot(`
@@ -318,19 +283,10 @@ describe('createHostToolCorrelation', () => {
         args: null,
       },
     },
-    {
-      rawInput: {
-        providerIdentifier: 'ai-sdk-harness-tools',
-        toolName: 'get_weather',
-        args: { city: 'Austin' },
-        tool_name: 'ai-sdk-harness-tools__get_weather',
-        tool_input: { city: 'Austin' },
-      },
-    },
     { toolCallId: 'unrelated' },
   ])(
     'rejects a captured Cursor permission with conflicting fields: %j',
-    change => {
+    async change => {
       const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
       const fixture = loadWeatherApprovalFixture({ harness: 'cursor' });
       for (const event of fixture) {
@@ -338,7 +294,7 @@ describe('createHostToolCorrelation', () => {
           correlation.update({ message: update(event.value) });
         else
           expect(
-            correlation.claimHostToolPermission({
+            await correlation.claimHostToolPermission({
               toolCall: { ...event.value.toolCall, ...change },
             }),
           ).toBeUndefined();
@@ -349,7 +305,7 @@ describe('createHostToolCorrelation', () => {
 
   it.each(['completed', 'failed', 'cleared-input'] as const)(
     'does not claim a Cursor permission after %s',
-    state => {
+    async state => {
       const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
       const fixture = loadWeatherApprovalFixture({ harness: 'cursor' });
       for (const event of fixture) {
@@ -366,7 +322,7 @@ describe('createHostToolCorrelation', () => {
             }),
           });
           expect(
-            correlation.claimHostToolPermission({
+            await correlation.claimHostToolPermission({
               toolCall: event.value.toolCall,
             }),
           ).toBeUndefined();
@@ -378,7 +334,7 @@ describe('createHostToolCorrelation', () => {
 
   it.each(['completed', 'failed'] as const)(
     'does not claim a permission whose own status is %s',
-    status => {
+    async status => {
       const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
       const fixture = loadWeatherApprovalFixture({ harness: 'github-copilot' });
       for (const event of fixture) {
@@ -386,7 +342,7 @@ describe('createHostToolCorrelation', () => {
           correlation.update({ message: update(event.value) });
         else
           expect(
-            correlation.claimHostToolPermission({
+            await correlation.claimHostToolPermission({
               toolCall: {
                 ...event.value.toolCall,
                 status,
@@ -398,35 +354,7 @@ describe('createHostToolCorrelation', () => {
     },
   );
 
-  it('returns the canonical call from portable candidate evidence', () => {
-    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
-    const fixture = loadWeatherApprovalFixture({ harness: 'github-copilot' });
-    for (const event of fixture) {
-      if (event.type === 'update') {
-        if (event.value.sessionUpdate !== 'tool_call')
-          throw new Error('Missing captured tool call.');
-        correlation.update({
-          message: update({ ...event.value, title: 'Opaque display' }),
-          rawUpdate: event.value,
-        });
-      } else
-        expect(
-          correlation.claimHostToolPermission({
-            toolCall: event.value.toolCall,
-          }),
-        ).toMatchInlineSnapshot(`
-                {
-                  "input": {
-                    "city": "Austin",
-                  },
-                  "toolName": "get_weather",
-                }
-              `);
-    }
-    correlation.close();
-  });
-
-  it('retains omitted fields but replaces explicitly cleared fields', () => {
+  it('retains omitted fields but replaces explicitly cleared fields', async () => {
     const { correlation } = setup();
     correlation.update({
       message: update({
@@ -503,10 +431,10 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it('does not claim an incomplete permission without a same-ID observation', () => {
+  it('does not claim an incomplete permission without a same-ID observation', async () => {
     const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall: {
           toolCallId: 'unobserved',
           title: 'ai-sdk-harness-tools-get_weather: get_weather',
@@ -516,7 +444,7 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it('matches ACP-before-MCP using server, tool, input, and invocation order', () => {
+  it('matches ACP-before-MCP using server, tool, input, and invocation order', async () => {
     const { correlation, semantic, raw } = setup();
     correlation.update({
       message: toolUpdate({
@@ -550,7 +478,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(2);
   });
 
-  it('matches MCP-before-ACP using portable evidence', () => {
+  it('matches MCP-before-ACP using portable evidence', async () => {
     const { correlation, semantic, raw } = setup();
     register({
       correlation,
@@ -576,7 +504,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(1);
   });
 
-  it('matches server and tool names nested in metadata with exact input', () => {
+  it('matches server and tool names nested in metadata with exact input', async () => {
     const { correlation, semantic, raw } = setup();
     const rawUpdate = {
       sessionUpdate: 'tool_call',
@@ -610,7 +538,7 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it('matches MCP-before-ACP by a server-qualified direct ACP name and input', () => {
+  it('matches MCP-before-ACP by a server-qualified direct ACP name and input', async () => {
     const { correlation, semantic, raw } = setup();
     register({
       correlation,
@@ -653,7 +581,7 @@ describe('createHostToolCorrelation', () => {
             `);
   });
 
-  it('matches Cursor MCP updates by provider, tool, and nested args', () => {
+  it('matches Cursor MCP updates by provider, tool, and nested args', async () => {
     const { correlation, semantic, raw } = setup();
     register({
       correlation,
@@ -683,7 +611,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toEqual([rawUpdate]);
   });
 
-  it('uses an exact result token as the strongest correlation evidence', () => {
+  it('uses an exact result token as the strongest correlation evidence', async () => {
     const { correlation, semantic, raw } = setup();
     const rawUpdate = {
       sessionUpdate: 'tool_call',
@@ -710,7 +638,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toEqual([rawUpdate]);
   });
 
-  it('claims a host permission from the observed combined MCP identity and input', () => {
+  it('claims a host permission from the observed combined MCP identity and input', async () => {
     const { correlation, semantic, raw } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -736,7 +664,7 @@ describe('createHostToolCorrelation', () => {
     });
 
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall,
       }),
     ).toMatchInlineSnapshot(`
@@ -759,7 +687,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(2);
   });
 
-  it('claims a host permission before its generic deferred-tool update arrives', () => {
+  it('claims a host permission before its generic deferred-tool update arrives', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -769,7 +697,7 @@ describe('createHostToolCorrelation', () => {
       input: { city: 'Lima' },
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall }))
+    expect(await correlation.claimHostToolPermission({ toolCall }))
       .toMatchInlineSnapshot(`
         {
           "input": {
@@ -780,7 +708,7 @@ describe('createHostToolCorrelation', () => {
       `);
   });
 
-  it('claims a host permission with a combined identity nested in metadata', () => {
+  it('claims a host permission with a combined identity nested in metadata', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -794,7 +722,7 @@ describe('createHostToolCorrelation', () => {
       },
     } as const;
 
-    expect(correlation.claimHostToolPermission({ toolCall }))
+    expect(await correlation.claimHostToolPermission({ toolCall }))
       .toMatchInlineSnapshot(`
         {
           "input": {
@@ -806,7 +734,7 @@ describe('createHostToolCorrelation', () => {
     correlation.close();
   });
 
-  it('does not claim a host permission from an unqualified ACP name', () => {
+  it('does not claim a host permission from an unqualified ACP name', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -817,10 +745,12 @@ describe('createHostToolCorrelation', () => {
       rawInput: { city: 'Lima' },
     } as const;
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
+    expect(
+      await correlation.claimHostToolPermission({ toolCall }),
+    ).toBeUndefined();
   });
 
-  it('claims a direct ACP name when the candidate is server-qualified', () => {
+  it('claims a direct ACP name when the candidate is server-qualified', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -840,7 +770,7 @@ describe('createHostToolCorrelation', () => {
       rawUpdate: toolCall,
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall }))
+    expect(await correlation.claimHostToolPermission({ toolCall }))
       .toMatchInlineSnapshot(`
         {
           "input": {
@@ -851,7 +781,7 @@ describe('createHostToolCorrelation', () => {
       `);
   });
 
-  it('suppresses the later update for a permission claimed before the update', () => {
+  it('suppresses the later update for a permission claimed before the update', async () => {
     const { correlation, semantic, raw } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -860,7 +790,7 @@ describe('createHostToolCorrelation', () => {
       combinedToolName: 'ai-sdk-harness-tools__get_weather',
       input: { city: 'Lima' },
     });
-    expect(correlation.claimHostToolPermission({ toolCall }))
+    expect(await correlation.claimHostToolPermission({ toolCall }))
       .toMatchInlineSnapshot(`
         {
           "input": {
@@ -889,21 +819,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toEqual([rawUpdate]);
   });
 
-  it('does not unwrap a deferred-tool input with mismatched host identity', () => {
-    const { correlation } = setup({
-      hostTools: [{ name: 'get_weather' }],
-    });
-    const toolCall = deferredToolPermission({
-      toolCallId: 'deferred-identity-mismatch',
-      combinedToolName: 'ai-sdk-harness-tools__get_weather_forecast',
-      input: { city: 'Lima' },
-      title: 'ai-sdk-harness-tools__get_weather',
-    });
-
-    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
-  });
-
-  it('does not claim a deferred-tool permission with different candidate input', () => {
+  it('does not claim a deferred-tool permission with different candidate input', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -924,10 +840,12 @@ describe('createHostToolCorrelation', () => {
       input: { city: 'Quito' },
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
+    expect(
+      await correlation.claimHostToolPermission({ toolCall }),
+    ).toBeUndefined();
   });
 
-  it('does not claim combined MCP identity with different input', () => {
+  it('does not claim combined MCP identity with different input', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }],
     });
@@ -950,7 +868,7 @@ describe('createHostToolCorrelation', () => {
     });
 
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall: {
           toolCallId: rawUpdate.toolCallId,
           kind: 'other',
@@ -961,7 +879,7 @@ describe('createHostToolCorrelation', () => {
     ).toBeUndefined();
   });
 
-  it('does not claim a tool name suffix from a combined MCP identity', () => {
+  it('does not claim a tool name suffix from a combined MCP identity', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'weather' }],
     });
@@ -984,7 +902,7 @@ describe('createHostToolCorrelation', () => {
     });
 
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall: {
           toolCallId: rawUpdate.toolCallId,
           kind: 'other',
@@ -995,7 +913,7 @@ describe('createHostToolCorrelation', () => {
     ).toBeUndefined();
   });
 
-  it('does not claim a duplicate host tool identity', () => {
+  it('does not claim a duplicate host tool identity', async () => {
     const { correlation } = setup({
       hostTools: [{ name: 'get_weather' }, { name: 'get_weather' }],
     });
@@ -1018,7 +936,7 @@ describe('createHostToolCorrelation', () => {
     });
 
     expect(
-      correlation.claimHostToolPermission({
+      await correlation.claimHostToolPermission({
         toolCall: {
           toolCallId: rawUpdate.toolCallId,
           kind: 'other',
@@ -1029,7 +947,7 @@ describe('createHostToolCorrelation', () => {
     ).toBeUndefined();
   });
 
-  it('preserves an explicit null raw update', () => {
+  it('preserves an explicit null raw update', async () => {
     const { correlation, raw } = setup();
     correlation.update({
       message: update({
@@ -1096,7 +1014,7 @@ describe('createHostToolCorrelation', () => {
     expect(semantic.map(item => item.message)).toEqual([candidate]);
   });
 
-  it('keeps distinct concurrent invocations separate', () => {
+  it('keeps distinct concurrent invocations separate', async () => {
     const { correlation, semantic, raw } = setup();
     register({
       correlation,
@@ -1147,7 +1065,7 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(4);
   });
 
-  it('pairs identical concurrent invocations by FIFO order', () => {
+  it('pairs identical concurrent invocations by FIFO order', async () => {
     const { correlation, semantic, raw } = setup();
     for (const toolCallId of ['first', 'second']) {
       correlation.update({
@@ -1217,7 +1135,7 @@ describe('createHostToolCorrelation', () => {
     expect(semantic.map(item => item.message)).toEqual([candidate]);
   });
 
-  it('flushes unproven calls on close', () => {
+  it('flushes unproven calls on close', async () => {
     const { correlation, semantic, raw } = setup();
     const pending = toolUpdate({
       toolCallId: 'pending',
@@ -1228,6 +1146,103 @@ describe('createHostToolCorrelation', () => {
 
     expect(semantic.map(item => item.message)).toEqual([pending]);
     expect(raw).toHaveLength(1);
+  });
+
+  it('suppresses the captured Grok Build use_tool host tool call', async () => {
+    const { correlation, semantic, raw } = setup({
+      hostTools: [{ name: 'weather' }],
+    });
+    for (const event of loadGrokBuildWeatherFixture()) {
+      correlation.update({ message: update(event.value) });
+    }
+    correlation.close();
+
+    expect(semantic).toEqual([]);
+    expect(raw).toHaveLength(3);
+  });
+
+  it('claims a host permission received while the update resolution is pending', async () => {
+    let resolveResolution!: (call: HostToolCall | undefined) => void;
+    const resolution = new Promise<HostToolCall | undefined>(resolve => {
+      resolveResolution = resolve;
+    });
+    const semantic: unknown[] = [];
+    const correlation = createHostToolCorrelation({
+      emitSemanticUpdate: value => semantic.push(value),
+      emitRawUpdate: () => {},
+      hostToolServerName: 'ai-sdk-harness-tools',
+      hostTools: [{ name: 'ping' }],
+      hostToolCallResolver: {
+        getResolution: async ({ toolCallId }) =>
+          toolCallId === 'call-ping' ? resolution : undefined,
+        resolveToolCall: async () => undefined,
+      },
+    });
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call',
+        toolCallId: 'call-ping',
+        title: 'ai-sdk-harness-tools-ping',
+        kind: 'other',
+        status: 'pending',
+        rawInput: {},
+      }),
+    });
+
+    const claim = correlation.claimHostToolPermission({
+      toolCall: {
+        toolCallId: 'call-ping',
+        title: 'ping',
+        kind: 'other',
+        status: 'pending',
+        rawInput: {},
+      },
+    });
+    resolveResolution({ toolName: 'ping', input: {} });
+
+    expect(await claim).toEqual({ toolName: 'ping', input: {} });
+    correlation.close();
+    expect(semantic).toEqual([]);
+  });
+
+  it('defers the buffer timeout while a host tool resolution is pending', async () => {
+    vi.useFakeTimers();
+    const { correlation, semantic } = setup({
+      hostTools: [{ name: 'get_weather' }],
+    });
+    const [first, second] = loadWeatherApprovalFixture({
+      harness: 'cursor',
+    }).filter(event => event.type === 'update');
+    correlation.update({ message: update(first.value) });
+    const hold = correlation.deferFlush();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(semantic).toEqual([]);
+
+    correlation.update({ message: update(second.value) });
+    hold.release();
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(semantic).toEqual([]);
+    correlation.close();
+  });
+
+  it('flushes a deferred buffer timeout once the hold is released', async () => {
+    vi.useFakeTimers();
+    const { correlation, semantic } = setup();
+    const pending = toolUpdate({ toolCallId: 'native', status: 'in_progress' });
+    correlation.update({ message: pending });
+    const hold = correlation.deferFlush();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(semantic).toEqual([]);
+    expect(correlation.isToolCallReleased({ toolCallId: 'native' })).toBe(
+      false,
+    );
+
+    hold.release();
+
+    expect(semantic.map(item => item.message)).toEqual([pending]);
+    expect(correlation.isToolCallReleased({ toolCallId: 'native' })).toBe(true);
+    correlation.close();
   });
 });
 
@@ -1241,12 +1256,41 @@ function setup({
     rawUpdate: unknown;
   }> = [];
   const raw: unknown[] = [];
-  const correlation = createHostToolCorrelation({
+  const hostToolCallResolver = createFixtureHostToolCallResolver({
+    toolNames: hostTools.map(tool => tool.name),
+  });
+  const baseCorrelation = createHostToolCorrelation({
     emitSemanticUpdate: value => semantic.push(value),
     emitRawUpdate: ({ rawUpdate }) => raw.push(rawUpdate),
     hostToolServerName: 'ai-sdk-harness-tools',
     hostTools,
+    hostToolCallResolver,
   });
+  /*
+   * Mirrors the bridge loop, which records each tool call update right away
+   * and applies its host tool resolution once the host has answered.
+   */
+  const correlation: typeof baseCorrelation = {
+    ...baseCorrelation,
+    update: ({ message, rawUpdate }) => {
+      const value = message.update;
+      const isToolUpdate =
+        value.sessionUpdate === 'tool_call' ||
+        value.sessionUpdate === 'tool_call_update';
+      const hostToolCall =
+        isToolUpdate &&
+        !baseCorrelation.isToolCallReleased({ toolCallId: value.toolCallId })
+          ? hostToolCallResolver.resolveUpdateNow({ update: value })
+          : undefined;
+      baseCorrelation.update({ message, rawUpdate });
+      if (isToolUpdate) {
+        baseCorrelation.applyHostToolCall({
+          toolCallId: value.toolCallId,
+          hostToolCall,
+        });
+      }
+    },
+  };
   return { correlation, semantic, raw };
 }
 

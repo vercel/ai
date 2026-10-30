@@ -10,7 +10,10 @@ import type { ACPToolCall } from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 import { createACPStreamTranslator } from './stream-translator';
 import { createHostToolCorrelation } from './host-tool-correlation';
-import type { HostToolCall } from './resolve-host-tool-call';
+import type {
+  HostToolCall,
+  HostToolCallResolver,
+} from './host-tool-call-resolver';
 
 export function createEmitStreamEvent({
   emit,
@@ -18,23 +21,33 @@ export function createEmitStreamEvent({
   builtinTools,
   hostToolServerName,
   hostTools,
+  hostToolCallResolver,
 }: {
   emit: (event: HarnessV1StreamPart) => void;
   emitToolCallCandidate: (options: { toolCall: ACPToolCall }) => void;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   hostToolServerName: string;
   hostTools: ReadonlyArray<HarnessV1BridgeToolWire>;
+  hostToolCallResolver: Pick<
+    HostToolCallResolver,
+    'getResolution' | 'resolveToolCall'
+  >;
 }): {
   message: (options: {
     message: ActiveSessionMessage;
     rawUpdate?: unknown;
+    hostToolCall?: HostToolCall;
   }) => boolean;
   raw: (options: { rawValue: unknown }) => void;
   close: () => void;
   permissionToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: {
     toolCall: ToolCallUpdate;
-  }) => HostToolCall | undefined;
+  }) => Promise<HostToolCall | undefined>;
+  applyHostToolCall: (options: {
+    toolCallId: string;
+    hostToolCall: HostToolCall | undefined;
+  }) => void;
   hostToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -56,6 +69,8 @@ export function createEmitStreamEvent({
   removeHostToolCorrelationInvocation: (options: { token: string }) => void;
   suppressToolCall: (options: { toolCallId: string }) => void;
   getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
+  isToolCallReleased: (options: { toolCallId: string }) => boolean;
+  deferFlush: () => { release(): void };
 } {
   const translator = createACPStreamTranslator({
     emit,
@@ -75,16 +90,17 @@ export function createEmitStreamEvent({
     },
     hostToolServerName,
     hostTools,
+    hostToolCallResolver,
   });
 
   return {
-    message: ({ message, rawUpdate }) => {
+    message: ({ message, rawUpdate, hostToolCall }) => {
       if (message.kind === 'stop') {
         correlation.close();
         translator.finish(message.response);
         return true;
       }
-      correlation.update({ message, rawUpdate });
+      correlation.update({ message, rawUpdate, hostToolCall });
       return false;
     },
     raw: translator.raw,
@@ -101,6 +117,7 @@ export function createEmitStreamEvent({
       });
     },
     claimHostToolPermission: correlation.claimHostToolPermission,
+    applyHostToolCall: correlation.applyHostToolCall,
     hostToolCall: translator.hostToolCall,
     hostToolResult: translator.hostToolResult,
     registerHostToolCorrelationInvocation: correlation.registerInvocation,
@@ -109,5 +126,7 @@ export function createEmitStreamEvent({
     getToolCall: ({ toolCallId }) =>
       correlation.getToolCall({ toolCallId }) ??
       translator.getToolCall({ toolCallId }),
+    isToolCallReleased: correlation.isToolCallReleased,
+    deferFlush: correlation.deferFlush,
   };
 }

@@ -4,13 +4,11 @@ import type {
 } from '@agentclientprotocol/sdk';
 import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
+import type {
+  HostToolCall,
+  HostToolCallResolver,
+} from './host-tool-call-resolver';
 import { mergeObservedToolCall } from './merge-observed-tool-call';
-import {
-  classifyHostToolInputEnvelope,
-  isQualifiedHostToolName,
-  resolveHostToolCall,
-  type HostToolCall,
-} from './resolve-host-tool-call';
 
 type SessionUpdateMessage = Extract<
   ActiveSessionMessage,
@@ -46,6 +44,7 @@ export function createHostToolCorrelation({
   emitRawUpdate,
   hostToolServerName,
   hostTools,
+  hostToolCallResolver,
 }: {
   emitSemanticUpdate: (options: {
     message: SessionUpdateMessage;
@@ -54,8 +53,16 @@ export function createHostToolCorrelation({
   emitRawUpdate: (options: { rawUpdate: unknown }) => void;
   hostToolServerName: string;
   hostTools: ReadonlyArray<{ readonly name: string }>;
+  hostToolCallResolver: Pick<
+    HostToolCallResolver,
+    'getResolution' | 'resolveToolCall'
+  >;
 }): {
-  update(options: { message: SessionUpdateMessage; rawUpdate?: unknown }): void;
+  update(options: {
+    message: SessionUpdateMessage;
+    rawUpdate?: unknown;
+    hostToolCall?: HostToolCall;
+  }): void;
   registerInvocation(options: {
     token: string;
     serverName: string;
@@ -63,11 +70,17 @@ export function createHostToolCorrelation({
     input: Readonly<Record<string, unknown>>;
     order: number;
   }): void;
+  applyHostToolCall(options: {
+    toolCallId: string;
+    hostToolCall: HostToolCall | undefined;
+  }): void;
   claimHostToolPermission(options: {
     toolCall: ToolCallUpdate;
-  }): HostToolCall | undefined;
+  }): Promise<HostToolCall | undefined>;
   suppressToolCall(options: { toolCallId: string }): void;
   getToolCall(options: { toolCallId: string }): ACPToolCall | undefined;
+  isToolCallReleased(options: { toolCallId: string }): boolean;
+  deferFlush(): { release(): void };
   flush(): void;
   removeInvocation(options: { token: string }): void;
   close(): void;
@@ -77,12 +90,14 @@ export function createHostToolCorrelation({
   const suppressedToolCallIds = new Set<string>();
   const releasedToolCallIds = new Set<string>();
   const observedToolCalls = new Map<string, ACPToolCall>();
-  const hostToolNames = hostTools.map(tool => tool.name);
   let nextCandidateOrder = 0;
   let buffered: BufferedUpdate[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | undefined;
+  let flushHolds = 0;
+  let flushPending = false;
 
   const flush = () => {
+    flushPending = false;
     if (flushTimer != null) {
       clearTimeout(flushTimer);
       flushTimer = undefined;
@@ -112,7 +127,19 @@ export function createHostToolCorrelation({
 
   const scheduleFlush = () => {
     if (flushTimer != null) return;
-    flushTimer = setTimeout(flush, CORRELATION_WINDOW_MS);
+    flushTimer = setTimeout(() => {
+      flushTimer = undefined;
+      /*
+       * A tool call update may be waiting for its host tool resolution. Its
+       * earlier buffered updates must not be released before that resolution
+       * is known, or a host tool call could leak into the stream.
+       */
+      if (flushHolds > 0) {
+        flushPending = true;
+        return;
+      }
+      flush();
+    }, CORRELATION_WINDOW_MS);
     flushTimer.unref?.();
   };
 
@@ -163,7 +190,7 @@ export function createHostToolCorrelation({
   };
 
   return {
-    update: ({ message, rawUpdate }) => {
+    update: ({ message, rawUpdate, hostToolCall }) => {
       const preservedUpdate =
         rawUpdate === undefined ? message.update : rawUpdate;
       emitRawUpdate({ rawUpdate: preservedUpdate });
@@ -185,14 +212,7 @@ export function createHostToolCorrelation({
           update: message.update,
         }),
       );
-      if (
-        !releasedToolCallIds.has(toolCallId) &&
-        resolveHostToolCall({
-          toolCall: observedToolCalls.get(toolCallId)!,
-          serverName: hostToolServerName,
-          toolNames: hostToolNames,
-        }) != null
-      ) {
+      if (!releasedToolCallIds.has(toolCallId) && hostToolCall != null) {
         suppressToolCallUpdate({ toolCallId });
       }
       if (suppressedToolCallIds.has(toolCallId)) {
@@ -255,32 +275,39 @@ export function createHostToolCorrelation({
       }
       reconcile();
     },
-    claimHostToolPermission: ({ toolCall }) => {
-      const candidate = candidates.get(toolCall.toolCallId);
-      const observed = observedToolCalls.get(toolCall.toolCallId);
+    applyHostToolCall: ({ toolCallId, hostToolCall }) => {
+      if (hostToolCall == null || releasedToolCallIds.has(toolCallId)) return;
+      if (suppressedToolCallIds.has(toolCallId)) return;
+      suppressToolCallUpdate({ toolCallId });
+    },
+    claimHostToolPermission: async ({ toolCall }) => {
+      const observedBeforeResolution = observedToolCalls.get(
+        toolCall.toolCallId,
+      );
       if (
         toolCall.status === 'completed' ||
         toolCall.status === 'failed' ||
-        observed?.status === 'completed' ||
-        observed?.status === 'failed' ||
-        observed?.rawInput === null
+        observedBeforeResolution?.status === 'completed' ||
+        observedBeforeResolution?.status === 'failed' ||
+        observedBeforeResolution?.rawInput === null
       ) {
         return undefined;
       }
-      const observedHostCall =
-        observed == null
-          ? undefined
-          : resolveHostToolCall({
-              toolCall: observed,
-              serverName: hostToolServerName,
-              toolNames: hostToolNames,
-            });
+      const [observedHostCall, permissionCall] = await Promise.all([
+        hostToolCallResolver.getResolution({
+          toolCallId: toolCall.toolCallId,
+        }),
+        hostToolCallResolver.resolveToolCall({ toolCall }),
+      ]);
+      const candidate = candidates.get(toolCall.toolCallId);
+      const observed = observedToolCalls.get(toolCall.toolCallId);
       if (observed != null && observedHostCall != null) {
         if (
           hasConflictingHostToolPermission({
             toolCall,
             observed,
             call: observedHostCall,
+            permissionCall,
             serverName: hostToolServerName,
           })
         ) {
@@ -290,13 +317,12 @@ export function createHostToolCorrelation({
         return observedHostCall;
       }
       const matches: HostToolCall[] = [];
-      for (const { name } of hostTools) {
-        const permission = resolvePermissionHostTool({
-          toolCall,
-          serverName: hostToolServerName,
-          toolName: name,
-        });
-        if (permission == null) continue;
+      for (const permission of resolvePermissionHostToolCandidates({
+        toolCall,
+        permissionCall,
+        serverName: hostToolServerName,
+        toolNames: hostTools.map(tool => tool.name),
+      })) {
         const matchesPermission =
           candidate == null
             ? permission.hasRequestIdentity
@@ -305,7 +331,7 @@ export function createHostToolCorrelation({
                 invocation: {
                   token: '',
                   serverName: hostToolServerName,
-                  toolName: name,
+                  toolName: permission.toolName,
                   inputFingerprint: canonicalFingerprint({
                     value: permission.input,
                   }),
@@ -313,7 +339,10 @@ export function createHostToolCorrelation({
                 },
               });
         if (matchesPermission) {
-          matches.push({ toolName: name, input: permission.input });
+          matches.push({
+            toolName: permission.toolName,
+            input: permission.input,
+          });
         }
       }
       if (matches.length !== 1) return undefined;
@@ -322,6 +351,19 @@ export function createHostToolCorrelation({
     },
     suppressToolCall: suppressToolCallUpdate,
     getToolCall: ({ toolCallId }) => observedToolCalls.get(toolCallId),
+    isToolCallReleased: ({ toolCallId }) => releasedToolCallIds.has(toolCallId),
+    deferFlush: () => {
+      flushHolds += 1;
+      let released = false;
+      return {
+        release: () => {
+          if (released) return;
+          released = true;
+          flushHolds -= 1;
+          if (flushHolds === 0 && flushPending) flush();
+        },
+      };
+    },
     flush,
     removeInvocation: ({ token }) => {
       deleteInvocation({ invocations, token });
@@ -346,53 +388,40 @@ function hasConflictingHostToolPermission({
   toolCall,
   observed,
   call,
+  permissionCall,
   serverName,
 }: {
   toolCall: ToolCallUpdate;
   observed: ACPToolCall;
   call: HostToolCall;
+  permissionCall: HostToolCall | undefined;
   serverName: string;
 }): boolean {
+  if (permissionCall != null) {
+    return (
+      permissionCall.toolName !== call.toolName ||
+      canonicalFingerprint({ value: permissionCall.input }) !==
+        canonicalFingerprint({ value: call.input })
+    );
+  }
   if (
     toolCall.name != null &&
+    toolCall.name !== observed.name &&
     toolCall.name !== call.toolName &&
-    !isQualifiedHostToolName({
-      name: toolCall.name,
+    !hasDelimitedPair({
+      value: toolCall.name,
       serverName,
       toolName: call.toolName,
-    }) &&
-    !(
-      toolCall.name === 'use_tool' &&
-      isRecord(observed.rawInput) &&
-      classifyHostToolInputEnvelope({ rawInput: observed.rawInput }) ===
-        'deferred-tool'
-    )
+    })
   ) {
     return true;
   }
   if (toolCall.rawInput === undefined) return false;
   if (!isRecord(toolCall.rawInput)) return true;
   const fingerprint = canonicalFingerprint({ value: toolCall.rawInput });
-  const inputFingerprint = canonicalFingerprint({ value: call.input });
-  if (
-    fingerprint === canonicalFingerprint({ value: observed.rawInput }) ||
-    fingerprint === inputFingerprint
-  ) {
-    return false;
-  }
-  if (
-    classifyHostToolInputEnvelope({ rawInput: toolCall.rawInput }) === 'none'
-  ) {
-    return true;
-  }
-  const permissionCall = resolveHostToolCall({
-    toolCall: { toolCallId: toolCall.toolCallId, rawInput: toolCall.rawInput },
-    serverName,
-    toolNames: [call.toolName],
-  });
   return (
-    permissionCall == null ||
-    canonicalFingerprint({ value: permissionCall.input }) !== inputFingerprint
+    fingerprint !== canonicalFingerprint({ value: observed.rawInput }) &&
+    fingerprint !== canonicalFingerprint({ value: call.input })
   );
 }
 
@@ -407,20 +436,6 @@ function hasPortableEvidence({
   let hasToolName = false;
   let hasInput = false;
   for (const evidence of candidate.evidence) {
-    if (isRecord(evidence) && typeof evidence.toolCallId === 'string') {
-      const call = resolveHostToolCall({
-        toolCall: evidence as ToolCallUpdate,
-        serverName: invocation.serverName,
-        toolNames: [invocation.toolName],
-      });
-      if (
-        call != null &&
-        canonicalFingerprint({ value: call.input }) ===
-          invocation.inputFingerprint
-      ) {
-        return true;
-      }
-    }
     const metadata = getProperty({ value: evidence, property: '_meta' });
     const rawInput = getProperty({ value: evidence, property: 'rawInput' });
     const programmaticName = getProperty({
@@ -430,14 +445,6 @@ function hasPortableEvidence({
     if (programmaticName === invocation.toolName) {
       hasToolName = true;
     }
-    const deferredToolName = getProperty({
-      value: rawInput,
-      property: 'tool_name',
-    });
-    const deferredToolInput = getProperty({
-      value: rawInput,
-      property: 'tool_input',
-    });
     if (
       containsCombinedIdentity({
         value: [metadata, programmaticName],
@@ -447,24 +454,6 @@ function hasPortableEvidence({
     ) {
       hasServerIdentity = true;
       hasToolName = true;
-    }
-    if (
-      typeof deferredToolName === 'string' &&
-      isRecord(deferredToolInput) &&
-      hasDelimitedPair({
-        value: deferredToolName,
-        serverName: invocation.serverName,
-        toolName: invocation.toolName,
-      })
-    ) {
-      hasServerIdentity = true;
-      hasToolName = true;
-      if (
-        canonicalFingerprint({ value: deferredToolInput }) ===
-        invocation.inputFingerprint
-      ) {
-        hasInput = true;
-      }
     }
     if (
       containsExactValue({
@@ -495,31 +484,29 @@ function hasPortableEvidence({
   return hasServerIdentity && hasToolName && hasInput;
 }
 
-function resolvePermissionHostTool({
+function resolvePermissionHostToolCandidates({
   toolCall,
+  permissionCall,
   serverName,
-  toolName,
+  toolNames,
 }: {
   toolCall: ToolCallUpdate;
+  permissionCall: HostToolCall | undefined;
   serverName: string;
-  toolName: string;
-}):
-  | {
-      readonly input: Readonly<Record<string, unknown>>;
-      readonly hasRequestIdentity: boolean;
-    }
-  | undefined {
-  if (!isRecord(toolCall.rawInput)) return undefined;
-  const call = resolveHostToolCall({
-    toolCall,
-    serverName,
-    toolNames: [toolName],
-  });
-  if (call != null) return { input: call.input, hasRequestIdentity: true };
-  if (classifyHostToolInputEnvelope({ rawInput: toolCall.rawInput }) !== 'none')
-    return undefined;
-  return {
-    input: toolCall.rawInput,
+  toolNames: ReadonlyArray<string>;
+}): Array<{
+  readonly toolName: string;
+  readonly input: Readonly<Record<string, unknown>>;
+  readonly hasRequestIdentity: boolean;
+}> {
+  if (permissionCall != null) {
+    return [{ ...permissionCall, hasRequestIdentity: true }];
+  }
+  const rawInput = toolCall.rawInput;
+  if (!isRecord(rawInput)) return [];
+  return toolNames.map(toolName => ({
+    toolName,
+    input: rawInput,
     hasRequestIdentity: containsCombinedIdentity({
       value: [
         getProperty({ value: toolCall, property: 'title' }),
@@ -529,7 +516,7 @@ function resolvePermissionHostTool({
       serverName,
       toolName,
     }),
-  };
+  }));
 }
 
 function containsCombinedIdentity({
