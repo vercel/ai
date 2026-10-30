@@ -124,6 +124,26 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
     expect(sig1).toBe(sig2);
   });
 
+  it('should verify a signature after JSON serialization strips undefined fields', async () => {
+    const originalInput = { path: '/tmp/cache', mode: undefined };
+    const serializedInput = JSON.parse(JSON.stringify(originalInput));
+
+    const signature = await signToolApproval({
+      secret,
+      ...baseParams,
+      input: originalInput,
+    });
+
+    const valid = await verifyToolApprovalSignature({
+      secret,
+      signature,
+      ...baseParams,
+      input: serializedInput,
+    });
+
+    expect(valid).toBe(true);
+  });
+
   // A newline in toolName must not be retupleable into toolCallId to forge a
   // matching signature for a different tool.
   it('should not collide when a newline in toolName is retupled into toolCallId', async () => {
