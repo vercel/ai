@@ -74,6 +74,43 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
 
+      it('should preserve custom meta keywords such as propertyOrdering', () => {
+        const schema = zodSchema(
+          z4
+            .object({
+              zebra: z4.string(),
+              apple: z4
+                .object({
+                  yellow: z4.string(),
+                  banana: z4.string(),
+                })
+                .meta({ propertyOrdering: ['banana', 'yellow'] }),
+            })
+            .meta({ propertyOrdering: ['apple', 'zebra'] }),
+        );
+
+        expect(schema.jsonSchema).toEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            zebra: { type: 'string' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              required: ['yellow', 'banana'],
+              additionalProperties: false,
+              propertyOrdering: ['banana', 'yellow'],
+            },
+          },
+          required: ['zebra', 'apple'],
+          additionalProperties: false,
+          propertyOrdering: ['apple', 'zebra'],
+        });
+      });
+
       it('should support arrays', () => {
         const schema = zodSchema(
           z4.object({
