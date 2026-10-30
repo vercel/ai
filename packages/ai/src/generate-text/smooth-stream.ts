@@ -79,7 +79,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 
       if (!buffer.startsWith(match)) {
         throw new Error(
-          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
+          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}", which is not a prefix of "${buffer}"`,
         );
       }
 
