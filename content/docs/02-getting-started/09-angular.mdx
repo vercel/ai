@@ -1,0 +1,615 @@
+---
+title: Angular
+description: Learn how to build your first agent with the AI SDK and Angular.
+---
+
+# Angular Quickstart
+
+The AI SDK is a powerful TypeScript library designed to help developers build AI-powered applications.
+
+In this quickstart tutorial, you'll build a streaming chat UI and add completion and structured output endpoints. Along the way, you'll learn the core concepts you need to build AI features in Angular.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/advanced/why-streaming), you can optionally read these documents first.
+
+## Prerequisites
+
+To follow this quickstart, you'll need:
+
+- Node.js 18+ and pnpm installed on your local development machine.
+- A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
+
+If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
+
+## Set Up Your Application
+
+Start by creating a new Angular application. This command will create a new directory named `my-ai-app` and set up a basic Angular app inside it.
+
+<Snippet text="npx @angular/cli@latest new my-ai-app" />
+
+Navigate to the newly created directory:
+
+<Snippet text="cd my-ai-app" />
+
+### Install Dependencies
+
+Install `ai` and `@ai-sdk/angular`, the AI package and AI SDK's Angular bindings. You'll also install `zod`, which you'll use for structured output, and a small Express server to host your API routes.
+
+<Note>
+  This guide uses the Vercel AI Gateway provider so you can access hundreds of
+  models from different providers with one API key, but you can switch to any
+  provider or model by installing its package. Check out available [AI SDK
+  providers](/providers/ai-sdk-providers) for more information.
+</Note>
+
+<div className="my-4">
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+    <Tab>
+      <Snippet text="pnpm add ai @ai-sdk/angular zod express dotenv" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install ai @ai-sdk/angular zod express dotenv" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add ai @ai-sdk/angular zod express dotenv" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="bun add ai @ai-sdk/angular zod express dotenv" dark />
+    </Tab>
+  </Tabs>
+</div>
+
+Install a lightweight TypeScript runner for your API server:
+
+<div className="my-4">
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+    <Tab>
+      <Snippet text="pnpm add -D tsx @types/express" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install -D tsx @types/express" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add -D tsx @types/express" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="bun add -d tsx @types/express" dark />
+    </Tab>
+  </Tabs>
+</div>
+
+### Configure your AI Gateway API key
+
+Create a `.env` file in your project root and add your AI Gateway API key.
+
+<Snippet text="touch .env" />
+
+Edit the `.env` file:
+
+```env filename=".env"
+AI_GATEWAY_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual Vercel AI Gateway API key.
+
+<Note className="mb-4">
+  The AI SDK will use the `AI_GATEWAY_API_KEY` environment variable to
+  authenticate with Vercel AI Gateway.
+</Note>
+
+## Create an API route
+
+Create a simple Express server to handle chat requests. Add a new file at `src/server.ts`:
+
+```ts filename="src/server.ts"
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import 'dotenv/config';
+import express from 'express';
+
+const app = express();
+// strict: false allows parsing non-object JSON (e.g., plain strings for /api/analyze)
+app.use(express.json({ strict: false }));
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages?: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    messages: await convertToModelMessages(messages ?? []),
+  });
+
+  result.pipeUIMessageStreamToResponse(res, {
+    onError: error => (error instanceof Error ? error.message : String(error)),
+  });
+});
+
+app.listen(3000, () => {
+  console.log('API server listening on http://localhost:3000');
+});
+```
+
+Let's take a look at what is happening in this code:
+
+1. Set up an Express server and enable JSON request parsing (with `strict: false` to allow non-object JSON bodies).
+2. Define a `POST /api/chat` handler that reads the UI messages from the request body.
+3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text) with a model ID and `messages`. `convertToModelMessages` is async and converts UI message history into the model format.
+4. Stream the response back to the client with `pipeUIMessageStreamToResponse`.
+
+## Proxy API requests in development
+
+Angular's dev server runs on a different port, so configure a proxy to forward `/api` requests to your Express server.
+
+Create `proxy.conf.json` in your project root:
+
+```json filename="proxy.conf.json"
+{
+  "/api": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
+```
+
+## Choosing a Provider
+
+The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [ community ](/providers/community-providers) packages.
+
+This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
+
+```ts
+model: __MODEL__;
+```
+
+You can also explicitly import and use the gateway provider in two other equivalent ways:
+
+```ts
+// Option 1: Import from 'ai' package (included by default)
+import { gateway } from 'ai';
+model: gateway('anthropic/claude-sonnet-4.5');
+
+// Option 2: Install and import from '@ai-sdk/gateway' package
+import { gateway } from '@ai-sdk/gateway';
+model: gateway('anthropic/claude-sonnet-4.5');
+```
+
+### Using other providers
+
+To use a different provider, install its package and create a provider instance. For example, to use OpenAI directly:
+
+<div className="my-4">
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+    <Tab>
+      <Snippet text="pnpm add @ai-sdk/openai" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="npm install @ai-sdk/openai" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="yarn add @ai-sdk/openai" dark />
+    </Tab>
+
+    <Tab>
+      <Snippet text="bun add @ai-sdk/openai" dark />
+    </Tab>
+
+  </Tabs>
+</div>
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+model: openai('gpt-5.1');
+```
+
+## Wire up the UI
+
+Now that you have an API route that can query an LLM, it's time to set up your frontend. The AI SDK's [UI](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one class, `Chat`.
+
+Update your root component to show a list of chat messages and provide a user message input:
+
+```ts filename="src/app/app.component.ts"
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Chat } from '@ai-sdk/angular';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './app.component.html',
+})
+export class AppComponent {
+  chat = new Chat({});
+  input = '';
+
+  sendMessage() {
+    if (!this.input.trim()) return;
+    this.chat.sendMessage({ text: this.input });
+    this.input = '';
+  }
+}
+```
+
+```html filename="src/app/app.component.html"
+<main>
+  <ul class="messages">
+    @for (message of chat.messages; track message.id) {
+    <li class="message">
+      <div class="role">{{ message.role }}</div>
+      <div class="content">
+        @for (part of message.parts; track $index) { @if (part.type === 'text')
+        {
+        <div>{{ part.text }}</div>
+        } }
+      </div>
+    </li>
+    }
+  </ul>
+
+  <form (ngSubmit)="sendMessage()">
+    <input [(ngModel)]="input" name="input" placeholder="Say hello" />
+    <button type="submit" [disabled]="chat.status !== 'ready'">Send</button>
+  </form>
+</main>
+```
+
+The component uses the `Chat` class, which will, by default, call `POST /api/chat`. The class provides functions and state for handling user input and rendering messages:
+
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
+- `sendMessage` - a function to send a message to the chat API.
+
+The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response.
+
+## Running Your Application
+
+Start the API server in one terminal:
+
+<Snippet text="pnpm tsx src/server.ts" />
+
+Start the Angular dev server with the proxy in another terminal:
+
+<Snippet text="pnpm ng serve --proxy-config proxy.conf.json" />
+
+Head to your browser and open http://localhost:4200. You should see an input field. Test it out by entering a message and see the AI chatbot respond in real-time.
+
+## Add Completion
+
+To generate a single completion without chat history, add a completion endpoint to your server:
+
+```ts filename="src/server.ts" highlight="21-29"
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import 'dotenv/config';
+import express from 'express';
+
+const app = express();
+app.use(express.json({ strict: false }));
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages?: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    messages: await convertToModelMessages(messages ?? []),
+  });
+
+  result.pipeUIMessageStreamToResponse(res, {
+    onError: error => (error instanceof Error ? error.message : String(error)),
+  });
+});
+
+app.post('/api/completion', async (req, res) => {
+  const { prompt } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    prompt,
+  });
+
+  result.pipeTextStreamToResponse(res);
+});
+
+app.listen(3000, () => {
+  console.log('API server listening on http://localhost:3000');
+});
+```
+
+Then add a completion section to your component:
+
+```ts filename="src/app/app.component.ts" highlight="4,13,23"
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Chat, Completion } from '@ai-sdk/angular';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './app.component.html',
+})
+export class AppComponent {
+  chat = new Chat({});
+  completion = new Completion({
+    api: '/api/completion',
+    streamProtocol: 'text',
+  });
+  input = '';
+
+  sendMessage() {
+    if (!this.input.trim()) return;
+    this.chat.sendMessage({ text: this.input });
+    this.input = '';
+  }
+}
+```
+
+```html filename="src/app/app.component.html" highlight="19-38"
+<main>
+  <ul class="messages">
+    @for (message of chat.messages; track message.id) {
+    <li class="message">
+      <div class="role">{{ message.role }}</div>
+      <div class="content">
+        @for (part of message.parts; track $index) { @if (part.type === 'text')
+        {
+        <div>{{ part.text }}</div>
+        } }
+      </div>
+    </li>
+    }
+  </ul>
+
+  <form (ngSubmit)="sendMessage()">
+    <input [(ngModel)]="input" name="input" placeholder="Say hello" />
+    <button type="submit" [disabled]="chat.status !== 'ready'">Send</button>
+  </form>
+
+  <section>
+    <h3>Completion</h3>
+    <textarea
+      [(ngModel)]="completion.input"
+      name="prompt"
+      rows="3"
+      placeholder="Enter a prompt"
+    ></textarea>
+    <button
+      (click)="completion.complete(completion.input)"
+      [disabled]="completion.loading"
+    >
+      {{ completion.loading ? 'Generating...' : 'Generate' }}
+    </button>
+    @if (completion.completion) {
+    <pre>{{ completion.completion }}</pre>
+    }
+  </section>
+</main>
+```
+
+The completion endpoint streams plain text, so the `Completion` instance uses `streamProtocol: 'text'`.
+
+## Add Structured Output
+
+Structured output lets you stream JSON that conforms to a schema. Add an `analyze` endpoint to your server using `streamObject`:
+
+```ts filename="src/server.ts" highlight="3,9,38-54"
+import {
+  convertToModelMessages,
+  streamObject,
+  streamText,
+  type UIMessage,
+} from 'ai';
+import 'dotenv/config';
+import express from 'express';
+import { z } from 'zod';
+
+const app = express();
+app.use(express.json({ strict: false }));
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages?: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    messages: await convertToModelMessages(messages ?? []),
+  });
+
+  result.pipeUIMessageStreamToResponse(res, {
+    onError: error => (error instanceof Error ? error.message : String(error)),
+  });
+});
+
+app.post('/api/completion', async (req, res) => {
+  const { prompt } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    prompt,
+  });
+
+  result.pipeTextStreamToResponse(res);
+});
+
+app.post('/api/analyze', async (req, res) => {
+  const input = req.body;
+  const prompt =
+    typeof input === 'string' ? input : JSON.stringify(input ?? null);
+
+  const result = streamObject({
+    model: 'openai/gpt-5.2',
+    schema: z.object({
+      title: z.string(),
+      summary: z.string(),
+      tags: z.array(z.string()),
+      sentiment: z.enum(['positive', 'negative', 'neutral']),
+    }),
+    prompt: `Analyze this content: ${prompt}`,
+  });
+
+  result.pipeTextStreamToResponse(res);
+});
+
+app.listen(3000, () => {
+  console.log('API server listening on http://localhost:3000');
+});
+```
+
+Then add a structured output section to your component:
+
+```ts filename="src/app/app.component.ts" highlight="4-5,7-12,26-29,31,39-42"
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { z } from 'zod';
+import { Chat, Completion, StructuredObject } from '@ai-sdk/angular';
+
+const analysisSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  tags: z.array(z.string()),
+  sentiment: z.enum(['positive', 'negative', 'neutral']),
+});
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './app.component.html',
+})
+export class AppComponent {
+  chat = new Chat({});
+  completion = new Completion({
+    api: '/api/completion',
+    streamProtocol: 'text',
+  });
+  structuredObject = new StructuredObject({
+    api: '/api/analyze',
+    schema: analysisSchema,
+  });
+  input = '';
+  analyzeInput = '';
+
+  sendMessage() {
+    if (!this.input.trim()) return;
+    this.chat.sendMessage({ text: this.input });
+    this.input = '';
+  }
+
+  analyze() {
+    if (!this.analyzeInput.trim()) return;
+    this.structuredObject.submit(this.analyzeInput);
+  }
+}
+```
+
+```html filename="src/app/app.component.html" highlight="39-65"
+<main>
+  <ul class="messages">
+    @for (message of chat.messages; track message.id) {
+    <li class="message">
+      <div class="role">{{ message.role }}</div>
+      <div class="content">
+        @for (part of message.parts; track $index) { @if (part.type === 'text')
+        {
+        <div>{{ part.text }}</div>
+        } }
+      </div>
+    </li>
+    }
+  </ul>
+
+  <form (ngSubmit)="sendMessage()">
+    <input [(ngModel)]="input" name="input" placeholder="Say hello" />
+    <button type="submit" [disabled]="chat.status !== 'ready'">Send</button>
+  </form>
+
+  <section>
+    <h3>Completion</h3>
+    <textarea
+      [(ngModel)]="completion.input"
+      name="prompt"
+      rows="3"
+      placeholder="Enter a prompt"
+    ></textarea>
+    <button
+      (click)="completion.complete(completion.input)"
+      [disabled]="completion.loading"
+    >
+      {{ completion.loading ? 'Generating...' : 'Generate' }}
+    </button>
+    @if (completion.completion) {
+    <pre>{{ completion.completion }}</pre>
+    }
+  </section>
+
+  <section>
+    <h3>Structured Output</h3>
+    <textarea
+      [(ngModel)]="analyzeInput"
+      name="analyze"
+      rows="3"
+      placeholder="Enter content to analyze"
+    ></textarea>
+    <button (click)="analyze()" [disabled]="structuredObject.loading">
+      {{ structuredObject.loading ? 'Analyzing...' : 'Analyze' }}
+    </button>
+    @if (structuredObject.object) {
+    <pre>{{ structuredObject.object | json }}</pre>
+    }
+  </section>
+</main>
+```
+
+`StructuredObject` will stream partial JSON as it arrives, updating `structuredObject.object` over time.
+
+## Enhance Your Chatbot with Tools
+
+While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
+
+Add a weather tool to your chat endpoint:
+
+```ts filename="src/server.ts" highlight="4,16-27"
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  tool,
+  type UIMessage,
+} from 'ai';
+import { z } from 'zod';
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages?: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: 'openai/gpt-5.2',
+    messages: await convertToModelMessages(messages ?? []),
+    stopWhen: stepCountIs(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return { location, temperature };
+        },
+      }),
+    },
+  });
+
+  result.pipeUIMessageStreamToResponse(res);
+});
+```
+
+Tool calls show up in the UI as parts named `tool-{toolName}`. For the example above, you'll receive `tool-weather` parts in the `message.parts` array. You can render those alongside text parts to show tool inputs and outputs.
+
+## Where to Next?
+
+You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
+
+- To learn more about the AI SDK, read through the [documentation](/docs).
+- If you're interested in diving deeper with guides, check out the [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) and [multi-modal chatbot](/docs/guides/multi-modal-chatbot) guides.
+- To jumpstart your first AI project, explore available [templates](https://vercel.com/templates?type=ai).
+- To learn more about Angular, check out the [official documentation](https://angular.dev/).
