@@ -1,5 +1,18 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.169
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
 ## 1.0.168
 
 ### Patch Changes
