@@ -363,6 +363,10 @@ Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
 
+When the JSON tool cannot be forced (for example with manual thinking) and the
+model answers in text without calling it, the text of its final answer is
+returned. Text before a tool call is still dropped.
+
 ### Effort
 
 Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
