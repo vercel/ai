@@ -3,6 +3,7 @@ import { createDefaultDownloadFunction } from '../util/download/download-functio
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
+  mapToolResultOutput,
 } from './convert-to-language-model-prompt';
 
 describe('convertToLanguageModelPrompt', () => {
@@ -1593,7 +1594,7 @@ describe('convertToLanguageModelPrompt', () => {
                         ],
                         "type": "data",
                       },
-                      "mediaType": "image",
+                      "mediaType": "application/octet-stream",
                       "providerOptions": undefined,
                       "type": "file",
                     },
@@ -3421,3 +3422,43 @@ describe('convertToLanguageModelMessage', () => {
     });
   });
 });
+
+it.each([
+  [
+    'image-url',
+    undefined,
+    'image/png',
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+  ],
+  [
+    'file-url',
+    'application/pdf',
+    'application/pdf',
+    new Uint8Array([37, 80, 68, 70]),
+  ],
+] as const)(
+  'resolves the concrete media type of downloaded legacy %s tool content',
+  (type, downloadedMediaType, expectedMediaType, data) => {
+    const url = 'https://example.com/asset';
+    const item =
+      type === 'file-url'
+        ? { type, url, mediaType: 'application' }
+        : { type, url };
+    expect(
+      mapToolResultOutput({
+        output: { type: 'content', value: [item] },
+        downloadedAssets: { [url]: { data, mediaType: downloadedMediaType } },
+      }),
+    ).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'file',
+          data: { type: 'data', data },
+          mediaType: expectedMediaType,
+          providerOptions: undefined,
+        },
+      ],
+    });
+  },
+);
