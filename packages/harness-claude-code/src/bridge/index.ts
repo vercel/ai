@@ -176,19 +176,10 @@ function createPermissionOptions(input: {
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
-  /*
-   * The Agent SDK has one invocation-settings slot. Keep using it for the
-   * adapter's generated approval rules when the caller leaves `settings`
-   * unset. When native settings are supplied, preserve them unchanged and
-   * enforce the same harness approval boundary with the PreToolUse hook below.
-   */
-  const permissionSettings =
-    input.start.settings === undefined
-      ? createPermissionSettings({
-          permissionMode,
-          inactiveNativeTools,
-        })
-      : undefined;
+  const permissionSettings = createPermissionSettings({
+    permissionMode,
+    inactiveNativeTools,
+  });
 
   const baseOptions = {
     permissionMode:
@@ -685,29 +676,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     deferredToolUseIds,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
   });
-  const nativeSettings =
-    typeof start.settings === 'string' ? undefined : start.settings;
-  const permissionSettings = permissionOptions.settings as
-    | Record<string, unknown>
-    | undefined;
-  const settings =
-    typeof start.settings === 'string'
-      ? start.settings
-      : modelOverrides === undefined
-        ? (nativeSettings ?? permissionSettings)
-        : {
-            ...permissionSettings,
-            ...nativeSettings,
-            modelOverrides: {
-              ...(permissionSettings?.modelOverrides as
-                | Record<string, string>
-                | undefined),
-              ...(nativeSettings?.modelOverrides as
-                | Record<string, string>
-                | undefined),
-              ...modelOverrides,
-            },
-          };
+  const settings = {
+    ...(permissionOptions.settings as Record<string, unknown> | undefined),
+    ...(start.skillOverrides !== undefined
+      ? { skillOverrides: start.skillOverrides }
+      : {}),
+    ...(modelOverrides ? { modelOverrides } : {}),
+  };
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
@@ -804,7 +779,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ? { continue: true }
           : {}),
       ...permissionOptions,
-      ...(settings !== undefined ? { settings } : {}),
+      ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,

@@ -11,7 +11,6 @@ import {
   claudeCode,
   createClaudeCode,
   type ClaudeCodeHarnessSettings,
-  type ClaudeCodeSettings,
 } from './index';
 
 /*
@@ -102,31 +101,21 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
-  test('createClaudeCode accepts native settings', () => {
-    const settings: ClaudeCodeSettings = {
-      skillOverrides: {
-        'update-config': 'off',
-        'fewer-permission-prompts': 'off',
-        'keybindings-help': 'off',
-        init: 'off',
-      },
-    };
+  test('createClaudeCode accepts skill overrides', () => {
+    const skillOverrides = {
+      'enabled-skill': 'on',
+      'name-only-skill': 'name-only',
+      'user-invocable-skill': 'user-invocable-only',
+      'disabled-skill': 'off',
+    } as const;
 
-    expectTypeOf(createClaudeCode({ settings })).toExtend<
+    expectTypeOf(createClaudeCode({ skillOverrides })).toExtend<
       HarnessAgentAdapter<any>
     >();
-    expectTypeOf(
-      createClaudeCode({
-        settings: '/vercel/sandbox/claude-settings.json',
-      }),
-    ).toExtend<HarnessAgentAdapter<any>>();
-  });
-
-  test('createClaudeCode rejects non-JSON inline settings', () => {
-    createClaudeCode({
-      // @ts-expect-error - native settings must be JSON serializable
-      settings: { hook: () => {} },
-    });
+    // @ts-expect-error - Claude Code only accepts its supported skill override modes
+    createClaudeCode({ skillOverrides: { init: 'disabled' } });
+    // @ts-expect-error - arbitrary Claude Code settings are not part of this API
+    createClaudeCode({ settings: { skillOverrides: { init: 'off' } } });
   });
 
   test('createClaudeCode accepts question timeout and dynamic section settings', () => {

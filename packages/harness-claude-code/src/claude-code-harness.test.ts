@@ -1258,16 +1258,14 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends native settings and host tool hints to the bridge', async () => {
-    const settings = {
-      skillOverrides: {
-        'update-config': 'off',
-        'fewer-permission-prompts': 'off',
-        init: 'off',
-      },
+  it('sends skill overrides and host tool hints to the bridge', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      'fewer-permission-prompts': 'off',
+      init: 'off',
     } as const;
     const toolHints = { search: { readOnly: true, alwaysLoad: true } };
-    const harness = createClaudeCode({ settings, toolHints });
+    const harness = createClaudeCode({ skillOverrides, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1285,12 +1283,12 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ settings, toolHints });
+    expect(lastStart()).toMatchObject({ skillOverrides, toolHints });
 
     await session.doDestroy();
   });
 
-  it('omits native settings when they are not configured', async () => {
+  it('omits skill overrides when they are not configured', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
       sessionId: 's1',
@@ -1309,7 +1307,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).not.toHaveProperty('settings');
+    expect(lastStart()).not.toHaveProperty('skillOverrides');
 
     await session.doDestroy();
   });
@@ -1431,9 +1429,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends a sandbox-local settings path when rerunning a continued turn', async () => {
-    const settings = '/vercel/sandbox/claude-settings.json';
-    const harness = createClaudeCode({ settings });
+  it('sends skill overrides when rerunning a continued turn', async () => {
+    const skillOverrides = { init: 'off' } as const;
+    const harness = createClaudeCode({ skillOverrides });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1456,7 +1454,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ settings, continue: true });
+    expect(lastStart()).toMatchObject({ skillOverrides, continue: true });
 
     await session.doDestroy();
   });

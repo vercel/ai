@@ -167,32 +167,42 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('preserves inline native settings', () => {
+  it('preserves skill overrides', () => {
     const message = {
       type: 'start' as const,
       prompt: 'hi',
       thinking: { type: 'disabled' as const },
-      settings: {
-        skillOverrides: {
-          'update-config': 'off',
-          init: 'off',
-        },
-        customSetting: { nested: true },
+      skillOverrides: {
+        'enabled-skill': 'on',
+        'name-only-skill': 'name-only',
+        'user-invocable-skill': 'user-invocable-only',
+        'disabled-skill': 'off',
       },
     };
 
     expect(inboundMessageSchema.parse(message)).toEqual(message);
   });
 
-  it('accepts a sandbox-local settings file path', () => {
-    const message = {
-      type: 'start' as const,
-      prompt: 'hi',
-      thinking: { type: 'disabled' as const },
-      settings: '/vercel/sandbox/claude-settings.json',
-    };
+  it('rejects unsupported skill override modes', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        skillOverrides: { init: 'disabled' },
+      }),
+    ).toThrow();
+  });
 
-    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  it('does not preserve arbitrary native settings', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      settings: { permissions: { defaultMode: 'bypassPermissions' } },
+    });
+
+    expect(parsed).not.toHaveProperty('settings');
   });
 
   it('rejects a non-string resumeSessionId', () => {

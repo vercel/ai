@@ -54,7 +54,6 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
-import type { JSONObject } from '@ai-sdk/provider';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
@@ -81,14 +80,6 @@ import { VERSION } from './version';
 
 type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
-
-/**
- * Inline Claude Code settings forwarded to the Claude Agent SDK.
- *
- * The settings schema is owned by Claude Code and can grow independently of
- * this adapter, so the adapter intentionally accepts any JSON object.
- */
-export type ClaudeCodeSettings = JSONObject;
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
@@ -131,11 +122,12 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
-   * Invocation-specific Claude Code settings. A string is resolved as a
-   * settings file path inside the sandbox; an object is forwarded as inline
-   * settings.
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
    */
-  readonly settings?: string | ClaudeCodeSettings;
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
   /**
    * Maximum estimated spend in USD for each Claude query. When it is exceeded,
    * the query stops and the turn ends with an error. Unset means no limit.
@@ -1111,7 +1103,7 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
-            claudeSettings: settings.settings,
+            skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
@@ -1287,7 +1279,7 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
-        claudeSettings: settings.settings,
+        skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
@@ -1340,7 +1332,7 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
-  claudeSettings,
+  skillOverrides,
   maxBudgetUsd,
   strictMcpConfig,
   questionTimeoutMs,
@@ -1374,7 +1366,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
-  claudeSettings: string | ClaudeCodeSettings | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
@@ -1663,7 +1655,7 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
-        ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
@@ -1742,7 +1734,7 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
-          ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),

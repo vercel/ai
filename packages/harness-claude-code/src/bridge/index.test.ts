@@ -814,61 +814,42 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
-  test('passes native settings unchanged to the Agent SDK', async () => {
-    const settings = {
-      skillOverrides: {
-        'update-config': 'off',
-        init: 'off',
-      },
+  test('passes skill overrides into the Agent SDK settings', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      init: 'off',
     };
     state.start = {
       ...state.start,
-      settings,
+      skillOverrides,
     };
 
     await import('./index');
 
-    expect(state.queryArgs[0]?.options.settings).toBe(settings);
+    expect(state.queryArgs[0]?.options.settings).toMatchObject({
+      skillOverrides,
+    });
   });
 
-  test('merges model overrides into native settings', async () => {
-    const settings = {
-      skillOverrides: { init: 'off' },
-      modelOverrides: {
-        'custom-model': 'custom-provider/custom-model',
-      },
-    };
+  test('merges model overrides with skill overrides', async () => {
+    const skillOverrides = { init: 'off' };
     state.start = {
       ...state.start,
       model: 'anthropic/claude-opus-5.5',
-      settings,
+      skillOverrides,
     };
 
     await import('./index');
 
     expect(state.queryArgs[0]?.options.settings).toEqual({
-      ...settings,
+      skillOverrides,
       modelOverrides: {
-        ...settings.modelOverrides,
         'claude-opus-5-5': 'anthropic/claude-opus-5.5',
       },
     });
   });
 
-  test('passes a settings file path unchanged to the Agent SDK', async () => {
-    state.start = {
-      ...state.start,
-      settings: '/tmp/harness-claude-code-test/settings.json',
-    };
-
-    await import('./index');
-
-    expect(state.queryArgs[0]?.options.settings).toBe(
-      '/tmp/harness-claude-code-test/settings.json',
-    );
-  });
-
-  test('omits native settings when they are not configured', async () => {
+  test('omits settings when no contributions are configured', async () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
@@ -886,23 +867,24 @@ describe('Claude Code bridge configuration', () => {
       gatedTool: 'Bash',
     },
   ])(
-    'preserves $permissionMode approval boundaries with native settings',
+    'preserves $permissionMode approval boundaries with skill overrides',
     async ({ permissionMode, allowedTool, gatedTool }) => {
-      const settings = {
-        skillOverrides: {
-          init: 'off',
-        },
-      };
+      const skillOverrides = { init: 'off' };
       state.start = {
         ...state.start,
         permissionMode,
-        settings,
+        skillOverrides,
       };
 
       await import('./index');
 
       const options = state.queryArgs[0]?.options;
-      expect(options?.settings).toBe(settings);
+      expect(options?.settings).toMatchObject({
+        skillOverrides,
+        permissions: {
+          ask: expect.arrayContaining([`${gatedTool}(*)`]),
+        },
+      });
       expect(options?.canUseTool).toBeTypeOf('function');
 
       const hooks = options?.hooks as {
