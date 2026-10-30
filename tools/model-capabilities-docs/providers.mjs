@@ -134,6 +134,45 @@ export const providers = [
       },
     ],
   },
+  {
+    catalogPath: 'packages/mistral/src/mistral-model-catalog.ts',
+    catalogExport: 'mistralModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/20-mistral.mdx',
+    overviewLink: '[Mistral](/providers/ai-sdk-providers/mistral)',
+    tables: [
+      {
+        id: 'mistral-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Tool Usage', 'tools.usage'],
+        ],
+      },
+      {
+        id: 'mistral-transcription',
+        capability: 'transcription',
+        columns: [
+          ['Timestamps', 'timestamps'],
+          ['Diarization', 'diarization'],
+          ['Context Bias', 'contextBias'],
+        ],
+      },
+      {
+        id: 'mistral-speech',
+        capability: 'speech',
+        columns: [
+          ['Saved Voices', 'savedVoices'],
+          ['Reference Audio', 'referenceAudio'],
+          ['Non-Streaming', 'nonStreaming'],
+        ],
+      },
+      {
+        id: 'mistral-embedding',
+        capability: 'embedding',
+        columns: [['Default Dimensions', 'defaultDimensions', String]],
+      },
+    ],
+  },
 ];
 
 function formatOptionalSupport(value) {

@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralSpeechModelEntry } from './mistral-model-catalog';
 import {
   mistralSpeechModelOptions,
   type MistralSpeechModelId,
@@ -74,8 +75,9 @@ export class MistralSpeechModel implements SpeechModelV4 {
       schema: mistralSpeechModelOptions,
     });
 
+    const { speech } = getMistralSpeechModelEntry(this.modelId).capabilities;
     let responseFormat: MistralSpeechOutputFormat = 'mp3';
-    if (['pcm', 'wav', 'mp3', 'flac', 'opus'].includes(outputFormat)) {
+    if (speech.outputFormats.includes(outputFormat)) {
       responseFormat = outputFormat as MistralSpeechOutputFormat;
     } else {
       warnings.push({
@@ -85,7 +87,7 @@ export class MistralSpeechModel implements SpeechModelV4 {
       });
     }
 
-    if (instructions != null) {
+    if (speech.instructions === false && instructions != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'instructions',
