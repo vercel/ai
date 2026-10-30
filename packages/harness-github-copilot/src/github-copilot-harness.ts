@@ -13,7 +13,11 @@ import {
   isSandboxCredentialPlaceholder,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -486,6 +490,7 @@ export function createGitHubCopilot(
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
+    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
@@ -538,4 +543,25 @@ function createGitHubOAuthSandboxCredentialPlaceholder({
         GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER.length,
     );
   return `gho_${GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER}${tokenBody}`;
+}
+
+/**
+ * GitHub Copilot reports host tool calls without a programmatic name, using
+ * `${serverName}-${toolName}` as the title and the tool input as raw input.
+ */
+const resolveGitHubCopilotHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (toolCall.name != null || !isRecord(rawInput)) return undefined;
+  const toolName = toolNames.find(
+    name => toolCall.title === `${serverName}-${name}`,
+  );
+  return toolName == null ? undefined : { toolName, input: rawInput };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

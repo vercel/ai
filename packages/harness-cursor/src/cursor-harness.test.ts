@@ -244,7 +244,7 @@ describe('createCursor', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-1',
         title: 'ai-sdk-harness-tools: weather',
         rawInput: {
@@ -255,7 +255,7 @@ describe('createCursor', () => {
       }),
     ).toBe(true);
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-2',
         title: 'Read README.md',
         rawInput: { path: 'README.md' },
@@ -263,3 +263,73 @@ describe('createCursor', () => {
     ).toBe(false);
   });
 });
+
+describe('resolveHostToolCall', () => {
+  const serverName = 'ai-sdk-harness-tools';
+  const toolNames = ['get_weather'];
+
+  it('resolves the captured host tool call update', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'ai-sdk-harness-tools: get_weather',
+          kind: 'other',
+          status: 'pending',
+          rawInput: {
+            providerIdentifier: 'ai-sdk-harness-tools',
+            toolName: 'get_weather',
+            args: { city: 'Austin' },
+          },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Austin",
+        },
+        "toolName": "get_weather",
+      }
+    `);
+  });
+
+  it('does not resolve before the identifying update arrives', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', title: 'MCP: tool', rawInput: {} },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      providerIdentifier: 'other-server',
+      toolName: 'get_weather',
+      args: { city: 'Austin' },
+    },
+    {
+      providerIdentifier: serverName,
+      toolName: 'unknown_tool',
+      args: { city: 'Austin' },
+    },
+    { providerIdentifier: serverName, toolName: 'get_weather', args: null },
+  ])('does not resolve a mismatched raw input: %j', rawInput => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', title: 'Tool', rawInput },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+function resolveHostToolCall(): ACPHarnessSettings['resolveHostToolCall'] {
+  createCursor();
+  return (mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings)
+    .resolveHostToolCall;
+}

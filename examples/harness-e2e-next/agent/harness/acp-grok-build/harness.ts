@@ -1,8 +1,28 @@
-import { createACP } from '@ai-sdk/harness-acp';
+import { createACP, type ACPResolveHostToolCall } from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { grokBuildACPBuiltinTools } from './builtin-tools';
 
 const harnessId = 'acp-grok-build';
+
+/*
+ * Grok Build calls MCP tools through its `use_tool` meta-tool, with a
+ * `{ tool_name, tool_input }` raw input where `tool_name` is
+ * `${serverName}__${toolName}`.
+ */
+const resolveGrokBuildHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (!isRecord(rawInput) || !isRecord(rawInput.tool_input)) return undefined;
+  const toolName = toolNames.find(
+    name => rawInput.tool_name === `${serverName}__${name}`,
+  );
+  return toolName == null
+    ? undefined
+    : { toolName, input: rawInput.tool_input };
+};
 
 export const grokBuildACPHarness = createACP({
   harnessId,
@@ -11,6 +31,7 @@ export const grokBuildACPHarness = createACP({
     const metadata = toolCall._meta?.['x.ai/tool'];
     return isRecord(metadata) && metadata.namespace === 'mcp';
   },
+  resolveHostToolCall: resolveGrokBuildHostToolCall,
   source: {
     type: 'install-command',
     command:

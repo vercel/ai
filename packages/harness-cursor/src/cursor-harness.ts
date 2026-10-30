@@ -7,7 +7,11 @@ import {
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -374,6 +378,7 @@ export function createCursor(
         isRecord(rawInput.args)
       );
     },
+    resolveHostToolCall: resolveCursorHostToolCall,
     mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'cursor',
@@ -450,6 +455,28 @@ function warnCursorAuthenticationConfiguration({
     `[cursor] auth: ${JSON.stringify(auth)} cannot configure Cursor provider authentication. ${detail} CURSOR_API_KEY is still required for Cursor CLI authentication.`,
   );
 }
+
+/**
+ * Cursor reports host tool calls with a `{ providerIdentifier, toolName,
+ * args }` raw input, where `providerIdentifier` is the MCP server name.
+ */
+const resolveCursorHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (
+    !isRecord(rawInput) ||
+    rawInput.providerIdentifier !== serverName ||
+    typeof rawInput.toolName !== 'string' ||
+    !toolNames.includes(rawInput.toolName) ||
+    !isRecord(rawInput.args)
+  ) {
+    return undefined;
+  }
+  return { toolName: rawInput.toolName, input: rawInput.args };
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);

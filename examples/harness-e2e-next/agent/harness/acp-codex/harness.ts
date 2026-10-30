@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { createACP, type ACPPermissionModeMapping } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPPermissionModeMapping,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -26,10 +30,33 @@ const codexConfigSchema = z.object({
     .optional(),
 });
 
+/*
+ * codex-acp reports MCP tool calls with a `{ server, tool, arguments }` raw
+ * input, so host tool calls are identified by the harness-owned server name.
+ */
+const resolveCodexACPHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (
+    !isRecord(rawInput) ||
+    rawInput.server !== serverName ||
+    typeof rawInput.tool !== 'string' ||
+    !toolNames.includes(rawInput.tool) ||
+    !isRecord(rawInput.arguments)
+  ) {
+    return undefined;
+  }
+  return { toolName: rawInput.tool, input: rawInput.arguments };
+};
+
 export const codexACPHarness = createACP({
   harnessId,
   builtinTools: codexACPBuiltinTools,
   isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
+  resolveHostToolCall: resolveCodexACPHostToolCall,
   source: {
     type: 'npm-locked',
     packageJson: readFileSync(
@@ -126,4 +153,8 @@ function resolveCodexACPBaseUrl({
     } catch {}
   }
   return 'https://api.openai.com/v1';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

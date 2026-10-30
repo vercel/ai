@@ -11,7 +11,11 @@ import {
   createCredentialRequestTransformation,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -315,6 +319,7 @@ export function createGrokBuild(
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
     },
+    resolveHostToolCall: resolveGrokBuildHostToolCall,
     mintBridgeToken: settings.mintBridgeToken,
     version: 'v1',
     harnessId: 'grok-build',
@@ -389,6 +394,26 @@ export function createGrokBuild(
     },
   });
 }
+
+/**
+ * Grok Build calls MCP tools through its `use_tool` meta-tool, with a
+ * `{ tool_name, tool_input }` raw input where `tool_name` is
+ * `${serverName}__${toolName}`.
+ */
+const resolveGrokBuildHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (!isRecord(rawInput) || !isRecord(rawInput.tool_input)) return undefined;
+  const toolName = toolNames.find(
+    name => rawInput.tool_name === `${serverName}__${name}`,
+  );
+  return toolName == null
+    ? undefined
+    : { toolName, input: rawInput.tool_input };
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
