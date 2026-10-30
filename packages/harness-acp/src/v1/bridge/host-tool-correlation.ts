@@ -248,6 +248,13 @@ export function createHostToolCorrelation({
         suppressCandidate({ candidate, invocation: tokenMatch });
       }
       reconcile();
+      /*
+       * In theory, this capacity flush can release a host tool call before
+       * its pending resolution completes, preventing later suppression.
+       * This is an accepted edge case: 128 updates within the normal
+       * one-second correlation window are considered highly unlikely in
+       * typical streams.
+       */
       if (buffered.length >= MAX_BUFFERED_UPDATES) flush();
       else if (buffered.length > 0) scheduleFlush();
     },

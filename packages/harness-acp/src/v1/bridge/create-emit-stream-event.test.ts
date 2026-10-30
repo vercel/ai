@@ -11,6 +11,89 @@ import { createACPPermissionController } from './permission-controller';
 describe('host weather approval stream', () => {
   afterEach(() => vi.useRealTimers());
 
+  it('authorizes a late-identifying host call without suppressing its released stream events', async () => {
+    vi.useFakeTimers();
+    const [initial, identifying] = loadWeatherApprovalFixture({
+      harness: 'cursor',
+    }).filter(event => event.type === 'update');
+    if (initial.value.sessionUpdate !== 'tool_call') {
+      throw new Error('Missing captured initial tool call.');
+    }
+    const events: HarnessV1StreamPart[] = [];
+    const hostToolCallResolver = createFixtureHostToolCallResolver({
+      toolNames: ['get_weather'],
+    });
+    const emitter = createEmitStreamEvent({
+      emit: event => events.push(event),
+      emitToolCallCandidate: vi.fn(),
+      builtinTools: [],
+      hostToolServerName: 'ai-sdk-harness-tools',
+      hostTools: [{ name: 'get_weather', inputSchema: { type: 'object' } }],
+      hostToolCallResolver,
+    });
+    const authorization = createHostToolRelayAuthorization();
+    try {
+      for (const event of [initial, identifying]) {
+        const update = event.value;
+        if (
+          update.sessionUpdate !== 'tool_call' &&
+          update.sessionUpdate !== 'tool_call_update'
+        ) {
+          throw new Error('Missing captured tool update.');
+        }
+        const hold = emitter.deferFlush();
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
+        emitter.message({
+          message: {
+            kind: 'session_update',
+            notification: { sessionId: 'session-1', update },
+            update,
+          },
+        });
+        const hostToolCall = await resolution;
+        authorization.observeUpdate({ update, hostToolCall });
+        emitter.applyHostToolCall({
+          toolCallId: update.toolCallId,
+          hostToolCall,
+        });
+        hold.release();
+        if (event === initial) {
+          await vi.advanceTimersByTimeAsync(1000);
+          expect(
+            emitter.isToolCallReleased({ toolCallId: update.toolCallId }),
+          ).toBe(true);
+        }
+      }
+
+      await expect(
+        authorization.waitForToolCallAuthorization({
+          toolName: 'get_weather',
+          input: { city: 'Austin' },
+        }),
+      ).resolves.toBe(true);
+      const toolCalls = events.filter(event => event.type === 'tool-call');
+      expect(toolCalls).toHaveLength(1);
+      expect(toolCalls[0].toolCallId).toBe(initial.value.toolCallId);
+      expect(
+        toolCalls.map(({ input, providerExecuted }) => ({
+          input,
+          providerExecuted,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"providerIdentifier":"ai-sdk-harness-tools","toolName":"get_weather","args":{"city":"Austin"}}",
+            "providerExecuted": true,
+          },
+        ]
+      `);
+    } finally {
+      authorization.close();
+      emitter.close();
+      hostToolCallResolver.close();
+    }
+  });
+
   it.each(['cursor', 'github-copilot'])(
     'emits only the canonical relay call and result for %s',
     async harness => {
@@ -55,9 +138,8 @@ describe('host weather approval stream', () => {
           if (event.type === 'update') {
             const update = event.value;
             const hostToolCall =
-              (update.sessionUpdate === 'tool_call' ||
-                update.sessionUpdate === 'tool_call_update') &&
-              !emitter.isToolCallReleased({ toolCallId: update.toolCallId })
+              update.sessionUpdate === 'tool_call' ||
+              update.sessionUpdate === 'tool_call_update'
                 ? hostToolCallResolver.resolveUpdateNow({ update })
                 : undefined;
             authorization.observeUpdate({ update, hostToolCall });

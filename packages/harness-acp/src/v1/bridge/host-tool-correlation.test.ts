@@ -1277,11 +1277,9 @@ function setup({
       const isToolUpdate =
         value.sessionUpdate === 'tool_call' ||
         value.sessionUpdate === 'tool_call_update';
-      const hostToolCall =
-        isToolUpdate &&
-        !baseCorrelation.isToolCallReleased({ toolCallId: value.toolCallId })
-          ? hostToolCallResolver.resolveUpdateNow({ update: value })
-          : undefined;
+      const hostToolCall = isToolUpdate
+        ? hostToolCallResolver.resolveUpdateNow({ update: value })
+        : undefined;
       baseCorrelation.update({ message, rawUpdate });
       if (isToolUpdate) {
         baseCorrelation.applyHostToolCall({

@@ -411,16 +411,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
          * received meanwhile can be matched against them, and the resolution
          * is applied once it is known. Resolutions are applied in update
          * order. The flush hold keeps a host tool call from being released to
-         * the stream while its resolution is pending. A released tool call
-         * has already been forwarded as a regular tool call, so it is not
-         * resolved anymore.
+         * the stream while its resolution is pending. Released tool calls
+         * still need resolution for relay authorization, even though their
+         * stream events can no longer be suppressed.
          */
         const flushHold = emitStreamEvent.deferFlush();
-        const resolution = emitStreamEvent.isToolCallReleased({
-          toolCallId: update.toolCallId,
-        })
-          ? Promise.resolve(undefined)
-          : hostToolCallResolver.resolveUpdate({ update });
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
         emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
         pendingHostToolResolutions = pendingHostToolResolutions
           .then(() => resolution)
