@@ -5,7 +5,7 @@ description: Use TokenLab's OpenAI-compatible API with the AI SDK.
 
 # TokenLab Provider
 
-[TokenLab](https://tokenlab.sh) is an AI gateway that provides access to models from multiple providers through one OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+[TokenLab](https://tokenlab.sh?utm_source=vercel-ai) is an AI gateway that provides access to models from multiple providers through one OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
 
 ## Setup
 
@@ -28,14 +28,14 @@ const tokenlab = createOpenAICompatible({
 ```
 
 <Note>
-  Follow the [TokenLab AI SDK guide](https://tokenlab.sh/docs/en/integrations/vercel-ai-sdk)
+  Follow the [TokenLab AI SDK guide](https://tokenlab.sh/docs/en/integrations/vercel-ai-sdk?utm_source=vercel-ai)
   to create an API key. Make sure to set the `TOKENLAB_API_KEY` environment
   variable with your API key.
 </Note>
 
 ## Language Models
 
-You can create TokenLab models using the provider instance. The first argument is a model ID from the [model catalog](https://tokenlab.sh/en/models), for example `gpt-5.6-terra`.
+You can create TokenLab models using the provider instance. The first argument is a model ID from the [model catalog](https://tokenlab.sh/en/models?utm_source=vercel-ai), for example `gpt-5.6-terra`.
 
 ```ts
 const model = tokenlab('gpt-5.6-terra');
@@ -83,4 +83,4 @@ for await (const textPart of result.textStream) {
 }
 ```
 
-See the [TokenLab AI SDK integration guide](https://tokenlab.sh/docs/en/integrations/vercel-ai-sdk) for more examples.
+See the [TokenLab AI SDK integration guide](https://tokenlab.sh/docs/en/integrations/vercel-ai-sdk?utm_source=vercel-ai) for more examples.
