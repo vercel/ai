@@ -135,6 +135,35 @@ const jsonToolBlockEvents = (index: number, json: string) => [
   { type: 'content_block_stop', index },
 ];
 
+const thinkingBlockEvents = (index: number, thinking: string) => [
+  {
+    type: 'content_block_start',
+    index,
+    content_block: { type: 'thinking', thinking: '' },
+  },
+  {
+    type: 'content_block_delta',
+    index,
+    delta: { type: 'thinking_delta', thinking },
+  },
+  {
+    type: 'content_block_delta',
+    index,
+    delta: { type: 'signature_delta', signature: 'sig' },
+  },
+  { type: 'content_block_stop', index },
+];
+
+// Manual thinking also downgrades the forced JSON response tool to auto tool
+// choice, for models that otherwise accept forced tool use.
+const manualThinkingCall = () =>
+  jsonCall(SCHEMA, {
+    maxOutputTokens: 10000,
+    providerOptions: {
+      anthropic: { thinking: { type: 'enabled', budgetTokens: 5000 } },
+    },
+  });
+
 describe('JSON response tool fallback', () => {
   const server = createTestServer({ [URL]: {} });
 
@@ -286,6 +315,95 @@ describe('JSON response tool fallback', () => {
         .map(part => (part as { delta: string }).delta)
         .join('');
       expect(text).toBe('{"root":{}}');
+    });
+  });
+
+  describe('manual thinking', () => {
+    it('uses the JSON response tool with auto tool choice', async () => {
+      respondWithJson([{ type: 'text', text: '{"answer":"42"}' }]);
+
+      await createModel('claude-sonnet-4-5').doGenerate(manualThinkingCall());
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toEqual({ type: 'enabled', budget_tokens: 5000 });
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        'json',
+      ]);
+      expect(body.tool_choice).toMatchObject({ type: 'auto' });
+    });
+
+    it('returns text when the model answers without calling the JSON response tool (generate)', async () => {
+      respondWithJson([
+        { type: 'thinking', thinking: 'Working it out.', signature: 'sig' },
+        { type: 'text', text: '{"answer":"42"}' },
+      ]);
+
+      const result =
+        await createModel('claude-sonnet-4-5').doGenerate(manualThinkingCall());
+
+      expect(result.content.map(part => part.type)).toEqual([
+        'reasoning',
+        'text',
+      ]);
+      expect(result.content[1]).toEqual({
+        type: 'text',
+        text: '{"answer":"42"}',
+      });
+    });
+
+    it('emits held-back text after reasoning when the model answers without calling the JSON response tool (stream)', async () => {
+      respondWithStream([
+        ...thinkingBlockEvents(0, 'Working it out.'),
+        ...textBlockEvents(1, ['{"answer"', ':"42"}']),
+      ]);
+
+      const { stream } =
+        await createModel('claude-sonnet-4-5').doStream(manualThinkingCall());
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(
+        parts
+          .filter(
+            part =>
+              part.type.startsWith('reasoning-') ||
+              part.type.startsWith('text-'),
+          )
+          .map(part => part.type),
+      ).toEqual([
+        'reasoning-start',
+        'reasoning-delta',
+        'reasoning-delta',
+        'reasoning-end',
+        'text-start',
+        'text-delta',
+        'text-end',
+      ]);
+      expect(parts.find(part => part.type === 'text-delta')).toMatchObject({
+        id: '1',
+        delta: '{"answer":"42"}',
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
+    it('drops held-back text when the JSON response tool is called after thinking (stream)', async () => {
+      respondWithStream([
+        ...thinkingBlockEvents(0, 'Working it out.'),
+        ...textBlockEvents(1, ['Here is the JSON:']),
+        ...jsonToolBlockEvents(2, '{"answer":"42"}'),
+      ]);
+
+      const { stream } =
+        await createModel('claude-sonnet-4-5').doStream(manualThinkingCall());
+      const parts = await convertReadableStreamToArray(stream);
+
+      const text = parts
+        .filter(part => part.type === 'text-delta')
+        .map(part => (part as { delta: string }).delta)
+        .join('');
+      expect(text).toBe('{"answer":"42"}');
     });
   });
 });
