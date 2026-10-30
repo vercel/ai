@@ -31,6 +31,20 @@ describe('hasCircularSchemaReference', () => {
     ).toBe(false);
   });
 
+  it('returns false for a top-level $ref to a non-recursive definition', () => {
+    expect(
+      hasCircularSchemaReference({
+        $ref: '#/definitions/Answer',
+        definitions: {
+          Answer: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+          },
+        },
+      } as JSONSchema7),
+    ).toBe(false);
+  });
+
   it('detects a self-referencing definition', () => {
     expect(
       hasCircularSchemaReference({

@@ -1313,18 +1313,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         Array.isArray(part.content) &&
         part.content.length > 0,
     );
-    // The JSON response tool call becomes the text, so other text is dropped.
-    // When tool choice is not forced the model can answer in text instead.
-    const dropTextContent =
-      usesJsonResponseTool &&
-      response.content.some(
-        part => part.type === 'tool_use' && part.name === 'json',
-      );
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          if (!dropTextContent) {
+          if (!usesJsonResponseTool) {
             const citations = part.citations ?? [];
 
             content.push({
@@ -2013,9 +2006,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
-    // Text held back while the JSON response tool is in use. It is emitted at
-    // message end only if the model answered in text without calling the tool.
-    const heldBackTextBlocks = new Map<number, string>();
     let hasWebSearchResults = false;
     const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
@@ -2096,9 +2086,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               switch (contentBlockType) {
                 case 'text': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so the text content is held back until we know whether it was called:
+                  // so we ignore the text content:
                   if (usesJsonResponseTool) {
-                    heldBackTextBlocks.set(value.index, '');
                     return;
                   }
 
@@ -2813,15 +2802,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               switch (deltaType) {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so the text content is held back until we know whether it was called:
+                  // so we ignore the text content:
                   if (usesJsonResponseTool) {
-                    const heldBackText = heldBackTextBlocks.get(value.index);
-                    if (heldBackText != null) {
-                      heldBackTextBlocks.set(
-                        value.index,
-                        heldBackText + value.delta.text,
-                      );
-                    }
                     return; // excluding the text-start will also exclude the text-end
                   }
 
@@ -3214,16 +3196,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
               }
               fallbackWebCitations.length = 0;
-              if (!isJsonResponseFromTool) {
-                for (const [index, text] of heldBackTextBlocks) {
-                  if (text.length === 0) continue;
-                  const id = String(index);
-                  controller.enqueue({ type: 'text-start', id });
-                  controller.enqueue({ type: 'text-delta', id, delta: text });
-                  controller.enqueue({ type: 'text-end', id });
-                }
-              }
-              heldBackTextBlocks.clear();
               controller.enqueue({
                 type: 'finish',
                 finishReason,

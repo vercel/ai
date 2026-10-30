@@ -175,4 +175,44 @@ describe('sanitizeJsonSchema', () => {
       }
     `);
   });
+
+  it('keeps definitions next to a top-level $ref', () => {
+    const schema = {
+      $ref: '#/definitions/Answer',
+      definitions: {
+        Answer: {
+          type: 'object',
+          properties: { answer: { type: 'string', minLength: 1 } },
+          required: ['answer'],
+        },
+      },
+      $defs: { Unused: { type: 'string' } },
+    } as JSONSchema7;
+
+    expect(sanitizeJsonSchema(schema)).toMatchInlineSnapshot(`
+      {
+        "$defs": {
+          "Unused": {
+            "type": "string",
+          },
+        },
+        "$ref": "#/definitions/Answer",
+        "definitions": {
+          "Answer": {
+            "additionalProperties": false,
+            "properties": {
+              "answer": {
+                "description": "min length: 1.",
+                "type": "string",
+              },
+            },
+            "required": [
+              "answer",
+            ],
+            "type": "object",
+          },
+        },
+      }
+    `);
+  });
 });
