@@ -65,7 +65,7 @@
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1",
