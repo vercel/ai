@@ -1109,6 +1109,147 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should use automatic tool choice for JSON output when thinking is enabled', async () => {
+      prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+      const result = await provider('claude-sonnet-4-20250514').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 100,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 2000,
+      });
+      expect(requestBody.tool_choice).toEqual({
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.messages[1]).toEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Once you have your answer, please use the json tool to provide it. No other text is needed.',
+          },
+        ],
+      });
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: expect.stringContaining('"elements"'),
+        },
+      ]);
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'responseFormat',
+        details:
+          'Anthropic does not support forced tool use when thinking is enabled. The JSON response tool is offered with automatic tool choice instead.',
+      });
+    });
+
+    it('should preserve text when the optional JSON tool is not selected', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      const result = await provider('claude-sonnet-4-20250514').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { recipe: { type: 'object' } },
+            required: ['recipe'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: expect.stringContaining('"recipe"'),
+        },
+      ]);
+    });
+
+    it('should discard citations attached to text before the JSON tool', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          model: 'claude-sonnet-4-20250514',
+          id: 'msg_json_with_citation',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'I will provide the answer as JSON.',
+              citations: [
+                {
+                  type: 'web_search_result_location',
+                  cited_text: 'Discarded preamble',
+                  title: 'Discarded source',
+                  url: 'https://example.com/discarded',
+                  encrypted_index: 'opaque',
+                },
+              ],
+            },
+            {
+              type: 'tool_use',
+              id: 'toolu_json_with_citation',
+              name: 'json',
+              input: { answer: 'ok' },
+            },
+          ],
+          stop_reason: 'tool_use',
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+
+      const result = await provider('claude-sonnet-4-20250514').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"ok"}' },
+      ]);
+    });
+
     describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
@@ -7884,6 +8025,331 @@ describe('AnthropicLanguageModel', () => {
         }
       },
     );
+
+    it('should use automatic tool choice for JSON output when thinking is enabled while streaming', async () => {
+      prepareChunksFixtureResponse('anthropic-json-tool.2');
+
+      const { stream } = await provider('claude-sonnet-4-20250514').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 2000,
+      });
+      expect(requestBody.tool_choice).toEqual({
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.messages[1]).toEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Once you have your answer, please use the json tool to provide it. No other text is needed.',
+          },
+        ],
+      });
+      expect(result[0]).toEqual({
+        type: 'stream-start',
+        warnings: [
+          {
+            type: 'compatibility',
+            feature: 'responseFormat',
+            details:
+              'Anthropic does not support forced tool use when thinking is enabled. The JSON response tool is offered with automatic tool choice instead.',
+          },
+        ],
+      });
+      expect(
+        result
+          .filter(event => event.type === 'text-delta')
+          .map(event => event.delta)
+          .join(''),
+      ).toContain('"elements"');
+      expect(result).not.toContainEqual({ type: 'text-start', id: '0' });
+      expect(result).toContainEqual({ type: 'text-start', id: '1' });
+      expect(result).toContainEqual({ type: 'text-end', id: '1' });
+      expect(
+        result
+          .filter(event => event.type === 'text-delta')
+          .map(event => event.delta)
+          .join(''),
+      ).not.toContain("I'll invoke");
+    });
+
+    it('should discard citations attached to streamed text before the JSON tool', async () => {
+      const citation = {
+        type: 'web_search_result_location' as const,
+        cited_text: 'Discarded preamble',
+        title: 'Discarded source',
+        url: 'https://example.com/discarded',
+        encrypted_index: 'opaque',
+      };
+      const chunks = [
+        {
+          type: 'message_start',
+          message: {
+            model: 'claude-sonnet-4-20250514',
+            id: 'msg_json_with_citation',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            stop_reason: null,
+            stop_sequence: null,
+            usage: { input_tokens: 1, output_tokens: 0 },
+          },
+        },
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'I will provide JSON.' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'citations_delta', citation },
+        },
+        { type: 'content_block_stop', index: 0 },
+        {
+          type: 'content_block_start',
+          index: 1,
+          content_block: {
+            type: 'tool_use',
+            id: 'toolu_json_with_citation',
+            name: 'json',
+            input: {},
+          },
+        },
+        {
+          type: 'content_block_delta',
+          index: 1,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"answer":"ok"}',
+          },
+        },
+        { type: 'content_block_stop', index: 1 },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'tool_use', stop_sequence: null },
+          usage: { output_tokens: 1 },
+        },
+        { type: 'message_stop' },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`);
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks,
+      };
+
+      const { stream } = await provider('claude-sonnet-4-20250514').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(result.filter(event => event.type === 'source')).toEqual([]);
+      expect(
+        result
+          .filter(event => event.type === 'text-delta')
+          .map(event => event.delta)
+          .join(''),
+      ).toBe('{"answer":"ok"}');
+    });
+
+    it('should emit one citation for streamed text when the JSON tool is not selected', async () => {
+      const citation = {
+        type: 'web_search_result_location' as const,
+        cited_text: 'Kept answer',
+        title: 'Kept source',
+        url: 'https://example.com/kept',
+        encrypted_index: 'opaque',
+      };
+      const chunks = [
+        {
+          type: 'message_start',
+          message: {
+            model: 'claude-sonnet-4-20250514',
+            id: 'msg_json_without_tool',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            stop_reason: null,
+            stop_sequence: null,
+            usage: { input_tokens: 1, output_tokens: 0 },
+          },
+        },
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: '{"answer":"ok"}' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'citations_delta', citation },
+        },
+        { type: 'content_block_stop', index: 0 },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { output_tokens: 1 },
+        },
+        { type: 'message_stop' },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`);
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks,
+      };
+
+      const citationProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'citation-id',
+      });
+      const { stream } = await citationProvider(
+        'claude-sonnet-4-20250514',
+      ).doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const sources = result.filter(event => event.type === 'source');
+      expect(sources).toHaveLength(1);
+      expect(sources[0]).toEqual(
+        expect.objectContaining({
+          id: 'citation-id',
+          url: 'https://example.com/kept',
+        }),
+      );
+    });
+
+    it('should preserve streamed text when the optional JSON tool is not selected', async () => {
+      prepareChunksFixtureResponse('anthropic-json-output-format.1');
+
+      const { stream } = await provider('claude-sonnet-4-20250514').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { characters: { type: 'array' } },
+            required: ['characters'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(
+        result
+          .filter(event => event.type === 'text-delta')
+          .map(event => event.delta)
+          .join(''),
+      ).toContain('"characters"');
+    });
+
+    it('should discard text buffered before an intermediate tool call', async () => {
+      prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+      const { stream } = await provider('claude-sonnet-4-20250514').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'rollDie',
+            inputSchema: {
+              type: 'object',
+              properties: { player: { type: 'string' } },
+            },
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { result: { type: 'string' } },
+            required: ['result'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled', budgetTokens: 2000 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const text = result
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta)
+        .join('');
+
+      expect(text).toContain('## Game Results');
+      expect(text).not.toContain("I'll help you simulate");
+    });
 
     describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV4StreamPart>;
