@@ -89,13 +89,13 @@ try {
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `isMcpToolCall`: required function that receives an ACP tool call and
+- `resolveHostToolCall`: required function that resolves an ACP tool call to
+  the host tool it invokes, or `undefined` if it's not a host tool call.
+- `isMcpToolCall`: required function that receives an ACP tool call that was
+  classified by `resolveHostToolCall` to _not_ be a host tool call, and
   returns whether it invokes a tool from a configured MCP server. Matching
   tool calls are reported as dynamic tool calls instead of provider-executed
   built-in tool calls.
-- `resolveHostToolCall`: required function that resolves an ACP tool call to
-  the host tool it invokes. See
-  [Tool Call Classification](#tool-call-classification).
 - `hostToolMcpTransport`: transport used for the harness-owned MCP server that
   exposes host tools to the ACP implementation. It defaults to `'stdio'`. Set
   this to `'http'` for implementations that only accept HTTP or SSE MCP servers
@@ -169,68 +169,6 @@ try {
 
 Runtime-specific package names, environment variables, modes, and session
 metadata belong in the inline profile, not in the generic adapter.
-
-## Tool Call Classification
-
-ACP version 1 does not standardize how an implementation reports calls to MCP
-tools, so every profile classifies tool calls itself. Host tools are exposed
-to the ACP implementation through a harness-owned MCP server, and the adapter
-needs to map each call back to the host tool and its input:
-
-```ts
-type ACPResolvedHostToolCall = {
-  readonly toolName: string;
-  readonly input: Readonly<Record<string, unknown>>;
-};
-
-type ACPResolveHostToolCall = (options: {
-  readonly toolCall: ACPToolCall;
-  readonly serverName: string;
-  readonly toolNames: ReadonlyArray<string>;
-}) => ACPResolvedHostToolCall | undefined;
-```
-
-The adapter calls `resolveHostToolCall` independently of `isMcpToolCall`,
-for each tool call update until the tool call is resolved, and for tool calls
-in permission requests. It receives the merged snapshot of all updates for the
-tool call so far, the name of the harness-owned MCP server, and the names of
-the available host tools. Return `undefined` when the call does not invoke a
-host tool or cannot be resolved from the data received so far. A returned `toolName` must be one of
-`toolNames`. For example, Codex ACP reports MCP tool calls with a
-`{ server, tool, arguments }` raw input:
-
-```ts
-import { createACP, type ACPResolveHostToolCall } from '@ai-sdk/harness-acp';
-
-const resolveCodexACPHostToolCall: ACPResolveHostToolCall = ({
-  toolCall,
-  serverName,
-  toolNames,
-}) => {
-  const rawInput = toolCall.rawInput as
-    | { server?: unknown; tool?: unknown; arguments?: unknown }
-    | undefined;
-  if (
-    rawInput?.server !== serverName ||
-    typeof rawInput.tool !== 'string' ||
-    !toolNames.includes(rawInput.tool) ||
-    rawInput.arguments == null ||
-    typeof rawInput.arguments !== 'object'
-  ) {
-    return undefined;
-  }
-  return {
-    toolName: rawInput.tool,
-    input: rawInput.arguments as Record<string, unknown>,
-  };
-};
-
-const harness = createACP({
-  // ...implementation settings
-  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
-  resolveHostToolCall: resolveCodexACPHostToolCall,
-});
-```
 
 ## Structured Output
 
