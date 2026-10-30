@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.77
+
+### Patch Changes
+
+- 19cb252: Centralize Mistral model capabilities and provider option support in a model catalog shared by request preparation and generated documentation, preserving Chat and Conversations reasoning policies and legacy transcription restrictions.
+
 ## 4.0.76
 
 ### Patch Changes
