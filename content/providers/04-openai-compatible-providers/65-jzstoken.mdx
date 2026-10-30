@@ -1,0 +1,89 @@
+---
+title: JZSTOKEN
+description: Use the JZSTOKEN OpenAI compatible API with the AI SDK.
+---
+
+# JZSTOKEN Provider
+
+[JZSTOKEN](https://jzstoken.com) provides OpenAI Chat Completions-compatible access to OpenAI, Anthropic, Google, Kimi, DeepSeek, and other models through one API key and one endpoint. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+JZSTOKEN is compatible with the OpenAI Chat Completions API, so no provider-specific package is required. Install the OpenAI compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+Create a provider instance with the JZSTOKEN base URL:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const jzstoken = createOpenAICompatible({
+  name: 'jzstoken',
+  baseURL: 'https://jzstoken.com/api/v1',
+  apiKey: process.env.JZSTOKEN_API_KEY,
+});
+```
+
+<Note>
+  Create a **Standard** API key on the [JZSTOKEN API Keys
+  page](https://jzstoken.com/dashboard/keys) and set it as the
+  `JZSTOKEN_API_KEY` environment variable. A key created for
+  `jzs-max-3.0` only exposes that model.
+</Note>
+
+## Language Models
+
+Create models with the provider instance. The first argument is a model ID from the [JZSTOKEN model catalog](https://jzstoken.com/model-pricing), for example `claude-sonnet-5`:
+
+```ts
+const model = jzstoken('claude-sonnet-5');
+```
+
+### Example
+
+You can use JZSTOKEN models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const jzstoken = createOpenAICompatible({
+  name: 'jzstoken',
+  baseURL: 'https://jzstoken.com/api/v1',
+  apiKey: process.env.JZSTOKEN_API_KEY,
+});
+
+const { text } = await generateText({
+  model: jzstoken('claude-sonnet-5'),
+  prompt: 'Write a short haiku about routing.',
+});
+
+console.log(text);
+```
+
+JZSTOKEN models can also stream text with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const jzstoken = createOpenAICompatible({
+  name: 'jzstoken',
+  baseURL: 'https://jzstoken.com/api/v1',
+  apiKey: process.env.JZSTOKEN_API_KEY,
+});
+
+const result = streamText({
+  model: jzstoken('claude-sonnet-5'),
+  prompt: 'Write a short haiku about routing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Model capabilities, context limits, and support for features such as tool calling or images depend on the selected upstream model. Check the [JZSTOKEN documentation](https://jzstoken.com/docs/quick-start) and the live model catalog before relying on a model-specific capability.
