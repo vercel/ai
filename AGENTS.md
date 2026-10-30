@@ -101,8 +101,6 @@ pnpm discover-guidelines --staged
 pnpm discover-guidelines --modified
 ```
 
-Use `--modified` to select staged and unstaged tracked changes, plus untracked files not ignored by Git. Use only one of `--paths`, `--staged`, or `--modified`. Only `--paths` may be repeated; repeated `--staged` or `--modified` flags are errors.
-
 If any guideline files are returned from the command, read their contents to learn about the guidelines to follow.
 
 Many guideline files are accompanied by matching verifier scripts in `.agents/verifiers`. Run `pnpm run-verifiers` with the same `--paths`, `--staged`, or `--modified` flags that `pnpm discover-guidelines` accepts to deterministically check whether the given files satisfy the guidelines. Verifiers aren't necessarily comprehensive; but when they flag something, it is a clear guideline violation.
