@@ -1,5 +1,20 @@
 # @ai-sdk/heygen
 
+## 3.0.14
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- 6f41ccc: Remove the fixed duration maximum and forward positive whole-second durations to HeyGen without clamping, allowing the API to enforce its current duration limits. Add the documented ultraquality enhancement option. Document the shared 15-second reference-video input budget and correct the documented prompt-enhancement default to quality.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 3.0.13
 
 ### Patch Changes

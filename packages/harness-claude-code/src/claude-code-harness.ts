@@ -122,6 +122,13 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
+   */
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
+  /**
    * Maximum estimated spend in USD for each Claude query. When it is exceeded,
    * the query stops and the turn ends with an error. Unset means no limit.
    */
@@ -1096,6 +1103,7 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
@@ -1271,6 +1279,7 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
@@ -1323,6 +1332,7 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  skillOverrides,
   maxBudgetUsd,
   strictMcpConfig,
   questionTimeoutMs,
@@ -1356,6 +1366,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
@@ -1644,6 +1655,7 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
@@ -1722,6 +1734,7 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
