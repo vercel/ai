@@ -279,6 +279,47 @@ export type AnthropicLanguageModelConfig = {
   cacheControlProviderOptionsName?: string;
 };
 
+const TEXT_OR_THINKING_BLOCK_TYPES = new Set<string>([
+  'redacted_thinking',
+  'text',
+  'thinking',
+]);
+
+function isContinuationStopReason(
+  stopReason: string | null | undefined,
+): boolean {
+  return stopReason === 'pause_turn' || stopReason === 'tool_use';
+}
+
+/**
+ * Text parts to return when the JSON response tool is in use: the text after
+ * the last tool call or result, and only if the tool was never called.
+ */
+function getJsonResponseToolFallbackText<
+  PART extends { type: string; name?: unknown },
+>(
+  content: ReadonlyArray<PART>,
+  stopReason: string | null | undefined,
+): Set<PART> {
+  const text = new Set<PART>();
+  if (isContinuationStopReason(stopReason)) {
+    return text;
+  }
+
+  for (const part of content) {
+    if (part.type === 'tool_use' && part.name === 'json') {
+      return new Set();
+    }
+    if (part.type === 'text') {
+      text.add(part);
+    } else if (!TEXT_OR_THINKING_BLOCK_TYPES.has(part.type)) {
+      text.clear();
+    }
+  }
+
+  return text;
+}
+
 export class AnthropicLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -1310,11 +1351,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         Array.isArray(part.content) &&
         part.content.length > 0,
     );
+    // The JSON response tool call becomes the text, so other text is dropped,
+    // unless the model never called the tool and answered in text instead.
+    const jsonResponseToolFallbackText = usesJsonResponseTool
+      ? getJsonResponseToolFallbackText(response.content, response.stop_reason)
+      : undefined;
+
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          if (!usesJsonResponseTool) {
+          if (
+            jsonResponseToolFallbackText == null ||
+            jsonResponseToolFallbackText.has(part)
+          ) {
             const citations = part.citations ?? [];
 
             content.push({
@@ -2003,6 +2053,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    // Text held back while the JSON response tool is in use: it is only the
+    // answer if no tool block follows it and the model never calls the tool.
+    const heldBackText: Array<{ id: string; text: string }> = [];
+    const heldBackTextByIndex = new Map<number, { id: string; text: string }>();
     let hasWebSearchResults = false;
     const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
@@ -2080,11 +2134,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
               blockType = contentBlockType;
 
+              // text before a tool call or result is preamble, not the answer:
+              if (!TEXT_OR_THINKING_BLOCK_TYPES.has(contentBlockType)) {
+                heldBackText.length = 0;
+              }
+
               switch (contentBlockType) {
                 case 'text': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
+                  // so the text content is held back until we know whether it was called:
                   if (usesJsonResponseTool) {
+                    const entry = { id: String(value.index), text: '' };
+                    heldBackText.push(entry);
+                    heldBackTextByIndex.set(value.index, entry);
                     return;
                   }
 
@@ -2799,8 +2861,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               switch (deltaType) {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
+                  // so the text content is held back until we know whether it was called:
                   if (usesJsonResponseTool) {
+                    const entry = heldBackTextByIndex.get(value.index);
+                    if (entry != null) {
+                      entry.text += value.delta.text;
+                    }
                     return; // excluding the text-start will also exclude the text-end
                   }
 
@@ -2959,6 +3025,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
               isMessageOpen = true;
               activeMessageId = value.message.id;
+              heldBackTextByIndex.clear();
 
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
@@ -3193,6 +3260,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
               }
               fallbackWebCitations.length = 0;
+
+              // a message that hands off to a tool or continuation is not the
+              // final answer, so its held-back text is discarded:
+              if (
+                !isJsonResponseFromTool &&
+                !isContinuationStopReason(finishReason.raw)
+              ) {
+                for (const { id, text } of heldBackText) {
+                  if (text.length === 0) continue;
+                  controller.enqueue({ type: 'text-start', id });
+                  controller.enqueue({ type: 'text-delta', id, delta: text });
+                  controller.enqueue({ type: 'text-end', id });
+                }
+              }
+              heldBackText.length = 0;
+
               controller.enqueue({
                 type: 'finish',
                 finishReason,
