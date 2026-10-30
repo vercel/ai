@@ -814,6 +814,121 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('passes skill overrides into the Agent SDK settings', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      init: 'off',
+    };
+    state.start = {
+      ...state.start,
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toMatchObject({
+      skillOverrides,
+    });
+  });
+
+  test('merges model overrides with skill overrides', async () => {
+    const skillOverrides = { init: 'off' };
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      skillOverrides,
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+      },
+    });
+  });
+
+  test('omits settings when no contributions are configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+  });
+
+  test.each([
+    {
+      permissionMode: 'allow-reads' as const,
+      allowedTool: 'Read',
+      gatedTool: 'Edit',
+    },
+    {
+      permissionMode: 'allow-edits' as const,
+      allowedTool: 'Edit',
+      gatedTool: 'Bash',
+    },
+  ])(
+    'preserves $permissionMode approval boundaries with skill overrides',
+    async ({ permissionMode, allowedTool, gatedTool }) => {
+      const skillOverrides = { init: 'off' };
+      state.start = {
+        ...state.start,
+        permissionMode,
+        skillOverrides,
+      };
+
+      await import('./index');
+
+      const options = state.queryArgs[0]?.options;
+      expect(options?.settings).toMatchObject({
+        skillOverrides,
+        permissions: {
+          ask: expect.arrayContaining([`${gatedTool}(*)`]),
+        },
+      });
+      expect(options?.canUseTool).toBeTypeOf('function');
+
+      const hooks = options?.hooks as {
+        PreToolUse: Array<{
+          hooks: Array<
+            (
+              input: Record<string, unknown>,
+              toolUseID: string,
+            ) => Promise<unknown>
+          >;
+        }>;
+      };
+      const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: allowedTool,
+            tool_input: {},
+            tool_use_id: 'allowed-tool',
+          },
+          'allowed-tool',
+        ),
+      ).resolves.toEqual({});
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: gatedTool,
+            tool_input: {},
+            tool_use_id: 'gated-tool',
+          },
+          'gated-tool',
+        ),
+      ).resolves.toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'defer',
+        },
+      });
+    },
+  );
+
   test('omits canUseTool when bypassing permissions', async () => {
     await import('./index');
 

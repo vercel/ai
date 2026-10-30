@@ -676,6 +676,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     deferredToolUseIds,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
   });
+  const settings = {
+    ...(permissionOptions.settings as Record<string, unknown> | undefined),
+    ...(start.skillOverrides !== undefined
+      ? { skillOverrides: start.skillOverrides }
+      : {}),
+    ...(modelOverrides ? { modelOverrides } : {}),
+  };
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
@@ -772,16 +779,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ? { continue: true }
           : {}),
       ...permissionOptions,
-      ...(modelOverrides
-        ? {
-            settings: {
-              ...(permissionOptions.settings as
-                | Record<string, unknown>
-                | undefined),
-              modelOverrides,
-            },
-          }
-        : {}),
+      ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
