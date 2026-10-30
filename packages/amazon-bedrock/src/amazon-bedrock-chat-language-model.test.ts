@@ -5313,13 +5313,43 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should send every tool with the forced tool choice on Anthropic models', async () => {
+    it('should send every tool and disable parallel tool use by default on Anthropic models', async () => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
 
       await model.doGenerate({
         tools: forcedToolChoiceTools,
         toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
         prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.additionalModelRequestFields.tool_choice).toEqual({
+        type: 'tool',
+        name: 'getWeatherByCity',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+    });
+
+    it('should send every tool with the forced tool choice when parallel tool use is enabled', async () => {
+      prepareJsonFixtureResponse('amazon-bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            disableParallelToolUse: false,
+          },
+        },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;

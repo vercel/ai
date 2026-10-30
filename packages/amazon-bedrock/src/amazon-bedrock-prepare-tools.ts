@@ -96,6 +96,14 @@ export async function prepareTools({
     rejectsForcedToolChoice && toolChoice.type === 'tool'
       ? providerTools.filter(tool => tool.name === toolChoice.toolName)
       : providerTools;
+  // A named tool choice keeps every function tool for these models (see
+  // below), so parallel tool use is disabled by default to keep the response
+  // to the named tool. `disableParallelToolUse: false` opts out.
+  const disableParallelToolUseForRequest =
+    disableParallelToolUse ??
+    (isAnthropicModel && toolChoice?.type === 'tool' && !rejectsForcedToolChoice
+      ? true
+      : undefined);
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const amazonBedrockTools: AmazonBedrockTool[] = [];
@@ -112,7 +120,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerTools,
       toolChoice,
-      disableParallelToolUse,
+      disableParallelToolUse: disableParallelToolUseForRequest,
       supportsStructuredOutput: false,
       supportsStrictTools: false,
       rejectsForcedToolUse,
@@ -230,7 +238,7 @@ export async function prepareTools({
   if (
     isAnthropicModel &&
     !usingAnthropicTools &&
-    disableParallelToolUse &&
+    disableParallelToolUseForRequest &&
     amazonBedrockTools.length > 0 &&
     preparedToolChoice?.type !== 'none'
   ) {

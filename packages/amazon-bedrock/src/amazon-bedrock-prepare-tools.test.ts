@@ -430,7 +430,7 @@ describe('prepareTools', () => {
         'us.anthropic.claude-opus-5',
         'anthropic.claude-3-haiku-20240307-v1:0',
       ])(
-        'should send every function tool with the named tool choice on %s',
+        'should send every function tool and disable parallel tool use on %s',
         async modelId => {
           const result = await prepareTools({
             tools: [weatherTool, timeTool],
@@ -441,11 +441,15 @@ describe('prepareTools', () => {
           expect(
             result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
           ).toEqual(['getWeather', 'getTime']);
-          expect(result.toolConfig.toolChoice).toEqual({
-            tool: { name: 'getWeather' },
+          expect(result.additionalTools).toEqual({
+            tool_choice: {
+              type: 'tool',
+              name: 'getWeather',
+              disable_parallel_tool_use: true,
+            },
           });
+          expect(result.toolConfig.toolChoice).toBeUndefined();
           expect(result.toolWarnings).toEqual([]);
-          expect(result.additionalTools).toBeUndefined();
         },
       );
 
@@ -460,9 +464,31 @@ describe('prepareTools', () => {
         expect(
           result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
         ).toEqual(['getWeather', 'getTime']);
+        expect(result.additionalTools).toEqual({
+          tool_choice: {
+            type: 'tool',
+            name: 'getWeather',
+            disable_parallel_tool_use: true,
+          },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should allow parallel tool calls when disableParallelToolUse is false', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: ANTHROPIC_MODEL,
+          disableParallelToolUse: false,
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather', 'getTime']);
         expect(result.toolConfig.toolChoice).toEqual({
           tool: { name: 'getWeather' },
         });
+        expect(result.additionalTools).toBeUndefined();
       });
 
       it('should send every function tool when parallel tool use is disabled', async () => {
@@ -505,6 +531,12 @@ describe('prepareTools', () => {
         expect(
           result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
         ).toEqual(['bash', 'getWeather', 'getTime']);
+        expect(prepareAnthropicTools).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            toolChoice: { type: 'tool', toolName: 'getWeather' },
+            disableParallelToolUse: true,
+          }),
+        );
       });
 
       it.each([
@@ -526,6 +558,7 @@ describe('prepareTools', () => {
         expect(result.toolConfig.toolChoice).toEqual({
           tool: { name: 'getWeather' },
         });
+        expect(result.additionalTools).toBeUndefined();
       });
     });
 
@@ -584,6 +617,7 @@ describe('prepareTools', () => {
         expect(
           result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
         ).toEqual(['getWeather']);
+        expect(result.additionalTools).toBeUndefined();
         expect(result.toolWarnings).toEqual([
           {
             type: 'unsupported',
