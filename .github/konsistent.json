@@ -1081,6 +1081,9 @@
               { "name": "runVerifier", "from": "../../tools/verifiers/api.ts" }
             ],
             "callFunction": ["runVerifier"]
+          },
+          "mustNot": {
+            "importValuesFrom": ["../../tools/verifiers/internal/*"]
           }
         }
       ]
