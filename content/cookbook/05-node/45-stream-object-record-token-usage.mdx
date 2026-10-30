@@ -32,7 +32,15 @@ const result = streamObject({
     console.log('Token usage:', usage);
   },
 });
+
+// Consume the stream so onFinish can record usage.
+for await (const partialObject of result.partialObjectStream) {
+}
 ```
+
+The `onFinish` callback only fires once the stream is consumed — for example by
+iterating `partialObjectStream` or piping the stream to a response. Without
+consuming the stream, the result is created but the callback is never called.
 
 ## `usage` Promise
 
