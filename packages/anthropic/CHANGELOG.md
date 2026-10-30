@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.137
+
+### Patch Changes
+
+- 7f91bae: fix(anthropic): use native structured outputs for Claude models that reject forced tool use (Sonnet 5.5, Opus 5.5, Fable 5.1) even when the provider disables them by default, as Amazon Bedrock and Google Vertex do. Self-referencing schemas keep the JSON response tool. Also keep `definitions` and `$defs` next to a top-level `$ref` when sanitizing structured output schemas, so the reference still resolves.
+- 210ca0a: fix(anthropic): when the JSON response tool is in use but the model answers in text without calling it (for example with manual thinking, where the forced tool choice is downgraded to `auto`), return the final answer text instead of dropping it. Text before a tool call, result, or message continuation is still dropped.
+- 7f91bae: fix(anthropic): keep the JSON response tool for schemas that native structured outputs cannot represent when upgrading models that reject forced tool use. Schemas with open objects (maps, free-form objects) would otherwise come back as `{}`, and schemas with more than 10 optional properties can be rejected as too complex.
+
 ## 3.0.136
 
 ### Patch Changes
