@@ -22,6 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralTranscriptionModelEntry } from './mistral-model-catalog';
 import {
   mistralTranscriptionModelOptions,
   type MistralTranscriptionModelId,
@@ -75,14 +76,9 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       schema: mistralTranscriptionModelOptions,
     });
 
-    // Restrict only known legacy models so future and custom models can combine
-    // a pinned language with timestamps without an SDK update.
     if (
-      [
-        'voxtral-mini-2507',
-        'voxtral-mini-2602',
-        'voxtral-mini-latest',
-      ].includes(this.modelId) &&
+      !getMistralTranscriptionModelEntry(this.modelId).capabilities
+        .transcription.languageWithTimestamps &&
       mistralOptions?.language != null &&
       mistralOptions.timestampGranularities != null
     ) {
