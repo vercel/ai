@@ -2055,8 +2055,24 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let isJsonResponseFromTool = false;
     // Text held back while the JSON response tool is in use: it is only the
     // answer if no tool block follows it and the model never calls the tool.
-    const heldBackText: Array<{ id: string; text: string }> = [];
-    const heldBackTextByIndex = new Map<number, { id: string; text: string }>();
+    type HeldBackText = { id: string; text: string; citations: Citation[] };
+    const heldBackText: HeldBackText[] = [];
+    const heldBackTextByIndex = new Map<number, HeldBackText>();
+    const createTextEnd = (
+      id: string,
+      citations: Citation[],
+    ): LanguageModelV4StreamPart => ({
+      type: 'text-end',
+      id,
+      ...(citations.length > 0 && {
+        citations: citations.map(citation =>
+          mapAnthropicCitation(citation, citationDocuments),
+        ),
+        providerMetadata: {
+          anthropic: { citations },
+        } satisfies AnthropicTextProviderMetadata,
+      }),
+    });
     let hasWebSearchResults = false;
     const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
@@ -2144,7 +2160,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   // when a json response tool is used, the tool call is returned as text,
                   // so the text content is held back until we know whether it was called:
                   if (usesJsonResponseTool) {
-                    const entry = { id: String(value.index), text: '' };
+                    const entry = {
+                      id: String(value.index),
+                      text: '',
+                      citations: [],
+                    };
                     heldBackText.push(entry);
                     heldBackTextByIndex.set(value.index, entry);
                     return;
@@ -2725,20 +2745,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 switch (contentBlock.type) {
                   case 'text': {
-                    controller.enqueue({
-                      type: 'text-end',
-                      id: String(value.index),
-                      ...(contentBlock.citations.length > 0 && {
-                        citations: contentBlock.citations.map(citation =>
-                          mapAnthropicCitation(citation, citationDocuments),
-                        ),
-                        providerMetadata: {
-                          anthropic: {
-                            citations: contentBlock.citations,
-                          },
-                        } satisfies AnthropicTextProviderMetadata,
-                      }),
-                    });
+                    controller.enqueue(
+                      createTextEnd(
+                        String(value.index),
+                        contentBlock.citations,
+                      ),
+                    );
                     break;
                   }
 
@@ -2980,6 +2992,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   if (contentBlock?.type === 'text') {
                     contentBlock.citations.push(citation);
                   }
+                  heldBackTextByIndex
+                    .get(value.index)
+                    ?.citations.push(citation);
 
                   if (citation.type === 'web_search_result_location') {
                     fallbackWebCitations.push(citation);
@@ -3267,11 +3282,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 !isJsonResponseFromTool &&
                 !isContinuationStopReason(finishReason.raw)
               ) {
-                for (const { id, text } of heldBackText) {
+                for (const { id, text, citations } of heldBackText) {
                   if (text.length === 0) continue;
                   controller.enqueue({ type: 'text-start', id });
                   controller.enqueue({ type: 'text-delta', id, delta: text });
-                  controller.enqueue({ type: 'text-end', id });
+                  controller.enqueue(createTextEnd(id, citations));
                 }
               }
               heldBackText.length = 0;

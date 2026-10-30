@@ -508,4 +508,82 @@ describe('JSON response tool fallback', () => {
       expect(result.content.filter(part => part.type === 'text')).toEqual([]);
     });
   });
+
+  it.each([
+    {
+      type: 'page_location',
+      cited_text: 'Supporting passage',
+      document_index: 0,
+      document_title: 'Report',
+      start_page_number: 1,
+      end_page_number: 2,
+    },
+    {
+      type: 'web_search_result_location',
+      cited_text: 'Supporting passage',
+      title: 'Report',
+      url: 'https://example.com/report',
+      encrypted_index: 'opaque',
+    },
+  ])(
+    'preserves $type citations on held-back text with generation parity',
+    async citation => {
+      const call: LanguageModelV4CallOptions = {
+        ...jsonCall(CIRCULAR_SCHEMA),
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'base64PDFdata' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+                providerOptions: {
+                  anthropic: { citations: { enabled: true } },
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const model = createModel('claude-sonnet-5-5');
+
+      respondWithJson([
+        { type: 'text', text: '{"root":{}}', citations: [citation] },
+      ]);
+      const generated = await model.doGenerate(call);
+
+      respondWithStream(
+        messageEvents([
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: '' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: '{"root":{}}' },
+          },
+          {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'citations_delta', citation },
+          },
+          { type: 'content_block_stop', index: 0 },
+        ]),
+      );
+      const { stream } = await model.doStream(call);
+      const parts = await convertReadableStreamToArray(stream);
+
+      const end = parts.find(part => part.type === 'text-end');
+      const text = generated.content.find(part => part.type === 'text');
+      expect(text?.citations).toHaveLength(1);
+      expect(end?.citations).toEqual(text?.citations);
+      expect(end?.providerMetadata).toEqual({
+        anthropic: { citations: [citation] },
+      });
+    },
+  );
 });
