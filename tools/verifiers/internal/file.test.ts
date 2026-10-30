@@ -36,6 +36,10 @@ function createFixture({
     new URL('../utils.ts', import.meta.url),
     join(root, 'tools/verifiers/utils.ts'),
   );
+  copyFileSync(
+    new URL('output.ts', import.meta.url),
+    join(root, 'tools/verifiers/internal/output.ts'),
+  );
 
   for (const [file, contents] of Object.entries(files)) {
     const path = join(root, file);

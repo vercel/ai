@@ -7,7 +7,7 @@ import {
   getApplicableGuidelines,
   getInputFiles,
 } from './verifiers/internal/discovery.ts';
-import { fileExists } from './verifiers/utils.ts';
+import { fileExists, logError, logMessage } from './verifiers/utils.ts';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
@@ -27,9 +27,9 @@ try {
   }
 
   if (verifiers.length === 0) {
-    console.log('No applicable verifiers found.');
+    logMessage('No applicable verifiers found.');
   } else {
-    console.log('Verifier results:');
+    logMessage('Verifier results:');
     let exitCode = 0;
     for (const { verifierFile, files } of verifiers) {
       const result = spawnSync(
@@ -51,13 +51,13 @@ try {
     }
 
     if (exitCode === 2) {
-      console.log(
+      logError(
         'You must fix these violations. Refer to the referenced guideline files for more information.',
       );
     }
     process.exitCode = exitCode;
   }
 } catch (error) {
-  console.error(error);
+  logError(error);
   process.exitCode = 1;
 }

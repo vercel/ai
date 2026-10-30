@@ -152,6 +152,8 @@ test('passes only unique per-file violation codes to the output function after t
     files: {
       'tools/verifiers/internal/output.ts': `
         import assert from 'node:assert/strict';
+        export const logMessage = console.log;
+        export const logError = console.error;
         export async function outputSuccessLog() {
           throw new Error('Unexpected success output');
         }

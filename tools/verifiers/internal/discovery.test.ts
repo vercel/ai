@@ -39,6 +39,7 @@ async function createFixture({
     'discovery.ts',
     'file.ts',
     'guideline.ts',
+    'output.ts',
     '../package.json',
     '../utils.ts',
     '../../discover-guidelines.mts',
@@ -83,14 +84,16 @@ async function createFixture({
     runCli({
       script,
       args = [],
+      env = {},
     }: {
       script: 'discover-guidelines' | 'run-verifiers';
       args?: string[];
+      env?: NodeJS.ProcessEnv;
     }) {
       return childProcess.spawnSync(
         process.execPath,
         [join(root, `tools/${script}.mts`), ...args],
-        { cwd: tmpdir(), encoding: 'utf8' },
+        { cwd: tmpdir(), encoding: 'utf8', env: { ...process.env, ...env } },
       );
     },
   };
@@ -445,6 +448,70 @@ test('both CLIs report no applicable results for an empty modified selection', a
     assert.equal(result.stdout, `No applicable ${subject} found.\n`);
   }
 });
+
+for (const script of ['discover-guidelines', 'run-verifiers'] as const) {
+  test(`${script} suppresses routine output when QUIET=true`, async context => {
+    const { runCli } = await createFixture({ context });
+
+    for (const path of ['unrelated.txt', 'packages/example/README.md']) {
+      const result = runCli({
+        script,
+        args: ['--paths', path],
+        env: { QUIET: 'true' },
+      });
+
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, '');
+      assert.equal(result.stderr, '');
+    }
+  });
+
+  test(`${script} preserves errors when QUIET=true`, async context => {
+    const { runCli } = await createFixture({ context });
+    const result = runCli({
+      script,
+      args: ['--unknown'],
+      env: { QUIET: 'true' },
+    });
+
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Unknown option '--unknown'/);
+  });
+}
+
+for (const exitCode of [0, 1, 2]) {
+  test(`run-verifiers passes QUIET=true to child verifiers and preserves exit code ${exitCode}`, async context => {
+    const { root, runCli } = await createFixture({ context });
+    writeFileSync(
+      join(root, '.agents/verifiers/readme.ts'),
+      `#!/usr/bin/env node
+import { logError, logMessage } from '../../tools/verifiers/utils.ts';
+logMessage('Child verifier output');
+if (${exitCode} !== 0) logError('Child verifier failure');
+process.exitCode = ${exitCode};
+`,
+      { mode: 0o755 },
+    );
+    const result = runCli({
+      script: 'run-verifiers',
+      args: ['--paths', 'packages/example/README.md'],
+      env: { QUIET: 'true' },
+    });
+
+    assert.equal(result.status, exitCode, result.stderr);
+    assert.equal(result.stdout, '');
+    assert.equal(
+      result.stderr,
+      exitCode === 0
+        ? ''
+        : 'Child verifier failure\n' +
+            (exitCode === 2
+              ? 'You must fix these violations. Refer to the referenced guideline files for more information.\n'
+              : ''),
+    );
+  });
+}
 
 for (const args of [
   ['--paths', 'unrelated.txt'],

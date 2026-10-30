@@ -4,19 +4,20 @@ import {
   getApplicableGuidelines,
   getInputFiles,
 } from './verifiers/internal/discovery.ts';
+import { logError, logMessage } from './verifiers/utils.ts';
 
 try {
   const inputFiles = getInputFiles();
   const guidelines = await getApplicableGuidelines(inputFiles);
   if (guidelines.length === 0) {
-    console.log('No applicable guidelines found.');
+    logMessage('No applicable guidelines found.');
   } else {
-    console.log('Ensure you have read the following guidelines:');
+    logMessage('Ensure you have read the following guidelines:');
     for (const { guidelineFile } of guidelines) {
-      console.log(`- \`${guidelineFile}\``);
+      logMessage(`- \`${guidelineFile}\``);
     }
   }
 } catch (error) {
-  console.error(error);
+  logError(error);
   process.exitCode = 1;
 }

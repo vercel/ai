@@ -6,15 +6,23 @@ export type FileVerifierViolations = {
   violationCodes: string[];
 };
 
+export function logMessage(...args: unknown[]): void {
+  if (process.env.QUIET !== 'true') console.log(...args);
+}
+
+export function logError(...args: unknown[]): void {
+  console.error(...args);
+}
+
 export async function outputSuccessLog(guidelineFile: string) {
   const title = await getGuidelineTitle(guidelineFile);
-  console.log(`✓ ${title}`);
+  logMessage(`✓ ${title}`);
 }
 
 export async function outputErrorLog(guidelineFile: string, error: unknown) {
   const title = await getGuidelineTitle(guidelineFile);
-  console.error(`✖ ${title}:`);
-  console.error('  ERROR:', error);
+  logError(`✖ ${title}:`);
+  logError('  ERROR:', error);
 }
 
 export async function outputViolationsLog(
@@ -32,9 +40,9 @@ export async function outputViolationsLog(
     violationCodesByFile.set(file, identifiers);
   }
 
-  console.error(`✖ ${title} (see \`${guidelineFile}\`):`);
+  logError(`✖ ${title} (see \`${guidelineFile}\`):`);
   for (const [file, violationCodes] of violationCodesByFile) {
-    console.error(
+    logError(
       `  - ${file}: violates ${[...violationCodes].map(violationCode => `\`${violationCode}\``).join(', ')}`,
     );
   }

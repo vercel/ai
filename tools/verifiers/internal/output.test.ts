@@ -12,12 +12,41 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { logError, logMessage } from '../utils.ts';
 import { readTextFile } from './file.ts';
 import { outputErrorLog } from './output.ts';
 
 const defaultGuidelineSource = await readTextFile(
   '.agents/guidelines/package-readme.md',
 );
+
+for (const quiet of [undefined, '', 'false', '1', 'TRUE', 'true']) {
+  test(`logging suppresses only messages when QUIET=${JSON.stringify(quiet)}`, context => {
+    const originalQuiet = process.env.QUIET;
+    context.after(() => {
+      if (originalQuiet == null) delete process.env.QUIET;
+      else process.env.QUIET = originalQuiet;
+    });
+    if (quiet == null) delete process.env.QUIET;
+    else process.env.QUIET = quiet;
+
+    const messageLog = context.mock.method(console, 'log', () => {});
+    const errorLog = context.mock.method(console, 'error', () => {});
+    const error = new Error('Verification failed');
+
+    logMessage('Verification complete');
+    logError(error);
+
+    assert.equal(messageLog.mock.callCount(), quiet === 'true' ? 0 : 1);
+    if (quiet !== 'true') {
+      assert.deepEqual(messageLog.mock.calls[0].arguments, [
+        'Verification complete',
+      ]);
+    }
+    assert.equal(errorLog.mock.callCount(), 1);
+    assert.deepEqual(errorLog.mock.calls[0].arguments, [error]);
+  });
+}
 
 for (const { name, error } of [
   {
@@ -135,6 +164,59 @@ test('reports success using the guideline H1 without warnings', context => {
   assert.equal(result.status, 0);
   assert.equal(result.stdout, '✓ Package README Guidelines\n');
   assert.equal(result.stderr, '');
+});
+
+test('suppresses verifier success output when QUIET=true', context => {
+  const { verifierPath } = createFixture({
+    context,
+    readmes: { 'packages/example/README.md': validReadme },
+  });
+  const result = spawnSync(process.execPath, [verifierPath], {
+    encoding: 'utf8',
+    env: { ...process.env, QUIET: 'true' },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+});
+
+test('preserves verifier violations and exit code 2 when QUIET=true', context => {
+  const { verifierPath } = createFixture({
+    context,
+    readmes: {
+      'packages/example/README.md': validReadme.replace(
+        '# AI SDK - Example Provider',
+        '# Example Provider',
+      ),
+    },
+  });
+  const result = spawnSync(process.execPath, [verifierPath], {
+    encoding: 'utf8',
+    env: { ...process.env, QUIET: 'true' },
+  });
+
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal(
+    result.stderr,
+    '✖ Package README Guidelines (see `.agents/guidelines/package-readme.md`):\n' +
+      '  - packages/example/README.md: violates `README-1`\n',
+  );
+});
+
+test('preserves verifier errors and exit code 1 when QUIET=true', context => {
+  const { verifierPath } = createFixture({ context });
+  const result = spawnSync(
+    process.execPath,
+    [verifierPath, '--file', 'packages/missing/README.md'],
+    { encoding: 'utf8', env: { ...process.env, QUIET: 'true' } },
+  );
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /ERROR:/);
+  assert.match(result.stderr, /ENOENT/);
 });
 
 test('reports violated guideline IDs grouped by file', context => {

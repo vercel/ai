@@ -1,6 +1,7 @@
 import { basename, extname } from 'node:path';
 
 export { fileExists, readTextFile } from './internal/file.ts';
+export { logError, logMessage } from './internal/output.ts';
 
 export function getGuidelineFile() {
   return `.agents/guidelines/${getInputFileBasename()}.md`;
