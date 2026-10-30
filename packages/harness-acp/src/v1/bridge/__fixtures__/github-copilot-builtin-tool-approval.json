@@ -1,0 +1,482 @@
+{
+  "builtinTools": [
+    {
+      "toolName": "bash",
+      "nativeName": "bash",
+      "toolUseKind": "bash",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "shellId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "sync",
+              "async"
+            ]
+          },
+          "detach": {
+            "type": "boolean"
+          },
+          "initial_wait": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "read_bash",
+      "title": "Reading shell output",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "shellId": {
+            "type": "string"
+          },
+          "delay": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "shellId",
+          "delay"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "stop_bash",
+      "title": "Stopping shell session",
+      "toolUseKind": "bash",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "shellId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shellId"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "list_bash",
+      "title": "list_bash",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "view",
+      "title": "Viewing ",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "view_range": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "forceReadLargeFiles": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "create",
+      "title": "Creating ",
+      "toolUseKind": "edit",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "file_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "file_text"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "edit",
+      "title": "Editing ",
+      "toolUseKind": "edit",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "old_str": {
+            "type": "string"
+          },
+          "new_str": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "new_str"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "web_fetch",
+      "title": "Fetching ",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "max_length": {
+            "type": "number"
+          },
+          "start_index": {
+            "type": "number"
+          },
+          "raw": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "skill",
+      "title": "Using skill: ",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "sql",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "session",
+              "session_store"
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "query"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "read_agent",
+      "title": "read_agent",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string"
+          },
+          "wait": {
+            "type": "boolean"
+          },
+          "timeout": {
+            "type": "number"
+          },
+          "since_turn": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "list_agents",
+      "title": "list_agents",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "include_completed": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "siblings",
+              "children",
+              "all"
+            ]
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "write_agent",
+      "title": "write_agent",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "agent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "siblings",
+              "children"
+            ]
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "grep",
+      "nativeName": "grep",
+      "title": "Searching for ",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "glob": {
+            "type": "string"
+          },
+          "output_mode": {
+            "type": "string",
+            "enum": [
+              "content",
+              "files_with_matches",
+              "count"
+            ]
+          },
+          "case_insensitive": {
+            "type": "boolean"
+          },
+          "multiline": {
+            "type": "boolean"
+          },
+          "head_limit": {
+            "type": "number"
+          },
+          "context": {
+            "type": "number"
+          },
+          "before_context": {
+            "type": "number"
+          },
+          "after_context": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "glob",
+      "nativeName": "glob",
+      "title": "Finding files matching ",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "task",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "agent_type": {
+            "type": "string",
+            "enum": [
+              "explore",
+              "task",
+              "general-purpose",
+              "code-review",
+              "research",
+              "security-review"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "context_tier": {
+            "type": "string",
+            "enum": [
+              "default",
+              "long_context"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "sync",
+              "background"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "prompt",
+          "agent_type",
+          "description"
+        ],
+        "additionalProperties": {}
+      }
+    }
+  ],
+  "updates": [
+    {
+      "sessionUpdate": "tool_call",
+      "toolCallId": "toolu_017dvyvQhFVPk48sVWzbLrxJ",
+      "title": "Create approval-example.txt with text",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "echo 'Tool approval succeeded.' > approval-example.txt",
+        "description": "Create approval-example.txt with text"
+      }
+    }
+  ],
+  "permissionToolCall": {
+    "toolCallId": "toolu_017dvyvQhFVPk48sVWzbLrxJ",
+    "title": "Create approval-example.txt with text",
+    "kind": "execute",
+    "status": "pending",
+    "rawInput": {
+      "command": "echo 'Tool approval succeeded.' > approval-example.txt",
+      "commands": [
+        "echo 'Tool approval succeeded.' > approval-example.txt"
+      ]
+    }
+  }
+}

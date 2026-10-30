@@ -1,0 +1,1008 @@
+{
+  "builtinTools": [
+    {
+      "toolName": "askUserQuestions",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "allowPartialAnswers": {
+            "type": "boolean"
+          },
+          "questions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "question": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "header": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "preview": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "allowMultiple": {
+                  "type": "boolean"
+                },
+                "allowFreeForm": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "question"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "allowPartialAnswers",
+          "questions"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "toolName": "bash",
+      "nativeName": "run_terminal_command",
+      "toolUseKind": "bash",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "timeout": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 36000000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "background": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "edit",
+      "nativeName": "search_replace",
+      "toolUseKind": "edit",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "old_string": {
+            "type": "string"
+          },
+          "new_string": {
+            "type": "string"
+          },
+          "replace_all": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "file_path",
+          "old_string",
+          "new_string"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "grep",
+      "nativeName": "grep",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "glob": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "-B": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "-A": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "-C": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "-i": {
+            "type": "boolean"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "head_limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "multiline": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pattern"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "webSearch",
+      "nativeName": "web_search",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "allowed_domains": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "write",
+      "nativeName": "write",
+      "toolUseKind": "edit",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path",
+          "content"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "read_file",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "target_file": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "target_file"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "list_dir",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "target_directory": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_directory"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "kill_command_or_subagent",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "todo_write",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "merge": {
+            "type": "boolean"
+          },
+          "todos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "content": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "in_progress",
+                        "completed",
+                        "cancelled"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "todos"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "get_command_or_subagent_output",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "task_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeout_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "spawn_subagent",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "subagent_type": {
+            "type": "string"
+          },
+          "background": {
+            "type": "boolean"
+          },
+          "capability_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "read-only",
+                  "read-write",
+                  "execute",
+                  "all"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isolation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "worktree"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resume_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cwd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "prompt",
+          "description"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "scheduler_create",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "durable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "foreground": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fire_immediately": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "scheduler_delete",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "scheduler_list",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "monitor",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "timeout_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "persistent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command",
+          "description"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "search_tool",
+      "toolUseKind": "readonly",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "use_tool",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "tool_name": {
+            "type": "string"
+          },
+          "tool_input": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "tool_name",
+          "tool_input"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "workflow",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "agent_budget": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1024
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "script_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "args": {},
+          "resume_from_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "validate_only": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "enter_plan_mode",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "exit_plan_mode",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "image_gen",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "aspect_ratio": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "image_edit",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "image": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aspect_ratio": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "image"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "image_to_video",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image": {
+            "type": "string"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    {
+      "toolName": "reference_to_video",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aspect_ratio": {
+            "type": "string"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "images",
+          "aspect_ratio"
+        ],
+        "additionalProperties": {}
+      }
+    }
+  ],
+  "updates": [
+    {
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call-fc8f575a-a56c-47c6-bb5f-d0d775d88ad9-0",
+      "title": "run_terminal_command",
+      "rawInput": {
+        "command": "cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF",
+        "description": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\""
+      },
+      "_meta": {
+        "x.ai/tool": {
+          "version": 1,
+          "name": "run_terminal_command",
+          "kind": "execute",
+          "namespace": "grok_build",
+          "label": "Run Command",
+          "read_only": false
+        }
+      }
+    },
+    {
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call-fc8f575a-a56c-47c6-bb5f-d0d775d88ad9-0",
+      "kind": "execute",
+      "title": "Execute `cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF`",
+      "content": [
+        {
+          "type": "content",
+          "content": {
+            "type": "text",
+            "text": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\""
+          }
+        }
+      ],
+      "locations": [],
+      "rawInput": {
+        "variant": "Bash",
+        "command": "cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF",
+        "description": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\"",
+        "is_background": false
+      },
+      "_meta": {
+        "x.ai/tool": {
+          "version": 1,
+          "name": "run_terminal_command",
+          "kind": "execute",
+          "namespace": "grok_build",
+          "label": "Run Command",
+          "read_only": false,
+          "input": {
+            "command": "cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF",
+            "description": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\""
+          }
+        }
+      }
+    }
+  ],
+  "permissionToolCall": {
+    "toolCallId": "call-fc8f575a-a56c-47c6-bb5f-d0d775d88ad9-0",
+    "title": "Execute `cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF`",
+    "kind": "execute",
+    "rawInput": {
+      "variant": "Bash",
+      "command": "cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF",
+      "description": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\"",
+      "is_background": false
+    },
+    "_meta": {
+      "x.ai/tool": {
+        "version": 1,
+        "name": "run_terminal_command",
+        "kind": "execute",
+        "namespace": "grok_build",
+        "label": "Run Command",
+        "read_only": false,
+        "input": {
+          "command": "cat > approval-example.txt << 'EOF'\nTool approval succeeded.\nEOF",
+          "description": "Create a new text file named approval-example.txt with the exact content \"Tool approval succeeded.\""
+        }
+      }
+    }
+  }
+}
