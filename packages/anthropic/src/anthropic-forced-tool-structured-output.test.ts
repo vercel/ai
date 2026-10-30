@@ -121,6 +121,43 @@ describe('structured outputs for models that reject forced tool use', () => {
     expect(body.tool_choice).toMatchObject({ type: 'auto' });
   });
 
+  it.each([
+    [
+      'a map field',
+      {
+        type: 'object',
+        properties: {
+          scores: { type: 'object', additionalProperties: { type: 'number' } },
+        },
+        required: ['scores'],
+        additionalProperties: false,
+      },
+    ],
+    [
+      'more than 12 optional properties',
+      {
+        type: 'object',
+        properties: Object.fromEntries(
+          Array.from({ length: 13 }, (_, i) => [`f${i}`, { type: 'string' }]),
+        ),
+        additionalProperties: false,
+      },
+    ],
+  ] as Array<[string, JSONSchema7]>)(
+    'keeps the JSON response tool for a schema with %s',
+    async (_, schema) => {
+      respondWith([{ type: 'text', text: '{}' }]);
+
+      await createModel('claude-sonnet-5-5').doGenerate(jsonCall(schema));
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.output_config).toBeUndefined();
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        'json',
+      ]);
+    },
+  );
+
   it('still uses the JSON response tool for models that accept forced tool use', async () => {
     respondWith([
       {
