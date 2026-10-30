@@ -61,6 +61,7 @@ import {
   type AnthropicMediaPartConverter,
 } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
+import { hasCircularSchemaReference } from './has-circular-schema-reference';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
@@ -419,13 +420,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
-    // outputs when the model supports them.
+    // outputs even when the provider disables them by default (Bedrock,
+    // Vertex), except for self-referencing schemas, which they reject.
     if (
       !useStructuredOutput &&
       rejectsForcedToolUse &&
-      supportsStructuredOutput &&
+      modelSupportsStructuredOutput &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat.schema != null &&
+      !hasCircularSchemaReference(responseFormat.schema)
     ) {
       warnings.push({
         type: 'unsupported',
