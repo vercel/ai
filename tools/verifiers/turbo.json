@@ -7,6 +7,8 @@
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/.agents/guidelines/**",
         "$TURBO_ROOT$/.agents/verifiers/**",
+        "$TURBO_ROOT$/tools/discover-guidelines.mts",
+        "$TURBO_ROOT$/tools/run-verifiers.mts",
         "$TURBO_ROOT$/tools/split-ts-references.mjs"
       ]
     }
