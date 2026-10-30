@@ -52,9 +52,21 @@ jobs:
           require-lockfile: true
 
       # Normal release path
+      - name: Find existing release PR
+        if: inputs.snapshot != true
+        id: existing-release-pr
+        run: |
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --base "$GITHUB_REF_NAME" --head "changeset-release/$GITHUB_REF_NAME" \
+            --state open --json number --jq '.[0].number // empty')
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Release Pull Request or Publish to npm
         if: inputs.snapshot != true
         id: changesets
+        continue-on-error: true
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: pnpm ci:version
@@ -64,6 +76,23 @@ jobs:
           commitMode: 'github-api'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check failed release attempt
+        if: steps.changesets.outcome == 'failure'
+        run: |
+          # A concurrent merge can delete the branch Changesets is updating.
+          # Only defer PR updates; publishing failures must still fail the job.
+          if [[ "$HAS_CHANGESETS" == true && -n "$RELEASE_PR" ]] &&
+            [[ "$(gh pr view "$RELEASE_PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)" == MERGED ]]; then
+            echo "::notice::Release PR #$RELEASE_PR merged during this run; its push will run the release workflow again."
+          else
+            echo "::error::Changesets failed without a concurrent release PR merge."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HAS_CHANGESETS: ${{ steps.changesets.outputs.hasChangesets }}
+          RELEASE_PR: ${{ steps.existing-release-pr.outputs.number }}
 
       - name: Find release PR number
         if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
