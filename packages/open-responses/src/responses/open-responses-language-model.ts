@@ -12,6 +12,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -392,7 +393,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler:
         this.config.failedResponseHandler ?? defaultFailedResponseHandler,
@@ -590,7 +594,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         stream: true,

@@ -2410,6 +2410,8 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
+{/* model-capabilities:anthropic-language:start */}
+
 | Model               | Image Input | Object Generation | Tool Usage | Computer Use | Web Search | Tool Search | Compaction |
 | ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
 | `claude-opus-5-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
@@ -2422,13 +2424,15 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-6`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
-| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   |            |
-| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
-| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  |             |            |
+| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Cross />   | <Cross />  |
+
+{/* model-capabilities:anthropic-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

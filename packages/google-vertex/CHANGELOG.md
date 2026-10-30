@@ -1,5 +1,35 @@
 # @ai-sdk/google-vertex
 
+## 5.0.128
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [dfed8e8]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/google@4.0.109
+  - @ai-sdk/openai-compatible@3.0.82
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/anthropic@4.0.93
+
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [9f108f8]
+- Updated dependencies [b1bcea1]
+- Updated dependencies [61a315e]
+  - @ai-sdk/google@4.0.108
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/anthropic@4.0.92
+  - @ai-sdk/openai-compatible@3.0.81
+
 ## 5.0.126
 
 ### Patch Changes

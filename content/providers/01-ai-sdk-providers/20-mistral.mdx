@@ -85,7 +85,11 @@ You can use the following optional settings to customize the Mistral provider in
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.mistral.ai/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `MISTRAL_API_KEY` environment variable.
@@ -471,6 +475,8 @@ For `streamText`, consume the stream before appending
 
 ### Model Capabilities
 
+{/* model-capabilities:mistral-language:start */}
+
 | Model                     | Image Input | Tool Usage |
 | ------------------------- | ----------- | ---------- |
 | `labs-leanstral-1-5`      | <Check />   | <Check />  |
@@ -483,6 +489,8 @@ For `streamText`, consume the stream before appending
 | `mistral-small-latest`    | <Check />   | <Check />  |
 | `voxtral-small-latest`    | <Cross />   | <Check />  |
 | `zai-glm-5-2`             | <Cross />   | <Check />  |
+
+{/* model-capabilities:mistral-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Mistral
@@ -590,11 +598,15 @@ speaker IDs from diarization are available under
 
 ### Model Capabilities
 
+{/* model-capabilities:mistral-transcription:start */}
+
 | Model                          | Timestamps | Diarization | Context Bias |
 | ------------------------------ | ---------- | ----------- | ------------ |
 | `voxtral-mini-transcribe-3-0`  | <Check />  | <Check />   | <Check />    |
 | `voxtral-small-transcribe-3-0` | <Check />  | <Check />   | <Check />    |
 | `voxtral-mini-latest`          | <Check />  | <Check />   | <Check />    |
+
+{/* model-capabilities:mistral-transcription:end */}
 
 ## Speech Models
 
@@ -692,10 +704,14 @@ is redacted from request metadata and API call errors returned by the provider.
 
 ### Model Capabilities
 
+{/* model-capabilities:mistral-speech:start */}
+
 | Model                   | Saved Voices | Reference Audio | Non-Streaming |
 | ----------------------- | ------------ | --------------- | ------------- |
 | `voxtral-mini-tts-3-0`  | <Check />    | <Check />       | <Check />     |
 | `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
+
+{/* model-capabilities:mistral-speech:end */}
 
 ## Embedding Models
 
@@ -757,6 +773,11 @@ models:
 
 ### Model Capabilities
 
-| Model           | Default Dimensions |
-| --------------- | ------------------ |
-| `mistral-embed` | 1024               |
+{/* model-capabilities:mistral-embedding:start */}
+
+| Model             | Default Dimensions |
+| ----------------- | ------------------ |
+| `mistral-embed`   | 1024               |
+| `codestral-embed` | 1536               |
+
+{/* model-capabilities:mistral-embedding:end */}

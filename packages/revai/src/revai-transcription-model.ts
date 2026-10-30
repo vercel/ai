@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -150,7 +151,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: '/speechtotext/v1/jobs',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -191,7 +195,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
           modelId: this.modelId,
         }),
         validateUrl: false,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           revaiTranscriptionJobResponseSchema,
@@ -226,7 +233,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         modelId: this.modelId,
       }),
       validateUrl: false,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         revaiTranscriptionResponseSchema,

@@ -917,6 +917,34 @@ describe('GatewayTranscriptionModel', () => {
       expect(ws.close).toHaveBeenCalled();
     });
 
+    it.each(['AbortError', 'TimeoutError'])(
+      'should propagate an upstream audio %s unchanged',
+      async name => {
+        const error = new DOMException('Audio stream cancelled', name);
+        let audioController!: ReadableStreamDefaultController<Uint8Array>;
+        const result = await createStreamingTestModel().doStream({
+          audio: new ReadableStream<Uint8Array>({
+            start(controller) {
+              audioController = controller;
+            },
+          }),
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        });
+        const ws = MockWebSocket.instances[0];
+        ws.open();
+        await flush();
+
+        const reader = result.stream.getReader();
+        const rejection = expect(reader.read()).rejects.toBe(error);
+        audioController.error(error);
+
+        await rejection;
+        await expect(reader.read()).rejects.toBe(error);
+        await flush();
+        expect(ws.close).toHaveBeenCalled();
+      },
+    );
+
     it('should cancel the audio stream when the connection fails before open', async () => {
       const model = createStreamingTestModel();
 

@@ -1,5 +1,34 @@
 # ai
 
+## 7.0.158
+
+### Patch Changes
+
+- 8ba3a5c: fix(ai): repair partial JSON that ends with a minus sign at the start of an array
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [f850782]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/gateway@4.0.131
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 7.0.157
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- eb768e2: Fix Next.js Edge Runtime warnings from Node.js runtime detection used by telemetry tracing.
+- Updated dependencies [9ca8bcf]
+- Updated dependencies [61a315e]
+  - @ai-sdk/gateway@4.0.130
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 7.0.156
 
 ### Patch Changes

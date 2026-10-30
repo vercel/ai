@@ -13,6 +13,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -45,6 +47,7 @@ import {
   type MistralConversationModelId,
 } from './mistral-conversation-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralLanguageModelEntry } from './mistral-model-catalog';
 import {
   mistralProviderToolNames,
   prepareConversationTools,
@@ -53,33 +56,10 @@ import {
 type MistralConversationConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
-
-// https://api.mistral.ai/v1/models (2026-10-06)
-const reasoningEffortModelIds = new Set<MistralConversationModelId>([
-  'glm-5-2',
-  'labs-leanstral-1-5',
-  'labs-leanstral-1-5-1',
-  'magistral-medium-latest',
-  'magistral-small-latest',
-  'mistral-large-4',
-  'mistral-large-4-0',
-  'mistral-medium',
-  'mistral-medium-2604',
-  'mistral-medium-3',
-  'mistral-medium-3-5',
-  'mistral-medium-3.5',
-  'mistral-medium-latest',
-  'mistral-small-2603',
-  'mistral-small-latest',
-  'mistral-vibe-cli-fast',
-  'mistral-vibe-cli-latest',
-  'mistral-vibe-cli-with-tools',
-  'zai-glm-5-2',
-]);
 
 export class MistralConversationLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -152,14 +132,18 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort = reasoningEffortModelIds.has(this.modelId);
+    const { reasoning: reasoningCapabilities } = getMistralLanguageModelEntry(
+      this.modelId,
+    ).capabilities.language.endpoints.conversation;
 
     let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
+    if (reasoningCapabilities.support) {
       resolvedReasoningEffort = mapReasoningToProviderEffort({
         reasoning,
         providerOptionsEffort: options.reasoningEffort,
-        effortMap: { none: 'none', high: 'high' },
+        effortMap: Object.fromEntries(
+          reasoningCapabilities.efforts.map(effort => [effort, effort]),
+        ),
         warnings,
       });
     } else if (isCustomReasoning(reasoning)) {
@@ -266,7 +250,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -338,7 +325,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

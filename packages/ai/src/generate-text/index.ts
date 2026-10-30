@@ -1,6 +1,13 @@
 export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
-export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
+export {
+  filterActiveTools,
+
+  /**
+   * @deprecated Use `filterActiveTools` instead.
+   */
+  filterActiveTools as experimental_filterActiveTools,
+} from './filter-active-tools';
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextAbortEvent,
@@ -69,6 +76,11 @@ export {
 } from './stop-condition';
 export {
   streamLanguageModelCall as experimental_streamLanguageModelCall,
+  type LanguageModelStreamPart,
+
+  /**
+   * @deprecated Use `LanguageModelStreamPart` instead. This alias will be removed in v8.
+   */
   type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
 } from './stream-language-model-call';
 export {

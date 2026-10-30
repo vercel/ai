@@ -6,6 +6,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -58,8 +60,9 @@ export interface PerplexityProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -77,17 +80,19 @@ export function createPerplexity(
   options: PerplexityProviderSettings = {},
 ): PerplexityProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'PERPLEXITY_API_KEY',
-          description: 'Perplexity',
-        })}`,
-        'X-Pplx-Integration': 'vercel-ai-sdk',
-        ...options.headers,
-      },
-      `ai-sdk-perplexity/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'PERPLEXITY_API_KEY',
+            description: 'Perplexity',
+          })}`,
+          'X-Pplx-Integration': 'vercel-ai-sdk',
+          ...options.headers,
+        },
+        `ai-sdk-perplexity/${VERSION}`,
+      ),
     );
 
   const baseURL = withoutTrailingSlash(

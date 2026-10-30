@@ -1386,16 +1386,18 @@ describe('MCPClient', () => {
     );
   });
 
-  it('should list prompts from the server', async () => {
-    client = await createMCPClient({
-      transport: { type: 'sse', url: 'https://example.com/sse' },
-    });
+  it.each(['listPrompts', 'experimental_listPrompts'] as const)(
+    'should list prompts from the server with %s',
+    async method => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
 
-    const prompts = await client.experimental_listPrompts();
+      const prompts = await client[method]();
 
-    expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
+      expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
 
-    expect(prompts.prompts).toMatchInlineSnapshot(`
+      expect(prompts.prompts).toMatchInlineSnapshot(`
       [
         {
           "arguments": [
@@ -1411,21 +1413,24 @@ describe('MCPClient', () => {
         },
       ]
     `);
-  });
+    },
+  );
 
-  it('should get a prompt by name', async () => {
-    client = await createMCPClient({
-      transport: { type: 'sse', url: 'https://example.com/sse' },
-    });
+  it.each(['getPrompt', 'experimental_getPrompt'] as const)(
+    'should get a prompt by name with %s',
+    async method => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
 
-    const prompt = await client.experimental_getPrompt({
-      name: 'code_review',
-      arguments: { code: 'print(42)' },
-    });
+      const prompt = await client[method]({
+        name: 'code_review',
+        arguments: { code: 'print(42)' },
+      });
 
-    expectTypeOf(prompt).toEqualTypeOf<GetPromptResult>();
+      expectTypeOf(prompt).toEqualTypeOf<GetPromptResult>();
 
-    expect(prompt).toMatchInlineSnapshot(`
+      expect(prompt).toMatchInlineSnapshot(`
       {
         "description": "Code review prompt",
         "messages": [
@@ -1440,7 +1445,8 @@ describe('MCPClient', () => {
         ],
       }
     `);
-  });
+    },
+  );
 
   it('should throw if the server does not support prompts', async () => {
     createMockTransport.mockImplementation(
@@ -1455,12 +1461,10 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    await expect(client.experimental_listPrompts()).rejects.toThrow(
+    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
+    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
       MCPClientError,
     );
-    await expect(
-      client.experimental_getPrompt({ name: 'code_review' }),
-    ).rejects.toThrow(MCPClientError);
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {

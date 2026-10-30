@@ -1,5 +1,32 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.173
+
+### Patch Changes
+
+- edd4d4f: fix(harness-claude-code): correctly map dotted AI Gateway model IDs to the ID shapes Claude Code expects
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.172
+
+### Patch Changes
+
+- 4ab93bb: feat(harness-claude-code): add `toolHints` to mark host tools read-only or always-loaded
+- ede06e3: carry out an approval answered after a resume instead of asking again
+- 0808bf4: fix(harness-claude-code): preserve host tool numeric bounds, string lengths, array item counts, and defaults in Zod schemas
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 1.0.171
 
 ### Patch Changes

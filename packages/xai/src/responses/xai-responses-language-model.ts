@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -26,10 +28,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { getResponseMetadata } from '../get-response-metadata';
-import {
-  supportsNoneReasoningEffort,
-  supportsReasoningEffort,
-} from '../supports-reasoning-effort';
+import { getXaiLanguageModelEntry } from '../xai-model-catalog';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -51,7 +50,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -280,9 +279,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const { portable: reasoningCapabilities } =
+      getXaiLanguageModelEntry(modelId).capabilities.language.reasoning;
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(modelId)) {
+      if (!reasoningCapabilities.configurable) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -292,13 +293,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            ...(supportsNoneReasoningEffort(modelId) && {
+            ...(reasoningCapabilities.none && {
               none: 'none' as const,
             }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            ...(modelId === 'grok-4.6' && { xhigh: 'xhigh' as const }),
+            ...(reasoningCapabilities.xhigh && { xhigh: 'xhigh' as const }),
           },
           warnings,
         });
@@ -414,7 +415,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -703,7 +707,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

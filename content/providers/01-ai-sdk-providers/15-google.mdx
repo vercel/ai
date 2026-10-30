@@ -97,7 +97,11 @@ You can use the following optional settings to customize the Google provider ins
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `x-goog-api-key` header.
   It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
@@ -1265,6 +1269,8 @@ will still validate the response against the schema in `Output.object`.
 
 ### Model Capabilities
 
+{/* model-capabilities:google-language:start */}
+
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
 | `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
@@ -1285,6 +1291,8 @@ will still validate the response against the schema in `Output.object`.
 | `gemini-2.5-flash-lite`               | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-2.5-flash-lite-preview-06-17` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-2.0-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+
+{/* model-capabilities:google-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Google Generative AI

@@ -48,6 +48,9 @@ function makeSandbox({
     writeFile: async () => {},
     writeBinaryFile: async () => {},
     writeTextFile,
+    stat: async () => null,
+    listDirectory: async () => null,
+    deleteFile: async () => false,
     spawn: async () => {
       throw new Error('spawn is not implemented in this mock.');
     },

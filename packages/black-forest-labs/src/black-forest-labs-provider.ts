@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -20,7 +22,7 @@ export interface BlackForestLabsProviderSettings {
   /**
    * Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
@@ -85,16 +87,18 @@ export function createBlackForestLabs(
 ): BlackForestLabsProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'x-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'BFL_API_KEY',
-          description: 'Black Forest Labs',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-black-forest-labs/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'x-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'BFL_API_KEY',
+            description: 'Black Forest Labs',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-black-forest-labs/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: BlackForestLabsImageModelId) =>

@@ -14,6 +14,8 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -194,7 +196,7 @@ export interface GoogleProviderSettings {
    * API key that is being send using the `x-goog-api-key` header.
    * It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -267,16 +269,18 @@ export function createGoogle(
   const providerName = options.name ?? 'google.generative-ai';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'x-goog-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
-          description: 'Google Generative AI',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-google/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'x-goog-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'GOOGLE_GENERATIVE_AI_API_KEY',
+            description: 'Google Generative AI',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-google/${VERSION}`,
+      ),
     );
 
   const getSupportedUrls = (

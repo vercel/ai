@@ -1,4 +1,6 @@
 import {
+  resolve,
+  type Resolvable,
   createJsonResponseHandler,
   delay,
   getFromApi,
@@ -57,7 +59,7 @@ export async function pollGoogleInteractionUntilTerminal({
 }: {
   baseURL: string;
   interactionId: string | null | undefined;
-  headers: Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   abortSignal?: AbortSignal;
   initialDelayMs?: number;
@@ -106,7 +108,7 @@ export async function pollGoogleInteractionUntilTerminal({
       } = await getFromApi({
         url,
         validateUrl: false,
-        headers,
+        headers: await resolve(headers),
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           googleInteractionsResponseSchema,

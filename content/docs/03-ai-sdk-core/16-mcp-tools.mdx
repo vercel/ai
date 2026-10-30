@@ -160,7 +160,7 @@ The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 import { createMCPClient } from '@ai-sdk/mcp';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 // Or use the AI SDK's stdio transport:
-// import { Experimental_StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
+// import { StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 const mcpClient = await createMCPClient({
   transport: new StdioClientTransport({
@@ -666,16 +666,12 @@ client throws an `MCPClientError`.
 
 ## Using MCP Prompts
 
-<Note type="warning">
-  MCP Prompts is an experimental feature and may change in the future.
-</Note>
-
 According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
 
 ### Listing Prompts
 
 ```typescript
-const prompts = await mcpClient.experimental_listPrompts();
+const prompts = await mcpClient.listPrompts();
 ```
 
 ### Getting a Prompt
@@ -683,7 +679,7 @@ const prompts = await mcpClient.experimental_listPrompts();
 Retrieve prompt messages, optionally passing arguments defined by the server:
 
 ```typescript
-const prompt = await mcpClient.experimental_getPrompt({
+const prompt = await mcpClient.getPrompt({
   name: 'code_review',
   arguments: { code: 'function add(a, b) { return a + b; }' },
 });
@@ -741,6 +737,16 @@ mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
 ```
 
 ### Elicitation Response Actions
+
+On MCP `2026-07-28` connections, the same handler processes form elicitation
+requests embedded in `input_required` results from tools, prompts, and resource
+reads. The client retries the original request with the handler's answers and
+the server's unchanged `requestState` until it receives a final result, with a
+limit of 10 retries. State-only retries are delayed by 250 ms. Each round respects
+`timeout`, including time spent awaiting the handler, while `maxTotalTimeout`
+bounds the entire exchange. Missing handlers and unsupported input requests
+reject the operation. Older connections continue to use `elicitation/create`
+server requests.
 
 Your handler must return an object with an `action` field that can be one of:
 

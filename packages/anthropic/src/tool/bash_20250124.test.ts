@@ -31,6 +31,9 @@ describe('bash_20250124 tool', () => {
           writeFile: async () => {},
           writeBinaryFile: async () => {},
           writeTextFile: async () => {},
+          stat: async () => null,
+          listDirectory: async () => null,
+          deleteFile: async () => false,
           spawn: async () => {
             throw new Error('spawn is not implemented in this mock.');
           },

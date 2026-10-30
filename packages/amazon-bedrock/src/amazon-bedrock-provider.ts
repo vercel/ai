@@ -12,6 +12,7 @@ import {
   loadSetting,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
 import type {
@@ -44,6 +45,7 @@ export interface AmazonBedrockProviderSettings {
 
   /**
    * API key for authenticating requests using Bearer token authentication.
+   * A callback is resolved before each request and must return a non-empty key.
    * When provided, this will be used instead of AWS SigV4 authentication.
    * Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
    *
@@ -65,7 +67,7 @@ export interface AmazonBedrockProviderSettings {
    * If neither `apiKey` nor `AWS_BEARER_TOKEN_BEDROCK` environment variable is set,
    * the provider will fall back to AWS SigV4 authentication using AWS credentials.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
@@ -193,15 +195,18 @@ export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
   // Check for API key authentication first
-  const rawApiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
-  });
+  const rawApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'AWS_BEARER_TOKEN_BEDROCK',
+        })
+      : options.apiKey;
 
   // FIX 1: Validate API key to ensure proper fallback to SigV4
   // Only use API key if it's a non-empty, non-whitespace string
   const apiKey =
-    rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
+    typeof rawApiKey === 'string' ? rawApiKey.trim() || undefined : rawApiKey;
 
   // Use API key authentication if available, otherwise fall back to SigV4
   const fetchFunction = apiKey
