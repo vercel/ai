@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'fokals',
+    name: 'Fokals',
+    description:
+      'Fokals is AI-powered company intelligence. Give your agent tools to find companies by technology, hiring, funding, buying intent and company health, enrich a list of accounts, research one company in depth and size a market.',
+    packageName: '@fokals/ai-sdk',
+    tags: ['company-data', 'enrichment', 'sales', 'research'],
+    apiKeyEnvName: 'FOKALS_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @fokals/ai-sdk',
+      npm: 'npm install @fokals/ai-sdk',
+      yarn: 'yarn add @fokals/ai-sdk',
+      bun: 'bun add @fokals/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fokalsTools } from '@fokals/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Which US companies running HubSpot are hiring right now?',
+  tools: fokalsTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.fokals.com/docs/ai-sdk',
+    apiKeyUrl: 'https://www.fokals.com/account',
+    websiteUrl: 'https://www.fokals.com',
+    npmUrl: 'https://www.npmjs.com/package/@fokals/ai-sdk',
+  },
 ];
