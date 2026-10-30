@@ -161,7 +161,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       if (path.endsWith('/bridge/pnpm-workspace.yaml'))
         return "allowBuilds:\n  '@anthropic-ai/claude-code': true\n";
@@ -1258,7 +1258,7 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends native settings to the bridge', async () => {
+  it('sends native settings and host tool hints to the bridge', async () => {
     const settings = {
       skillOverrides: {
         'update-config': 'off',
@@ -1266,7 +1266,8 @@ describe('createClaudeCode adapter', () => {
         init: 'off',
       },
     } as const;
-    const harness = createClaudeCode({ settings });
+    const toolHints = { search: { readOnly: true, alwaysLoad: true } };
+    const harness = createClaudeCode({ settings, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1279,12 +1280,12 @@ describe('createClaudeCode adapter', () => {
     const control = await session.doPromptTurn({
       skills: [],
       tools: [],
-      prompt: 'inspect the project',
+      prompt: 'Search the docs.',
       emit: () => {},
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ settings });
+    expect(lastStart()).toMatchObject({ settings, toolHints });
 
     await session.doDestroy();
   });
@@ -1399,9 +1400,10 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends environment configuration when rerunning a continued turn', async () => {
+  it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
-    const harness = createClaudeCode({ env });
+    const toolHints = { search: { readOnly: true } };
+    const harness = createClaudeCode({ env, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1424,7 +1426,7 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ env, continue: true });
+    expect(lastStart()).toMatchObject({ env, toolHints, continue: true });
 
     await session.doDestroy();
   });
@@ -1598,6 +1600,61 @@ describe('createClaudeCode adapter', () => {
 
     await session.doDestroy();
   });
+
+  it.each(['continueFrom', 'resumeFrom'] as const)(
+    'resumes a deferred approval when rerunning a continued turn (%s)',
+    async lifecycle => {
+      const continueFrom = {
+        type: 'continue-turn' as const,
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1' as const,
+        data: {},
+        pendingToolApprovals: [
+          {
+            approvalId: 'call-1',
+            toolCallId: 'call-1',
+            toolName: 'bash',
+            input: '{"command":"pwd"}',
+            kind: 'builtin' as const,
+            providerExecuted: true,
+            nativeName: 'Bash',
+          },
+        ],
+      };
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        permissionMode: 'allow-reads',
+        ...(lifecycle === 'continueFrom'
+          ? { continueFrom }
+          : {
+              resumeFrom: {
+                type: 'resume-session' as const,
+                harnessId: 'claude-code',
+                specificationVersion: 'harness-v1' as const,
+                data: {},
+                continueFrom,
+              },
+            }),
+      });
+      const control = await session.doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+
+      expect(lastStart()).toMatchObject({ deferredToolUseId: 'call-1' });
+
+      await session.doDestroy();
+    },
+  );
 
   it('sends the question timeout and excludeDynamicSections after attaching', async () => {
     const harness = createClaudeCode({

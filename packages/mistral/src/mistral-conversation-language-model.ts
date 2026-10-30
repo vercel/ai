@@ -13,6 +13,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -53,7 +55,7 @@ import {
 type MistralConversationConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
@@ -156,24 +158,12 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
-                warnings,
-              })
-          : undefined);
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: { none: 'none', high: 'high' },
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
@@ -278,7 +268,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -350,7 +343,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

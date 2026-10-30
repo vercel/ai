@@ -58,7 +58,7 @@ import {
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -73,8 +73,6 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_HARASSMENT',
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
-
-const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
 
 const googleCloudStorageFunctionResponseUrls = {
   'image/png': [/^gs:\/\/.*$/],
@@ -296,9 +294,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
+    const entry = getGoogleLanguageModelEntry(modelId);
+    const isGemmaModel =
+      entry.requestConfig.language.systemInstruction === 'user';
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(modelId);
+      !isVertexProvider &&
+      entry.capabilities.language.sampling.penalties !== true;
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -313,7 +314,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const usesGemini3Features =
+      entry.capabilities.language.tools.functionResponseParts;
     const supportedFunctionResponseUrls =
       usesGemini3Features &&
       config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
@@ -466,6 +468,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
     const { responseFormat, tools, toolChoice } = options;
+    const entry = getGoogleLanguageModelEntry(this.modelId);
+    const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
     // Gemini models before Gemini 3 reject JSON response formatting together
     // with function tools. Gemini 3 supports the combination only with automatic
@@ -474,8 +478,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools?.some(tool => tool.type === 'function') &&
-      /(^|\/)gemini-/i.test(this.modelId) &&
-      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
+      entry.requestConfig.language.jsonResponseTool &&
+      (!structuredOutput.withFunctionTools ||
         toolChoice?.type === 'required' ||
         toolChoice?.type === 'tool')
     ) {
@@ -754,18 +758,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       jsonResponseToolName,
     } = await this.getArgs(options);
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const generateContent = (body: typeof args) =>
+    const generateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:generateContent`,
-        headers: mergedHeaders,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -875,18 +877,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const streamGenerateContent = (body: typeof args) =>
+    const streamGenerateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:streamGenerateContent?alt=sse`,
-        headers,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler:
@@ -1571,18 +1571,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
-}
-
 type GoogleThinkingConfig = NonNullable<
   InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
 >;
@@ -1601,8 +1589,8 @@ function resolveThinkingConfig({
   }
 
   if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
+    getGoogleLanguageModelEntry(modelId).requestConfig.language
+      .thinkingFormat === 'level'
   ) {
     return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
@@ -1622,22 +1610,21 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const minimumThinkingLevel =
+    getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
+      .efforts?.[0];
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: minimumThinkingLevel,
+      ...(minimumThinkingLevel === 'minimal' && {
+        minimal: 'minimal' as const,
+      }),
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'high',
-      max: 'high',
     },
     warnings,
   });
@@ -1647,41 +1634,6 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
-}
-
-function getMinimumThinkingLevelForGemini3Model(
-  modelId: string,
-): 'minimal' | 'low' {
-  const modelName = /(?:^|[/.])(gemini-[^/]*)$/i
-    .exec(modelId)?.[1]
-    .toLowerCase();
-
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
-  }
-
-  const proVersionMatch = /^gemini-(\d+)(?:\.\d+)?-pro(?:$|-)/.exec(
-    modelName ?? '',
-  );
-
-  if (Number(proVersionMatch?.[1]) >= 3) {
-    return 'low';
-  }
-
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
-    modelName ?? '',
-  );
-
-  if (versionMatch == null) {
-    return 'minimal';
-  }
-
-  const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
-
-  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
-    ? 'low'
-    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1695,21 +1647,21 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const entry = getGoogleLanguageModelEntry(modelId);
+  const minThinkingBudget = entry.capabilities.language.reasoning.minBudget;
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
   const thinkingBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    maxOutputTokens: entry.requestConfig.language.reasoningMaxOutputTokens,
+    maxReasoningBudget: entry.capabilities.language.reasoning.maxBudget,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 

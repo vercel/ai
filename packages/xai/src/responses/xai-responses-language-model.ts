@@ -10,6 +10,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -26,7 +28,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { getResponseMetadata } from '../get-response-metadata';
-import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import {
+  supportsNoneReasoningEffort,
+  supportsReasoningEffort,
+} from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
@@ -48,7 +53,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 export type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -285,18 +290,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           feature: 'reasoning',
           details: `reasoning "${reasoning}" is not supported by this model.`,
         });
-      } else if (reasoning === 'none') {
-        resolvedReasoningEffort = 'none';
       } else {
         resolvedReasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            ...(supportsNoneReasoningEffort(modelId) && {
+              none: 'none' as const,
+            }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
-            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            ...(modelId === 'grok-4.6' && { xhigh: 'xhigh' as const }),
           },
           warnings,
         });
@@ -412,7 +416,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -701,7 +708,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -1303,10 +1313,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               if (part.type === 'message') {
+                const blockId = `text-${part.id}`;
+                const streamed = contentBlocks[blockId] != null;
+
                 for (const contentPart of part.content) {
                   if (contentPart.text && contentPart.text.length > 0) {
-                    const blockId = `text-${part.id}`;
-
                     // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
                       contentBlocks[blockId] = { type: 'text' };
@@ -1323,7 +1334,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     }
                   }
 
-                  if (contentPart.annotations) {
+                  if (!streamed && contentPart.annotations) {
                     for (const annotation of contentPart.annotations) {
                       if (
                         annotation.type === 'url_citation' &&

@@ -7,6 +7,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -57,9 +59,10 @@ export interface CartesiaProvider extends ProviderV4 {
 
 export interface CartesiaProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * The Cartesia API version to use (sent via the `Cartesia-Version` header).
@@ -90,17 +93,19 @@ export function createCartesia(
   options: CartesiaProviderSettings = {},
 ): CartesiaProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'CARTESIA_API_KEY',
-          description: 'Cartesia',
-        })}`,
-        'Cartesia-Version': options.version ?? CARTESIA_API_VERSION,
-        ...options.headers,
-      },
-      `ai-sdk-cartesia/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'CARTESIA_API_KEY',
+            description: 'Cartesia',
+          })}`,
+          'Cartesia-Version': options.version ?? CARTESIA_API_VERSION,
+          ...options.headers,
+        },
+        `ai-sdk-cartesia/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: CartesiaTranscriptionModelId) =>

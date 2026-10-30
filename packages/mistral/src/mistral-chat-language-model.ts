@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -48,7 +50,7 @@ import { prepareTools } from './mistral-prepare-tools';
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
@@ -157,48 +159,14 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
         this.modelId,
       );
 
-      if (
-        options.reasoningEffort == null &&
-        reasoning === 'none' &&
-        supportsLowHighMax
-      ) {
-        warnings.push({
-          type: 'compatibility',
-          feature: 'reasoning',
-          details:
-            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
-        });
-      }
-
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? supportsLowHighMax
-              ? 'low'
-              : 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: supportsLowHighMax
-                  ? {
-                      minimal: 'low',
-                      low: 'low',
-                      medium: 'high',
-                      high: 'high',
-                      xhigh: 'max',
-                      max: 'max',
-                    }
-                  : {
-                      minimal: 'high',
-                      low: 'high',
-                      medium: 'high',
-                      high: 'high',
-                      xhigh: 'high',
-                      max: 'high',
-                    },
-                warnings,
-              })
-          : undefined);
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: supportsLowHighMax
+          ? { low: 'low', high: 'high', max: 'max' }
+          : { none: 'none', high: 'high' },
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
@@ -301,7 +269,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -380,7 +351,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

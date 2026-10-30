@@ -1,5 +1,28 @@
 # @ai-sdk/gateway
 
+## 4.0.130
+
+### Patch Changes
+
+- 9ca8bcf: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500. Propagate these errors from speech and transcription input streams to their output streams without leaving reads pending or causing unhandled rejections.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 4.0.129
+
+### Patch Changes
+
+- 9f19c79: chore(provider/gateway): update gateway model settings files
+
+## 4.0.128
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
 ## 4.0.127
 
 ### Patch Changes

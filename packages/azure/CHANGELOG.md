@@ -1,5 +1,33 @@
 # @ai-sdk/azure
 
+## 4.0.113
+
+### Patch Changes
+
+- Updated dependencies [47b1d8b]
+- Updated dependencies [d07b475]
+- Updated dependencies [61a315e]
+  - @ai-sdk/openai@4.0.105
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/deepseek@3.0.76
+
+## 4.0.112
+
+### Patch Changes
+
+- c3b6fef: fix(azure): treat all Azure Speech 502s as retryable again. MAI-Voice-2.1 now rejects unknown voices and unsupported styles with a 400, so the Envoy protocol-error 502 special case is removed.
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [599a97f]
+- Updated dependencies [8375141]
+- Updated dependencies [7eac057]
+- Updated dependencies [436374e]
+- Updated dependencies [9026c7d]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai@4.0.104
+  - @ai-sdk/deepseek@3.0.75
+
 ## 4.0.111
 
 ### Patch Changes

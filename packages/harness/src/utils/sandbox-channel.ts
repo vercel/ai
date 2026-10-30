@@ -635,7 +635,7 @@ export class SandboxChannel<
   }
 
   private rawSend(text: string): void {
-    if (this.connected && this.ws) {
+    if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
     } else {
       this.pendingSends.push(text);
@@ -643,9 +643,20 @@ export class SandboxChannel<
   }
 
   private flushPending(): void {
-    if (!this.connected || !this.ws) return;
-    const queued = this.pendingSends.splice(0);
-    for (const text of queued) this.ws.send(text);
+    let sent = 0;
+    try {
+      while (
+        sent < this.pendingSends.length &&
+        this.connected &&
+        this.ws &&
+        this.ws.readyState === this.ws.OPEN
+      ) {
+        this.ws.send(this.pendingSends[sent]);
+        sent++;
+      }
+    } finally {
+      this.pendingSends.splice(0, sent);
+    }
   }
 
   private enqueue(work: () => void | Promise<void>): void {

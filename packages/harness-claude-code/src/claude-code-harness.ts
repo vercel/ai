@@ -109,6 +109,23 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Claude Code hints for host tools, keyed by tool name.
+   *
+   * - `readOnly`: the tool has no side effects. Claude Code can run read-only
+   *   tool calls in parallel, and runs each call to any other host tool on
+   *   its own. It also allows read-only tools in plan mode, so mark only
+   *   tools that change nothing.
+   * - `alwaysLoad`: when Claude Code's tool search is on, it defers MCP tools
+   *   until the model looks them up; this sends the tool's definition from
+   *   the first request instead.
+   */
+  readonly toolHints?: Readonly<
+    Record<
+      string,
+      { readonly readOnly?: boolean; readonly alwaysLoad?: boolean }
+    >
+  >;
+  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
@@ -1117,6 +1134,7 @@ export function createClaudeCode(
             sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             mcpServers: settings.mcpServers,
+            toolHints: settings.toolHints,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {
@@ -1283,6 +1301,15 @@ export function createClaudeCode(
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
+        ...(respawnStrategy === 'rerun'
+          ? {
+              deferredToolUseId: (
+                startOpts.continueFrom ?? startOpts.resumeFrom?.continueFrom
+              )?.pendingToolApprovals?.find(
+                approval => approval.kind === 'builtin',
+              )?.toolCallId,
+            }
+          : {}),
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -1293,6 +1320,7 @@ export function createClaudeCode(
         sandbox: toolSafeSandboxSession,
         sandboxHomeDir,
         mcpServers: settings.mcpServers,
+        toolHints: settings.toolHints,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
@@ -1326,6 +1354,7 @@ function createSession({
   continueOnFirstPrompt,
   resumeSessionId,
   rerunContinue,
+  deferredToolUseId,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -1336,6 +1365,7 @@ function createSession({
   sandbox,
   sandboxHomeDir,
   mcpServers,
+  toolHints,
   supportsUserMessageResponses,
 }: {
   sessionId: string;
@@ -1363,6 +1393,12 @@ function createSession({
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
+  /**
+   * Built-in tool call the previous bridge deferred while it waited for host
+   * approval. The respawned bridge resumes it once the host answers instead
+   * of starting a new turn.
+   */
+  deferredToolUseId?: string;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
@@ -1373,6 +1409,7 @@ function createSession({
   sandbox: SandboxSession;
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
+  toolHints: ClaudeCodeHarnessSettings['toolHints'];
   supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
@@ -1644,6 +1681,7 @@ function createSession({
           ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(toolHints == null ? {} : { toolHints }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1722,12 +1760,14 @@ function createSession({
             ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
+          ...(toolHints == null ? {} : { toolHints }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           ...(lastClaudeSessionId
             ? { resumeSessionId: lastClaudeSessionId }
             : { continue: true }),
+          ...(deferredToolUseId != null ? { deferredToolUseId } : {}),
         });
       }
 

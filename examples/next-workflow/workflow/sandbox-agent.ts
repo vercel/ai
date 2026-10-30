@@ -32,6 +32,9 @@ function createSandbox({ label }: { label: string }): SandboxSession {
     writeFile: notImplemented,
     writeBinaryFile: notImplemented,
     writeTextFile: notImplemented,
+    stat: notImplemented,
+    listDirectory: notImplemented,
+    deleteFile: notImplemented,
     spawn: notImplemented,
     run: async ({ command }) => {
       return {

@@ -232,7 +232,6 @@ export function fixJson(input: string): string {
           }
 
           default: {
-            lastValidIndex = i;
             processValueStart(char, i, 'INSIDE_ARRAY_AFTER_VALUE');
             break;
           }

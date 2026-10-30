@@ -13,6 +13,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -63,7 +65,7 @@ type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -95,6 +97,20 @@ export type OpenAICompatibleChatConfig = {
     args: Record<string, any>,
     warnings?: SharedV4Warning[],
   ) => Record<string, any>;
+
+  /**
+   * Optional function to map the top-level `reasoning` option to the
+   * `reasoning_effort` request value. It is not applied to a `reasoningEffort`
+   * from provider options, which is always sent unchanged. By default, the
+   * reasoning value is sent directly.
+   */
+  mapReasoning?: (options: {
+    reasoning: Exclude<
+      LanguageModelV4CallOptions['reasoning'],
+      'provider-default' | undefined
+    >;
+    warnings: SharedV4Warning[];
+  }) => string | undefined;
 
   /**
    * Optional usage converter for OpenAI-compatible providers with different
@@ -323,7 +339,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
         reasoning_effort:
           compatibleOptions.reasoningEffort ??
-          (isCustomReasoning(reasoning) ? reasoning : undefined),
+          (isCustomReasoning(reasoning)
+            ? this.config.mapReasoning != null
+              ? this.config.mapReasoning({ reasoning, warnings })
+              : reasoning
+            : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
@@ -359,7 +379,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -476,7 +499,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

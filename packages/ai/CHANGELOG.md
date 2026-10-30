@@ -1,5 +1,38 @@
 # ai
 
+## 7.0.157
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- eb768e2: Fix Next.js Edge Runtime warnings from Node.js runtime detection used by telemetry tracing.
+- Updated dependencies [9ca8bcf]
+- Updated dependencies [61a315e]
+  - @ai-sdk/gateway@4.0.130
+  - @ai-sdk/provider-utils@5.0.71
+
+## 7.0.156
+
+### Patch Changes
+
+- Updated dependencies [9f19c79]
+  - @ai-sdk/gateway@4.0.129
+
+## 7.0.155
+
+### Patch Changes
+
+- b6b9dca: chore(ai): remove runtime validation of inputs that TypeScript types already guarantee
+
+  `streamText`, `generateText`, `generateObject` and `streamObject` no longer validate messages against the `ModelMessage` schema. This removes a cost that grew linearly with message history and was paid on every `streamText` step. Type checks on call settings, steering messages, tool caller configuration, `smoothStream` chunking, `experimental_streamSpeech` text input, the shape of `decide` state and questions, and the batch reference version have also been removed. Value constraints that types cannot express, such as integer ranges, non-empty collections, unknown keys, and non-finite numbers or cycles in `decide` JSON input, are still validated.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/gateway@4.0.128
+
 ## 7.0.154
 
 ### Patch Changes

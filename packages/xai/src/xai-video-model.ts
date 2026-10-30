@@ -9,6 +9,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -36,7 +38,7 @@ import type { XaiVideoModelId } from './xai-video-settings';
 interface XaiVideoModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -587,7 +589,10 @@ export class XaiVideoModel implements VideoModelV4 {
 
     const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: endpoint,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -626,7 +631,10 @@ export class XaiVideoModel implements VideoModelV4 {
     const { value: statusResponse, responseHeaders } = await getFromApi({
       url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
       validateUrl: false,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
       failedResponseHandler: xaiFailedResponseHandler,
       abortSignal: options.abortSignal,

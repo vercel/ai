@@ -295,6 +295,33 @@ describe('GatewaySpeechModel.doStream', () => {
     );
   });
 
+  it.each(['AbortError', 'TimeoutError'])(
+    'should propagate an upstream text %s unchanged',
+    async name => {
+      const error = new DOMException('Text stream cancelled', name);
+      let textController!: ReadableStreamDefaultController<SpeechModelV4StreamTextPart>;
+      const result = await createStreamingTestModel().doStream({
+        text: new ReadableStream<SpeechModelV4StreamTextPart>({
+          start(controller) {
+            textController = controller;
+          },
+        }),
+      });
+      const socket = lastSocket();
+      socket.open();
+      await flush();
+
+      const reader = result.stream.getReader();
+      const rejection = expect(reader.read()).rejects.toBe(error);
+      textController.error(error);
+
+      await rejection;
+      await expect(reader.read()).rejects.toBe(error);
+      await flush();
+      expect(socket.close).toHaveBeenCalled();
+    },
+  );
+
   it('should send an empty text part that carries a voice or provider options', async () => {
     await createStreamingTestModel().doStream({
       text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([

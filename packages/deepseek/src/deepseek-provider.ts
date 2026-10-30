@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -18,8 +20,9 @@ import { VERSION } from './version';
 export interface DeepSeekProviderSettings {
   /**
    * DeepSeek API key.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -73,16 +76,18 @@ export function createDeepSeek(
     'https://api.deepseek.com';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'DEEPSEEK_API_KEY',
-          description: 'DeepSeek API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-deepseek/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'DEEPSEEK_API_KEY',
+            description: 'DeepSeek API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-deepseek/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {

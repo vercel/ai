@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   StreamingToolCallTracker,
   combineHeaders,
   convertJsonResponseToolStream,
@@ -45,7 +47,7 @@ import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -215,26 +217,25 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        if (this.modelId === 'qwen/qwen3.6-27b') {
-          reasoningEffort = 'none';
-        } else {
-          warnings.push({
-            type: 'unsupported',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning}" is not supported by this model.`,
-          });
-        }
+      const supportsNoneReasoning = this.modelId === 'qwen/qwen3.6-27b';
+      // GPT-OSS models always reason, so reasoning 'none' maps to the lowest
+      // effort. Other models do not reason, so there is nothing to disable.
+      const alwaysReasons = this.modelId.startsWith('openai/gpt-oss');
+
+      if (reasoning === 'none' && !supportsNoneReasoning && !alwaysReasons) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
       } else {
         reasoningEffort = mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            minimal: 'low',
+            ...(supportsNoneReasoning && { none: 'none' as const }),
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: 'high',
-            max: 'high',
           },
           warnings,
         });
@@ -310,7 +311,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -397,7 +401,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler:

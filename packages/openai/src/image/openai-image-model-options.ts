@@ -4,6 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  getOpenAIImageModelEntry,
+  openaiImageModelMaxImagesPerCall,
+} from '../openai-model-catalog';
 
 export type OpenAIImageModelId =
   | 'dall-e-3'
@@ -19,33 +23,19 @@ export type OpenAIImageModelId =
   | 'chatgpt-image-latest'
   | (string & {});
 
-// https://platform.openai.com/docs/guides/images
-export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
-  'dall-e-3': 1,
-  'dall-e-2': 10,
-  'gpt-image-1': 10,
-  'gpt-image-1-mini': 10,
-  'gpt-image-1.5': 10,
-  'gpt-image-2': 10,
-  'gpt-image-2.5-flare': 10,
-  'gpt-image-2.5-flare-2026-09-08': 10,
-  'gpt-image-2.5-sunburst': 10,
-  'gpt-image-2.5-sunburst-2026-09-08': 10,
-  'chatgpt-image-latest': 10,
-};
-
-const defaultResponseFormatPrefixes = ['chatgpt-image-', 'gpt-image-'];
+export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> =
+  openaiImageModelMaxImagesPerCall;
 
 export function hasDefaultResponseFormat(modelId: string): boolean {
-  return defaultResponseFormatPrefixes.some(prefix =>
-    modelId.startsWith(prefix),
+  return (
+    getOpenAIImageModelEntry(modelId).requestConfig.image.responseFormat ===
+    'provider-default'
   );
 }
 
 export function getMaxImagesPerCall(modelId: OpenAIImageModelId): number {
   return (
-    modelMaxImagesPerCall[modelId] ??
-    (modelId.startsWith('gpt-image-') ? 10 : 1)
+    getOpenAIImageModelEntry(modelId).capabilities.image.maxImagesPerCall ?? 1
   );
 }
 

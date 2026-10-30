@@ -26,6 +26,8 @@ export {
   type InferToolOutput,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxFileStat,
+  type Experimental_SandboxDirectoryEntry,
   type Experimental_ToolCallerTool,
   type Schema,
   type Tool,

@@ -88,10 +88,13 @@ You can use the following optional settings to customize the DeepInfra provider 
   Note: Language models and embeddings use OpenAI-compatible endpoints at `{baseURL}/openai`,
   while image models use `{baseURL}/inference`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `DEEPINFRA_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
