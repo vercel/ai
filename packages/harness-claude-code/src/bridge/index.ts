@@ -373,6 +373,23 @@ function createPermissionSettings(input: {
   };
 }
 
+/**
+ * Claude Code picks a model's output limit, system prompt and default effort
+ * from its own reading of the model id, and misreads AI Gateway ids with a
+ * dotted version such as `anthropic/claude-opus-5.5`. `modelOverrides` maps
+ * the id Claude Code expects (`claude-opus-5-5`) to the gateway id, which
+ * stays the id sent to the gateway.
+ */
+function createGatewayModelOverrides(
+  model: string | undefined,
+): Record<string, string> | undefined {
+  if (!model?.startsWith('anthropic/')) return undefined;
+  // Claude Code matches the value against the model id, suffix included, so a
+  // suffix such as `[1m]` stays on the value.
+  const id = model.slice('anthropic/'.length).replace(/\[[^\]]*\]$/, '');
+  return id.includes('.') ? { [id.replace(/\./g, '-')]: model } : undefined;
+}
+
 function needsHostApproval(input: {
   toolName: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
@@ -650,6 +667,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
+  const modelOverrides = createGatewayModelOverrides(start.model);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
     permissionMode,
@@ -754,6 +772,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ? { continue: true }
           : {}),
       ...permissionOptions,
+      ...(modelOverrides
+        ? {
+            settings: {
+              ...(permissionOptions.settings as
+                | Record<string, unknown>
+                | undefined),
+              modelOverrides,
+            },
+          }
+        : {}),
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
