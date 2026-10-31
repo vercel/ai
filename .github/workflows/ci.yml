@@ -20,6 +20,35 @@ env:
         'local:rw,remote:rw' || 'local:rw' }}
 
 jobs:
+  tarballs-context:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout or PR code execution is needed to record the tested merge.
+      - name: Record tested revision
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const e = process.env;
+          writeFileSync('context.json', JSON.stringify({
+            repository: e.GITHUB_REPOSITORY,
+            pr: Number(e.PR_NUMBER), branch: e.PR_BRANCH,
+            headSha: e.PR_HEAD, baseSha: e.PR_BASE, sha: e.GITHUB_SHA,
+            ciRunId: Number(e.GITHUB_RUN_ID), ciAttempt: Number(e.GITHUB_RUN_ATTEMPT),
+          }));
+          NODE
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tarballs-context-${{ github.run_attempt }}
+          path: context.json
+          retention-days: 7
+
   check:
     name: 'Lint & Format'
     runs-on: ubuntu-latest
@@ -36,6 +65,9 @@ jobs:
 
       - name: Run ultracite check
         run: pnpm run check
+
+      - name: Test package preview tooling
+        run: node --test tools/tarballs/*.test.mjs
 
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs

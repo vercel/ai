@@ -1,0 +1,179 @@
+name: PR package previews
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+# Serialize retries and commits from the same PR. Do not cancel an upload halfway
+# through alias assignment. Validation skips obsolete heads before publishing.
+concurrency:
+  group: tarballs-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: >-
+      github.repository == 'vercel/ai' &&
+      vars.TARBALLS_ENABLED == 'true' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      context: ${{ steps.validate.outputs.context }}
+      sha: ${{ steps.validate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tarballs-context-${{ github.event.workflow_run.run_attempt }}
+          path: ci-context
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - id: validate
+        run: node tools/tarballs/github.mjs validate ci-context/context.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - run: node tools/tarballs/github.mjs comment preparing
+        env:
+          TARBALLS_CONTEXT: ${{ needs.validate.outputs.context }}
+          GH_TOKEN: ${{ github.token }}
+
+  pack:
+    needs: [validate, prepare]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    # No secrets, write token, OIDC, shared caches, or protected environment.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vercel/ai
+          ref: ${{ needs.validate.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+        with:
+          runtime: node@22
+          working-directory: source
+          install: false
+          require-lockfile: true
+      - run: pnpm install --frozen-lockfile
+        working-directory: source
+      - run: node tools/tarballs/pack.mjs source tarballs
+        env:
+          TARBALLS_CONTEXT: ${{ needs.validate.outputs.context }}
+          TURBO_CACHE: local:rw
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        id: upload
+        with:
+          name: tarballs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tarballs
+          retention-days: 3
+          if-no-files-found: error
+
+  publish:
+    needs: [validate, pack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: tarballs
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      origin: ${{ steps.publish.outputs.origin }}
+    env:
+      TARBALLS_CONTEXT: ${{ needs.validate.outputs.context }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Install pinned deployment CLI
+        run: npm install --global vercel@65.2.0
+      - name: Check packed artifact ID
+        run: '[[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]'
+        env:
+          ARTIFACT_ID: ${{ needs.pack.outputs.artifact-id }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          # Reuse the successful pack job's artifact on publisher-only retries.
+          artifact-ids: ${{ needs.pack.outputs.artifact-id }}
+          path: tarballs
+      - name: Recheck CI and current PR revision
+        run: node tools/tarballs/github.mjs revalidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Upload static preview and assign immutable alias
+        id: publish
+        run: node tools/tarballs/publish.mjs tarballs
+        env:
+          VERCEL_ORG_ID: ${{ vars.TARBALLS_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.TARBALLS_VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.TARBALLS_VERCEL_TOKEN }}
+
+  smoke:
+    needs: [validate, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Package installation/imports happen on a fresh runner with no deploy token.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+        with:
+          runtime: node@22
+          install: false
+          require-lockfile: true
+      - run: node tools/tarballs/smoke.mjs
+        env:
+          TARBALLS_CONTEXT: ${{ needs.validate.outputs.context }}
+
+  comment:
+    needs: [validate, prepare, pack, publish, smoke]
+    if: always() && needs.validate.result == 'success' && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Update the preview comment
+        run: node tools/tarballs/github.mjs comment "$PREVIEW_STATUS"
+        env:
+          PREVIEW_STATUS: ${{ needs.smoke.result == 'success' && 'ready' || (contains(needs.*.result, 'cancelled') && 'cancelled' || 'failed') }}
+          TARBALLS_CONTEXT: ${{ needs.validate.outputs.context }}
+          GH_TOKEN: ${{ github.token }}

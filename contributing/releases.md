@@ -31,11 +31,20 @@ Quick reference:
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
 
-## Snapshot Releases
+## Pull Request Package Previews
 
-For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
+To test a PR in a downstream application, install its
+[package preview](./package-previews.md). Tarball previews replace the npm snapshot
+releases previously dispatched through `release.yml`; the release workflow now
+only handles regular npm releases.
 
-Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
+For external contributors, a maintainer must approve CI first. After all PR CI
+jobs pass, the preview workflow builds public package tarballs and updates one PR
+comment from preparing to ready with install commands. Packages are installed
+directly from the preview URLs and are never published to the npm registry.
+
+Complete the [maintainer setup](./package-previews.md#maintainer-setup) before
+enabling previews. There is no manual snapshot option in the release workflow.
 
 ## New Major Releases
 
