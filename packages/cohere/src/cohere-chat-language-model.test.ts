@@ -1163,6 +1163,56 @@ describe('doStream', () => {
         );
     });
 
+    it('should handle string "null" tool call arguments', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'tool-call-start',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                id: 'test-tool-call',
+                type: 'function',
+                function: { name: 'currentTime', arguments: '' },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-delta',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: { function: { arguments: 'null' } },
+            },
+          },
+        },
+        { type: 'tool-call-end', index: 0 },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'currentTime',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-tool-call',
+        toolName: 'currentTime',
+        input: '{}',
+      });
+    });
+
     it('rejects prototype keys in streamed tool call arguments', async () => {
       prepareChunkLinesResponse([
         {
