@@ -44,4 +44,6 @@ const MODELS_WITH_STRICT_TOOL_SUPPORT = [
   /claude-opus-4-(?:1|5|6)(?=[-.:]|$)/,
   /claude-sonnet-4-(?:5|6)(?=[-.:]|$)/,
   /claude-haiku-4-5(?=[-.:]|$)/,
+  /claude-(?:opus|sonnet)-5(?:-5)?(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/,
+  /claude-haiku-5-5(?:-\d{8})?(?:-v\d+)?(?=[-.:]|$)/,
 ];
