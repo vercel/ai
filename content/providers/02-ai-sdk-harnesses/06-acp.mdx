@@ -342,6 +342,14 @@ approval request. Without a mapping, the adapter automatically selects
 approval for the rest. A rejection selects `reject_once`; persistent choices
 are never inferred. Host-tool approval remains independent.
 
+Under `allow-reads` and `allow-edits`, automatically approved file operations
+must also declare locations that resolve within the session working directory.
+Every location is checked, including symlink targets and existing parent
+directories for new files. External, missing, or unresolvable file locations
+require Harness approval. `allow-all` retains unrestricted automatic approval.
+These checks apply to permission requests received from the ACP implementation;
+use separate sandboxes when jobs require filesystem isolation.
+
 ## Complete ACP Harness Implementations
 
 Unless noted otherwise, these profiles support direct authentication through
