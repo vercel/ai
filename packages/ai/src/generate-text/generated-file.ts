@@ -4,6 +4,26 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { JSONObject } from '@ai-sdk/provider';
 
+function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    value instanceof Uint8Array ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'Uint8Array' ||
+        Object.prototype.toString.call(value) === '[object Uint8Array]'))
+  );
+}
+
+function isArrayBuffer(value: unknown): value is ArrayBuffer {
+  return (
+    value instanceof ArrayBuffer ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'ArrayBuffer' ||
+        Object.prototype.toString.call(value) === '[object ArrayBuffer]'))
+  );
+}
+
 /**
  * A generated file.
  */
@@ -48,13 +68,27 @@ export class DefaultGeneratedFile implements GeneratedFile {
     mediaType,
     providerMetadata,
   }: {
-    data: string | Uint8Array;
+    data: string | Uint8Array | ArrayBuffer;
     mediaType: string;
     providerMetadata?: Record<string, JSONObject>;
   }) {
-    const isUint8Array = data instanceof Uint8Array;
-    this.base64Data = isUint8Array ? undefined : data;
-    this.uint8ArrayData = isUint8Array ? data : undefined;
+    if (data instanceof Uint8Array) {
+      this.base64Data = undefined;
+      this.uint8ArrayData = data;
+    } else if (isUint8Array(data)) {
+      this.base64Data = undefined;
+      this.uint8ArrayData = new Uint8Array(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength,
+      );
+    } else if (isArrayBuffer(data)) {
+      this.base64Data = undefined;
+      this.uint8ArrayData = new Uint8Array(data);
+    } else {
+      this.base64Data = data;
+      this.uint8ArrayData = undefined;
+    }
     this.mediaType = mediaType;
     this.providerMetadata = providerMetadata;
   }
