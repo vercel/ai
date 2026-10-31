@@ -874,6 +874,79 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should preserve pre-serialized string tool arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"city":"Tokyo"}',
+              toolCallId: 'call-1',
+              toolName: 'getWeather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: '{"city":"Tokyo"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
+    const circularArgs: Record<string, unknown> = { count: 9007199254740993n };
+    circularArgs.self = circularArgs;
+
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: circularArgs,
+              toolCallId: 'call-2',
+              toolName: 'computeStats',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-2',
+            function: {
+              name: 'computeStats',
+              arguments: '{"count":"9007199254740993","self":"[Circular]"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should send empty string content for assistant messages with no tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [

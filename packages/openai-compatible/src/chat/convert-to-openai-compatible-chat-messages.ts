@@ -186,6 +186,61 @@ function convertToolContentPart(
   return convertToOpenAICompatibleContentPart(part, provider);
 }
 
+function sanitizeForSerialization(
+  val: unknown,
+  ancestors: Set<unknown>,
+): unknown {
+  if (typeof val === 'bigint') {
+    return val.toString();
+  }
+  if (typeof val !== 'object' || val === null) {
+    return val;
+  }
+  if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+    return val;
+  }
+  if (ancestors.has(val)) {
+    return '[Circular]';
+  }
+  ancestors.add(val);
+  try {
+    if (Array.isArray(val)) {
+      return val.map(item => sanitizeForSerialization(item, ancestors));
+    }
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(val)) {
+      result[key] = sanitizeForSerialization(item, ancestors);
+    }
+    return result;
+  } finally {
+    ancestors.delete(val);
+  }
+}
+
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      return JSON.stringify(sanitizeForSerialization(input, new Set()));
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
+}
+
+function safeStringifyToolOutput(value: unknown): string {
+  try {
+    return JSON.stringify(sanitizeForSerialization(value, new Set()));
+  } catch {
+    return String(value);
+  }
+}
+
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
   {
@@ -263,7 +318,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
                 ...partMetadata,
                 // Include extra_content for Google Gemini thought signatures
@@ -312,14 +367,14 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = safeStringifyToolOutput(output.value);
               break;
             case 'content':
               contentValue = supportsMultiPartToolContent
                 ? output.value.map(part =>
                     convertToolContentPart(part, provider),
                   )
-                : JSON.stringify(output.value);
+                : safeStringifyToolOutput(output.value);
               break;
           }
 

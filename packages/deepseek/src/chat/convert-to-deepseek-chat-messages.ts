@@ -58,6 +58,61 @@ function validateDeepSeekImageUrl({
   }
 }
 
+function sanitizeForSerialization(
+  val: unknown,
+  ancestors: Set<unknown>,
+): unknown {
+  if (typeof val === 'bigint') {
+    return val.toString();
+  }
+  if (typeof val !== 'object' || val === null) {
+    return val;
+  }
+  if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+    return val;
+  }
+  if (ancestors.has(val)) {
+    return '[Circular]';
+  }
+  ancestors.add(val);
+  try {
+    if (Array.isArray(val)) {
+      return val.map(item => sanitizeForSerialization(item, ancestors));
+    }
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(val)) {
+      result[key] = sanitizeForSerialization(item, ancestors);
+    }
+    return result;
+  } finally {
+    ancestors.delete(val);
+  }
+}
+
+function serializeDeepSeekToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      return JSON.stringify(sanitizeForSerialization(input, new Set()));
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
+}
+
+function safeStringifyDeepSeekToolOutput(value: unknown): string {
+  try {
+    return JSON.stringify(sanitizeForSerialization(value, new Set()));
+  } catch {
+    return String(value);
+  }
+}
+
 export async function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
@@ -333,7 +388,7 @@ export async function convertToDeepSeekChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeDeepSeekToolCallArguments(part.input),
                 },
               });
               break;
@@ -384,7 +439,7 @@ export async function convertToDeepSeekChatMessages({
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = safeStringifyDeepSeekToolOutput(output.value);
               break;
             case 'content': {
               const hasImagePart = output.value.some(
@@ -397,7 +452,7 @@ export async function convertToDeepSeekChatMessages({
               );
 
               if (!hasImagePart) {
-                contentValue = JSON.stringify(output.value);
+                contentValue = safeStringifyDeepSeekToolOutput(output.value);
                 break;
               }
 
