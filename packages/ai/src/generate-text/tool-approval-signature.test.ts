@@ -110,6 +110,24 @@ describe('signToolApproval + verifyToolApprovalSignature', () => {
     expect(valid).toBe(false);
   });
 
+  it('should reject malformed non-base64 signature strings without throwing', async () => {
+    const valid = await verifyToolApprovalSignature({
+      secret,
+      signature: 'invalid-signature!!!',
+      ...baseParams,
+    });
+    expect(valid).toBe(false);
+  });
+
+  it('should reject empty signature strings without throwing', async () => {
+    const valid = await verifyToolApprovalSignature({
+      secret,
+      signature: '',
+      ...baseParams,
+    });
+    expect(valid).toBe(false);
+  });
+
   it('should produce the same signature for equivalent inputs with different key order', async () => {
     const sig1 = await signToolApproval({
       secret,
