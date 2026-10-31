@@ -161,7 +161,15 @@ export async function fetchWebResource({
     const location = response.headers.get('location');
     if (REDIRECT_STATUS_CODES.has(response.status) && location) {
       void cancelResponseBody(response);
-      currentUrl = new URL(location, currentUrl).toString();
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        return {
+          type: 'error',
+          errorCode: 'network_error',
+          message: 'The server returned an invalid redirect location.',
+        };
+      }
       continue;
     }
 
