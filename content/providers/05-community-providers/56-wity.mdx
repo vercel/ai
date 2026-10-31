@@ -1,0 +1,123 @@
+---
+title: Wity
+description: Use Wity for typed decisions with the AI SDK.
+---
+
+# Wity
+
+[Wity](https://wity.alphanimble.com) answers fixed-option questions about text in one pass, with a probability for every option. The `wity-ai-provider` package makes Wity a decision model for the AI SDK's experimental decision API, with Choice, Score and Boolean answers. All questions go in one request against the same state.
+
+Learn more in the [Wity API docs](https://wity.alphanimble.com/docs/api).
+
+## Setup
+
+The `wity-ai-provider` package needs `ai` 7.0.133 or newer.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add wity-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install wity-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add wity-ai-provider ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add wity-ai-provider ai" dark />
+  </Tab>
+</Tabs>
+
+Get an API key at [wity.alphanimble.com/console/keys](https://wity.alphanimble.com/console/keys) and set it as `WITY_API_KEY`.
+
+## Provider Instance
+
+Import the default `wity` provider, or create your own instance with `createWity`:
+
+```ts
+import { createWity } from 'wity-ai-provider';
+
+const wity = createWity({
+  apiKey: 'your-api-key',
+});
+```
+
+| Setting   | Description                                                                 |
+| --------- | --------------------------------------------------------------------------- |
+| `apiKey`  | API key; defaults to `WITY_API_KEY`.                                        |
+| `baseURL` | Defaults to `WITY_BASE_URL`, then `https://api.wity.alphanimble.com`.       |
+| `headers` | Additional request headers.                                                 |
+| `fetch`   | Custom fetch implementation.                                                |
+
+## Decision
+
+```ts
+import { experimental_decide } from 'ai';
+import { wity } from 'wity-ai-provider';
+
+const result = await experimental_decide({
+  model: wity.decisionModel('wity-1'),
+  state: 'I was charged twice this month. Please refund one of them today.',
+  questions: {
+    team: {
+      type: 'choice',
+      instructions: 'Which team should handle this ticket?',
+      criteria: {
+        billing: 'Payments, charges and refunds',
+        technical: 'Bugs, errors and outages',
+        other: 'Anything else',
+      },
+    },
+    urgent: {
+      type: 'boolean',
+      instructions: 'Does the customer ask for something to happen soon?',
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How much is this hurting the customer?',
+      criteria: ['Not at all', 'A little', 'A lot'],
+    },
+  },
+});
+
+console.log(result.answers.team.choice);
+console.log(result.answers.urgent.probability);
+console.log(result.answers.severity.score);
+```
+
+| Question  | Wity question | Limits and semantics                                                 |
+| --------- | ------------- | -------------------------------------------------------------------- |
+| `choice`  | Choice        | 2–128 options; selected option and full probabilities.               |
+| `score`   | Score         | 2–10 ordered levels; fractional score and full probabilities.        |
+| `boolean` | Noul          | Probability of true.                                                 |
+
+State can be a string, a JSON object, or a list of parts. Text and JSON parts are sent as one text, and one image (PNG, JPEG, WebP, GIF or BMP) can be added. Instructions and descriptions accept JSON, which is sent as text. Descriptions may be `null`.
+
+Wity's probabilities aren't calibrated. Choose thresholds from your own labelled examples.
+
+## Provider Options
+
+```ts
+const result = await experimental_decide({
+  model: wity.decisionModel('wity-1'),
+  state,
+  questions,
+  providerOptions: {
+    wity: {
+      reasoning: 'auto', // 'off' (default), 'auto' or 'always'
+      maxLatencyMs: 5000, // 200 to 120000
+    },
+  },
+});
+```
+
+With `reasoning: 'auto'`, Wity thinks only when a question needs it, such as a close call or a forecast. Thinking details are in `result.providerMetadata.wity`, keyed by question ID: `confidence` (for Choice and Score), `reasoning`, and `directProbabilities` (the answer before Wity thought).
+
+## Errors
+
+Failed requests throw `APICallError` with Wity's message. Core retries `429` and `5xx` errors according to `maxRetries`. Language, embedding and image model factories throw `NoSuchModelError`.
+
+## More
+
+- [npm package](https://www.npmjs.com/package/wity-ai-provider)
+- [Source on GitHub](https://github.com/info-alphanimble/wity-ai-provider)
