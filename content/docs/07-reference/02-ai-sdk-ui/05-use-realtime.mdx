@@ -13,7 +13,8 @@ Creates a browser-side realtime session for bidirectional audio and text
 conversations with a realtime provider model.
 
 The hook supports token-based provider WebSockets, application-owned WebSocket
-relays, and optional WebRTC where the model declares support. It provides controls for capture and playback, plus turn-based text input
+relays, optional WebRTC, and provider-owned transports where the model declares
+support. It provides controls for capture and playback, plus supported turn-based text input
 and tool output. Turn-based conversation messages use `UIMessage[]`; continuous
 transcript fragments remain in `session`.
 
@@ -184,12 +185,33 @@ updates remain unsupported.
 
 ## Lifecycle and failure handling
 
+### Provider-owned sessions
+
+For [Mistral voice agents](/providers/ai-sdk-providers/mistral#realtime-voice-agents),
+use `api: { provider: '/api/mistral-realtime' }`. The Mistral provider handles
+LiveKit internally.
+The hook calls `POST` on that endpoint to create a session and
+`DELETE ?sessionId=...` to close it. The server uses
+`mistral.experimental_realtime.createSession()` and `closeSession()` with its API
+key. Keep the model, voice, instructions, and allowed settings on the server.
+
+`connect()` starts microphone capture and remote audio playback. Mistral
+transcripts populate `messages`; audio travels through the provider's LiveKit
+transport. Await `close()` to finish server-side cleanup. `disconnect()` and
+unmount release local media and initiate cleanup without waiting. Client tools
+use `onToolCall` and `addToolOutput`. Text, manual audio-buffer, and response
+commands are unsupported. See the provider guide for the complete route and
+client example.
+
+### Shared lifecycle
+
 Use `status === 'connected'` as the readiness signal; `connect()` does not promise
 to wait for provider readiness. Operational startup errors are reported through
 `onError` and `status`; the legacy resolve-and-report behavior is preserved.
 
-`close()` stops local capture and submissions, then drains events until the provider
-confirms final usage or the close deadline expires. A failed close-command send
+For continuous Live sessions, `close()` stops local capture and submissions, then
+drains events until the provider confirms final usage or the close deadline
+expires. A failed close-command send
 uses the shorter accepted-event drain rather than waiting for an acknowledgment
 to an unsent command. Read `session.finalization`: a fulfilled close promise does
 not by itself confirm usage. `disconnect()` and unmount release resources immediately.
@@ -244,9 +266,9 @@ and completion of delegated work do not prove that the corresponding audio was h
     },
     {
       name: 'api',
-      type: '{ token: string } | { websocket: string; protocols?: string[] } | { session: string }',
+      type: '{ token: string } | { websocket: string; protocols?: string[] } | { session: string } | { provider: string }',
       description:
-        'Choose one supported connection mechanism: token setup, a WebSocket relay, or a WebRTC SDP endpoint. Conversation semantics and connection capabilities are independent.',
+        'Choose one supported connection mechanism: token setup, a WebSocket relay, a WebRTC SDP endpoint, or a provider-managed session endpoint. Conversation semantics and connection capabilities are independent.',
       properties: [
         {
           type: 'Object',
@@ -264,6 +286,13 @@ and completion of delegated work do not prove that the corresponding audio was h
               isOptional: true,
               description:
                 'Application WebRTC setup endpoint. Accepts JSON { sdp, sessionConfig } and returns JSON { sdp, sessionId }.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              isOptional: true,
+              description:
+                'Application endpoint for a provider-owned transport. Mistral uses POST to create a session and DELETE with a sessionId query parameter to close it.',
             },
             {
               name: 'websocket',
@@ -396,19 +425,19 @@ and completion of delegated work do not prove that the corresponding audio was h
       name: 'connect',
       type: '(options?: { stream?: MediaStream; capture?: boolean }) => Promise<void>',
       description:
-        'Starts the selected connection. Continuous browser sessions acquire microphone audio by default; capture: false opts out. A supplied Live stream remains caller-owned. The zero-argument overload remains usable as an event handler.',
+        'Starts the selected connection. Continuous Live and Mistral sessions acquire microphone audio by default; capture: false opts out. Supplied tracks remain caller-owned on these paths. The zero-argument overload remains usable as an event handler.',
     },
     {
       name: 'close',
       type: '(options?: { eventId?: string }) => Promise<void>',
       description:
-        'Stops capture/submissions and waits for bounded graceful finalization where supported. Inspect session.finalization for confirmation; models without acknowledged close disconnect immediately.',
+        'Stops capture/submissions and waits for bounded graceful finalization where supported. Provider-owned transports await session cleanup. For Live, inspect session.finalization for usage confirmation; models without acknowledged close disconnect immediately.',
     },
     {
       name: 'disconnect',
       type: '() => void',
       description:
-        'Immediately releases transports and owned media. Preserves latest usage as unconfirmed unless a terminal provider event was received.',
+        'Immediately releases transports and owned media. Provider-owned transports initiate server cleanup without awaiting it. Preserves latest usage as unconfirmed unless a terminal provider event was received.',
     },
     {
       name: 'addToolOutput',
