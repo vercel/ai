@@ -1,3 +1,4 @@
+import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 import { isProviderReference } from './is-provider-reference';
@@ -46,5 +47,43 @@ describe('isProviderReference', () => {
 
   it('returns false for a number primitive', () => {
     expect(isProviderReference(42 as never)).toBe(false);
+  });
+
+  it('returns false for an array', () => {
+    expect(isProviderReference([])).toBe(false);
+    expect(isProviderReference([1, 2, 3])).toBe(false);
+  });
+
+  it('returns false for a cross-realm Uint8Array', () => {
+    const realmBytes = vm.runInNewContext('new Uint8Array([1, 2, 3])');
+    expect(realmBytes instanceof Uint8Array).toBe(false);
+    expect(isProviderReference(realmBytes)).toBe(false);
+  });
+
+  it('returns false for a cross-realm ArrayBuffer', () => {
+    const realmBuffer = vm.runInNewContext('new Uint8Array([1, 2, 3]).buffer');
+    expect(realmBuffer instanceof ArrayBuffer).toBe(false);
+    expect(isProviderReference(realmBuffer)).toBe(false);
+  });
+
+  it('returns false for a cross-realm URL', () => {
+    const realmUrl = vm.runInNewContext(
+      'new URL("https://example.com/file")',
+      { URL },
+    );
+    expect(isProviderReference(realmUrl)).toBe(false);
+  });
+
+  it('returns false for built-in objects (Date, Map, Set, RegExp)', () => {
+    expect(isProviderReference(new Date())).toBe(false);
+    expect(isProviderReference(new Map())).toBe(false);
+    expect(isProviderReference(new Set())).toBe(false);
+    expect(isProviderReference(/test/)).toBe(false);
+  });
+
+  it('returns true for Object.create(null) dictionary', () => {
+    const dict = Object.create(null);
+    dict.openai = 'file-xyz';
+    expect(isProviderReference(dict)).toBe(true);
   });
 });
