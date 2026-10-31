@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.174
+
+### Patch Changes
+
+- 31d83e2: feat(harness-claude-code): support `skillOverrides` adapter setting for selective skill overrides
+  - @ai-sdk/harness@1.0.170
+
 ## 1.0.173
 
 ### Patch Changes

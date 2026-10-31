@@ -1,5 +1,17 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.173
+
+### Patch Changes
+
+- 504536a: Send a tool call to the host before its approval request. OpenCode asks for permission while the call is still pending and reports it as running only afterwards, so with `allow-reads` or `allow-edits` the approval request reached `HarnessAgent` first and the turn failed with "emitted approval request ... for unknown tool call".
+
+## 1.0.172
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
 ## 1.0.171
 
 ### Patch Changes
