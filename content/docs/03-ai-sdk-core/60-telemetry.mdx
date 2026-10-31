@@ -515,7 +515,7 @@ By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to w
 
 #### generateText / streamText
 
-For `generateText` and `streamText`, the integration records 3 types of spans:
+For `generateText` and `streamText`, the integration records 4 types of spans:
 
 - **`invoke_agent {modelId}`** (default root span name, `INTERNAL`): covers the full operation including all steps and tool calls. Use [`agentSpanName`](#agent-span-names) to customize the name.
 
@@ -543,7 +543,16 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
 
-- **`chat {modelId}`** (step span, `CLIENT`): one span per LLM provider call, nested under the root span.
+- **`step {n}`** (step span, `INTERNAL`): one span per step, nested under the root span. `n` is the step number, starting at 1. It contains the model call and tool spans of that step.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"agent_step"`
+
+  `agent_step` is an AI SDK-defined custom operation name, not a well-known
+  OpenTelemetry GenAI operation. It marks an orchestration step, while the
+  nested `chat` span marks the model call.
+
+- **`chat {modelId}`** (model call span, `CLIENT`): one span per LLM provider call, nested under the step span.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"chat"`
@@ -576,11 +585,11 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   `streamText` with the `output` property instead.
 </Note>
 
-The deprecated object APIs emit the same span hierarchy as `generateText`/`streamText` with these additional attributes on the root span:
+The deprecated object APIs emit the same spans as `generateText`/`streamText`, except that there is no `step {n}` span: the `chat {modelId}` span is nested directly under the root span. The root span has these additional attributes:
 
 - `gen_ai.output.type`: `"json"`
 
-The step spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
+The `chat {modelId}` spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
 
 #### embed / embedMany
 
