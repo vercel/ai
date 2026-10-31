@@ -70,4 +70,31 @@ describe('isJSONSerializable', () => {
     expect(isJSONSerializable(new TestClass())).toBe(false);
     expect(isJSONSerializable(Object.create(null))).toBe(false);
   });
+
+  it('returns false for circular object references without crashing', () => {
+    const cyclicObj: Record<string, unknown> = { key: 'value' };
+    cyclicObj.self = cyclicObj;
+    expect(isJSONSerializable(cyclicObj)).toBe(false);
+
+    const indirectA: Record<string, unknown> = { name: 'A' };
+    const indirectB: Record<string, unknown> = { name: 'B', ref: indirectA };
+    indirectA.ref = indirectB;
+    expect(isJSONSerializable(indirectA)).toBe(false);
+  });
+
+  it('returns false for circular array references without crashing', () => {
+    const cyclicArr: unknown[] = [1, 2];
+    cyclicArr.push(cyclicArr);
+    expect(isJSONSerializable(cyclicArr)).toBe(false);
+  });
+
+  it('returns true for DAGs with shared non-circular references', () => {
+    const sharedLeaf = { id: 1, name: 'leaf' };
+    const dag = {
+      left: sharedLeaf,
+      right: sharedLeaf,
+      items: [sharedLeaf, sharedLeaf],
+    };
+    expect(isJSONSerializable(dag)).toBe(true);
+  });
 });
