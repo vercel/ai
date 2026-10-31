@@ -751,4 +751,71 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'vulnify',
+    name: 'Vulnify',
+    description:
+      'Check sensitive AI SDK tool calls before execute runs. Vulnify returns ALLOW, REVIEW or BLOCK with a 0-100 risk score and the reasons. REVIEW waits for a person to approve in Vulnify or Slack, and a blocked call returns the reasons to the model instead of running. If Vulnify is unreachable, the call is blocked by default.',
+    packageName: '@vulnify/sdk',
+    tags: [
+      'security',
+      'authorization',
+      'human-in-the-loop',
+      'guardrails',
+      'audit',
+    ],
+    apiKeyEnvName: 'VULNIFY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @vulnify/sdk ai zod',
+      npm: 'npm install @vulnify/sdk ai zod',
+      yarn: 'yarn add @vulnify/sdk ai zod',
+      bun: 'bun add @vulnify/sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { guardAiSdkTools, Vulnify } from '@vulnify/sdk';
+import { z } from 'zod';
+
+const vulnify = new Vulnify({ apiKey: process.env.VULNIFY_API_KEY! });
+
+// Only tools listed in the third argument are checked; the rest run unchanged.
+const tools = guardAiSdkTools(
+  vulnify,
+  {
+    searchTickets: tool({
+      description: 'Search support tickets',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => ({ results: [\`Ticket about \${query}\`] }),
+    }),
+    deleteTicket: tool({
+      description: 'Delete a support ticket',
+      inputSchema: z.object({ ticketId: z.string() }),
+      execute: async ({ ticketId }) => ({ deleted: ticketId }),
+    }),
+  },
+  {
+    // Vulnify returns ALLOW, REVIEW or BLOCK before execute runs.
+    deleteTicket: () => ({
+      agent: 'SupportBot',
+      action: 'DELETE_DATA',
+      resource: 'Support Tickets',
+      recordsAffected: 1,
+    }),
+  },
+  // On REVIEW, wait up to 2 minutes for a person to approve.
+  { wait: { timeoutMs: 120_000 } },
+);
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools,
+  stopWhen: isStepCount(5),
+  prompt: 'Find the duplicate ticket about login errors and delete it.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.vulnify.io/sdks/vercel-ai-sdk/',
+    apiKeyUrl: 'https://app.vulnify.io/login',
+    websiteUrl: 'https://www.vulnify.io',
+    npmUrl: 'https://www.npmjs.com/package/@vulnify/sdk',
+  },
 ];
