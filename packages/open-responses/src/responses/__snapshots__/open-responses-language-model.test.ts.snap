@@ -458,6 +458,12 @@ exports[`OpenResponsesLanguageModel > doStream > basic generation > should strea
     "warnings": [],
   },
   {
+    "id": "resp_604f426346767f2cd7f98c793d9cfd27cba9ef834509019c",
+    "modelId": "gemma-7b-it",
+    "timestamp": 2026-01-20T10:50:11.000Z,
+    "type": "response-metadata",
+  },
+  {
     "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
     "type": "text-start",
   },
@@ -1966,6 +1972,12 @@ exports[`OpenResponsesLanguageModel > doStream > reasoning with tool call > shou
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": "resp_83a575a640aadab0a95a3e0649f43693892dc467e666dbd7",
+    "modelId": "zai-org/glm-4.7-flash",
+    "timestamp": 2026-02-03T14:59:22.000Z,
+    "type": "response-metadata",
   },
   {
     "id": "rs_jm2uvisepha7peu2y40spd",

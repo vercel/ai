@@ -1895,6 +1895,61 @@ describe('OpenResponsesLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+
+      it('should forward server response metadata from the response.created event', async () => {
+        const chunks = [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            sequence_number: 0,
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              created_at: 1750000000,
+              status: 'in_progress',
+              model: 'server-reported-model-id',
+              output: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 1,
+            output_index: 0,
+            item: {
+              id: 'msg_1',
+              type: 'message',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_text.delta',
+            sequence_number: 2,
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ];
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks,
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts).toContainEqual({
+          type: 'response-metadata',
+          id: 'resp_123',
+          timestamp: new Date(1750000000 * 1000),
+          modelId: 'server-reported-model-id',
+        });
+      });
     });
 
     it('should stream reasoning summary text deltas', async () => {
@@ -2592,6 +2647,12 @@ describe('OpenResponsesLanguageModel', () => {
               {
                 "type": "stream-start",
                 "warnings": [],
+              },
+              {
+                "id": "resp_051ebd7ab60063870069d4fe8ac1348194bf06d0a4646af05f",
+                "modelId": "gpt-4.1-nano-2025-04-14",
+                "timestamp": 2026-04-07T12:54:35.000Z,
+                "type": "response-metadata",
               },
               {
                 "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
