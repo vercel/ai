@@ -63,7 +63,6 @@ import type {
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
-  StreamTextTransform,
 } from './workflow-agent.js';
 
 // Re-export for consumers
@@ -160,7 +159,6 @@ export async function* modelCallIterator({
   repairToolCall,
   download,
   responseFormat,
-  experimental_transform,
   experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -188,9 +186,6 @@ export async function* modelCallIterator({
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   ModelCallIteratorYieldValue,
@@ -400,7 +395,6 @@ export async function* modelCallIterator({
         download,
         responseFormat,
         include,
-        experimental_transform,
         telemetry: dispatchTelemetryInStep
           ? {
               functionId: telemetry?.functionId,

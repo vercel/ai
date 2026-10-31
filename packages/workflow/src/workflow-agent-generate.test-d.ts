@@ -43,7 +43,7 @@ it('infers text, structured outputs, per-call overrides, tools and runtime conte
   agent.generate({ prompt: 'test', includeRawChunks: true });
   agent.generate({
     prompt: 'test',
-    // @ts-expect-error generate does not transform streams
+    // @ts-expect-error WorkflowAgent does not transform streams
     experimental_transform: () => new TransformStream(),
   });
   // @ts-expect-error generate does not close streams
