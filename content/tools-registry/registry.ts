@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'browser-use',
+    name: 'Browser Use',
+    description:
+      'Give your agent a real cloud browser. The browserUse tool runs a Browser Use Cloud agent on a plain-language task: it navigates, clicks, types, logs in, and extracts data, then returns its final answer to the model. Follow-up calls can reuse the same browser session.',
+    packageName: 'browser-use-sdk',
+    tags: ['browser', 'browser-automation', 'web', 'agents'],
+    apiKeyEnvName: 'BROWSER_USE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add browser-use-sdk',
+      npm: 'npm install browser-use-sdk',
+      yarn: 'yarn add browser-use-sdk',
+      bun: 'bun add browser-use-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { browserUse } from 'browser-use-sdk/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  tools: { browserUse: browserUse() },
+  stopWhen: isStepCount(5),
+  prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.browser-use.com/cloud/tutorials/integrations/ai-sdk',
+    apiKeyUrl: 'https://cloud.browser-use.com/settings?tab=api-keys',
+    websiteUrl: 'https://browser-use.com',
+    npmUrl: 'https://www.npmjs.com/package/browser-use-sdk',
+  },
 ];
