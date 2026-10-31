@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 from pydantic import BaseModel
 
 
@@ -12,3 +14,14 @@ class ToolInvocation(BaseModel):
     toolName: str
     args: dict
     result: dict
+
+
+class ClientPart(BaseModel):
+    type: str
+    toolCallId: Optional[str] = None
+    text: Optional[str] = None
+    url: Optional[str] = None
+    mediaType: Optional[str] = None
+    input: Optional[Any] = None
+    output: Optional[Any] = None
+    state: Optional[str] = None
