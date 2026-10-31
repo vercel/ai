@@ -63,6 +63,7 @@ pnpm build          # Build all packages
 | `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm konsistent`        | Run code consistency validation and checks                        |
+| `pnpm run-verifiers`     | Run agent verifier checks                                         |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
@@ -79,6 +80,30 @@ Run these from within a package directory (e.g., `packages/ai`):
 | `pnpm test:node`   | Run Node.js tests only      |
 | `pnpm test:edge`   | Run Edge runtime tests only |
 | `pnpm test:watch`  | Run tests in watch mode     |
+
+### Guidelines
+
+Individual domain-scoped guideline Markdown files are found in `.agents/guidelines`. As you create or edit files, you can run `pnpm discover-guidelines` to get a list of all matching guidelines for a set of given files.
+
+Examples:
+
+```bash
+# Gets the list of guideline files that apply to the `harness` package.
+pnpm discover-guidelines --paths packages/harness
+
+# Gets the list of guideline files that apply to any package `README.md` and `tsconfig.json` files.
+pnpm discover-guidelines --paths 'packages/*/README.md' --paths 'packages/*/tsconfig.json'
+
+# Gets the list of guideline files that apply to any files currently staged in git
+pnpm discover-guidelines --staged
+
+# Gets the list of guideline files that apply to any modified non-ignored files, whether staged, tracked, or neither
+pnpm discover-guidelines --modified
+```
+
+If any guideline files are returned from the command, read their contents to learn about the guidelines to follow.
+
+Many guideline files are accompanied by matching verifier scripts in `.agents/verifiers`. Run `pnpm run-verifiers` with the same `--paths`, `--staged`, or `--modified` flags that `pnpm discover-guidelines` accepts to deterministically check whether the given files satisfy the guidelines. Verifiers aren't necessarily comprehensive; but when they flag something, it is a clear guideline violation.
 
 ### Running Examples
 
