@@ -395,6 +395,8 @@ export function toUIMessageChunk<
     }
 
     case 'tool-input-end':
+    // Compaction requires accumulated UI history and is handled by toUIMessageStream.
+    case 'compaction':
     case 'raw': {
       return undefined;
     }

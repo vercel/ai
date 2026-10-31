@@ -1,6 +1,12 @@
 import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  IdGenerator,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type { CompactionCheckpoint } from '../compact-messages/types';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -16,7 +22,11 @@ import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-messa
 import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
+import type {
+  CompactionUIPart,
+  InferUIMessageMetadata,
+  UIMessage,
+} from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { ErrorHandler } from '../util/error-handler';
 import type { ContentPart } from './content-part';
@@ -51,6 +61,13 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * and a message ID is provided for the response message.
    */
   originalMessages?: UI_MESSAGE[];
+
+  /**
+   * Compacted context to persist with this response. Created with
+   * `createUIMessageCompaction` and emitted before response content.
+   * Manual records must contain only context the client is allowed to receive.
+   */
+  compaction?: CompactionUIPart;
 
   /**
    * Generate a message ID for the response message.
@@ -88,6 +105,8 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Send reasoning parts to the client.
    * Default to true.
+   * Automatic client-persisted compaction is rejected when false because
+   * replacement history and summaries can contain withheld reasoning.
    */
   sendReasoning?: boolean;
 
@@ -557,6 +576,19 @@ export type TextStreamStartStepPart = {
   warnings: CallWarning[];
 };
 
+/** A validated replacement history applied before the next model step. */
+export type TextStreamCompactionPart = {
+  type: 'compaction';
+  messages: ModelMessage[];
+  checkpoint?: CompactionCheckpoint;
+  /**
+   * Source history contains application tool errors, including errors that may
+   * have been incorporated into a summary. Prevents client persistence from
+   * bypassing UI error masking.
+   */
+  hasUnredactedToolErrors?: true;
+};
+
 export type TextStreamFinishStepPart = {
   type: 'finish-step';
   response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
@@ -614,6 +646,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolApprovalRequestPart<TOOLS>
   | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart
+  | TextStreamCompactionPart
   | TextStreamFinishStepPart
   | TextStreamStartPart
   | TextStreamFinishPart

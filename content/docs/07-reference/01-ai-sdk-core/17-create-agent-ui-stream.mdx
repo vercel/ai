@@ -41,6 +41,16 @@ export async function* streamAgent(
 }
 ```
 
+## Context Compaction
+
+For a `ToolLoopAgent` whose `prepareStep` returns `{ compaction: await compactMessages(...) }`, this helper automatically converts ordered compaction events into built-in UI records. It captures the UI boundary, including compaction between steps of the same assistant message.
+
+On later requests, pass the complete stored `uiMessages`. The helper applies the latest matching compaction record, appends subsequent UI content, and restores its checkpoint for `prepareStep`. Persist the complete messages provided to `onEnd`; no separate model-history store or manual record writer is needed.
+
+See [Compact Agent Context](/cookbook/guides/agent-context-compaction) for a complete example.
+
+Automatic client-persisted compaction rejects `sendReasoning: false` and context involving masked application tool errors, including summaries derived from those errors. Keep replacement model history and its checkpoint server-side when that context must remain private. Ordinary UI reasoning filtering and error masking continue to apply when no automatic compaction record is emitted.
+
 ## Parameters
 
 <PropertiesTable

@@ -114,8 +114,12 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   };
 }
 
-export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
+export function processUIMessageStream<
+  UI_MESSAGE extends UIMessage,
+  INPUT_CHUNK = UIMessageChunk,
+>({
   stream,
+  transformChunk,
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
@@ -126,7 +130,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   resetStateOnFirstMessageStart = false,
 }: {
   // input stream is not fully typed yet:
-  stream: ReadableStream<UIMessageChunk>;
+  stream: ReadableStream<INPUT_CHUNK>;
+  /** Resolve internal stream events while holding the same state update job. */
+  transformChunk?: (options: {
+    chunk: INPUT_CHUNK;
+    state: StreamingUIMessageState<UI_MESSAGE>;
+  }) => UIMessageChunk | PromiseLike<UIMessageChunk>;
   messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
@@ -148,9 +157,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   let isFirstMessageStart = true;
 
   return stream.pipeThrough(
-    new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
-      async transform(chunk, controller) {
+    new TransformStream<INPUT_CHUNK, InferUIMessageChunk<UI_MESSAGE>>({
+      async transform(inputChunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
+          const chunk =
+            transformChunk == null
+              ? (inputChunk as UIMessageChunk)
+              : await transformChunk({ chunk: inputChunk, state });
+
           function getCurrentStepParts() {
             const parts = state.message.parts;
             let currentStepStartIndex = parts.length - 1;
@@ -488,6 +502,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           }
 
           switch (chunk.type) {
+            case 'compaction': {
+              state.message.parts.push(chunk);
+              write();
+              break;
+            }
+
             case 'text-start': {
               const textPart: TextUIPart = {
                 type: 'text',

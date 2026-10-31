@@ -291,6 +291,29 @@ data: {"type":"custom","kind":"openai.compaction","providerMetadata":{"openai":{
 
 ```
 
+### Compaction Part
+
+A built-in compaction part stores replacement model context and the boundary of UI history it replaces. The client retains it in the assistant message without removing the earlier visible messages.
+
+Agent UI helpers create this chunk automatically for `prepareStep.compaction` results. For custom streams, create it with [`createUIMessageCompaction`](/docs/reference/ai-sdk-ui/create-ui-message-compaction). Its shape is:
+
+```typescript
+{
+  type: 'compaction';
+  version: 1;
+  replaces: {
+    messageId: string;
+    messageCount: number;
+    partCount: number;
+    digest: string;
+  };
+  messages: JSONValue[];
+  checkpoint?: CompactionCheckpoint;
+}
+```
+
+The `messages` field is SDK-managed serialized model context. `replaces` records an exclusive boundary and a fingerprint of the covered UI prefix. The optional `checkpoint` preserves the summary descriptor returned by `compactMessages`. On the next request, `convertToModelMessages` uses the latest applicable record plus subsequent UI content. This is separate from provider-specific `custom` parts such as `openai.compaction`.
+
 ### Data Parts
 
 Custom data parts allow streaming of arbitrary structured data with type-specific handling.

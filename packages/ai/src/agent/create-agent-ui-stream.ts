@@ -17,13 +17,17 @@ import type { InferUIMessageChunk } from '../ui-message-stream';
 import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import { resolveUIMessageCompaction } from '../ui/resolve-ui-message-compaction';
 import type {
   InferUIMessageTools,
   InferUITools,
   UIMessage,
   UIDataTypes,
 } from '../ui/ui-messages';
-import { validateUIMessagesForAgent } from '../ui/validate-ui-messages';
+import {
+  validateUIMessages,
+  validateUIMessagesForAgent,
+} from '../ui/validate-ui-messages';
 import {
   createAsyncIterableStream,
   type AsyncIterableStream,
@@ -32,6 +36,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { Steering } from '../generate-text/steering';
 import type { Agent } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
+import type { CompactionCheckpoint } from '../compact-messages/types';
 
 /**
  * UI stream options with separate generation and UI message step callbacks.
@@ -122,8 +127,34 @@ export async function createAgentUIStream<
     });
   }
 
+  // Select compacted context before current tool schemas can reject or rewrite
+  // historical tool parts that the record has already replaced.
+  const hasCompaction =
+    Array.isArray(uiMessages) &&
+    uiMessages.some(
+      message =>
+        message != null &&
+        typeof message === 'object' &&
+        'parts' in message &&
+        Array.isArray(message.parts) &&
+        message.parts.some(
+          part =>
+            part != null &&
+            typeof part === 'object' &&
+            part.type === 'compaction',
+        ),
+    );
+  const structuralMessages = hasCompaction
+    ? await validateUIMessages<UI_MESSAGE>({ messages: uiMessages })
+    : undefined;
+  const projection =
+    structuralMessages == null
+      ? undefined
+      : await resolveUIMessageCompaction<UI_MESSAGE>(structuralMessages);
+  const appliedCompaction = projection?.appliedCompaction;
+
   const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
-    messages: uiMessages,
+    messages: appliedCompaction == null ? uiMessages : projection!.messages,
     // tools are compatible; the casting is required because the context param is
     // not available in ui messages
     tools: agent.tools as unknown as {
@@ -134,13 +165,33 @@ export async function createAgentUIStream<
     },
   });
 
-  const modelMessages = await convertToModelMessages(validatedMessages, {
-    tools: agent.tools,
-    convertDataPart,
-  });
+  let compactionCheckpoint: CompactionCheckpoint | undefined =
+    appliedCompaction?.checkpoint;
+  const remainingModelMessages = await convertToModelMessages(
+    appliedCompaction == null
+      ? validatedMessages
+      : validatedMessages.map(message => ({
+          ...message,
+          // The full history was already projected. Do not resolve records a
+          // second time relative to the shortened suffix.
+          parts: message.parts.filter(part => part.type !== 'compaction'),
+        })),
+    {
+      tools: agent.tools,
+      convertDataPart,
+      onCompactionApplied: compaction => {
+        compactionCheckpoint = compaction.checkpoint;
+      },
+    },
+  );
+  const modelMessages =
+    appliedCompaction == null
+      ? remainingModelMessages
+      : [...projection!.context, ...remainingModelMessages];
 
   const result = await agent.stream({
     prompt: modelMessages,
+    ...(compactionCheckpoint != null ? { compactionCheckpoint } : {}),
     options: options as CALL_OPTIONS,
     abortSignal,
     timeout,
@@ -152,7 +203,8 @@ export async function createAgentUIStream<
 
   // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
   const originalMessages =
-    uiMessageStreamOptions.originalMessages ?? validatedMessages;
+    uiMessageStreamOptions.originalMessages ??
+    (appliedCompaction == null ? validatedMessages : structuralMessages!);
 
   return createAsyncIterableStream(
     toUIMessageStream({

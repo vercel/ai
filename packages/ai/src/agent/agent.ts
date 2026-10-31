@@ -21,6 +21,7 @@ import type {
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
 import type { TimeoutConfiguration } from '../prompt/request-options';
+import type { CompactionCheckpoint } from '../compact-messages/types';
 
 /**
  * Parameters for calling an agent.
@@ -68,6 +69,9 @@ export type AgentCallParameters<
      * Abort signal.
      */
     abortSignal?: AbortSignal;
+
+    /** Checkpoint embedded in the input model history, restored by UI helpers. */
+    compactionCheckpoint?: CompactionCheckpoint;
 
     /**
      * Timeout in milliseconds. Can be specified as a number or as an object

@@ -127,6 +127,10 @@ import type {
   InferPartialOutput,
 } from './output-utils';
 import type { PrepareStepFunction } from './prepare-step';
+import type { CompactionCheckpoint } from '../compact-messages/types';
+import { resolveStepCompaction } from '../compact-messages/resolve-step-compaction';
+import { hasApplicationToolErrors } from '../compact-messages/has-application-tool-errors';
+import { validateCheckpoint } from '../compact-messages/validate-compaction';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
@@ -487,6 +491,7 @@ function streamTextInternal<
     experimental_telemetry,
     telemetry = experimental_telemetry,
     prepareStep,
+    compactionCheckpoint,
     providerOptions,
     activeTools,
     toolOrder,
@@ -649,6 +654,9 @@ function streamTextInternal<
        * If you return undefined (or for undefined settings), the settings from the outer level will be used.
        */
       prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+      /** Checkpoint for compacted history supplied in prompt or messages. */
+      compactionCheckpoint?: CompactionCheckpoint;
 
       /**
        * A function that attempts to repair a tool call that failed to parse.
@@ -994,6 +1002,7 @@ function streamTextInternal<
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
+    compactionCheckpoint,
     timeout,
     onChunk,
     onError,
@@ -1394,6 +1403,7 @@ class DefaultStreamTextResult<
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
+    compactionCheckpoint,
     now,
     generateId,
     generateCallId,
@@ -1458,6 +1468,7 @@ class DefaultStreamTextResult<
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
+    compactionCheckpoint: CompactionCheckpoint | undefined;
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
@@ -1550,6 +1561,7 @@ class DefaultStreamTextResult<
     let recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
+    let hasUnredactedToolErrors = false;
     let currentStepMessages: Array<ModelMessage> = [];
     let currentStepSteeringMessages: Array<UserModelMessage> = [];
     let isAborted = false;
@@ -2197,6 +2209,7 @@ class DefaultStreamTextResult<
         messages,
         allowSystemInMessages,
       } as Prompt);
+      await validateCheckpoint(initialPrompt.messages, compactionCheckpoint);
 
       const startEvent = {
         callId,
@@ -2568,6 +2581,11 @@ class DefaultStreamTextResult<
             ...steeringMessages,
           ];
 
+          // Summarization can copy private errors into ordinary text. Remember
+          // their presence even if later replacements no longer contain errors.
+          hasUnredactedToolErrors ||=
+            hasApplicationToolErrors(stepInputMessages);
+
           const prepareStepResult = await prepareStep?.({
             model,
             steps: recordedSteps,
@@ -2575,6 +2593,9 @@ class DefaultStreamTextResult<
             instructions: instructionsForNextStep,
             initialInstructions: initialPrompt.instructions,
             messages: stepInputMessages,
+            ...(compactionCheckpoint === undefined
+              ? {}
+              : { compactionCheckpoint }),
             initialMessages,
             responseMessages: accumulatedResponseMessages,
             ...(steeringMessages.length > 0
@@ -2584,6 +2605,35 @@ class DefaultStreamTextResult<
             runtimeContext,
             experimental_sandbox: sandbox,
           });
+
+          const stepCompaction = await resolveStepCompaction({
+            messages: stepInputMessages,
+            checkpoint: compactionCheckpoint,
+            prepareStepResult,
+          });
+          compactionCheckpoint = stepCompaction.checkpoint;
+          if (stepCompaction.compacted) {
+            hasUnredactedToolErrors ||= hasApplicationToolErrors(
+              stepCompaction.messages,
+            );
+            self.addStream(
+              new ReadableStream({
+                start(controller) {
+                  controller.enqueue({
+                    type: 'compaction',
+                    messages: cloneModelMessages(stepCompaction.messages),
+                    ...(hasUnredactedToolErrors
+                      ? { hasUnredactedToolErrors: true as const }
+                      : {}),
+                    ...(compactionCheckpoint === undefined
+                      ? {}
+                      : { checkpoint: { ...compactionCheckpoint } }),
+                  });
+                  controller.close();
+                },
+              }),
+            );
+          }
 
           const stepSandbox =
             prepareStepResult?.experimental_sandbox ?? sandbox;
@@ -2635,7 +2685,7 @@ class DefaultStreamTextResult<
             stepToolChoice.type === 'none' ? undefined : executionTools;
 
           const stepMessages = appendToolCallerMessages({
-            messages: prepareStepResult?.messages ?? stepInputMessages,
+            messages: stepCompaction.messages,
             toolCallerMessages,
           });
           currentStepMessages = stepMessages;
@@ -3425,10 +3475,17 @@ class DefaultStreamTextResult<
                     } catch (error) {
                       steeringRun?.end('error');
 
-                      enqueueStepPart(controller, {
-                        type: 'error',
-                        error,
-                      });
+                      // A next-step compaction may already be queued. Keep the
+                      // setup failure after it instead of adding it to the
+                      // previous step's stream, which is still being flushed.
+                      self.addStream(
+                        new ReadableStream({
+                          start(controller) {
+                            controller.enqueue({ type: 'error', error });
+                            controller.close();
+                          },
+                        }),
+                      );
 
                       self.closeStream();
                     }
@@ -3813,6 +3870,7 @@ class DefaultStreamTextResult<
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
+    compaction,
     generateMessageId,
     onStepEnd,
     onStepFinish,
@@ -3832,6 +3890,7 @@ class DefaultStreamTextResult<
         stream: this.stream,
         tools: this.tools,
         originalMessages,
+        compaction,
         generateMessageId,
         onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,
@@ -3849,6 +3908,7 @@ class DefaultStreamTextResult<
     response: ServerResponse,
     {
       originalMessages,
+      compaction,
       generateMessageId,
       onStepEnd,
       onStepFinish,
@@ -3867,6 +3927,7 @@ class DefaultStreamTextResult<
       response,
       stream: this.toUIMessageStream({
         originalMessages,
+        compaction,
         generateMessageId,
         onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,
@@ -3891,6 +3952,7 @@ class DefaultStreamTextResult<
 
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
+    compaction,
     generateMessageId,
     onStepEnd,
     onStepFinish,
@@ -3908,6 +3970,7 @@ class DefaultStreamTextResult<
     return createUIMessageStreamResponse({
       stream: this.toUIMessageStream({
         originalMessages,
+        compaction,
         generateMessageId,
         onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,

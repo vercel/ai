@@ -94,6 +94,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'compaction'
           | 'start'
           | 'abort';
       }

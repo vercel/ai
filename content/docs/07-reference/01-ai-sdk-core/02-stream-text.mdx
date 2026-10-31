@@ -664,6 +664,13 @@ retain the content their contracts require.
         'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
+      name: 'compactionCheckpoint',
+      type: 'CompactionCheckpoint',
+      isOptional: true,
+      description:
+        'Checkpoint embedded in the input model history. Passed to prepareStep and updated when a compaction result is applied. Agent UI helpers restore this automatically from the latest applicable UI compaction record.',
+    },
+    {
       name: 'prepareStep',
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
@@ -714,6 +721,13 @@ retain the content their contracts require.
                       type: 'Array<ModelMessage>',
                       description:
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
+                    },
+                    {
+                      name: 'compactionCheckpoint',
+                      type: 'CompactionCheckpoint | undefined',
+                      isOptional: true,
+                      description:
+                        'The checkpoint embedded in the current message history. Pass it to compactMessages to recognize and update an existing summary.',
                     },
                     {
                       name: 'experimental_steeringMessages',
@@ -856,7 +870,14 @@ retain the content their contracts require.
               type: 'Array<ModelMessage>',
               isOptional: true,
               description:
-                'Optionally override the full set of messages sent to the model for this step.',
+                'Optionally override the full set of messages sent to the model for this and later steps. Clears the current compaction checkpoint and does not emit a compaction record. Cannot be combined with compaction.',
+            },
+            {
+              name: 'compaction',
+              type: 'CompactionResult',
+              isOptional: true,
+              description:
+                'A result returned by compactMessages. Applies its messages and checkpoint to this and later steps. Streaming calls emit an ordered compaction event when history changes, allowing UI streams to retain a built-in record. Cannot be combined with messages.',
             },
             {
               name: 'runtimeContext',
@@ -1032,7 +1053,7 @@ retain the content their contracts require.
               name: 'chunk',
               type: 'TextStreamPart<TOOLS>',
               description:
-                'The stream part. This is the same union as `stream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
+                'The stream part. This is the same union as `stream` and includes `start`, `compaction`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
               properties: [
                 {
                   type: 'TextStreamPart',
@@ -3419,6 +3440,36 @@ retain the content their contracts require.
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
+          type: 'TextStreamCompactionPart',
+          description:
+            'A validated replacement history from prepareStep.compaction, emitted in order before the model step that uses it. UI conversion captures the corresponding visible-history boundary.',
+          parameters: [
+            {
+              name: 'type',
+              type: "'compaction'",
+              description: 'The event type.',
+            },
+            {
+              name: 'messages',
+              type: 'ModelMessage[]',
+              description: 'The complete replacement model history.',
+            },
+            {
+              name: 'checkpoint',
+              type: 'CompactionCheckpoint',
+              isOptional: true,
+              description: 'The checkpoint embedded in the replacement history.',
+            },
+            {
+              name: 'hasUnredactedToolErrors',
+              type: 'true',
+              isOptional: true,
+              description:
+                'Marks application tool errors in source or replacement history, including errors incorporated into summaries. UI conversion rejects automatic client persistence of this context to preserve error masking.',
+            },
+          ],
+        },
+        {
           type: 'TextStreamTextEndPart',
           description: 'End of a text block, including optional citations supporting that block.',
           parameters: [
@@ -4156,7 +4207,14 @@ retain the content their contracts require.
               name: 'originalMessages',
               type: 'UIMessage[]',
               isOptional: true,
-              description: 'The original messages.',
+              description: 'The original UI messages. Required to capture the visible-history boundary when prepareStep.compaction emits a compaction event. Agent UI helpers supply them automatically.',
+            },
+            {
+              name: 'compaction',
+              type: 'CompactionUIPart',
+              isOptional: true,
+              description:
+                'Optional manually created record for compaction performed before this stream. Emitted once at the beginning of the UI stream and retained in the assistant message. prepareStep.compaction results are converted into records automatically when originalMessages is provided; they do not require this option.',
             },
             {
               name: 'onStepEnd',
@@ -4194,7 +4252,7 @@ retain the content their contracts require.
               type: 'boolean',
               isOptional: true,
               description:
-                'Send reasoning parts to the client. Defaults to false.',
+                'Send reasoning parts to the client. Defaults to true. Automatic client-persisted compaction is rejected when false because replacement context or its summary may include withheld reasoning.',
             },
             {
               name: 'sendSources',
@@ -4215,7 +4273,7 @@ retain the content their contracts require.
               type: 'boolean',
               isOptional: true,
               description:
-                'Send the message start event to the client. Set to false if you are using additional streamText calls and the message start event has already been sent. Defaults to true.',
+                'Send the message start event to the client. Set to false if the surrounding stream has already sent it. Automatic compaction with sendStart: false requires originalMessages to end with a complete snapshot of the current assistant message, including every preceding part emitted by the surrounding stream. A matching response ID alone is insufficient. Defaults to true.',
             },
             {
               name: 'onError',
