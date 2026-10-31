@@ -172,6 +172,39 @@ console.log(text);
 
 For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
 
+#### Keenable
+
+<Note>
+  The tools work without an API key. Set `KEENABLE_API_KEY` to remove the
+  hourly rate limit. Get a key from the [Keenable
+  console](https://app.keenable.ai/console).
+</Note>
+
+First, install the Keenable tools:
+
+```bash
+pnpm install @keenable/ai-sdk
+```
+
+Then, import `keenableTools` and pass it into `generateText`, `streamText`, or your agent. It adds `keenable_search` and `keenable_fetch`:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { keenableTools } from '@keenable/ai-sdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
+  stopWhen: isStepCount(6),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Keenable AI SDK documentation](https://docs.keenable.ai/integrations/vercel).
+
 #### Parallel Web
 
 <Note>Get your API key from the [Parallel Platform](https://parallel.ai).</Note>
