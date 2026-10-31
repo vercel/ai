@@ -95,6 +95,11 @@ type BufferedEvent<TOut extends { type: string }> = {
   listeners?: ReadonlyArray<Listener<TOut, EventTypeOf<TOut>>>;
 };
 
+type PendingSend = {
+  text: string;
+  onSent?: () => void;
+};
+
 /*
  * The agent and utilities entrypoints bundle this module separately. A global
  * symbol lets the agent recognize metadata attached by the channel's bundle
@@ -257,7 +262,7 @@ export class SandboxChannel<
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
-  private readonly pendingSends: string[] = [];
+  private readonly pendingSends: PendingSend[] = [];
   private dispatchChain: Promise<void> = Promise.resolve();
   private activeConnectAbortController: AbortController | undefined;
   private reconnectAbortController: AbortController | undefined;
@@ -385,13 +390,18 @@ export class SandboxChannel<
     };
   }
 
-  send(message: TIn): void {
+  /**
+   * Queue a frame if disconnected. `onSent` runs in a microtask after the frame
+   * is handed to the socket, not after bridge acknowledgement. Reconnect
+   * handlers run before notifications for frames flushed on that connection.
+   */
+  send(message: TIn, { onSent }: { onSent?: () => void } = {}): void {
     if (this.terminal) {
       throw new Error(
         `SandboxChannel: cannot send ${message.type} — channel is closed.`,
       );
     }
-    this.rawSend(JSON.stringify(message));
+    this.rawSend(JSON.stringify(message), onSent);
   }
 
   /**
@@ -634,11 +644,12 @@ export class SandboxChannel<
     });
   }
 
-  private rawSend(text: string): void {
+  private rawSend(text: string, onSent?: () => void): void {
     if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
+      if (onSent) queueMicrotask(onSent);
     } else {
-      this.pendingSends.push(text);
+      this.pendingSends.push({ text, onSent });
     }
   }
 
@@ -651,8 +662,10 @@ export class SandboxChannel<
         this.ws &&
         this.ws.readyState === this.ws.OPEN
       ) {
-        this.ws.send(this.pendingSends[sent]);
+        const { text, onSent } = this.pendingSends[sent];
+        this.ws.send(text);
         sent++;
+        if (onSent) queueMicrotask(onSent);
       }
     } finally {
       this.pendingSends.splice(0, sent);
