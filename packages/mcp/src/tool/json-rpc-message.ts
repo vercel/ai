@@ -7,7 +7,7 @@ const JSONRPC_VERSION = '2.0';
 const JSONRPCRequestSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
-    id: z.union([z.string(), z.number().int()]),
+    id: z.union([z.string(), z.number().int(), z.null()]),
   })
   .merge(RequestSchema)
   .strict();
@@ -17,7 +17,7 @@ export type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
 const JSONRPCResponseSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
-    id: z.union([z.string(), z.number().int()]),
+    id: z.union([z.string(), z.number().int(), z.null()]),
     result: ResultSchema,
   })
   .strict();
@@ -27,7 +27,7 @@ export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 const JSONRPCErrorSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
-    id: z.optional(z.union([z.string(), z.number().int()])),
+    id: z.optional(z.union([z.string(), z.number().int(), z.null()])),
     error: z.object({
       code: z.number().int(),
       message: z.string(),
