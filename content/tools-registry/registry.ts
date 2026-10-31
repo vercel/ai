@@ -751,4 +751,40 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'qveris',
+    name: 'QVeris',
+    description:
+      'Connect AI agents to professional data and tools across finance, company research, social media, life sciences, research, and commerce. Discover relevant capabilities, inspect their parameters when needed, and execute calls through a shared API.',
+    packageName: '@qverisai/sdk',
+    tags: ['data', 'research', 'tool-discovery'],
+    apiKeyEnvName: 'QVERIS_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @qverisai/sdk ai zod',
+      npm: 'npm install @qverisai/sdk ai zod',
+      yarn: 'yarn add @qverisai/sdk ai zod',
+      bun: 'bun add @qverisai/sdk ai zod',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { Qveris } from '@qverisai/sdk';
+import { getQverisTools } from '@qverisai/sdk/ai';
+
+// Set QVERIS_API_KEY and AI_GATEWAY_API_KEY in your environment.
+// Capability calls may consume QVeris credits; model usage is billed separately.
+const qveris = Qveris.fromEnv();
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  tools: getQverisTools(qveris),
+  stopWhen: isStepCount(6),
+  prompt:
+    'Find a current weather capability and get the weather in Tokyo. Inspect its parameters if needed before calling it.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://qveris.ai/docs/js-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://qveris.ai/hosted-mcp',
+    websiteUrl: 'https://qveris.ai',
+    npmUrl: 'https://www.npmjs.com/package/@qverisai/sdk',
+  },
 ];
