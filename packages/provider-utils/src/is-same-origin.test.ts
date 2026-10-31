@@ -41,4 +41,9 @@ describe('isSameOrigin', () => {
       false,
     );
   });
+
+  it('fails closed on opaque origins (data:, file:)', () => {
+    expect(isSameOrigin('data:text/plain,a', 'data:text/plain,b')).toBe(false);
+    expect(isSameOrigin('file:///etc/passwd', 'file:///var/log')).toBe(false);
+  });
 });
