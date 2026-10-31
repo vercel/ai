@@ -1,0 +1,61 @@
+---
+title: Kavel
+description: Kavel Provider for the AI SDK
+---
+
+# Kavel
+
+[Kavel](https://www.kavel.ai/?utm_source=ai-sdk&utm_medium=docs) is an AI image and video studio. The Kavel provider brings its image models to the standard `generateImage` API. It runs on Kavel's free anonymous tier with **no API key**, so `generateImage` works on a machine with nothing configured, and on your Kavel account when a key is set.
+
+## Setup
+
+The Kavel provider is available in the `kavel-ai-provider` module. You can install it with:
+
+<InstallPackages packages="kavel-ai-provider" />
+
+## Provider Instance
+
+Import the default `kavel` instance, or build one with `createKavel`:
+
+```ts
+import { createKavel, kavel } from 'kavel-ai-provider';
+
+const model = kavel.image(); // free tier, or KAVEL_API_KEY when set
+
+const custom = createKavel({ apiKey: process.env.KAVEL_API_KEY });
+```
+
+You can create an API key at [kavel.ai/settings/apikeys](https://www.kavel.ai/settings/apikeys?utm_source=ai-sdk&utm_medium=docs).
+
+## Image Models
+
+```ts
+import { kavel } from 'kavel-ai-provider';
+import { generateImage } from 'ai';
+
+const { image, providerMetadata } = await generateImage({
+  model: kavel.image(),
+  prompt: 'matte black ceramic mug on pale oak, soft window light from the left',
+  aspectRatio: '16:9',
+});
+
+// providerMetadata.kavel.images[0].url is a permanent CDN link to the same image
+```
+
+Supported settings: `aspectRatio` (`1:1`, `16:9`, `9:16`, `4:3`, `3:4`). `size` and `seed` are not supported and return a warning. One image per call.
+
+### Free tier
+
+Without a key the provider uses the free `kavel-image-v1` model. Free output is 1K and watermarked, with a small daily allowance per machine. When the allowance is spent the call throws a `KavelError` with `reason: 'quota'`.
+
+### With an API key
+
+With a key, `kavel.image(modelId)` runs any image model on your plan (for example `gpt-image-2`), without a watermark on a paid plan. Pass `providerOptions.kavel.imageUrl` to edit an existing image:
+
+```ts
+await generateImage({
+  model: kavel.image(),
+  prompt: 'shoulder-length layered haircut, keep the same face and lighting',
+  providerOptions: { kavel: { imageUrl: 'https://example.com/portrait.jpg' } },
+});
+```
