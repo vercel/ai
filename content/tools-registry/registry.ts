@@ -751,4 +751,36 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'surgemesh',
+    name: 'Surgemesh',
+    description:
+      'Social publishing for agents. Quote the exact price of a post before committing, schedule it to Facebook Pages, Instagram and Bluesky (more networks coming), check prepaid credit and track delivery. Quote-first and exactly-once by design. Preview: quotes, channel connects and sandbox posts work today; live posting and payments are coming soon.',
+    packageName: '@surgemesh/ai-sdk',
+    tags: ['social-media', 'publishing', 'scheduling', 'marketing'],
+    apiKeyEnvName: 'SURGEMESH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @surgemesh/ai-sdk',
+      npm: 'npm install @surgemesh/ai-sdk',
+      yarn: 'yarn add @surgemesh/ai-sdk',
+      bun: 'bun add @surgemesh/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { surgemeshTools } from '@surgemesh/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: surgemeshTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'List my Surgemesh channels, quote a post for tomorrow at 15:00 UTC, ' +
+    "then schedule 'Hello from our agent' to my sandbox channel at that time.",
+});
+
+console.log(text);`,
+    docsUrl: 'https://surgemesh.com/docs/ai-sdk',
+    apiKeyUrl: 'https://surgemesh.com/docs/ai-sdk#get-an-api-key',
+    websiteUrl: 'https://surgemesh.com',
+    npmUrl: 'https://www.npmjs.com/package/@surgemesh/ai-sdk',
+  },
 ];
