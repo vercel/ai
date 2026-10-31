@@ -751,4 +751,45 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'clawfetch',
+    name: 'ClawFetch',
+    description:
+      'Pay-per-call web intelligence for agents: fetch pages as readable text, render JavaScript sites, pull structured JSON from 17 site extractors (GitHub, npm, PyPI, Hacker News, YouTube, SEC EDGAR and more), parse documents, enrich companies and run multi-source research. No API key or account; each call is paid with an x402 USDC micropayment on Base.',
+    packageName: '@clawfetch/ai-sdk',
+    tags: [
+      'web-fetch',
+      'scraping',
+      'extraction',
+      'research',
+      'x402',
+      'payments',
+    ],
+    apiKeyEnvName: 'CLAWFETCH_PRIVATE_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @clawfetch/ai-sdk ai zod',
+      npm: 'npm install @clawfetch/ai-sdk ai zod',
+      yarn: 'yarn add @clawfetch/ai-sdk ai zod',
+      bun: 'bun add @clawfetch/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { clawfetchTools } from '@clawfetch/ai-sdk';
+
+// Tools are paid per call in USDC on Base via x402 (fetch $0.001, research $0.02).
+// The paying wallet is read from CLAWFETCH_PRIVATE_KEY; the model sees each price.
+const { fetchUrl, extractData, researchTopic } = clawfetchTools();
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'What changed in the latest release of vercel/ai on GitHub?',
+  tools: { fetchUrl, extractData, researchTopic },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/clawfetch/integrations/tree/main/typescript/ai-sdk#readme',
+    websiteUrl: 'https://clawfetch.ai',
+    npmUrl: 'https://www.npmjs.com/package/@clawfetch/ai-sdk',
+  },
 ];
