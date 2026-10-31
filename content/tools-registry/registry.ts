@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'pidgeon',
+    name: 'Pidgeon',
+    description:
+      'Email inboxes for AI agents. Create addresses, send, receive and reply in threads, and wait for the next message with verification codes and links already extracted. Every inbound message is screened for prompt injection.',
+    packageName: '@pidgeon-ai/ai-sdk',
+    tags: ['email', 'inbox', 'agents', 'security'],
+    apiKeyEnvName: 'PIDGEON_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pidgeon-ai/ai-sdk',
+      npm: 'npm install @pidgeon-ai/ai-sdk',
+      yarn: 'yarn add @pidgeon-ai/ai-sdk',
+      bun: 'bun add @pidgeon-ai/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pidgeonTools } from '@pidgeon-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: pidgeonTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'List the email addresses you can use, check the newest one for recent messages, and summarise anything that needs a reply.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pidgeon.ai/docs/ai-sdk',
+    apiKeyUrl: 'https://pidgeon.ai/app/developers/keys',
+    websiteUrl: 'https://pidgeon.ai',
+    npmUrl: 'https://www.npmjs.com/package/@pidgeon-ai/ai-sdk',
+  },
 ];
