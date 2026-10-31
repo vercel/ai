@@ -1,6 +1,7 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 
@@ -25,7 +26,10 @@ const webSearchCall = {
   type: 'web_search_call',
   id: 'ws_1',
   status: 'completed',
-  action: { type: 'search', query: 'python official website' },
+  action: {
+    type: 'search',
+    queries: ['python official website', 'ws_call_id=ws_1'],
+  },
 };
 
 describe('DeepSeekResponsesLanguageModel', () => {
@@ -357,6 +361,102 @@ describe('DeepSeekResponsesLanguageModel', () => {
       expect(result.finishReason).toEqual({
         unified: 'length',
         raw: 'max_output_tokens',
+      });
+    });
+  });
+
+  describe('recorded responses', () => {
+    it('maps a recorded web search response', async () => {
+      server.urls['https://api.deepseek.com/responses'].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync(
+            'src/responses/__fixtures__/deepseek-responses-web-search.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      const result = await provider.responses('deepseek-v4-pro').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [webSearchTool],
+      });
+
+      expect(result.content.map(part => part.type)).toEqual([
+        'reasoning',
+        'tool-call',
+        'tool-result',
+        'text',
+      ]);
+      expect(result.content[2]).toMatchObject({
+        type: 'tool-result',
+        toolName: 'web_search',
+        result: {
+          status: 'completed',
+          action: { type: 'search' },
+        },
+      });
+      expect(result.finishReason).toEqual({
+        unified: 'stop',
+        raw: 'completed',
+      });
+      expect(result.providerMetadata?.deepseek?.serverToolUse).toEqual({
+        toolSearch: 1,
+        toolFetch: 0,
+      });
+    });
+
+    it('maps a recorded web search stream', async () => {
+      server.urls['https://api.deepseek.com/responses'].response = {
+        type: 'stream-chunks',
+        chunks: fs
+          .readFileSync(
+            'src/responses/__fixtures__/deepseek-responses-web-search.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .map(line => `data: ${line}\n\n`),
+      };
+
+      const { stream } = await provider.responses('deepseek-v4-pro').doStream({
+        prompt: TEST_PROMPT,
+        tools: [webSearchTool],
+      });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(
+        parts
+          .filter(part => !part.type.endsWith('-delta'))
+          .map(part => part.type),
+      ).toEqual([
+        'stream-start',
+        'response-metadata',
+        'reasoning-start',
+        'reasoning-end',
+        'tool-call',
+        'tool-result',
+        'reasoning-start',
+        'reasoning-end',
+        'tool-call',
+        'tool-result',
+        'text-start',
+        'text-end',
+        'finish',
+      ]);
+      expect(
+        parts
+          .filter(part => part.type === 'tool-result')
+          .map(part => part.result),
+      ).toMatchObject([
+        { action: { type: 'search' } },
+        { action: { type: 'open_page' } },
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'completed' },
+        providerMetadata: {
+          deepseek: { serverToolUse: { toolSearch: 1, toolFetch: 1 } },
+        },
       });
     });
   });

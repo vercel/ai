@@ -588,6 +588,8 @@ const { text } = await generateText({
 
 The Responses API does not support `stopSequences`, `frequencyPenalty`, `presencePenalty`, `topK`, `seed`, or strict function tools. The provider omits them and returns an unsupported warning.
 
+DeepSeek rejects `toolChoice: 'required'` and forced tool choices while thinking is enabled, which is the default. Set `thinking.type` to `'disabled'` to use them. `'auto'` and `'none'` work in both modes.
+
 ### Web Search
 
 DeepSeek can search the web and read pages on the server while it generates a response. Add the `webSearch` tool to a `deepseek-v4-pro` Responses model. DeepSeek ignores the tool on `deepseek-flash`.

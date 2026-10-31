@@ -1,0 +1,106 @@
+{
+  "id": "06a814ed-8e19-446f-a65d-ead3a4afdbc7",
+  "object": "response",
+  "created_at": 1793433744,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1793433746,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 2000,
+  "max_tool_calls": null,
+  "model": "deepseek-v4-pro",
+  "moderation": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "6399e349-99e3-4a8e-ae5a-009ee78e589c",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "The user wants me to find the official Python website and reply with only its URL. I'll search."
+        }
+      ],
+      "summary": [],
+      "encrypted_content": "06a814ed-8e19-446f-a65d-ead3a4afdbc7-0"
+    },
+    {
+      "type": "web_search_call",
+      "id": "call_00_PGRes2P3KRfMQv8XzTTW8124",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": [
+          "official Python website",
+          "ws_call_id=call_00_PGRes2P3KRfMQv8XzTTW8124"
+        ]
+      }
+    },
+    {
+      "type": "message",
+      "id": "903cd6fe-b424-4cdd-bb28-0fea0a0507d2",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "https://www.python.org/"
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search",
+      "search_context_size": null,
+      "user_location": null
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 2484,
+    "input_tokens_details": {
+      "cached_tokens": 640
+    },
+    "output_tokens": 77,
+    "output_tokens_details": {
+      "reasoning_tokens": 21
+    },
+    "total_tokens": 2561,
+    "server_tool_use": {
+      "tool_search": 1,
+      "tool_fetch": 0
+    }
+  },
+  "user": null,
+  "metadata": {}
+}
