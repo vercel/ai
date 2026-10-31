@@ -62,4 +62,40 @@ describe('calculateTokensPerSecond', () => {
       }),
     ).toBe(0);
   });
+
+  it('should return 0 when tokens is negative', () => {
+    expect(
+      calculateTokensPerSecond({
+        tokens: -10,
+        durationMs: 500,
+      }),
+    ).toBe(0);
+  });
+
+  it('should return 0 when duration is negative', () => {
+    expect(
+      calculateTokensPerSecond({
+        tokens: 10,
+        durationMs: -500,
+      }),
+    ).toBe(0);
+  });
+
+  it('should return 0 when both tokens and duration are negative', () => {
+    expect(
+      calculateTokensPerSecond({
+        tokens: -10,
+        durationMs: -500,
+      }),
+    ).toBe(0);
+  });
+
+  it('should return 0 when tokens is 0', () => {
+    expect(
+      calculateTokensPerSecond({
+        tokens: 0,
+        durationMs: 500,
+      }),
+    ).toBe(0);
+  });
 });

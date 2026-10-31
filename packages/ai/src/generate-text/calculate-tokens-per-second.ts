@@ -11,7 +11,11 @@ export function calculateTokensPerSecond({
   tokens: number | undefined;
   durationMs: number | undefined;
 }): number {
-  const tokenRate = (1000 * (tokens ?? 0)) / (durationMs ?? 0);
+  if (tokens == null || durationMs == null || tokens <= 0 || durationMs <= 0) {
+    return 0;
+  }
+
+  const tokenRate = (1000 * tokens) / durationMs;
 
   return Number.isFinite(tokenRate) ? tokenRate : 0;
 }
