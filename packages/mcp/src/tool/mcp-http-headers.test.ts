@@ -84,10 +84,48 @@ describe('MCP HTTP headers', () => {
       },
       error: 'is not unique',
     },
+    {
+      schema: {
+        type: 'object',
+        anyOf: [
+          {
+            type: 'object',
+            properties: {
+              region: { type: 'string', 'x-mcp-header': 'Region' },
+            },
+          },
+        ],
+      },
+      error: 'not on a statically reachable property',
+    },
+    {
+      schema: {
+        type: 'object',
+        items: [{ type: 'string', 'x-mcp-header': 'Region' }],
+      },
+      error: 'not on a statically reachable property',
+    },
   ])('rejects invalid x-mcp-header schemas', ({ schema, error }) => {
     expect(getMCPToolHeaderBindings(schema)).toMatchObject({
       success: false,
       error: expect.stringContaining(error),
+    });
+  });
+
+  it('handles circular schemas without recursion limits', () => {
+    const schema: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        region: { type: 'string', 'x-mcp-header': 'Region' },
+      },
+    };
+    (schema.properties as Record<string, unknown>).self = schema;
+
+    expect(getMCPToolHeaderBindings(schema)).toEqual({
+      success: true,
+      bindings: [
+        { headerName: 'Region', path: ['region'], valueType: 'string' },
+      ],
     });
   });
 
