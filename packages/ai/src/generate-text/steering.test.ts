@@ -198,6 +198,48 @@ describe('createSteering', () => {
     expect((await outcome).id).toMatch(/^steer-/);
   });
 
+  it('should hold queued messages until they are promoted', async () => {
+    const steering = createSteering();
+    const run = startSteeringRun(steering)!;
+
+    void steering.queue('first', { id: 'queued-1' });
+    void steering.queue('second', { id: 'queued-2' });
+
+    expect(run.hasPendingMessages()).toBe(false);
+    expect(run.takeMessages()).toEqual([]);
+
+    expect(run.promoteQueuedMessage()).toBe(true);
+    expect(run.takeMessages()).toEqual([{ role: 'user', content: 'first' }]);
+  });
+
+  it('should return false when no message is queued', () => {
+    const run = startSteeringRun(createSteering())!;
+
+    expect(run.promoteQueuedMessage()).toBe(false);
+  });
+
+  it('should not deliver queued messages when the run ends', async () => {
+    const steering = createSteering();
+    const run = startSteeringRun(steering)!;
+
+    const outcome = steering.queue('too late', { id: 'queued-1' });
+    run.end('stop-condition');
+
+    expect(await outcome).toMatchObject({
+      type: 'not-delivered',
+      id: 'queued-1',
+      reason: 'stop-condition',
+    });
+  });
+
+  it('should share ids between steered and queued messages', () => {
+    const steering = createSteering();
+
+    const steered = steering.steer('first', { id: 'message-1' });
+
+    expect(steering.queue('retry', { id: 'message-1' })).toBe(steered);
+  });
+
   it('should throw when the steering object is used by two runs at once', () => {
     const steering = createSteering();
     startSteeringRun(steering);
@@ -218,7 +260,10 @@ describe('createSteering', () => {
 
   it('should throw for steering objects that were not created with createSteering', () => {
     expect(() =>
-      startSteeringRun({ steer: async () => undefined as never }),
+      startSteeringRun({
+        steer: async () => undefined as never,
+        queue: async () => undefined as never,
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       `[AI_InvalidArgumentError: Invalid argument for parameter experimental_steering: The steering object must be created with experimental_createSteering().]`,
     );

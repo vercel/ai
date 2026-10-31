@@ -81,6 +81,24 @@ export interface Steering {
     message: string | UserModelMessage,
     options?: { id?: string },
   ): Promise<SteeringOutcome>;
+
+  /**
+   * Adds a user message to the run once the model has finished its current
+   * task, i.e. when it gives a final answer without tool calls. The run then
+   * continues with the message unless a stop condition is met. Queued
+   * messages are delivered one per task, in order, after any waiting steering
+   * messages.
+   *
+   * @param message - The user message, or its text.
+   * @param options.id - The id of the message. Sending a message again with
+   * the same id returns the outcome of the first message.
+   *
+   * @returns The outcome of the message. It never rejects.
+   */
+  queue(
+    message: string | UserModelMessage,
+    options?: { id?: string },
+  ): Promise<SteeringOutcome>;
 }
 
 /**
@@ -88,6 +106,12 @@ export interface Steering {
  */
 export type SteeringRun = {
   hasPendingMessages(): boolean;
+
+  /**
+   * Moves the oldest queued message to the waiting messages for the next
+   * step. Returns `false` when no message is queued.
+   */
+  promoteQueuedMessage(): boolean;
 
   /**
    * Takes the waiting messages for the next step. They are resolved by
@@ -116,6 +140,7 @@ type PendingSteer = {
 class DefaultSteering implements Steering {
   private state: 'idle' | 'running' | 'ended' = 'idle';
   private pending: Array<PendingSteer> = [];
+  private queued: Array<PendingSteer> = [];
   private taken: Array<PendingSteer> = [];
   private outcomes = new Map<string, Promise<SteeringOutcome>>();
 
@@ -123,8 +148,25 @@ class DefaultSteering implements Steering {
     message: string | UserModelMessage,
     options?: { id?: string },
   ): Promise<SteeringOutcome> {
-    const id = options?.id ?? generateSteeringId();
+    return this.add({ message, id: options?.id, target: this.pending });
+  }
 
+  queue(
+    message: string | UserModelMessage,
+    options?: { id?: string },
+  ): Promise<SteeringOutcome> {
+    return this.add({ message, id: options?.id, target: this.queued });
+  }
+
+  private add({
+    message,
+    id = generateSteeringId(),
+    target,
+  }: {
+    message: string | UserModelMessage;
+    id?: string;
+    target: Array<PendingSteer>;
+  }): Promise<SteeringOutcome> {
     const existingOutcome = this.outcomes.get(id);
     if (existingOutcome != null) {
       return existingOutcome;
@@ -144,7 +186,7 @@ class DefaultSteering implements Steering {
             reason: 'finished',
           })
         : new Promise<SteeringOutcome>(resolve => {
-            this.pending.push({ id, message: userMessage, resolve });
+            target.push({ id, message: userMessage, resolve });
           });
 
     this.outcomes.set(id, outcome);
@@ -167,6 +209,16 @@ class DefaultSteering implements Steering {
     return {
       hasPendingMessages: () =>
         this.state === 'running' && this.pending.length > 0,
+
+      promoteQueuedMessage: () => {
+        const next = this.state === 'running' ? this.queued.shift() : undefined;
+        if (next == null) {
+          return false;
+        }
+
+        this.pending.push(next);
+        return true;
+      },
 
       takeMessages: () => {
         if (this.state !== 'running') {
@@ -207,9 +259,10 @@ class DefaultSteering implements Steering {
           return;
         }
 
-        const notDelivered = [...this.taken, ...this.pending];
+        const notDelivered = [...this.taken, ...this.pending, ...this.queued];
         this.taken = [];
         this.pending = [];
+        this.queued = [];
         this.state = 'ended';
 
         for (const { id, message, resolve } of notDelivered) {

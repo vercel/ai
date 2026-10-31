@@ -3389,7 +3389,15 @@ class DefaultStreamTextResult<
                       clientToolCalls.length === 0 &&
                       pendingDeferredToolCalls.size === 0
                     ) {
-                      if (!steeringRun?.hasPendingMessages()) {
+                      // queued messages wait for a task that was not cut off:
+                      const isTruncated =
+                        stepFinishReason === 'length' ||
+                        stepFinishReason === 'content-filter';
+
+                      if (
+                        !steeringRun?.hasPendingMessages() &&
+                        (isTruncated || !steeringRun?.promoteQueuedMessage())
+                      ) {
                         return false;
                       }
 
