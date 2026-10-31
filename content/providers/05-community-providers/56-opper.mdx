@@ -1,0 +1,150 @@
+---
+title: Opper
+description: Learn how to use the Opper provider for the AI SDK.
+---
+
+# Opper
+
+[Opper](https://opper.ai) is an EU-hosted AI gateway. One API key gives you access to 700+ models from 50+ providers behind one OpenAI-compatible API. The Opper provider for the AI SDK sends each request to the Opper gateway, which routes it to a provider that serves the model.
+
+It supports text generation, streaming, tool calls, and embeddings.
+
+## Setup
+
+The Opper provider is available in the [`@opperai/ai-sdk-provider`](https://www.npmjs.com/package/@opperai/ai-sdk-provider) package. It requires Node.js 22 or later. Install it alongside AI SDK 7 with:
+
+<InstallPackages packages="ai @opperai/ai-sdk-provider" />
+
+Create an API key in the [Opper platform](https://platform.opper.ai) and set it in your environment:
+
+```bash
+OPPER_API_KEY=your_api_key
+```
+
+## Provider Instance
+
+The package exports a default `opper` provider. It reads `OPPER_API_KEY` from the environment:
+
+```ts
+import { opper } from '@opperai/ai-sdk-provider';
+```
+
+Use `createOpper` when you want to configure the provider yourself:
+
+```ts
+import { createOpper } from '@opperai/ai-sdk-provider';
+
+const opper = createOpper({
+  apiKey: process.env.OPPER_API_KEY, // default: the OPPER_API_KEY environment variable
+  baseURL: 'https://api.opper.ai/v3/compat', // default
+  headers: {}, // extra headers on every request
+});
+```
+
+`createOpper` also accepts a custom `fetch` implementation.
+
+## Language Models
+
+Call the provider with an Opper model ID to create a language model. `opper(modelId)` is shorthand for `opper.languageModel(modelId)`, and `opper.chatModel(modelId)` returns the same chat model:
+
+```ts
+const model = opper('claude-sonnet-4-6');
+```
+
+Opper model IDs come in two forms:
+
+- **Pool names** such as `claude-sonnet-4-6` or `gpt-5.4-mini`. A pool covers every provider that serves the model, and Opper picks the route for each request.
+- **Pinned routes** in `provider/model` form, such as `anthropic/claude-sonnet-4-6`. These always use the named provider.
+
+```ts
+const claudeModel = opper('claude-sonnet-4-6'); // pool: Opper picks the route
+const gptModel = opper('gpt-5.4-mini'); // pool
+const pinnedModel = opper('anthropic/claude-sonnet-4-6'); // pinned route
+```
+
+Browse the available models in the [Opper model catalog](https://opper.ai/models). The catalog is also published as the [`opper` provider on models.dev](https://models.dev/providers/opper/).
+
+## Embedding Models
+
+Use `opper.embeddingModel` to create an embedding model:
+
+```ts
+const embeddingModel = opper.embeddingModel('text-embedding-3-small');
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { opper } from '@opperai/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: opper('claude-sonnet-4-6'),
+  prompt: 'What is an AI gateway?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { opper } from '@opperai/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: opper('gpt-5.4-mini'),
+  prompt: 'Write a short story about a lighthouse keeper.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### `embed`
+
+```ts
+import { opper } from '@opperai/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: opper.embeddingModel('text-embedding-3-small'),
+  value: 'What is an AI gateway?',
+});
+
+console.log(embedding);
+```
+
+## Tracing
+
+Name a call, or attach it to a parent span, with `providerOptions.opper`. The options are sent as the `X-Opper-Name` and `X-Opper-Parent-Span-Id` headers:
+
+```ts
+import { opper, type OpperCallOptions } from '@opperai/ai-sdk-provider';
+import { generateText } from 'ai';
+
+await generateText({
+  model: opper('claude-sonnet-4-6'),
+  prompt: 'Summarise this document...',
+  providerOptions: {
+    opper: {
+      name: 'document-summariser',
+      parentSpanId: '3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90',
+    } satisfies OpperCallOptions,
+  },
+});
+```
+
+To link every call in a session to one span, the package also exports `opperSpan` middleware for `wrapLanguageModel`. See the [repository README](https://github.com/opper-ai/provider-ai-sdk#per-session-with-opperspan) for details.
+
+## Additional Resources
+
+- [Opper documentation](https://docs.opper.ai)
+- [Opper model catalog](https://opper.ai/models)
+- [Opper provider on models.dev](https://models.dev/providers/opper/)
+- [Opper AI SDK provider repository](https://github.com/opper-ai/provider-ai-sdk)
+- [Using Opper with the AI SDK](https://opper.ai/apps/vercel-ai-sdk)
+- [Opper platform](https://platform.opper.ai)
