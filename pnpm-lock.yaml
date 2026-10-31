@@ -4970,6 +4970,9 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      eventsource-parser:
+        specifier: ^3.0.8
+        version: 3.1.1
     devDependencies:
       '@ai-sdk/otel':
         specifier: workspace:*
