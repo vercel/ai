@@ -802,6 +802,22 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
   ]}
 />
 
+### Oversized stream parts
+
+Durable Workflow streams reject oversized chunks. Vercel Workflow, for example,
+rejects chunks over 10 MiB. To keep a large payload from failing the step,
+`stream()` checks each part before writing it to `writable`. When a part's
+serialized size is over 8 MiB:
+
+- Tool calls, tool results, and tool errors are written with their `input`,
+  `output`, or `error` replaced by
+  `{ type: 'omitted', reason: 'too_large_for_stream' }`.
+- Other parts, such as large generated files, are not written.
+
+A warning is logged in both cases. Only the copy written to `writable` changes.
+Step results, `messages`, and the conversation sent to the model in later steps
+keep the full value.
+
 ### `repairToolCall` in a workflow
 
 `repairToolCall` runs inside the model step. When you use it in a workflow,

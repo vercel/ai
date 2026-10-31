@@ -47,6 +47,7 @@ import {
   addToolResultsToConversation,
   type ProviderExecutedToolResultPosition,
 } from './add-tool-results-to-conversation.js';
+import { writeStreamPart } from './limit-stream-part-size.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import {
@@ -862,10 +863,10 @@ async function writeDeferredToolCalls(
   const writer = writable.getWriter();
   try {
     for (const toolCall of toolCalls) {
-      await writer.write(toolCall as ModelCallStreamPart<ToolSet>);
+      await writeStreamPart(writer, toolCall as ModelCallStreamPart<ToolSet>);
       // Match streamModelCall, which follows an invalid call with a tool-error.
       if (toolCall.invalid && !toolCall.providerExecuted) {
-        await writer.write({
+        await writeStreamPart(writer, {
           type: 'tool-error',
           toolCallId: toolCall.toolCallId,
           toolName: toolCall.toolName,

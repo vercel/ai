@@ -69,6 +69,7 @@ import type {
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { modelCallIterator } from './model-call-iterator.js';
+import { writeStreamPart } from './limit-stream-part-size.js';
 import {
   resolveWorkflowStreamResult,
   type WorkflowExecutionData,
@@ -3470,7 +3471,8 @@ async function writeToolResults(
   const writer = writable.getWriter();
   try {
     for (const r of results) {
-      await writer.write(
+      await writeStreamPart(
+        writer,
         r.isError
           ? {
               type: 'tool-error',
@@ -3515,7 +3517,7 @@ async function writeApprovalToolResults(
   const writer = writable.getWriter();
   try {
     for (const r of approvedResults) {
-      await writer.write({
+      await writeStreamPart(writer, {
         type: 'tool-result',
         toolCallId: r.toolCallId,
         toolName: r.toolName,
