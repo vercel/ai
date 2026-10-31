@@ -70,6 +70,9 @@
       "path": "examples/next"
     },
     {
+      "path": "examples/personal-ai"
+    },
+    {
       "path": "examples/node-http-server"
     },
     {
