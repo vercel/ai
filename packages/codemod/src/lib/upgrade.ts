@@ -115,6 +115,7 @@ const bundle = [
   'v7/rename-full-stream-to-stream',
   'v7/move-include-raw-chunks-to-include',
   'v7/rename-experimental-include-to-include',
+  'v7/rename-experimental-throttle-to-throttle',
   'v7/rename-experimental-on-tool-call-start-to-on-tool-execution-start',
   'v7/rename-experimental-on-tool-call-finish-to-on-tool-execution-end',
   'v7/rename-experimental-context-to-context',
