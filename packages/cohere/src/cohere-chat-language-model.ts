@@ -421,9 +421,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      await parseJSON({
+                      (await parseJSON({
                         text: pendingToolCall.arguments?.trim() || '{}',
-                      }),
+                      })) ?? {},
                     ),
                   });
 
