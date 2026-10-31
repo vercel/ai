@@ -79,8 +79,12 @@ const redis = new Redis({
 });
 
 export const cacheMiddleware: LanguageModelV4Middleware = {
-  wrapGenerate: async ({ doGenerate, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapGenerate: async ({ doGenerate, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     const cached = (await redis.get(cacheKey)) as Awaited<
       ReturnType<LanguageModelV4['doGenerate']>
@@ -104,8 +108,12 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
 
     return result;
   },
-  wrapStream: async ({ doStream, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapStream: async ({ doStream, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     // Check if the result is in the cache
     const cached = await redis.get(cacheKey);
