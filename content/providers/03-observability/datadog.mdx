@@ -109,7 +109,7 @@ Set `DD_API_KEY` and `DD_SITE` in your shell environment, then load the instrume
 node --import ./instrumentation.mjs your-app.mjs
 ```
 
-For scripts, import `sdk` from the instrumentation module and call `await sdk.shutdown()` after all AI SDK calls and streams finish. See the [OpenTelemetry NodeSDK reference](https://open-telemetry.github.io/opentelemetry-js/classes/_opentelemetry_sdk-node.NodeSDK.html).
+For scripts, import `sdk` from the instrumentation module and call `await sdk.shutdown()` after all AI SDK calls and streams finish. See the [OpenTelemetry NodeSDK reference](https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/packages/opentelemetry-sdk-node/src/sdk.ts).
 
 </Tab>
 
