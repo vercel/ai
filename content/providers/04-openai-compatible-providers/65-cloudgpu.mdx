@@ -1,0 +1,111 @@
+---
+title: CloudGPU
+description: Use the CloudGPU OpenAI compatible model API with the AI SDK.
+---
+
+# CloudGPU Provider
+
+[CloudGPU](https://cloudgpu.app) offers a model API with an OpenAI-compatible
+Chat Completions endpoint at `https://cloudgpu.app/v1`. You can use it with the
+AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key in the [CloudGPU API console](https://cloudgpu.app/api/console)
+and set it as a server-side environment variable:
+
+```bash
+export CLOUDGPU_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a CloudGPU provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const cloudgpu = createOpenAICompatible({
+  name: 'cloudgpu',
+  apiKey: process.env.CLOUDGPU_API_KEY,
+  baseURL: 'https://cloudgpu.app/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a CloudGPU model ID to the provider
+instance:
+
+```ts
+const model = cloudgpu('kimi-k3');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const cloudgpu = createOpenAICompatible({
+  name: 'cloudgpu',
+  apiKey: process.env.CLOUDGPU_API_KEY,
+  baseURL: 'https://cloudgpu.app/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: cloudgpu('kimi-k3'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+Use `streamText` to stream text:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: cloudgpu('glm-5.2'),
+  prompt: 'Explain what an HTTP API gateway does in three short sentences.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Model IDs
+
+Model IDs available through the Chat Completions endpoint include:
+
+| Model family | Example model IDs                                |
+| ------------ | ------------------------------------------------ |
+| Moonshot     | `kimi-k3`                                        |
+| Zhipu AI     | `glm-5.2`                                        |
+| DeepSeek     | `deepseek-v4-pro`, `deepseek-v4-flash`           |
+| MiniMax      | `minimax-m3`                                     |
+| Qwen         | `qwen3-coder-480b`                               |
+
+The model list can change. The public
+[`GET /v1/models`](https://cloudgpu.app/v1/models) endpoint returns the current
+model IDs, and the [CloudGPU API page](https://cloudgpu.app/api) lists models
+and pricing.
+
+## Resources
+
+- [CloudGPU API docs](https://cloudgpu.app/api/docs)
+- [CloudGPU AI SDK examples](https://github.com/mrhy7176/cloudgpu-examples/tree/main/ai-sdk)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
