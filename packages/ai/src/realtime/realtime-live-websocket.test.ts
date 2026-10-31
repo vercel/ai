@@ -351,6 +351,30 @@ describe('Live over an application WebSocket relay', () => {
     expect(browser.track.stop).toHaveBeenCalledOnce();
   });
 
+  it('delivers continuous audio events without SDK playback when playback is disabled', async () => {
+    const onEvent = vi.fn();
+    const session = create({ playback: false, onEvent });
+    await session.connect({ capture: false });
+    socket().open();
+    await emit({
+      type: 'session-started',
+      sessionId: 'live-1',
+      delegationMode: 'client',
+      raw: {},
+    });
+    const audio: RealtimeServerEvent = {
+      type: 'audio-chunk',
+      delta: encodeRealtimeAudio(new Float32Array(240)),
+      raw: {},
+    };
+
+    await emit(audio);
+
+    expect(onEvent).toHaveBeenCalledWith(audio);
+    expect(session.snapshot.isPlaying).toBe(false);
+    expect(FakeAudioContext.instances).toHaveLength(0);
+  });
+
   it('cancels late microphone acquisition after readiness and leaves caller-owned tracks alone', async () => {
     const media = deferred<MediaStream>();
     browser.getUserMedia.mockReturnValueOnce(media.promise);

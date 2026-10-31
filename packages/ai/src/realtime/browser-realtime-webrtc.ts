@@ -73,6 +73,7 @@ export class BrowserRealtimeWebRTC {
       onClosing?: () => void;
       onCapturing: (value: boolean) => void;
       onPlaying: (value: boolean) => void;
+      playback?: boolean;
     },
   ) {}
 
@@ -133,20 +134,25 @@ export class BrowserRealtimeWebRTC {
       }
       const pc = new RTCPeerConnection();
       this.pc = pc;
-      const audio = document.createElement('audio');
-      audio.autoplay = true;
-      this.audio = audio;
-      audio.onplaying = () => {
-        if (current()) this.options.onPlaying(true);
-      };
-      const stopped = () => {
-        if (current()) this.options.onPlaying(false);
-      };
-      audio.onpause = stopped;
-      audio.onended = stopped;
-      audio.onwaiting = stopped;
+      const audio =
+        this.options.playback === false
+          ? undefined
+          : document.createElement('audio');
+      if (audio != null) {
+        audio.autoplay = true;
+        this.audio = audio;
+        audio.onplaying = () => {
+          if (current()) this.options.onPlaying(true);
+        };
+        const stopped = () => {
+          if (current()) this.options.onPlaying(false);
+        };
+        audio.onpause = stopped;
+        audio.onended = stopped;
+        audio.onwaiting = stopped;
+      }
       pc.ontrack = event => {
-        if (!current()) return;
+        if (!current() || audio == null) return;
         audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
         void audio.play().catch(error => {
           if (current()) this.options.onError(error);

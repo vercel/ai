@@ -187,6 +187,59 @@ Keep model and session configuration objects stable across renders. Use module
 scope as above, or `useMemo` when configuration depends on props. Replacing either
 object replaces the hook's session.
 
+## Application-Managed Audio Playback
+
+By default, the realtime session plays model audio through the browser's default
+audio output. Set `playback: false` to disable SDK-managed playback while still
+receiving `audio-delta` events in `onEvent`. This is useful when an avatar,
+recorder, effects pipeline, or application-owned `AudioContext` plays the audio.
+
+```tsx
+const realtime = experimental_useRealtime({
+  model,
+  api: { token: '/api/realtime/setup' },
+  playback: false,
+  onEvent(event) {
+    if (event.type === 'audio-delta') {
+      avatarAudio.enqueue(event.delta);
+    }
+  },
+});
+```
+
+For turn-based sessions with server voice activity detection, provide
+`getPositionMs` so the SDK can truncate the unheard remainder when the user
+interrupts the model:
+
+```tsx
+const realtime = experimental_useRealtime({
+  model,
+  api: { token: '/api/realtime/setup' },
+  playback: {
+    getPositionMs: () => avatarAudio.getPlayedMilliseconds(),
+  },
+  onEvent(event) {
+    if (event.type === 'audio-delta') {
+      avatarAudio.enqueue(event.delta);
+    } else if (event.type === 'speech-started') {
+      avatarAudio.stop();
+    }
+  },
+});
+```
+
+`getPositionMs` is read when interruption starts and must return the
+non-negative number of milliseconds played for the current response audio item.
+The application remains responsible for stopping or flushing its output.
+`isPlaying`, `stopPlayback()`, and `resumePlayback()` describe and control only
+SDK-managed playback, so `isPlaying` remains `false` with application-managed
+playback.
+
+Continuous WebSocket sessions expose model audio as `audio-chunk` instead.
+WebRTC audio is negotiated as a remote media track and is not exposed through
+these JSON events; disabling playback silences the SDK's audio element but does
+not expose that track as an application-owned output.
+
 ## Tool Calling
 
 Realtime tool execution is client-driven. The provider sends tool calls over the

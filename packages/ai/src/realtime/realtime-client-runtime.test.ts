@@ -478,6 +478,59 @@ describe('client-delegation runtime correctness', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('delivers legacy audio events without allocating SDK playback when playback is disabled', async () => {
+    const onEvent = vi.fn();
+    const session = create({
+      model: legacyModel(),
+      api: { token: '/token' },
+      playback: false,
+      onEvent,
+    });
+    await ready(session, true);
+    const audio: RealtimeServerEvent = {
+      type: 'audio-delta',
+      responseId: 'response',
+      itemId: 'audio',
+      delta: encodeRealtimeAudio(new Float32Array(240)),
+      raw: {},
+    };
+
+    await emit(audio);
+    await emit(audio);
+
+    expect(onEvent).toHaveBeenCalledWith(audio);
+    expect(session.snapshot.isPlaying).toBe(false);
+    expect(FakeAudioContext.instances).toHaveLength(0);
+  });
+
+  it('uses application-managed playback progress for legacy barge-in truncation', async () => {
+    const getPositionMs = vi.fn(() => 625.4);
+    const session = create({
+      model: legacyModel(),
+      api: { token: '/token' },
+      playback: { getPositionMs },
+    });
+    await ready(session, true);
+    await emit({
+      type: 'audio-delta',
+      responseId: 'response',
+      itemId: 'audio',
+      delta: encodeRealtimeAudio(new Float32Array(240)),
+      raw: {},
+    });
+
+    await emit({ type: 'speech-started', raw: {} });
+
+    expect(getPositionMs).toHaveBeenCalledOnce();
+    expect(socket().sent.at(-1)).toEqual({
+      type: 'conversation-item-truncate',
+      itemId: 'audio',
+      contentIndex: 0,
+      audioEndMs: 625,
+    });
+    expect(FakeAudioContext.instances).toHaveLength(0);
+  });
+
   it('rejects a legacy playback budget before token or browser effects', async () => {
     const onError = vi.fn();
     await create({
