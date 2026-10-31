@@ -6,12 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
+import { generateImage } from '../generate-image/generate-image';
 import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
 import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
@@ -855,6 +857,37 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         "bindStart rerank",
         "asyncEnd rerank",
+      ]
+    `);
+  });
+
+  it('traces the current generateImage lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => ({
+            images: ['AQIDBA=='],
+            warnings: [],
+            response: {
+              timestamp: new Date(0),
+              modelId: 'mock-model-id',
+              headers: undefined,
+            },
+          }),
+        }),
+        prompt: 'sunny day at the beach',
+        n: 2,
+        telemetry: {
+          functionId: 'tracing-channel-generate-image-test',
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart generateImage",
+        "asyncEnd generateImage",
       ]
     `);
   });

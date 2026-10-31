@@ -55,8 +55,8 @@ For Node.js applications (without Next.js), register the integration at the top 
 
 Once a telemetry integration is registered, supported AI SDK calls emit
 telemetry events by default. This includes text and object generation,
-embeddings, reranking, speech generation, and both non-streaming and streaming
-transcription.
+embeddings, reranking, image generation, speech generation, and both
+non-streaming and streaming transcription.
 You can still pass `telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
 ```ts highlight="4-6"
@@ -81,6 +81,11 @@ input audio byte length and media type plus the output transcript. Raw audio is
 never included in telemetry events. Streaming transcription reports its final
 byte length when the audio stream has been consumed and the transcription
 finishes.
+
+For `generateImage`, input telemetry contains the text prompt and the media
+type and byte length of input images and masks (URL inputs are recorded as
+URLs). Output telemetry contains the media type and byte length of each
+generated image. Raw image data is never included in telemetry events.
 
 Custom integrations receive stable `generateSpeech` and `transcribe`
 operations through `onStart` and `onEnd`. To keep the experimental API isolated,
@@ -455,6 +460,24 @@ export function myIntegration(): Telemetry {
       description: 'Called when an individual reranking model call completes.',
     },
     {
+      name: 'onImageModelCallStart',
+      type: '(event: ImageModelCallStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an individual image model call begins. `generateImage` makes multiple calls when more images are requested than the model supports per call, and each retry attempt is a separate call.',
+    },
+    {
+      name: 'onImageModelCallEnd',
+      type: '(event: ImageModelCallEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an individual image model call completes. Contains image metadata, usage, and warnings, but no raw image data.',
+    },
+    {
+      name: 'onImageModelCallError',
+      type: '(event: ImageModelCallErrorEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an individual image model call fails, including attempts that are later retried. Use it to close image-model-call spans. `onImageModelCallEnd` is not called for such a call.',
+    },
+    {
       name: 'experimental_onDecideStart',
       type: '(event: Experimental_DecideStartEvent) => void | PromiseLike<void>',
       description: 'Called when an experimental decision operation begins.',
@@ -625,6 +648,45 @@ For `rerank`, the integration records spans with `CLIENT` kind:
   - `gen_ai.operation.name`: `"rerank"`
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the model ID
+
+#### generateImage
+
+For `generateImage`, the integration records spans with `CLIENT` kind:
+
+- **`ai.generateImage {modelId}`** (root span): covers the full image generation operation.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"ai.generateImage"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the requested model ID
+  - `gen_ai.output.type`: `"image"`
+  - `gen_ai.request.choice.count`: the number of requested images
+  - `gen_ai.request.seed`: the seed, when set
+  - `gen_ai.input.messages`: the text prompt as a user message with a text part, when `recordInputs` is enabled
+
+- **`ai.generateImage {modelId}`** (inner span): one span per provider call,
+  nested under the root span. Each retry attempt creates its own inner span, and
+  failed attempts end with an error status.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"ai.generateImage"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the model ID
+  - `gen_ai.output.type`: `"image"`
+  - `gen_ai.request.choice.count`: the number of images requested in this call
+
+  Attributes set on finish:
+  - `gen_ai.response.model`: the response model ID
+  - `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens`: the token usage, when reported
+
+Usage is recorded only on inner provider-call spans. Sum the usage from the
+inner spans to get the total usage for the operation.
+
+The `ai.request.size`, `ai.request.aspect_ratio`, and `ai.request.text`
+attributes are also recorded. Input image and mask metadata is recorded in
+`ai.request.images` and `ai.request.mask`, and generated image metadata in
+`ai.response.images`, subject to the corresponding input/output recording
+controls. Raw image data is not captured.
 
 #### generateSpeech / transcribe / experimental_streamTranscribe
 
@@ -934,6 +996,30 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
   - `ai.operationId`: `"ai.embedMany.doEmbed"`
   - `ai.values`: the values that were sent to the provider
   - `ai.embeddings`: an array of JSON-stringified embeddings for each value
+
+#### generateImage function
+
+`generateImage` records 2 types of spans:
+
+- `ai.generateImage` (span): the full length of the generateImage call. It contains 1 or more `ai.generateImage.doGenerate` spans.
+  It contains the following attributes:
+  - `operation.name`: `ai.generateImage` and the functionId that was set through `telemetry.functionId`
+  - `ai.operationId`: `"ai.generateImage"`
+  - `ai.model.provider` / `ai.model.id`: the provider and model ID
+  - `ai.request.n`, `ai.request.maxImagesPerCall`, `ai.request.size`, `ai.request.aspectRatio`, `ai.request.seed`: the request settings
+  - `ai.request.text`: the text prompt
+  - `ai.request.images` / `ai.request.mask`: JSON-stringified input image and mask metadata
+  - `ai.response.images`: JSON-stringified generated image metadata (media type and byte length)
+  - `ai.usage.inputTokens`, `ai.usage.outputTokens`, `ai.usage.totalTokens`: the combined usage
+
+- `ai.generateImage.doGenerate` (span): a provider doGenerate call. Each retry attempt creates its own span.
+  It contains the following attributes:
+  - `operation.name`: `ai.generateImage.doGenerate` and the functionId that was set through `telemetry.functionId`
+  - `ai.operationId`: `"ai.generateImage.doGenerate"`
+  - `ai.request.n`: the number of images requested in this call
+  - `ai.response.model` / `ai.response.timestamp`: the response model ID and timestamp
+  - `ai.response.images`: JSON-stringified generated image metadata
+  - `ai.usage.inputTokens`, `ai.usage.outputTokens`, `ai.usage.totalTokens`: the usage for this call
 
 #### Legacy span details
 

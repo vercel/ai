@@ -121,6 +121,7 @@ export function mapOperationName(operationId: string): string {
     'ai.embedMany': 'embeddings',
     'ai.rerank': 'rerank',
     'ai.generateSpeech': 'ai.generateSpeech',
+    'ai.generateImage': 'ai.generateImage',
     'ai.transcribe': 'ai.transcribe',
     'ai.streamTranscribe': 'ai.streamTranscribe',
   };

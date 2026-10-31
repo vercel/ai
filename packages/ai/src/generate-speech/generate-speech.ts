@@ -13,6 +13,7 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { SpeechModel } from '../types/speech-model';
 import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import type { Warning } from '../types/warning';
+import { getBase64OrBinaryByteLength } from '../util/get-base64-or-binary-byte-length';
 import { prepareRetries } from '../util/prepare-retries';
 import { notify } from '../util/notify';
 import { VERSION } from '../version';
@@ -266,28 +267,6 @@ export async function generateSpeech({
       }
     },
   });
-}
-
-function getBase64OrBinaryByteLength(audio: string | Uint8Array): number {
-  if (audio instanceof Uint8Array) {
-    return audio.byteLength;
-  }
-
-  let characterCount = 0;
-  let lastCharacter = '';
-  let secondLastCharacter = '';
-  for (const character of audio) {
-    if (/\s/.test(character)) {
-      continue;
-    }
-    characterCount++;
-    secondLastCharacter = lastCharacter;
-    lastCharacter = character;
-  }
-
-  const padding =
-    lastCharacter === '=' ? (secondLastCharacter === '=' ? 2 : 1) : 0;
-  return Math.floor((characterCount * 3) / 4) - padding;
 }
 
 function getTelemetryResponseMetadata(

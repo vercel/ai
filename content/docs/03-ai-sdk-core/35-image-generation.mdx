@@ -257,6 +257,30 @@ for (const call of calls) {
 }
 ```
 
+### Telemetry
+
+`generateImage` accepts the standard `telemetry` option. Registered
+integrations receive start, end, and error events for the operation, plus
+start, end, and error events for each underlying image model call. Events
+contain the provider and model, the text prompt, the media type and byte length
+of input and generated images, warnings, response metadata, provider metadata,
+and usage when the provider reports it. Raw image data is not included in
+telemetry events.
+
+```ts highlight="5-7"
+const { image } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: 'Santa Claus driving a Cadillac',
+  telemetry: {
+    functionId: 'generate-holiday-card',
+  },
+});
+```
+
+Use `recordInputs: false` or `recordOutputs: false` when the prompt or output
+metadata should not be recorded by telemetry integrations.
+See [Telemetry](/docs/ai-sdk-core/telemetry) for more details.
+
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).

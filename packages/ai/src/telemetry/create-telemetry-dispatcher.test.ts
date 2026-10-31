@@ -202,6 +202,9 @@ describe('createTelemetryDispatcher', () => {
       onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
+      onImageModelCallStart: vi.fn(),
+      onImageModelCallEnd: vi.fn(),
+      onImageModelCallError: vi.fn(),
       experimental_onDecideStart: vi.fn(),
       experimental_onDecisionModelCallStart: vi.fn(),
       experimental_onDecisionModelCallEnd: vi.fn(),
@@ -230,6 +233,9 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
+    await telemetry.onImageModelCallStart!(dummyEvent);
+    await telemetry.onImageModelCallEnd!(dummyEvent);
+    await telemetry.onImageModelCallError!(dummyEvent);
     await telemetry.experimental_onDecideStart!(dummyEvent);
     await telemetry.experimental_onDecisionModelCallStart!(dummyEvent);
     await telemetry.experimental_onDecisionModelCallEnd!(dummyEvent);
@@ -253,6 +259,9 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
+    expect(integration.onImageModelCallStart).toHaveBeenCalledOnce();
+    expect(integration.onImageModelCallEnd).toHaveBeenCalledOnce();
+    expect(integration.onImageModelCallError).toHaveBeenCalledOnce();
     expect(integration.experimental_onDecideStart).toHaveBeenCalledOnce();
     expect(
       integration.experimental_onDecisionModelCallStart,
@@ -295,6 +304,9 @@ describe('createTelemetryDispatcher', () => {
         onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
+        onImageModelCallStart: vi.fn(),
+        onImageModelCallEnd: vi.fn(),
+        onImageModelCallError: vi.fn(),
         experimental_onDecideStart: vi.fn(),
         experimental_onDecisionModelCallStart: vi.fn(),
         experimental_onDecisionModelCallEnd: vi.fn(),
@@ -323,6 +335,9 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
+      expect(telemetry.onImageModelCallStart).toBeUndefined();
+      expect(telemetry.onImageModelCallEnd).toBeUndefined();
+      expect(telemetry.onImageModelCallError).toBeUndefined();
       expect(telemetry.experimental_onDecideStart).toBeUndefined();
       expect(telemetry.experimental_onDecisionModelCallStart).toBeUndefined();
       expect(telemetry.experimental_onDecisionModelCallEnd).toBeUndefined();

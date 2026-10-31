@@ -27,6 +27,11 @@ import type {
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
+  GenerateImageEndEvent,
+  GenerateImageStartEvent,
+  ImageModelCallEndEvent,
+  ImageModelCallErrorEvent,
+  ImageModelCallStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
   Experimental_DecideEndEvent as DecideEndEvent,
@@ -150,6 +155,7 @@ interface CallState {
   stepSpan: Span | undefined;
   stepContext: OpenTelemetryContext | undefined;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
+  imageModelSpans: Map<string, Span>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   decisionSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
@@ -226,8 +232,16 @@ export class LegacyOpenTelemetry implements Telemetry {
       | InferTelemetryEvent<EmbedStartEvent>
       | InferTelemetryEvent<RerankStartEvent>
       | InferTelemetryEvent<GenerateSpeechStartEvent>
+      | InferTelemetryEvent<GenerateImageStartEvent>
       | InferTelemetryEvent<TranscriptionStartEvent>,
   ): void {
+    if (event.operationId === 'ai.generateImage') {
+      this.onImageOperationStart(
+        event as InferTelemetryEvent<GenerateImageStartEvent>,
+      );
+      return;
+    }
+
     if (event.operationId === 'ai.generateSpeech') {
       this.onAudioOperationStart(
         event as InferTelemetryEvent<GenerateSpeechStartEvent>,
@@ -325,12 +339,148 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings: {},
     });
+  }
+
+  private onImageOperationStart(
+    event: InferTelemetryEvent<GenerateImageStartEvent>,
+  ): void {
+    const telemetry: TelemetryOptions = {
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+    };
+    const { prompt, images, mask } = event;
+    const baseTelemetryAttributes: Attributes = {
+      'ai.model.provider': event.provider,
+      'ai.model.id': event.modelId,
+      'ai.settings.maxRetries': event.maxRetries,
+      ...Object.fromEntries(
+        Object.entries(event.headers ?? {}).map(([key, value]) => [
+          `ai.request.headers.${key}`,
+          value,
+        ]),
+      ),
+    };
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      'ai.request.n': event.n,
+      'ai.request.maxImagesPerCall': event.maxImagesPerCall,
+      'ai.request.size': event.size,
+      'ai.request.aspectRatio': event.aspectRatio,
+      'ai.request.seed': event.seed,
+      'ai.request.text': prompt == null ? undefined : { input: () => prompt },
+      'ai.request.images':
+        images == null ? undefined : { input: () => JSON.stringify(images) },
+      'ai.request.mask':
+        mask == null ? undefined : { input: () => JSON.stringify(mask) },
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      imageModelSpans: new Map(),
+      rerankSpan: undefined,
+      decisionSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings: { maxRetries: event.maxRetries },
+    });
+  }
+
+  private onImageOperationEnd(event: GenerateImageEndEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    state.rootSpan.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.response.images': {
+          output: () => JSON.stringify(event.images),
+        },
+        'ai.response.providerMetadata': JSON.stringify(event.providerMetadata),
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+      }),
+    );
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  onImageModelCallStart(event: ImageModelCallStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const span = this.tracer.startSpan(
+      event.operationId,
+      {
+        attributes: selectAttributes(state.telemetry, {
+          ...assembleOperationName({
+            operationId: event.operationId,
+            telemetry: state.telemetry,
+          }),
+          ...state.baseTelemetryAttributes,
+          'ai.request.n': event.n,
+        }),
+      },
+      state.rootContext,
+    );
+
+    state.imageModelSpans.set(event.imageCallId, span);
+  }
+
+  onImageModelCallEnd(event: ImageModelCallEndEvent): void {
+    const state = this.getCallState(event.callId);
+    const span = state?.imageModelSpans.get(event.imageCallId);
+    if (!state || !span) return;
+
+    span.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.response.model': event.response.modelId,
+        'ai.response.timestamp': event.response.timestamp.toISOString(),
+        'ai.response.images': {
+          output: () => JSON.stringify(event.images),
+        },
+        'ai.response.providerMetadata':
+          event.providerMetadata == null
+            ? undefined
+            : JSON.stringify(event.providerMetadata),
+        'ai.usage.inputTokens': event.usage?.inputTokens,
+        'ai.usage.outputTokens': event.usage?.outputTokens,
+        'ai.usage.totalTokens': event.usage?.totalTokens,
+      }),
+    );
+
+    span.end();
+    state.imageModelSpans.delete(event.imageCallId);
+  }
+
+  onImageModelCallError(event: ImageModelCallErrorEvent): void {
+    const state = this.getCallState(event.callId);
+    const span = state?.imageModelSpans.get(event.imageCallId);
+    if (!state || !span) return;
+
+    recordSpanError(span, event.error);
+    span.end();
+    state.imageModelSpans.delete(event.imageCallId);
   }
 
   private onGenerateStart(
@@ -389,6 +539,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
@@ -457,6 +608,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
@@ -629,6 +781,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
@@ -903,10 +1056,16 @@ export class LegacyOpenTelemetry implements Telemetry {
       | EmbedEndEvent
       | RerankEndEvent
       | GenerateSpeechEndEvent
+      | GenerateImageEndEvent
       | TranscriptionEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
+
+    if (state.operationId === 'ai.generateImage') {
+      this.onImageOperationEnd(event as GenerateImageEndEvent);
+      return;
+    }
 
     if (
       state.operationId === 'ai.embed' ||
@@ -1232,6 +1391,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
@@ -1333,6 +1493,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      imageModelSpans: new Map(),
       rerankSpan: undefined,
       decisionSpan: undefined,
       toolSpans: new Map(),
@@ -1496,6 +1657,12 @@ export class LegacyOpenTelemetry implements Telemetry {
       embedSpan.end();
     }
     state.embedSpans.clear();
+
+    for (const imageModelSpan of state.imageModelSpans.values()) {
+      recordSpanError(imageModelSpan, actualError);
+      imageModelSpan.end();
+    }
+    state.imageModelSpans.clear();
 
     if (state.rerankSpan) {
       recordSpanError(state.rerankSpan.span, actualError);

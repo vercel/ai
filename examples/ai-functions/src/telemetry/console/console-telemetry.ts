@@ -20,6 +20,9 @@ export const consoleTelemetry = {
   onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
   onRerankEnd: logCallback('onRerankEnd'),
+  onImageModelCallStart: logCallback('onImageModelCallStart'),
+  onImageModelCallEnd: logCallback('onImageModelCallEnd'),
+  onImageModelCallError: logCallback('onImageModelCallError'),
   experimental_onDecideStart: logCallback('experimental_onDecideStart'),
   experimental_onDecisionModelCallStart: logCallback(
     'experimental_onDecisionModelCallStart',
