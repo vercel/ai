@@ -548,7 +548,7 @@ const { text } = await generateText({
 
 console.log(text);`,
     docsUrl:
-      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+      'https://github.com/youdotcom-oss/ai-sdk-plugin',
     apiKeyUrl: 'https://you.com/platform/api-keys',
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
