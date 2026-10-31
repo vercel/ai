@@ -63,7 +63,7 @@ import { generateSpeech } from 'ai';
 import { speechify } from '@speechify/ai-sdk-provider';
 
 const { audio } = await generateSpeech({
-  model: speechify.speech('simba-3.2'),
+  model: speechify.speech('simba-3.5'),
   text: 'Hello from Speechify and the AI SDK.',
   voice: 'harper_32',
 });
@@ -71,6 +71,7 @@ const { audio } = await generateSpeech({
 
 | Model       | Languages                                                           |
 | ----------- | ------------------------------------------------------------------- |
+| `simba-3.5` | 48 languages, works with every voice. Newest model.                 |
 | `simba-3.2` | English. Speechify's lowest-latency model.                          |
 | `simba-3.0` | English, German, Spanish, French, Italian and Brazilian Portuguese. |
 
@@ -115,7 +116,7 @@ import {
 } from '@speechify/ai-sdk-provider';
 
 const result = await generateSpeech({
-  model: speechify.speech('simba-3.0'),
+  model: speechify.speech('simba-3.5'),
   text: 'Guten Tag!',
   voice: 'anton',
   language: 'de',
