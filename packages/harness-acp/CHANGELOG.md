@@ -1,5 +1,12 @@
 # @ai-sdk/harness-acp
 
+## 1.0.111
+
+### Patch Changes
+
+- 5d20d90: fix(harness-acp): recover missing tool approval input from observed updates
+  - @ai-sdk/harness@1.0.171
+
 ## 1.0.110
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 4.0.160
+
+### Patch Changes
+
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
 ## 4.0.159
 
 ### Patch Changes

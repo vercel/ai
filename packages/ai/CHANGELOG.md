@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.160
+
+### Patch Changes
+
+- 17b6923: fix(ai): validate streamed data parts against `dataPartSchemas`
+
+  `processUIMessageStream` looked up `dataPartSchemas` by the full chunk type (`data-weather`) instead of the bare part name (`weather`), so `useChat` / `Chat` never validated streamed data parts. Invalid data parts now raise a `TypeValidationError`.
+
 ## 7.0.159
 
 ### Patch Changes
