@@ -25,7 +25,7 @@ import { minimax } from '@ai-sdk/minimax';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: minimax('minimax-m3'),
+  model: minimax('MiniMax-M3.1-Flash'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```

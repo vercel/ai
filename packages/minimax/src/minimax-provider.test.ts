@@ -94,6 +94,17 @@ describe('MiniMaxProvider', () => {
       expect(model).toBeInstanceOf(AnthropicLanguageModel);
     });
 
+    it('should preserve canonical model IDs at the provider boundary', () => {
+      const provider = createMiniMax();
+      provider('MiniMax-M3.1-Flash');
+      provider('MiniMax-M3');
+
+      expect(AnthropicLanguageModelMock.mock.calls[0][0]).toBe(
+        'MiniMax-M3.1-Flash',
+      );
+      expect(AnthropicLanguageModelMock.mock.calls[1][0]).toBe('MiniMax-M3');
+    });
+
     it('should construct the model with the Anthropic-compatible config', () => {
       const provider = createMiniMax();
       provider('minimax-m3');
