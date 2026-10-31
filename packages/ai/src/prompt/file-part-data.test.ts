@@ -1,3 +1,4 @@
+import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { convertToLanguageModelV4FilePart } from './file-part-data';
 
@@ -9,6 +10,32 @@ describe('convertToLanguageModelV4FilePart', () => {
         data: { type: 'data', data: bytes },
         mediaType: undefined,
       });
+    });
+
+    it('wraps a cross-realm Uint8Array as { type: "data", data }', () => {
+      const realmBytes = vm.runInNewContext('new Uint8Array([1, 2, 3])');
+      const result = convertToLanguageModelV4FilePart(
+        realmBytes as unknown as Uint8Array,
+      );
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(Array.from(inner)).toEqual([1, 2, 3]);
+      expect(result.mediaType).toBeUndefined();
+    });
+
+    it('wraps a cross-realm ArrayBuffer as { type: "data", data }', () => {
+      const realmBuffer = vm.runInNewContext(
+        'new Uint8Array([4, 5, 6]).buffer',
+      );
+      const result = convertToLanguageModelV4FilePart(
+        realmBuffer as unknown as ArrayBuffer,
+      );
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(Array.from(inner)).toEqual([4, 5, 6]);
+      expect(result.mediaType).toBeUndefined();
     });
 
     it('wraps an ArrayBuffer (converted to Uint8Array) as { type: "data", data }', () => {
@@ -88,6 +115,34 @@ describe('convertToLanguageModelV4FilePart', () => {
       expect(
         convertToLanguageModelV4FilePart({ type: 'data', data: bytes }),
       ).toEqual({ data: { type: 'data', data: bytes }, mediaType: undefined });
+    });
+
+    it('unwraps { type: "data", data: cross-realm Uint8Array }', () => {
+      const realmBytes = vm.runInNewContext('new Uint8Array([1, 2, 3])');
+      const result = convertToLanguageModelV4FilePart({
+        type: 'data',
+        data: realmBytes as unknown as Uint8Array,
+      });
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(Array.from(inner)).toEqual([1, 2, 3]);
+      expect(result.mediaType).toBeUndefined();
+    });
+
+    it('unwraps { type: "data", data: cross-realm ArrayBuffer }', () => {
+      const realmBuffer = vm.runInNewContext(
+        'new Uint8Array([4, 5, 6]).buffer',
+      );
+      const result = convertToLanguageModelV4FilePart({
+        type: 'data',
+        data: realmBuffer as unknown as ArrayBuffer,
+      });
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(Array.from(inner)).toEqual([4, 5, 6]);
+      expect(result.mediaType).toBeUndefined();
     });
 
     it('unwraps { type: "data", data: ArrayBuffer }', () => {

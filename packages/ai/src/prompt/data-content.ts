@@ -5,6 +5,26 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidDataContentError } from './invalid-data-content-error';
 
+function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    value instanceof Uint8Array ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'Uint8Array' ||
+        Object.prototype.toString.call(value) === '[object Uint8Array]'))
+  );
+}
+
+function isArrayBuffer(value: unknown): value is ArrayBuffer {
+  return (
+    value instanceof ArrayBuffer ||
+    (typeof value === 'object' &&
+      value !== null &&
+      (value.constructor?.name === 'ArrayBuffer' ||
+        Object.prototype.toString.call(value) === '[object ArrayBuffer]'))
+  );
+}
+
 /**
  * Converts data content to a base64-encoded string.
  *
@@ -16,8 +36,20 @@ export function convertDataContentToBase64String(content: DataContent): string {
     return content;
   }
 
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return convertUint8ArrayToBase64(new Uint8Array(content));
+  }
+
+  if (isUint8Array(content)) {
+    return convertUint8ArrayToBase64(
+      content instanceof Uint8Array
+        ? content
+        : new Uint8Array(
+            content.buffer,
+            content.byteOffset,
+            content.byteLength,
+          ),
+    );
   }
 
   return convertUint8ArrayToBase64(content);
@@ -32,8 +64,10 @@ export function convertDataContentToBase64String(content: DataContent): string {
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {
-  if (content instanceof Uint8Array) {
-    return content;
+  if (isUint8Array(content)) {
+    return content instanceof Uint8Array
+      ? content
+      : new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
   }
 
   if (typeof content === 'string') {
@@ -49,7 +83,7 @@ export function convertDataContentToUint8Array(
     }
   }
 
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return new Uint8Array(content);
   }
 
