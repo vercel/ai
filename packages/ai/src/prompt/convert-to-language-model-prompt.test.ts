@@ -4,6 +4,7 @@ import { createDefaultDownloadFunction } from '../util/download/download-functio
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
+  mapToolResultOutput,
 } from './convert-to-language-model-prompt';
 
 describe('convertToLanguageModelPrompt', () => {
@@ -1546,6 +1547,140 @@ describe('convertToLanguageModelPrompt', () => {
             ],
             "providerOptions": undefined,
             "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should download URL content in deprecated file-url and image-url tool results', async () => {
+      const mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+
+      const mockDownload = vi.fn(async (files: Array<{ url: URL }>) =>
+        files.map(file => ({
+          url: file.url,
+          data: new Uint8Array([1, 2, 3]),
+          mediaType: 'application/octet-stream',
+        })),
+      );
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file-url',
+                        url: 'https://example.com/deprecated-file.pdf',
+                        mediaType: 'application/pdf',
+                      },
+                      {
+                        type: 'image-url',
+                        url: 'https://example.com/deprecated-image.png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      mockProcessEmitWarning.mockRestore();
+
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/deprecated-file.pdf'),
+          isUrlSupportedByModel: false,
+        },
+        {
+          url: new URL('https://example.com/deprecated-image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "content",
+                  "value": [
+                    {
+                      "data": {
+                        "data": Uint8Array [
+                          1,
+                          2,
+                          3,
+                        ],
+                        "type": "data",
+                      },
+                      "mediaType": "application/pdf",
+                      "providerOptions": undefined,
+                      "type": "file",
+                    },
+                    {
+                      "data": {
+                        "data": Uint8Array [
+                          1,
+                          2,
+                          3,
+                        ],
+                        "type": "data",
+                      },
+                      "mediaType": "application/octet-stream",
+                      "providerOptions": undefined,
+                      "type": "file",
+                    },
+                  ],
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "tool",
           },
         ]
       `);
@@ -3394,3 +3529,43 @@ describe('convertToLanguageModelMessage', () => {
     });
   });
 });
+
+it.each([
+  [
+    'image-url',
+    undefined,
+    'image/png',
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+  ],
+  [
+    'file-url',
+    'application/pdf',
+    'application/pdf',
+    new Uint8Array([37, 80, 68, 70]),
+  ],
+] as const)(
+  'resolves the concrete media type of downloaded legacy %s tool content',
+  (type, downloadedMediaType, expectedMediaType, data) => {
+    const url = 'https://example.com/asset';
+    const item =
+      type === 'file-url'
+        ? { type, url, mediaType: 'application' }
+        : { type, url };
+    expect(
+      mapToolResultOutput({
+        output: { type: 'content', value: [item] },
+        downloadedAssets: { [url]: { data, mediaType: downloadedMediaType } },
+      }),
+    ).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'file',
+          data: { type: 'data', data },
+          mediaType: expectedMediaType,
+          providerOptions: undefined,
+        },
+      ],
+    });
+  },
+);

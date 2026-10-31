@@ -445,8 +445,10 @@ export async function downloadAssets(
         }
 
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -461,8 +463,10 @@ export async function downloadAssets(
           continue;
         }
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -501,6 +505,74 @@ export async function downloadAssets(
       )
       .filter(file => file != null),
   );
+}
+
+/**
+ * Resolves the tool result content parts that point at a remote file to the
+ * tagged file shape, including the deprecated `file-url` and `image-url`
+ * types, so that they are downloaded and inlined exactly like their `file`
+ * replacement. Returns `undefined` for content that is already inline or
+ * provider-referenced.
+ */
+function getDownloadableFilePart(
+  contentPart: Extract<ToolResultOutput, { type: 'content' }>['value'][number],
+): FilePart | undefined {
+  switch (contentPart.type) {
+    case 'file':
+      return contentPart;
+    case 'file-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType:
+          contentPart.mediaType ?? getMediaTypeFromUrl(contentPart.url),
+        providerOptions: contentPart.providerOptions,
+      };
+    case 'image-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType: 'image',
+        providerOptions: contentPart.providerOptions,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolves file data and media type for a remote tool result content part: the downloaded
+ * bytes when the asset was fetched, otherwise the URL reference. `originalUrl`
+ * is preserved when the URL string does not round-trip through `URL`.
+ */
+function resolveDownloadedFile({
+  url,
+  originalUrl,
+  downloadedAssets,
+  mediaType,
+}: {
+  url: URL;
+  originalUrl: string;
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >;
+  mediaType: string;
+}): Pick<LanguageModelV4FilePart, 'data' | 'mediaType'> {
+  const convertedPart = convertPartToLanguageModelPart(
+    {
+      type: 'file',
+      data: {
+        type: 'url',
+        url,
+        ...(url.toString() !== originalUrl ? { originalUrl } : {}),
+      },
+      mediaType,
+    },
+    downloadedAssets,
+  ) as LanguageModelV4FilePart;
+
+  return { data: convertedPart.data, mediaType: convertedPart.mediaType };
 }
 
 /**
@@ -641,12 +713,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: {
-              type: 'url' as const,
+            ...resolveDownloadedFile({
               url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType,
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType,
+            }),
             providerOptions: item.providerOptions,
           };
         }
@@ -709,12 +781,12 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: {
-              type: 'url' as const,
+            ...resolveDownloadedFile({
               url,
-              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
-            },
-            mediaType: 'image',
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType: 'image',
+            }),
             providerOptions: item.providerOptions,
           };
         }
