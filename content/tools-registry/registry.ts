@@ -751,4 +751,46 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'viasocket',
+    name: 'viaSocket',
+    description:
+      "Let your agent act in the 2,300+ apps each of your users connected (Slack, Google Sheets, HubSpot, Notion and more). One tool per action, run on that user's own connection, with no connector code or OAuth to build.",
+    packageName: 'viasocket-apps',
+    tags: ['integrations', 'automation', 'saas', 'agents'],
+    apiKeyEnvName: 'VIASOCKET_EMBED_SECRET',
+    installCommand: {
+      pnpm: 'pnpm add viasocket-apps',
+      npm: 'npm install viasocket-apps',
+      yarn: 'yarn add viasocket-apps',
+      bun: 'bun add viasocket-apps',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { ViaSocket } from 'viasocket-apps';
+import { viasocketTools } from 'viasocket-apps/ai-sdk';
+
+const viasocket = new ViaSocket({
+  orgId: process.env.VIASOCKET_ORG_ID,
+  projectId: process.env.VIASOCKET_PROJECT_ID,
+  secret: process.env.VIASOCKET_EMBED_SECRET,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  tools: await viasocketTools(viasocket, {
+    user: 'user_123',
+    apps: ['slack'],
+    actions: { slack: ['send-message'] },
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Post our Q3 numbers in #finance',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/Walkover-Web-Solution/viasocket-apps#vercel-ai-sdk',
+    apiKeyUrl: 'https://flow.viasocket.com',
+    websiteUrl: 'https://viasocket.com',
+    npmUrl: 'https://www.npmjs.com/package/viasocket-apps',
+  },
 ];
