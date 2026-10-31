@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'predge',
+    name: 'Predge',
+    description:
+      'Check whether a Polymarket market is settled, disputed or at risk before an agent trades, pays or settles on it. Returns an ed25519-signed record read live from the UMA Optimistic Oracle and verifies it offline. Free, no API key.',
+    packageName: '@predge/ai-sdk',
+    tags: ['prediction-markets', 'polymarket', 'verification', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add @predge/ai-sdk',
+      npm: 'npm install @predge/ai-sdk',
+      yarn: 'yarn add @predge/ai-sdk',
+      bun: 'bun add @predge/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { predgeTools } from '@predge/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: predgeTools(),
+  stopWhen: isStepCount(3),
+  prompt:
+    'Is Polymarket market 5608010 safe to settle against? Check its settlement risk first.',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/predgeAI/predge-agent-tools/tree/main/packages/ai-sdk#readme',
+    websiteUrl: 'https://predge.io',
+    npmUrl: 'https://www.npmjs.com/package/@predge/ai-sdk',
+  },
 ];
