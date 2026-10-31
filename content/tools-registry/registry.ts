@@ -751,4 +751,33 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'ncrypted',
+    name: 'ncrypted',
+    description:
+      'One-time, end-to-end encrypted secrets for agents. Share passwords and API keys as links that self-destruct after a single read, or write them straight into Vercel env vars without the model seeing them. 3 free per day, then 0.005 USDC per secret via x402.',
+    packageName: 'ncrypted',
+    tags: ['security', 'secrets', 'encryption', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add ncrypted',
+      npm: 'npm install ncrypted',
+      yarn: 'yarn add ncrypted',
+      bun: 'bun add ncrypted',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { ncryptedTools } from 'ncrypted/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt:
+    'Create a one-time link for the staging database password Zq7-FAKE-staging so I can send it to Sam. Do not repeat the password.',
+  tools: ncryptedTools({ include: ['ncrypted_create'] }),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://ncrypted.ai/guides/ai-sdk',
+    websiteUrl: 'https://ncrypted.ai',
+    npmUrl: 'https://www.npmjs.com/package/ncrypted',
+  },
 ];
