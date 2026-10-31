@@ -67,18 +67,26 @@ function convertUrlToolResultPart(
   };
 }
 
-function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
-  if (Array.isArray(value)) {
-    return value.some(containsJSONSchemaReference);
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
   }
 
-  if (typeof value !== 'object' || value === null) {
+  if (seen.has(value)) {
     return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
   }
 
   return Object.entries(value).some(
     ([key, nestedValue]) =>
-      key === '$ref' || containsJSONSchemaReference(nestedValue),
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
   );
 }
 
@@ -88,7 +96,42 @@ function serializeFunctionResponseContent(
   // Google reserves { $ref: displayName } in structured function responses for
   // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
   // result to preserve it without triggering Google's reference handling.
-  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+  if (containsJSONSchemaReference(value)) {
+    try {
+      const sanitize = (val: unknown, ancestors: Set<unknown>): unknown => {
+        if (typeof val === 'bigint') {
+          return val.toString();
+        }
+        if (typeof val !== 'object' || val === null) {
+          return val;
+        }
+        if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+          return val;
+        }
+        if (ancestors.has(val)) {
+          return '[Circular]';
+        }
+        ancestors.add(val);
+        try {
+          if (Array.isArray(val)) {
+            return val.map(item => sanitize(item, ancestors));
+          }
+          const result: Record<string, unknown> = {};
+          for (const [key, item] of Object.entries(val)) {
+            result[key] = sanitize(item, ancestors);
+          }
+          return result;
+        } finally {
+          ancestors.delete(val);
+        }
+      };
+      return JSON.stringify(sanitize(value, new Set()));
+    } catch {
+      return String(value);
+    }
+  }
+
+  return value;
 }
 
 /*
@@ -586,7 +629,10 @@ export function convertToGoogleMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args:
+                        typeof part.input === 'string'
+                          ? (secureJsonParse(part.input) ?? part.input)
+                          : part.input,
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };

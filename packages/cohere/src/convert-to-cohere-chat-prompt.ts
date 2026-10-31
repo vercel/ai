@@ -18,6 +18,61 @@ import type {
   CohereUserMessageContent,
 } from './cohere-chat-prompt';
 
+function sanitizeForSerialization(
+  val: unknown,
+  ancestors: Set<unknown>,
+): unknown {
+  if (typeof val === 'bigint') {
+    return val.toString();
+  }
+  if (typeof val !== 'object' || val === null) {
+    return val;
+  }
+  if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+    return val;
+  }
+  if (ancestors.has(val)) {
+    return '[Circular]';
+  }
+  ancestors.add(val);
+  try {
+    if (Array.isArray(val)) {
+      return val.map(item => sanitizeForSerialization(item, ancestors));
+    }
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(val)) {
+      result[key] = sanitizeForSerialization(item, ancestors);
+    }
+    return result;
+  } finally {
+    ancestors.delete(val);
+  }
+}
+
+function serializeCohereToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      return JSON.stringify(sanitizeForSerialization(input, new Set()));
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
+}
+
+function safeStringifyCohereToolOutput(value: unknown): string {
+  try {
+    return JSON.stringify(sanitizeForSerialization(value, new Set()));
+  } catch {
+    return String(value);
+  }
+}
+
 export async function convertToCohereChatPrompt(
   prompt: LanguageModelV4Prompt,
 ): Promise<{
@@ -141,7 +196,7 @@ export async function convertToCohereChatPrompt(
                 type: 'function' as const,
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeCohereToolCallArguments(part.input),
                 },
               });
               break;
@@ -177,7 +232,7 @@ export async function convertToCohereChatPrompt(
                 case 'content':
                 case 'json':
                 case 'error-json':
-                  contentValue = JSON.stringify(output.value);
+                  contentValue = safeStringifyCohereToolOutput(output.value);
                   break;
               }
 

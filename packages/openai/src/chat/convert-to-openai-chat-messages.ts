@@ -13,11 +13,31 @@ import {
 } from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(
-    typeof input === 'object' && input !== null && !Array.isArray(input)
-      ? input
-      : {},
-  );
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(input, (_key, value) => {
+        if (typeof value === 'bigint') {
+          return value.toString();
+        }
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            return '[Circular]';
+          }
+          seen.add(value);
+        }
+        return value;
+      });
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };

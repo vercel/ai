@@ -703,7 +703,7 @@ export async function convertToAnthropicPrompt({
                   case 'json':
                   case 'error-json':
                   default:
-                    contentValue = JSON.stringify(output.value);
+                    contentValue = serializeToolOutput(output.value);
                     break;
                 }
 
@@ -1737,8 +1737,58 @@ function getAnthropicCaller(
   return caller?.type === 'direct' ? { type: 'direct' } : undefined;
 }
 
+function serializeToolOutput(value: unknown): string {
+  try {
+    const sanitize = (val: unknown, ancestors: Set<unknown>): unknown => {
+      if (typeof val === 'bigint') {
+        return val.toString();
+      }
+      if (typeof val !== 'object' || val === null) {
+        return val;
+      }
+      if (typeof (val as { toJSON?: unknown }).toJSON === 'function') {
+        return val;
+      }
+      if (ancestors.has(val)) {
+        return '[Circular]';
+      }
+      ancestors.add(val);
+      try {
+        if (Array.isArray(val)) {
+          return val.map(item => sanitize(item, ancestors));
+        }
+        const result: Record<string, unknown> = {};
+        for (const [key, item] of Object.entries(val)) {
+          result[key] = sanitize(item, ancestors);
+        }
+        return result;
+      } finally {
+        ancestors.delete(val);
+      }
+    };
+    return JSON.stringify(sanitize(value, new Set()));
+  } catch {
+    return String(value);
+  }
+}
+
 // wrap invalid tool call input because Anthropic requires it to be an object
 function toAnthropicToolInput(input: unknown): JSONObject {
+  if (typeof input === 'string') {
+    try {
+      const parsed = JSON.parse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed as JSONObject;
+      }
+    } catch {
+      // malformed JSON falls through to rawInvalidInput wrapper
+    }
+  }
+
   return typeof input === 'object' && input !== null && !Array.isArray(input)
     ? (input as JSONObject)
     : { rawInvalidInput: input as JSONValue };
