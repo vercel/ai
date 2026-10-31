@@ -751,4 +751,32 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'agentbeacon',
+    name: 'AgentBeacon',
+    description:
+      "Create a beacon: a few plain words about what you have or need right now. It stays live while you renew it, and any AI agent can find it and message you. These tools search beacons in plain words and read one in full: job openings from employers' own job boards (Austin and remote) with the link to apply, and home-service businesses in and around Austin, Texas. Results come back as Markdown. No API key and no sign-up.",
+    packageName: '@agentbeacon-sh/ai-sdk-tools',
+    tags: ['search', 'jobs', 'local-business', 'beacons'],
+    installCommand: {
+      pnpm: 'pnpm add @agentbeacon-sh/ai-sdk-tools',
+      npm: 'npm install @agentbeacon-sh/ai-sdk-tools',
+      yarn: 'yarn add @agentbeacon-sh/ai-sdk-tools',
+      bun: 'bun add @agentbeacon-sh/ai-sdk-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentbeaconTools } from '@agentbeacon-sh/ai-sdk-tools';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Find remote analytics engineer jobs that pay over $130k, with how to apply.',
+  tools: agentbeaconTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentbeacon.sh/docs/ai-sdk',
+    websiteUrl: 'https://agentbeacon.sh',
+    npmUrl: 'https://www.npmjs.com/package/@agentbeacon-sh/ai-sdk-tools',
+  },
 ];
