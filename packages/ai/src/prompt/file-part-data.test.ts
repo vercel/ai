@@ -177,6 +177,121 @@ describe('convertToLanguageModelV4FilePart', () => {
     });
   });
 
+  describe('non-base64 data URLs (RFC 2397)', () => {
+    it('percent-decodes a plain text data URL', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/plain,Hello%2C%20world!',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(inner).toBeInstanceOf(Uint8Array);
+      expect(new TextDecoder().decode(inner)).toBe('Hello, world!');
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('keeps content that contains commas (CSV)', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/csv,a,b,c%0A1,2,3',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('a,b,c\n1,2,3');
+      expect(result.mediaType).toBe('text/csv');
+    });
+
+    it('percent-decodes an SVG data URL', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe(
+        '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      );
+      expect(result.mediaType).toBe('image/svg+xml');
+    });
+
+    it('sends the actual bytes when non-base64 content looks like base64', () => {
+      const result = convertToLanguageModelV4FilePart('data:text/plain,abcd');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('abcd');
+    });
+
+    it('percent-decodes a non-base64 data URL passed as a URL instance', () => {
+      const result = convertToLanguageModelV4FilePart(
+        new URL('data:text/plain,Hello%2C%20world!'),
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('Hello, world!');
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('throws InvalidDataContentError for invalid percent-encoding', () => {
+      expect(() =>
+        convertToLanguageModelV4FilePart(new URL('data:text/plain,%zz')),
+      ).toThrow(/percent-encoding/);
+    });
+
+    it('decodes percent-encoded bytes that are not valid UTF-8', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:application/octet-stream,%FF%00%80',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([0xff, 0x00, 0x80]);
+      expect(result.mediaType).toBe('application/octet-stream');
+    });
+
+    it('decodes percent-encoded bytes in a non-UTF-8 charset', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:text/plain;charset=iso-8859-1,caf%E9',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([0x63, 0x61, 0x66, 0xe9]);
+      expect(result.mediaType).toBe('text/plain');
+    });
+
+    it('decodes binary content such as a PNG signature', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'data:image/png,%89PNG%0D%0A%1A%0A',
+      );
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(Array.from(inner)).toEqual([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      expect(result.mediaType).toBe('image/png');
+    });
+
+    it('encodes literal non-ASCII characters as UTF-8', () => {
+      const result = convertToLanguageModelV4FilePart('data:text/plain,你好');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('你好');
+    });
+
+    it('defaults an omitted media type to text/plain (RFC 2397)', () => {
+      const result = convertToLanguageModelV4FilePart('data:,Hello');
+
+      expect(result.data.type).toBe('data');
+      const inner = (result.data as { type: 'data'; data: Uint8Array }).data;
+      expect(new TextDecoder().decode(inner)).toBe('Hello');
+      expect(result.mediaType).toBe('text/plain');
+    });
+  });
+
   describe('legacy and tagged produce the same output', () => {
     it('{ type: "data", data: bytes } equals bare bytes', () => {
       const bytes = new Uint8Array([7, 8, 9]);

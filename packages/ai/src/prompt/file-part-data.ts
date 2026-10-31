@@ -7,7 +7,10 @@ import {
   type ProviderReference,
 } from '@ai-sdk/provider-utils';
 import { InvalidDataContentError } from './invalid-data-content-error';
-import { splitDataUrl } from './split-data-url';
+import {
+  decodeNonBase64DataUrlContent,
+  splitDataUrl,
+} from './split-data-url';
 
 type TaggedFileData = Extract<FilePart['data'], { type: string }>;
 
@@ -29,7 +32,9 @@ function convertUrlToFilePartData(
   originalUrl?: string,
 ): ConvertResult {
   if (url.protocol === 'data:') {
-    const { mediaType, base64Content } = splitDataUrl(url.toString());
+    const { mediaType, base64Content, isBase64 } = splitDataUrl(
+      url.toString(),
+    );
 
     if (mediaType == null || base64Content == null) {
       throw new InvalidDataContentError({
@@ -38,7 +43,21 @@ function convertUrlToFilePartData(
       });
     }
 
-    return { data: { type: 'data', data: base64Content }, mediaType };
+    if (isBase64) {
+      return { data: { type: 'data', data: base64Content }, mediaType };
+    }
+
+    // Data URLs without the ';base64' marker carry percent-encoded content
+    // (RFC 2397). Decode it so providers receive the actual bytes instead of
+    // misinterpreting the text as base64.
+    return {
+      data: {
+        type: 'data',
+        data: decodeNonBase64DataUrlContent(base64Content, url.toString()),
+      },
+      // RFC 2397 defaults an omitted media type to text/plain.
+      mediaType: mediaType === '' ? 'text/plain' : mediaType,
+    };
   }
 
   return {
