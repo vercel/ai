@@ -1,0 +1,223 @@
+---
+title: Picsart
+description: Picsart provider for AI SDK 7
+---
+
+# Picsart
+
+[Picsart](https://picsart.com) provides image and video generation models through the [Picsart API](https://picsart.com/api-platform). The `@picsart/vercel-ai-provider` package lets you use them with `generateImage`, `experimental_generateVideo`, `experimental_startVideo` and `experimental_getVideoStatus`.
+
+- **Image and video models**: text-to-image, image editing, text-to-video and image-to-video models from one provider
+- **Model discovery**: `listModels` reads Picsart's model catalog, so you choose a model at runtime instead of hardcoding its ID
+- **AI Playground links**: every generated item carries a link that opens the same model and settings in the Picsart AI Playground
+- **Credits per job**: the credits a job cost, and the balance left when Picsart reports it, come back in `providerMetadata.picsart`
+- **No automatic retries of paid jobs**: a failed generation is never retried, because a retry would run and charge the job again
+
+## Setup
+
+The provider is available in the `@picsart/vercel-ai-provider` module. It requires Node 22 or newer and AI SDK 7.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @picsart/vercel-ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @picsart/vercel-ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @picsart/vercel-ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @picsart/vercel-ai-provider ai@^7 zod" dark />
+  </Tab>
+</Tabs>
+
+[Create a Picsart API key](https://picsart.com/api-platform/docs/authentication) and set it as an environment variable:
+
+```bash
+export PICSART_API_KEY="your_api_key_here"
+```
+
+## Provider Instance
+
+Import the default provider instance `picsart`. It reads `PICSART_API_KEY` when the first request is made, so importing the package and listing models need no key:
+
+```ts
+import { picsart } from '@picsart/vercel-ai-provider';
+```
+
+Use `createPicsart` for a customized setup:
+
+```ts
+import { createPicsart } from '@picsart/vercel-ai-provider';
+
+const picsart = createPicsart({
+  apiKey: process.env.PICSART_API_KEY,
+});
+```
+
+## Models
+
+`listModels` returns `{ id, name, mode, inputType, requiredParams }` for each model. `inputType` says what a model takes: `t2i`, `i2i`, `t2v`, `i2v`, `a2v` or `v2v`. `requiredParams` lists the parameters a model requires besides `prompt`; some text-to-image and text-to-video models also require reference images or IDs, so an empty list finds a model that runs from a prompt alone.
+
+```ts
+import { picsart } from '@picsart/vercel-ai-provider';
+
+const imageModels = await picsart.listModels({ mode: 'image' });
+const videoModels = await picsart.listModels({ mode: 'video' });
+```
+
+New Picsart models arrive with updates of `@picsart/ai-sdk`, which supplies the catalog. To choose models by their parameters, read them from `picsart.catalog`. The parameter names are the keys of `providerOptions.picsart`.
+
+## Image Models
+
+```ts
+import { generateImage } from 'ai';
+import { picsart } from '@picsart/vercel-ai-provider';
+
+const [imageModel] = (await picsart.listModels({ mode: 'image' })).filter(
+  model => model.inputType === 't2i' && model.requiredParams.length === 0,
+);
+
+const { image, images } = await generateImage({
+  model: picsart.image(imageModel.id),
+  prompt: 'a ceramic mug on a marble table',
+  aspectRatio: '16:9',
+});
+
+console.log(images[0].providerMetadata?.picsart); // { url, generationId, playgroundUrl, ... }
+```
+
+To edit an image, pass input images as `prompt.images` and a mask as `prompt.mask`. Inputs must be `http:` or `https:` URLs; bytes and `data:` URLs are rejected before anything is sent. A model that doesn't take an input you pass fails with an `InvalidArgumentError` that lists the inputs it does take.
+
+## Video Models
+
+```ts
+import { experimental_generateVideo } from 'ai';
+import { picsart } from '@picsart/vercel-ai-provider';
+
+const [videoModel] = (await picsart.listModels({ mode: 'video' })).filter(
+  model => model.inputType === 't2v' && model.requiredParams.length === 0,
+);
+
+const { video } = await experimental_generateVideo({
+  model: picsart.video(videoModel.id),
+  prompt: 'steam rises from a ceramic mug',
+});
+```
+
+Pass a start image as `prompt.image`, and last frames and reference media with `frameImages` and `inputReferences`. A video call makes one video, so ask for one video per call.
+
+### Long Videos on Serverless
+
+A Picsart video can take minutes, longer than many serverless functions run. Start the job in one request, store its `operation`, and check it from a later request:
+
+```ts
+import { experimental_getVideoStatus, experimental_startVideo } from 'ai';
+import { picsart } from '@picsart/vercel-ai-provider';
+
+const [videoModel] = (await picsart.listModels({ mode: 'video' })).filter(
+  model => model.inputType === 't2v' && model.requiredParams.length === 0,
+);
+
+// First request: start the job and store the operation (plain JSON).
+const { operation } = await experimental_startVideo({
+  model: picsart.video(videoModel.id),
+  prompt: 'steam rises from a ceramic mug',
+});
+const saved = JSON.stringify(operation);
+
+// A later request: check the job once.
+const status = await experimental_getVideoStatus(picsart.video(videoModel.id), {
+  operation: JSON.parse(saved),
+});
+if (status.status === 'completed') {
+  for (const video of status.videos)
+    if (video.type === 'url') console.log(video.url);
+}
+```
+
+Starting a job is never retried. A status check starts nothing, so `ai` retries it on rate limits and server errors. Picsart sends no webhooks: `webhookUrl` comes back as an `unsupported` warning.
+
+## Provider Options
+
+Picsart-specific parameters go in `providerOptions.picsart`, keyed by the model's parameter names from the catalog. A key the model doesn't have is not sent and comes back as a warning, as does a standard setting the model doesn't support.
+
+```ts
+import { generateImage } from 'ai';
+import { picsart } from '@picsart/vercel-ai-provider';
+
+const models = await picsart.catalog.listModels({ mode: 'image' });
+const model = models.find(
+  candidate =>
+    candidate.inputType === 't2i' &&
+    candidate.params.resolution?.kind === 'enum',
+);
+const resolution = model?.params.resolution?.options?.[0]?.id;
+if (!model || resolution === undefined)
+  throw new Error('No text-to-image model lists resolutions');
+
+const { image, warnings } = await generateImage({
+  model: picsart.image(model.id),
+  prompt: 'a ceramic mug on a marble table',
+  providerOptions: { picsart: { resolution } },
+});
+```
+
+## Settings
+
+| Setting                 | Default                              | What it does                                                                                              |
+| ----------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `apiKey`                | `PICSART_API_KEY`                    | Picsart API key.                                                                                          |
+| `baseURL`               | `https://api.picsart.com`            | Picsart API address.                                                                                      |
+| `headers`               | none                                 | Headers added to every Picsart API call.                                                                  |
+| `fetch`                 | global `fetch`                       | Custom fetch for Picsart API, catalog and image download requests.                                        |
+| `catalog`               | `'sdk'`                              | Where models come from: the installed `@picsart/ai-sdk`, or your own `ModelCatalog`.                      |
+| `execution`             | `'sdk'`                              | `'sdk'` checks requests against the model's schema before submitting; `'server'` lets Picsart check them. |
+| `playgroundUrl`         | `https://picsart.com/ai-playground/` | Base of the AI Playground links; `false` for no links.                                                    |
+| `maxGenerationsPerCall` | `100`                                | The largest `n` one call accepts; a larger `n` fails before anything is charged.                          |
+| `maxConcurrentJobs`     | `4`                                  | How many Picsart jobs one call runs at once.                                                              |
+
+Models from `createPicsart` can cross Workflow step boundaries. The API key is never serialized; the restored model reads `PICSART_API_KEY`.
+
+## Credits
+
+For images, credits and balance are in `result.calls[i].providerMetadata.picsart`, one entry per `ai` call:
+
+```ts
+import { generateImage } from 'ai';
+import {
+  picsart,
+  type PicsartImageMetadata,
+} from '@picsart/vercel-ai-provider';
+
+const [imageModel] = (await picsart.listModels({ mode: 'image' })).filter(
+  model => model.inputType === 't2i' && model.requiredParams.length === 0,
+);
+const result = await generateImage({
+  model: picsart.image(imageModel.id),
+  prompt: 'a ceramic mug',
+  n: 4,
+});
+
+const credits = result.calls.reduce(
+  (sum, call) =>
+    sum +
+    ((call.providerMetadata?.picsart as PicsartImageMetadata | undefined)
+      ?.credits ?? 0),
+  0,
+);
+```
+
+For video, each result's `providerMetadata.picsart` holds the `credits` and `balance` of its job (`PicsartVideoMetadata`).
+
+## Errors
+
+Failures surface as AI SDK errors: `NoSuchModelError` for an unknown model, `InvalidArgumentError` for input or parameters Picsart would reject, `UnsupportedFunctionalityError` for bytes and `data:` inputs, `LoadAPIKeyError` when no key is configured, and `APICallError` for API failures, with the Picsart error code in `data.code`. An account without enough credits fails at submit with `NOT_ENOUGH_AVAILABLE_CREDITS`, before anything is charged.
+
+## Additional Resources
+
+- [@picsart/vercel-ai-provider on npm](https://www.npmjs.com/package/@picsart/vercel-ai-provider)
+- [Source on GitHub](https://github.com/PicsArt/vercel-ai-provider)
+- [Next.js starter app with a Deploy button](https://github.com/PicsArt/picsart-vercel-starter)
+- [Picsart API authentication](https://picsart.com/api-platform/docs/authentication)
