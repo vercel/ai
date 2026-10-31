@@ -8,7 +8,9 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types/Common_types
  */
 export function mediaTypeToExtension(mediaType: string) {
-  const [_type, subtype = ''] = mediaType.toLowerCase().split('/');
+  const [mimeWithoutParams] = mediaType.toLowerCase().split(';');
+  const [_type, rawSubtype = ''] = mimeWithoutParams.trim().split('/');
+  const subtype = rawSubtype.trim();
 
   return (
     {
