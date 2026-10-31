@@ -534,6 +534,97 @@ extension is used as a fallback when the media type is generic (for example,
 `application/octet-stream`). Recognizable non-image content is rejected even
 when its declared media type or filename indicates a supported image format.
 
+## Responses API
+
+You can use DeepSeek's [Responses API](https://api-docs.deepseek.com/guides/responses_api) with the `.responses()` factory method. It supports `deepseek-flash` and `deepseek-v4-pro`, JSON schema structured outputs, `toolChoice` modes, and DeepSeek's server-side web search.
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek.responses('deepseek-v4-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+The Responses API is stateless. The provider sends the full conversation history, including reasoning and previous web search calls, on every request.
+
+The following optional provider options are available for Responses models:
+
+- `thinking` _object_
+
+  Optional. Set `type` to `'disabled'` to turn off thinking mode (sent as `reasoning.effort: 'none'`).
+
+- `reasoningEffort` _'low' | 'high' | 'max'_
+
+  Optional. Controls thinking strength when thinking is enabled. The top-level `reasoning` setting is also mapped to these values.
+
+- `topLogprobs` _number_
+
+  Optional. Returns the specified number of most likely tokens at each token position in `providerMetadata.deepseek.logprobs`. Accepts values from `0` through `20`.
+
+- `userId` _string_
+
+  Optional. An opaque end-user identifier, sent as `user`. The value must match `^[a-zA-Z0-9_-]+$` and contain at most 512 characters.
+
+```ts
+import {
+  deepSeek,
+  type DeepSeekLanguageModelResponsesOptions,
+} from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: deepSeek.responses('deepseek-v4-pro'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      reasoningEffort: 'high',
+    } satisfies DeepSeekLanguageModelResponsesOptions,
+  },
+});
+```
+
+The Responses API does not support `stopSequences`, `frequencyPenalty`, `presencePenalty`, `topK`, `seed`, or strict function tools. The provider omits them and returns an unsupported warning.
+
+DeepSeek rejects `toolChoice: 'required'` and forced tool choices while thinking is enabled, which is the default. Set `thinking.type` to `'disabled'` to use them. `'auto'` and `'none'` work in both modes.
+
+### Web Search
+
+DeepSeek can search the web and read pages on the server while it generates a response. Add the `webSearch` tool to a `deepseek-v4-pro` Responses model. DeepSeek ignores the tool on `deepseek-flash`.
+
+```ts
+import { deepSeek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: deepSeek.responses('deepseek-v4-pro'),
+  prompt: 'What is the official Python website?',
+  tools: {
+    web_search: deepSeek.tools.webSearch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.deepseek?.serverToolUse);
+// { toolSearch: 1, toolFetch: 0 }
+```
+
+Each server-side search is returned as a provider-executed `web_search` tool call and tool result. The raw DeepSeek `web_search_call` item is kept in the tool call's provider metadata, so it is sent back in later turns and DeepSeek can restore its search results.
+
+DeepSeek bills successful searches and page reads per operation. The counts are returned in `providerMetadata.deepseek.serverToolUse` (`toolSearch` and `toolFetch`) and in `usage.raw.server_tool_use`. See [DeepSeek pricing](https://api-docs.deepseek.com/quick_start/pricing) for rates.
+
+### Responses Provider Metadata
+
+Responses models return the following fields in `providerMetadata.deepseek`:
+
+- `responseId`: The DeepSeek response ID
+- `serverToolUse`: Successful server-side web searches (`toolSearch`) and page reads (`toolFetch`), when any ran
+- `logprobs`: Token log probabilities, when `topLogprobs` is set
+
+Reasoning parts include the DeepSeek reasoning item ID in `providerMetadata.deepseek.itemId`.
+
 ## Model Capabilities
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
