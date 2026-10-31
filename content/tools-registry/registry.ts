@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'factline',
+    name: 'Factline',
+    description:
+      'Check who your agent is about to pay against official records: supplier invoices (register, IBAN, VAT, sanctions), European companies, Chinese suppliers (UFLPA, Entity List), sanctions screening, a free x402 pay guard and SEC lookups. Every answer cites its source.',
+    packageName: '@factline/ai-sdk',
+    tags: ['kyb', 'sanctions', 'invoice', 'compliance', 'x402'],
+    apiKeyEnvName: 'FACTLINE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @factline/ai-sdk',
+      npm: 'npm install @factline/ai-sdk',
+      yarn: 'yarn add @factline/ai-sdk',
+      bun: 'bun add @factline/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { factlineTools } from '@factline/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  tools: factlineTools({ apiKey: process.env.FACTLINE_API_KEY }),
+  stopWhen: isStepCount(3),
+  prompt:
+    'Can we pay this invoice from Google Ireland Limited, VAT IE6388047V, IBAN IE29AIBK93115212345678?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://factline.dev/ai-sdk',
+    apiKeyUrl: 'https://factline.dev/business#trial',
+    websiteUrl: 'https://factline.dev',
+    npmUrl: 'https://www.npmjs.com/package/@factline/ai-sdk',
+  },
 ];
