@@ -1,0 +1,148 @@
+---
+title: BoldRouter
+description: BoldRouter provider for AI SDK 7
+---
+
+# BoldRouter
+
+[BoldRouter](https://boldrouter.com) is an OpenAI-compatible LLM gateway: one API key gives you 129+ models across 26+ providers, with automatic provider routing and failover, prompt caching and PII anonymization. The `@boldrouter/ai-sdk-provider` package adds typed BoldRouter controls on top of the AI SDK's OpenAI-compatible transport.
+
+The BoldRouter provider is a good fit if you want:
+
+- **Auto-routing with a visible decision**: `bold/auto`, `bold/fast` and `bold/frontier` pick a model; the response headers tell you which provider served and whether a fallback happened
+- **Failover you control**: a typed fallback chain and provider allow/deny lists per model or per call
+- **Compliance in the transport**: PII anonymization before a prompt leaves the gateway, with the originals restored in the response
+- **One package for chat and embeddings**, using your existing AI SDK code, with typed options at provider, model and call level
+
+Learn more in the [BoldRouter documentation](https://boldrouter.com/docs). The package is published on npm as [`@boldrouter/ai-sdk-provider`](https://www.npmjs.com/package/@boldrouter/ai-sdk-provider).
+
+## Setup
+
+The `@boldrouter/ai-sdk-provider` package supports AI SDK 7 and the Provider V4 specification.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @boldrouter/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @boldrouter/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @boldrouter/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @boldrouter/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+</Tabs>
+
+Create an API key on the [BoldRouter API keys page](https://boldrouter.com/dashboard/keys) and set it as an environment variable. The default `boldrouter` instance reads it from there:
+
+```bash
+export BOLDROUTER_API_KEY="sk-bold-..."
+```
+
+## Provider Instance
+
+Use the default `boldrouter` export, or create an instance with `createBoldRouter`:
+
+```typescript
+import { createBoldRouter } from '@boldrouter/ai-sdk-provider';
+
+const boldrouter = createBoldRouter({
+  apiKey: process.env.BOLDROUTER_API_KEY,
+  routing: 'price', // optional default for every model
+  // baseURL: 'https://boldrouter.com/v1', // or BOLDROUTER_BASE_URL, e.g. for a proxy
+});
+```
+
+## Language Models
+
+```typescript
+import { boldrouter } from '@boldrouter/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: boldrouter('bold/auto'),
+  prompt: 'Write a haiku about failover.',
+});
+```
+
+Model ids are BoldRouter catalog ids: the `bold/*` routers, or a provider-prefixed model such as `openai/gpt-4.1`, `anthropic/claude-opus-4.8` or `google/gemini-2.5-pro`.
+
+### BoldRouter options
+
+Set at model creation or per call under `providerOptions.boldrouter`; per-call values win.
+
+```typescript
+const model = boldrouter('bold/frontier', {
+  routing: 'price', // 'balanced' | 'price' | 'latency' | 'uptime'
+  fallbackModels: ['openai/gpt-4.1', 'google/gemini-2.5-pro'],
+  provider: {
+    order: ['anthropic', 'openai'],
+    ignore: ['xai'],
+    allowFallbacks: true,
+  },
+  anonymize: true,
+  cache: false,
+  reasoning: { effort: 'high' },
+});
+
+await generateText({
+  model,
+  prompt,
+  providerOptions: { boldrouter: { routing: 'latency' } },
+});
+```
+
+The AI SDK's standard `reasoning` call option is translated into BoldRouter's `reasoning` setting automatically, and the gateway maps it to each provider's own thinking controls. Hidden reasoning is not returned, but its token count is reported in `usage.outputTokenDetails.reasoningTokens`:
+
+```typescript
+const result = await generateText({
+  model: boldrouter('deepseek/deepseek-v4-flash'),
+  prompt: 'How many prime numbers are there below 100?',
+  reasoning: 'high', // or 'none' to turn thinking off
+});
+
+console.log(result.usage.outputTokenDetails.reasoningTokens);
+```
+
+### Reading the routing decision
+
+```typescript
+import { boldRouterMetadata } from '@boldrouter/ai-sdk-provider';
+
+const result = await generateText({ model: boldrouter('bold/auto'), prompt });
+const { provider, model, fellBackFrom } = boldRouterMetadata(result.response);
+```
+
+### Model Capabilities
+
+| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `bold/auto`     | model-dependent     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `bold/fast`     | model-dependent     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `bold/frontier` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `bold/image`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  Any BoldRouter catalog id can be used; capabilities then follow the underlying
+  model. Image generation is served through chat with `bold/image` and
+  `modalities`, with images returned in the raw response body, not through the
+  AI SDK image model API.
+</Note>
+
+## Embedding Models
+
+```typescript
+import { boldrouter } from '@boldrouter/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: boldrouter.embeddingModel('openai/text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Not supported
+
+`boldrouter.imageModel()` throws a `NoSuchModelError`; generate images through chat with `bold/image` as above. Speech and transcription models are not exposed by this package.
