@@ -97,11 +97,17 @@ export async function handler(req, res) {
         'Optional agent call options, for agents configured with generic parameter `CALL_OPTIONS`.',
     },
     {
-      name: 'experimental_transform',
+      name: 'transform',
       type: 'StreamTextTransform | StreamTextTransform[]',
       isRequired: false,
       description:
         'Optional stream text transformation(s) applied to agent output.',
+    },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | StreamTextTransform[]',
+      isRequired: false,
+      description: 'Deprecated alias for `transform`.',
     },
     {
       name: 'onStepEnd',

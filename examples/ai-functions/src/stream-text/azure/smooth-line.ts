@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: azure('gpt-4.1-mini'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_transform: smoothStream({ chunking: 'line' }),
+    transform: smoothStream({ chunking: 'line' }),
   });
 
   for await (const textPart of result.textStream) {

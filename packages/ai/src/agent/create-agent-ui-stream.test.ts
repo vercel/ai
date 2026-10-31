@@ -9,6 +9,7 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStream } from './create-agent-ui-stream';
 import { ToolLoopAgent } from './tool-loop-agent';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { UIMessage } from '../ui/ui-messages';
 import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 
@@ -54,6 +55,38 @@ function createMockModel() {
 }
 
 describe('createAgentUIStream', () => {
+  it.each(['transform', 'experimental_transform'] as const)(
+    'forwards %s to the agent',
+    async option => {
+      const agent = new ToolLoopAgent({ model: createMockModel() });
+      const streamSpy = vi.spyOn(agent, 'stream');
+      const uppercaseTransform = () =>
+        new TransformStream<TextStreamPart<{}>, TextStreamPart<{}>>({
+          transform(chunk, controller) {
+            controller.enqueue(
+              chunk.type === 'text-delta'
+                ? { ...chunk, text: chunk.text.toUpperCase() }
+                : chunk,
+            );
+          },
+        });
+
+      const stream = await createAgentUIStream({
+        agent,
+        uiMessages: [
+          { id: 'user-1', role: 'user', parts: [{ type: 'text', text: 'Hi' }] },
+        ],
+        [option]: uppercaseTransform,
+      });
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(streamSpy.mock.calls[0]?.[0].transform).toBe(uppercaseTransform);
+      expect(chunks).toContainEqual(
+        expect.objectContaining({ type: 'text-delta', delta: 'RESPONSE' }),
+      );
+    },
+  );
+
   it.each([false, true])(
     'preserves generation callbacks and UI continuations (continuation: %s)',
     async isContinuation => {

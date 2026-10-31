@@ -348,7 +348,7 @@ describe('streamText first chunk timeout', () => {
       }),
       prompt: 'test-input',
       timeout: { firstChunkMs: 50 },
-      experimental_transform: ({ stopStream }) =>
+      transform: ({ stopStream }) =>
         new TransformStream({
           transform(chunk, controller) {
             if (chunk.type === 'start-step') {

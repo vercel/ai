@@ -3208,7 +3208,7 @@ describe('streamText', () => {
         }),
         streamRetries: 1,
         include: { requestBody: true },
-        experimental_transform: () =>
+        transform: () =>
           new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
             transform(chunk, controller) {
               if (chunk.type === 'text-start') {
@@ -3561,7 +3561,7 @@ describe('streamText', () => {
         },
         stopWhen: isStepCount(2),
         streamRetries: 1,
-        experimental_transform: () =>
+        transform: () =>
           new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
             transform(chunk, controller) {
               if (chunk.type === 'text-start') {
@@ -16470,7 +16470,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseToolResultTransform,
+          transform: upperCaseToolResultTransform,
           prompt: 'test-input',
           onFinish: async event => {
             expect(onFinishResult).to.be.undefined;
@@ -21034,7 +21034,7 @@ describe('streamText', () => {
       it('should transform the stream', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -21046,7 +21046,7 @@ describe('streamText', () => {
       it('result.text should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -21056,7 +21056,7 @@ describe('streamText', () => {
       it('result.responseMessages should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -21094,7 +21094,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_transform: () =>
+          transform: () =>
             new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
               transform(chunk, controller) {
                 if (chunk.type === 'finish') {
@@ -21151,7 +21151,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_transform: () =>
+          transform: () =>
             new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
               transform(chunk, controller) {
                 if (chunk.type === 'finish') {
@@ -21193,7 +21193,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -21241,7 +21241,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -21294,7 +21294,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
@@ -21458,7 +21458,7 @@ describe('streamText', () => {
             request: { body: 'test body' },
           }),
           prompt: 'test-input',
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
         });
 
         expect(JSON.stringify(await result.providerMetadata)).toStrictEqual(
@@ -21516,7 +21516,7 @@ describe('streamText', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           _internal: {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
@@ -22050,7 +22050,7 @@ describe('streamText', () => {
           onStepFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
           _internal: {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
@@ -22237,7 +22237,7 @@ describe('streamText', () => {
           onChunk(event) {
             result.push(event.chunk);
           },
-          experimental_transform: upperCaseTransform,
+          transform: upperCaseTransform,
         });
 
         await resultObject.consumeStream();
@@ -22445,16 +22445,53 @@ describe('streamText', () => {
       it('should transform the stream', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: [
-            toUppercaseAndAddCommaTransform(),
-            omitCommaTransform(),
-          ],
+          transform: [toUppercaseAndAddCommaTransform(), omitCommaTransform()],
           prompt: 'test-input',
         });
 
         expect(
           await convertAsyncIterableToArray(result.textStream),
         ).toStrictEqual(['HELLO', ' ', 'WORLD!']);
+      });
+    });
+
+    describe('with deprecated experimental_transform', () => {
+      const appendTransform =
+        <TOOLS extends ToolSet>(suffix: string) =>
+        (options: { tools: TOOLS }) =>
+          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+            transform(chunk, controller) {
+              controller.enqueue(
+                chunk.type === 'text-delta'
+                  ? { ...chunk, text: `${chunk.text}${suffix}` }
+                  : chunk,
+              );
+            },
+          });
+
+      it('should transform the stream', async () => {
+        const result = streamText({
+          model: createTestModel(),
+          experimental_transform: appendTransform('!'),
+          prompt: 'test-input',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.textStream),
+        ).toStrictEqual(['Hello!', ', !', 'world!!']);
+      });
+
+      it('should prefer transform when both are provided', async () => {
+        const result = streamText({
+          model: createTestModel(),
+          transform: appendTransform('!'),
+          experimental_transform: appendTransform('?'),
+          prompt: 'test-input',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.textStream),
+        ).toStrictEqual(['Hello!', ', !', 'world!!']);
       });
     });
 
@@ -22544,7 +22581,7 @@ describe('streamText', () => {
                 ]),
               }),
               prompt: 'test-input',
-              experimental_transform: stopWordTransform(),
+              transform: stopWordTransform(),
             });
 
             expect(await convertAsyncIterableToArray(result.stream))
@@ -22722,7 +22759,7 @@ describe('streamText', () => {
               onStepFinish: async event => {
                 result = event as unknown as typeof result;
               },
-              experimental_transform: stopWordTransform(),
+              transform: stopWordTransform(),
               _internal: {
                 generateId: () => 'test-call-id',
                 generateCallId: () => 'test-telemetry-call-id',

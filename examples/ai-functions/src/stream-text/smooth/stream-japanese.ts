@@ -39,7 +39,7 @@ run(async () => {
       }),
     }),
     prompt: 'Say hello in Japanese!',
-    experimental_transform: smoothStream({
+    transform: smoothStream({
       chunking: new Intl.Segmenter('ja', { granularity: 'word' }),
       delayInMs: 100,
     }),

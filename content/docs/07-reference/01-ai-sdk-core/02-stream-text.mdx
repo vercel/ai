@@ -565,7 +565,7 @@ retain the content their contracts require.
       ],
     },
     {
-      name: 'experimental_transform',
+      name: 'transform',
       type: 'StreamTextTransform | Array<StreamTextTransform>',
       isOptional: true,
       description:
@@ -599,6 +599,12 @@ retain the content their contracts require.
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | Array<StreamTextTransform>',
+      isOptional: true,
+      description: 'Deprecated alias for `transform`.',
     },
     {
       name: 'includeRawChunks',

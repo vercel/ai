@@ -7,6 +7,6 @@ export async function POST(req: Request) {
   return createAgentUIStreamResponse({
     agent: openaiBasicAgent,
     uiMessages: body.messages,
-    experimental_transform: smoothStream(),
+    transform: smoothStream(),
   });
 }

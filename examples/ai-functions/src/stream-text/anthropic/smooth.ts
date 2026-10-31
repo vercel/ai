@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-5-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_transform: smoothStream(),
+    transform: smoothStream(),
   });
 
   for await (const textPart of result.textStream) {

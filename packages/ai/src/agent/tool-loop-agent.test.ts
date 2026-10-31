@@ -22,6 +22,7 @@ import type {
 } from '../generate-text/tool-execution-events';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { now } from '../util/now';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 // mock now function
@@ -798,6 +799,41 @@ describe('ToolLoopAgent', () => {
             ]),
           };
         },
+      });
+    });
+
+    describe('transform', () => {
+      const uppercaseTransform = () =>
+        new TransformStream<TextStreamPart<{}>, TextStreamPart<{}>>({
+          transform(chunk, controller) {
+            controller.enqueue(
+              chunk.type === 'text-delta'
+                ? { ...chunk, text: chunk.text.toUpperCase() }
+                : chunk,
+            );
+          },
+        });
+
+      it('should apply transform', async () => {
+        const agent = new ToolLoopAgent({ model: mockModel });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          transform: uppercaseTransform,
+        });
+
+        expect(await result.text).toBe('HELLO, WORLD!');
+      });
+
+      it('should apply deprecated experimental_transform', async () => {
+        const agent = new ToolLoopAgent({ model: mockModel });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_transform: uppercaseTransform,
+        });
+
+        expect(await result.text).toBe('HELLO, WORLD!');
       });
     });
 

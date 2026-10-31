@@ -28,6 +28,6 @@ import { smoothStream, streamText } from 'ai';
 const result = streamText({
   model,
   prompt,
-  experimental_transform: smoothStream(),
+  transform: smoothStream(),
 });
 ```
