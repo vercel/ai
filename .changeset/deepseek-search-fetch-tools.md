@@ -2,6 +2,8 @@
 '@ai-sdk/gateway': patch
 ---
 
-Add DeepSeek Search and Fetch provider-executed tools through `gateway.tools.deepseekSearch()` and `gateway.tools.deepseekFetch()`, with typed configuration, structured search results, and Markdown page content.
+feat(provider/gateway): add DeepSeek Search and Fetch tools
 
 Share lazy tool-error validation across DeepSeek, Parallel, and Tako while preserving additional error fields.
+
+Tako tool errors also accept `gateway_rate_limit` and `unknown`; exhaustive error switches may need to handle these cases. Parallel and Tako errors gain optional `retryAfter` and `statusText` fields.

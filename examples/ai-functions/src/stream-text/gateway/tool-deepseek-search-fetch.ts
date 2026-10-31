@@ -7,8 +7,11 @@ async function main() {
     prompt:
       'Search for DeepSeek API documentation, fetch one relevant page, and summarize it.',
     tools: {
-      search: gateway.tools.deepseekSearch({ count: 3, needContent: true }),
-      fetch: gateway.tools.deepseekFetch(),
+      deepseek_search: gateway.tools.deepseekSearch({
+        count: 3,
+        needContent: true,
+      }),
+      deepseek_fetch: gateway.tools.deepseekFetch(),
     },
   });
   for await (const part of result.stream) {

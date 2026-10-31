@@ -27,10 +27,16 @@ export const gatewayTools = {
    */
   browserbaseSearch,
 
-  /** Fetch a page as Markdown using DeepSeek. Executed by AI Gateway. */
+  /**
+   * Fetch a page as Markdown through DeepSeek's standalone Fetch API.
+   * Executed by AI Gateway for any model, separate from native model web search.
+   */
   deepseekFetch,
 
-  /** Search the web using DeepSeek. Executed by AI Gateway. */
+  /**
+   * Search the web through DeepSeek's standalone Search API.
+   * Executed by AI Gateway for any model, separate from native model web search.
+   */
   deepseekSearch,
 
   /**

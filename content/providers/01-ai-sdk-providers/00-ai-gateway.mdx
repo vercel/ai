@@ -911,58 +911,6 @@ for await (const part of result.stream) {
 }
 ```
 
-#### DeepSeek Search and Fetch
-
-Use `gateway.tools.deepseekSearch()` to search the web and
-`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools run
-through AI Gateway and work with supported tool-calling models from any provider.
-No additional model provider package is required.
-
-```ts
-import { gateway, generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('openai/gpt-6-luna'),
-  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
-  tools: {
-    search: gateway.tools.deepseekSearch({ count: 5, needContent: true }),
-    fetch: gateway.tools.deepseekFetch(),
-  },
-});
-
-console.log(result.text);
-console.log(result.toolResults);
-for (const part of result.content) {
-  if (part.type === 'tool-error') console.error('Tool error:', part.error);
-}
-```
-
-Search configuration uses camelCase:
-
-| Option         | Type             | Description                                                        |
-| -------------- | ---------------- | ------------------------------------------------------------------ |
-| `query`        | `string`         | Pin the search query; otherwise the model chooses it.              |
-| `count`        | `number`         | Number of results, 1–50; defaults to 10.                           |
-| `needContent`  | `boolean`        | Include available page content; defaults to false.                 |
-| `oriQuestion`  | `string \| null` | Original question, 1–128 Unicode characters.                       |
-| `localization` | `string`         | IP address used to localize results; developer configuration only. |
-
-The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
-Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
-`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
-URLs, titles, snippets, summaries, optional page content, and nullable site/date
-metadata. An empty `results` array is a successful search with no matches.
-
-Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
-password, and returns `{ title, content }`. The content is Markdown. You can
-pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
-Tool failures appear as `tool-error` parts in `result.content` (for
-`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
-there; failures are not included in `result.toolResults`.
-
-See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
-underlying APIs.
-
 #### Exa Search
 
 The Exa Search tool enables models to search the web using [Exa's Search API](https://exa.ai/docs/reference/search-api-guide-for-coding-agents). This tool is executed by the AI Gateway and returns token-efficient web excerpts for agent workflows.
@@ -1405,6 +1353,100 @@ for await (const part of result.stream) {
   }
 }
 ```
+
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools call
+DeepSeek's standalone Search/Fetch APIs from AI Gateway and work with supported
+tool-calling models from any provider. They are separate from a model's built-in
+web search. No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch({
+      count: 5,
+      needContent: true,
+    }),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+The Search tool supports the following optional configuration options:
+
+- **query** _string_
+
+  Pin the search query; otherwise the model chooses it. Queries contain 1–128 Unicode characters and cannot be all whitespace.
+
+- **count** _number_
+
+  Number of results, 1–50 (default: 10).
+
+- **needContent** _boolean_
+
+  Include available page content (default: false).
+
+- **oriQuestion** _string | null_
+
+  Original question, 1–128 Unicode characters. `null` means not provided.
+
+- **localization** _string_
+
+  IP address used to localize results; developer configuration only.
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ content, title? }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+The Fetch tool supports the following optional configuration option:
+
+- **url** _string_
+
+  Pin the HTTP(S) URL; otherwise the model chooses it.
+
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
+
+The tools also work with `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch(),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
 
 ### Custom Reporting
 
