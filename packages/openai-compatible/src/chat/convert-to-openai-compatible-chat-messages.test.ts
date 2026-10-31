@@ -447,6 +447,37 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert inline text file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'text', text: 'Résumé: café, 日本語' },
+            mediaType: 'text/plain',
+            providerOptions: {
+              openaiCompatible: { cache_control: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Résumé: café, 日本語',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert messages with text/plain parts from Uint8Array', async () => {
     const encoder = new TextEncoder();
     const result = convertToOpenAICompatibleChatMessages([
