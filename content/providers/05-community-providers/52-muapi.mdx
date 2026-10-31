@@ -1,0 +1,184 @@
+---
+title: MuAPI
+description: MuAPI provider for the AI SDK — image and video generation with 50+ models.
+---
+
+# MuAPI Provider
+
+The official [MuAPI](https://muapi.ai) provider for the AI SDK gives you access to 50+ generative media models including image generation, video generation, audio, and 3D — all through a single unified API.
+
+## Setup
+
+The MuAPI provider is available in the `@muapi/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @muapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @muapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @muapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @muapi/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `muapi` from `@muapi/ai-sdk-provider`:
+
+```ts
+import { muapi } from '@muapi/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createMuapi` and create a provider instance with your settings:
+
+```ts
+import { createMuapi } from '@muapi/ai-sdk-provider';
+
+const muapi = createMuapi({
+  apiKey: 'your-api-key', // optional, defaults to MUAPI_API_KEY environment variable
+});
+```
+
+You can obtain your API key from the [MuAPI Dashboard](https://muapi.ai/dashboard/api-keys).
+
+## Image Generation
+
+You can create image models using the `.image()` factory method:
+
+```ts
+import { muapi } from '@muapi/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: muapi.image('flux-schnell'),
+  prompt: 'A photorealistic sunset over the ocean',
+});
+
+console.log(images[0].url);
+```
+
+### Image Models
+
+| Model ID | Description |
+| -------- | ----------- |
+| `flux-schnell` | Flux Schnell — fast, high quality |
+| `flux-dev` | Flux Dev |
+| `flux-kontext-dev` | Flux Kontext Dev |
+| `flux-kontext-pro` | Flux Kontext Pro |
+| `flux-kontext-max` | Flux Kontext Max |
+| `hidream-fast` | HiDream Fast |
+| `hidream-dev` | HiDream Dev |
+| `hidream-full` | HiDream Full |
+| `midjourney` | Midjourney v7 |
+| `gpt4o` | GPT-4o image generation |
+| `gpt-image-2` | GPT Image 2 |
+| `imagen4` | Google Imagen 4 |
+| `imagen4-ultra` | Google Imagen 4 Ultra |
+| `seedream` | Seedream |
+| `seedream-5` | Seedream 5.0 |
+| `wan2.1` | Wan 2.1 |
+| `qwen` | Qwen image |
+| `reve` | Reve |
+| `ideogram` | Ideogram v3 |
+| `hunyuan` | Hunyuan |
+
+### Provider Options
+
+Pass extra model-specific parameters via `providerOptions.muapi`:
+
+```ts
+const { images } = await generateImage({
+  model: muapi.image('flux-dev'),
+  prompt: 'A cat sitting on a rooftop',
+  providerOptions: {
+    muapi: {
+      width: 1024,
+      height: 768,
+    },
+  },
+});
+```
+
+## Video Generation
+
+You can create video models using the `.video()` factory method:
+
+```ts
+import { muapi } from '@muapi/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: muapi.video('veo3-fast'),
+  prompt: 'A timelapse of clouds moving over mountains',
+});
+
+console.log(videos[0].url); // MP4 URL
+```
+
+### Video Models
+
+| Model ID | Description |
+| -------- | ----------- |
+| `veo3` | Google Veo 3 |
+| `veo3-fast` | Google Veo 3 Fast |
+| `veo4` | Google Veo 4 |
+| `kling-master` | Kling Master |
+| `kling-v3-pro` | Kling v3 Pro |
+| `wan2.1` | Wan 2.1 |
+| `wan2.2` | Wan 2.2 |
+| `wan2.5` | Wan 2.5 |
+| `seedance-pro` | Seedance Pro |
+| `runway` | Runway |
+| `pixverse` | Pixverse |
+| `sora` | OpenAI Sora |
+| `sora-2` | OpenAI Sora 2 |
+| `hunyuan` | Hunyuan |
+| `vidu` | Vidu |
+
+### Video Duration and Aspect Ratio
+
+```ts
+const { videos } = await generateVideo({
+  model: muapi.video('kling-master'),
+  prompt: 'A slow zoom into a flower blooming',
+  aspectRatio: '16:9',
+  providerOptions: {
+    muapi: { duration: 10 },
+  },
+});
+```
+
+## Image-to-Video
+
+Animate a still image using the `.imageToVideo()` factory method:
+
+```ts
+const { videos } = await generateVideo({
+  model: muapi.imageToVideo('kling-master'),
+  prompt: 'Zoom in slowly',
+  providerOptions: {
+    muapi: {
+      image_url: 'https://example.com/image.jpg',
+      duration: 5,
+    },
+  },
+});
+```
+
+### Image-to-Video Models
+
+| Model ID | Description |
+| -------- | ----------- |
+| `kling-master` | Kling Master i2v |
+| `kling-v2.5-pro` | Kling v2.5 Pro i2v |
+| `veo3` | Google Veo 3 i2v |
+| `veo4` | Google Veo 4 i2v |
+| `wan2.1` | Wan 2.1 i2v |
+| `seedance-2` | Seedance 2 i2v |
+| `runway` | Runway i2v |
+| `sora-2` | OpenAI Sora 2 i2v |
