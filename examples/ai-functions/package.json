@@ -69,6 +69,7 @@
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/tool-bash": "workspace:*",
+    "@ai-sdk/tool-fs": "workspace:*",
     "@ai-sdk/tool-web-fetch": "workspace:*",
     "@ai-sdk/topaz": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
