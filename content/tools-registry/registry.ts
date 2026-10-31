@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'twitterapi-io',
+    name: 'TwitterAPI.io',
+    description:
+      'Read-only X (Twitter) data tools for the AI SDK: search tweets with advanced search operators, read profiles, timelines, mentions and full conversation threads, and get trending topics. No X developer account needed.',
+    packageName: '@twitterapi_io/ai-sdk',
+    tags: ['twitter', 'x', 'social-media', 'search', 'data'],
+    apiKeyEnvName: 'TWITTERAPI_IO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @twitterapi_io/ai-sdk',
+      npm: 'npm install @twitterapi_io/ai-sdk',
+      yarn: 'yarn add @twitterapi_io/ai-sdk',
+      bun: 'bun add @twitterapi_io/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { twitterApiIoTools } from '@twitterapi_io/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'What are developers on X saying about the Vercel AI SDK this week? Cite tweet links.',
+  tools: twitterApiIoTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://twitterapi.io/blog/how-to-use-vercel-ai-sdk-with-twitter-api',
+    apiKeyUrl: 'https://twitterapi.io/dashboard',
+    websiteUrl: 'https://twitterapi.io',
+    npmUrl: 'https://www.npmjs.com/package/@twitterapi_io/ai-sdk',
+  },
 ];
