@@ -282,6 +282,68 @@ describe('XaiResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should return length finish reason when status is incomplete with max_output_tokens', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'incomplete',
+          incomplete_details: { reason: 'max_output_tokens' },
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toEqual({
+          unified: 'length',
+          raw: 'max_output_tokens',
+        });
+      });
+
+      it('should return other finish reason when status is incomplete without incomplete_details', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'incomplete',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toEqual({
+          unified: 'other',
+          raw: 'incomplete',
+        });
+      });
+
+      it('should return other finish reason with raw reason when status is incomplete with max_time_limit', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'incomplete',
+          incomplete_details: { reason: 'max_time_limit' },
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toEqual({
+          unified: 'other',
+          raw: 'max_time_limit',
+        });
+      });
     });
 
     describe('reasoning content', () => {
