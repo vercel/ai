@@ -1,15 +1,15 @@
-import type {
+import {
   APICallError,
-  JSONObject,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+  type JSONObject,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   type Resolvable,
@@ -221,13 +221,14 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, webSearchToolName } = await this.getArgs(options);
     const providerOptionsName = this.providerOptionsName;
+    const url = this.config.url({ path: '/responses', modelId: this.modelId });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({ path: '/responses', modelId: this.modelId }),
+      url,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -240,6 +241,18 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.status === 'failed' || response.error != null) {
+      throw new APICallError({
+        message: response.error?.message ?? 'DeepSeek response failed',
+        url,
+        requestBodyValues: args,
+        responseHeaders,
+        responseBody: JSON.stringify(rawResponse),
+        data: rawResponse,
+        ...getFailedResponseStatus(response.error?.code),
+      });
+    }
 
     const content: Array<LanguageModelV4Content> = [];
     const logprobs: unknown[] = [];
@@ -568,6 +581,7 @@ export class DeepSeekResponsesLanguageModel implements LanguageModelV4 {
                         'DeepSeek response failed',
                       type: 'response.failed',
                       code: done.response.error?.code ?? undefined,
+                      ...getFailedResponseStatus(done.response.error?.code),
                       data: value,
                     }),
                   });
@@ -648,6 +662,33 @@ type WebSearchCallItem = Extract<
   DeepSeekResponsesOutputItem,
   { type: 'web_search_call' }
 >;
+
+function getFailedResponseStatus(code: string | null | undefined): {
+  statusCode: number;
+  isRetryable: boolean;
+} {
+  switch (code) {
+    case 'rate_limit_exceeded':
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'insufficient_quota':
+      return { statusCode: 429, isRetryable: false };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    default:
+      return { statusCode: 500, isRetryable: true };
+  }
+}
 
 function getItemId(item: DeepSeekResponsesOutputItem): string | undefined {
   return 'id' in item && typeof item.id === 'string' ? item.id : undefined;

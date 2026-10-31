@@ -327,6 +327,23 @@ describe('DeepSeekResponsesLanguageModel', () => {
       });
     });
 
+    it('throws when DeepSeek returns a failed response', async () => {
+      prepareJsonResponse({
+        status: 'failed',
+        error: { code: 'server_error', message: 'boom' },
+      });
+
+      await expect(
+        provider
+          .responses('deepseek-flash')
+          .doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toMatchObject({
+        message: 'boom',
+        statusCode: 500,
+        isRetryable: true,
+      });
+    });
+
     it('maps incomplete max_output_tokens to length', async () => {
       prepareJsonResponse({
         status: 'incomplete',
