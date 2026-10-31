@@ -25,6 +25,7 @@ import {
   withUserAgentSuffix,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  encodePathSegment,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
@@ -237,8 +238,9 @@ export class TopazVideoModel implements VideoModelV4 {
     };
 
     const { value: status, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/video/${requestId}/status`,
-      // Built from the configured baseURL, not from response data.
+      url: `${this.config.baseURL}/video/${encodePathSegment(requestId)}/status`,
+      // Host comes from the configured baseURL; the provider-returned ID is
+      // encoded as a single path segment to prevent traversal.
       validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -501,7 +503,7 @@ export class TopazVideoModel implements VideoModelV4 {
     try {
       // Deliberately not tied to the caller's abort signal, which may be the
       // reason the start failed.
-      await fetchImpl(`${this.config.baseURL}/video/${requestId}`, {
+      await fetchImpl(`${this.config.baseURL}/video/${encodePathSegment(requestId)}`, {
         method: 'DELETE',
         headers: removeUndefinedEntries(headers),
       });
