@@ -751,4 +751,41 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'token-safety-check',
+    name: 'Token Safety Check',
+    description:
+      'Rug check any token on Base, Ethereum, Arbitrum, Optimism, Polygon or Solana: a 0-100 risk score with plain reasons (mint, freeze, blacklist, pause or fee powers, upgradeable code, holder concentration, thin liquidity, a deployer whose earlier tokens lost their liquidity), a CLEAN/MID/SKETCHY/RUGGY verdict, and a watchlist of up to 5 tokens. Pay-per-call in USDC on Base via x402, with a per-call price cap.',
+    packageName: 'token-safety-check',
+    tags: ['crypto', 'security', 'x402', 'payments', 'onchain'],
+    installCommand: {
+      pnpm: 'pnpm add token-safety-check ai',
+      npm: 'npm install token-safety-check ai',
+      yarn: 'yarn add token-safety-check ai',
+      bun: 'bun add token-safety-check ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createTokenSafetyClient } from 'token-safety-check';
+import { tokenSafetyTools } from 'token-safety-check/ai';
+
+// Each call costs $0.01 in USDC on Base, paid with x402 from this wallet.
+// maxUsdPerCheck refuses any call priced above it; the model can't raise it.
+const client = createTokenSafetyClient({
+  privateKey: process.env.X402_PRIVATE_KEY as \`0x\${string}\`,
+  maxUsdPerCheck: 0.02,
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Is the token 0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed on Base safe to buy?',
+  tools: tokenSafetyTools(client),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://onchaincheck.dev/docs/ai-sdk',
+    websiteUrl: 'https://onchaincheck.dev',
+    npmUrl: 'https://www.npmjs.com/package/token-safety-check',
+  },
 ];
