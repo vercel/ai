@@ -751,4 +751,36 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'geekflare',
+    name: 'Geekflare',
+    description:
+      'Geekflare gives your LLMs live web data. Search the web, news, or images, or get the full Google results page (organic results, AI Overview, People Also Ask) for a country or city. Scrape public pages to clean Markdown or structured JSON, capture screenshots, and run website checks such as uptime, DNS, TLS, and Lighthouse.',
+    packageName: '@geekflare/ai-sdk',
+    tags: ['search', 'web', 'extraction', 'scraping'],
+    apiKeyEnvName: 'GEEKFLARE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @geekflare/ai-sdk',
+      npm: 'npm install @geekflare/ai-sdk',
+      yarn: 'yarn add @geekflare/ai-sdk',
+      bun: 'bun add @geekflare/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { geekflareSearch } from '@geekflare/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What are the latest developments in AI agents? Cite sources.',
+  tools: {
+    geekflareSearch: geekflareSearch(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.geekflare.com/integrations/ai-sdk',
+    apiKeyUrl: 'https://dash.geekflare.com',
+    websiteUrl: 'https://geekflare.com',
+    npmUrl: 'https://www.npmjs.com/package/@geekflare/ai-sdk',
+  },
 ];
