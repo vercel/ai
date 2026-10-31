@@ -1,5 +1,11 @@
 # @ai-sdk/harness-pi
 
+## 1.0.174
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
 ## 1.0.173
 
 ### Patch Changes
