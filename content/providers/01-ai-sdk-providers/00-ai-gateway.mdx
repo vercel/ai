@@ -1527,7 +1527,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1538,8 +1538,7 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
-      only: ['vertex', 'anthropic'], // Only use these providers
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1556,6 +1555,8 @@ The following gateway provider options are available:
 - **only** _string[]_
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
@@ -1669,7 +1670,7 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking:
+You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1681,7 +1682,7 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
-      only: ['anthropic', 'vertex'], // Only allow these providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
     } satisfies GatewayProviderOptions,
   },
 });
