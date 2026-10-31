@@ -950,6 +950,9 @@ describe('isFullMediaType', () => {
     expect(isFullMediaType('')).toBe(false);
     expect(isFullMediaType('/')).toBe(false);
     expect(isFullMediaType('image/')).toBe(false);
+    expect(isFullMediaType('/png')).toBe(false);
+    expect(isFullMediaType('*/png')).toBe(false);
+    expect(isFullMediaType('*/*')).toBe(false);
   });
 });
 

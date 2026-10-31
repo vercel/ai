@@ -375,12 +375,18 @@ export function getTopLevelMediaType(mediaType: string): string {
  *   - `"image/*"` -> `false`
  *   - `"image"` -> `false`
  *   - `"image/"` -> `false`
+ *   - `"/png"` -> `false`
+ *   - `"*/png"` -> `false`
  *   - `""` -> `false`
  *   - `"/"` -> `false`
  */
 export function isFullMediaType(mediaType: string): boolean {
   const slashIndex = mediaType.indexOf('/');
-  if (slashIndex === -1) {
+  if (slashIndex <= 0) {
+    return false;
+  }
+  const type = mediaType.substring(0, slashIndex);
+  if (type === '*') {
     return false;
   }
   const subtype = mediaType.substring(slashIndex + 1);
