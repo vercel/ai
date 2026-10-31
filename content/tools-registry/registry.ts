@@ -751,4 +751,54 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'm91',
+    name: 'M91',
+    description:
+      'Human-in-the-loop approval for AI SDK agents. Gate any tool with toolApproval: before it runs, M91 rings a person\'s phone at full volume through silent mode and Do Not Disturb, escalating to a voice call, and the tool runs only if they approve. A rejection, timeout or M91 error denies it. Also provides m91_request_approval and m91_send_alert tools the model can call itself.',
+    packageName: '@msg91comm/m91',
+    tags: ['approval', 'human-in-the-loop', 'alerting', 'phone'],
+    apiKeyEnvName: 'M91_SEND_LINK',
+    installCommand: {
+      pnpm: 'pnpm add @msg91comm/m91 ai',
+      npm: 'npm install @msg91comm/m91 ai',
+      yarn: 'yarn add @msg91comm/m91 ai',
+      bun: 'bun add @msg91comm/m91 ai',
+    },
+    codeExample: `import { generateText, isStepCount, jsonSchema, tool } from 'ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91ToolApproval } from '@msg91comm/m91/integrations/vercel-ai';
+
+// The send link comes from a channel in the M91 app. Keep it secret.
+const client = new M91Client(process.env.M91_SEND_LINK!);
+
+const issueRefund = tool({
+  description: 'Refund an order to the original payment method.',
+  inputSchema: jsonSchema<{ orderId: string; amount: number }>({
+    type: 'object',
+    properties: { orderId: { type: 'string' }, amount: { type: 'number' } },
+    required: ['orderId', 'amount'],
+  }),
+  execute: async ({ orderId, amount }) => ({ refunded: true, orderId, amount }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund },
+  // issueRefund rings a phone first and runs only if a person taps Approve.
+  // A rejection, no answer within 10 minutes, or an M91 error denies it.
+  toolApproval: createM91ToolApproval(client, {
+    tools: ['issueRefund'],
+    timeoutSeconds: 600,
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Order ORD-40122 never arrived. Refund the customer 48 USD.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/MSG91/m91-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://m91-api.msg91.com/docs',
+    websiteUrl: 'https://m91.msg91.com',
+    npmUrl: 'https://www.npmjs.com/package/@msg91comm/m91',
+  },
 ];
