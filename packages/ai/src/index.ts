@@ -22,6 +22,7 @@ export {
   type FlexibleSchema,
   type IdGenerator,
   type InferSchema,
+  type InferToolSetContext,
   type InferToolInput,
   type InferToolOutput,
   type Experimental_SandboxSession,
