@@ -49,6 +49,29 @@ function toJSONValue(value: unknown): JSONValue {
     return null;
   }
 
-  const serialized = JSON.stringify(value);
-  return serialized === undefined ? null : JSON.parse(serialized);
+  try {
+    const serialized = JSON.stringify(value, (_key, val) =>
+      typeof val === 'bigint' ? val.toString() : val,
+    );
+    return serialized === undefined ? null : JSON.parse(serialized);
+  } catch {
+    try {
+      const seen = new WeakSet();
+      const serialized = JSON.stringify(value, (_key, val) => {
+        if (typeof val === 'bigint') {
+          return val.toString();
+        }
+        if (typeof val === 'object' && val !== null) {
+          if (seen.has(val)) {
+            return '[Circular]';
+          }
+          seen.add(val);
+        }
+        return val;
+      });
+      return serialized === undefined ? null : JSON.parse(serialized);
+    } catch {
+      return String(value);
+    }
+  }
 }

@@ -594,5 +594,47 @@ describe('createToolModelOutput', () => {
         }
       `);
     });
+
+    it('should safely serialize tool output containing BigInt values (#23976)', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: {
+          id: 9007199254740993n,
+          count: 42,
+        },
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toEqual({
+        type: 'json',
+        value: {
+          id: '9007199254740993',
+          count: 42,
+        },
+      });
+    });
+
+    it('should safely serialize tool output containing circular references (#23976)', async () => {
+      const circularOutput: any = { name: 'root' };
+      circularOutput.self = circularOutput;
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: circularOutput,
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toEqual({
+        type: 'json',
+        value: {
+          name: 'root',
+          self: '[Circular]',
+        },
+      });
+    });
   });
 });
