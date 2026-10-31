@@ -14,6 +14,7 @@ import type { ErrorHandler } from '../util/error-handler';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import type { UIDataTypesToSchemas } from './chat';
+import type { ToolInputParser } from './tool-input-parser';
 import {
   getStaticToolName,
   isStaticToolUIPart,
@@ -124,6 +125,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onData,
   resetStateOnMessageIdChange = false,
   resetStateOnFirstMessageStart = false,
+  createToolInputParser,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -144,13 +146,26 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   resetStateOnMessageIdChange?: boolean;
   // A transport can replay a response from the beginning using the same ID.
   resetStateOnFirstMessageStart?: boolean;
+  createToolInputParser?: () => ToolInputParser;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   let isFirstMessageStart = true;
+  let closed = false;
+  const parsers = new Map<object, ToolInputParser>();
+  const disposeParser = (call: object | undefined) => {
+    if (call === undefined) return;
+    const parser = parsers.get(call);
+    parsers.delete(call);
+    parser?.dispose();
+  };
+  const disposeParsers = () => {
+    for (const call of parsers.keys()) disposeParser(call);
+  };
 
-  return stream.pipeThrough(
+  const processedStream = stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
+          if (closed) return;
           function getCurrentStepParts() {
             const parts = state.message.parts;
             let currentStepStartIndex = parts.length - 1;
@@ -647,6 +662,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-start': {
+              disposeParser(state.partialToolCalls[chunk.toolCallId]);
               const toolInvocations =
                 getCurrentStepParts().filter(isStaticToolUIPart);
 
@@ -703,12 +719,29 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               }
 
+              let parser: ToolInputParser | undefined;
+              if (
+                createToolInputParser != null &&
+                partialToolCall.inputEncoding !== 'text'
+              ) {
+                parser = parsers.get(partialToolCall);
+                if (parser === undefined) {
+                  parser = createToolInputParser();
+                  parsers.set(partialToolCall, parser);
+                  if (partialToolCall.text !== '') {
+                    parser.push(partialToolCall.text);
+                  }
+                }
+              }
+
               partialToolCall.text += chunk.inputTextDelta;
 
               const partialArgs =
                 partialToolCall.inputEncoding === 'text'
                   ? partialToolCall.text
-                  : (await parsePartialJson(partialToolCall.text)).value;
+                  : parser !== undefined
+                    ? parser.push(chunk.inputTextDelta)
+                    : (await parsePartialJson(partialToolCall.text)).value;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
@@ -739,6 +772,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-available': {
+              disposeParser(state.partialToolCalls[chunk.toolCallId]);
               if (chunk.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
@@ -778,6 +812,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
+              disposeParser(state.partialToolCalls[chunk.toolCallId]);
               // When a part already exists for this toolCallId (e.g. from
               // tool-input-start), honour its type so we update in place
               // instead of creating a duplicate with a mismatched type.
@@ -974,6 +1009,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reset-step': {
+              disposeParsers();
               const currentStepParts = getCurrentStepParts();
 
               state.activeTextParts = createIdMap();
@@ -999,6 +1035,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               isFirstMessageStart = false;
 
               if (shouldReset) {
+                disposeParsers();
                 // Rebuild a replay or separate response from empty state. Only
                 // reset a replay once: merged streams can emit more starts.
                 // Keep the state object for its callers and preserve the ID
@@ -1049,6 +1086,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'error': {
+              disposeParsers();
               onError?.(new Error(chunk.errorText));
               break;
             }
@@ -1120,4 +1158,39 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       },
     }),
   );
+
+  if (createToolInputParser === undefined) return processedStream;
+
+  const reader = processedStream.getReader();
+  return new ReadableStream<InferUIMessageChunk<UI_MESSAGE>>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (closed) return;
+        if (done) {
+          closed = true;
+          disposeParsers();
+          reader.releaseLock();
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        if (closed) return;
+        closed = true;
+        disposeParsers();
+        reader.releaseLock();
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      closed = true;
+      disposeParsers();
+      try {
+        await reader.cancel(reason);
+      } finally {
+        reader.releaseLock();
+      }
+    },
+  });
 }

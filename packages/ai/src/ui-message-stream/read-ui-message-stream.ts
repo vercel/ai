@@ -1,4 +1,5 @@
 import type { UIMessage } from '../ui/ui-messages';
+import type { ToolInputParser } from '../ui/tool-input-parser';
 import type { UIMessageChunk } from './ui-message-chunks';
 import {
   createStreamingUIMessageState,
@@ -57,11 +58,14 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
   onError,
   terminateOnError = false,
+  experimental_createToolInputParser,
 }: {
   message?: UI_MESSAGE;
   stream: ReadableStream<UIMessageChunk>;
   onError?: (error: unknown) => void;
   terminateOnError?: boolean;
+  /** Create a parser for each JSON tool input; text-encoded input bypasses it. */
+  experimental_createToolInputParser?: () => ToolInputParser;
 }): AsyncIterableStream<UI_MESSAGE> {
   let controller: ReadableStreamDefaultController<UI_MESSAGE> | undefined;
   let hasErrored = false;
@@ -95,6 +99,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   consumeStream({
     stream: processUIMessageStream({
       stream,
+      createToolInputParser: experimental_createToolInputParser,
       resetStateOnMessageIdChange: true,
       runUpdateMessageJob(
         job: (options: {

@@ -16,6 +16,7 @@ export {
   type UIDataPartSchemas,
 } from './chat';
 export { type ChatTransport } from './chat-transport';
+export { type ToolInputParser as Experimental_ToolInputParser } from './tool-input-parser';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export { convertToModelMessages } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';

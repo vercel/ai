@@ -47,6 +47,13 @@ import { readUIMessageStream } from 'ai';
       description:
         'Whether to terminate the stream if an error occurs. Defaults to false.',
     },
+    {
+      name: 'experimental_createToolInputParser',
+      type: '() => Experimental_ToolInputParser',
+      isOptional: true,
+      description:
+        'Creates an incremental parser for each JSON tool input. Text-encoded input bypasses it. Omit to use the default partial JSON parser.',
+    },
   ]}
 />
 
@@ -55,3 +62,35 @@ import { readUIMessageStream } from 'ai';
 An `AsyncIterableStream` of `UIMessage`s. Each stream part represents a different state of the same message as it is being completed.
 
 For comprehensive examples and use cases, see [Reading UI Message Streams](/docs/ai-sdk-ui/reading-ui-message-streams).
+
+### Custom tool-input parsing (experimental)
+
+`experimental_createToolInputParser` replaces partial JSON parsing during tool-input streaming. Each parser exposes `push(delta): unknown` and `dispose(): void`. `push` returns the current partial value; previously returned values must remain stable after later pushes. Parser exceptions flow through the stream's error handling.
+
+The SDK creates parsers lazily for JSON input. Resuming a call feeds its persisted `rawInput` once before new deltas. Parsers are disposed when input becomes available, on input errors and resets, and when the stream closes, errors, or is cancelled. `dispose` must not throw. Final `tool-input-available` input remains authoritative and is passed unchanged to tool execution.
+
+For example, an application can opt into Streamfold's immutable snapshots:
+
+```sh
+pnpm add streamfold@0.1.14
+```
+
+```ts
+import { readUIMessageStream } from 'ai';
+import { createStructuredStream, prepareStreamfold } from 'streamfold';
+
+await prepareStreamfold();
+
+const messages = readUIMessageStream({
+  stream,
+  experimental_createToolInputParser: () => {
+    const parser = createStructuredStream({ snapshots: 'immutable' });
+    return {
+      push: delta => parser.push(delta).partialValue,
+      dispose: () => parser.dispose(),
+    };
+  },
+});
+```
+
+Custom parsers control partial-value semantics, input limits, and malformed-input handling. They must treat object keys safely and avoid prototype mutation. Review those behaviors before replacing the default parser.
