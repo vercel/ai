@@ -1056,7 +1056,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             default: {
               if (isDataUIMessageChunk(chunk)) {
                 // validate data chunk if dataPartSchemas is provided
-                if (dataPartSchemas?.[chunk.type] != null) {
+                // (schemas are keyed by the part name without the 'data-' prefix)
+                const dataPartSchema = dataPartSchemas?.[chunk.type.slice(5)];
+                if (dataPartSchema != null) {
                   const partIdx = state.message.parts.findIndex(
                     p =>
                       'id' in p &&
@@ -1069,7 +1071,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
                   await validateTypes({
                     value: chunk.data,
-                    schema: dataPartSchemas[chunk.type],
+                    schema: dataPartSchema,
                     context: {
                       field: `message.parts[${actualPartIdx}].data`,
                       entityName: chunk.type,
