@@ -55,7 +55,20 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
                     toolCallId: `call-${index + 1}`,
                     toolName: response.toolName,
                     input: response.input,
+                    ...(response.providerExecuted
+                      ? { providerExecuted: true }
+                      : {}),
                   },
+                  ...(response.providerExecuted
+                    ? [
+                        {
+                          type: 'tool-result' as const,
+                          toolCallId: `call-${index + 1}`,
+                          toolName: response.toolName,
+                          result: response.providerResult ?? { answer: 42 },
+                        },
+                      ]
+                    : []),
                 ],
           finishReason: {
             unified: response.type === 'text' ? 'stop' : 'tool-calls',
@@ -106,7 +119,20 @@ class SerializableMockLanguageModel extends MockLanguageModelV4 {
                     toolCallId: `call-${responseIndex + 1}`,
                     toolName: response.toolName,
                     input: response.input,
+                    ...(response.providerExecuted
+                      ? { providerExecuted: true }
+                      : {}),
                   },
+                  ...(response.providerExecuted
+                    ? [
+                        {
+                          type: 'tool-result' as const,
+                          toolCallId: `call-${responseIndex + 1}`,
+                          toolName: response.toolName,
+                          result: response.providerResult ?? { answer: 42 },
+                        },
+                      ]
+                    : []),
                   {
                     type: 'finish',
                     finishReason: { unified: 'tool-calls', raw: undefined },

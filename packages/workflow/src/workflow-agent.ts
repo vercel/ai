@@ -49,6 +49,7 @@ import {
   createNullLanguageModelUsage,
   collectToolApprovals,
   convertToLanguageModelPrompt,
+  filterIncludedContext,
   mergeAbortSignals,
   mergeCallbacks,
   mapWithConcurrency,
@@ -58,6 +59,11 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import {
+  dispatchToolCallTelemetryStep,
+  serializeToolError,
+} from './tool-call-telemetry.js';
+import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import { getWorkflowMetadata } from 'workflow';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
@@ -1353,6 +1359,7 @@ export interface ToolResult {
 type WorkflowToolExecutionResult = {
   modelResult: LanguageModelV4ToolResultPart;
   rawOutput: unknown;
+  rawError?: unknown;
   isError: boolean;
 };
 
@@ -1956,6 +1963,11 @@ export class WorkflowAgent<
         ? undefined
         : { value: effectiveAbortSignal.reason };
 
+    const effectiveModelInfo = getModelInfo(effectiveModel);
+    let runtimeContext: TRuntimeContext = effectiveRuntimeContext;
+    let toolsContext: Record<string, Context | undefined> =
+      effectiveToolsContext;
+
     // Process tool approval responses before starting the agent loop.
     // This mirrors how stream-text.ts handles tool-approval-response parts:
     // approved tools are executed, denied tools get denial results, and
@@ -2312,12 +2324,6 @@ export class WorkflowAgent<
             activeTools: effectiveActiveTools,
           }) ?? this.tools)
         : this.tools;
-    const effectiveModelInfo = getModelInfo(effectiveModel);
-
-    // Initialize context
-    let runtimeContext: TRuntimeContext = effectiveRuntimeContext;
-    let toolsContext: Record<string, Context | undefined> =
-      effectiveToolsContext;
 
     const steps: StepResult<TTools, TRuntimeContext>[] = [];
 
@@ -2396,14 +2402,129 @@ export class WorkflowAgent<
           toolContext: resolvedContext,
         } as WorkflowAgentToolExecutionStartEvent<TTools>);
       }
-      await telemetryDispatcher.onToolExecutionStart?.({
-        toolCall: toolCallEvent,
-        stepNumber: currentStepNumber,
-        messages: modelMessages,
-        toolContext: resolvedContext as
-          | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
-          | undefined,
-      });
+
+      const dispatchTelemetryInStep =
+        shouldDispatchModelCallTelemetryInStep(effectiveTelemetry);
+
+      if (!dispatchTelemetryInStep) {
+        await telemetryDispatcher.onToolExecutionStart?.({
+          callId: 'workflow-agent',
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
+          messages: modelMessages,
+          toolContext: resolvedContext as
+            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+            | undefined,
+        } as never);
+      }
+
+      const dispatchToolTelemetry = async ({
+        durationMs,
+        isError,
+        rawOutput,
+        rawError,
+      }: {
+        durationMs: number;
+        isError: boolean;
+        rawOutput: unknown;
+        rawError?: unknown;
+      }) => {
+        if (dispatchTelemetryInStep) {
+          try {
+            const includeToolContext = (
+              effectiveTelemetry?.includeToolsContext as
+                | Record<string, unknown>
+                | undefined
+            )?.[toolCall.toolName];
+            const filteredToolContext =
+              resolvedContext != null
+                ? filterIncludedContext({
+                    context: resolvedContext as Record<string, unknown>,
+                    includeContext: includeToolContext as any,
+                  })
+                : undefined;
+            const recordMessages =
+              effectiveTelemetry?.recordInputs === false ? [] : modelMessages;
+            const recordOutputs = effectiveTelemetry?.recordOutputs !== false;
+            const toolOutput = isError
+              ? {
+                  type: 'tool-error' as const,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: serializeToolError(rawError ?? rawOutput),
+                }
+              : {
+                  type: 'tool-result' as const,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  output: recordOutputs ? rawOutput : undefined,
+                };
+
+            await dispatchToolCallTelemetryStep({
+              telemetry: {
+                functionId: effectiveTelemetry?.functionId,
+                recordInputs: effectiveTelemetry?.recordInputs,
+                recordOutputs: effectiveTelemetry?.recordOutputs,
+                stepNumber: currentStepNumber,
+                includeRuntimeContext:
+                  effectiveTelemetry?.includeRuntimeContext,
+                runtimeContext: filterIncludedContext({
+                  context: runtimeContext,
+                  includeContext: effectiveTelemetry?.includeRuntimeContext,
+                }),
+              },
+              provider: effectiveModelInfo.provider,
+              modelId: effectiveModelInfo.modelId,
+              toolCall: toolCallEvent,
+              toolContext: filteredToolContext,
+              messages: recordMessages,
+              toolExecutionMs: durationMs,
+              toolOutput,
+            });
+          } catch {
+            // Telemetry dispatch failure must not fail the agent run
+          }
+        } else {
+          const errorPayload = rawError ?? rawOutput;
+          await telemetryDispatcher.onToolExecutionEnd?.({
+            callId: 'workflow-agent',
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            toolExecutionMs: durationMs,
+            messages: modelMessages,
+            toolContext: resolvedContext as
+              | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
+              | undefined,
+            toolOutput: isError
+              ? {
+                  type: 'tool-error' as const,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: errorPayload,
+                }
+              : {
+                  type: 'tool-result' as const,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  output: rawOutput,
+                },
+            ...(isError
+              ? {
+                  success: false as const,
+                  error: errorPayload,
+                }
+              : {
+                  success: true as const,
+                  output: rawOutput,
+                }),
+          } as never);
+        }
+      };
 
       const startTime = Date.now();
       let result: WorkflowToolExecutionResult;
@@ -2419,7 +2540,7 @@ export class WorkflowAgent<
             stepSandbox,
           );
         result =
-          telemetryDispatcher.executeTool != null
+          !dispatchTelemetryInStep && telemetryDispatcher.executeTool != null
             ? await telemetryDispatcher.executeTool({
                 callId: 'workflow-agent',
                 toolCallId: toolCall.toolCallId,
@@ -2439,16 +2560,11 @@ export class WorkflowAgent<
             error: err,
           } as WorkflowAgentToolExecutionEndEvent<TTools>);
         }
-        await telemetryDispatcher.onToolExecutionEnd?.({
-          toolCall: toolCallEvent,
-          stepNumber: currentStepNumber,
+        await dispatchToolTelemetry({
           durationMs,
-          messages: modelMessages,
-          toolContext: resolvedContext as
-            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
-            | undefined,
-          success: false,
-          error: err,
+          isError: true,
+          rawOutput: String(err),
+          rawError: err,
         });
         throw err;
       }
@@ -2477,72 +2593,16 @@ export class WorkflowAgent<
           } as WorkflowAgentToolExecutionEndEvent<TTools>);
         }
       }
-      if (result.isError) {
-        await telemetryDispatcher.onToolExecutionEnd?.({
-          toolCall: toolCallEvent,
-          stepNumber: currentStepNumber,
-          durationMs,
-          messages: modelMessages,
-          toolContext: resolvedContext as
-            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
-            | undefined,
-          success: false,
-          error: result.rawOutput,
-        });
-      } else {
-        await telemetryDispatcher.onToolExecutionEnd?.({
-          toolCall: toolCallEvent,
-          stepNumber: currentStepNumber,
-          durationMs,
-          messages: modelMessages,
-          toolContext: resolvedContext as
-            | InferToolSetContext<TTools>[keyof InferToolSetContext<TTools>]
-            | undefined,
-          success: true,
-          output: result.rawOutput,
-        });
-      }
+
+      await dispatchToolTelemetry({
+        durationMs,
+        isError: result.isError,
+        rawOutput: result.rawOutput,
+        rawError: result.rawError,
+      });
+
       return result;
     }
-
-    const recordProviderExecutedToolTelemetry = async (
-      toolCall: { toolCallId: string; toolName: string; input: unknown },
-      result: WorkflowToolExecutionResult,
-      messages: LanguageModelV4Prompt,
-      currentStepNumber: number,
-    ) => {
-      const toolCallEvent: ToolCall = {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: toolCall.input,
-      };
-      const modelMessages = getToolCallbackMessages(messages);
-
-      await telemetryDispatcher.onToolExecutionStart?.({
-        toolCall: toolCallEvent,
-        stepNumber: currentStepNumber,
-        messages: modelMessages,
-        toolContext: undefined,
-      });
-
-      await telemetryDispatcher.onToolExecutionEnd?.({
-        toolCall: toolCallEvent,
-        stepNumber: currentStepNumber,
-        durationMs: 0,
-        messages: modelMessages,
-        toolContext: undefined,
-        ...(result.isError
-          ? {
-              success: false as const,
-              error: result.rawOutput,
-            }
-          : {
-              success: true as const,
-              output: result.rawOutput,
-            }),
-      });
-    };
 
     // Check for abort before starting
     if (mergedGenerationSettings.abortSignal?.aborted) {
@@ -2788,20 +2848,6 @@ export class WorkflowAgent<
                   ),
                 })),
             );
-            await Promise.all(
-              providerResultEntries.flatMap(({ toolCall, result }) =>
-                result == null
-                  ? []
-                  : [
-                      recordProviderExecutedToolTelemetry(
-                        toolCall,
-                        result,
-                        iterMessages,
-                        currentStepNumber,
-                      ),
-                    ],
-              ),
-            );
             const providerResults = providerResultEntries.flatMap(
               ({ result }) => (result == null ? [] : [result]),
             );
@@ -3005,20 +3051,6 @@ export class WorkflowAgent<
                 workflowDownload,
               ),
             })),
-          );
-          await Promise.all(
-            providerToolResultEntries.flatMap(({ toolCall, result }) =>
-              result == null
-                ? []
-                : [
-                    recordProviderExecutedToolTelemetry(
-                      toolCall,
-                      result,
-                      iterMessages,
-                      currentStepNumber,
-                    ),
-                  ],
-            ),
           );
           const providerToolResults = providerToolResultEntries.flatMap(
             ({ result }) => (result == null ? [] : [result]),
@@ -3706,6 +3738,7 @@ async function executeTool(
         }),
       },
       rawOutput: errorMessage,
+      rawError: error,
       isError: true,
     };
   }

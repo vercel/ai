@@ -1,8 +1,15 @@
+import type { JSONValue } from '@ai-sdk/provider';
 import { mockProvider } from './mock-function-wrapper.js';
 
 export type MockResponseDescriptor =
   | { type: 'text'; text: string }
-  | { type: 'tool-call'; toolName: string; input: string }
+  | {
+      type: 'tool-call';
+      toolName: string;
+      input: string;
+      providerExecuted?: boolean;
+      providerResult?: JSONValue;
+    }
   | { type: 'error'; error: unknown };
 
 /**

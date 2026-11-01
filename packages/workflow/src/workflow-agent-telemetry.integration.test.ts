@@ -13,11 +13,15 @@ import {
 } from '@opentelemetry/sdk-trace-base';
 import { AI_SDK_TELEMETRY_TRACING_CHANNEL, registerTelemetry } from 'ai';
 import { tracingChannel } from 'node:diagnostics_channel';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
 import {
   agentGenerateWithGlobalTelemetry,
   agentStreamWithGlobalTelemetry,
+  agentStreamWithGlobalTelemetryAndTools,
+  agentStreamWithProviderExecutedTool,
+  issueApprovalWithGlobalTelemetry,
+  resumeApprovalWithGlobalTelemetry,
 } from './test/telemetry-workflows.js';
 
 const exporter = new InMemorySpanExporter();
@@ -30,8 +34,12 @@ trace.setGlobalTracerProvider(
 const events: string[] = [];
 const spanContexts: unknown[] = [];
 const eventContexts: unknown[] = [];
+const toolEventContexts: unknown[] = [];
 const callIds = new Set<string>();
 const tracingChannelEvents: string[] = [];
+
+let failTelemetryStep = false;
+let recordedToolExecutionMs: number | undefined;
 
 registerTelemetry(
   new OpenTelemetry({
@@ -73,6 +81,30 @@ registerTelemetry(
       events.push('executeLanguageModelCall');
       return execute();
     },
+    onToolExecutionStart: event => {
+      events.push('onToolExecutionStart');
+      toolEventContexts.push(
+        'toolContext' in event ? event.toolContext : undefined,
+      );
+    },
+    executeTool: ({ execute }) => {
+      if (failTelemetryStep) {
+        throw new Error('Simulated telemetry step failure');
+      }
+      events.push('executeTool');
+      return execute();
+    },
+    onToolExecutionEnd: event => {
+      events.push('onToolExecutionEnd');
+      if (
+        event != null &&
+        typeof event === 'object' &&
+        'toolExecutionMs' in event &&
+        typeof (event as any).toolExecutionMs === 'number'
+      ) {
+        recordedToolExecutionMs = (event as any).toolExecutionMs;
+      }
+    },
   },
 );
 
@@ -90,8 +122,11 @@ beforeEach(() => {
   events.length = 0;
   spanContexts.length = 0;
   eventContexts.length = 0;
+  toolEventContexts.length = 0;
   callIds.clear();
   tracingChannelEvents.length = 0;
+  failTelemetryStep = false;
+  recordedToolExecutionMs = undefined;
 });
 
 function getAiSpanNames() {
@@ -168,4 +203,148 @@ describe('WorkflowAgent telemetry with global integrations', () => {
       }
     },
   );
+
+  it('stream: dispatches tool call telemetry from the tool step', async () => {
+    const run = await start(agentStreamWithGlobalTelemetryAndTools, ['world']);
+    const returnValue = await run.returnValue;
+
+    expect(returnValue).toEqual({
+      text: 'Workflow completed',
+      stepsCount: 2,
+    });
+    expect(events).toContain('onToolExecutionStart');
+    expect(events).toContain('executeTool');
+    expect(events).toContain('onToolExecutionEnd');
+    expect(tracingChannelEvents).toContain('executeTool');
+
+    const spanNames = getAiSpanNames();
+    expect(spanNames).toContain('execute_tool echoStep');
+
+    const toolSpan = exporter
+      .getFinishedSpans()
+      .find(span => span.name === 'execute_tool echoStep');
+    expect(toolSpan).toBeDefined();
+    expect(toolSpan?.attributes['gen_ai.operation.name']).toBe('execute_tool');
+    expect(toolSpan?.attributes['gen_ai.tool.name']).toBe('echoStep');
+
+    expect(toolSpan?.attributes['gen_ai.execute_tool.duration']).toBeDefined();
+    expect(recordedToolExecutionMs).toBeDefined();
+    expect(toolSpan?.attributes['gen_ai.execute_tool.duration']).toBe(
+      recordedToolExecutionMs! / 1000,
+    );
+  });
+
+  it('stream: records error on span when tool fails', async () => {
+    const run = await start(agentStreamWithGlobalTelemetryAndTools, [
+      'world',
+      { toolThrows: true },
+    ]);
+    const returnValue = await run.returnValue;
+
+    expect(returnValue).toEqual({
+      text: 'Workflow completed',
+      stepsCount: 2,
+    });
+    expect(events).toContain('onToolExecutionStart');
+    expect(events).toContain('onToolExecutionEnd');
+
+    const spanNames = getAiSpanNames();
+    expect(spanNames).toContain('execute_tool throwingStep');
+
+    const errorSpan = exporter
+      .getFinishedSpans()
+      .find(span => span.name === 'execute_tool throwingStep');
+    expect(errorSpan).toBeDefined();
+    expect(errorSpan?.status.code).toBe(2); // SpanStatusCode.ERROR
+    expect(errorSpan?.events.some(e => e.name === 'exception')).toBe(true);
+  });
+
+  it('stream: filters included tool context according to includeToolsContext', async () => {
+    for (const includeToolsContext of [false, true]) {
+      events.length = 0;
+      toolEventContexts.length = 0;
+      const run = await start(agentStreamWithGlobalTelemetryAndTools, [
+        'world',
+        { includeToolsContext },
+      ]);
+      await run.returnValue;
+
+      const expectedContext = includeToolsContext
+        ? { allowedKey: 'public-data' }
+        : {};
+      expect(toolEventContexts).toEqual([expectedContext]);
+    }
+  });
+
+  it('stream: provider-executed tool produces exactly one extension span', async () => {
+    const run = await start(agentStreamWithProviderExecutedTool, [
+      'test search',
+    ]);
+    const returnValue = await run.returnValue;
+
+    expect(returnValue.stepsCount).toBe(1);
+
+    const extensionSpans = exporter
+      .getFinishedSpans()
+      .filter(span => span.name === 'execute_tool webSearch');
+
+    expect(extensionSpans).toHaveLength(1);
+    expect(extensionSpans[0].attributes['gen_ai.operation.name']).toBe(
+      'execute_tool',
+    );
+    expect(extensionSpans[0].attributes['gen_ai.tool.name']).toBe('webSearch');
+    expect(extensionSpans[0].attributes['gen_ai.tool.type']).toBe('extension');
+  });
+
+  it('generate: resumed approved tool produces an execute_tool span', async () => {
+    vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', 'test-approval-secret');
+    try {
+      const issueRun = await start(issueApprovalWithGlobalTelemetry, []);
+      const messages = await issueRun.returnValue;
+      expect(messages).toBeDefined();
+
+      exporter.reset();
+
+      const resumeRun = await start(resumeApprovalWithGlobalTelemetry, [
+        messages,
+        true,
+      ]);
+      const result = await resumeRun.returnValue;
+      expect(result.text).toBe('Approval done.');
+
+      const approvedToolSpans = exporter
+        .getFinishedSpans()
+        .filter(span => span.name === 'execute_tool actionStep');
+
+      expect(approvedToolSpans).toHaveLength(1);
+      expect(approvedToolSpans[0].attributes['gen_ai.operation.name']).toBe(
+        'execute_tool',
+      );
+      expect(approvedToolSpans[0].attributes['gen_ai.tool.name']).toBe(
+        'actionStep',
+      );
+      expect(approvedToolSpans[0].attributes['gen_ai.tool.type']).toBe(
+        'function',
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('stream: a failing telemetry step does not fail the agent run', async () => {
+    failTelemetryStep = true;
+    try {
+      const run = await start(agentStreamWithGlobalTelemetryAndTools, [
+        'world',
+      ]);
+      const returnValue = await run.returnValue;
+
+      expect(returnValue).toEqual({
+        text: 'Workflow completed',
+        stepsCount: 2,
+      });
+    } finally {
+      failTelemetryStep = false;
+    }
+  });
 });

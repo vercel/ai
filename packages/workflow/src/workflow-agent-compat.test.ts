@@ -2895,8 +2895,12 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               },
               onToolExecutionEnd: async event => {
                 const toolEvent = event as any;
+                const isSuccess =
+                  toolEvent.toolOutput != null
+                    ? toolEvent.toolOutput.type === 'tool-result'
+                    : toolEvent.success;
                 events.push(
-                  `onToolExecutionEnd:${toolEvent.success ? 'success' : 'error'}`,
+                  `onToolExecutionEnd:${isSuccess ? 'success' : 'error'}`,
                 );
               },
             },
@@ -2942,6 +2946,111 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           'executeTool',
           'onToolExecutionEnd:success',
         ]);
+      });
+
+      it('emits canonical event shape (callId, toolExecutionMs, toolOutput) to explicit integrations alongside legacy fields', async () => {
+        let capturedStartEvent: any;
+        let capturedEndEvent: any;
+
+        const agent = new WorkflowAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) => {
+                await new Promise(resolve => setTimeout(resolve, 5));
+                return `${value}-result`;
+              },
+            }),
+          },
+          telemetry: {
+            integrations: [
+              {
+                onToolExecutionStart: async (event: any) => {
+                  capturedStartEvent = event;
+                },
+                onToolExecutionEnd: async (event: any) => {
+                  capturedEndEvent = event;
+                },
+              },
+            ],
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable,
+        });
+
+        expect(capturedStartEvent).toBeDefined();
+        expect(capturedStartEvent.callId).toBe('workflow-agent');
+        expect(capturedStartEvent.toolCall).toEqual({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+        });
+
+        expect(capturedEndEvent).toBeDefined();
+        expect(capturedEndEvent.callId).toBe('workflow-agent');
+        expect(capturedEndEvent.toolExecutionMs).toBe(
+          capturedEndEvent.durationMs,
+        );
+        expect(capturedEndEvent.toolExecutionMs).toBeGreaterThan(0);
+        expect(capturedEndEvent.toolOutput).toEqual({
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          output: 'test-result',
+        });
+        expect(capturedEndEvent.success).toBe(true);
+        expect(capturedEndEvent.output).toBe('test-result');
+      });
+
+      it('reports tool error as Error object on explicit integration path', async () => {
+        let capturedEndEvent: any;
+        const customError = new Error('Custom tool failure');
+
+        const agent = new WorkflowAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw customError;
+              },
+            }),
+          },
+          telemetry: {
+            integrations: [
+              {
+                onToolExecutionEnd: async (event: any) => {
+                  capturedEndEvent = event;
+                },
+              },
+            ],
+          },
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          writable,
+        });
+
+        expect(capturedEndEvent).toBeDefined();
+        expect(capturedEndEvent.callId).toBe('workflow-agent');
+        expect(capturedEndEvent.success).toBe(false);
+        expect(capturedEndEvent.error).toBe(customError);
+        expect(capturedEndEvent.toolOutput).toEqual({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          error: customError,
+        });
       });
     });
   });
