@@ -29,6 +29,9 @@ export function delegateSandboxOperations(
     writeBinaryFile: async options =>
       (await resolve()).writeBinaryFile(options),
     writeTextFile: async options => (await resolve()).writeTextFile(options),
+    stat: async options => (await resolve()).stat(options),
+    listDirectory: async options => (await resolve()).listDirectory(options),
+    deleteFile: async options => (await resolve()).deleteFile(options),
     spawn,
     run: async options => (await resolve()).run(options),
   };
