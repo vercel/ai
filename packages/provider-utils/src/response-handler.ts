@@ -7,6 +7,11 @@ import { DownloadError } from './download-error';
 import { extractResponseHeaders } from './extract-response-headers';
 import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
+import {
+  compileBinaryFieldPaths,
+  createJsonBinaryFieldScanner,
+  withBinaryFields,
+} from './json-binary-field-scanner';
 import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
@@ -201,15 +206,55 @@ export const createEventSourceResponseHandler =
     };
   };
 
-export const createJsonResponseHandler =
-  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<T> =>
-  async ({ response, url, requestBodyValues }) => {
-    const responseBody = await readResponseBodyAsText({ response, url });
+export const createJsonResponseHandler = <T>(
+  responseSchema: FlexibleSchema<T>,
+  {
+    experimental_binaryFields,
+  }: {
+    /**
+     * Paths of string fields that carry large base64 data, e.g. `['images[*]']`
+     * or `['content[*].data.data']`. A path is a sequence of plain object keys
+     * joined by `.`, with `[*]` for every element of an array.
+     *
+     * By default the whole body is buffered, decoded to text, parsed, and the
+     * base64 string is decoded again later, which holds about four copies of
+     * the data at once. With this option the body is read as a stream and the
+     * strings at these paths are decoded to `Uint8Array` while they arrive.
+     *
+     * A string is only decoded if it is canonical base64 (standard alphabet,
+     * padded, no whitespace or escape sequences) and decodes to at least 64 KiB.
+     * Other strings, and strings at other paths, are parsed as usual, so the
+     * schema has to accept both a string and a `Uint8Array` at these paths.
+     *
+     * Differences to the default behavior:
+     * - Validation and the returned `value` contain the decoded `Uint8Array`.
+     * - `rawValue`, the `value` of a `TypeValidationError`, the text of a
+     *   `JSONParseError` and `APICallError.responseBody` contain a short
+     *   placeholder string such as `[binary data: 2097152 bytes; ref ...]` in
+     *   place of the data.
+     */
+    experimental_binaryFields?: readonly string[];
+  } = {},
+): ResponseHandler<T> => {
+  const binaryFieldPaths = experimental_binaryFields?.length
+    ? compileBinaryFieldPaths(experimental_binaryFields)
+    : undefined;
 
-    const parsedResult = await safeParseJSON({
-      text: responseBody,
-      schema: responseSchema,
-    });
+  return async ({ response, url, requestBodyValues }) => {
+    let responseBody: string;
+    let schema = responseSchema;
+
+    if (binaryFieldPaths == null) {
+      responseBody = await readResponseBodyAsText({ response, url });
+    } else {
+      const scanner = createJsonBinaryFieldScanner(binaryFieldPaths);
+      await readResponseWithSizeLimit({ response, url, onChunk: scanner.push });
+      const scanned = scanner.finish();
+      responseBody = scanned.text;
+      schema = withBinaryFields(responseSchema, scanned.binaries);
+    }
+
+    const parsedResult = await safeParseJSON({ text: responseBody, schema });
 
     const responseHeaders = extractResponseHeaders(response);
 
@@ -231,6 +276,7 @@ export const createJsonResponseHandler =
       rawValue: parsedResult.rawValue,
     };
   };
+};
 
 export const createJsonLinesResponseHandler = <T>(
   responseSchema: FlexibleSchema<T>,
