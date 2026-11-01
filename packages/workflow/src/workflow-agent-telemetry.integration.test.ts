@@ -254,7 +254,7 @@ describe('WorkflowAgent telemetry with global integrations', () => {
       output: expect.objectContaining({
         type: 'tool-result',
         toolName: 'echoStep',
-        output: 'Echoed: world',
+        output: 'echo:world',
       }),
       toolExecutionMs: recordedToolExecutionMs,
     });
