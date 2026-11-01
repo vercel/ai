@@ -191,7 +191,16 @@ export async function fetchWithValidatedRedirects({
       // an unread response clone, tee cancellation can remain pending until
       // the cloned branch is consumed.
       void cancelResponseBody(response);
-      const nextUrl = new URL(location, currentUrl).toString();
+      let nextUrl: string;
+      try {
+        nextUrl = new URL(location, currentUrl).toString();
+      } catch (error) {
+        throw new DownloadError({
+          url,
+          message: `Redirect from ${currentUrl} has an invalid Location header`,
+          cause: error,
+        });
+      }
 
       // Drop all caller headers except the user-agent before following a
       // redirect that crosses origin. Only stripping Authorization (as the
