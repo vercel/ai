@@ -1,16 +1,8 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1NetworkSandboxSession } from '../../v1';
+import type { HarnessAgentSandboxCreator } from '../harness-agent-settings';
 import { getRestrictedSandboxSession } from '../../utils/get-restricted-sandbox-session';
 import { delegateSandboxOperations } from './sandbox-operations';
-
-function retryOnFailure<T>(run: () => Promise<T>): () => Promise<T> {
-  let pending: Promise<T> | undefined;
-  return () =>
-    (pending ??= run().catch(error => {
-      pending = undefined;
-      throw error;
-    }));
-}
 
 export function deferSandboxSetup({
   sandboxSession,
@@ -19,7 +11,12 @@ export function deferSandboxSetup({
   readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly setup: () => Promise<void>;
 }): HarnessV1NetworkSandboxSession | SandboxSession {
-  const ensureSetup = retryOnFailure(setup);
+  let setupCompleted: Promise<void> | undefined;
+  const ensureSetup = () =>
+    (setupCompleted ??= setup().catch(error => {
+      setupCompleted = undefined;
+      throw error;
+    }));
   const gatedOperations = (target: SandboxSession) =>
     delegateSandboxOperations(async () => {
       await ensureSetup();
@@ -73,25 +70,28 @@ export function deferSandboxSetup({
 export function deferSandboxSession({
   defaultWorkingDirectory,
   createSandboxSession,
-  setup,
+  setupSandboxSession,
 }: {
   readonly defaultWorkingDirectory: string;
-  readonly createSandboxSession: (options: {
-    abortSignal?: AbortSignal;
-  }) => PromiseLike<HarnessV1NetworkSandboxSession | SandboxSession>;
-  readonly setup: (
-    sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession,
-  ) => Promise<void>;
+  readonly createSandboxSession: HarnessAgentSandboxCreator['createSandboxSession'];
+  readonly setupSandboxSession: (options: {
+    session: HarnessV1NetworkSandboxSession | SandboxSession;
+  }) => Promise<void>;
 }): SandboxSession {
   let createdSandboxSession:
     | HarnessV1NetworkSandboxSession
     | SandboxSession
     | undefined;
-  const ensureSandboxSession = retryOnFailure(async () => {
-    createdSandboxSession ??= await createSandboxSession({});
-    await setup(createdSandboxSession);
-    return getRestrictedSandboxSession(createdSandboxSession);
-  });
+  let sandboxSessionReady: Promise<SandboxSession> | undefined;
+  const ensureSandboxSession = () =>
+    (sandboxSessionReady ??= (async () => {
+      createdSandboxSession ??= await createSandboxSession({});
+      await setupSandboxSession({ session: createdSandboxSession });
+      return getRestrictedSandboxSession(createdSandboxSession);
+    })().catch(error => {
+      sandboxSessionReady = undefined;
+      throw error;
+    }));
   return {
     get description() {
       return (

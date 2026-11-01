@@ -37,6 +37,7 @@ import type {
 } from 'ai';
 import type {
   HarnessAgentSandboxConfig,
+  HarnessAgentSandboxCreator,
   HarnessAgentSettings,
 } from './harness-agent-settings';
 import type { HarnessAllTools } from './harness-agent-tool-types';
@@ -354,26 +355,14 @@ export class HarnessAgent<
      */
     runtimeContext?: RUNTIME_CONTEXT;
     /**
-     * Existing sandbox session to run the harness in. When provided, the
-     * caller retains ownership of the sandbox lifecycle.
-     *
-     * Pass `{ defaultWorkingDirectory, createSandboxSession }` instead to
-     * create the sandbox session only when it is needed. For a harness without
-     * a sandbox bootstrap recipe (such as Pi), `createSandboxSession` runs on
-     * the first file, exec, or spawn operation, so a session that never touches
-     * the sandbox never creates it. For any other harness, it runs in
-     * `createSession()`. `defaultWorkingDirectory` must be the working
-     * directory of the sandbox that `createSandboxSession` returns.
+     * Existing sandbox session to run the harness in, or a
+     * `HarnessAgentSandboxCreator` that creates it when it is needed. Either
+     * way, the caller retains ownership of the sandbox lifecycle.
      */
     sandboxSession?:
       | HarnessV1NetworkSandboxSession
       | SandboxSession
-      | {
-          readonly defaultWorkingDirectory: string;
-          readonly createSandboxSession: (options: {
-            abortSignal?: AbortSignal;
-          }) => PromiseLike<HarnessV1NetworkSandboxSession | SandboxSession>;
-        };
+      | HarnessAgentSandboxCreator;
     abortSignal?: AbortSignal;
   }): Promise<HarnessAgentSession> {
     const sessionId = options?.sessionId ?? generateId();
@@ -425,34 +414,41 @@ export class HarnessAgent<
     let sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     let sessionWorkDir: string;
     let recipe: HarnessV1Bootstrap | undefined;
-    let startedSandboxSession:
+    // The session handed to the adapter and the host tools. For a harness with
+    // a bootstrap recipe it is `sandboxSession`, set up before the adapter
+    // starts. Otherwise it wraps the sandbox so the setup, and for a
+    // `HarnessAgentSandboxCreator` the sandbox creation too, waits for the
+    // first file, exec, or spawn operation.
+    let adapterSandboxSession:
       | HarnessV1NetworkSandboxSession
       | SandboxSession
       | undefined;
-    const setup = async (
-      setupSandboxSession: HarnessV1NetworkSandboxSession | SandboxSession,
-      setupAbortSignal?: AbortSignal,
-    ) => {
-      const restrictedSandboxSession =
-        getRestrictedSandboxSession(setupSandboxSession);
+    const setupSandboxSession = async ({
+      session,
+      abortSignal,
+    }: {
+      session: HarnessV1NetworkSandboxSession | SandboxSession;
+      abortSignal?: AbortSignal;
+    }) => {
+      const restrictedSandboxSession = getRestrictedSandboxSession(session);
       await runSandboxBootstrap({
         session: restrictedSandboxSession,
         workDir: this.sandboxConfig.workDir,
         onBootstrap: this.sandboxConfig.onBootstrap,
         bootstrapHash: this.sandboxConfig.bootstrapHash,
         skipOnBootstrapIfMarked: true,
-        abortSignal: setupAbortSignal,
+        abortSignal,
       });
       await ensureSandboxDirectory({
-        session: setupSandboxSession,
+        session,
         workDir: sessionWorkDir,
-        abortSignal: setupAbortSignal,
+        abortSignal,
       });
       if (this.sandboxConfig.onSession != null) {
         await this.sandboxConfig.onSession({
           session: restrictedSandboxSession,
           sessionWorkDir,
-          abortSignal: setupAbortSignal,
+          abortSignal,
         });
       }
     };
@@ -475,13 +471,18 @@ export class HarnessAgent<
       if (!('createSandboxSession' in providedSandboxSession)) {
         sandboxSession = providedSandboxSession;
       } else if (recipe == null) {
-        startedSandboxSession = deferSandboxSession({
+        // The lazy session is a plain `SandboxSession` without the network
+        // methods of `HarnessV1NetworkSandboxSession`, because they cannot be
+        // answered before the sandbox exists. Only bridge-backed harnesses that
+        // run inside the sandbox need them, and those declare a bootstrap
+        // recipe, so they take the branch below and get the created session.
+        adapterSandboxSession = deferSandboxSession({
           defaultWorkingDirectory:
             providedSandboxSession.defaultWorkingDirectory,
           createSandboxSession: providedSandboxSession.createSandboxSession,
-          setup,
+          setupSandboxSession,
         });
-        sandboxSession = startedSandboxSession;
+        sandboxSession = adapterSandboxSession;
       } else {
         sandboxSession = await providedSandboxSession.createSandboxSession({
           abortSignal,
@@ -633,7 +634,7 @@ export class HarnessAgent<
 
     if (recipe != null) {
       try {
-        await setup(sandboxSession, abortSignal);
+        await setupSandboxSession({ session: sandboxSession, abortSignal });
       } catch (err) {
         await cleanupAfterStartFailure({
           sandboxSession,
@@ -642,11 +643,13 @@ export class HarnessAgent<
         throw err;
       }
     }
-    startedSandboxSession ??=
+    // Without a recipe, an existing sandbox still defers its setup to the
+    // first sandbox operation.
+    adapterSandboxSession ??=
       recipe == null
         ? deferSandboxSetup({
             sandboxSession,
-            setup: () => setup(sandboxSession),
+            setup: () => setupSandboxSession({ session: sandboxSession }),
           })
         : sandboxSession;
 
@@ -663,14 +666,14 @@ export class HarnessAgent<
       };
       const underlyingSession = await harness.doStart({
         ...baseStartOptions,
-        sandboxSession: startedSandboxSession,
+        sandboxSession: adapterSandboxSession,
         sessionWorkDir,
       });
       return new HarnessAgentSession({
         sessionId,
         harness,
         underlyingSession,
-        sandboxSession: startedSandboxSession,
+        sandboxSession: adapterSandboxSession,
         ownsSandboxLifecycle,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,

@@ -2,7 +2,10 @@ import type {
   HarnessDebugConfig,
   HarnessDiagnostic,
 } from './observability/types';
-import type { HarnessV1SandboxProvider } from '../v1';
+import type {
+  HarnessV1NetworkSandboxSession,
+  HarnessV1SandboxProvider,
+} from '../v1';
 import type {
   HarnessAgentAdapter,
   HarnessAgentPermissionMode,
@@ -41,6 +44,26 @@ import type { HarnessAllTools } from './harness-agent-tool-types';
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
 >;
+
+/**
+ * Creates the sandbox session for `HarnessAgent.createSession()` when it is
+ * needed instead of upfront.
+ *
+ * For a harness without a sandbox bootstrap recipe (such as Pi),
+ * `createSandboxSession` runs on the first file, exec, or spawn operation, so
+ * a session that never touches the sandbox never creates it. For any other
+ * harness, it runs in `createSession()`.
+ */
+export type HarnessAgentSandboxCreator = {
+  /**
+   * Working directory of the sandbox that `createSandboxSession` returns. The
+   * session work directory is derived from it before the sandbox exists.
+   */
+  readonly defaultWorkingDirectory: string;
+  readonly createSandboxSession: (options: {
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<HarnessV1NetworkSandboxSession | SandboxSession>;
+};
 
 export type HarnessAgentSandboxConfig = {
   /**

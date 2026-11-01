@@ -618,7 +618,10 @@ const session = await agent.createSession({
     defaultWorkingDirectory: '/vercel/sandbox',
     createSandboxSession: async () =>
       createVercelNetworkSandboxSessionFromNativeSandbox(
-        await Sandbox.getOrCreate({ name: `chat-${chatId}`, runtime: 'node24' }),
+        await Sandbox.getOrCreate({
+          name: `chat-${chatId}`,
+          runtime: 'node24',
+        }),
       ),
   },
 });
