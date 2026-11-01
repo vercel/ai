@@ -2470,6 +2470,7 @@ export class WorkflowAgent<
                 stepNumber: currentStepNumber,
                 includeRuntimeContext:
                   effectiveTelemetry?.includeRuntimeContext,
+                includeToolsContext: effectiveTelemetry?.includeToolsContext,
                 runtimeContext: filterIncludedContext({
                   context: runtimeContext,
                   includeContext: effectiveTelemetry?.includeRuntimeContext,

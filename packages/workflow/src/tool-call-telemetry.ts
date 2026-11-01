@@ -166,6 +166,10 @@ export async function dispatchToolCallTelemetryStep(
       toolExecutionMs: record.toolExecutionMs,
       toolOutput: resolvedToolOutput,
     } as never);
+    return {
+      output: resolvedToolOutput,
+      toolExecutionMs: record.toolExecutionMs,
+    };
   };
 
   if (dispatcher.runInTracingChannelSpan != null) {

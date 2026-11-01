@@ -37,6 +37,10 @@ const eventContexts: unknown[] = [];
 const toolEventContexts: unknown[] = [];
 const callIds = new Set<string>();
 const tracingChannelEvents: string[] = [];
+const tracingChannelToolAsyncEndMessages: Array<{
+  event: Record<string, unknown>;
+  result?: unknown;
+}> = [];
 
 let failTelemetryStep = false;
 let recordedToolExecutionMs: number | undefined;
@@ -113,7 +117,19 @@ tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
     void tracingChannelEvents.push((message as { type: string }).type),
   end: () => {},
   asyncStart: () => {},
-  asyncEnd: () => {},
+  asyncEnd: message => {
+    const msg = message as {
+      type: string;
+      event: Record<string, unknown>;
+      result?: unknown;
+    };
+    if (msg.type === 'executeTool') {
+      tracingChannelToolAsyncEndMessages.push({
+        event: { ...msg.event },
+        result: msg.result,
+      });
+    }
+  },
   error: () => {},
 });
 
@@ -125,6 +141,7 @@ beforeEach(() => {
   toolEventContexts.length = 0;
   callIds.clear();
   tracingChannelEvents.length = 0;
+  tracingChannelToolAsyncEndMessages.length = 0;
   failTelemetryStep = false;
   recordedToolExecutionMs = undefined;
 });
@@ -232,6 +249,15 @@ describe('WorkflowAgent telemetry with global integrations', () => {
     expect(toolSpan?.attributes['gen_ai.execute_tool.duration']).toBe(
       recordedToolExecutionMs! / 1000,
     );
+    expect(tracingChannelToolAsyncEndMessages).toHaveLength(1);
+    expect(tracingChannelToolAsyncEndMessages[0].result).toEqual({
+      output: expect.objectContaining({
+        type: 'tool-result',
+        toolName: 'echoStep',
+        output: 'Echoed: world',
+      }),
+      toolExecutionMs: recordedToolExecutionMs,
+    });
   });
 
   it('stream: records error on span when tool fails', async () => {
@@ -263,6 +289,7 @@ describe('WorkflowAgent telemetry with global integrations', () => {
     for (const includeToolsContext of [false, true]) {
       events.length = 0;
       toolEventContexts.length = 0;
+      tracingChannelToolAsyncEndMessages.length = 0;
       const run = await start(agentStreamWithGlobalTelemetryAndTools, [
         'world',
         { includeToolsContext },
@@ -273,6 +300,10 @@ describe('WorkflowAgent telemetry with global integrations', () => {
         ? { allowedKey: 'public-data' }
         : {};
       expect(toolEventContexts).toEqual([expectedContext]);
+      expect(tracingChannelToolAsyncEndMessages).toHaveLength(1);
+      expect(tracingChannelToolAsyncEndMessages[0].event.toolContext).toEqual(
+        expectedContext,
+      );
     }
   });
 

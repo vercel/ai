@@ -1,6 +1,9 @@
+import { AI_SDK_TELEMETRY_TRACING_CHANNEL } from 'ai';
+import { tracingChannel } from 'node:diagnostics_channel';
 import { describe, expect, it } from 'vitest';
 import {
   deserializeToolError,
+  dispatchToolCallTelemetryStep,
   serializeToolError,
 } from './tool-call-telemetry.js';
 
@@ -76,5 +79,85 @@ describe('tool-call-telemetry error serialization', () => {
       const deserialized = deserializeToolError(serialized);
       expect(deserialized).toBe(val);
     }
+  });
+});
+
+describe('dispatchToolCallTelemetryStep diagnostics channel', () => {
+  it('completes executeTool tracing-channel span with output, toolExecutionMs, and filtered toolContext', async () => {
+    const asyncEndMessages: Array<{
+      type: string;
+      event: Record<string, unknown>;
+      result?: unknown;
+    }> = [];
+
+    const channel = tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL);
+    const subscribers = {
+      start() {},
+      end() {},
+      asyncStart() {},
+      asyncEnd(message: unknown) {
+        const msg = message as {
+          type: string;
+          event: Record<string, unknown>;
+          result?: unknown;
+        };
+        if (msg.type === 'executeTool') {
+          asyncEndMessages.push({
+            type: msg.type,
+            event: { ...msg.event },
+            result: msg.result,
+          });
+        }
+      },
+      error() {},
+    };
+
+    channel.subscribe(subscribers);
+    try {
+      await dispatchToolCallTelemetryStep({
+        telemetry: {
+          functionId: 'tool-step-test',
+          stepNumber: 0,
+          includeToolsContext: {
+            echoStep: { allowedKey: true },
+          },
+        },
+        provider: 'test-provider',
+        modelId: 'test-model',
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'echoStep',
+          input: { message: 'hello' },
+        },
+        toolContext: { allowedKey: 'public-data' },
+        messages: [],
+        toolExecutionMs: 42,
+        toolOutput: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'echoStep',
+          input: { message: 'hello' },
+          output: 'echo: hello',
+        },
+      });
+    } finally {
+      channel.unsubscribe(subscribers);
+    }
+
+    expect(asyncEndMessages).toHaveLength(1);
+    expect(asyncEndMessages[0].event.toolContext).toEqual({
+      allowedKey: 'public-data',
+    });
+    expect(asyncEndMessages[0].result).toEqual({
+      output: {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'echoStep',
+        input: { message: 'hello' },
+        output: 'echo: hello',
+      },
+      toolExecutionMs: 42,
+    });
   });
 });

@@ -96,6 +96,7 @@ export interface ModelCallTelemetry {
   recordOutputs?: boolean;
   stepNumber: number;
   includeRuntimeContext?: TelemetryOptions['includeRuntimeContext'];
+  includeToolsContext?: TelemetryOptions['includeToolsContext'];
   /** Runtime context filtered before crossing the durable step boundary. */
   runtimeContext?: Context;
 }
