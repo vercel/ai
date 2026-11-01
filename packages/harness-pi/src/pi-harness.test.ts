@@ -4,7 +4,9 @@ import type { PiCredentialStore } from './pi-auth';
 import type * as PiSessionModule from './pi-session';
 
 const mocks = vi.hoisted(() => ({
-  createPiSession: vi.fn(async () => ({})),
+  createPiSession: vi.fn(
+    async (_input: PiSessionModule.CreatePiSessionInput) => ({}),
+  ),
 }));
 
 vi.mock('./pi-session', async importOriginal => {
@@ -56,9 +58,15 @@ describe('createPi adapter', () => {
     async resumeStateType => {
       mocks.createPiSession.mockClear();
       const credentials = {} as PiCredentialStore;
+      const fileToolPathPolicy = {
+        readableRoots: ['/mnt/reference'],
+        writableRoots: ['/tmp/artifacts'],
+        deniedRoots: ['/tmp/artifacts/private'],
+      };
       const harness = createPi({
         credentials,
         reattachInProcess: false,
+        fileToolPathPolicy,
       });
       const lifecycleState = {
         harnessId: 'pi',
@@ -90,9 +98,114 @@ describe('createPi adapter', () => {
           settings: expect.objectContaining({
             credentials,
             reattachInProcess: false,
+            fileToolPathPolicy,
           }),
         }),
       );
     },
   );
+  it('forwards the native file-tool path policy to the Pi session', async () => {
+    mocks.createPiSession.mockClear();
+    const fileToolPathPolicy = {
+      readableRoots: ['/mnt/reference'],
+      writableRoots: ['/tmp', '/mnt/artifacts'],
+      deniedRoots: ['/tmp/private'],
+    };
+    const harness = createPi({ fileToolPathPolicy });
+
+    await harness.doStart({
+      sessionId: 'session-with-file-tool-policy',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    expect(mocks.createPiSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ fileToolPathPolicy }),
+      }),
+    );
+  });
+
+  const header = {
+    type: 'session',
+    version: 3,
+    id: 'session-1',
+    timestamp: '2026-10-08T00:00:00.000Z',
+    cwd: '/sandbox/work',
+  };
+
+  it.each([
+    {
+      name: 'continue-turn entries',
+      state: { type: 'continue-turn', data: { entries: [header] } },
+      resumeEntries: [header],
+    },
+    {
+      name: 'resume-session entries',
+      state: { type: 'resume-session', data: { entries: [header] } },
+      resumeEntries: [header],
+    },
+    {
+      name: 'a sessionFileName from an earlier version',
+      state: {
+        type: 'resume-session',
+        data: { sessionFileName: 'x.jsonl' },
+      },
+      resumeEntries: undefined,
+    },
+  ] as const)(
+    'forwards $name as resumeEntries',
+    async ({ state, resumeEntries }) => {
+      mocks.createPiSession.mockClear();
+      const lifecycleState = {
+        ...state,
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+      } as const;
+
+      await createPi().doStart({
+        sessionId: 'session-1',
+        sandboxSession: {} as never,
+        sessionWorkDir: '/sandbox/work',
+        ...(lifecycleState.type === 'continue-turn'
+          ? { continueFrom: lifecycleState }
+          : { resumeFrom: lifecycleState }),
+      });
+
+      expect(mocks.createPiSession).toHaveBeenCalledOnce();
+      const input = mocks.createPiSession.mock.calls[0]?.[0];
+      expect(input).toMatchObject({
+        isResume: true,
+        resumeStateType: state.type,
+      });
+      expect(input?.resumeEntries).toEqual(resumeEntries);
+    },
+  );
+
+  it('drops a pending tool batch from an earlier version that has no entries to replay it against', async () => {
+    mocks.createPiSession.mockClear();
+
+    await createPi().doStart({
+      sessionId: 'session-1',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/sandbox/work',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+        data: {
+          sessionFileName: 'x.jsonl',
+          pendingToolBatch: {
+            awaitingToolCallIds: ['tool-1'],
+            completedToolResults: [],
+            nativeApprovalDecisions: [],
+          },
+        },
+      },
+    });
+
+    const input = mocks.createPiSession.mock.calls[0]?.[0];
+    expect(input?.resumeEntries).toBeUndefined();
+    expect(input?.resumePendingToolBatch).toBeUndefined();
+  });
 });

@@ -29,6 +29,7 @@ from `examples/ai-functions`.
 | ----------------- | ------------------------------ |
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY`           |
 | TypeSafe AI       | `TYPESAFE_AI_API_KEY`          |
+| Perplexity        | `PERPLEXITY_API_KEY`           |
 | OpenAI            | `OPENAI_API_KEY`               |
 | Anthropic         | `ANTHROPIC_API_KEY`            |
 | Google            | `GOOGLE_GENERATIVE_AI_API_KEY` |
@@ -52,6 +53,9 @@ All paths below are relative to this directory. Run any script with
 | [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                       |
 | [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                           |
 | [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                   |
+| [perplexity/basic.ts](./perplexity/basic.ts)                             | Decide answers to Boolean, Choice, and Score questions with Perplexity.                                 |
+| [perplexity/criteria-only.ts](./perplexity/criteria-only.ts)             | Omit instructions or set them to null, using structured criteria to describe the decision.              |
+| [perplexity/single-level-score.ts](./perplexity/single-level-score.ts)   | Use a single Score level and inspect its zero score, probability, and legend.                           |
 | [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                                 |
 | [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                              |
 | [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                              |
@@ -59,7 +63,7 @@ All paths below are relative to this directory. Run any script with
 
 ## Interpreting results
 
-TypeSafe AI and OpenAI provide native decisions. The Anthropic and Google
+TypeSafe AI, OpenAI, and Perplexity provide native decisions. The Anthropic and Google
 adapters use structured language-model output and evaluate all questions in one
 prompt. Their boolean probabilities are prompted estimates; Choice and Score
 answers do not include probability distributions.

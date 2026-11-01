@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -20,6 +20,7 @@ import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
@@ -31,6 +32,7 @@ import {
 } from './acp-diagnostics';
 import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { createHostToolCallResolver } from './host-tool-call-resolver';
 import { resolveACPInstructionConfiguration } from './instruction-mapping';
 import {
   startHostToolRelay,
@@ -46,6 +48,7 @@ import {
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
 import { configureACPModel } from './model-mapping';
+import { resolveACPModelId } from './resolve-acp-model-id';
 import {
   assertACPResumeCapability,
   createACPRecoveredSession,
@@ -57,13 +60,6 @@ import {
   type ACPSessionRestorationMethod,
 } from './session-lifecycle';
 
-type ImplementationDescriptor = {
-  readonly executablePath: string;
-  readonly privateHome: boolean;
-  readonly args: ReadonlyArray<string>;
-  readonly envKeys: ReadonlyArray<string>;
-};
-
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
 
@@ -73,16 +69,9 @@ const bridgeStateDir = requireArg({
   value: args.bridgeStateDir,
   name: '--bridge-state-dir',
 });
-const implementationDir = requireArg({
-  value: args.implementationDir,
-  name: '--implementation-dir',
-});
 const bridgeType = requireArg({
   value: args.bridgeType,
   name: '--bridge-type',
-});
-const implementation = await readImplementationDescriptor({
-  path: `${implementationDir}/implementation.json`,
 });
 const bridgeConfiguration = await readACPBridgeEnvironment({ env: processEnv });
 
@@ -94,6 +83,7 @@ let recoveredSessionUpdates:
   | ReturnType<typeof createACPRecoveredSessionUpdates>
   | undefined;
 let recoveredSessionId: string | undefined;
+let sessionSupportsImagePrompts = false;
 let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
@@ -102,6 +92,7 @@ let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
+let currentModelId: string | undefined;
 let activePermissionController:
   | ReturnType<typeof createACPPermissionController>
   | undefined;
@@ -148,6 +139,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       start,
       turn,
     }));
+    if (
+      !sessionSupportsImagePrompts &&
+      start.prompt.some(part => part.type === 'image')
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: 'The ACP agent does not advertise support for image prompts.',
+      });
+    }
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -223,12 +223,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     return;
   }
 
-  await configureACPModel({
+  const configuredModelId = await configureACPModel({
     agent: connection!.agent,
     sessionId: activeSession.sessionId,
     model: start.model,
     mapping: start.modelMapping,
   });
+  if (configuredModelId != null) currentModelId = configuredModelId;
 
   let rejectCancellationFailure!: (error: unknown) => void;
   const cancellationFailure = new Promise<never>((_, reject) => {
@@ -237,7 +238,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   void cancellationFailure.catch(() => {});
   let cancellationRequested = false;
   let cancellationFailureError: Error | undefined;
-  const hostToolAuthorization = createHostToolRelayAuthorization({
+  const hostToolAuthorization = createHostToolRelayAuthorization();
+  const hostToolCallResolver = createHostToolCallResolver({
+    turn,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     toolNames: (start.tools ?? []).map(tool => tool.name),
   });
@@ -245,6 +248,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (cancellationRequested) return;
     cancellationRequested = true;
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     activePermissionController?.cancelAll();
     try {
       if (connection == null) {
@@ -261,7 +265,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       rejectCancellationFailure(cancellationFailureError);
     }
   };
-  turn.emit({ type: 'stream-start' });
+  const streamStartModelId = currentModelId ?? start.model;
+  turn.emit({
+    type: 'stream-start',
+    ...(streamStartModelId ? { modelId: streamStartModelId } : {}),
+  });
   const emitStreamEvent = createEmitStreamEvent({
     emit: event => turn.emit(event as BridgeEvent),
     emitToolCallCandidate: ({ toolCall }) => {
@@ -287,6 +295,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
+    hostToolCallResolver,
   });
   if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
     activeQuestionRequest = {
@@ -310,6 +319,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
+    emitWarning: turn.emitWarning,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
     registerCorrelationInvocation:
       emitStreamEvent.registerHostToolCorrelationInvocation,
@@ -352,6 +362,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         once: true,
       });
     }
+    let pendingHostToolResolutions: Promise<void> = Promise.resolve();
     for (;;) {
       let message: acp.ActiveSessionMessage;
       try {
@@ -372,19 +383,55 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         });
       }
       if (message.kind === 'session_update') {
+        if (message.update.sessionUpdate === 'config_option_update') {
+          currentModelId =
+            resolveACPModelId({
+              sessionState: message.update,
+              modelMapping: start.modelMapping,
+            }) ?? currentModelId;
+        }
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
-        hostToolAuthorization.observeUpdate({ update: message.update });
+        const update = message.update;
+        const isToolUpdate =
+          update.sessionUpdate === 'tool_call' ||
+          update.sessionUpdate === 'tool_call_update';
         for (const rawValue of captured?.precedingRawValues ?? []) {
           emitStreamEvent.raw({ rawValue });
         }
-        emitStreamEvent.message({
-          message,
-          rawUpdate: captured?.rawUpdate,
-        });
+        if (!isToolUpdate) {
+          hostToolAuthorization.observeUpdate({ update });
+          emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+          continue;
+        }
+        /*
+         * Host tool resolution requires a round trip to the host. Updates are
+         * still recorded as soon as they arrive, so that a permission request
+         * received meanwhile can be matched against them, and the resolution
+         * is applied once it is known. Resolutions are applied in update
+         * order. The flush hold keeps a host tool call from being released to
+         * the stream while its resolution is pending. Released tool calls
+         * still need resolution for relay authorization, even though their
+         * stream events can no longer be suppressed.
+         */
+        const flushHold = emitStreamEvent.deferFlush();
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
+        emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+        pendingHostToolResolutions = pendingHostToolResolutions
+          .then(() => resolution)
+          .catch(() => undefined)
+          .then(hostToolCall => {
+            hostToolAuthorization.observeUpdate({ update, hostToolCall });
+            emitStreamEvent.applyHostToolCall({
+              toolCallId: update.toolCallId,
+              hostToolCall,
+            });
+          })
+          .finally(() => flushHold.release());
         continue;
       }
+      await pendingHostToolResolutions;
       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
         emitStreamEvent.raw({ rawValue });
       }
@@ -392,6 +439,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } finally {
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     if (activeQuestionRequest?.turn === turn) {
       activeQuestionRequest = undefined;
     }
@@ -466,14 +514,13 @@ async function ensureSession({
     environment: {
       ...createChildEnvironment({
         launchEnv,
-        implementationDir,
-        privateHome: implementation.privateHome,
+        home: bridgeConfiguration.agent.home,
       }),
     },
   });
   child = spawn(
-    `${implementationDir}/${implementation.executablePath}`,
-    [...implementation.args],
+    bridgeConfiguration.agent.command,
+    [...bridgeConfiguration.agent.args],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,
@@ -554,6 +601,12 @@ async function ensureSession({
         active.emitStreamEvent.suppressToolCall({
           toolCallId: nativeToolCallId ?? classification.toolCallId,
         });
+        active.turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: unknownUsage(),
+          harnessMetadata: { acp: { inferredStep: true } },
+        });
         try {
           const nativeResult = await active.turn.requestToolResult(
             classification.toolCallId,
@@ -591,6 +644,10 @@ async function ensureSession({
     requested: acp.PROTOCOL_VERSION,
     initialization,
   });
+  sessionSupportsImagePrompts = isACPImagePromptSupported({
+    initialization,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
+  });
 
   if (authentication != null) {
     await authenticate({
@@ -613,6 +670,7 @@ async function ensureSession({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     mcpTransport,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   const mcpServers: acp.McpServer[] = [
@@ -704,6 +762,10 @@ async function ensureSession({
     throw error;
   }
   session = createdSession;
+  currentModelId = resolveACPModelId({
+    sessionState: createdSession.newSessionResponse,
+    modelMapping: start.modelMapping,
+  });
   initializationDiagnostic = createACPInitializationDiagnostic({
     initialization,
     sessionId: createdSession.sessionId,
@@ -826,12 +888,10 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
-  implementationDir,
-  privateHome,
+  home,
 }: {
   launchEnv: Readonly<Record<string, string>>;
-  implementationDir: string;
-  privateHome: boolean;
+  home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -850,9 +910,8 @@ function createChildEnvironment({
     ),
     ...launchEnv,
   };
-  if (!privateHome) return environment;
+  if (home == null) return environment;
 
-  const home = `${implementationDir}/home`;
   const inheritedPath = environment.PATH;
   return {
     ...environment,
@@ -945,44 +1004,14 @@ function promptActiveSession({
   return response;
 }
 
-async function readImplementationDescriptor({
-  path,
-}: {
-  path: string;
-}): Promise<ImplementationDescriptor> {
-  const text = await readFile(path, 'utf8');
-  const value = await new Response(text, {
-    headers: { 'content-type': 'application/json' },
-  }).json();
-  if (
-    !isRecord(value) ||
-    typeof value.executablePath !== 'string' ||
-    typeof value.privateHome !== 'boolean' ||
-    !Array.isArray(value.args) ||
-    !value.args.every(item => typeof item === 'string') ||
-    !Array.isArray(value.envKeys) ||
-    !value.envKeys.every(item => typeof item === 'string')
-  ) {
-    throw new Error('Invalid ACP implementation descriptor.');
-  }
-  return {
-    executablePath: value.executablePath,
-    privateHome: value.privateHome,
-    args: value.args as string[],
-    envKeys: value.envKeys as string[],
-  };
-}
-
 function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
-  implementationDir?: string;
   bridgeType?: string;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
-    implementationDir?: string;
     bridgeType?: string;
   } = {};
   for (let index = 0; index < args.length; index++) {
@@ -991,8 +1020,6 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     if (args[index] === '--workdir') result.workDir = value;
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
-    else if (args[index] === '--implementation-dir')
-      result.implementationDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
   }
   return result;

@@ -13,7 +13,23 @@ export function createToolApprovalResponseMessages({
   approved: boolean;
   reason?: string;
 }): ModelMessage[] {
-  const response: ToolApprovalResponse = {
+  return createToolApprovalResponsesMessages({
+    approvals: [approval],
+    approved,
+    reason,
+  });
+}
+
+export function createToolApprovalResponsesMessages({
+  approvals,
+  approved,
+  reason,
+}: {
+  approvals: ReadonlyArray<ToolApprovalRequestOutput<any>>;
+  approved: boolean;
+  reason?: string;
+}): ModelMessage[] {
+  const responses: ToolApprovalResponse[] = approvals.map(approval => ({
     type: 'tool-approval-response',
     approvalId: approval.approvalId,
     approved,
@@ -21,15 +37,15 @@ export function createToolApprovalResponseMessages({
     ...(approval.toolCall.providerExecuted !== undefined
       ? { providerExecuted: approval.toolCall.providerExecuted }
       : {}),
-  };
+  }));
 
   return [
     {
       role: 'assistant',
-      content: [
+      content: approvals.flatMap(approval => [
         approval.toolCall,
         {
-          type: 'tool-approval-request',
+          type: 'tool-approval-request' as const,
           approvalId: approval.approvalId,
           toolCallId: approval.toolCall.toolCallId,
           ...(approval.isAutomatic !== undefined
@@ -39,11 +55,11 @@ export function createToolApprovalResponseMessages({
             ? { signature: approval.signature }
             : {}),
         },
-      ],
+      ]),
     },
     {
       role: 'tool',
-      content: [response],
+      content: responses,
     },
   ];
 }

@@ -1,8 +1,5 @@
 import { delay as originalDelay, type ToolSet } from '@ai-sdk/provider-utils';
-import {
-  InvalidArgumentError,
-  type SharedV4ProviderMetadata,
-} from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { TextStreamPart } from './stream-text-result';
 
 const CHUNKING_REGEXPS = {
@@ -92,16 +89,7 @@ export function smoothStream<TOOLS extends ToolSet>({
     const chunkingRegex =
       typeof chunking === 'string'
         ? CHUNKING_REGEXPS[chunking]
-        : chunking instanceof RegExp
-          ? chunking
-          : undefined;
-
-    if (chunkingRegex == null) {
-      throw new InvalidArgumentError({
-        argument: 'chunking',
-        message: `Chunking must be "word", "line", a RegExp, an Intl.Segmenter, or a ChunkDetector function. Received: ${chunking}`,
-      });
-    }
+        : (chunking as RegExp);
 
     detectChunk = buffer => {
       const lastIndex = chunkingRegex.lastIndex;

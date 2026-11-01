@@ -17,12 +17,12 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -37,11 +37,12 @@ import {
   type OpenAIConfig,
 } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
 } from '../openai-stream-error';
+import { resolveOpenAIReasoningEffort } from '../resolve-openai-reasoning-effort';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -224,10 +225,10 @@ function getConfigurationUpdateUnsupportedReason({
   modelCapabilities,
   options,
 }: {
-  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  modelCapabilities: { configurationUpdates: boolean };
   options: OpenAILanguageModelResponsesOptions | undefined;
 }): string | undefined {
-  if (!modelCapabilities.supportsConfigurationUpdate) {
+  if (!modelCapabilities.configurationUpdates) {
     return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
   }
 
@@ -302,7 +303,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions;
   }) {
     const warnings: SharedV4Warning[] = [];
-    const modelCapabilities = getOpenAILanguageModelCapabilities(modelId);
+    const {
+      capabilities: { language: modelCapabilities },
+      requestConfig: { language: modelRequestConfig },
+    } = getOpenAILanguageModelEntry(modelId);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -341,24 +345,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    let resolvedReasoningEffort =
-      openaiOptions?.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
-
-    if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
-      });
-      resolvedReasoningEffort = undefined;
-    }
+    const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
+      providerReasoningEffort: openaiOptions?.reasoningEffort,
+      reasoning,
+      supportedReasoningEfforts: modelCapabilities.reasoning.efforts,
+      warnings,
+    });
 
     const resolvedReasoningSummary =
       openaiOptions?.reasoningSummary !== undefined
@@ -368,7 +360,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           : undefined;
 
     const isReasoningModel =
-      openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+      openaiOptions?.forceReasoning ??
+      modelCapabilities.reasoning.support === true;
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
@@ -412,7 +405,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       customProviderToolNames,
       outputSchemaToolNames,
-      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      supportsAsyncToolCalling: modelCapabilities.tools.async,
+      providerOptionsName,
     });
 
     const configurationUpdateUnsupportedReason =
@@ -429,7 +423,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           openaiOptions?.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelCapabilities.systemMessageMode),
+            : modelRequestConfig.systemMessageMode),
         providerOptionsName,
         configurationUpdateUnsupportedReason,
         explicitMessageItemType: config.explicitMessageItemType,
@@ -437,6 +431,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
+        isReasoningModel,
         hasConversation: openaiOptions?.conversation != null,
         hasPreviousResponseId: openaiOptions?.previousResponseId != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -456,10 +451,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
+    const supportedReasoningEfforts = modelCapabilities.reasoning.efforts;
     const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
-      effort != null &&
-      modelCapabilities.supportedReasoningEfforts?.includes(effort) === false
-        ? `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`
+      effort != null && supportedReasoningEfforts?.includes(effort) === false
+        ? `${modelId} only supports the following reasoning efforts: ${supportedReasoningEfforts.join(', ')}`
         : undefined;
 
     // Reject configuration updates whose effort value is unsupported by the selected model.
@@ -597,7 +592,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: modelId,
+      model: config.requestModelId ?? modelId,
       input,
       temperature,
       top_p: topP,
@@ -673,7 +668,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportsConfigurationUpdate &&
+      !modelCapabilities.promptCache.retention &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
@@ -701,7 +696,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       if (
         !(
           effectiveReasoningEffort === 'none' &&
-          modelCapabilities.supportsNonReasoningParameters
+          modelCapabilities.reasoning.sampling === 'reasoning-effort-none'
         )
       ) {
         if (baseArgs.temperature != null) {
@@ -723,7 +718,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         if (
-          modelCapabilities.supportedReasoningEfforts != null &&
+          modelCapabilities.endpoints.responses.logprobsRequireNonReasoning &&
           (baseArgs.top_logprobs != null ||
             baseArgs.include?.includes('message.output_text.logprobs'))
         ) {
@@ -779,7 +774,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !modelCapabilities.supportsFlexProcessing
+      !modelCapabilities.serviceTiers.flex
     ) {
       warnings.push({
         type: 'unsupported',
@@ -795,7 +790,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     if (
       (openaiOptions?.serviceTier === 'priority' ||
         openaiOptions?.serviceTier === 'fast') &&
-      !modelCapabilities.supportsPriorityProcessing
+      !modelCapabilities.serviceTiers.priority
     ) {
       warnings.push({
         type: 'unsupported',
@@ -853,7 +848,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
@@ -865,7 +860,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -924,6 +922,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
+
+    let structuredOutputText: string | undefined;
 
     // map response content to content array
     for (const part of response.output) {
@@ -1044,6 +1044,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             input: JSON.stringify({
               action: {
                 commands: part.action.commands,
+                timeoutMs: part.action.timeout_ms ?? undefined,
+                maxOutputLength: part.action.max_output_length ?? undefined,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             ...(isShellProviderExecuted && { providerExecuted: true }),
@@ -1063,6 +1065,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolCallId: part.call_id,
             toolName: toolNameMapping.toCustomToolName('shell'),
             result: {
+              ...(part.max_output_length != null && {
+                maxOutputLength: part.max_output_length,
+              }),
               output: part.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1080,6 +1085,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'message': {
+          // Parse only the last final answer for JSON output, while preserving
+          // every message and its metadata in the generated content.
+          if (
+            options.responseFormat?.type === 'json' &&
+            part.phase === 'final_answer'
+          ) {
+            structuredOutputText = part.content
+              .map(contentPart => contentPart.text)
+              .join('');
+          }
+
           for (const contentPart of part.content) {
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
@@ -1255,9 +1271,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            ...(part.status === 'failed' || part.status === 'incomplete'
-              ? { isError: true, result: { status: part.status } }
-              : { result: mapWebSearchOutput(part.action) }),
+            ...mapWebSearchResult(part),
           });
 
           if (part.action?.type === 'search') {
@@ -1510,6 +1524,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       content,
+      ...(structuredOutputText !== undefined && { structuredOutputText }),
       finishReason: {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
@@ -1546,12 +1561,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         stream: true,
@@ -1593,8 +1611,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIResponsesUsage | undefined = undefined;
@@ -1738,14 +1757,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName,
-                });
-
-                // Custom tool input is a string, so stream its JSON encoding
-                // consistently with the final tool call input.
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: value.item.call_id,
-                  delta: '"',
+                  inputEncoding: 'text',
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -2146,12 +2158,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 );
 
                 controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: value.item.call_id,
-                  delta: '"',
-                });
-
-                controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.call_id,
                 });
@@ -2181,10 +2187,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  ...(value.item.status === 'failed' ||
-                  value.item.status === 'incomplete'
-                    ? { isError: true, result: { status: value.item.status } }
-                    : { result: mapWebSearchOutput(value.item.action) }),
+                  ...mapWebSearchResult(value.item),
                 });
 
                 if (value.item.action?.type === 'search') {
@@ -2542,6 +2545,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   input: JSON.stringify({
                     action: {
                       commands: value.item.action.commands,
+                      timeoutMs: value.item.action.timeout_ms ?? undefined,
+                      maxOutputLength:
+                        value.item.action.max_output_length ?? undefined,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   ...(isShellProviderExecuted && {
@@ -2557,6 +2563,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolCallId: value.item.call_id,
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   result: {
+                    ...(value.item.max_output_length != null && {
+                      maxOutputLength: value.item.max_output_length,
+                    }),
                     output: value.item.output.map(
                       (item: {
                         stdout: string;
@@ -2648,7 +2657,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: escapeJSONDelta(value.delta),
+                  delta: value.delta,
                 });
               }
             } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
@@ -3165,7 +3174,21 @@ function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   );
 }
 
-export function mapWebSearchOutput(
+export function mapWebSearchResult({
+  action,
+  status,
+}: {
+  action?: OpenAIResponsesWebSearchAction | null;
+  status: string;
+}):
+  | { isError: true; result: { status: string } }
+  | { result: InferSchema<typeof webSearchOutputSchema> } {
+  return status === 'completed'
+    ? { result: mapWebSearchOutput(action) }
+    : { isError: true, result: { status } };
+}
+
+function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {

@@ -65,6 +65,7 @@
         "!packages/sandbox-*",
         "!packages/svelte",
         "!packages/test-server",
+        "!packages/tool-*",
         "!packages/tui",
         "!packages/valibot",
         "!packages/vue",
@@ -401,7 +402,7 @@
                 "from": "@ai-sdk/harness/utils"
               },
               {
-                "name": "withBridgeToken",
+                "name": "resolveBridgeEndpoint",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -409,6 +410,7 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
+            "callFunction": ["resolveBridgeEndpoint"],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
@@ -519,10 +521,11 @@
                 "from": "@ai-sdk/harness/utils"
               },
               {
-                "name": "withBridgeToken",
+                "name": "resolveBridgeEndpoint",
                 "from": "@ai-sdk/harness/utils"
               }
-            ]
+            ],
+            "callFunction": ["resolveBridgeEndpoint"]
           }
         },
         {
@@ -994,6 +997,69 @@
           "!@ai-sdk/harness/bridge"
         ]
       }
+    },
+    {
+      "name": "tool-package-must-follow-shared-conventions",
+      "description": "Every tool package must include its main file and expose its factory through the package index.",
+      "paths": ["packages/tool-{toolId}"],
+      "must": [
+        {
+          "name": "tool-package-must-have-main-file",
+          "description": "Every tool package must have a main tool implementation file named after the tool.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": ["src/${toolId}-tool.ts"]
+          }
+        },
+        {
+          "name": "tool-main-file-must-follow-shared-conventions",
+          "description": "Every tool main file must declare its schemas and inferred types before exporting its factory.",
+          "for": { "files": "src/${toolId}-tool.ts" },
+          "must": {
+            "importValues": [
+              { "name": "tool", "from": "ai" },
+              { "name": "z", "from": "zod/v4" }
+            ],
+            "importTypes": [
+              { "name": "Tool", "from": "ai" },
+              { "name": "ToolExecuteFunction", "from": "ai" }
+            ],
+            "declareTypes": [
+              {
+                "name": "${toolId.toPascalCase()}Input",
+                "type": "z.infer<typeof inputSchema>"
+              },
+              {
+                "name": "${toolId.toPascalCase()}Output",
+                "type": "z.infer<typeof outputSchema>"
+              }
+            ],
+            "declareConstants": ["inputSchema", "outputSchema"],
+            "exportFunctions": ["create${toolId.toPascalCase()}Tool"],
+            "useDeclarationOrder": [
+              "inputSchema",
+              "outputSchema",
+              "${toolId.toPascalCase()}Input",
+              "${toolId.toPascalCase()}Output",
+              "create${toolId.toPascalCase()}Tool"
+            ]
+          }
+        },
+        {
+          "name": "tool-package-index-must-export-experimental-factory",
+          "description": "Every tool package index must re-export its factory under the experimental name.",
+          "for": { "files": "src/index.ts" },
+          "must": {
+            "exportValues": [
+              {
+                "name": "create${toolId.toPascalCase()}Tool",
+                "alias": "experimental_create${toolId.toPascalCase()}Tool",
+                "from": "./${toolId}-tool"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "kebabToPascalMap": {

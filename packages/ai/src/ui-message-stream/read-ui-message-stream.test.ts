@@ -3,6 +3,7 @@ import {
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import type { UIMessage } from '../ui/ui-messages';
+import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { UIMessageChunk } from './ui-message-chunks';
 import { readUIMessageStream } from './read-ui-message-stream';
 import { describe, it, expect, vi } from 'vitest';
@@ -12,6 +13,123 @@ function createUIMessageStream(parts: UIMessageChunk[]) {
 }
 
 describe('readUIMessageStream', () => {
+  it.each([false, true])(
+    'resumes raw text input after persistence (dynamic: %s)',
+    async dynamic => {
+      const messages = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'message-1' },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'call-1',
+              toolName: 'exec',
+              inputEncoding: 'text',
+              dynamic,
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'call-1',
+              inputTextDelta: 'text("',
+            },
+          ]),
+        }),
+      );
+      const [persisted] = await validateUIMessages({
+        messages: [messages.at(-1)],
+      });
+      expect(persisted.parts[0]).toMatchObject({
+        state: 'input-streaming',
+        inputEncoding: 'text',
+        input: 'text("',
+        rawInput: 'text("',
+      });
+
+      const resumed = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          message: persisted,
+          stream: createUIMessageStream([
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'call-1',
+              inputTextDelta: 'probe");\n',
+            },
+          ]),
+          terminateOnError: true,
+        }),
+      );
+      expect(resumed.at(-1)?.parts[0]).toMatchObject({
+        state: 'input-streaming',
+        inputEncoding: 'text',
+        input: 'text("probe");\n',
+        rawInput: 'text("probe");\n',
+      });
+    },
+  );
+
+  it.each([undefined, 'json'] as const)(
+    'keeps JSON parsing for interleaved calls with encoding %s',
+    async inputEncoding => {
+      const messages = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'message-1' },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'text',
+              toolName: 'exec',
+              inputEncoding: 'text',
+            },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'json',
+              toolName: 'weather',
+              inputEncoding,
+            },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'encoded-string',
+              toolName: 'legacy',
+              inputEncoding,
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'text',
+              inputTextDelta: '"quoted',
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'json',
+              inputTextDelta: '{"city":"Paris"}',
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'encoded-string',
+              inputTextDelta: '"already encoded"',
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'text',
+              inputTextDelta: '"',
+            },
+          ]),
+          terminateOnError: true,
+        }),
+      );
+      expect(messages.at(-1)?.parts).toEqual([
+        expect.objectContaining({ toolCallId: 'text', input: '"quoted"' }),
+        expect.objectContaining({
+          toolCallId: 'json',
+          input: { city: 'Paris' },
+        }),
+        expect.objectContaining({
+          toolCallId: 'encoded-string',
+          input: 'already encoded',
+        }),
+      ]);
+    },
+  );
+
   it('should discard a seeded assistant message when the stream starts with a different message id', async () => {
     const messages = await convertAsyncIterableToArray(
       readUIMessageStream({

@@ -192,6 +192,9 @@ export function toUIMessageChunk<
         type: 'tool-input-start',
         toolCallId: part.id,
         toolName: part.toolName,
+        ...(part.inputEncoding != null
+          ? { inputEncoding: part.inputEncoding }
+          : {}),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),

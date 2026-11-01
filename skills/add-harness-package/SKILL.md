@@ -85,7 +85,14 @@ Required package basics:
 - dev dependencies matching existing harness packages
 - `"engines": { "node": ">=22" }`
 
-For bridge packages, add any bridge asset copy step required for files under `src/bridge/`.
+For bridge packages, ensure all bridge assets under `src/bridge/` are copied into `dist/bridge/` and can be read from there. This encompasses two steps:
+
+- Include a `copy-bridge-assets` script in the harness package's `package.json`. Critical: `src/bridge/pnpm-lock.yaml` must be copied as `dist/bridge/pnpm-lockfile.yaml`! It's necessary because PNPM 12's `pnpm pack` unconditionally excludes files named `pnpm-lock.yaml`.
+  - Example for bridge with `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: `"copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lockfile.yaml'); await fs.copyFile('src/bridge/pnpm-workspace.yaml', 'dist/bridge/pnpm-workspace.yaml'); })\""`
+  - Example for bridge with `package.json`, `pnpm-lock.yaml`: `"copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lockfile.yaml'); })\""`
+- Ensure the harness's bootstrap code defines `const readBridgeAsset = createReadBridgeAsset();`, using the `createReadBridgeAsset` function from `@ai-sdk/harness/utils`. In that function call, provide the map of bridge file names and where to read them from. The special case for reading `pnpm-lock.yaml` from the dist folder's `pnpm-lockfile.yaml` must be considered here as well.
+  - Example for `package.json`: `'package.json': new URL('./bridge/package.json', import.meta.url)`
+  - Example for `pnpm-lock.yaml`: `'pnpm-lock.yaml': new URL('./bridge/pnpm-lockfile.yaml', import.meta.url)`
 
 Bridge dependency rules (bridge-backed harnesses):
 
@@ -93,6 +100,7 @@ Bridge dependency rules (bridge-backed harnesses):
 - For every third-party import in `src/bridge/`, add the dependency to `src/bridge/package.json` so it is installed in the sandbox. tsdown automatically externalizes dependencies, peer dependencies, and optional dependencies declared by the main package; add bridge-only dependencies that are not declared there to `deps.neverBundle` in `tsdown.config.ts`. A missing dependency or required exclusion may show up only at sandbox runtime as a module-resolution error.
 - Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — in `src/bridge/package.json` even though nothing imports them directly. They do not need a `neverBundle` entry unless the bridge source imports them. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
+- ACP adapters built on `@ai-sdk/harness-acp` with an `npm-locked` source install their `src/bridge/package.json` in place of the `harness-acp` bridge manifest. That manifest must declare every dependency of `packages/harness-acp/src/v1/bridge/package.json` at the same version, and the adapter's manifest path must be added to `acpNpmLockedBridgeManifestPaths` in `tools/verify-harness-adapter-deps.mjs`.
 
 ### 3. Create TypeScript, Build, and Test Configs
 

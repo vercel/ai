@@ -1,4 +1,15 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { pruneMemorySaver } from './persistent-memory-saver';
+import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
+
+const originalPath = process.env.PATH;
+
+function restorePath() {
+  if (originalPath === undefined) delete process.env.PATH;
+  else process.env.PATH = originalPath;
+}
 
 type DeepAgentOptions = {
   tools?: Array<{
@@ -26,12 +37,15 @@ type ChatAnthropicOptions = {
 const state = vi.hoisted(() => ({
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
+  prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  prompt: undefined as unknown,
+  streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
-    | { output: unknown; isError?: boolean }
+    | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
   hostToolOutput: undefined as unknown,
   receivedToolCallId: undefined as string | undefined,
@@ -42,7 +56,8 @@ vi.mock('deepagents', () => ({
   createDeepAgent: (options: DeepAgentOptions) => {
     state.createDeepAgentOptions.push(options);
     return {
-      streamEvents: async function* () {
+      streamEvents: async function* (input: unknown) {
+        state.streamInputs.push(input);
         if (state.hostToolResponse !== undefined) {
           const hostTool = options.tools?.find(tool => tool.name === 'weather');
           if (!hostTool)
@@ -68,7 +83,8 @@ vi.mock('deepagents', () => ({
   LocalShellBackend: class {},
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
   }: {
@@ -76,7 +92,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
   }) => {
     await onStart(
       {
-        prompt: 'What is the capital of France?',
+        prompt: state.prompt,
         instructions: 'Answer every question in German.',
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
@@ -110,6 +126,21 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
     );
   },
 }));
+
+vi.mock('./persistent-memory-saver', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown> & {
+    pruneMemorySaver: typeof pruneMemorySaver;
+  };
+  return {
+    ...actual,
+    pruneMemorySaver: (args: Parameters<typeof pruneMemorySaver>[0]) => {
+      state.prunedAfterEventTypes.push(
+        state.emitted.at(-1)?.type as string | undefined,
+      );
+      actual.pruneMemorySaver(args);
+    },
+  };
+});
 
 vi.mock('@langchain/anthropic', () => ({
   ChatAnthropic: class {
@@ -146,7 +177,10 @@ vi.mock('@langchain/core/tools', () => ({
 
 vi.mock('@langchain/langgraph', () => ({
   Command: class {},
-  MemorySaver: class {},
+  MemorySaver: class {
+    storage = Object.create(null);
+    writes = Object.create(null);
+  },
 }));
 
 vi.mock('@langchain/mcp-adapters', () => ({
@@ -166,9 +200,13 @@ vi.mock('langchain', () => ({
 
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
+    restorePath();
     state.createDeepAgentOptions = [];
+    state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.prompt = 'What is the capital of France?';
+    state.streamInputs = [];
     state.hostToolResponse = undefined;
     state.hostToolOutput = undefined;
     state.receivedToolCallId = undefined;
@@ -188,8 +226,37 @@ describe('Deep Agents bridge instructions', () => {
 
   afterEach(() => {
     process.argv.splice(0, process.argv.length, ...state.originalArgv);
+    restorePath();
     vi.unstubAllEnvs();
     vi.resetModules();
+  });
+
+  it('adds packaged ripgrep after the existing PATH for built-in tools', async () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
+    process.env.PATH = existingPath;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [existingPath, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it('keeps a usable fallback PATH when PATH is unavailable', async () => {
+    delete process.env.PATH;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it('prunes checkpoint history after the turn has emitted its finish event', async () => {
+    await import('./index');
+
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+    expect(state.prunedAfterEventTypes).toEqual(['finish']);
   });
 
   it('appends instructions to the native system prompt', async () => {
@@ -339,6 +406,64 @@ describe('Deep Agents bridge instructions', () => {
 
   it('emits one successful host-tool result without duplicating on_tool_end', async () => {
     await expectHostToolResult({ output: { temperature: 18 }, isError: false });
+  });
+
+  it('returns model-facing text and inline images as LangChain content blocks', async () => {
+    state.hostToolResponse = {
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'weather-1',
+        toolName: 'weather',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.hostToolOutput).toEqual([
+      { type: 'text', text: 'marker' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw==' },
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [expect.objectContaining({ result: { status: 'ready' } })],
+    );
+  });
+
+  it('passes user text and inline images as LangChain content blocks', async () => {
+    state.prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    await import('./index');
+
+    expect(state.streamInputs).toEqual([
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              { type: 'image', mimeType: 'image/png', data: 'AQID' },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

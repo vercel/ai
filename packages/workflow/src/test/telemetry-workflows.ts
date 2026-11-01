@@ -10,11 +10,24 @@ async function getGlobalTelemetryIntegrationCount(): Promise<number | null> {
   return globalThis.AI_SDK_TELEMETRY_INTEGRATIONS?.length ?? null;
 }
 
-export async function agentStreamWithGlobalTelemetry(prompt: string) {
+export async function agentStreamWithGlobalTelemetry(
+  prompt: string,
+  includeTraceIdentity?: boolean,
+) {
   'use workflow';
   const agent = new WorkflowAgent({
     model: mockTextModel(`Echo: ${prompt}`),
-    telemetry: { functionId: 'telemetry-test' },
+    telemetry: {
+      functionId: 'telemetry-test',
+      includeRuntimeContext:
+        includeTraceIdentity == null
+          ? undefined
+          : { traceIdentity: includeTraceIdentity },
+    },
+    runtimeContext: {
+      traceIdentity: { sessionId: 'chat_1', userId: 'user_1' },
+      secret: 'must not cross the model-step boundary',
+    },
   });
   const result = await agent.stream({
     messages: [{ role: 'user', content: prompt }],
@@ -29,11 +42,24 @@ export async function agentStreamWithGlobalTelemetry(prompt: string) {
   };
 }
 
-export async function agentGenerateWithGlobalTelemetry(prompt: string) {
+export async function agentGenerateWithGlobalTelemetry(
+  prompt: string,
+  includeTraceIdentity?: boolean,
+) {
   'use workflow';
   const agent = new WorkflowAgent({
     model: mockTextModel(`Echo: ${prompt}`),
-    telemetry: { functionId: 'telemetry-test' },
+    telemetry: {
+      functionId: 'telemetry-test',
+      includeRuntimeContext:
+        includeTraceIdentity == null
+          ? undefined
+          : { traceIdentity: includeTraceIdentity },
+    },
+    runtimeContext: {
+      traceIdentity: { sessionId: 'chat_1', userId: 'user_1' },
+      secret: 'must not cross the model-step boundary',
+    },
   });
   const result = await agent.generate({
     messages: [{ role: 'user', content: prompt }],

@@ -10,6 +10,14 @@ export function convertBase64ToUint8Array(base64String: string) {
 }
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
+  if (typeof globalThis.Buffer?.from === 'function') {
+    return globalThis.Buffer.from(
+      array.buffer,
+      array.byteOffset,
+      array.byteLength,
+    ).toString('base64');
+  }
+
   const chunks: string[] = [];
   const chunkSize = 4096;
 

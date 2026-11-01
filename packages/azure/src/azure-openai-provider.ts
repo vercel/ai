@@ -25,12 +25,14 @@ import {
   loadSetting,
   normalizeHeaders,
   parseProviderOptions,
+  resolveWith,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import {
@@ -53,18 +55,41 @@ import {
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
+export interface AzureOpenAILanguageModelSettings {
+  /**
+   * Underlying model ID used for reported identity and capability detection.
+   * Defaults to the deployment ID. Requests always use the deployment ID.
+   */
+  modelId?: string;
+}
+
 export interface AzureOpenAIProvider extends ProviderV4 {
-  (deploymentId: string): LanguageModelV4;
+  /**
+   * Creates a Responses API model. The optional model ID is used for reported
+   * identity and capability detection; requests always use the deployment ID.
+   */
+  (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  languageModel(deploymentId: string): LanguageModelV4;
+  languageModel(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  chat(deploymentId: string): LanguageModelV4;
+  chat(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure-hosted DeepSeek chat model for text generation.
@@ -73,13 +98,21 @@ export interface AzureOpenAIProvider extends ProviderV4 {
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
+   * The optional model ID is used for reported identity and capability detection.
    */
-  responses(deploymentId: string): LanguageModelV4;
+  responses(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
+   * The optional model ID is used for reported identity.
    */
-  completion(deploymentId: string): LanguageModelV4;
+  completion(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
@@ -161,9 +194,9 @@ export interface AzureOpenAIProviderSettings {
   baseURL?: string;
 
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. A callback is resolved before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * A function that returns an access token for Microsoft Entra
@@ -262,31 +295,32 @@ export function createAzure(
     });
   }
 
-  const getHeaders = (api: 'openai' | 'speech' | 'mai' = 'openai') => {
-    const authHeaders = tokenProvider
-      ? {}
-      : {
-          [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
-            loadApiKey({
-              apiKey: options.apiKey,
-              environmentVariableName: 'AZURE_API_KEY',
-              description:
-                api === 'speech'
-                  ? 'Azure Speech'
-                  : api === 'mai'
-                    ? 'Azure MAI'
-                    : 'Azure OpenAI',
-            }),
-        };
+  const getHeaders = (api: 'openai' | 'speech' | 'mai' = 'openai') =>
+    resolveWith(tokenProvider ? undefined : options.apiKey, apiKey => {
+      const authHeaders = tokenProvider
+        ? {}
+        : {
+            [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
+              loadApiKey({
+                apiKey,
+                environmentVariableName: 'AZURE_API_KEY',
+                description:
+                  api === 'speech'
+                    ? 'Azure Speech'
+                    : api === 'mai'
+                      ? 'Azure MAI'
+                      : 'Azure OpenAI',
+              }),
+          };
 
-    return withUserAgentSuffix(
-      {
-        ...authHeaders,
-        ...options.headers,
-      },
-      `ai-sdk-azure/${VERSION}`,
-    );
-  };
+      return withUserAgentSuffix(
+        {
+          ...authHeaders,
+          ...options.headers,
+        },
+        `ai-sdk-azure/${VERSION}`,
+      );
+    });
 
   const fetch: FetchFunction | undefined = tokenProvider
     ? async (input, init) => {
@@ -359,9 +393,13 @@ export function createAzure(
     return fullUrl.toString();
   };
 
-  const createChatModel = (deploymentName: string) =>
-    new OpenAIChatLanguageModel(deploymentName, {
+  const createChatModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIChatLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.chat',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -379,9 +417,13 @@ export function createAzure(
       supportsStructuredOutputs: true,
     });
 
-  const createCompletionModel = (modelId: string) =>
-    new OpenAICompletionLanguageModel(modelId, {
+  const createCompletionModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAICompletionLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.completion',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -395,9 +437,13 @@ export function createAzure(
       fetch,
     });
 
-  const createResponsesModel = (modelId: string) =>
-    new OpenAIResponsesLanguageModel(modelId, {
+  const createResponsesModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIResponsesLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.responses',
+      requestModelId: deploymentId,
       url,
       headers: getHeaders,
       fetch,
@@ -459,7 +505,7 @@ export function createAzure(
           tokenProvider
             ? {
                 authorization: `Bearer ${await tokenProvider()}`,
-                ...getHeaders('mai'),
+                ...(await getHeaders('mai')),
               }
             : getHeaders('mai'),
         webSocket: options.webSocket,
@@ -483,14 +529,17 @@ export function createAzure(
       }),
     );
 
-  const provider = function (deploymentId: string) {
+  const provider = function (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createResponsesModel(deploymentId);
+    return createResponsesModel(deploymentId, settings);
   };
 
   provider.specificationVersion = 'v4' as const;

@@ -23,6 +23,11 @@ export type DecisionModelV4Answer =
       probabilities?: Record<string, number>;
     }
   | {
+      type: 'box';
+      /** Edges in [0, 1], measured from the image's top-left corner. */
+      box: { top: number; bottom: number; left: number; right: number };
+    }
+  | {
       type: 'boolean';
       /** Model-estimated P(true), in [0, 1]. Not confidence in either outcome. */
       probability: number;

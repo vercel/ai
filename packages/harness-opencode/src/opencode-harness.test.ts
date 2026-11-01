@@ -1,6 +1,7 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PromptControl,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
@@ -84,7 +85,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+    connect: (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -114,7 +118,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -128,11 +135,15 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     readonly connect: (options: {
       abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
 
     async open() {
       if (harnessUtilsMocks.connectOnOpen) {
-        await this.connect({ abortSignal: new AbortController().signal });
+        await this.connect({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
 
@@ -203,7 +214,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
+      if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
     }),
@@ -215,6 +226,52 @@ function getBuiltinToolMetadata(tool: unknown): {
   commonName?: string;
 } {
   return tool as { nativeName?: string; commonName?: string };
+}
+
+async function startOpenCodeSession({ resumed = false } = {}) {
+  harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+  const sandbox = {
+    async run({ command }: { command: string }) {
+      return command === 'printf "%s" "$HOME"'
+        ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+        : { exitCode: 0, stdout: '', stderr: '' };
+    },
+    async readTextFile() {
+      return null;
+    },
+    async writeTextFile() {},
+    async spawn() {
+      return { async wait() {}, async kill() {} } as never;
+    },
+  };
+  const session = await createOpenCode().doStart({
+    sessionId: 's1',
+    sandboxSession: {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession,
+    sessionWorkDir: '/workspace/project',
+    ...(resumed
+      ? {
+          resumeFrom: {
+            type: 'resume-session' as const,
+            harnessId: 'opencode',
+            specificationVersion: 'harness-v1' as const,
+            data: { openCodeSessionId: 'oc-1' },
+          },
+        }
+      : {}),
+  });
+  return { session, channel: harnessUtilsMocks.channels.at(-1)! };
 }
 
 describe('createOpenCode adapter', () => {
@@ -230,7 +287,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'askUserQuestions',
       'read',
@@ -286,8 +343,32 @@ describe('createOpenCode adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/opencode-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
+
+  it.each([
+    { mode: 'allow' as const, toolNames: ['write'] },
+    { mode: 'deny' as const, toolNames: ['write'] },
+  ])(
+    'throws HarnessCapabilityUnsupportedError when write and edit have different filtering states',
+    async builtinToolFiltering => {
+      const harness = createOpenCode();
+      const start = harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/tmp/opencode-s1',
+        builtinToolFiltering,
+      });
+
+      await expect(start).rejects.toBeInstanceOf(
+        HarnessCapabilityUnsupportedError,
+      );
+      await expect(start).rejects.toMatchObject({
+        message:
+          "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+      });
+    },
+  );
 
   it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;
@@ -898,6 +979,39 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('forwards inline image prompt content to the bridge', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const turn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([0, 1, 2]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+
+    expect(channel.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'AAEC' },
+      ],
+    });
+
+    channel.emit('finish', { type: 'finish' });
+    await turn.done;
+    await session.doDestroy();
+  });
+
   it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
@@ -954,6 +1068,10 @@ describe('createOpenCode adapter', () => {
     const openCodeConfig = {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['read'],
+    };
     const harness = createOpenCode({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
@@ -965,6 +1083,7 @@ describe('createOpenCode adapter', () => {
       headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
+      builtinToolFiltering,
     });
     const channel = harnessUtilsMocks.channels.at(-1)!;
     channel.emit('bridge-thread', {
@@ -977,10 +1096,12 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'compact',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await compaction;
 
@@ -1001,10 +1122,12 @@ describe('createOpenCode adapter', () => {
       model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
@@ -1015,6 +1138,7 @@ describe('createOpenCode adapter', () => {
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
+      builtinToolFiltering,
     });
     const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
@@ -1032,10 +1156,14 @@ describe('createOpenCode adapter', () => {
       instructions: 'be concise',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(resumedChannel.sent.at(-1)).not.toHaveProperty(
+      'builtinToolFiltering',
+    );
     resumedChannel.emit('finish', { type: 'finish' });
     await resumedTurn.done;
 
@@ -1237,6 +1365,137 @@ describe('createOpenCode adapter', () => {
     ]);
   });
 
+  it.each([
+    { pause: 'approval', resumed: false, firstTurn: 'prompt' },
+    { pause: 'tool-result', resumed: false, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'continue' },
+  ] as const)(
+    'continues a turn paused for host input without waiting for it to drain (pause: $pause, resumed: $resumed, first turn: $firstTurn)',
+    async ({ pause, resumed, firstTurn }) => {
+      const { session, channel } = await startOpenCodeSession({ resumed });
+      if (firstTurn === 'prompt') {
+        await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Write the working directory to marker.txt.',
+          emit: () => {},
+        });
+      } else {
+        await session.doContinueTurn({ skills: [], tools: [], emit: () => {} });
+      }
+      if (pause === 'approval') {
+        channel.emit('tool-approval-request', {
+          type: 'tool-approval-request',
+          approvalId: 'per-1',
+          toolCallId: 'call-1',
+        });
+      } else {
+        channel.emit('tool-call', {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: '{}',
+          providerExecuted: false,
+        });
+      }
+
+      const continuedEvents: unknown[] = [];
+      let control: HarnessV1PromptControl | undefined;
+      void session
+        .doContinueTurn({
+          skills: [],
+          tools: [],
+          emit: event => continuedEvents.push(event),
+        })
+        .then(continued => {
+          control = continued;
+        });
+      await vi.waitFor(() => expect(control).toBeDefined());
+      if (pause === 'approval') {
+        await control!.submitToolApproval!({
+          approvalId: 'per-1',
+          approved: true,
+        });
+      } else {
+        await control!.submitToolResult({
+          toolCallId: 'call-1',
+          output: { found: true },
+        });
+      }
+      channel.emit('finish', { type: 'finish' });
+      await control!.done;
+
+      expect(channel.sent.at(-1)).toEqual(
+        pause === 'approval'
+          ? {
+              type: 'tool-approval-response',
+              approvalId: 'per-1',
+              approved: true,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              output: { found: true },
+            },
+      );
+      expect(
+        channel.sent.filter(
+          message => (message as { type: string }).type === 'start',
+        ),
+      ).toHaveLength(1);
+      expect(continuedEvents).toEqual([{ type: 'finish' }]);
+      await session.doDestroy();
+    },
+  );
+
+  it('continues a turn aborted during an approval pause only after it drains', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const abort = new AbortController();
+    const pausedTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write the working directory to marker.txt.',
+      abortSignal: abort.signal,
+      emit: () => {},
+    });
+    channel.emit('tool-approval-request', {
+      type: 'tool-approval-request',
+      approvalId: 'per-1',
+      toolCallId: 'call-1',
+    });
+    abort.abort();
+    await expect(pausedTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    const continuedEvents: unknown[] = [];
+    let continued = false;
+    const continuation = session
+      .doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: event => continuedEvents.push(event),
+      })
+      .then(control => {
+        continued = true;
+        return control;
+      });
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(continued).toBe(false);
+
+    channel.emit('finish', { type: 'finish' });
+    await continuation;
+
+    expect(continuedEvents).toEqual([]);
+    await session.doDestroy();
+  });
+
   describe('getBootstrap', () => {
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createOpenCode();
@@ -1269,6 +1528,10 @@ describe('createOpenCode adapter', () => {
       const workspace = recipe.files.find(file =>
         file.path.endsWith('/pnpm-workspace.yaml'),
       );
+      const packageManifest = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
+      );
+      expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
       expect(commands).toHaveLength(2);
       expect(commands[0]).toBe(
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',

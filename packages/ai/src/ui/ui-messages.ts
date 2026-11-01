@@ -308,6 +308,8 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
        * and later resumed.
        */
       rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -460,6 +462,8 @@ export type DynamicToolUIPart = {
        * and later resumed.
        */
       rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;

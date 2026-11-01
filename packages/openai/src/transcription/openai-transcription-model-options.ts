@@ -12,7 +12,9 @@ export type OpenAITranscriptionModelId =
   | 'gpt-4o-mini-transcribe-2025-12-15'
   | 'gpt-4o-transcribe'
   | 'gpt-4o-transcribe-diarize'
+  | 'gpt-live-transcribe'
   | 'gpt-realtime-whisper'
+  | 'gpt-transcribe'
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
@@ -43,12 +45,9 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
 
       /**
        * The timestamp granularities to populate for this transcription.
-       * @default ['segment']
+       * Defaults to ['segment'] when the response format is verbose_json.
        */
-      timestampGranularities: z
-        .array(z.enum(['word', 'segment']))
-        .default(['segment'])
-        .optional(),
+      timestampGranularities: z.array(z.enum(['word', 'segment'])).optional(),
 
       /**
        * The format of the transcription response.
@@ -73,7 +72,7 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
         .optional(),
 
       /**
-       * Options for streaming transcription models such as `gpt-realtime-whisper`.
+       * Options for streaming transcription models such as `gpt-live-transcribe`.
        */
       streaming: z
         .object({

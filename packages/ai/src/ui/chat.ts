@@ -196,7 +196,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
-   * generated.
+   * generated when first accessed.
    */
   id?: string;
 
@@ -249,7 +249,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
-  readonly id: string;
+  private _id: string | undefined;
+
+  get id(): string {
+    return (this._id ??= this.generateId());
+  }
+
   readonly generateId: IdGenerator;
 
   protected state: ChatState<UI_MESSAGE>;
@@ -269,6 +274,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
+  // Keep interruption state after activeResponse is cleared so late tool updates
+  // cannot automatically continue an interrupted message.
+  private interruptedMessageIds = new Set<string>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private resumableStreamState:
@@ -280,7 +288,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   constructor({
     generateId = generateIdFunc,
-    id = generateId(),
+    id,
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
     dataPartSchemas,
@@ -293,7 +301,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
-    this.id = id;
+    this._id = id;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -542,6 +550,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
+   * Resume the stream if the latest response ended with a resumable network
+   * disconnect. If a response is still active, wait for it to settle first so
+   * disconnects reported shortly after the caller's trigger are handled.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    shouldResume = () => true,
+  }: {
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    const activeResponse = this.activeResponse;
+
+    if (this.resumableStreamState == null && activeResponse != null) {
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+    }
+
+    if (this.resumableStreamState != null && shouldResume()) {
+      await this.resumeStream();
+    }
+  };
+
+  /**
    * Clear the error state and set the status to ready if the chat is in an error state.
    */
   clearError = () => {
@@ -606,7 +641,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        const shouldSend = await this.shouldSendAutomatically();
+        const shouldSend = await this.shouldSendAutomatically(
+          messages[messageIndex].id,
+        );
 
         if (shouldSend) {
           // no await to avoid deadlocking
@@ -703,7 +740,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        const shouldSend = await this.shouldSendAutomatically();
+        const shouldSend = await this.shouldSendAutomatically(
+          messages[messageIndex].id,
+        );
 
         if (shouldSend) {
           // no await to avoid deadlocking
@@ -762,19 +801,29 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.transport.close?.();
   };
 
-  private async shouldSendAutomatically(): Promise<boolean> {
-    if (!this.sendAutomaticallyWhen) return false;
+  private async shouldSendAutomatically(
+    messageId = this.lastMessage?.id,
+  ): Promise<boolean> {
+    const isInterrupted = (id: string | undefined) =>
+      id != null && this.interruptedMessageIds.has(id);
 
-    const result = this.sendAutomaticallyWhen({
+    if (
+      !this.sendAutomaticallyWhen ||
+      isInterrupted(messageId) ||
+      isInterrupted(this.lastMessage?.id)
+    ) {
+      return false;
+    }
+
+    const result = await this.sendAutomaticallyWhen({
       messages: this.state.messages,
     });
 
-    // Check if result is a promise
-    if (result && typeof result === 'object' && 'then' in result) {
-      return await result;
-    }
-
-    return result as boolean;
+    return (
+      result &&
+      !isInterrupted(messageId) &&
+      !isInterrupted(this.lastMessage?.id)
+    );
   }
 
   private async runAutomaticRequest(
@@ -1150,6 +1199,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       try {
         if (activeResponse) {
+          const { message, finishReason } = activeResponse.state;
+          if (finishReason === 'interrupted') {
+            this.interruptedMessageIds.add(message.id);
+          } else if (!isAbort && !isError) {
+            this.interruptedMessageIds.delete(message.id);
+          }
+
           this.onFinish?.({
             message: activeResponse.state.message,
             messages: this.state.messages,
@@ -1169,7 +1225,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (!isAbort && !isError) {
+    if (
+      !isAbort &&
+      !isError &&
+      activeResponse?.state.finishReason !== 'interrupted'
+    ) {
       await this.runAutomaticRequest(() =>
         this.makeRequest({
           trigger: 'submit-message',

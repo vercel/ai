@@ -17,6 +17,8 @@ export type CodexStepTracker = {
     itemId: string | undefined;
   }): void;
   finishTurn(): void;
+  awaitHostInput(input: { itemId: string }): void;
+  resolveHostInput(input: { itemId: string }): void;
 };
 
 export function createCodexStepTracker(input: {
@@ -24,6 +26,14 @@ export function createCodexStepTracker(input: {
 }): CodexStepTracker {
   let stepOpen = false;
   const pendingToolItemIds = new Set<string>();
+  /*
+   * Dynamic tool calls waiting for the host to return their result. When
+   * every pending tool item waits on the host, Codex cannot make progress, so
+   * the tracker emits an early `finish-step` that lets the host pause the
+   * turn. The step stays open until the regular `finish-step`.
+   */
+  const hostInputWaitingItemIds = new Set<string>();
+  const earlyFinishStepItemIds = new Set<string>();
 
   const finishStep = (): void => {
     if (!stepOpen || pendingToolItemIds.size > 0) return;
@@ -34,6 +44,25 @@ export function createCodexStepTracker(input: {
       harnessMetadata: { codex: { inferredStep: true } },
     });
     stepOpen = false;
+    earlyFinishStepItemIds.clear();
+  };
+
+  const emitEarlyFinishStepIfReady = (): void => {
+    if (!stepOpen || pendingToolItemIds.size === 0) return;
+    for (const itemId of pendingToolItemIds) {
+      if (!hostInputWaitingItemIds.has(itemId)) return;
+    }
+    const uncovered = [...pendingToolItemIds].filter(
+      itemId => !earlyFinishStepItemIds.has(itemId),
+    );
+    if (uncovered.length === 0) return;
+    for (const itemId of uncovered) earlyFinishStepItemIds.add(itemId);
+    input.send({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: defaultUsage(),
+      harnessMetadata: { codex: { inferredStep: true } },
+    });
   };
 
   return {
@@ -46,6 +75,7 @@ export function createCodexStepTracker(input: {
       if (isToolStepItem(item)) {
         if (event.type === 'item.started' && itemId) {
           pendingToolItemIds.add(itemId);
+          emitEarlyFinishStepIfReady();
         } else if (event.type === 'item.completed') {
           if (itemId) pendingToolItemIds.delete(itemId);
           finishStep();
@@ -54,7 +84,17 @@ export function createCodexStepTracker(input: {
     },
     finishTurn() {
       pendingToolItemIds.clear();
+      hostInputWaitingItemIds.clear();
       finishStep();
+    },
+    awaitHostInput({ itemId }) {
+      stepOpen = true;
+      pendingToolItemIds.add(itemId);
+      hostInputWaitingItemIds.add(itemId);
+      emitEarlyFinishStepIfReady();
+    },
+    resolveHostInput({ itemId }) {
+      hostInputWaitingItemIds.delete(itemId);
     },
   };
 }

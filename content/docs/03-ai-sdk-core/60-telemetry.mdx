@@ -214,6 +214,29 @@ Properties set to `false` or omitted are excluded. If `telemetry.includeToolsCon
   between tool execution context and telemetry event context.
 </Note>
 
+## Agent span names
+
+`agentSpanName` controls root text/object generation span names. The strings
+`'modelId'` (default) and `'functionId'` select a naming strategy, producing
+`invoke_agent {modelId}` or `invoke_agent {telemetry.functionId}`:
+
+```ts
+registerTelemetry(new OpenTelemetry({ agentSpanName: 'functionId' }));
+// With telemetry: { functionId: 'travel-planner' }, the span is:
+// invoke_agent travel-planner
+```
+
+For a literal custom name, use a callback returning the complete span name:
+
+```ts
+registerTelemetry(new OpenTelemetry({ agentSpanName: () => 'my-custom-span' }));
+```
+
+The callback receives `{ modelId, functionId }` for dynamic names. If it returns
+`undefined` or throws, the default name is used. The `'functionId'` strategy also
+falls back to `modelId` when `functionId` is absent. Child span names and
+attributes are unchanged.
+
 ## Custom Tracer
 
 If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
@@ -296,14 +319,21 @@ context across provider calls and tool executions.
 import { tracingChannel } from 'node:diagnostics_channel';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  type InferTelemetryEvent,
   type TelemetryTracingChannelMessage,
 } from 'ai';
 
 tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
   start(message) {
-    const telemetryMessage = message as TelemetryTracingChannelMessage;
+    const telemetryMessage = message as TelemetryTracingChannelMessage<
+      InferTelemetryEvent<unknown>
+    >;
 
-    if (telemetryMessage.type === 'onStart') {
+    if (
+      telemetryMessage.type === 'generateText' ||
+      telemetryMessage.type === 'streamText'
+    ) {
+      console.log('AI SDK version:', telemetryMessage.event.aiVersion);
       // Inspect telemetryMessage.event and forward it to your provider.
     }
   },
@@ -409,6 +439,12 @@ export function myIntegration(): Telemetry {
       description: 'Called when a step (LLM call) completes.',
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a step that started fails before it produces a step result. Use it to close step-level spans. The call then ends with `onError`.',
+    },
+    {
       name: 'onEmbedEnd',
       type: '(event: EmbeddingModelCallEndEvent) => void | PromiseLike<void>',
       description: 'Called when an individual embedding model call completes.',
@@ -481,7 +517,7 @@ By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to w
 
 For `generateText` and `streamText`, the integration records 3 types of spans:
 
-- **`invoke_agent {modelId}`** (root span, `INTERNAL`): covers the full operation including all steps and tool calls.
+- **`invoke_agent {modelId}`** (default root span name, `INTERNAL`): covers the full operation including all steps and tool calls. Use [`agentSpanName`](#agent-span-names) to customize the name.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"invoke_agent"`
@@ -739,7 +775,7 @@ registerTelemetry(
 );
 ```
 
-This does not create additional AI SDK-specific spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds only the selected supplemental attributes to the spans emitted by `OpenTelemetry`, such as `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
+This does not create additional AI SDK-specific spans such as `ai.generateText`, `ai.generateText.doGenerate`, or `ai.toolCall`. Instead, it adds only the selected supplemental attributes to the spans emitted by `OpenTelemetry`, such as the default root span `invoke_agent {modelId}`, `step {n}`, `chat {modelId}`, and `execute_tool {toolName}`.
 
 All supplemental attributes are disabled by default. Enable only the data you want to collect:
 
