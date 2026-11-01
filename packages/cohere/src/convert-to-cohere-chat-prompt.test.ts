@@ -41,6 +41,54 @@ describe('convert to cohere chat prompt', () => {
       });
     });
 
+    it.each(['This is file content', 'Résumé: café, 日本語'])(
+      'should decode base64 document content: %s',
+      async text => {
+        for (const data of [
+          Buffer.from(text),
+          Buffer.from(text).toString('base64'),
+        ]) {
+          const result = await convertToCohereChatPrompt([
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data },
+                  mediaType: 'text/plain',
+                  filename: 'test.txt',
+                },
+              ],
+            },
+          ]);
+
+          expect(result.documents).toEqual([
+            { data: { text, title: 'test.txt' } },
+          ]);
+        }
+      },
+    );
+
+    it('should preserve text document content that looks like base64', async () => {
+      const result = await convertToCohereChatPrompt([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'text', text: 'SGVsbG8=' },
+              mediaType: 'text/plain',
+              filename: 'test.txt',
+            },
+          ],
+        },
+      ]);
+
+      expect(result.documents).toEqual([
+        { data: { text: 'SGVsbG8=', title: 'test.txt' } },
+      ]);
+    });
+
     it('should accept top-level-only mediaType without error (category D: mediaType not consumed)', async () => {
       const result = await convertToCohereChatPrompt([
         {

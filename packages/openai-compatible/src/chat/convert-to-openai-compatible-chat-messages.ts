@@ -15,6 +15,7 @@ import {
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -37,6 +38,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 function convertToOpenAICompatibleContentPart(
   part: LanguageModelV4TextPart | LanguageModelV4FilePart,
+  provider: string,
 ): OpenAICompatibleContentPart {
   const partMetadata = getOpenAIMetadata(part);
 
@@ -47,9 +49,16 @@ function convertToOpenAICompatibleContentPart(
     case 'file': {
       switch (part.data.type) {
         case 'reference': {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'file parts with provider references',
-          });
+          return {
+            type: 'file',
+            file: {
+              file_id: resolveProviderReference({
+                reference: part.data.reference,
+                provider,
+              }),
+            },
+            ...partMetadata,
+          };
         }
         case 'text': {
           throw new UnsupportedFunctionalityError({
@@ -166,6 +175,7 @@ function convertToolContentPart(
     LanguageModelV4ToolResultOutput,
     { type: 'content' }
   >['value'][number],
+  provider: string,
 ): OpenAICompatibleContentPart {
   if (part.type === 'custom') {
     throw new UnsupportedFunctionalityError({
@@ -173,15 +183,17 @@ function convertToolContentPart(
     });
   }
 
-  return convertToOpenAICompatibleContentPart(part);
+  return convertToOpenAICompatibleContentPart(part, provider);
 }
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
   {
+    provider = 'openaiCompatible',
     providerOptionsKey = 'google',
     supportsMultiPartToolContent = false,
   }: {
+    provider?: string;
     providerOptionsKey?: string;
     supportsMultiPartToolContent?: boolean;
   } = {},
@@ -207,7 +219,9 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'user',
-          content: content.map(convertToOpenAICompatibleContentPart),
+          content: content.map(part =>
+            convertToOpenAICompatibleContentPart(part, provider),
+          ),
           ...metadata,
         });
 
@@ -302,7 +316,9 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             case 'content':
               contentValue = supportsMultiPartToolContent
-                ? output.value.map(convertToolContentPart)
+                ? output.value.map(part =>
+                    convertToolContentPart(part, provider),
+                  )
                 : JSON.stringify(output.value);
               break;
           }

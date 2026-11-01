@@ -1,4 +1,5 @@
 import {
+  DelayedPromise,
   delay,
   tool,
   type Experimental_SandboxSession as SandboxSession,
@@ -155,6 +156,76 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
+  it('should execute tool calls sequentially in stream order with concurrency 1', async () => {
+    const firstStarted = new DelayedPromise<void>();
+    const secondStarted = new DelayedPromise<void>();
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+    const tools = {
+      first: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('first:start');
+          firstStarted.resolve();
+          await releaseFirst.promise;
+          events.push('first:end');
+        },
+      }),
+      second: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('second:start');
+          secondStarted.resolve();
+          events.push('second:end');
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: {},
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: {},
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      timeout: undefined,
+      abortSignal: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolCallConcurrency: 1,
+    });
+
+    const chunksPromise = convertReadableStreamToArray(transformedStream);
+
+    await firstStarted.promise;
+    expect(events).toEqual(['first:start']);
+    releaseFirst.resolve();
+    await secondStarted.promise;
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+    await chunksPromise;
+  });
+
   it('should handle sync tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -244,7 +315,13 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
-  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+  it.each([
+    'length',
+    'error',
+    'content-filter',
+    'interrupted',
+    'other',
+  ] as const)(
     'should not execute tools when the finish reason is %s',
     async finishReason => {
       const execute = vi.fn(async () => 'tool-result');

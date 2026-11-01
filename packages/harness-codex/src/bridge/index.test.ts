@@ -276,11 +276,47 @@ describe('Codex bridge config', () => {
         agent_bridge_openai: {
           base_url: 'https://api.openai.com/v1',
           env_key: 'CODEX_API_KEY',
+          supports_standalone_web_search: true,
           supports_websockets: false,
         },
       },
       preferred_auth_method: 'apikey',
     });
+  });
+
+  test('enables standalone web search for the ChatGPT Codex backend', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://chatgpt.com/backend-api/codex/';
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.codexConfig).toMatchObject({
+      model_providers: {
+        agent_bridge_openai: { supports_standalone_web_search: true },
+      },
+    });
+  });
+
+  test('does not enable standalone web search for a custom base URL', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+    process.env.OPENAI_BASE_URL = 'https://proxy.example.com/v1';
+
+    await import('./index');
+
+    expect(
+      state.appServerOptions[0]?.codexConfig.model_providers,
+    ).not.toHaveProperty('agent_bridge_openai.supports_standalone_web_search');
+  });
+
+  test('does not enable standalone web search for AI Gateway', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gateway-key';
+    process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+
+    await import('./index');
+
+    expect(
+      state.appServerOptions[0]?.codexConfig.model_providers,
+    ).not.toHaveProperty('agent_bridge_openai.supports_standalone_web_search');
   });
 
   test('configures direct API key auth without an explicit base URL', async () => {
@@ -295,6 +331,7 @@ describe('Codex bridge config', () => {
           "base_url": "https://api.openai.com/v1",
           "env_key": "CODEX_API_KEY",
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },
@@ -368,6 +405,7 @@ describe('Codex bridge config', () => {
             "x-tenant": "acme",
           },
           "name": "Agent Bridge OpenAI",
+          "supports_standalone_web_search": true,
           "supports_websockets": false,
           "wire_api": "responses",
         },

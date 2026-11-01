@@ -199,7 +199,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
           })
           .nullish(),
       }),
-      openaiErrorDataSchema,
+      openaiErrorDataSchema(),
     ]),
   ),
 );

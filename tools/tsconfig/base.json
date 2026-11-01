@@ -5,6 +5,7 @@
     "composite": false,
     "declaration": true,
     "declarationMap": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,

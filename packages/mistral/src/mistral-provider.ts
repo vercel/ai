@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -97,7 +99,7 @@ export interface MistralProviderSettings {
    * API key that is being send using the `Authorization` header.
    * It defaults to the `MISTRAL_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -123,16 +125,18 @@ export function createMistral(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.mistral.ai/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MISTRAL_API_KEY',
-          description: 'Mistral',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-mistral/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MISTRAL_API_KEY',
+            description: 'Mistral',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-mistral/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MistralChatModelId) =>

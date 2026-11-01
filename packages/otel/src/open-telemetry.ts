@@ -23,6 +23,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
@@ -125,11 +126,13 @@ export class OpenTelemetry implements Telemetry {
   private readonly callStates = new Map<string, CallState>();
 
   private readonly tracer: Tracer;
+  private readonly agentSpanName: OpenTelemetryOptions['agentSpanName'];
   private readonly supplementalAttributes: SupplementalAttributeOptions;
   private readonly enrichSpan: EnrichSpan | undefined;
 
   constructor(options: OpenTelemetryOptions = {}) {
     this.tracer = options.tracer ?? trace.getTracer('gen_ai');
+    this.agentSpanName = options.agentSpanName;
     this.supplementalAttributes = normalizeSupplementalAttributes(options);
     this.enrichSpan = options.enrichSpan;
   }
@@ -140,6 +143,37 @@ export class OpenTelemetry implements Telemetry {
 
   private cleanupCallState(callId: string): void {
     this.callStates.delete(callId);
+  }
+
+  private getAgentSpanName({
+    operationName,
+    modelId,
+    functionId,
+  }: {
+    operationName: string;
+    modelId: string;
+    functionId: string | undefined;
+  }): string {
+    const defaultName = `${operationName} ${modelId}`;
+
+    // Other operations, such as harness turns, share the generation handler.
+    if (operationName !== 'invoke_agent') {
+      return defaultName;
+    }
+
+    if (this.agentSpanName === 'functionId') {
+      return `invoke_agent ${functionId ?? modelId}`;
+    }
+
+    if (typeof this.agentSpanName === 'function') {
+      try {
+        return this.agentSpanName({ modelId, functionId }) ?? defaultName;
+      } catch {
+        return defaultName;
+      }
+    }
+
+    return defaultName;
   }
 
   private getSpanAttributes({
@@ -429,7 +463,11 @@ export class OpenTelemetry implements Telemetry {
       ...baseSupplementalAttributes,
     });
 
-    const spanName = `${operationName} ${event.modelId}`;
+    const spanName = this.getAgentSpanName({
+      operationName,
+      modelId: event.modelId,
+      functionId: telemetry.functionId,
+    });
     const rootSpan = this.tracer.startSpan(spanName, {
       attributes: this.getSpanAttributes({
         attributes,
@@ -536,7 +574,11 @@ export class OpenTelemetry implements Telemetry {
       }),
     });
 
-    const spanName = `${operationName} ${event.modelId}`;
+    const spanName = this.getAgentSpanName({
+      operationName,
+      modelId: event.modelId,
+      functionId: telemetry.functionId,
+    });
     const rootSpan = this.tracer.startSpan(spanName, {
       attributes: this.getSpanAttributes({
         attributes,
@@ -1158,6 +1200,23 @@ export class OpenTelemetry implements Telemetry {
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     this.onStepEnd(event);
+  }
+
+  onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    if (state.inferenceSpan) {
+      recordErrorOnSpan(state.inferenceSpan, event.error);
+      state.inferenceSpan.end();
+      state.inferenceSpan = undefined;
+      state.inferenceContext = undefined;
+    }
+
+    recordErrorOnSpan(state.stepSpan, event.error);
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
   }
 
   onEnd(
@@ -1818,6 +1877,8 @@ export class OpenTelemetry implements Telemetry {
 
     state.decisionSpan.span.setAttributes(
       selectAttributes(state.telemetry, {
+        'gen_ai.response.id': event.response?.id,
+        'gen_ai.response.model': event.response?.modelId,
         'gen_ai.usage.input_tokens': event.usage?.inputTokens,
         'gen_ai.usage.output_tokens': event.usage?.outputTokens,
         ...selectSupplementalAttributes(

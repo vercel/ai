@@ -1130,9 +1130,13 @@ describe('createACPStreamTranslator', () => {
       output: { value: 'a' },
     });
 
-    expect(events.filter(event => event.type === 'finish-step')).toHaveLength(
-      0,
-    );
+    expect(
+      events.filter(
+        event =>
+          event.type === 'finish-step' &&
+          event.finishReason.raw !== 'host-input',
+      ),
+    ).toHaveLength(0);
 
     translator.hostToolResult({
       toolCallId: 'host-b',
@@ -1154,7 +1158,21 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-call",
         },
         {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "type": "finish-step",
+        },
+        {
           "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "type": "finish-step",
         },
         {
           "type": "tool-result",

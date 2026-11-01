@@ -31,6 +31,13 @@ with `server/discover` and automatically falls back to the legacy
 `initialize` handshake for older servers. Custom transports can opt into this
 negotiation with `supportsProtocolVersionDiscovery: true`.
 
+Recognized modern protocol errors, including `-32022` (unsupported protocol
+version), do not trigger automatic fallback to `initialize`. If you know an
+endpoint requires legacy initialization, set `protocolVersionDiscovery: false`
+on `createMCPClient` to skip discovery and start with the legacy handshake.
+The server can then negotiate an older supported version in its `initialize`
+response.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -153,7 +160,7 @@ The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 import { createMCPClient } from '@ai-sdk/mcp';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 // Or use the AI SDK's stdio transport:
-// import { Experimental_StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
+// import { StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 const mcpClient = await createMCPClient({
   transport: new StdioClientTransport({
@@ -210,6 +217,33 @@ tokens are invalid.
 
 ### OAuth Authorization Server Validation
 
+Pre-registered confidential clients must be bound to their authorization server
+before starting OAuth. Set `issuer` on the credentials returned by
+`clientInformation()` to the issuer of the server that registered the client:
+
+```typescript
+clientInformation() {
+  return {
+    client_id: process.env.OAUTH_CLIENT_ID!,
+    client_secret: process.env.OAUTH_CLIENT_SECRET!,
+    issuer: 'https://accounts.example.com',
+  };
+}
+```
+
+The issuer must exactly match the discovered issuer. The SDK rejects a mismatch
+before redirecting or sending credentials, even if a stored authorization flow
+pin names the discovered server. Dynamic client registration attaches this
+binding automatically.
+
+Existing complete authorization server bindings on credentials, stored tokens,
+or `authorizationServerInformation()` are also supported. Without a binding,
+a pre-registered client secret or custom `addClientAuthentication` handler is
+rejected, even when `validateAuthorizationServerURL` accepts the selected server.
+Approving a server does not establish that the credentials belong to it.
+Do not derive the credential issuer from the MCP server's metadata; configure it
+from the client's registration.
+
 When using MCP OAuth in server-side applications, the MCP server can advertise
 the OAuth authorization server to use. If you connect to MCP servers outside
 your control, implement `validateAuthorizationServerURL` on your
@@ -237,8 +271,8 @@ const myOAuthClientProvider = {
 ```
 
 This hook is called before the SDK fetches authorization server metadata, so a
-rejected URL is not requested. It is optional and does not change existing OAuth
-flows unless you implement it.
+rejected URL is not requested. The hook is an optional additional restriction;
+it does not replace the credential binding required for confidential clients.
 
 ### OAuth Callback Issuer Validation
 
@@ -632,16 +666,12 @@ client throws an `MCPClientError`.
 
 ## Using MCP Prompts
 
-<Note type="warning">
-  MCP Prompts is an experimental feature and may change in the future.
-</Note>
-
 According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
 
 ### Listing Prompts
 
 ```typescript
-const prompts = await mcpClient.experimental_listPrompts();
+const prompts = await mcpClient.listPrompts();
 ```
 
 ### Getting a Prompt
@@ -649,7 +679,7 @@ const prompts = await mcpClient.experimental_listPrompts();
 Retrieve prompt messages, optionally passing arguments defined by the server:
 
 ```typescript
-const prompt = await mcpClient.experimental_getPrompt({
+const prompt = await mcpClient.getPrompt({
   name: 'code_review',
   arguments: { code: 'function add(a, b) { return a + b; }' },
 });
@@ -707,6 +737,16 @@ mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
 ```
 
 ### Elicitation Response Actions
+
+On MCP `2026-07-28` connections, the same handler processes form elicitation
+requests embedded in `input_required` results from tools, prompts, and resource
+reads. The client retries the original request with the handler's answers and
+the server's unchanged `requestState` until it receives a final result, with a
+limit of 10 retries. State-only retries are delayed by 250 ms. Each round respects
+`timeout`, including time spent awaiting the handler, while `maxTotalTimeout`
+bounds the entire exchange. Missing handlers and unsupported input requests
+reject the operation. Older connections continue to use `elicitation/create`
+server requests.
 
 Your handler must return an object with an `action` field that can be one of:
 

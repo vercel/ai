@@ -25,18 +25,11 @@ run(async () => {
   const agent = new HarnessAgent({
     harness: fx,
     tools: { weather },
-    inactiveTools: [
-      'read_file',
-      'shell',
-      'list_files',
-      'grep',
-      'mcp_search_tools',
-    ],
+    inactiveTools: ['read', 'bash', 'grep', 'glob', 'ls'],
   });
 
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
   });

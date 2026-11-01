@@ -102,6 +102,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default stop condition for the agent loop. When omitted, generate defaults to 20 steps, while stream has no maximum step count. Use `isStepCount()` to bound execution. Per-call values override this default.',
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of local tool calls executing concurrently within a step, including approved calls. Must be a positive integer. Set to 1 for sequential execution in model order. Defaults to unlimited concurrency. Can be changed by prepareCall; explicit generate/stream call options take precedence. Provider-executed tools are unaffected.',
+    },
+    {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
@@ -127,7 +134,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        'Default custom download function for URLs. Per-stream values override this default.',
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
       name: 'experimental_sandbox',
@@ -570,6 +577,13 @@ const result = await agent.stream({
       description: "Override the tool choice strategy for this call. Default: 'auto'.",
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Override the local tool call concurrency limit for this call. Must be a positive integer. Set to 1 for sequential execution in model order, including approved calls. Takes precedence over the constructor and prepareCall.',
+    },
+    {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
@@ -622,7 +636,8 @@ const result = await agent.stream({
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
-      description: 'Custom download function for fetching files/URLs.',
+      description:
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow.",
     },
     {
       name: 'experimental_sandbox',

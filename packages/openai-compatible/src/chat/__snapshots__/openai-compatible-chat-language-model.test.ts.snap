@@ -4,10 +4,6 @@ exports[`doGenerate > text (fixture) > should extract text content 1`] = `
 {
   "content": [
     {
-      "text": "Grok",
-      "type": "text",
-    },
-    {
       "text": "First, the user said: "Say a single word." That's straightforward. They want me to respond with just one word.
 
 As Grok, I'm supposed to be helpful, truthful, and maximally truthful, but in this case, it's a simple request. I don't need to overcomplicate it.
@@ -35,6 +31,10 @@ Finally, decide on a word: Let's go with "Grok" – it's unique to me and reinfo
 
 So, my response will be: Grok",
       "type": "reasoning",
+    },
+    {
+      "text": "Grok",
+      "type": "text",
     },
   ],
   "finishReason": {

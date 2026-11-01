@@ -65,6 +65,54 @@ function prepareSseFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'file references (%s)',
+  method => {
+    it('should resolve file IDs using the provider name even with camelCase options', async () => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        prepareChunksFixtureResponse('xai-text');
+      }
+
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'test-provider': 'file-pdf-123',
+                    testProvider: 'file-wrong-provider',
+                  },
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        providerOptions: { testProvider: { user: 'test-user' } },
+      });
+
+      if ('stream' in result) {
+        await convertReadableStreamToArray(result.stream);
+      }
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'file', file: { file_id: 'file-pdf-123' } }],
+          },
+        ],
+      });
+    });
+  },
+);
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -400,12 +448,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+        {
+          "text": "Hello, World!",
+          "type": "text",
         },
       ]
     `);
@@ -1507,6 +1555,58 @@ describe('doGenerate', () => {
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
       );
+    });
+
+    it('should map top-level reasoning with mapReasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning: ({ reasoning, warnings }) => {
+          warnings.push({ type: 'compatibility', feature: 'reasoning' });
+          return `mapped-${reasoning}`;
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'mapped-xhigh',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+      });
+    });
+
+    it('should not apply mapReasoning to providerOptions reasoningEffort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const mapReasoning = vi.fn(() => 'mapped');
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning,
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'max' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+      expect(mapReasoning).not.toHaveBeenCalled();
     });
 
     it('should pass textVerbosity setting from providerOptions', async () => {

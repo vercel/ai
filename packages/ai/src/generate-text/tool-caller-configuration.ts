@@ -47,33 +47,9 @@ export function resolveToolCallerConfiguration<TOOLS extends ToolSet>({
       });
     }
 
-    if (!Array.isArray(callers)) {
-      throw new InvalidArgumentError({
-        parameter: 'experimental_toolCallers',
-        value: toolCallers,
-        message: `callers for tool "${toolName}" must be an array.`,
-      });
+    if (callers != null) {
+      resolved[toolName] = callers;
     }
-
-    resolved[toolName] = callers.map(caller => {
-      if (caller === DIRECT_TOOL_CALL) {
-        return caller;
-      }
-
-      if (
-        typeof caller !== 'string' ||
-        !Object.prototype.hasOwnProperty.call(tools, caller) ||
-        experimental_getToolCaller(tools[caller]) == null
-      ) {
-        throw new InvalidArgumentError({
-          parameter: 'experimental_toolCallers',
-          value: toolCallers,
-          message: `tool "${toolName}" contains an invalid caller.`,
-        });
-      }
-
-      return caller;
-    });
   }
 
   return resolved;

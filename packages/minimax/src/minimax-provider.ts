@@ -5,14 +5,16 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
-import type { MiniMaxChatModelId } from './minimax-chat-options';
+import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
+import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
@@ -21,8 +23,9 @@ export interface MiniMaxProviderSettings {
   /**
    * MiniMax API key. Default value is taken from the `MINIMAX_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls. Defaults to MiniMax's Anthropic-compatible
    * endpoint (`https://api.minimax.io/anthropic/v1`).
@@ -90,21 +93,23 @@ export function createMiniMax(
     defaultVideoBaseURL;
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'anthropic-version': '2023-06-01',
-        'x-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MINIMAX_API_KEY',
-          description: 'MiniMax API key',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-minimax/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'anthropic-version': '2023-06-01',
+          'x-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'MINIMAX_API_KEY',
+            description: 'MiniMax API key',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-minimax/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MiniMaxChatModelId) =>
-    new AnthropicLanguageModel(modelId, {
+    new MiniMaxChatLanguageModel(modelId, {
       provider: 'minimax.messages',
       baseURL,
       headers: getHeaders,
@@ -114,16 +119,18 @@ export function createMiniMax(
     });
 
   const getVideoHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MINIMAX_API_KEY',
-          description: 'MiniMax API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-minimax/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MINIMAX_API_KEY',
+            description: 'MiniMax API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-minimax/${VERSION}`,
+      ),
     );
 
   const createVideoModel = (modelId: MiniMaxVideoModelId) =>

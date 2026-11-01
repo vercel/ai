@@ -1,306 +1,425 @@
-import { chmod, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
-  createFxSubscriptionAuthenticationFiles,
-  getFxSubscriptionRequestCredentials,
-  readFxSubscriptions,
-  resolveFxSubscriptionEnvironment,
-} from './fx-subscription';
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveFxAuthentication } from './fx-subscription';
 
-describe('resolveFxSubscriptionEnvironment', () => {
-  it('never inspects subscriptions for AI Gateway auth', async () => {
-    const env = { AI_GATEWAY_API_KEY: 'gateway-key' };
-    await expect(
-      resolveFxSubscriptionEnvironment({
-        auth: 'ai-gateway',
-        env,
-        homeDirectory: '/does-not-exist',
-      }),
-    ).resolves.toBe(env);
-  });
+const scope = 'https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828';
+let directory: string;
+const expiresAt = 2_000_000_000_000;
+const fxCredentials = (accessToken: string) => ({
+  version: 1,
+  access_token: accessToken,
+  refresh_token: 'refresh',
+  account_id: 'account',
+  expires_at_ms: expiresAt,
+});
+const codexCredentials = {
+  auth_mode: 'chatgpt',
+  tokens: {
+    access_token: 'native-codex',
+    refresh_token: 'refresh',
+    account_id: 'account',
+    id_token: 'preserve-id',
+  },
+  extra: true,
+};
+const grokCredentials = {
+  [scope]: {
+    key: 'native-grok',
+    refresh_token: 'refresh',
+    user_id: 'account',
+    expires_at: new Date(expiresAt).toISOString(),
+    extra: true,
+  },
+  other: { key: 'preserve' },
+};
 
-  it('prefers Gateway authentication over native subscriptions in auto mode', async () => {
-    const env = { AI_GATEWAY_API_KEY: 'gateway-key' };
-    await expect(
-      resolveFxSubscriptionEnvironment({
-        auth: 'auto',
-        env,
-        homeDirectory: '/does-not-exist',
-      }),
-    ).resolves.toBe(env);
-  });
-
-  it('uses native subscriptions in direct mode even when unrelated API keys exist', async () => {
-    const homeDirectory = await createFxDirectory();
-    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
-    await writePrivateJson({
-      path: join(homeDirectory, '.fx', 'chatgpt-auth.json'),
-      value: createCredential({ accessToken, accountId: 'account-1' }),
-    });
-
-    await expect(
-      resolveFxSubscriptionEnvironment({
-        auth: 'direct',
-        env: { OPENAI_API_KEY: 'unused-api-key' },
-        homeDirectory,
-      }),
-    ).resolves.toEqual({
-      OPENAI_API_KEY: 'unused-api-key',
-      AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
-      AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
-    });
-  });
+beforeEach(async () => {
+  directory = await mkdtemp(join(tmpdir(), 'fx-subscription-'));
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await rm(directory, { recursive: true, force: true });
 });
 
-describe('readFxSubscriptions', () => {
-  it('reads the exact ChatGPT subscription record used by fx', async () => {
-    const homeDirectory = await createFxDirectory();
-    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
-    await writePrivateJson({
-      path: join(homeDirectory, '.fx', 'chatgpt-auth.json'),
-      value: createCredential({ accessToken, accountId: 'account-1' }),
-    });
-
-    await expect(readFxSubscriptions({ homeDirectory })).resolves.toEqual({
-      AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
-      AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
-    });
+async function put(options: { file: string; value: unknown }) {
+  const filePath = join(directory, options.file);
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, JSON.stringify(options.value));
+}
+function resolveAuth(
+  options: Partial<Parameters<typeof resolveFxAuthentication>[0]> = {},
+) {
+  return resolveFxAuthentication({
+    env: {},
+    homeDirectory: directory,
+    ...options,
   });
+}
 
-  it('refreshes and persists an expiring Grok subscription', async () => {
-    const homeDirectory = await createFxDirectory();
-    const authPath = join(homeDirectory, '.fx', 'grok-auth.json');
-    await writePrivateJson({
-      path: authPath,
-      value: createCredential({
-        accessToken: 'old-access',
-        refreshToken: 'old-refresh',
-        accountId: 'account-1',
-        expiresAt: Date.now() + 60_000,
-      }),
-    });
-    const fetch = vi.fn(async (input: string | URL | Request) => {
-      if (String(input) === 'https://auth.x.ai/oauth2/userinfo') {
-        return new Response(JSON.stringify({ sub: 'account-1' }), {
-          status: 200,
-        });
-      }
-      return new Response(
-        JSON.stringify({
-          access_token: 'new-access',
-          refresh_token: 'new-refresh',
-          expires_in: 3600,
-        }),
-        { status: 200 },
-      );
-    });
-
-    await expect(
-      readFxSubscriptions({ homeDirectory, fetch }),
-    ).resolves.toEqual({
-      AI_SDK_FX_GROK_ACCESS_TOKEN: 'new-access',
-      AI_SDK_FX_GROK_ACCOUNT_ID: 'account-1',
-    });
-    expect(fetch).toHaveBeenNthCalledWith(
-      1,
-      'https://auth.x.ai/oauth2/token',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('refresh_token=old-refresh'),
-      }),
-    );
-    expect(fetch).toHaveBeenNthCalledWith(
-      2,
-      'https://auth.x.ai/oauth2/userinfo',
-      { headers: { Authorization: 'Bearer new-access' } },
-    );
-    await expect(readFile(authPath, 'utf8')).resolves.toContain('new-refresh');
-  });
-
-  it('uses JSON for ChatGPT refresh requests', async () => {
-    const homeDirectory = await createFxDirectory();
-    const authPath = join(homeDirectory, '.fx', 'chatgpt-auth.json');
-    const oldAccessToken = createChatGptAccessToken({
-      accountId: 'account-1',
-    });
-    const newAccessToken = createChatGptAccessToken({
-      accountId: 'account-1',
-    });
-    await writePrivateJson({
-      path: authPath,
-      value: createCredential({
-        accessToken: oldAccessToken,
-        accountId: 'account-1',
-        expiresAt: Date.now() + 60_000,
-      }),
-    });
-    const fetch = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({ access_token: newAccessToken, expires_in: 3600 }),
-          { status: 200 },
-        ),
-    );
-
-    await readFxSubscriptions({ homeDirectory, fetch });
-
-    expect(fetch).toHaveBeenCalledWith(
-      'https://auth.openai.com/oauth/token',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          'content-type': 'application/json',
-        }),
-        body: expect.stringContaining('"grant_type":"refresh_token"'),
-      }),
-    );
-  });
-
-  it('ignores insecure and unrelated fx authentication files', async () => {
-    const homeDirectory = await createFxDirectory();
-    await writeFile(
-      join(homeDirectory, '.fx', 'auth.json'),
-      JSON.stringify(createCredential({ accessToken: 'gateway-access' })),
-    );
-    await writeFile(
-      join(homeDirectory, '.fx', 'grok-auth.json'),
-      JSON.stringify(createCredential({ accessToken: 'grok-access' })),
-      { mode: 0o644 },
-    );
-
-    await expect(
-      readFxSubscriptions({ homeDirectory }),
-    ).resolves.toBeUndefined();
-  });
-});
-
-describe('fx sandbox subscription records', () => {
-  it('materializes broker placeholders instead of host tokens', () => {
-    const hostAccessToken = createChatGptAccessToken({
-      accountId: 'account-1',
-    });
-    const files = createFxSubscriptionAuthenticationFiles({
-      env: {
-        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: hostAccessToken,
-        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
-        AI_SDK_FX_GROK_ACCESS_TOKEN: 'grok-host-access',
-        AI_SDK_FX_GROK_ACCOUNT_ID: 'account-2',
-      },
-      sandboxEnv: {
-        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'chatgpt-placeholder',
-        AI_SDK_FX_GROK_ACCESS_TOKEN: 'grok-placeholder',
-      },
-      credentialBrokeringAvailable: true,
-    });
-
-    expect(files.map(file => file.path)).toEqual([
-      '.fx/chatgpt-auth.json',
-      '.fx/grok-auth.json',
-    ]);
-    const chatGpt = JSON.parse(files[0].content);
-    const grok = JSON.parse(files[1].content);
-    expect(chatGpt).toEqual({
-      version: 1,
-      access_token: expect.stringMatching(
-        /^[^.]+\.[^.]+\.chatgpt-placeholder$/,
-      ),
-      refresh_token: 'ai-sdk-harness-brokered',
-      expires_at_ms: Number.MAX_SAFE_INTEGER,
-      account_id: 'account-1',
-    });
-    expect(grok).toMatchInlineSnapshot(`
+describe('fx subscription discovery', () => {
+  it('uses fx Codex, fx Grok, native Codex, then native Grok', async () => {
+    const sources = [
       {
-        "access_token": "grok-placeholder",
-        "account_id": "account-2",
-        "expires_at_ms": 9007199254740991,
-        "refresh_token": "ai-sdk-harness-brokered",
+        file: '.fx/chatgpt-auth.json',
+        value: fxCredentials('fx-codex'),
+        provider: 'codex',
+        token: 'fx-codex',
+      },
+      {
+        file: '.fx/grok-auth.json',
+        value: fxCredentials('fx-grok'),
+        provider: 'grok',
+        token: 'fx-grok',
+      },
+      {
+        file: '.codex/auth.json',
+        value: codexCredentials,
+        provider: 'codex',
+        token: 'native-codex',
+      },
+      {
+        file: '.grok/auth.json',
+        value: grokCredentials,
+        provider: 'grok',
+        token: 'native-grok',
+      },
+    ];
+    for (const source of sources) await put(source);
+    for (const source of sources) {
+      const auth = await resolveAuth();
+      expect(auth.provider).toBe(source.provider);
+      if (auth.provider === 'gateway') throw new Error('Expected subscription');
+      expect((await auth.subscription.read()).accessToken).toBe(source.token);
+      await unlink(join(directory, source.file));
+    }
+    await expect(resolveAuth()).rejects.toThrow(
+      'No subscription credentials were available',
+    );
+  });
+
+  it.each([undefined, 'auto', 'ai-gateway'] as const)(
+    'prefers Gateway with %s',
+    async auth => {
+      await put({
+        file: '.fx/chatgpt-auth.json',
+        value: fxCredentials('subscription'),
+      });
+      expect(
+        await resolveAuth({ auth, env: { AI_GATEWAY_API_KEY: 'gateway' } }),
+      ).toEqual({
+        provider: 'gateway',
+        apiKey: 'gateway',
+        baseUrl: 'https://ai-gateway.vercel.sh',
+      });
+    },
+  );
+
+  it('discovers subscriptions in direct mode and retains Gateway fallback', async () => {
+    await put({
+      file: '.fx/chatgpt-auth.json',
+      value: fxCredentials('subscription'),
+    });
+    expect(
+      (
+        await resolveAuth({
+          auth: 'direct',
+          env: { AI_GATEWAY_API_KEY: 'gateway' },
+        })
+      ).provider,
+    ).toBe('codex');
+    await unlink(join(directory, '.fx/chatgpt-auth.json'));
+    expect(
+      (
+        await resolveAuth({
+          auth: 'direct',
+          env: { VERCEL_OIDC_TOKEN: 'gateway' },
+        })
+      ).provider,
+    ).toBe('gateway');
+  });
+
+  it('isolates explicit authentication environments', async () => {
+    await put({
+      file: '.fx/chatgpt-auth.json',
+      value: fxCredentials('subscription'),
+    });
+    await expect(
+      resolveAuth({ auth: {}, env: { AI_GATEWAY_API_KEY: 'host' } }),
+    ).rejects.toThrow('fx requires');
+    expect(
+      (await resolveAuth({ auth: { AI_GATEWAY_API_KEY: 'explicit' } }))
+        .provider,
+    ).toBe('gateway');
+    await expect(resolveAuth({ auth: 'ai-gateway' })).rejects.toThrow(
+      'fx requires',
+    );
+  });
+
+  it('skips malformed stores and ignores native API-key records', async () => {
+    await put({ file: '.fx/chatgpt-auth.json', value: { version: 2 } });
+    await put({ file: '.fx/grok-auth.json', value: {} });
+    await put({
+      file: '.codex/auth.json',
+      value: { auth_mode: 'apikey', OPENAI_API_KEY: 'ignore' },
+    });
+    await put({ file: '.grok/auth.json', value: grokCredentials });
+    expect((await resolveAuth()).provider).toBe('grok');
+  });
+
+  it('honors native home overrides', async () => {
+    await put({ file: 'custom-codex/auth.json', value: codexCredentials });
+    await put({ file: 'custom-grok/auth.json', value: grokCredentials });
+    const env = {
+      CODEX_HOME: join(directory, 'custom-codex'),
+      GROK_HOME: join(directory, 'custom-grok'),
+    };
+    expect((await resolveAuth({ env })).provider).toBe('codex');
+    await unlink(join(directory, 'custom-codex/auth.json'));
+    expect((await resolveAuth({ env })).provider).toBe('grok');
+  });
+
+  it('pins the provider on resume without overriding an explicit Gateway mode', async () => {
+    await put({ file: '.fx/chatgpt-auth.json', value: fxCredentials('codex') });
+    await put({ file: '.fx/grok-auth.json', value: fxCredentials('grok') });
+    expect(
+      (
+        await resolveAuth({
+          requiredProvider: 'grok',
+          env: { AI_GATEWAY_API_KEY: 'gateway' },
+        })
+      ).provider,
+    ).toBe('grok');
+    expect(
+      (
+        await resolveAuth({
+          requiredProvider: 'gateway',
+          auth: 'direct',
+          env: { AI_GATEWAY_API_KEY: 'gateway' },
+        })
+      ).provider,
+    ).toBe('gateway');
+    await expect(
+      resolveAuth({ requiredProvider: 'codex', auth: 'ai-gateway' }),
+    ).rejects.toThrow('does not allow');
+    await unlink(join(directory, '.fx/chatgpt-auth.json'));
+    await expect(
+      resolveAuth({
+        requiredProvider: 'codex',
+        env: { AI_GATEWAY_API_KEY: 'gateway' },
+      }),
+    ).rejects.toThrow('no codex subscription');
+  });
+});
+
+describe('fx subscription persistence', () => {
+  it.each(['chatgpt', 'grok'])(
+    'rereads and updates the selected fx %s store',
+    async name => {
+      const file = `.fx/${name}-auth.json`;
+      await put({ file, value: { ...fxCredentials('initial'), extra: true } });
+      const auth = await resolveAuth();
+      if (auth.provider === 'gateway') throw new Error('Expected subscription');
+      await put({
+        file,
+        value: { ...fxCredentials('external-rotation'), extra: true },
+      });
+      expect((await auth.subscription.read()).accessToken).toBe(
+        'external-rotation',
+      );
+      await auth.subscription.write({
+        credentials: {
+          accessToken: 'rotated',
+          refreshToken: 'rotated-refresh',
+          accountId: 'account',
+          expiresAt: expiresAt + 1000,
+        },
+      });
+      expect(JSON.parse(await readFile(join(directory, file), 'utf8')))
+        .toMatchInlineSnapshot(`
+      {
+        "access_token": "rotated",
+        "account_id": "account",
+        "expires_at_ms": 2000000001000,
+        "extra": true,
+        "refresh_token": "rotated-refresh",
         "version": 1,
       }
     `);
-    expect(files.every(file => !file.content.includes(hostAccessToken))).toBe(
-      true,
+      if (process.platform !== 'win32')
+        expect((await stat(join(directory, file))).mode & 0o777).toBe(0o600);
+      expect(await readdir(join(directory, '.fx'))).toEqual([
+        `${name}-auth.json`,
+      ]);
+      await unlink(join(directory, file));
+      await expect(auth.subscription.read()).rejects.toThrow(
+        'no longer available',
+      );
+      await expect(
+        auth.subscription.write({ credentials: { accessToken: 'lost' } }),
+      ).rejects.toThrow('Cannot update');
+    },
+  );
+
+  it('preserves native Codex metadata and derives JWT expiry', async () => {
+    const token = `header.${Buffer.from(JSON.stringify({ exp: 2_000_000_000 })).toString('base64url')}.signature`;
+    await put({
+      file: '.codex/auth.json',
+      value: {
+        ...codexCredentials,
+        tokens: { ...codexCredentials.tokens, access_token: token },
+      },
+    });
+    const auth = await resolveAuth();
+    if (auth.provider === 'gateway') throw new Error('Expected subscription');
+    expect((await auth.subscription.read()).expiresAt).toBe(expiresAt);
+    await auth.subscription.write({ credentials: { accessToken: 'rotated' } });
+    const saved = JSON.parse(
+      await readFile(join(directory, '.codex/auth.json'), 'utf8'),
     );
-    expect(
-      files.every(file => !file.content.includes('grok-host-access')),
-    ).toBe(true);
+    expect(saved.tokens).toMatchInlineSnapshot(`
+      {
+        "access_token": "rotated",
+        "account_id": "account",
+        "id_token": "preserve-id",
+        "refresh_token": "refresh",
+      }
+    `);
+    expect(saved.extra).toBe(true);
+    expect(Date.parse(saved.last_refresh)).not.toBeNaN();
   });
 
-  it('matches the access tokens fx will send from sandbox records', () => {
-    const hostAccessToken = createChatGptAccessToken({
-      accountId: 'account-1',
-    });
-    const env = {
-      AI_SDK_FX_CHATGPT_ACCESS_TOKEN: hostAccessToken,
-      AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
-    };
-    const sandboxEnv = {
-      AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'chatgpt-placeholder',
-    };
-    const files = createFxSubscriptionAuthenticationFiles({
-      env,
-      sandboxEnv,
-      credentialBrokeringAvailable: true,
-    });
-    const record = JSON.parse(files[0].content);
+  it.each([new Date(expiresAt).toISOString(), expiresAt, expiresAt / 1000])(
+    'reads Grok expiry %s and writes native-compatible timestamps',
+    async expiry => {
+      await put({
+        file: '.grok/auth.json',
+        value: {
+          ...grokCredentials,
+          [scope]: { ...grokCredentials[scope], expires_at: expiry },
+        },
+      });
+      const auth = await resolveAuth();
+      if (auth.provider === 'gateway') throw new Error('Expected subscription');
+      expect(await auth.subscription.read()).toEqual({
+        accessToken: 'native-grok',
+        refreshToken: 'refresh',
+        accountId: 'account',
+        expiresAt,
+      });
+      await auth.subscription.write({
+        credentials: { accessToken: 'rotated', expiresAt: expiresAt + 1000 },
+      });
+      const saved = JSON.parse(
+        await readFile(join(directory, '.grok/auth.json'), 'utf8'),
+      );
+      expect(saved).toEqual({
+        ...grokCredentials,
+        [scope]: {
+          ...grokCredentials[scope],
+          key: 'rotated',
+          expires_at: new Date(expiresAt + 1000).toISOString(),
+        },
+      });
+    },
+  );
 
-    expect(getFxSubscriptionRequestCredentials({ env, sandboxEnv })).toEqual([
-      {
-        provider: 'chatgpt',
-        accessToken: hostAccessToken,
-        sandboxAccessToken: record.access_token,
-      },
-    ]);
+  it('does not fall back after a selected store disappears', async () => {
+    await put({
+      file: '.fx/chatgpt-auth.json',
+      value: fxCredentials('selected'),
+    });
+    await put({ file: '.fx/grok-auth.json', value: fxCredentials('fallback') });
+    const auth = await resolveAuth();
+    if (auth.provider === 'gateway') throw new Error('Expected subscription');
+    await unlink(join(directory, '.fx/chatgpt-auth.json'));
+    await expect(auth.subscription.read()).rejects.toThrow(
+      'no longer available',
+    );
   });
 });
 
-async function createFxDirectory(): Promise<string> {
-  const homeDirectory = await mkdtemp(join(tmpdir(), 'fx-auth-'));
-  await mkdir(join(homeDirectory, '.fx'));
-  return homeDirectory;
-}
+describe('native Codex credential stores', () => {
+  it.each(['file', 'keyring', 'auto', 'ephemeral'])(
+    'honors %s mode',
+    async mode => {
+      await put({ file: '.codex/auth.json', value: codexCredentials });
+      await mkdir(join(directory, '.codex'), { recursive: true });
+      await writeFile(
+        join(directory, '.codex/config.toml'),
+        `cli_auth_credentials_store = "${mode}"\n`,
+      );
+      let stored = JSON.stringify({
+        ...codexCredentials,
+        tokens: { ...codexCredentials.tokens, access_token: 'keyring' },
+      });
+      const keyring = {
+        read: vi.fn(async () => stored),
+        write: vi.fn(async ({ value }: { value: string }) => {
+          stored = value;
+        }),
+      };
+      if (mode === 'ephemeral') {
+        await expect(resolveAuth({ keyring })).rejects.toThrow(
+          'No subscription credentials',
+        );
+        expect(keyring.read).not.toHaveBeenCalled();
+        return;
+      }
+      const auth = await resolveAuth({ keyring });
+      if (auth.provider === 'gateway') throw new Error('Expected subscription');
+      expect((await auth.subscription.read()).accessToken).toBe(
+        mode === 'file' ? 'native-codex' : 'keyring',
+      );
+      await auth.subscription.write({
+        credentials: { accessToken: 'rotated' },
+      });
+      if (mode === 'file') expect(keyring.read).not.toHaveBeenCalled();
+      else {
+        const account = `cli|${createHash('sha256')
+          .update(await realpath(join(directory, '.codex')))
+          .digest('hex')
+          .slice(0, 16)}`;
+        expect(keyring.read).toHaveBeenCalledWith({
+          service: 'Codex Auth',
+          account,
+        });
+        expect(JSON.parse(stored).tokens.access_token).toBe('rotated');
+        expect(
+          JSON.parse(
+            await readFile(join(directory, '.codex/auth.json'), 'utf8'),
+          ).tokens.access_token,
+        ).toBe('native-codex');
+        keyring.write.mockRejectedValueOnce(new Error('write failed'));
+        await expect(
+          auth.subscription.write({ credentials: { accessToken: 'failure' } }),
+        ).rejects.toThrow('write failed');
+      }
+    },
+  );
 
-async function writePrivateJson({
-  path,
-  value,
-}: {
-  path: string;
-  value: unknown;
-}): Promise<void> {
-  await writeFile(path, JSON.stringify(value), { mode: 0o600 });
-  await chmod(path, 0o600);
-}
-
-function createCredential({
-  accessToken,
-  refreshToken = 'refresh-token',
-  accountId = 'account-1',
-  expiresAt = Date.now() + 60 * 60 * 1000,
-}: {
-  accessToken: string;
-  refreshToken?: string;
-  accountId?: string;
-  expiresAt?: number;
-}): Record<string, string | number> {
-  return {
-    version: 1,
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    expires_at_ms: expiresAt,
-    account_id: accountId,
-  };
-}
-
-function createChatGptAccessToken({
-  accountId,
-}: {
-  accountId: string;
-}): string {
-  const header = Buffer.from('{}').toString('base64url');
-  const payload = Buffer.from(
-    JSON.stringify({
-      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
-    }),
-  ).toString('base64url');
-  return `${header}.${payload}.signature`;
-}
+  it('falls back to the file in auto mode when the keyring has no credentials', async () => {
+    await put({ file: '.codex/auth.json', value: codexCredentials });
+    await writeFile(
+      join(directory, '.codex/config.toml'),
+      'cli_auth_credentials_store = "auto"',
+    );
+    const auth = await resolveAuth({
+      keyring: { read: async () => undefined, write: async () => {} },
+    });
+    if (auth.provider === 'gateway') throw new Error('Expected subscription');
+    expect((await auth.subscription.read()).accessToken).toBe('native-codex');
+  });
+});
