@@ -751,4 +751,57 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'thoth',
+    name: 'Thoth',
+    description:
+      'Runtime policy enforcement for AI agent tool calls. Wrap your tool set and Thoth checks each call before it runs: it is allowed, denied, or held for a person to approve, and every decision is recorded as tamper-evident evidence.',
+    packageName: '@atensec/thoth',
+    tags: ['security', 'guardrails', 'governance', 'human-in-the-loop'],
+    apiKeyEnvName: 'THOTH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @atensec/thoth',
+      npm: 'npm install @atensec/thoth',
+      yarn: 'yarn add @atensec/thoth',
+      bun: 'bun add @atensec/thoth',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+import { governAiSdkTools } from '@atensec/thoth/ai-sdk';
+
+// THOTH_API_URL and THOTH_API_KEY are read from the environment.
+const tools = governAiSdkTools(
+  {
+    lookupOrder: tool({
+      description: 'Look up an order by ID',
+      inputSchema: z.object({ orderId: z.string() }),
+      execute: async ({ orderId }) => ({ orderId, status: 'delivered' }),
+    }),
+    sendRefund: tool({
+      description: 'Refund an order',
+      inputSchema: z.object({ orderId: z.string(), amount: z.number() }),
+      execute: async ({ orderId, amount }) => ({ orderId, refunded: amount }),
+    }),
+  },
+  {
+    agentId: 'support-agent',
+    tenantId: process.env.THOTH_TENANT_ID!,
+    approvedScope: [],
+    userId: 'alice@example.com',
+  },
+);
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools,
+  prompt: 'Refund order A-1, it arrived damaged.',
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.atensecurity.com/docs/sdks/vercel-ai-sdk',
+    apiKeyUrl: 'https://docs.atensecurity.com/docs/getting-started/quickstart',
+    websiteUrl: 'https://atensecurity.com',
+    npmUrl: 'https://www.npmjs.com/package/@atensec/thoth',
+  },
 ];
