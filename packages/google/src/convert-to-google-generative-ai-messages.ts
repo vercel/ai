@@ -107,39 +107,9 @@ function convertUrlToolResultPart(
     : undefined;
 }
 
-function containsJSONSchemaReference(
-  value: JSONValue | undefined,
-  seen: WeakSet<object> = new WeakSet(),
-): boolean {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-
-  if (seen.has(value)) {
-    return false;
-  }
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    return value.some(item => containsJSONSchemaReference(item, seen));
-  }
-
-  return Object.entries(value).some(
-    ([key, nestedValue]) =>
-      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
-  );
-}
-
 function serializeFunctionResponseContent(
   value: JSONValue,
 ): JSONValue | string {
-  // Google reserves { $ref: displayName } in structured function responses for
-  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
-  // result to preserve it without triggering Google's reference handling.
-  if (containsJSONSchemaReference(value)) {
-    return stringifyWithBigIntAndCycles(value);
-  }
-
   // Keep Google's structured response for ordinary JSON, but normalize values
   // that would otherwise fail when the final request body is serialized.
   return containsNonJsonValue(value)

@@ -1401,9 +1401,11 @@ describe('parallel tool calls', () => {
 
     const content = (result.contents[0].parts[0] as any).functionResponse
       .response.content;
-    expect(typeof content).toBe('string');
-    expect(content).toContain('"count":"100"');
-    expect(content).toContain('"self":"[Circular]"');
+    expect(content).toEqual({
+      $ref: '#/components/schemas/Item',
+      count: '100',
+      self: '[Circular]',
+    });
   });
 
   it('should preserve reused non-circular objects with $ref in tool-result', async () => {
@@ -1430,10 +1432,8 @@ describe('parallel tool calls', () => {
 
     const content = (result.contents[0].parts[0] as any).functionResponse
       .response.content;
-    expect(typeof content).toBe('string');
-    expect(content).toContain('"first":{"id":1}');
-    expect(content).toContain('"second":{"id":1}');
-    expect(content).not.toContain('[Circular]');
+    expect(content).toEqual(schema);
+    expect(content.first).toBe(content.second);
   });
 });
 
