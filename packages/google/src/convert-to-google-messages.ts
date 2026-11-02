@@ -423,7 +423,7 @@ export function convertToGoogleMessages(
 
               switch (part.type) {
                 case 'text': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -432,7 +432,7 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
