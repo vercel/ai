@@ -1,5 +1,6 @@
 import {
   context,
+  metrics,
   SpanKind,
   SpanStatusCode,
   trace,
@@ -91,6 +92,11 @@ interface CallState {
   stepContext: OpenTelemetryContext | undefined;
   inferenceSpan: Span | undefined;
   inferenceContext: OpenTelemetryContext | undefined;
+  inferenceMetrics?: {
+    startTime: number;
+    provider: string;
+    modelId: string;
+  };
   inferenceToolDefinitions?: ReadonlyArray<Record<string, unknown>>;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
@@ -143,6 +149,52 @@ export class OpenTelemetry implements Telemetry {
 
   private cleanupCallState(callId: string): void {
     this.callStates.delete(callId);
+  }
+
+  private recordInferenceDuration(
+    state: CallState,
+    {
+      responseTimeMs,
+      provider,
+      responseModelId,
+      errorType,
+    }: {
+      responseTimeMs?: number;
+      provider?: string;
+      responseModelId?: string;
+      errorType?: string;
+    } = {},
+  ): void {
+    const inference = state.inferenceMetrics;
+    if (inference == null) return;
+    state.inferenceMetrics = undefined;
+
+    // Resolve the meter when recording so a provider registered after this
+    // integration is constructed can still receive metrics.
+    const histogram = metrics
+      .getMeter('gen_ai')
+      .createHistogram('gen_ai.client.inference.duration', {
+        description: 'GenAI client inference operation duration.',
+        unit: 's',
+        advice: {
+          explicitBucketBoundaries: [
+            0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24,
+            20.48, 40.96, 81.92,
+          ],
+        },
+      });
+
+    histogram.record(
+      (responseTimeMs ?? performance.now() - inference.startTime) / 1000,
+      selectAttributes(state.telemetry, {
+        'gen_ai.operation.name': 'chat',
+        'gen_ai.provider.name': mapProviderName(provider ?? inference.provider),
+        'gen_ai.request.model': inference.modelId,
+        'gen_ai.response.model': responseModelId,
+        'error.type': errorType,
+      }),
+      state.inferenceContext,
+    );
   }
 
   private getAgentSpanName({
@@ -862,6 +914,11 @@ export class OpenTelemetry implements Telemetry {
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
     state.inferenceToolDefinitions = event.tools;
+    state.inferenceMetrics = {
+      startTime: performance.now(),
+      provider: event.provider,
+      modelId: event.modelId,
+    };
 
     const inferenceAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
@@ -931,6 +988,13 @@ export class OpenTelemetry implements Telemetry {
   onLanguageModelCallEnd(event: LanguageModelCallEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
+
+    this.recordInferenceDuration(state, {
+      responseTimeMs: event.performance.responseTimeMs,
+      provider: event.provider,
+      responseModelId: event.modelId,
+      errorType: event.finishReason === 'error' ? '_OTHER' : undefined,
+    });
 
     if (event.finishReason === 'error') {
       state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
@@ -1205,6 +1269,10 @@ export class OpenTelemetry implements Telemetry {
   onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
+
+    this.recordInferenceDuration(state, {
+      errorType: event.error instanceof Error ? event.error.name : '_OTHER',
+    });
 
     if (state.inferenceSpan) {
       recordErrorOnSpan(state.inferenceSpan, event.error);
@@ -1907,6 +1975,8 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
+    this.recordInferenceDuration(state, { errorType: 'AbortError' });
+
     for (const { span: toolSpan } of state.toolSpans.values()) {
       toolSpan.end();
     }
@@ -1951,6 +2021,10 @@ export class OpenTelemetry implements Telemetry {
     if (!state?.rootSpan) return;
 
     const actualError = event.error ?? error;
+
+    this.recordInferenceDuration(state, {
+      errorType: actualError instanceof Error ? actualError.name : '_OTHER',
+    });
 
     for (const { span: toolSpan } of state.toolSpans.values()) {
       recordErrorOnSpan(toolSpan, actualError);
