@@ -42,12 +42,12 @@ const CIRCULAR_SCHEMA: JSONSchema7 = {
 
 // Mirrors provider adapters (e.g. Bedrock, Vertex) that disable native
 // structured outputs by default.
-function createModel(modelId: string) {
+function createModel(modelId: string, supportsNativeStructuredOutput = false) {
   return new AnthropicMessagesLanguageModel(modelId, {
     provider: 'test-provider.messages',
     baseURL: 'https://api.anthropic.com/v1',
     headers: { 'x-api-key': 'test-api-key' },
-    supportsNativeStructuredOutput: false,
+    supportsNativeStructuredOutput,
     supportsStrictTools: false,
   });
 }
@@ -203,6 +203,38 @@ describe('JSON response tool fallback', () => {
       chunks: streamChunks(messages.flat()),
     };
   }
+
+  describe.each(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'])(
+    '%s open-schema fallback',
+    modelId => {
+      const options = () =>
+        jsonCall(
+          { type: 'object', additionalProperties: true },
+          { providerOptions: { anthropic: { structuredOutputMode: 'auto' } } },
+        );
+
+      it('returns text when the JSON tool is not called (generate)', async () => {
+        respondWithJson([{ type: 'text', text: '{"answer":"42"}' }]);
+        const result = await createModel(modelId, true).doGenerate(options());
+        expect(result.content).toEqual([
+          { type: 'text', text: '{"answer":"42"}' },
+        ]);
+      });
+
+      it('returns text when the JSON tool is not called (stream)', async () => {
+        respondWithStream(
+          messageEvents(textBlockEvents(0, ['{"answer"', ':"42"}'])),
+        );
+        const { stream } = await createModel(modelId, true).doStream(options());
+        const parts = await convertReadableStreamToArray(stream);
+        expect(
+          parts
+            .flatMap(part => (part.type === 'text-delta' ? [part.delta] : []))
+            .join(''),
+        ).toBe('{"answer":"42"}');
+      });
+    },
+  );
 
   describe('doGenerate', () => {
     it('returns text when the model answers without calling the JSON response tool', async () => {
