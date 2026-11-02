@@ -1,17 +1,30 @@
 import {
   NoSuchModelError,
   type ImageModelV4,
+  type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  createOpenResponses,
+  type OpenResponsesProviderSettings,
+} from '@ai-sdk/open-responses';
+import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import {
+  getQuiverAIResponseErrorMetadata,
+  quiveraiFailedResponseHandler,
+} from './quiverai-error';
+import { QuiverAILanguageModel } from './quiverai-language-model';
 import { QuiverAIImageModel } from './quiverai-image-model';
 import type { QuiverAIImageModelId } from './quiverai-image-settings';
+import type { QuiverAILanguageModelId } from './quiverai-language-model-settings';
 import { VERSION } from './version';
 
 export interface QuiverAIProviderSettings {
@@ -19,7 +32,7 @@ export interface QuiverAIProviderSettings {
    * QuiverAI API key. Default value is taken from the `QUIVERAI_API_KEY`
    * environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls. Defaults to `https://api.quiver.ai/v1` and
@@ -41,6 +54,16 @@ export interface QuiverAIProviderSettings {
 
 export interface QuiverAIProvider extends ProviderV4 {
   /**
+   * Creates a language model for the QuiverAI Responses API.
+   */
+  (modelId: QuiverAILanguageModelId): LanguageModelV4;
+
+  /**
+   * Creates a language model for the QuiverAI Responses API.
+   */
+  languageModel(modelId: QuiverAILanguageModelId): LanguageModelV4;
+
+  /**
    * Creates a model for image generation.
    */
   image(modelId: QuiverAIImageModelId): ImageModelV4;
@@ -54,6 +77,11 @@ export interface QuiverAIProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  /**
+   * QuiverAI caller-executed tools.
+   */
+  tools: ReturnType<typeof createOpenResponses>['tools'];
 }
 
 const defaultBaseURL = 'https://api.quiver.ai/v1';
@@ -70,23 +98,45 @@ export function createQuiverAI(
     ) ?? defaultBaseURL;
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'QUIVERAI_API_KEY',
-          description: 'QuiverAI',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/quiverai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'QUIVERAI_API_KEY',
+        description: 'QuiverAI',
+      })}`,
+      ...options.headers,
+    }));
+
+  const getImageHeaders = () =>
+    resolveWith(getHeaders, headers =>
+      withUserAgentSuffix(headers, `ai-sdk-quiverai/${VERSION}`),
+    );
+
+  const responsesConfig: OpenResponsesProviderSettings = {
+    name: 'quiverai',
+    url: `${baseURL}/responses`,
+    headers: getHeaders,
+    fetch: options.fetch,
+    failedResponseHandler: quiveraiFailedResponseHandler,
+    getResponseErrorMetadata: getQuiverAIResponseErrorMetadata,
+    strictResponseInput: true,
+    customToolId: 'quiverai.custom',
+    structuredOutputs: false,
+    userAgentSuffix: `ai-sdk-quiverai/${VERSION}`,
+  };
+  const responsesProvider = createOpenResponses(responsesConfig);
+
+  const createLanguageModel = (modelId: QuiverAILanguageModelId) =>
+    new QuiverAILanguageModel(
+      responsesProvider.languageModel(modelId),
+      responsesConfig,
     );
 
   const createImageModel = (modelId: QuiverAIImageModelId) =>
     new QuiverAIImageModel(modelId, {
       provider: 'quiverai.image',
       baseURL,
-      headers: getHeaders,
+      headers: getImageHeaders,
       fetch: options.fetch,
     });
 
@@ -97,19 +147,19 @@ export function createQuiverAI(
     });
   };
 
-  return {
-    specificationVersion: 'v4',
-    image: createImageModel,
-    imageModel: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
-    embeddingModel,
-    textEmbeddingModel: embeddingModel,
+  const provider = function (modelId: QuiverAILanguageModelId) {
+    return createLanguageModel(modelId);
   };
+
+  provider.specificationVersion = 'v4' as const;
+  provider.languageModel = createLanguageModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
+  provider.embeddingModel = embeddingModel;
+  provider.textEmbeddingModel = embeddingModel;
+  provider.tools = responsesProvider.tools;
+
+  return provider as QuiverAIProvider;
 }
 
 export const quiverai = createQuiverAI();

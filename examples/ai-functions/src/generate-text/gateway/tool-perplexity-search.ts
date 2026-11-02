@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt:
       'Use the perplexitySearch tool to find current news about AI regulations in January 2025. You must search the web first before answering.',
     tools: {

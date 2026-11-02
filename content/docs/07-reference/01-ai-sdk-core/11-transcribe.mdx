@@ -13,7 +13,7 @@ import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
 const { text: transcript } = await transcribe({
-  model: openai.transcription('whisper-1'),
+  model: openai.transcription('gpt-4o-transcribe'),
   audio: await readFile('audio.mp3'),
 });
 
@@ -63,6 +63,13 @@ console.log(transcript);
       type: 'Record<string, string>',
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
+    },
+    {
+      name: 'telemetry',
+      type: 'TelemetryOptions',
+      isOptional: true,
+      description:
+        'Telemetry configuration. Supports functionId, recordInputs, recordOutputs, isEnabled, and per-call integrations.',
     },
     {
       name: 'download',

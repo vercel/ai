@@ -1,5 +1,7 @@
 import {
   isBuffer,
+  isUint8Array,
+  isArrayBuffer,
   type CustomPart,
   type DataContent,
   type FilePart,
@@ -19,8 +21,8 @@ import { z, type ZodType } from '../util/zod';
 
 const fileInlineDataSchema: ZodType<DataContent> = z.union([
   z.string(),
-  z.instanceof(Uint8Array),
-  z.instanceof(ArrayBuffer),
+  z.custom<Uint8Array>(isUint8Array, { message: 'Must be a Uint8Array' }),
+  z.custom<ArrayBuffer>(isArrayBuffer, { message: 'Must be an ArrayBuffer' }),
   z.custom<Buffer>(isBuffer, { message: 'Must be a Buffer' }),
 ]);
 
@@ -283,6 +285,10 @@ export const toolApprovalRequestSchema: ZodType<ToolApprovalRequest> = z.object(
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
+    reason: z.string().optional(),
+    isAutomatic: z.boolean().optional(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
   },
 );
 

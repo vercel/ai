@@ -14,7 +14,7 @@ createFeatureTestSuite({
   name: 'DeepSeek',
   models: {
     invalidModel: provider.chat('no-such-model'),
-    languageModels: [createChatModel('deepseek-chat')],
+    languageModels: [createChatModel('deepseek-v4-flash')],
   },
   timeout: 10000,
   customAssertions: {

@@ -13,14 +13,23 @@ import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
 import type { GenerateTextInclude } from '../generate-text/generate-text';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
-import type { StreamTextInclude } from '../generate-text/stream-text';
+import type {
+  StreamTextInclude,
+  StreamTextOnAbortCallback,
+  StreamTextOnErrorCallback,
+} from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -118,6 +127,14 @@ export type ToolLoopAgentSettings<
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
+
+    /**
      * Optional specification for generating structured outputs.
      */
     output?: OUTPUT;
@@ -139,6 +156,13 @@ export type ToolLoopAgentSettings<
      * Configures which caller tools may invoke each tool.
      */
     experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -206,6 +230,17 @@ export type ToolLoopAgentSettings<
     >;
 
     /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+
+    /**
      * Callback that is called before each tool execution begins.
      */
     onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
@@ -219,6 +254,37 @@ export type ToolLoopAgentSettings<
      * Callback that is called when each step (LLM call) ends, including intermediate steps.
      */
     onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when a step that started fails before it
+     * produces a step result. `onStepEnd` is not called for such a step.
+     *
+     * Unlike `onStepStart` and `onStepEnd`, it can only be set here and not
+     * per call, because the per-call callbacks are shared with other `Agent`
+     * implementations that do not report step errors.
+     */
+    onStepError?: GenerateTextOnStepErrorCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when an error occurs. For `stream()` it receives
+     * the errors of the stream, for `generate()` it receives the error before
+     * it is thrown. Aborts and timeouts are not reported.
+     */
+    onError?: StreamTextOnErrorCallback;
+
+    /**
+     * Callback that is called when `stream()` is aborted or times out.
+     * `generate()` does not call it: an aborted or timed out `generate()` call
+     * rejects, and its step ends with `onStepError`.
+     */
+    onAbort?: StreamTextOnAbortCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -348,8 +414,10 @@ export type ToolLoopAgentSettings<
           | 'experimental_telemetry'
           | 'activeTools'
           | 'toolOrder'
+          | 'toolCallConcurrency'
           | 'toolApproval'
           | 'experimental_toolCallers'
+          | 'experimental_toolApprovalSecret'
           | 'prepareStep'
           | 'repairToolCall'
           | 'experimental_repairToolCall'
@@ -389,8 +457,10 @@ export type ToolLoopAgentSettings<
         | 'experimental_telemetry'
         | 'activeTools'
         | 'toolOrder'
+        | 'toolCallConcurrency'
         | 'toolApproval'
         | 'experimental_toolCallers'
+        | 'experimental_toolApprovalSecret'
         | 'prepareStep'
         | 'repairToolCall'
         | 'experimental_repairToolCall'

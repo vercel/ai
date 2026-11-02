@@ -21,7 +21,7 @@ packages/example/
 │   └── index.ts                       # Public exports
 ├── package.json
 ├── tsconfig.json
-├── tsup.config.ts                     # Build configuration
+├── tsdown.config.ts                   # Build configuration
 └── README.md
 ```
 
@@ -41,7 +41,11 @@ The completion, embedding, and image settings are implemented similarly to the c
 2. **example-provider.ts** - Main provider implementation:
 
 ```ts
-import { LanguageModelV4, EmbeddingModelV4 } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -107,10 +111,10 @@ Creates a completion model for text generation.
   /**
 Creates a text embedding model for text generation.
 */
-  .embeddingModel(
+  embeddingModel(
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
-  ): EmbeddingModelV4<string>;
+  ): EmbeddingModelV4;
 
   /**
 Creates an image model for image generation.
@@ -177,7 +181,7 @@ export function createExample(
       getCommonModelConfig('completion'),
     );
 
-  const create.embeddingModel = (
+  const createEmbeddingModel = (
     modelId: ExampleEmbeddingModelId,
     settings: ExampleEmbeddingSettings = {},
   ) =>
@@ -204,7 +208,7 @@ export function createExample(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
-  provider.embeddingModel = create.embeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
 
   return provider;

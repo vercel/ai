@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: registry.languageModel('xai:grok-4.5'),
+    model: registry.languageModel('xai:grok-4.7'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

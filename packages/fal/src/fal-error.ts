@@ -1,14 +1,23 @@
 import { z } from 'zod/v4';
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 
-export const falErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.number(),
-  }),
-});
+export const falErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        code: z.number(),
+      }),
+    }),
+  ),
+);
 
-export type FalErrorData = z.infer<typeof falErrorDataSchema>;
+export type FalErrorData = InferSchema<typeof falErrorDataSchema>;
 
 export const falFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: falErrorDataSchema,

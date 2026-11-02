@@ -1,0 +1,313 @@
+---
+title: TypeSafe
+description: Learn how to use TypeSafe with AI Gateway and the direct provider.
+---
+
+# TypeSafe Provider
+
+The [TypeSafe](https://typesafe.ai) provider supports the experimental decision
+API with native Choice, Score, and Boolean answers. It sends all questions in one
+request against the same state.
+You can use TypeSafe models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/typesafe-ai`.
+
+```ts provider="typesafe-ai" model="typesafe-ai/jev"
+import { experimental_decide } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = await experimental_decide({
+  model: __DECISION_MODEL__,
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions: {
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+  },
+});
+
+console.log(result.answers.requestsRefund.probability);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/typesafe-ai`
+
+For direct access to TypeSafe, install `ai` and `@ai-sdk/typesafe-ai`:
+
+<InstallPackages packages="ai @ai-sdk/typesafe-ai" />
+
+Set your TypeSafe API credential in the `TYPESAFE_AI_API_KEY` environment variable:
+
+```bash
+export TYPESAFE_AI_API_KEY=your_api_key_here
+```
+
+Use the direct provider for a custom TypeSafe-compatible endpoint or direct TypeSafe authentication. Both examples use the experimental `experimental_decide` API.
+
+<Note>
+  The following sections document the direct `@ai-sdk/typesafe-ai` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
+
+Import the default provider or configure an instance:
+
+```ts
+import { createTypeSafeAi, typeSafeAi } from '@ai-sdk/typesafe-ai';
+
+const customTypeSafe = createTypeSafeAi({
+  apiKey: 'your-api-key',
+});
+```
+
+`createTypeSafeAi` accepts:
+
+| Setting   | Description                                                                                         |
+| --------- | --------------------------------------------------------------------------------------------------- |
+| `apiKey`  | API key (string, promise, or synchronous/asynchronous callback); defaults to `TYPESAFE_AI_API_KEY`. |
+| `baseURL` | Defaults to `TYPESAFE_AI_BASE_URL`, then `https://api.typesafe.ai/v1`.                              |
+| `headers` | Additional request headers.                                                                         |
+| `fetch`   | Custom fetch implementation.                                                                        |
+
+Use `TYPESAFE_AI_BASE_URL` to route the default `typeSafeAi` instance through a
+trusted proxy or self-hosted TypeSafe-compatible server:
+
+```sh
+TYPESAFE_AI_BASE_URL=http://127.0.0.1:8766/v1
+```
+
+An explicit `baseURL` passed to `createTypeSafeAi` takes precedence over the
+environment variable. API key callbacks are called before each request and are responsible for caching and refreshing credentials. The configured server receives the API key and decision
+state and must implement the TypeSafe `POST /systemone` API.
+
+## Decision
+
+```ts
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: {
+    message: 'I was charged twice. Please refund the duplicate.',
+  },
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: {
+        billing: { includes: ['Charges', 'Invoices', 'Refunds'] },
+        technical: ['Bugs', 'Outages'],
+        other: null,
+      },
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How severe is the issue?',
+      criteria: ['Cosmetic', 'Workaround exists', 'Blocking; no workaround'],
+    },
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting money back?',
+    },
+  },
+});
+
+console.log(result.answers.department.choice);
+console.log(result.answers.severity.score);
+console.log(result.answers.requestsRefund.probability);
+console.log(result.usage);
+```
+
+Use `jev-latest` or another TypeSafe model ID. The response includes the actual
+model ID, such as the resolved version behind the alias. Use model instances,
+custom aliases, or registered providers. With `typeSafeAi` explicitly configured
+as `globalThis.AI_SDK_DEFAULT_PROVIDER`, you can pass `model: 'jev-latest'`
+directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+The provider includes these model IDs and aliases:
+
+| Model ID      | Description                                       |
+| ------------- | ------------------------------------------------- |
+| `jev-1.13.0`  | Jev 1.13 release.                                 |
+| `jev-1.14.0`  | Jev 1.14 release.                                 |
+| `jev-latest`  | Alias for the latest stable release.              |
+| `jev-preview` | Alias for the latest release, including previews. |
+
+| Question  | Native TypeSafe primitive | Limits and semantics                                                  |
+| --------- | ------------------------- | --------------------------------------------------------------------- |
+| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.                |
+| `score`   | Score                     | 2–10 ordered rubric levels; fractional score and full probabilities.  |
+| `box`     | Box                       | Four normalized image edges; requires Jev 1.14 or later and an image. |
+| `boolean` | Noul                      | Required model-estimated probability of true.                         |
+
+State, instructions, and descriptions accept JSON objects and arrays in addition
+to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
+The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
+
+### Box questions
+
+Box questions locate one target in an image and take no `criteria`:
+
+```ts
+questions: {
+  target: { type: 'box', instructions: 'The cat in the image' },
+}
+```
+
+Send an image in `state` as shown below. The answer has
+`type: 'box'` and a `box` object with `top`, `bottom`, `left`, and `right`.
+Each edge is a fraction in `[0, 1]`, measured from the top-left corner;
+`left < right` and `top < bottom`. Confidence is available at
+`result.providerMetadata?.typesafe?.confidence`, keyed by question ID.
+
+This feature is experimental, and a box is returned even when the
+object is absent. Ask a Boolean question alongside it to check visibility. See
+[TypeSafe's Box documentation](https://docs.typesafe.ai/primitives/box).
+
+### Long context
+
+By default, Jev allows 64k tokens per request (state plus all questions) and 32k
+tokens per question (state plus one question). Set `longContext: true` to raise
+both limits to 262k tokens:
+
+```ts
+providerOptions: {
+  typesafe: {
+    longContext: true,
+  },
+},
+```
+
+The provider sends `TypeSafe-Danger-Zone-Long-Context: true` only when this
+option is enabled. It defaults to `false`. Both Jev 1.13 and 1.14 support it.
+TypeSafe charges the same per-token price for long context, but describes it
+as slower and less accurate than staying within the default limits. Enable it
+only when needed; the provider does not estimate token counts or enable it
+automatically. See [TypeSafe's context documentation](https://docs.typesafe.ai/models#context-length).
+
+The `TypeSafeAiDecisionModelOptions` type is exported from `@ai-sdk/typesafe-ai`
+for typing request-level options.
+
+### Image input
+
+Pass PNG or JPEG images as file parts alongside text or JSON state:
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'text', text: 'Inspect the animal in this picture.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('cat.png'),
+    },
+  ],
+  questions: {
+    cat: { type: 'boolean', instructions: 'Does the image show a cat?' },
+  },
+});
+```
+
+The provider uploads images as binary files in a multipart request and automatically adds
+`TypeSafe-Danger-Zone-Images: true` when images are present. TypeSafe currently
+considers image support experimental. Only PNG and JPEG are supported; other
+file formats are rejected. See [TypeSafe's image documentation](https://docs.typesafe.ai/images)
+for image size and dimension limits.
+
+Explicit references are optional. Set `providerOptions.typesafe.reference` on a
+file part to choose its asset reference. When omitted, the provider generates a
+random reference. If the state already contains the reference, the provider
+sends the state as written, so JSON state stays an object. Otherwise it inserts
+the reference at the file's position in the state.
+
+TypeSafe sends another copy of the image for every occurrence of its reference
+in state, instructions, or criteria. To ask several questions about one image,
+put it in the state once and refer to it by path in backticks, as shown below,
+rather than repeating the reference in each question.
+
+Set `providerOptions.typesafe.insertReference` to `false` to send an image only
+where you reference it in a question's instructions or criteria, for example a
+known picture to compare against. This requires an explicit `reference`. Set it
+to `true` to insert the reference even when the state already contains it.
+
+```ts
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'json', value: { photo: '[found-dog]' } },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('found-dog.jpg'),
+      providerOptions: { typesafe: { reference: '[found-dog]' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('lost-dog-poster.jpg'),
+      providerOptions: {
+        typesafe: { reference: '[poster]', insertReference: false },
+      },
+    },
+  ],
+  questions: {
+    sameDog: {
+      type: 'boolean',
+      instructions: 'Is the dog in `photo` the same dog as in [poster]?',
+    },
+  },
+});
+```
+
+References must be nonempty, contain more than whitespace, and be unique across
+images in the request. TypeSafe substitutes references anywhere in string
+values, so choose distinctive names such as `[animal-photo]` to avoid accidental
+matches. The file's `filename` does not affect its reference.
+
+The `TypeSafeAiFilePartProviderOptions` type is exported from
+`@ai-sdk/typesafe-ai` for typing file-level options.
+
+### Rounded values and confidence
+
+TypeSafe returns scores and probabilities rounded to two decimal places.
+`result.rounding` reports this precision so the SDK can account for rounding when
+checking distribution sums and weighted means. The returned values are preserved
+unchanged; rounding means probabilities may not add up to exactly one.
+
+Confidence is a separate TypeSafe statistic, available under
+`result.providerMetadata.typesafe.confidence[questionId]` for Choice and Score
+answers. Boolean probability always means P(true), not confidence in either
+outcome. Choose decision thresholds in application code.
+
+### Errors and retries
+
+Provider failures use `APICallError`, including validation and authentication
+errors. Core retries transient failures such as `429` and `529` according to
+`maxRetries` (default: 2). `abortSignal`, request headers, and custom fetch are
+forwarded. There is no provider-side retry loop.
+
+Unknown request-level entries under `providerOptions.typesafe` produce
+unsupported-option warnings. Language,
+embedding, and image model factories throw `NoSuchModelError`.
+
+Decision models support workflow serialization. A custom fetch function is not
+serialized; restored models use the default fetch implementation.

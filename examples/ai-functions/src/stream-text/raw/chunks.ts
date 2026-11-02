@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,

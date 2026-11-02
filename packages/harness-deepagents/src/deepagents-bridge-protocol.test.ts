@@ -38,6 +38,17 @@ describe('deepagents bridge protocol', () => {
     `);
   });
 
+  it('parses mixed text and image prompt content', () => {
+    const prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    expect(startMessageSchema.parse({ type: 'start', prompt }).prompt).toEqual(
+      prompt,
+    );
+  });
+
   it('parses forced extended thinking configuration', () => {
     const parsed = startMessageSchema.parse({
       type: 'start',
@@ -62,7 +73,7 @@ describe('deepagents bridge protocol', () => {
   it('accepts the shared inbound commands', () => {
     for (const msg of [
       { type: 'tool-result', toolCallId: 't1', output: { ok: true } },
-      { type: 'user-message', text: 'more' },
+      { type: 'user-message', messageId: 'message-1', text: 'more' },
       { type: 'abort' },
       { type: 'destroy' },
       { type: 'resume', lastSeenEventId: 3 },

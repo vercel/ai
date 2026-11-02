@@ -60,7 +60,7 @@ export class VercelNetworkPolicyManager {
 
   setNetworkPolicy(policy: HarnessV1NetworkPolicy): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       if (
         this.#state == null &&
         inspection.requestTransformationHosts.length > 0
@@ -85,7 +85,7 @@ export class VercelNetworkPolicyManager {
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       await this.#applyState({
         accessPolicy: inspection.accessPolicy,
         requestTransformations: transformations.map(cloneRequestTransformation),
@@ -99,7 +99,7 @@ export class VercelNetworkPolicyManager {
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ): Promise<void> {
     return this.#enqueueMutation(async () => {
-      const inspection = this.#inspectPolicy();
+      const inspection = await this.#inspectPolicy();
       const incomingTransformations = transformations.map(
         cloneRequestTransformation,
       );
@@ -136,12 +136,10 @@ export class VercelNetworkPolicyManager {
         requestTransformations:
           this.#state == null
             ? incomingTransformations
-            : [
-                ...this.#state.requestTransformations.map(
-                  cloneRequestTransformation,
-                ),
-                ...incomingTransformations,
-              ],
+            : mergeRequestTransformations({
+                existing: this.#state.requestTransformations,
+                incoming: incomingTransformations,
+              }),
         forwardRules: inspection.forwardRules.map(cloneForwardRule),
         currentPolicy: inspection.currentPolicy,
       });
@@ -162,7 +160,7 @@ export class VercelNetworkPolicyManager {
     return result;
   }
 
-  #inspectPolicy(): CurrentPolicyInspection {
+  async #inspectPolicy(): Promise<CurrentPolicyInspection> {
     /*
      * Once initialized, this manager is the sole supported owner of the
      * session's network policy. Direct native Sandbox policy mutations can
@@ -177,9 +175,38 @@ export class VercelNetworkPolicyManager {
       };
     }
 
-    return inspectCurrentPolicy(
-      this.#sandbox.currentSession().networkPolicy ?? 'allow-all',
-    );
+    const session = this.#sandbox.currentSession();
+    const policy = session.networkPolicy ?? 'allow-all';
+    const inspection = inspectCurrentPolicy(policy);
+
+    if (typeof policy === 'object') {
+      const sessions = await this.#sandbox.listSessions();
+      for await (const metadata of sessions) {
+        if (metadata.id !== session.sessionId) {
+          continue;
+        }
+
+        if (metadata.networkPolicy == null) {
+          break;
+        }
+
+        const responseRules = metadata.networkPolicy.responseRules;
+        if (
+          responseRules != null &&
+          (!Array.isArray(responseRules) || responseRules.length > 0)
+        ) {
+          throw createResponseRuleConflictError();
+        }
+
+        return inspection;
+      }
+
+      throw createPolicyConflictError(
+        'Cannot mutate the network policy because the current Vercel Sandbox session policy could not be inspected for response rules.',
+      );
+    }
+
+    return inspection;
   }
 
   async #applyState({
@@ -243,6 +270,9 @@ function inspectCurrentPolicy(policy: NetworkPolicy): CurrentPolicyInspection {
   if (policy.allow != null && !Array.isArray(policy.allow)) {
     for (const [host, rules] of Object.entries(policy.allow)) {
       for (const rule of rules) {
+        if (rule.response != null) {
+          throw createResponseRuleConflictError();
+        }
         if (hasRequestTransformation(rule)) {
           requestTransformationHosts.add(host.toLowerCase());
         }
@@ -444,7 +474,6 @@ function intersectHostPatterns({
   if (isHostPatternSubset({ candidate: second, container: first })) {
     return second;
   }
-  return undefined;
 }
 
 function isHostPatternSubset({
@@ -579,6 +608,47 @@ function areNetworkPoliciesEqual({
   return stableSerialize(first) === stableSerialize(second);
 }
 
+function mergeRequestTransformations({
+  existing,
+  incoming,
+}: {
+  existing: ReadonlyArray<HarnessV1RequestTransformation>;
+  incoming: ReadonlyArray<HarnessV1RequestTransformation>;
+}): HarnessV1RequestTransformation[] {
+  const merged = existing.map(cloneRequestTransformation);
+  const identities = new Map(
+    merged.map((transformation, index) => [
+      getRequestTransformationIdentity(transformation),
+      index,
+    ]),
+  );
+
+  for (const transformation of incoming) {
+    const clonedTransformation = cloneRequestTransformation(transformation);
+    const identity = getRequestTransformationIdentity(clonedTransformation);
+    const existingIndex = identities.get(identity);
+    if (existingIndex == null) {
+      identities.set(identity, merged.length);
+      merged.push(clonedTransformation);
+    } else {
+      merged[existingIndex] = clonedTransformation;
+    }
+  }
+
+  return merged;
+}
+
+function getRequestTransformationIdentity(
+  transformation: HarnessV1RequestTransformation,
+): string {
+  return stableSerialize({
+    match: transformation.match,
+    transformedHeaderNames: Object.keys(transformation.transform.headers)
+      .map(name => name.toLowerCase())
+      .sort(),
+  });
+}
+
 function stableSerialize(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableSerialize).join(',')}]`;
@@ -650,51 +720,7 @@ function cloneNetworkAccessPolicy(
 }
 
 function cloneNetworkPolicy(policy: NetworkPolicy): NetworkPolicy {
-  if (policy === 'allow-all' || policy === 'deny-all') {
-    return policy;
-  }
-  return {
-    ...(policy.allow == null
-      ? {}
-      : Array.isArray(policy.allow)
-        ? { allow: [...policy.allow] }
-        : {
-            allow: Object.fromEntries(
-              Object.entries(policy.allow).map(([host, rules]) => [
-                host,
-                rules.map(rule => ({
-                  ...(rule.match == null
-                    ? {}
-                    : { match: cloneMatch(rule.match) }),
-                  ...(rule.transform == null
-                    ? {}
-                    : {
-                        transform: rule.transform.map(transform => ({
-                          ...(transform.headers == null
-                            ? {}
-                            : { headers: { ...transform.headers } }),
-                        })),
-                      }),
-                  ...(rule.forwardURL == null
-                    ? {}
-                    : { forwardURL: rule.forwardURL }),
-                })),
-              ]),
-            ),
-          }),
-    ...(policy.subnets == null
-      ? {}
-      : {
-          subnets: {
-            ...(policy.subnets.allow == null
-              ? {}
-              : { allow: [...policy.subnets.allow] }),
-            ...(policy.subnets.deny == null
-              ? {}
-              : { deny: [...policy.subnets.deny] }),
-          },
-        }),
-  };
+  return structuredClone(policy);
 }
 
 function cloneMatch(
@@ -757,4 +783,10 @@ function createPolicyConflictError(
     harnessId: VERCEL_PROVIDER_ID,
     message,
   });
+}
+
+function createResponseRuleConflictError(): HarnessCapabilityUnsupportedError {
+  return createPolicyConflictError(
+    'Cannot mutate the network policy because the current Vercel Sandbox policy contains response rules that cannot be preserved safely. Manage this policy through the native Sandbox SDK with the complete original rules instead.',
+  );
 }

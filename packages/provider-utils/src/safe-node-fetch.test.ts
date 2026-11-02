@@ -17,6 +17,62 @@ describe('module initialization', () => {
   });
 });
 
+describe('getDefaultDownloadFetch outside Node.js', () => {
+  it.each([
+    { runtime: 'browser', process: undefined },
+    { runtime: 'edge', process: { versions: {} } },
+    {
+      runtime: 'framework edge with a Node-compatible process',
+      process: { release: { name: 'node' }, versions: { node: '24.0.0' } },
+      edgeRuntime: 'edge-runtime',
+    },
+    {
+      runtime: 'bun',
+      process: { release: { name: 'node' }, versions: { bun: '1.3.0' } },
+    },
+    {
+      runtime: 'deno with a Node-compatible process',
+      process: {
+        release: { name: 'node' },
+        versions: { node: '24.0.0', deno: '2.4.0', uv: '1.51.0' },
+      },
+    },
+    {
+      runtime: 'Workers process-v2 without navigator',
+      process: {
+        title: 'workerd',
+        release: { name: 'node', lts: true, sourceUrl: '', headersUrl: '' },
+        versions: { node: '24.0.0', uv: '', v8: '', undici: '' },
+      },
+    },
+  ])('uses global fetch in $runtime', async ({ process, edgeRuntime }) => {
+    const { getDefaultDownloadFetch } = await import('./safe-node-fetch');
+    const fetchMock = vi.fn().mockResolvedValue(new Response('content'));
+    const getBuiltinModule = vi.fn(() => {
+      throw new Error('Unexpected Node-only module load');
+    });
+    vi.stubGlobal('EdgeRuntime', edgeRuntime);
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('navigator', undefined);
+    vi.stubGlobal(
+      'process',
+      process == null ? undefined : { ...process, getBuiltinModule },
+    );
+
+    try {
+      const fetch = await getDefaultDownloadFetch();
+      const response = await fetch('https://files.example.com/file');
+      await expect(response.text()).resolves.toBe('content');
+      expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+        'https://files.example.com/file',
+      );
+      expect(getBuiltinModule).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 function createLookup(addresses: Address[]) {
   const lookup = vi.fn((_hostname, options, callback) => {
     callback(null, addresses);

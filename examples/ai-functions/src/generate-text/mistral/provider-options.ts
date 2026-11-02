@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('mistral-small-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       mistral: {

@@ -1,7 +1,22 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
+import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import type {
+  ACPHostToolMCPTransport,
+  ACPV1Settings,
+} from '../acp-v1-settings';
+import { canonicalFingerprint } from './canonical-json-fingerprint';
+import {
+  createHostToolMCPHttpEndpoint,
+  HOST_TOOL_MCP_ENDPOINT_PATH,
+  type HostToolMCPHttpEndpoint,
+} from './host-tool-mcp-http';
+
+type ToolResultPart = NonNullable<
+  Awaited<ReturnType<BridgeTurn['requestToolResult']>>['toolResult']
+>;
 
 export type HostToolCorrelationInvocation = {
   readonly token: string;
@@ -12,6 +27,10 @@ export type HostToolCorrelationInvocation = {
 };
 
 export type HostToolRelayTurn = {
+  readonly waitForToolCallAuthorization: (options: {
+    toolName: string;
+    input: Readonly<Record<string, unknown>>;
+  }) => Promise<boolean>;
   readonly emitToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -23,9 +42,12 @@ export type HostToolRelayTurn = {
     output: unknown;
     isError?: boolean;
   }) => void;
-  readonly requestToolResult: (
-    toolCallId: string,
-  ) => Promise<{ output: unknown; isError?: boolean }>;
+  readonly requestToolResult: (toolCallId: string) => Promise<{
+    output: unknown;
+    isError?: boolean;
+    toolResult?: ToolResultPart;
+  }>;
+  readonly emitWarning: (options: { message: string }) => void;
   readonly registerCorrelationInvocation: (
     options: HostToolCorrelationInvocation,
   ) => void;
@@ -34,6 +56,11 @@ export type HostToolRelayTurn = {
 
 export type HostToolRelay = {
   readonly url: string;
+  /**
+   * MCP endpoint that exposes the host tool catalog over Streamable HTTP.
+   * Only present when the relay was started with the `http` MCP transport.
+   */
+  readonly mcpUrl?: string;
   readonly credential: string;
   bindTurn(options: { turn: HostToolRelayTurn }): void;
   unbindTurn(options: { turn: HostToolRelayTurn }): void;
@@ -64,9 +91,13 @@ type CatalogState = {
 export async function startHostToolRelay({
   tools,
   serverName,
+  mcpTransport = 'stdio',
+  nonTextContentTypes = [],
 }: {
   tools: ReadonlyArray<HarnessV1BridgeToolWire>;
   serverName: string;
+  mcpTransport?: ACPHostToolMCPTransport;
+  nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
 }): Promise<HostToolRelay> {
   const state: CatalogState = {
     tools: [...tools],
@@ -81,19 +112,69 @@ export async function startHostToolRelay({
   let activeTurn: HostToolRelayTurn | undefined;
   let invocationOrder = 0;
   let closePromise: Promise<void> | undefined;
+  const mcpEndpoint: HostToolMCPHttpEndpoint | undefined =
+    mcpTransport === 'http'
+      ? createHostToolMCPHttpEndpoint({
+          tools: state.tools,
+          revision: state.revision,
+          invoke: ({ toolName, input, catalogRevision }) =>
+            handleInvocation({
+              body: {
+                requestId: randomUUID(),
+                toolName,
+                input,
+                catalogRevision,
+              },
+              state,
+              serverName,
+              nonTextContentTypes,
+              turn: activeTurn,
+              nextInvocationOrder: () => ++invocationOrder,
+            }),
+          onListTools: async ({ revision }) => {
+            acknowledgeCatalog({ state, revision });
+          },
+        })
+      : undefined;
   const server = createServer(async (request, response) => {
     try {
+      if (mcpEndpoint != null && request.url === HOST_TOOL_MCP_ENDPOINT_PATH) {
+        if (
+          !credentialsMatch({
+            expected: credential,
+            actual: request.headers.authorization,
+          })
+        ) {
+          throw new RelayRequestError({
+            status: 401,
+            message: 'Invalid host tool relay credential.',
+          });
+        }
+        await mcpEndpoint.handleRequest({
+          request,
+          response,
+          ...(request.method === 'POST'
+            ? { body: await readJSONBody({ request }) }
+            : {}),
+        });
+        return;
+      }
       const result = await handleRequest({
         request,
         credential,
         state,
         serverName,
+        nonTextContentTypes,
         turn: activeTurn,
         nextInvocationOrder: () => ++invocationOrder,
       });
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end(JSON.stringify(result));
     } catch (error) {
+      if (response.headersSent) {
+        response.end();
+        return;
+      }
       const status = error instanceof RelayRequestError ? error.status : 500;
       response.writeHead(status, { 'content-type': 'application/json' });
       response.end(
@@ -108,6 +189,11 @@ export async function startHostToolRelay({
 
   return {
     url: `http://127.0.0.1:${address.port}/invoke`,
+    ...(mcpEndpoint == null
+      ? {}
+      : {
+          mcpUrl: `http://127.0.0.1:${address.port}${HOST_TOOL_MCP_ENDPOINT_PATH}`,
+        }),
     credential,
     bindTurn: ({ turn }) => {
       if (activeTurn != null && activeTurn !== turn) {
@@ -127,6 +213,10 @@ export async function startHostToolRelay({
       state.fingerprint = fingerprint;
       state.revision += 1;
       resolveCatalogChanges({ state });
+      void mcpEndpoint?.updateCatalog({
+        revision: state.revision,
+        tools: state.tools,
+      });
       return { changed: true, revision: state.revision };
     },
     waitForCatalogRefresh: ({ revision, timeoutMs }) =>
@@ -136,7 +226,10 @@ export async function startHostToolRelay({
       state.closed = true;
       resolveCatalogChanges({ state });
       resolveRefreshWaiters({ state, closing: true });
-      closePromise = closeServer({ server });
+      closePromise = (async () => {
+        await mcpEndpoint?.close();
+        await closeServer({ server });
+      })();
       return closePromise;
     },
   };
@@ -147,6 +240,7 @@ async function handleRequest({
   credential,
   state,
   serverName,
+  nonTextContentTypes,
   turn,
   nextInvocationOrder,
 }: {
@@ -154,6 +248,7 @@ async function handleRequest({
   credential: string;
   state: CatalogState;
   serverName: string;
+  nonTextContentTypes: NonNullable<ACPV1Settings['nonTextContentTypes']>;
   turn: HostToolRelayTurn | undefined;
   nextInvocationOrder: () => number;
 }): Promise<unknown> {
@@ -186,6 +281,7 @@ async function handleRequest({
       body,
       state,
       serverName,
+      nonTextContentTypes,
       turn,
       nextInvocationOrder,
     });
@@ -243,29 +339,39 @@ function handleCatalogSeen({
       message: 'Invalid host tool catalog acknowledgment.',
     });
   }
-  state.servedRevision = Math.max(
-    state.servedRevision,
-    body.revision as number,
-  );
-  resolveRefreshWaiters({ state, closing: false });
+  acknowledgeCatalog({ state, revision: body.revision as number });
   return { acknowledged: true };
+}
+
+function acknowledgeCatalog({
+  state,
+  revision,
+}: {
+  state: CatalogState;
+  revision: number;
+}): void {
+  state.servedRevision = Math.max(state.servedRevision, revision);
+  resolveRefreshWaiters({ state, closing: false });
 }
 
 async function handleInvocation({
   body,
   state,
   serverName,
+  nonTextContentTypes,
   turn,
   nextInvocationOrder,
 }: {
   body: unknown;
   state: CatalogState;
   serverName: string;
+  nonTextContentTypes: NonNullable<ACPV1Settings['nonTextContentTypes']>;
   turn: HostToolRelayTurn | undefined;
   nextInvocationOrder: () => number;
 }): Promise<{
   output: unknown;
   isError?: boolean;
+  toolResult?: ToolResultPart;
   correlationToken: string;
 }> {
   if (turn == null) {
@@ -304,6 +410,18 @@ async function handleInvocation({
     });
   }
 
+  if (
+    !(await turn.waitForToolCallAuthorization({
+      toolName: tool.name,
+      input: body.input,
+    }))
+  ) {
+    throw new RelayRequestError({
+      status: 401,
+      message: 'Unauthorized host tool relay request.',
+    });
+  }
+
   const correlationToken = randomBytes(32).toString('hex');
   turn.registerCorrelationInvocation({
     token: correlationToken,
@@ -317,12 +435,32 @@ async function handleInvocation({
     toolName: tool.name,
     input: body.input,
   });
-  let result: { output: unknown; isError?: boolean };
+  let result: {
+    output: unknown;
+    isError?: boolean;
+    toolResult?: ToolResultPart;
+  };
   try {
     result = await turn.requestToolResult(body.requestId);
   } catch (error) {
     turn.removeCorrelationInvocation({ token: correlationToken });
     throw error;
+  }
+  let toolResult = result.toolResult;
+  if (
+    toolResult?.output.type === 'content' &&
+    !nonTextContentTypes.includes('image')
+  ) {
+    const original = toolResult.output.value;
+    const value = original.filter(
+      part => !(part.type === 'file' && part.mediaType.startsWith('image/')),
+    );
+    if (value.length !== original.length) {
+      toolResult = { ...toolResult, output: { ...toolResult.output, value } };
+      turn.emitWarning({
+        message: `Image content in tool model output for '${tool.name}' was omitted because this ACP harness does not declare image support.`,
+      });
+    }
   }
   turn.emitToolResult({
     toolCallId: body.requestId,
@@ -332,6 +470,7 @@ async function handleInvocation({
   });
   return {
     output: result.output,
+    ...(toolResult == null ? {} : { toolResult }),
     ...(result.isError ? { isError: true } : {}),
     correlationToken,
   };
@@ -414,20 +553,7 @@ export function catalogFingerprint({
 }: {
   tools: ReadonlyArray<HarnessV1BridgeToolWire>;
 }): string {
-  return JSON.stringify(canonicalizeJSON({ value: tools }));
-}
-
-function canonicalizeJSON({ value }: { value: unknown }): unknown {
-  if (Array.isArray(value)) {
-    return value.map(item => canonicalizeJSON({ value: item }));
-  }
-  if (!isRecord(value)) return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort()
-      .filter(key => value[key] !== undefined)
-      .map(key => [key, canonicalizeJSON({ value: value[key] })]),
-  );
+  return canonicalFingerprint({ value: tools });
 }
 
 async function readJSONBody({

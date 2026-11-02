@@ -37,17 +37,19 @@ configuration.
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: deepAgents,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
+  model: 'anthropic/claude-sonnet-4-6',
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -66,6 +68,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -79,22 +82,33 @@ Vercel Sandbox, and one of the variables listed under
 Use `createDeepAgents()` to configure the runtime:
 
 ```ts
-const harness = createDeepAgents({
-  model: 'claude-sonnet-4',
-});
+const harness = createDeepAgents({ recursionLimit: 100 });
 ```
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `anthropic`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `anthropic`, or `ai-gateway`) or an
+  isolated authentication environment.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
-- `model`: model id passed to the Deep Agents (LangChain) runtime. Through AI
-  Gateway, use the `creator/model` slug (e.g. `anthropic/claude-sonnet-4-6`,
-  `google/gemini-2.5-flash`, `openai/gpt-4.1-mini`).
 - `port`: bridge port override.
 - `recursionLimit`: maximum LangGraph super-steps per turn. When omitted, the
   Deep Agents default applies.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
@@ -137,11 +151,25 @@ Supported environment variables:
 To run a non-Anthropic model, select `ai-gateway`:
 
 ```ts
-const harness = createDeepAgents({
+const harness = createDeepAgents({ auth: 'ai-gateway' });
+const agent = new HarnessAgent({
+  harness,
   model: 'google/gemini-2.5-flash',
-  auth: 'ai-gateway',
+  sandbox,
 });
 ```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createDeepAgents({
+  auth: { ANTHROPIC_API_KEY: await resolveAnthropicToken() },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Only recognized authentication variables are forwarded.
 
 ## Sandbox
 
@@ -149,9 +177,10 @@ Deep Agents requires a network sandbox with at least one exposed port,
 e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
 ```
 

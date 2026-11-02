@@ -27,6 +27,21 @@ and response primitives.
       href: '/providers/ai-sdk-harnesses/codex',
     },
     {
+      title: 'Cursor',
+      description: 'Use Cursor through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/cursor',
+    },
+    {
+      title: 'fx',
+      description: 'Use fx through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/fx',
+    },
+    {
+      title: 'GitHub Copilot',
+      description: 'Use GitHub Copilot through the AI SDK harness abstraction.',
+      href: '/providers/ai-sdk-harnesses/github-copilot',
+    },
+    {
       title: 'Grok Build',
       description: 'Use Grok Build through the AI SDK harness abstraction.',
       href: '/providers/ai-sdk-harnesses/grok-build',
@@ -57,15 +72,27 @@ All harness adapters are used with `HarnessAgent`:
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: codex,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
+  model: 'gpt-5.6-luna',
 });
+
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+try {
+  console.log(
+    (await agent.generate({ session, prompt: 'Inspect this project.' })).text,
+  );
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+}
 ```
 
 Read the [Harnesses](/docs/ai-sdk-harnesses) documentation for sessions,

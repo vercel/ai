@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { renderMarkdown } from './markdown';
 
 describe('renderMarkdown', () => {
+  it('escapes untrusted controls before adding Markdown styles', () => {
+    expect(renderMarkdown('**safe** \x1b[8mhidden\x1b[0m')).toBe(
+      '\x1b[1msafe\x1b[22m \\u001b[8mhidden\\u001b[0m',
+    );
+  });
+
   it('renders common markdown blocks as terminal text', () => {
     expect(
       renderMarkdown(

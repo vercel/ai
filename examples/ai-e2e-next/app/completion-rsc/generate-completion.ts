@@ -6,7 +6,7 @@ import { createStreamableValue } from '@ai-sdk/rsc';
 
 export async function generateCompletion(prompt: string) {
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     maxOutputTokens: 2000,
     prompt,
   });

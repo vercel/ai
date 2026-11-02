@@ -12,15 +12,32 @@ export type ACPInitializeResult = {
   readonly agentCapabilities?: Readonly<Record<string, unknown>> | null;
 };
 
+export function isACPImagePromptSupported({
+  initialization,
+  nonTextContentTypes,
+}: {
+  initialization: ACPInitializeResult;
+  nonTextContentTypes?: ReadonlyArray<'image'>;
+}): boolean {
+  const promptCapabilities =
+    initialization.agentCapabilities?.promptCapabilities;
+  return (
+    (isRecord(promptCapabilities) && promptCapabilities.image === true) ||
+    nonTextContentTypes?.includes('image') === true
+  );
+}
+
 export function createACPInitializeRequest({
   protocolVersion,
   clientApp,
   authentication,
+  clientCapabilities: configuredClientCapabilities,
   supportsBooleanSessionConfigOptions = false,
 }: {
   protocolVersion: number;
   clientApp: ACPClientApp;
   authentication: ACPAuthentication | undefined;
+  clientCapabilities?: Readonly<Record<string, unknown>>;
   supportsBooleanSessionConfigOptions?: boolean;
 }): {
   readonly protocolVersion: number;
@@ -30,8 +47,10 @@ export function createACPInitializeRequest({
   };
   readonly clientCapabilities: Readonly<Record<string, unknown>>;
 } {
-  let clientCapabilities: Readonly<Record<string, unknown>> =
-    authentication?.clientCapabilities ?? {};
+  let clientCapabilities = mergeRecords({
+    left: authentication?.clientCapabilities ?? {},
+    right: configuredClientCapabilities ?? {},
+  });
   if (supportsBooleanSessionConfigOptions) {
     clientCapabilities = mergeRecords({
       left: clientCapabilities,

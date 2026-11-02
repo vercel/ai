@@ -16,6 +16,7 @@ run(async () => {
         duration: 5,
         providerOptions: {
           minimax: {
+            resolution: '768P',
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies MiniMaxVideoModelOptions,
         },

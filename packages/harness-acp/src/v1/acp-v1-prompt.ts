@@ -2,121 +2,77 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
 import { z } from 'zod/v4';
 
-export const acpTextContentBlockSchema = z.object({
-  type: z.literal('text'),
-  text: z.string(),
-});
+export const acpContentBlockSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('text'),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('image'),
+    data: z.string(),
+    mimeType: z.string(),
+  }),
+]);
 
-export type ACPTextContentBlock = z.infer<typeof acpTextContentBlockSchema>;
+export type ACPContentBlock = z.infer<typeof acpContentBlockSchema>;
 
-export type ACPSkillCatalogEntry = {
-  readonly name: string;
-  readonly description: string;
-  readonly path: string;
-};
-
-export function convertHarnessPromptToACPTextBlocks({
+export function convertHarnessPromptToACPContentBlocks({
   prompt,
   harnessId,
 }: {
   prompt: HarnessV1Prompt;
   harnessId: string;
-}): ACPTextContentBlock[] {
+}): ACPContentBlock[] {
   if (typeof prompt === 'string') {
     return [{ type: 'text', text: prompt }];
   }
   if (typeof prompt.content === 'string') {
     return [{ type: 'text', text: prompt.content }];
   }
+  if (prompt.content.every(part => part.type === 'text')) {
+    return prompt.content.map(part => ({ type: 'text', text: part.text }));
+  }
 
-  const content: ACPTextContentBlock[] = [];
-  for (const part of prompt.content) {
-    if (part.type === 'text') {
-      content.push({ type: 'text', text: part.text });
-      continue;
-    }
-    if (part.type === 'image') {
-      throw unsupportedPromptContent({
-        harnessId,
-        category: 'image content',
-      });
-    }
-    if (part.type === 'file') {
-      const mediaCategory = part.mediaType.toLowerCase().split('/', 1)[0];
-      if (mediaCategory === 'image') {
-        throw unsupportedPromptContent({
-          harnessId,
-          category: 'image content',
-        });
-      }
-      if (mediaCategory === 'audio') {
-        throw unsupportedPromptContent({
-          harnessId,
-          category: 'audio content',
-        });
-      }
-      throw unsupportedPromptContent({
-        harnessId,
-        category: `embedded resource content with media type ${JSON.stringify(part.mediaType)}`,
-      });
-    }
-    throw unsupportedPromptContent({
+  try {
+    const extractedContent = extractHarnessPromptContent({ prompt });
+    const content = extractedContent as Exclude<
+      typeof extractedContent,
+      string
+    >;
+    return content.map(part =>
+      part.type === 'text'
+        ? { type: 'text', text: part.text }
+        : { type: 'image', data: part.data, mimeType: part.mediaType },
+    );
+  } catch (cause) {
+    if (!HarnessCapabilityUnsupportedError.isInstance(cause)) throw cause;
+    throw new HarnessCapabilityUnsupportedError({
       harnessId,
-      category: `content parts of type ${JSON.stringify(
-        (part as { readonly type?: unknown }).type,
-      )}`,
+      message: cause.message,
+      cause,
     });
   }
-  return content;
 }
 
-export function prependACPInitialGuidance({
+export function prependACPInstructionGuidance({
   prompt,
   instructions,
-  skills,
 }: {
-  prompt: ReadonlyArray<ACPTextContentBlock>;
+  prompt: ReadonlyArray<ACPContentBlock>;
   instructions: string | undefined;
-  skills: ReadonlyArray<ACPSkillCatalogEntry>;
-}): ACPTextContentBlock[] {
+}): ACPContentBlock[] {
   const hasInstructions = instructions != null && instructions.length > 0;
-  if (!hasInstructions && skills.length === 0) return [...prompt];
+  if (!hasInstructions) return [...prompt];
 
   const lines = [
     '<session-guidance>',
     'This block is operating guidance from the harness, not user-authored content.',
   ];
-  if (hasInstructions) {
-    lines.push('<instructions>', instructions, '</instructions>');
-  }
-  if (skills.length > 0) {
-    lines.push(
-      '<available-skills>',
-      'Load a skill only when relevant by reading its SKILL.md file at the listed absolute path.',
-    );
-    for (const skill of skills) {
-      lines.push(`- ${skill.name}: ${skill.description} (${skill.path})`);
-    }
-    lines.push('</available-skills>');
-  }
+  lines.push('<instructions>', instructions, '</instructions>');
   lines.push('</session-guidance>');
 
   return [{ type: 'text', text: lines.join('\n') }, ...prompt];
-}
-
-function unsupportedPromptContent({
-  harnessId,
-  category,
-}: {
-  harnessId: string;
-  category: string;
-}): HarnessCapabilityUnsupportedError {
-  return new HarnessCapabilityUnsupportedError({
-    harnessId,
-    message:
-      `The ${harnessId} ACP harness supports only portable text prompts and does not support ${category}. ` +
-      'Pass a string or a user message whose content contains only text parts.',
-  });
 }

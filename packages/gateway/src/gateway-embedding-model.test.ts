@@ -63,6 +63,33 @@ describe('GatewayEmbeddingModel', () => {
   }
 
   describe('doEmbed', () => {
+    it('should forward dimensions alongside provider options for server-side resolution', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({
+        values: testValues,
+        dimensions: 256,
+        providerOptions: { openai: { dimensions: 512 } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        values: testValues,
+        dimensions: 256,
+        providerOptions: { openai: { dimensions: 512 } },
+      });
+    });
+
+    it('should forward dimensions without provider options', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({ values: testValues, dimensions: 256 });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        values: testValues,
+        dimensions: 256,
+      });
+    });
+
     it('should pass headers correctly', async () => {
       prepareJsonResponse();
 

@@ -74,6 +74,43 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
 
+      it('should preserve custom meta keywords such as propertyOrdering', () => {
+        const schema = zodSchema(
+          z4
+            .object({
+              zebra: z4.string(),
+              apple: z4
+                .object({
+                  yellow: z4.string(),
+                  banana: z4.string(),
+                })
+                .meta({ propertyOrdering: ['banana', 'yellow'] }),
+            })
+            .meta({ propertyOrdering: ['apple', 'zebra'] }),
+        );
+
+        expect(schema.jsonSchema).toEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            zebra: { type: 'string' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              required: ['yellow', 'banana'],
+              additionalProperties: false,
+              propertyOrdering: ['banana', 'yellow'],
+            },
+          },
+          required: ['zebra', 'apple'],
+          additionalProperties: false,
+          propertyOrdering: ['apple', 'zebra'],
+        });
+      });
+
       it('should support arrays', () => {
         const schema = zodSchema(
           z4.object({
@@ -205,6 +242,52 @@ describe('zodSchema', () => {
         );
 
         expect(schema.jsonSchema).toMatchSnapshot();
+      });
+
+      it('should preserve record value schemas', () => {
+        const schema = zodSchema(
+          z4.object({
+            values: z4.record(z4.string(), z4.string()),
+          }),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            values: {
+              type: 'object',
+              propertyNames: {
+                type: 'string',
+              },
+              additionalProperties: {
+                type: 'string',
+              },
+            },
+          },
+          required: ['values'],
+        });
+      });
+
+      it('should preserve object catchall schemas', () => {
+        const schema = zodSchema(
+          z4.object({ known: z4.string() }).catchall(z4.number()),
+        );
+
+        expect(schema.jsonSchema).toStrictEqual({
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          additionalProperties: {
+            type: 'number',
+          },
+          properties: {
+            known: {
+              type: 'string',
+            },
+          },
+          required: ['known'],
+        });
       });
     });
 

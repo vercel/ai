@@ -1,15 +1,18 @@
 import { createHash } from 'node:crypto';
-import { getAiGatewayAuthFromEnv } from '@ai-sdk/harness/utils';
+import {
+  getAiGatewayAuthFromEnv,
+  isHarnessAuthenticationEnvironment,
+} from '@ai-sdk/harness/utils';
 import type {
   ACPAuthentication,
+  ACPAuthenticationMode as ACPV1AuthenticationMode,
   ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
 } from './v1';
 import type { ACPResolvedProviderAuthentication } from './v1/bridge/acp-v1-bridge-environment';
 
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
-export type ACPAuthOptions = ACPProviderAuthenticationMode;
+export type ACPAuthenticationMode = ACPV1AuthenticationMode;
 
 export type ACPClientApp = {
   readonly name: string;
@@ -17,7 +20,7 @@ export type ACPClientApp = {
 };
 
 type ACPAuthResolutionOptions = {
-  readonly mode?: ACPAuthOptions;
+  readonly mode?: ACPAuthenticationMode;
   readonly providerAuthentication: ACPProviderAuthentication | undefined;
   readonly clientApp: ACPClientApp;
 };
@@ -102,6 +105,10 @@ export function resolveACPProviderAuthentication({
     AI_SDK_ACP_CLIENT_APP_NAME: auth.clientApp.name,
     AI_SDK_ACP_CLIENT_APP_VERSION: auth.clientApp.version,
   };
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
+    auth: auth.mode,
+    env,
+  });
   const providerAuthentication = auth.providerAuthentication;
   if (providerAuthentication == null) {
     return { providerAuthentication: undefined, env: clientAppEnv };
@@ -114,7 +121,7 @@ export function resolveACPProviderAuthentication({
     };
   }
 
-  const mode = auth.mode ?? 'auto';
+  const mode = resolveACPProviderAuthenticationMode(auth.mode);
   if (mode === 'direct') {
     return {
       providerAuthentication: { type: 'direct' },
@@ -126,12 +133,12 @@ export function resolveACPProviderAuthentication({
     compatibility?.type === 'ai-gateway'
       ? {
           apiKey: resolveGatewayCredential({
-            env,
+            env: resolvedEnv,
             credentialSource: compatibility.credentialSource,
           }),
           baseUrl: compatibility.baseUrl,
         }
-      : getAiGatewayAuthFromEnv({ env });
+      : getAiGatewayAuthFromEnv({ env: resolvedEnv });
   const apiKey = gateway.apiKey;
   if (compatibility == null && mode === 'auto' && apiKey == null) {
     return {
@@ -166,20 +173,22 @@ export function resolveACPProviderAuthenticationCompatibility({
   providerAuthentication,
   env,
 }: {
-  auth?: ACPProviderAuthenticationMode;
+  auth?: ACPAuthenticationMode;
   providerAuthentication: ACPProviderAuthentication | undefined;
   env: Record<string, string | undefined>;
 }): ACPProviderAuthenticationCompatibility | undefined {
+  const resolvedEnv = resolveACPAuthenticationEnvironment({
+    auth,
+    env,
+  });
   if (providerAuthentication == null) return undefined;
 
-  const mode = auth;
+  const mode = resolveACPProviderAuthenticationMode(auth);
   if (mode === 'direct') {
     return { type: 'direct', mode };
   }
 
-  const credentialSource = resolveGatewayCredentialSource({
-    env,
-  });
+  const credentialSource = resolveGatewayCredentialSource({ env: resolvedEnv });
   if (mode === 'auto' && credentialSource == null) {
     return { type: 'direct', mode };
   }
@@ -189,8 +198,24 @@ export function resolveACPProviderAuthenticationCompatibility({
     mode,
     env: providerAuthentication.gateway.env,
     credentialSource,
-    baseUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
+    baseUrl: resolvedEnv.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
   };
+}
+
+function resolveACPProviderAuthenticationMode(
+  auth: ACPAuthenticationMode | undefined,
+): Extract<ACPAuthenticationMode, string> {
+  return typeof auth === 'string' || auth == null ? (auth ?? 'auto') : 'auto';
+}
+
+export function resolveACPAuthenticationEnvironment({
+  auth,
+  env,
+}: {
+  auth: ACPAuthenticationMode | undefined;
+  env: Record<string, string | undefined>;
+}): Record<string, string | undefined> {
+  return isHarnessAuthenticationEnvironment(auth) ? auth : env;
 }
 
 export function resolveACPEnv({

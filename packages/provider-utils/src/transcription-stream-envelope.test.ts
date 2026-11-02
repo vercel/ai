@@ -286,6 +286,7 @@ describe('parseTranscriptionStreamPart', () => {
       text: 'Hello',
       segments: [{ text: 'Hello', startSecond: 0, endSecond: 1 }],
       language: 'en',
+      usage: { inputTokens: 3 },
     },
   ])('should round-trip a $type part', part => {
     expect(

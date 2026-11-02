@@ -11,7 +11,6 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { cline } from '@ai-sdk/harness-cline';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherClineHarnessAgent = new HarnessAgent({
@@ -19,9 +18,6 @@ export const weatherClineHarnessAgent = new HarnessAgent({
   instructions: weatherInstructions,
   skills: [weatherForecastSkill, weatherCodesSkill],
   tools: { get_weather: weatherTool },
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-  }),
   sandboxConfig: {
     onSession: async ({ session, sessionWorkDir, abortSignal }) => {
       await session.writeTextFile({

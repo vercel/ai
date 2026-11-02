@@ -5,17 +5,6 @@ import type {
   ToolApprovalResponse,
 } from '@ai-sdk/provider-utils';
 
-export type HarnessAgentToolApprovalContinuation = {
-  readonly approvalResponse: ToolApprovalResponse;
-  readonly toolCall: {
-    readonly type: 'tool-call';
-    readonly toolCallId: string;
-    readonly toolName: string;
-    readonly input: unknown;
-    readonly providerExecuted?: boolean;
-  };
-};
-
 /**
  * Extract approval decisions that should continue a suspended harness turn.
  *
@@ -25,17 +14,17 @@ export type HarnessAgentToolApprovalContinuation = {
  * locally to find the original tool call before it can resume the paused turn.
  * Responses that already have a tool result are ignored, because those
  * approvals were already consumed by a prior continuation.
+ * An `execution-denied` result is synthesized by `convertToModelMessages`
+ * for a newly denied approval; it does not mean the harness has received
+ * the decision, so that approval response must still continue the turn.
  */
 export function collectHarnessAgentToolApprovalContinuations(input: {
   messages: readonly ModelMessage[];
-}): readonly HarnessAgentToolApprovalContinuation[] {
+}): readonly ToolApprovalResponse[] {
   const lastMessage = input.messages.at(-1);
   if (lastMessage?.role !== 'tool') return [];
 
-  const toolCallsByToolCallId = new Map<
-    string,
-    HarnessAgentToolApprovalContinuation['toolCall']
-  >();
+  const toolCallIds = new Set<string>();
   const approvalRequestsByApprovalId = new Map<string, ToolApprovalRequest>();
   for (const message of input.messages) {
     if (message.role !== 'assistant' || typeof message.content === 'string') {
@@ -43,15 +32,7 @@ export function collectHarnessAgentToolApprovalContinuations(input: {
     }
     for (const part of message.content) {
       if (part.type === 'tool-call') {
-        toolCallsByToolCallId.set(part.toolCallId, {
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
-          ...(part.providerExecuted !== undefined
-            ? { providerExecuted: part.providerExecuted }
-            : {}),
-        });
+        toolCallIds.add(part.toolCallId);
       } else if (part.type === 'tool-approval-request') {
         approvalRequestsByApprovalId.set(part.approvalId, part);
       }
@@ -60,12 +41,15 @@ export function collectHarnessAgentToolApprovalContinuations(input: {
 
   const toolResultIds = new Set<string>();
   for (const part of lastMessage.content) {
-    if (part.type === 'tool-result') {
+    if (
+      part.type === 'tool-result' &&
+      part.output.type !== 'execution-denied'
+    ) {
       toolResultIds.add(part.toolCallId);
     }
   }
 
-  const continuations: HarnessAgentToolApprovalContinuation[] = [];
+  const continuations: ToolApprovalResponse[] = [];
   for (const part of lastMessage.content) {
     if (part.type !== 'tool-approval-response') continue;
 
@@ -77,17 +61,13 @@ export function collectHarnessAgentToolApprovalContinuations(input: {
     }
     if (toolResultIds.has(approvalRequest.toolCallId)) continue;
 
-    const toolCall = toolCallsByToolCallId.get(approvalRequest.toolCallId);
-    if (toolCall == null) {
+    if (!toolCallIds.has(approvalRequest.toolCallId)) {
       throw new HarnessError({
         message: `Tool approval request '${approvalRequest.approvalId}' references unknown tool call '${approvalRequest.toolCallId}'.`,
       });
     }
 
-    continuations.push({
-      approvalResponse: part,
-      toolCall,
-    });
+    continuations.push(part);
   }
 
   return continuations;

@@ -1,6 +1,9 @@
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
-import { throwIfOpenAIStreamErrorBeforeOutput } from './openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from './openai-stream-error';
 
 type TestChunk =
   | { type: 'created' }
@@ -219,6 +222,82 @@ describe('throwIfOpenAIStreamErrorBeforeOutput', () => {
         { type: 'accepted' },
         { type: 'output', text: 'hello' },
       ]);
+    });
+  });
+});
+
+describe('createOpenAIProviderStreamError', () => {
+  it('classifies a documented top-level rate-limit event', () => {
+    const data = {
+      type: 'error',
+      code: 'rate_limit_exceeded',
+      message: 'Rate limit reached',
+      param: null,
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'Rate limit reached',
+      type: 'error',
+      code: 'rate_limit_exceeded',
+      statusCode: 429,
+      isRetryable: true,
+      data,
+    });
+  });
+
+  it('classifies insufficient quota as non-retryable', () => {
+    const data = {
+      type: 'error',
+      code: 'insufficient_quota',
+      message: 'You exceeded your current quota.',
+      param: null,
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'You exceeded your current quota.',
+      type: 'error',
+      code: 'insufficient_quota',
+      statusCode: 429,
+      isRetryable: false,
+      data,
+    });
+  });
+
+  it('preserves the provider type when code is an HTTP status', () => {
+    const data = {
+      type: 'rate_limit_error',
+      code: '429',
+      message: 'Rate limit reached',
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'Rate limit reached',
+      type: 'rate_limit_error',
+      code: '429',
+      statusCode: 429,
+      isRetryable: true,
+      data,
+    });
+  });
+
+  it('classifies a response.failed server error by its provider code', () => {
+    const data = {
+      type: 'response.failed',
+      response: {
+        error: {
+          code: 'server_error',
+          message: 'Response failed',
+        },
+      },
+    };
+
+    expect(createOpenAIProviderStreamError(data)).toMatchObject({
+      message: 'Response failed',
+      type: 'response.failed',
+      code: 'server_error',
+      statusCode: 500,
+      isRetryable: true,
+      data,
     });
   });
 });

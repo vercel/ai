@@ -62,6 +62,49 @@ describe('generateObject', () => {
 
   describe('output = "object"', () => {
     describe('result.object', () => {
+      it('should parse structured output text while preserving raw callback text and response metadata', async () => {
+        const draft = '{"content":"draft"}';
+        const finalAnswer = '{"content":"final"}';
+        const responseBody = { output: [draft, finalAnswer] };
+        const onStepEnd = vi.fn();
+
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'reasoning', text: 'Checking both answers.' },
+                { type: 'text', text: draft },
+                { type: 'text', text: finalAnswer },
+              ],
+              structuredOutputText: finalAnswer,
+              response: {
+                ...dummyResponseValues.response,
+                body: responseBody,
+              },
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepEnd,
+        });
+
+        expect(result.object).toEqual({ content: 'final' });
+        expect(result.reasoning).toBe('Checking both answers.');
+        expect(result.response.body).toEqual(responseBody);
+        expect(result.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
+        expect(onStepEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            objectText: draft + finalAnswer,
+            reasoning: 'Checking both answers.',
+            response: result.response,
+            usage: result.usage,
+          }),
+        );
+      });
+
       it('should generate object', async () => {
         const model = new MockLanguageModelV4({
           doGenerate: {
@@ -73,6 +116,16 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+        });
+
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'generateObject',
+              message: 'Use generateText with an output setting instead.',
+            },
+          ],
         });
 
         expect(result.object).toMatchInlineSnapshot(`
@@ -210,8 +263,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -231,8 +284,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',

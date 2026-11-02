@@ -8,9 +8,10 @@ import {
   type ACPTurnStartConfig,
   type StartMessage,
 } from './acp-v1-bridge-protocol';
-import type { ACPTextContentBlock } from './acp-v1-prompt';
+import type { ACPContentBlock } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
+  ACPModelMapping,
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPSerializableValue,
@@ -29,8 +30,10 @@ export function createACPTurnStartConfig({
   instructionMapping,
   responseFormat,
   outputSchemaMapping,
+  model,
+  modelMapping,
 }: {
-  prompt: ReadonlyArray<ACPTextContentBlock>;
+  prompt: ReadonlyArray<ACPContentBlock>;
   tools: ReadonlyArray<HarnessV1ToolSpec>;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
@@ -42,6 +45,8 @@ export function createACPTurnStartConfig({
   instructionMapping: ACPInstructionMapping | undefined;
   responseFormat: StartMessage['responseFormat'];
   outputSchemaMapping: ACPOutputSchemaMapping | undefined;
+  model: string | undefined;
+  modelMapping: ACPModelMapping;
 }): ACPTurnStartConfig {
   return {
     version: 1,
@@ -52,6 +57,7 @@ export function createACPTurnStartConfig({
           sessionMeta: sessionMeta ?? null,
           ...(instructionMapping == null ? {} : { instructionMapping }),
           ...(outputSchemaMapping == null ? {} : { outputSchemaMapping }),
+          modelMapping,
           builtinTools,
           permissionModeMapping: permissionModeMapping ?? null,
           mcpServers: mcpServers ?? null,
@@ -62,6 +68,7 @@ export function createACPTurnStartConfig({
     tools: tools.map(tool => acpSerializableToolSpecSchema.parse(tool)),
     builtinTools: [...builtinTools],
     permissionMode,
+    ...(model == null ? {} : { model, modelMapping }),
     ...(responseFormat == null ? {} : { responseFormat }),
     ...(outputSchemaMapping == null
       ? {}
@@ -78,10 +85,8 @@ export function createACPTurnStartConfig({
 
 export function createACPColdSessionState({
   turnStartConfig,
-  modelId,
 }: {
   turnStartConfig: ACPTurnStartConfig;
-  modelId: string | undefined;
 }): ACPColdSessionState {
   return {
     version: turnStartConfig.version,
@@ -98,7 +103,6 @@ export function createACPColdSessionState({
     ...(turnStartConfig.permissionModeMapping == null
       ? {}
       : { permissionModeMapping: turnStartConfig.permissionModeMapping }),
-    ...(modelId == null ? {} : { modelId }),
   };
 }
 

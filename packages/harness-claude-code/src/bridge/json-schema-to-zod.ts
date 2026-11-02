@@ -5,7 +5,17 @@ type JsonLiteral = string | number | boolean | null;
 export type JsonSchemaObject = {
   type?: string | string[];
   description?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  default?: unknown;
   properties?: Record<string, JsonSchemaObject>;
+  additionalProperties?: boolean | JsonSchemaObject;
   required?: string[];
   items?: JsonSchemaObject | JsonSchemaObject[];
   enum?: unknown[];
@@ -17,14 +27,26 @@ export type JsonSchemaObject = {
 
 type ZodShape = Record<string, z.ZodTypeAny>;
 
-export function jsonSchemaToZodShape(input: unknown): ZodShape {
+export function jsonSchemaToZodObject(input: unknown) {
   const schema = isJsonSchemaObject(input) ? input : {};
-  return toZodShape(schema);
+  return withJsonSchemaMetadata(toZodObject(schema), schema);
+}
+
+function toZodObject(schema: JsonSchemaObject) {
+  const object = z.object(toZodShape(schema));
+  if (schema.additionalProperties === false) return object.strict();
+
+  // JSON Schema allows additional properties by default; Zod strips them.
+  return object.catchall(
+    isJsonSchemaObject(schema.additionalProperties)
+      ? toZodType(schema.additionalProperties)
+      : z.unknown(),
+  );
 }
 
 function toZodShape(schema: JsonSchemaObject | undefined): ZodShape {
   if (!schema?.properties) return {};
-  const required = new Set(schema.required ?? []);
+  const required = new Set(schema.required);
   const shape: ZodShape = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);
@@ -48,7 +70,28 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
 
   if (isNullable(schema)) zType = zType.nullable();
   if (schema.description) zType = zType.describe(schema.description);
-  return zType;
+  return withJsonSchemaMetadata(zType, schema);
+}
+
+function withJsonSchemaMetadata<Schema extends z.ZodTypeAny>(
+  zType: Schema,
+  schema: JsonSchemaObject,
+): Schema {
+  const metadata: Record<string, unknown> = {};
+  for (const key of [
+    'minimum',
+    'maximum',
+    'exclusiveMinimum',
+    'exclusiveMaximum',
+    'minLength',
+    'maxLength',
+    'minItems',
+    'maxItems',
+    'default',
+  ] as const) {
+    if (schema[key] !== undefined) metadata[key] = schema[key];
+  }
+  return zType.meta(metadata);
 }
 
 function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {
@@ -71,7 +114,7 @@ function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {
         Array.isArray(schema.items) ? z.any() : toZodType(schema.items),
       );
     case 'object':
-      return z.object(toZodShape(schema));
+      return toZodObject(schema);
     case 'null':
       return z.null();
     default:

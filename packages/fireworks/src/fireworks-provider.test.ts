@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
+import type { SharedV4Warning } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -122,6 +123,14 @@ describe('FireworksProvider', () => {
       expect(config.includeUsage).toBe(true);
     });
 
+    it('should set supportsStructuredOutputs so response_format json_schema is forwarded', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.supportsStructuredOutputs).toBe(true);
+    });
+
     // A schema that does not match what Fireworks actually returns fails the
     // parse, and the message silently degrades to the HTTP reason phrase —
     // "Bad Request" over HTTP/1.1, and "" over HTTP/2, which has none.
@@ -242,6 +251,70 @@ describe('FireworksProvider', () => {
       });
     });
 
+    it.each([
+      ['test-model', 'none', 'none', false],
+      ['test-model', 'minimal', 'minimal', false],
+      ['test-model', 'xhigh', 'xhigh', false],
+      ['test-model', 'max', 'max', false],
+      ['accounts/fireworks/models/kimi-k3', 'max', 'max', false],
+      ['accounts/fireworks/models/gpt-oss-120b', 'none', 'minimal', true],
+      ['accounts/fireworks/models/glm-5p3', 'none', 'minimal', true],
+      ['accounts/fireworks/routers/glm-5p3-fast', 'none', 'minimal', true],
+      ['accounts/fireworks/models/muse-spark-open', 'none', 'minimal', true],
+      [
+        'accounts/fireworks/models/nemotron-3-ultra-nvfp4',
+        'minimal',
+        'low',
+        true,
+      ],
+      ['accounts/fireworks/models/inkling', 'minimal', 'low', true],
+    ] as const)(
+      'should map top-level reasoning for %s from %s to reasoning_effort %s',
+      (modelId, reasoning, effort, hasWarning) => {
+        const provider = createFireworks();
+        provider.chatModel(modelId);
+
+        const constructorCall =
+          OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+        const mapReasoning = constructorCall[1].mapReasoning!;
+        const warnings: SharedV4Warning[] = [];
+
+        expect(mapReasoning({ reasoning, warnings })).toBe(effort);
+        expect(warnings).toStrictEqual(
+          hasWarning
+            ? [
+                {
+                  type: 'compatibility',
+                  feature: 'reasoning',
+                  details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${effort}".`,
+                },
+              ]
+            : [],
+        );
+      },
+    );
+
+    it('should pass through provider reasoning_effort values unchanged', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const transformRequestBody = constructorCall[1].transformRequestBody!;
+
+      expect(
+        transformRequestBody({
+          model: 'test-model',
+          messages: [],
+          reasoning_effort: 'max',
+        }),
+      ).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'max',
+      });
+    });
+
     it('should map promptCacheKey to prompt_cache_key', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
@@ -331,50 +404,6 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         service_tier: 'priority',
-      });
-    });
-
-    it('should remap reasoning_effort xhigh to high', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'xhigh',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'high',
-      });
-    });
-
-    it('should remap reasoning_effort minimal to low', () => {
-      const provider = createFireworks();
-      provider.chatModel('test-model');
-
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[1];
-      const transformRequestBody = config.transformRequestBody;
-
-      const result = transformRequestBody({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'minimal',
-      });
-
-      expect(result).toEqual({
-        model: 'test-model',
-        messages: [],
-        reasoning_effort: 'low',
       });
     });
 

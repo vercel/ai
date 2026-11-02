@@ -12,10 +12,52 @@ const prompt = 'The Loch Ness monster getting a manicure';
 const provider = createReplicate({ apiToken: 'test-api-token' });
 const model = provider.image('black-forest-labs/flux-schnell');
 
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'black-forest-labs/flux-fill-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: true,
+    },
+    {
+      modelId: 'black-forest-labs/flux-2-pro',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'custom/image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+    {
+      modelId: 'black-forest-labs/flux-2-custom',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+    {
+      modelId: 'black-forest-labs/flux-2-dev',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const capabilityModel = new ReplicateImageModel(modelId, {
+        provider: 'replicate.image',
+        baseURL: 'https://api.example.com',
+      });
+
+      expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+      expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
+});
+
 describe('doGenerate', () => {
   const testDate = new Date(2024, 0, 1);
   const server = createTestServer({
     'https://api.replicate.com/*': {},
+    'https://example.com/*': {},
     'https://replicate.delivery/*': {
       response: {
         type: 'binary',
@@ -26,7 +68,7 @@ describe('doGenerate', () => {
 
   function prepareResponse({
     output = ['https://replicate.delivery/xezq/abc/out-0.webp'],
-  }: { output?: string | Array<string> } = {}) {
+  }: { output?: string | Array<string> | null } = {}) {
     server.urls['https://api.replicate.com/*'].response = {
       type: 'json-value',
       body: {
@@ -140,7 +182,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/replicate/0.0.0-test`,
+      `ai-sdk-replicate/0.0.0-test`,
     );
   });
 
@@ -179,6 +221,8 @@ describe('doGenerate', () => {
       providerOptions: {
         replicate: {
           maxWaitTimeInSeconds: 120,
+          pollIntervalMillis: 10,
+          maxPollAttempts: 100,
           guidance_scale: 7.5,
         },
       },
@@ -186,6 +230,8 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.input.maxWaitTimeInSeconds).toBeUndefined();
+    expect(requestBody.input.pollIntervalMillis).toBeUndefined();
+    expect(requestBody.input.maxPollAttempts).toBeUndefined();
     expect(requestBody.input.guidance_scale).toBe(7.5);
   });
 
@@ -239,6 +285,218 @@ describe('doGenerate', () => {
     expect(server.calls[1].requestUrl).toStrictEqual(
       'https://replicate.delivery/xezq/abc/out-0.webp',
     );
+  });
+
+  it('should poll until output is available when the sync wait expires', async () => {
+    server.urls['https://api.replicate.com/*'].response = ({ callNumber }) => ({
+      type: 'json-value',
+      body: {
+        id: 'pending-prediction',
+        status:
+          callNumber === 0
+            ? 'starting'
+            : callNumber === 1
+              ? 'processing'
+              : 'succeeded',
+        output:
+          callNumber < 2
+            ? null
+            : ['https://replicate.delivery/xezq/abc/out-0.webp'],
+        error: null,
+        urls: {
+          get: 'https://api.replicate.com/v1/predictions/pending-prediction',
+        },
+      },
+    });
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        replicate: {
+          pollIntervalMillis: 1,
+          maxPollAttempts: 100,
+        },
+      },
+    });
+
+    expect(result.images).toStrictEqual([
+      new Uint8Array(Buffer.from('test-binary-content')),
+    ]);
+    expect(server.calls.map(call => call.requestMethod)).toStrictEqual([
+      'POST',
+      'GET',
+      'GET',
+      'GET',
+    ]);
+    expect(server.calls[1].requestUrl).toBe(
+      'https://api.replicate.com/v1/predictions/pending-prediction',
+    );
+    expect(server.calls[1].requestHeaders.authorization).toBe(
+      'Bearer test-api-token',
+    );
+  });
+
+  it('should not send credentials to a polling URL on a different origin', async () => {
+    server.urls['https://api.replicate.com/*'].response = {
+      type: 'json-value',
+      body: {
+        id: 'pending-prediction',
+        status: 'starting',
+        output: null,
+        error: null,
+        urls: {
+          get: 'https://example.com/predictions/pending-prediction',
+        },
+      },
+    };
+    server.urls['https://example.com/*'].response = {
+      type: 'json-value',
+      body: {
+        id: 'pending-prediction',
+        status: 'succeeded',
+        output: ['https://replicate.delivery/xezq/abc/out-0.webp'],
+        error: null,
+        urls: {
+          get: 'https://example.com/predictions/pending-prediction',
+        },
+      },
+    };
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        replicate: {
+          pollIntervalMillis: 1,
+          maxPollAttempts: 100,
+        },
+      },
+    });
+
+    expect(server.calls[1].requestUrl).toBe(
+      'https://example.com/predictions/pending-prediction',
+    );
+    expect(server.calls[1].requestHeaders.authorization).toBeUndefined();
+  });
+
+  it.each(['failed', 'canceled'] as const)(
+    'should throw when polling returns %s',
+    async status => {
+      server.urls['https://api.replicate.com/*'].response = ({
+        callNumber,
+      }) => ({
+        type: 'json-value',
+        body: {
+          id: 'pending-prediction',
+          status: callNumber === 0 ? 'starting' : status,
+          output: null,
+          error: callNumber === 0 ? null : 'Prediction did not complete',
+          urls: {
+            get: 'https://api.replicate.com/v1/predictions/pending-prediction',
+          },
+        },
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            replicate: {
+              pollIntervalMillis: 1,
+              maxPollAttempts: 100,
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidResponseDataError',
+        message: `Replicate image generation ${status}: Prediction did not complete`,
+      });
+    },
+  );
+
+  it('should throw when a succeeded prediction has no output', async () => {
+    server.urls['https://api.replicate.com/*'].response = {
+      type: 'json-value',
+      body: {
+        id: 'completed-prediction',
+        status: 'succeeded',
+        output: null,
+        error: null,
+        urls: {
+          get: 'https://api.replicate.com/v1/predictions/completed-prediction',
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message: 'Replicate image generation completed without output.',
+    });
+    expect(server.calls).toHaveLength(1);
+  });
+
+  it('should stop when the maximum polling attempts are reached', async () => {
+    server.urls['https://api.replicate.com/*'].response = {
+      type: 'json-value',
+      body: {
+        id: 'pending-prediction',
+        status: 'processing',
+        output: null,
+        error: null,
+        urls: {
+          get: 'https://api.replicate.com/v1/predictions/pending-prediction',
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          replicate: {
+            pollIntervalMillis: 1,
+            maxPollAttempts: 2,
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      'Replicate image generation did not complete after 2 polling attempts.',
+    );
+    expect(server.calls).toHaveLength(3);
   });
 
   it('should return response metadata', async () => {

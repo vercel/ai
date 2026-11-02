@@ -17,7 +17,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     messages: [
       {
         role: 'user',

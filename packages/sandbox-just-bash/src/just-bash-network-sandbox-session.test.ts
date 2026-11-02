@@ -1,6 +1,6 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import { Sandbox } from 'just-bash';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JustBashNetworkSandboxSession } from './just-bash-network-sandbox-session';
 
 describe('JustBashNetworkSandboxSession', () => {
@@ -9,7 +9,6 @@ describe('JustBashNetworkSandboxSession', () => {
   beforeEach(async () => {
     sandbox = new JustBashNetworkSandboxSession({
       sandbox: await Sandbox.create({ cwd: '/work' }),
-      ownsLifecycle: true,
     });
   });
 
@@ -23,5 +22,13 @@ describe('JustBashNetworkSandboxSession', () => {
     await expect(
       sandbox.getPortUrl({ port: 4319, protocol: 'ws' }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+  });
+
+  it('delegates destroy to stop', async () => {
+    const stop = vi.spyOn(sandbox, 'stop');
+
+    await sandbox.destroy();
+
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

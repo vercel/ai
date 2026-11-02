@@ -10,7 +10,7 @@ run(async () => {
     'Generating xAI image-to-video from a first frame...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt:
           'The comic cat stretches, yawns, and pads off across a sunlit room. ' +
           'Cinematic, warm afternoon light.',

@@ -81,7 +81,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/hume/0.0.0-test`,
+      `ai-sdk-hume/0.0.0-test`,
     );
   });
 
@@ -191,11 +191,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         text: 'Hello from the AI SDK!',
-        providerOptions: {
-          lmnt: {
-            format,
-          },
-        },
       });
 
       expect(result.audio).toStrictEqual(audio);

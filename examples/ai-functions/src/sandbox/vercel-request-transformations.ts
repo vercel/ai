@@ -1,16 +1,15 @@
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { run } from '../lib/run';
 
 const echoHost = 'httpbin.org';
 const injectedHeaderValue = 'injected-outside-the-sandbox';
 
 run(async () => {
-  const provider = createVercelSandbox({
+  const session = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     timeout: 10 * 60 * 1000,
     networkPolicy: 'deny-all',
   });
-  const session = await provider.createSession();
 
   try {
     if (session.addRequestTransformations == null) {
@@ -54,6 +53,6 @@ run(async () => {
 
     console.log(result.stdout);
   } finally {
-    await session.destroy?.();
+    await session.destroy();
   }
 });

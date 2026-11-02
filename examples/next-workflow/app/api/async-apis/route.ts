@@ -9,7 +9,7 @@ export const maxDuration = 800;
 
 function getErrorMessage(error: unknown): string {
   if (WorkflowRunFailedError.is(error)) {
-    return error.cause.message;
+    return getErrorMessage(error.cause);
   }
 
   return error instanceof Error ? error.message : String(error);

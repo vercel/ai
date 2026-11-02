@@ -43,7 +43,7 @@ export function asAsyncIterableStream<T>(
    * Implements the async iterator protocol for the stream.
    * Ensures proper cleanup (cancelling and releasing the reader) on completion, early exit, or error.
    */
-  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = function (
+  (stream as unknown as AsyncIterable<T>)[Symbol.asyncIterator] = function (
     this: ReadableStream<T>,
   ): AsyncIterator<T> {
     const reader = this.getReader();

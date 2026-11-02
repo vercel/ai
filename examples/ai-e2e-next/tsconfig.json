@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -105,6 +105,9 @@
     },
     {
       "path": "../../packages/rsc"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
     },
     {
       "path": "../../packages/valibot"

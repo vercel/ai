@@ -22,7 +22,7 @@ export async function POST(req: Request) {
      * The model to use for completion
      */
     const model = new ChatOpenAI({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1-mini',
       temperature: 0.7,
     });
 

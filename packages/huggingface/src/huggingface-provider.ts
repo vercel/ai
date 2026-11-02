@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -16,7 +18,7 @@ export interface HuggingFaceProviderSettings {
   /**
    * Hugging Face API key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -65,14 +67,15 @@ export function createHuggingFace(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://router.huggingface.co/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'HUGGINGFACE_API_KEY',
-      description: 'Hugging Face',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'HUGGINGFACE_API_KEY',
+        description: 'Hugging Face',
+      })}`,
+      ...options.headers,
+    }));
 
   const createResponsesModel = (modelId: HuggingFaceResponsesModelId) => {
     return new HuggingFaceResponsesLanguageModel(modelId, {

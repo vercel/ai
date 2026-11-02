@@ -6,6 +6,12 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
+  DecideEndEvent,
+  DecideStartEvent,
+  DecisionModelCallEndEvent,
+  DecisionModelCallStartEvent,
+} from '../decide/decide-events';
+import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
@@ -16,6 +22,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
 } from '../generate-text/generate-text-events';
 import type {
@@ -34,6 +41,16 @@ import type {
   RerankingModelCallEndEvent,
   RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
+import type {
+  GenerateSpeechEndEvent,
+  GenerateSpeechStartEvent,
+} from '../generate-speech/speech-events';
+import type {
+  StreamTranscriptionEndEvent,
+  StreamTranscriptionStartEvent,
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from '../transcribe/transcription-events';
 import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TelemetryTracingEventType } from './tracing-channel';
@@ -43,19 +60,33 @@ export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
     TelemetryOptions,
     'integrations' | 'isEnabled' | 'includeRuntimeContext'
-  >;
+  > & {
+    /**
+     * The version of the `ai` package that emitted this event.
+     * Absent in older releases.
+     */
+    readonly aiVersion?: string;
+  };
+
+type BivariantCallback<EVENT> = {
+  bivarianceHack(event: EVENT): PromiseLike<void> | void;
+}['bivarianceHack'];
 
 type OperationStartEvent =
   | GenerateTextStartEvent
   | GenerateObjectStartEvent
   | EmbedStartEvent
-  | RerankStartEvent;
+  | RerankStartEvent
+  | GenerateSpeechStartEvent
+  | TranscriptionStartEvent;
 
 type OperationEndEvent =
   | GenerateTextEndEvent<ToolSet>
   | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
-  | RerankEndEvent;
+  | RerankEndEvent
+  | GenerateSpeechEndEvent
+  | TranscriptionEndEvent;
 
 export interface TelemetryDispatcher {
   /**
@@ -86,12 +117,19 @@ export interface TelemetryDispatcher {
   onStepEnd?: Callback<GenerateTextStepEndEvent>;
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
+  onStepError?: Callback<GenerateTextStepErrorEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  experimental_onDecideStart?: Callback<DecideStartEvent>;
+  experimental_onDecisionModelCallStart?: Callback<DecisionModelCallStartEvent>;
+  experimental_onDecisionModelCallEnd?: Callback<DecisionModelCallEndEvent>;
+  experimental_onDecideEnd?: Callback<DecideEndEvent>;
+  experimental_onStreamTranscriptionStart?: Callback<StreamTranscriptionStartEvent>;
+  experimental_onStreamTranscriptionEnd?: Callback<StreamTranscriptionEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
   onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
@@ -107,11 +145,12 @@ export interface Telemetry {
   /**
    * Called when an operation begins. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), and reranking operations.
+   * embedding (embed/embedMany), reranking, speech generation, and
+   * non-streaming transcription operations.
    *
    * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Callback<InferTelemetryEvent<OperationStartEvent>>;
+  onStart?: BivariantCallback<InferTelemetryEvent<OperationStartEvent>>;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -172,6 +211,12 @@ export interface Telemetry {
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
 
   /**
+   * Called when a step that started fails before it produces a step result.
+   * Use it to close step-level spans. The call then ends with `onError`.
+   */
+  onStepError?: Callback<InferTelemetryEvent<GenerateTextStepErrorEvent>>;
+
+  /**
    * Called when an object generation step (single LLM invocation) begins.
    * For generateObject/streamObject there is always exactly one step.
    *
@@ -214,14 +259,65 @@ export interface Telemetry {
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
+  /** @deprecated Use `experimental_onDecideStart` instead. */
+  experimental_onEvaluateStart?: Callback<
+    InferTelemetryEvent<DecideStartEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecisionModelCallStart` instead. */
+  experimental_onEvaluationModelCallStart?: Callback<
+    InferTelemetryEvent<DecisionModelCallStartEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecisionModelCallEnd` instead. */
+  experimental_onEvaluationModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecideEnd` instead. */
+  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
+
+  /** Called when an experimental decision operation begins. */
+  experimental_onDecideStart?: Callback<InferTelemetryEvent<DecideStartEvent>>;
+
+  /**
+   * Called immediately before an experimental decision model call begins.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onDecisionModelCallStart?: Callback<
+    InferTelemetryEvent<DecisionModelCallStartEvent>
+  >;
+
+  /**
+   * Called after an experimental decision model response has been validated.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onDecisionModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
+  >;
+
+  /** Called when an experimental decision operation completes. */
+  experimental_onDecideEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
+
+  /** Called when an experimental streaming transcription operation begins. */
+  experimental_onStreamTranscriptionStart?: Callback<
+    InferTelemetryEvent<StreamTranscriptionStartEvent>
+  >;
+
+  /** Called when an experimental streaming transcription operation completes. */
+  experimental_onStreamTranscriptionEnd?: Callback<
+    InferTelemetryEvent<StreamTranscriptionEndEvent>
+  >;
+
   /**
    * Called when an operation completes. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), and reranking operations.
+   * embedding (embed/embedMany), reranking, speech generation, and
+   * non-streaming transcription operations.
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onEnd?: Callback<InferTelemetryEvent<OperationEndEvent>>;
+  onEnd?: BivariantCallback<InferTelemetryEvent<OperationEndEvent>>;
 
   /**
    * Called when a streaming text generation operation is aborted before it

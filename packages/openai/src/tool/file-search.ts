@@ -9,18 +9,21 @@ import type {
   OpenAIResponsesFileSearchToolCompoundFilter,
 } from '../responses/openai-responses-api';
 
-const comparisonFilterSchema = z.object({
-  key: z.string(),
-  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']),
-  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-});
+const comparisonFilterSchema = () =>
+  z.object({
+    key: z.string(),
+    type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']),
+    value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+  });
 
-const compoundFilterSchema: z.ZodType<any> = z.object({
-  type: z.enum(['and', 'or']),
-  filters: z.array(
-    z.union([comparisonFilterSchema, z.lazy(() => compoundFilterSchema)]),
-  ),
-});
+let cachedCompoundFilterSchema: z.ZodType<any> | undefined;
+const compoundFilterSchema = (): z.ZodType<any> =>
+  (cachedCompoundFilterSchema ??= z.object({
+    type: z.enum(['and', 'or']),
+    filters: z.array(
+      z.union([comparisonFilterSchema(), z.lazy(() => compoundFilterSchema())]),
+    ),
+  }));
 
 export const fileSearchArgsSchema = lazySchema(() =>
   zodSchema(
@@ -34,7 +37,7 @@ export const fileSearchArgsSchema = lazySchema(() =>
         })
         .optional(),
       filters: z
-        .union([comparisonFilterSchema, compoundFilterSchema])
+        .union([comparisonFilterSchema(), compoundFilterSchema()])
         .optional(),
     }),
   ),

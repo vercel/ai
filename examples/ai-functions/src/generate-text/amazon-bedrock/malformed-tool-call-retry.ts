@@ -36,7 +36,7 @@ const corruptToolCallInput: LanguageModelMiddleware = {
 };
 
 run(async () => {
-  const model = amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
+  const model = amazonBedrock('us.anthropic.claude-sonnet-5');
 
   const tools = {
     cityAttractions: tool({

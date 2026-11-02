@@ -12,7 +12,7 @@ const fastify = Fastify({ logger: true });
 
 fastify.post('/', async function (_, reply) {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -38,7 +38,7 @@ fastify.post('/stream-data', async function (_, reply) {
       });
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 

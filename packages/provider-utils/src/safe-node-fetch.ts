@@ -102,55 +102,48 @@ export function createSafeLookup(lookup: Lookup): SafeLookup {
 }
 
 let safeNodeFetchPromise: Promise<FetchFunction> | undefined;
-const initialGlobalFetch = globalThis.fetch;
-const initialGlobalFetchIsNodeDefault = isNodeDefaultFetch(initialGlobalFetch);
 
 export function isNodeRuntime(): boolean {
   const runtimeProcess = globalThis.process as
     | {
         release?: { name?: string };
-        versions?: { bun?: string };
+        title?: string;
+        versions?: { bun?: string; deno?: string };
       }
     | undefined;
 
+  // Node-compatible process objects do not imply support for Node DNS/socket
+  // hooks. Workers identifies itself as workerd, including without navigator.
   return (
     runtimeProcess?.release?.name === 'node' &&
-    runtimeProcess.versions?.bun == null
+    runtimeProcess.versions?.bun == null &&
+    runtimeProcess.versions?.deno == null &&
+    runtimeProcess.title !== 'workerd' &&
+    (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime == null
   );
 }
 
 export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
-  if (
-    !isNodeRuntime() ||
-    !initialGlobalFetchIsNodeDefault ||
-    globalThis.fetch !== initialGlobalFetch
-  ) {
+  if (!isNodeRuntime()) {
     return globalThis.fetch;
   }
 
+  // Global fetch wrappers cannot be relied on to preserve the dispatcher
+  // that pins connections to validated DNS results.
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
-function isNodeDefaultFetch(fetch: unknown): boolean {
-  if (typeof fetch !== 'function') {
-    return false;
-  }
-
-  const source = Function.prototype.toString.call(fetch);
-  return (
-    source.includes('internal/deps/undici') ||
-    source.includes('lazy loading of undici')
-  );
-}
-
 function createSafeNodeFetch(): FetchFunction {
-  // Load Node-only modules indirectly so browser bundlers do not pull undici
-  // and Node built-ins into the browser-facing provider-utils entry point.
-  const { createRequire } = loadBuiltinModule<NodeModule>('node:module');
+  // @vercel/nft (node file trace) only recognizes an indirectly loaded createRequire when its receiver
+  // is named `module` and the returned require function is assigned.
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const module = loadBuiltinModule<NodeModule>('node:module');
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-  const { Agent, fetch } = createRequire(getCurrentModulePath())(
-    'undici',
-  ) as Undici;
+
+  // Assign the created require function so deployment tracers can recognize
+  // the static dependency without bundlers inlining undici.
+  const nodeRequire = module.createRequire(getCurrentModulePath());
+  const { Agent, fetch } = nodeRequire('undici') as Undici;
 
   const dispatcher = new Agent({
     connect: {

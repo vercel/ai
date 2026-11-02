@@ -1,6 +1,23 @@
 import { z } from 'zod/v4';
 
 /**
+ * Pi's `input` excludes cached tokens; `reasoning` is a subset of `output`,
+ * set only by providers that report it.
+ */
+const piUsageSchema = z
+  .looseObject({
+    input: z.number(),
+    output: z.number(),
+    cacheRead: z.number(),
+    cacheWrite: z.number(),
+    reasoning: z.number().optional(),
+  })
+  .optional()
+  .catch(undefined);
+
+export type PiUsage = NonNullable<z.infer<typeof piUsageSchema>>;
+
+/**
  * Pi `session.subscribe` emits a discriminated union of events. The exact
  * shape evolves with Pi versions; we accept loose objects and extract only
  * the fields we recognise. The `type` field is required and stringly-typed
@@ -12,6 +29,14 @@ export const piSessionEventSchema = z.looseObject({
     .looseObject({
       type: z.string().optional(),
       delta: z.string().optional(),
+      // `toolcall_start` / `toolcall_delta` / `toolcall_end` address a content
+      // block by index rather than by tool call id. The id and name live in the
+      // partial assistant message at that index, which Pi fills in before the
+      // first delta arrives.
+      contentIndex: z.number().optional(),
+      partial: z
+        .looseObject({ content: z.array(z.unknown()).optional() })
+        .optional(),
     })
     .optional(),
   toolCallId: z.string().optional(),
@@ -41,6 +66,7 @@ export const piSessionEventSchema = z.looseObject({
       content: z.unknown().optional(),
       stopReason: z.string().optional(),
       errorMessage: z.string().optional(),
+      usage: piUsageSchema,
     })
     .optional(),
 });
@@ -97,8 +123,6 @@ export function getPiTerminalError(event: PiSessionEvent): string | undefined {
   ) {
     return event.content.trim();
   }
-
-  return undefined;
 }
 
 /** Pull the assistant text from a `turn_end` / `message_end` event payload. */

@@ -4,9 +4,11 @@ We deeply appreciate your interest in contributing to our repository! Whether yo
 
 ## How We Value Contributions
 
-AI SDK maintenance is becoming increasingly automated. Maintainers and automated workflows will take on more of the routine work involved in reviewing new issues, triaging reports, reproducing bugs, and preparing bug fix pull requests.
+We use our own specialized agents to work on open issues, including bug fixes and feature implementations. Maintainers and automated workflows also review new issues, triage reports, and reproduce bugs.
 
 Because of this, the most helpful contribution is often a high-quality issue rather than a complete pull request. Clear bug reports, minimal reproductions, failing tests, precise documentation feedback, and thoughtful feature requests help us understand the problem and make better fixes for everyone.
+
+We discourage opening pull requests to fix bug reports or implement feature requests authored by someone else. An exception is a pull request that adds useful context best expressed with code, such as a minimal reproduction, a failing test, or a focused example that clarifies the expected behavior. Please link the issue and explain what new context your code provides.
 
 Pull requests are still welcome, especially when they:
 
@@ -19,6 +21,10 @@ Pull requests are still welcome, especially when they:
 You do not need to send a full implementation for maintainers to value your contribution. When an issue leads to a bug fix pull request, we will credit the issue author with co-authorship where appropriate. Pull request authors will also be credited when their work adds valuable input to resolving a bug report or improves the quality of the fix.
 
 We know this transition may feel different from how open source contribution has traditionally worked. We value our community and all the ways people help AI SDK grow. If this process creates friction or frustration, please open a `feedback` issue and tell us what is not working.
+
+## Becoming a Contributor or Committer
+
+If you're interested in becoming a contributor or committer, we encourage you to use the AI SDK extensively in real projects and report issues you encounter through real-life usage. Sharing concrete use cases, clear bug reports, and feature requests grounded in that experience helps us understand what matters to users and improve the SDK.
 
 ## Reporting Bugs
 
@@ -45,7 +51,7 @@ Use the `feedback` issue type for community feedback, process feedback, or ideas
 Documentation is crucial for understanding and using our project effectively.
 You can find the content of our docs under [`content`](https://github.com/vercel/ai/tree/main/content).
 
-To fix smaller typos, you can edit the code directly in GitHub or use Github.dev (press `.` in Github).
+To fix smaller typos, you can edit the code directly in GitHub or use GitHub.dev (press `.` in GitHub).
 
 If you want to make larger changes, please check out the Code Contributions section below. It also explains how to fix prettier issues that you might encounter during your docs changes.
 
@@ -55,7 +61,7 @@ We welcome your contributions to our code and documentation. Here's how you can 
 
 ### Environment Setup
 
-AI SDK development requires PNPM v9 (lockfile version) or higher and Node v22.
+AI SDK development requires pnpm v11 and Node v22.13, v24, or v26.
 
 ### Setting Up the Repository Locally
 
@@ -63,8 +69,8 @@ To set up the repository on your local machine, follow these steps:
 
 1. **Fork the Repository**: Make a copy of the repository to your GitHub account.
 2. **Clone the Repository**: Clone the repository to your local machine, e.g. using `git clone`.
-3. **Install Node**: If you haven't already, install Node v22.
-4. **Install pnpm**: If you haven't already, install pnpm v10. You can do this by running `npm install -g pnpm@10` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
+3. **Install Node**: If you haven't already, install Node v22.13, v24, or v26.
+4. **Install pnpm**: If you haven't already, install pnpm v11. You can do this by running `npm install -g pnpm@11` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
 5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies. This also sets up Git hooks via Husky.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.
 
@@ -101,7 +107,7 @@ Please run `pnpm update-references` in workspace root to update the `references`
 
 ### Submitting Pull Requests
 
-We greatly appreciate focused pull requests. Before investing in a full implementation for a bug fix, please consider opening or improving an issue first. Maintainers and automated workflows may prepare the final fix, and we will credit high-quality reports that lead to fixes.
+We greatly appreciate focused pull requests. Before investing in an implementation, please review [how we value contributions](#how-we-value-contributions) and open or improve an issue first. Please avoid submitting fixes or feature implementations for issues you did not author, unless the purpose of the pull request is to add useful context best expressed with code. Our specialized agents work on open issues, and we will credit high-quality reports that lead to fixes.
 
 Pull requests are most helpful when they include documentation fixes, reproduction examples, failing tests, or small focused changes that make the issue clearer.
 

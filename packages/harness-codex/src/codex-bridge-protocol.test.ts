@@ -3,6 +3,7 @@ import {
   bridgeReadySchema,
   inboundMessageSchema,
   outboundMessageSchema,
+  startMessageSchema,
 } from './codex-bridge-protocol';
 
 describe('outboundMessageSchema', () => {
@@ -69,6 +70,7 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         prompt: 'hi',
         instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
@@ -77,6 +79,18 @@ describe('inboundMessageSchema', () => {
           model_verbosity: 'low',
           features: { multi_agent: false },
         },
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a start message with text and image prompt content', () => {
+    expect(() =>
+      startMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
       }),
     ).not.toThrow();
   });
@@ -104,7 +118,7 @@ describe('inboundMessageSchema', () => {
 
   it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
       { type: 'stop' },
       { type: 'destroy' },
@@ -112,6 +126,19 @@ describe('inboundMessageSchema', () => {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }
   });
+
+  it.each(['xhigh', 'max'] as const)(
+    'accepts %s reasoning effort in a start message',
+    reasoningEffort => {
+      expect(() =>
+        startMessageSchema.parse({
+          type: 'start',
+          prompt: 'Solve a difficult problem.',
+          reasoningEffort,
+        }),
+      ).not.toThrow();
+    },
+  );
 });
 
 describe('bridgeReadySchema', () => {

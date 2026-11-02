@@ -1,12 +1,13 @@
 import { createDocsMarkdownRoute } from '@vercel/geistdocs/routes/llms';
 import { cookbookV6Source } from '@/lib/geistdocs/source';
+import { resolveModelPlaceholders } from '@/lib/geistdocs/model-placeholders';
 import { prefixVersionedMarkdownLinks } from '@/lib/geistdocs/version-markdown';
 
 const markdownRoute = createDocsMarkdownRoute({
   source: cookbookV6Source,
-  transform: markdown => prefixVersionedMarkdownLinks(markdown, '/v6'),
+  transform: markdown =>
+    prefixVersionedMarkdownLinks(resolveModelPlaceholders(markdown), '/v6'),
 });
 
 export const GET = markdownRoute.GET;
 export const generateStaticParams = markdownRoute.generateStaticParams;
-export const revalidate = false;

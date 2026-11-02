@@ -23,7 +23,7 @@ test('restricted() returns the bare sandbox session surface', () => {
   >().toEqualTypeOf<SandboxSession>();
 });
 
-test('network sandbox session exposes port resolution and stop as required', () => {
+test('network sandbox session exposes port resolution and lifecycle as required', () => {
   expectTypeOf<HarnessV1NetworkSandboxSession['ports']>().toEqualTypeOf<
     ReadonlyArray<number>
   >();
@@ -37,6 +37,7 @@ test('network sandbox session exposes port resolution and stop as required', () 
     HarnessV1NetworkSandboxSession['getPortUrl']
   >().not.toBeUndefined();
   expectTypeOf<HarnessV1NetworkSandboxSession['stop']>().not.toBeUndefined();
+  expectTypeOf<HarnessV1NetworkSandboxSession['destroy']>().not.toBeUndefined();
 });
 
 test('setNetworkPolicy is optional on the network sandbox session', () => {

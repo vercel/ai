@@ -1,4 +1,7 @@
-import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV1BuiltinToolFiltering,
+  HarnessV1NetworkSandboxSession,
+} from '@ai-sdk/harness';
 import type {
   AgentMessage,
   AgentRunInput,
@@ -22,10 +25,14 @@ const clineMock = vi.hoisted(() => ({
     headers?: Record<string, string>;
   }>,
   runInputs: [] as AgentRunInput[],
+  runGate: undefined as Promise<void> | undefined,
+  runStatus: 'completed' as AgentRunResult['status'],
+  runError: undefined as Error | undefined,
   outputText: '',
 }));
 
-vi.mock('@ai-sdk/harness/utils', () => ({
+vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
+  ...(await importOriginal()),
   resolveSandboxHomeDir: vi.fn(async () => '/sandbox/home'),
   shellQuote: vi.fn((value: string) => value),
 }));
@@ -48,6 +55,7 @@ vi.mock('@cline/agents', () => ({
 
     async run(input: AgentRunInput): Promise<AgentRunResult> {
       clineMock.runInputs.push(input);
+      await clineMock.runGate;
       return this.result();
     }
 
@@ -63,7 +71,7 @@ vi.mock('@cline/agents', () => ({
       return {
         agentId: 'agent-1',
         runId: 'run-1',
-        status: 'completed',
+        status: clineMock.runStatus,
         iterations: 1,
         outputText: clineMock.outputText,
         messages: this.messages,
@@ -73,6 +81,7 @@ vi.mock('@cline/agents', () => ({
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
         },
+        ...(clineMock.runError ? { error: clineMock.runError } : {}),
       };
     }
   },
@@ -85,6 +94,62 @@ vi.mock('@cline/core', async importOriginal => {
   };
   return {
     ...original,
+    createDefaultTools: vi.fn(
+      (options: {
+        executors?: {
+          askQuestion?: (
+            question: string,
+            answers: string[],
+            context: Parameters<AgentTool['execute']>[1],
+          ) => Promise<string>;
+          skills?: (...args: unknown[]) => Promise<string>;
+        };
+        enableAskQuestion?: boolean;
+        enableSkills?: boolean;
+      }) => [
+        ...(options.enableAskQuestion
+          ? [
+              {
+                name: 'ask_question',
+                inputSchema: {},
+                execute: (
+                  input: { question: string; options: string[] },
+                  context: Parameters<AgentTool['execute']>[1],
+                ) =>
+                  options.executors?.askQuestion?.(
+                    input.question,
+                    input.options,
+                    context,
+                  ),
+              },
+            ]
+          : []),
+        ...(options.enableSkills
+          ? [
+              {
+                name: 'skills',
+                description: `Available skills: ${
+                  (
+                    options.executors?.skills as
+                      | {
+                          configuredSkills?: Array<{ name: string }>;
+                        }
+                      | undefined
+                  )?.configuredSkills
+                    ?.map(skill => skill.name)
+                    .join(', ') ?? ''
+                }.`,
+                inputSchema: {},
+                execute: (
+                  input: { skill: string; args?: string },
+                  context: Parameters<AgentTool['execute']>[1],
+                ) =>
+                  options.executors?.skills?.(input.skill, input.args, context),
+              },
+            ]
+          : []),
+      ],
+    ),
     Llms: {
       ...original.Llms,
       createGateway: vi.fn(
@@ -104,6 +169,13 @@ vi.mock('@cline/core', async importOriginal => {
               clineMock.modelOptions.push(options);
               return { stream: vi.fn() };
             },
+            listProviders: () =>
+              config.providerConfigs.map(providerConfig => ({
+                id: providerConfig.providerId,
+                name: providerConfig.providerId,
+                defaultModelId: `${providerConfig.providerId}-default-model`,
+                models: [],
+              })),
           };
         },
       ),
@@ -119,6 +191,9 @@ describe('createClineSession instructions', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -127,6 +202,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'do the thing',
         instructions: 'Use turbo build.',
         emit: vi.fn(),
@@ -146,12 +223,99 @@ describe('createClineSession instructions', () => {
     }
   });
 
+  it('reports the Cline provider default model on stream-start when no model is set', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'cline-default-model',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the requested model on stream-start', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        model: 'anthropic/claude-sonnet-4.6',
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'anthropic/claude-sonnet-4.6',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('passes inline image prompts to the Cline runtime as ordered message content', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+            { type: 'text', text: 'after' },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual([
+        {
+          id: expect.any(String),
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            { type: 'image', image: 'iVBORw0KGgo=', mediaType: 'image/png' },
+            { type: 'text', text: 'after' },
+          ],
+          createdAt: expect.any(Number),
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('reuses the configured prompt across turns and tool-driven rebuilds', async () => {
     const session = await createSession();
 
     try {
       for (const prompt of ['first turn', 'second turn']) {
         const control = await session.doPromptTurn({
+          skills: [],
+          tools: [],
           prompt,
           instructions: 'Use turbo build.',
           emit: vi.fn(),
@@ -162,6 +326,7 @@ describe('createClineSession instructions', () => {
       expect(clineMock.configs).toHaveLength(1);
 
       const rebuildControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'third turn',
         instructions: 'Use turbo build.',
         tools: [
@@ -191,6 +356,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'resume the task',
         instructions: 'Use turbo build.',
         emit: vi.fn(),
@@ -211,6 +378,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doContinueTurn({
+        skills: [],
+        tools: [],
         instructions: 'Use turbo build.',
         emit: vi.fn(),
       });
@@ -231,6 +400,8 @@ describe('createClineSession instructions', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'do the thing',
         emit: vi.fn(),
       });
@@ -239,6 +410,204 @@ describe('createClineSession instructions', () => {
       expect(clineMock.configs[0].systemPrompt).toMatch(
         /## Sandbox\n\nTest sandbox$/,
       );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('continues the active turn with queued steering messages', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+      releaseRun();
+      await steering;
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual(['Weather in Paris?']);
+      expect(clineMock.continueInputs).toEqual(['Actually, Paris, Texas.']);
+      await expect(control.submitUserMessage?.('Too late.')).rejects.toThrow(
+        'no running turn',
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rejects queued steering messages when the turn fails before consuming them', async () => {
+    let releaseRun!: () => void;
+    clineMock.runGate = new Promise<void>(resolve => {
+      releaseRun = resolve;
+    });
+    clineMock.runStatus = 'failed';
+    clineMock.runError = new Error('Cline failed');
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Weather in Paris?',
+        emit: vi.fn(),
+      });
+      const steering = expect(
+        control.submitUserMessage?.('Actually, Paris, Texas.'),
+      ).rejects.toThrow('turn ended before accepting');
+
+      releaseRun();
+
+      await steering;
+      await control.done;
+      expect(clineMock.continueInputs).toEqual([]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+});
+
+describe('createClineSession skills', () => {
+  beforeEach(() => {
+    clineMock.configs = [];
+    clineMock.continueInputs = [];
+    clineMock.modelOptions = [];
+    clineMock.modelSelections = [];
+    clineMock.providerConfigs = [];
+    clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
+    clineMock.outputText = '';
+  });
+
+  it('exposes skills through the native tool instead of the system prompt', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'release-notes',
+            description: 'Use when drafting release notes.',
+            content: 'Follow the release process.',
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes.',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs[0];
+      expect(config.systemPrompt).not.toContain('## Skills');
+      expect(config.systemPrompt).not.toContain('.agents/skills');
+      expect(findTool({ config, name: 'skills' }).description).toContain(
+        'Available skills: release-notes.',
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rebuilds only when behavior-relevant skill data changes', async () => {
+    const session = await createSession();
+    const firstSkills = [
+      {
+        name: 'release-notes',
+        description: 'Use when drafting release notes.',
+        content: 'Follow the release process.',
+        files: [
+          { path: 'z.md', content: 'Z' },
+          { path: 'a.md', content: 'A' },
+        ],
+      },
+    ];
+
+    try {
+      for (const skills of [
+        firstSkills,
+        [
+          {
+            ...firstSkills[0],
+            files: [...firstSkills[0].files].reverse(),
+          },
+        ],
+      ]) {
+        const control = await session.doPromptTurn({
+          skills,
+          tools: [],
+          prompt: 'Draft release notes.',
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+      expect(clineMock.configs).toHaveLength(1);
+
+      const changedControl = await session.doPromptTurn({
+        skills: [
+          {
+            ...firstSkills[0],
+            files: [
+              { path: 'a.md', content: 'Changed' },
+              { path: 'z.md', content: 'Z' },
+            ],
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes again.',
+        emit: vi.fn(),
+      });
+      await changedControl.done;
+
+      const removedControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Continue without skills.',
+        emit: vi.fn(),
+      });
+      await removedControl.done;
+
+      expect(clineMock.configs).toHaveLength(3);
+      expect(
+        clineMock.configs[2].tools?.some(tool => tool.name === 'skills'),
+      ).toBe(false);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('respects builtin filtering for the skills tool', async () => {
+    const session = await createSession({
+      builtinToolFiltering: { mode: 'deny', toolNames: ['skills'] },
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'release-notes',
+            description: 'Use when drafting release notes.',
+            content: 'Follow the release process.',
+          },
+        ],
+        tools: [],
+        prompt: 'Draft release notes.',
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(
+        clineMock.configs[0].tools?.some(tool => tool.name === 'skills'),
+      ).toBe(false);
     } finally {
       await session.doDestroy();
     }
@@ -253,6 +622,9 @@ describe('createClineSession model configuration', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -263,7 +635,53 @@ describe('createClineSession model configuration', () => {
       expect(clineMock.providerConfigs).toEqual([{ providerId: 'cline' }]);
       expect(clineMock.modelSelections).toEqual([{ providerId: 'cline' }]);
       expect(clineMock.modelOptions).toEqual([undefined]);
-      expect(session.modelId).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('rebuilds the agent with its message history when the model changes', async () => {
+    const session = await createSession();
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'My name is Felix.',
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+      const secondControl = await session.doPromptTurn({
+        model: 'anthropic/claude-haiku-4-5',
+        skills: [],
+        tools: [],
+        prompt: 'Remember my name?',
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline' },
+        { providerId: 'cline', modelId: 'anthropic/claude-haiku-4-5' },
+      ]);
+      expect(clineMock.configs).toHaveLength(2);
+      expect(clineMock.configs[1].initialMessages).toEqual(
+        clineMock.configs[0].initialMessages,
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('disables ambient credential lookup for an authentication environment override', async () => {
+    const session = await createSession({
+      settings: { isAuthenticationEnvironmentOverride: true },
+    });
+
+    try {
+      expect(clineMock.providerConfigs).toEqual([
+        { providerId: 'cline', apiKeyEnv: [] },
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -333,26 +751,47 @@ describe('createClineSession model configuration', () => {
       settings: {
         authEnv: { CLINE_API_KEY: 'cline-key' },
         providerId: 'anthropic',
-        modelId: 'claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
         {
           providerId: 'anthropic',
           apiKey: 'anthropic-key',
           baseUrl: 'https://anthropic.example',
-          headers: { 'x-custom': 'custom' },
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
+        },
+        {
+          providerId: 'anthropic',
+          apiKey: 'anthropic-key',
+          baseUrl: 'https://anthropic.example',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'anthropic' },
         { providerId: 'anthropic', modelId: 'claude-opus-5' },
       ]);
-      expect(session.modelId).toBe('claude-opus-5');
     } finally {
       await session.doDestroy();
     }
@@ -366,14 +805,23 @@ describe('createClineSession model configuration', () => {
           AI_GATEWAY_BASE_URL: 'https://gateway.example/',
         },
         providerId: 'anthropic',
-        modelId: 'anthropic/claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'anthropic/claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
         {
           providerId: 'cline',
@@ -382,12 +830,26 @@ describe('createClineSession model configuration', () => {
           baseUrl: 'https://gateway.example/v1',
           headers: {
             'x-custom': 'custom',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'x-agent': 'agent',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
+          },
+        },
+        {
+          providerId: 'cline',
+          apiKey: 'gateway-key',
+          apiKeyEnv: [],
+          baseUrl: 'https://gateway.example/v1',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline' },
         { providerId: 'cline', modelId: 'anthropic/claude-opus-5' },
       ]);
     } finally {
@@ -412,8 +874,8 @@ describe('createClineSession model configuration', () => {
           apiKeyEnv: [],
           baseUrl: 'https://ai-gateway.vercel.sh/v1',
           headers: {
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -431,6 +893,9 @@ describe('createClineSession tool results', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -460,6 +925,7 @@ describe('createClineSession tool results', () => {
 
       try {
         const control = await session.doPromptTurn({
+          skills: [],
           prompt: 'use the lookup tool',
           tools: [
             {
@@ -497,9 +963,66 @@ describe('createClineSession tool results', () => {
     },
   );
 
+  it('submits model-facing text and inline images while keeping the raw output', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'use the lookup tool',
+        tools: [
+          { name: 'lookup', inputSchema: { type: 'object', properties: {} } },
+        ],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'lookup' });
+      const resultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+      );
+
+      await control.submitToolResult({
+        toolCallId: 'call-1',
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text: 'marker' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
+        },
+      });
+      const result = await runAfterToolHook({
+        config,
+        tool,
+        output: await resultPromise,
+      });
+
+      expect(result?.result?.output).toEqual([
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('marks a pending host tool result as an error when the session is destroyed', async () => {
     const session = await createSession();
     const control = await session.doPromptTurn({
+      skills: [],
       prompt: 'use the lookup tool',
       tools: [
         {
@@ -538,6 +1061,7 @@ describe('createClineSession tool results', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
         prompt: 'use the lookup tool twice',
         tools: [
           {
@@ -593,6 +1117,8 @@ describe('createClineSession tool results', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'read a file',
         emit: vi.fn(),
       });
@@ -623,6 +1149,9 @@ describe('createClineSession tool execution', () => {
     clineMock.modelSelections = [];
     clineMock.providerConfigs = [];
     clineMock.runInputs = [];
+    clineMock.runGate = undefined;
+    clineMock.runStatus = 'completed';
+    clineMock.runError = undefined;
     clineMock.outputText = '';
   });
 
@@ -631,12 +1160,15 @@ describe('createClineSession tool execution', () => {
 
     try {
       const firstControl = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'first turn',
         emit: vi.fn(),
       });
       await firstControl.done;
 
       const secondControl = await session.doPromptTurn({
+        skills: [],
         prompt: 'second turn',
         tools: [
           {
@@ -664,6 +1196,8 @@ describe('createClineSession tool execution', () => {
 
     try {
       const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
         prompt: 'Answer.',
         responseFormat: {
           type: 'json',
@@ -734,6 +1268,8 @@ describe('createClineSession tool execution', () => {
     try {
       await expect(
         session.doPromptTurn({
+          skills: [],
+          tools: [],
           prompt: 'Answer.',
           responseFormat: {
             type: 'json',
@@ -753,6 +1289,7 @@ describe('createClineSession tool execution', () => {
 
 async function createSession(
   input: {
+    builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
     isResume?: boolean;
     settings?: Partial<ClineSessionSettings>;
   } = {},
@@ -761,13 +1298,16 @@ async function createSession(
     sessionId: 'session-1',
     sandboxSession: createSandboxSession(),
     sessionWorkDir: '/sandbox/work',
-    skills: [],
     settings: {
       authEnv: {},
+      isAuthenticationEnvironmentOverride: false,
       ...input.settings,
     },
-    clientApp: 'ai-sdk/harness-cline/0.0.0-test',
+    clientApp: 'ai-sdk-harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
+    ...(input.builtinToolFiltering
+      ? { builtinToolFiltering: input.builtinToolFiltering }
+      : {}),
   });
 }
 

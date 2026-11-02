@@ -2,7 +2,8 @@ import { mockProvider } from './mock-function-wrapper.js';
 
 export type MockResponseDescriptor =
   | { type: 'text'; text: string }
-  | { type: 'tool-call'; toolName: string; input: string };
+  | { type: 'tool-call'; toolName: string; input: string }
+  | { type: 'error'; error: unknown };
 
 /**
  * Mock model that returns a fixed text response.

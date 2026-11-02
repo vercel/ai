@@ -26,7 +26,7 @@ run(async () => {
 
   console.log('--- Turn 1 ---');
   const turn1 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
@@ -55,7 +55,7 @@ run(async () => {
 
   console.log('--- Turn 2 ---');
   const turn2 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {

@@ -3,6 +3,7 @@ import type {
   Experimental_VideoModelV4CallOptions,
   Experimental_VideoModelV4File,
   Experimental_VideoModelV4Result,
+  Experimental_VideoModelV4OperationStatusResult,
   Experimental_VideoModelV4OperationWebhook,
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
@@ -28,6 +29,8 @@ import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 import type { Warning } from '../types/warning';
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -287,64 +290,18 @@ export async function experimental_generateVideo({
     `ai/${VERSION}`,
   );
 
-  const { retry } = prepareRetries({
+  const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
 
-  const { prompt, image } = normalizePrompt(promptArg);
-
-  const normalizedFrameImages:
-    | Array<Experimental_VideoModelV4FrameImage>
-    | undefined = frameImages?.flatMap(frame => {
-    const normalizedImage = normalizeImageData(frame.image);
-    return normalizedImage != null
-      ? [{ image: normalizedImage, frameType: frame.frameType }]
-      : [];
-  });
-
-  const normalizedInputReferences:
-    | Array<Experimental_VideoModelV4File>
-    | undefined = inputReferences?.flatMap(reference => {
-    const normalized = normalizeReferenceData(reference);
-    return normalized != null ? [normalized] : [];
-  });
-
-  const effectiveInputReferences =
-    normalizedFrameImages != null && normalizedFrameImages.length > 0
-      ? undefined
-      : normalizedInputReferences;
-
-  const warnings: Array<Warning> = [];
-
-  if (
-    normalizedFrameImages != null &&
-    normalizedFrameImages.length > 0 &&
-    normalizedInputReferences != null &&
-    normalizedInputReferences.length > 0
-  ) {
-    warnings.push({
-      type: 'other',
-      message:
-        'inputReferences were ignored because frameImages were provided; ' +
-        'frameImages and inputReferences cannot be combined.',
-    });
-  }
-
-  const firstFrameImage = normalizedFrameImages?.find(
-    frame => frame.frameType === 'first_frame',
-  )?.image;
-
-  if (image != null && firstFrameImage != null) {
-    warnings.push({
-      type: 'other',
-      message:
-        'prompt.image was ignored because a first_frame frameImage was provided; ' +
-        'the first_frame frameImage takes precedence as the start image.',
-    });
-  }
-
-  const resolvedImage = firstFrameImage ?? image;
+  const {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
+  } = normalizeVideoCallInputs({ promptArg, frameImages, inputReferences });
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
@@ -409,6 +366,7 @@ export async function experimental_generateVideo({
           callOptions,
           poll,
           webhook,
+          maxRetries,
           retry,
         });
       }
@@ -523,19 +481,21 @@ async function executeStartStatusFlow({
   callOptions,
   poll: pollConfig,
   webhook: webhookFactory,
+  maxRetries,
   retry,
 }: {
   model: Experimental_VideoModelV4;
   callOptions: Experimental_VideoModelV4CallOptions;
   poll?: GenerateVideoPollOptions;
   webhook?: GenerateVideoWebhookFactory;
+  maxRetries: number;
   retry: <OUTPUT>(fn: () => PromiseLike<OUTPUT>) => PromiseLike<OUTPUT>;
 }): Promise<Experimental_VideoModelV4Result> {
   // 1. If webhook and provider supports it, set up the webhook
   const earlyWarnings: Experimental_VideoModelV4Result['warnings'] = [];
   let webhookUrl: string | undefined;
   let webhookReceived:
-    | PromiseLike<Experimental_VideoModelV4OperationWebhook>
+    | Promise<Experimental_VideoModelV4OperationWebhook>
     | undefined;
 
   if (webhookFactory != null) {
@@ -543,8 +503,10 @@ async function executeStartStatusFlow({
       const result = await model.handleWebhookOption({
         webhook: webhookFactory,
       });
+      webhookReceived = Promise.resolve(result.received);
+      // Observe early failures without changing the error awaited after doStart.
+      webhookReceived.catch(() => {});
       webhookUrl = result.webhookUrl;
-      webhookReceived = result.received;
     } else {
       earlyWarnings.push({
         type: 'unsupported',
@@ -582,6 +544,9 @@ async function executeStartStatusFlow({
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
   const delay = pollConfig?.delay ?? defaultDelay;
   const startTime = Date.now();
+  const pollingTimeoutError = new Error(
+    `Video generation timed out after ${timeoutMs}ms.`,
+  );
 
   if (webhookReceived != null) {
     // 3a. Webhook flow: wait for webhook, then get final status
@@ -598,23 +563,67 @@ async function executeStartStatusFlow({
       // 3b. Polling flow (also used when webhooks are not supported)
       const elapsedMs = Date.now() - startTime;
       if (elapsedMs >= timeoutMs) {
-        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+        throw pollingTimeoutError;
       }
       await delay(Math.min(intervalMs, timeoutMs - elapsedMs), {
         abortSignal: callOptions.abortSignal,
       });
       if (Date.now() - startTime >= timeoutMs) {
-        throw new Error(`Video generation timed out after ${timeoutMs}ms.`);
+        throw pollingTimeoutError;
       }
     }
 
-    const statusResult = await retry(() =>
-      model.doStatus!({
-        operation: startResult.operation,
-        abortSignal: callOptions.abortSignal,
-        headers: callOptions.headers,
-      }),
-    );
+    let statusResult: Experimental_VideoModelV4OperationStatusResult;
+    if (webhookReceived != null) {
+      statusResult = await retry(() =>
+        model.doStatus!({
+          operation: startResult.operation,
+          abortSignal: callOptions.abortSignal,
+          headers: callOptions.headers,
+        }),
+      );
+    } else {
+      const statusTimeoutController = new AbortController();
+      const statusAbortSignal = mergeAbortSignals(
+        callOptions.abortSignal,
+        statusTimeoutController.signal,
+      );
+      const statusTimeoutId = setTimeout(
+        () => statusTimeoutController.abort(pollingTimeoutError),
+        timeoutMs - (Date.now() - startTime),
+      );
+      const statusTimeoutPromise = new Promise<never>((_, reject) => {
+        statusTimeoutController.signal.addEventListener(
+          'abort',
+          () => reject(pollingTimeoutError),
+          { once: true },
+        );
+      });
+      const { retry: statusRetry } = prepareRetries({
+        maxRetries,
+        abortSignal: statusAbortSignal,
+      });
+
+      try {
+        statusResult = await Promise.race([
+          statusRetry(() =>
+            model.doStatus!({
+              operation: startResult.operation,
+              abortSignal: statusAbortSignal,
+              headers: callOptions.headers,
+            }),
+          ),
+          statusTimeoutPromise,
+        ]);
+      } catch (error) {
+        if (statusTimeoutController.signal.aborted) {
+          throw pollingTimeoutError;
+        }
+        throw error;
+      } finally {
+        clearTimeout(statusTimeoutId);
+      }
+    }
 
     if (statusResult.status === 'error') {
       throw new Error(statusResult.error);
@@ -690,17 +699,17 @@ function mergeProviderMetadata(
   source: SharedV4ProviderMetadata,
 ): void {
   for (const [providerName, metadataValue] of Object.entries(source)) {
-    const existingMetadata = target[providerName];
+    const existingMetadata = getOwn(target, providerName);
     if (
       existingMetadata != null &&
       typeof existingMetadata === 'object' &&
       metadataValue != null &&
       typeof metadataValue === 'object'
     ) {
-      target[providerName] = {
+      setOwn(target, providerName, {
         ...existingMetadata,
         ...metadataValue,
-      };
+      });
 
       if (
         'videos' in existingMetadata &&
@@ -714,7 +723,7 @@ function mergeProviderMetadata(
         ];
       }
     } else {
-      target[providerName] = metadataValue;
+      setOwn(target, providerName, metadataValue);
     }
   }
 }
@@ -734,6 +743,94 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     prompt: promptArg.text,
     image:
       promptArg.image != null ? normalizeImageData(promptArg.image) : undefined,
+  };
+}
+
+/**
+ * Shared input normalization for `experimental_generateVideo` and
+ * `experimental_startVideo`: prompt/image plus the frameImages /
+ * inputReferences precedence rules and their warnings.
+ */
+export function normalizeVideoCallInputs({
+  promptArg,
+  frameImages,
+  inputReferences,
+}: {
+  promptArg: GenerateVideoPrompt;
+  frameImages?: Array<{
+    image: DataContent;
+    frameType: Experimental_VideoModelV4FrameType;
+  }>;
+  inputReferences?: Array<
+    DataContent | { data: DataContent; mediaType?: string }
+  >;
+}): {
+  prompt: string | undefined;
+  resolvedImage: Experimental_VideoModelV4File | undefined;
+  normalizedFrameImages: Array<Experimental_VideoModelV4FrameImage> | undefined;
+  effectiveInputReferences: Array<Experimental_VideoModelV4File> | undefined;
+  warnings: Array<Warning>;
+} {
+  const { prompt, image } = normalizePrompt(promptArg);
+
+  const normalizedFrameImages:
+    | Array<Experimental_VideoModelV4FrameImage>
+    | undefined = frameImages?.flatMap(frame => {
+    const normalizedImage = normalizeImageData(frame.image);
+    return normalizedImage != null
+      ? [{ image: normalizedImage, frameType: frame.frameType }]
+      : [];
+  });
+
+  const normalizedInputReferences:
+    | Array<Experimental_VideoModelV4File>
+    | undefined = inputReferences?.flatMap(reference => {
+    const normalized = normalizeReferenceData(reference);
+    return normalized != null ? [normalized] : [];
+  });
+
+  const effectiveInputReferences =
+    normalizedFrameImages != null && normalizedFrameImages.length > 0
+      ? undefined
+      : normalizedInputReferences;
+
+  const warnings: Array<Warning> = [];
+
+  if (
+    normalizedFrameImages != null &&
+    normalizedFrameImages.length > 0 &&
+    normalizedInputReferences != null &&
+    normalizedInputReferences.length > 0
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'inputReferences were ignored because frameImages were provided; ' +
+        'frameImages and inputReferences cannot be combined.',
+    });
+  }
+
+  const firstFrameImage = normalizedFrameImages?.find(
+    frame => frame.frameType === 'first_frame',
+  )?.image;
+
+  if (image != null && firstFrameImage != null) {
+    warnings.push({
+      type: 'other',
+      message:
+        'prompt.image was ignored because a first_frame frameImage was provided; ' +
+        'the first_frame frameImage takes precedence as the start image.',
+    });
+  }
+
+  const resolvedImage = firstFrameImage ?? image;
+
+  return {
+    prompt,
+    resolvedImage,
+    normalizedFrameImages,
+    effectiveInputReferences,
+    warnings,
   };
 }
 
@@ -795,8 +892,6 @@ function normalizeImageData(
       data: bytes,
     };
   }
-
-  return undefined;
 }
 
 /**

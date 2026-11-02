@@ -1,8 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { z } from 'zod/v4';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 type QueryArgs = {
+  prompt: AsyncIterable<unknown>;
   options: Record<string, unknown>;
 };
+
+type ToolHandler = (
+  ...args: [
+    input: Record<string, unknown>,
+    extra: {
+      requestId: string | number;
+      _meta?: Record<string, unknown>;
+    },
+  ]
+) => Promise<unknown>;
 
 const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
@@ -11,55 +26,198 @@ const TEST_ENV_KEYS = [
 ] as const;
 
 const state = vi.hoisted(() => ({
+  emitted: [] as Record<string, unknown>[],
+  messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
   start: {} as Record<string, unknown>,
+  additionalTurns: [] as Array<{
+    start: Record<string, unknown>;
+    firstTurn: boolean;
+  }>,
+  onStop: undefined as (() => unknown) | undefined,
+  firstTurn: true,
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
+  steering: false,
+  steeringGate: undefined as Promise<void> | undefined,
+  acceptedUserMessages: [] as string[],
+  queryInputs: [] as unknown[],
+  toolHandlers: new Map<string, ToolHandler>(),
+  toolConfigs: new Map<string, Record<string, unknown>>(),
+  /** Per-test query factory; falls back to the `state.messages` generator. */
+  createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
+  /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
+  turnAbortController: undefined as AbortController | undefined,
+  /** Per-test error sink; defaults to a no-op. */
+  emitError: undefined as ((input: unknown) => void) | undefined,
+  requestToolResult: undefined as
+    | ((input: Record<string, unknown>) => Promise<Record<string, unknown>>)
+    | undefined,
+  requestToolApproval: undefined as
+    | ((approvalId: string) => Promise<{ approved: boolean; reason?: string }>)
+    | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
   query: (args: QueryArgs) => {
     state.queryArgs.push(args);
+    if (state.createQuery) return state.createQuery(args);
     return (async function* () {
-      yield {
-        type: 'result',
-        subtype: 'success',
-        result: 'done',
-      };
+      if (state.steering) {
+        const input = args.prompt[Symbol.asyncIterator]();
+        const initial = await input.next();
+        const steering = await input.next();
+        state.queryInputs.push(initial.value, steering.value);
+        const steeringUuid = Reflect.get(steering.value as object, 'uuid');
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'initial result',
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: steeringUuid,
+          state: 'queued',
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'steered result',
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: steeringUuid,
+          state: 'completed',
+        };
+        return;
+      }
+      for (const message of state.messages) {
+        if (message.type === 'invoke-host-tools') {
+          const calls = message.calls as Array<{
+            toolName: string;
+            toolCallId: string;
+            input: Record<string, unknown>;
+          }>;
+          await Promise.all(
+            calls.map(call => {
+              const handler = state.toolHandlers.get(call.toolName);
+              if (handler == null) {
+                throw new Error(
+                  `Missing host tool handler for '${call.toolName}'.`,
+                );
+              }
+              const handlerArgs: Parameters<ToolHandler> = [
+                call.input,
+                {
+                  requestId: call.toolCallId,
+                  _meta: {
+                    'claudecode/toolUseId': call.toolCallId,
+                  },
+                },
+              ];
+              return handler(...handlerArgs);
+            }),
+          );
+          continue;
+        }
+        yield message;
+      }
     })();
   },
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: class {},
+  McpServer: class {
+    registerTool(
+      name: string,
+      config: {
+        description: string;
+        inputSchema: z.ZodType<Record<string, unknown>>;
+      },
+      handler: ToolHandler,
+    ): void {
+      state.toolConfigs.set(name, config);
+      state.toolHandlers.set(name, async (input, extra) =>
+        handler(await config.inputSchema.parseAsync(input), extra),
+      );
+    }
+  },
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
+    onStop,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop?: () => unknown;
   }) => {
-    await onStart(state.start, {
-      abortSignal: new AbortController().signal,
-      pendingUserMessages: [],
-      firstTurn: true,
-      emit: () => {},
-      emitWarning: () => {},
-      emitError: () => {},
-      requestToolResult: async () => ({ output: {} }),
-      requestToolApproval: async () => ({ approved: true }),
-    });
+    state.onStop = onStop;
+    for (const turn of [
+      { start: state.start, firstTurn: state.firstTurn },
+      ...state.additionalTurns,
+    ]) {
+      await onStart(turn.start, {
+        abortSignal: (state.turnAbortController ?? new AbortController())
+          .signal,
+        experimental_userMessages: {
+          pendingCount: state.steering ? 1 : 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {
+            if (!state.steering) return;
+            await state.steeringGate;
+            yield {
+              messageId: 'steering-message-1',
+              text: 'Actually, Paris, Texas.',
+              accept: () =>
+                state.acceptedUserMessages.push('steering-message-1'),
+              reject: () => {},
+            };
+          },
+        },
+        firstTurn: turn.firstTurn,
+        emit: (event: Record<string, unknown>) => state.emitted.push(event),
+        emitWarning: () => {},
+        emitError: (input: unknown) => state.emitError?.(input),
+        requestToolResult: async (input: Record<string, unknown>) =>
+          state.requestToolResult?.(input) ?? { output: {} },
+        requestToolApproval: async (approvalId: string) =>
+          state.requestToolApproval?.(approvalId) ?? { approved: true },
+      });
+    }
   },
 }));
 
 describe('Claude Code bridge configuration', () => {
   beforeEach(() => {
+    state.emitted = [];
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
     state.queryArgs = [];
+    state.createQuery = undefined;
+    state.turnAbortController = undefined;
+    state.emitError = undefined;
+    state.requestToolResult = undefined;
+    state.requestToolApproval = undefined;
+    state.onStop = undefined;
+    state.firstTurn = true;
+    state.additionalTurns = [];
     state.start = {
       prompt: 'Inspect the project.',
       thinking: { type: 'disabled' },
     };
+    state.steering = false;
+    state.steeringGate = undefined;
+    state.acceptedUserMessages = [];
+    state.queryInputs = [];
+    state.toolHandlers = new Map();
+    state.toolConfigs = new Map();
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -90,6 +248,228 @@ describe('Claude Code bridge configuration', () => {
       }
     }
     vi.resetModules();
+  });
+
+  test.each(['hook-first', 'boundary-first'] as const)(
+    'closes a compaction-only turn when the %s event arrives first',
+    async order => {
+      state.start = { ...state.start, prompt: '/compact' };
+      state.requestToolResult = vi.fn(async () => ({ output: {} }));
+      state.createQuery = args =>
+        (async function* () {
+          const hooks = args.options.hooks as {
+            PostCompact: {
+              hooks: ((input: unknown) => Promise<unknown>)[];
+            }[];
+          };
+          const postCompact = () =>
+            hooks.PostCompact[0]!.hooks[0]!({
+              compact_summary: 'Compacted context',
+            });
+          if (order === 'hook-first') await postCompact();
+          yield {
+            type: 'system',
+            subtype: 'compact_boundary',
+            compact_metadata: { trigger: 'manual', pre_tokens: 1234 },
+          };
+          if (order === 'boundary-first') await postCompact();
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: '',
+            usage: { input_tokens: 30, output_tokens: 5 },
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(event => event.type === 'compaction'),
+      ).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'manual',
+          summary: 'Compacted context',
+          tokensBefore: 1234,
+        },
+      ]);
+      expect(state.requestToolResult).not.toHaveBeenCalled();
+      expect(state.emitted.map(event => event.type)).toEqual([
+        'stream-start',
+        'compaction',
+        'finish-step',
+        'finish',
+      ]);
+      expect(
+        state.emitted.find(event => event.type === 'finish-step'),
+      ).toMatchObject({
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 0, text: 0 },
+        },
+      });
+      expect(
+        state.emitted.find(event => event.type === 'finish'),
+      ).toMatchObject({
+        totalUsage: {
+          inputTokens: {
+            total: 30,
+            noCache: 30,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 5, text: 5 },
+        },
+      });
+    },
+  );
+
+  test('leaves compaction inside an open model step for that step to close', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [{ type: 'text', text: 'Before compaction' }],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    expect(
+      state.emitted.find(event => event.type === 'finish-step'),
+    ).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+  });
+
+  test('closes compaction after a completed model step in a separate step', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'bash-1',
+                name: 'Bash',
+                input: { command: 'pwd' },
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        yield {
+          type: 'user',
+          message: {
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'bash-1',
+                content: '/tmp',
+              },
+            ],
+          },
+        };
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'tool-call',
+      'tool-result',
+      'finish-step',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    const finishSteps = state.emitted.filter(
+      event => event.type === 'finish-step',
+    );
+    expect(finishSteps).toHaveLength(2);
+    expect(finishSteps[0]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+    expect(finishSteps[1]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 0, text: 0 },
+      },
+    });
   });
 
   test('merges the configured environment', async () => {
@@ -127,6 +507,298 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes strict MCP config and the budget limit to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
+  test('omits strict MCP config and the budget limit when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('strictMcpConfig');
+    expect(options).not.toHaveProperty('maxBudgetUsd');
+  });
+
+  test('passes the question timeout and excludeDynamicSections to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ matcher: string; timeout?: number }> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).toMatchObject({
+      matcher: 'AskUserQuestion',
+      timeout: 600,
+    });
+    expect(options.systemPrompt).toMatchObject({
+      type: 'preset',
+      preset: 'claude_code',
+      excludeDynamicSections: true,
+    });
+  });
+
+  test('rounds the question timeout up to whole seconds for the Agent SDK', async () => {
+    state.start = { ...state.start, questionTimeoutMs: 1_500 };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ timeout?: number }> };
+    };
+    expect(options.hooks.PreToolUse[0]?.timeout).toBe(2);
+  });
+
+  test('omits the question timeout and excludeDynamicSections when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).not.toHaveProperty('timeout');
+    expect(options.systemPrompt).not.toHaveProperty('excludeDynamicSections');
+  });
+
+  test('passes subagent activity options to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+  });
+
+  test('resumes the exact conversation when the start names one', async () => {
+    state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+    state.firstTurn = false;
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).toMatchObject({ resume: 'claude-session-1' });
+    // `resume` and `continue` are mutually exclusive in the SDK.
+    expect(options).not.toHaveProperty('continue');
+  });
+
+  test('resumes the observed conversation on every subsequent query', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-1',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-1',
+      },
+    ];
+    state.additionalTurns = [
+      {
+        start: { ...state.start, prompt: 'Continue the work.' },
+        firstTurn: false,
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.queryArgs).toHaveLength(2);
+    expect(state.queryArgs[1]?.options).toMatchObject({
+      resume: 'claude-session-1',
+    });
+    expect(state.queryArgs[1]?.options).not.toHaveProperty('continue');
+  });
+
+  test('falls back to continue when no exact conversation is named', async () => {
+    state.start = { ...state.start, continue: true };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('resume');
+  });
+
+  test('surfaces the observed session id on finish metadata and the stop payload', async () => {
+    state.messages = [
+      {
+        type: 'system',
+        subtype: 'init',
+        session_id: 'claude-session-2',
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        session_id: 'claude-session-2',
+      },
+    ];
+
+    await import('./index');
+
+    const finish = state.emitted.find(msg => msg.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { sessionId: 'claude-session-2' },
+    });
+    expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
+  });
+
+  test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
+    state.steering = true;
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        await input.next();
+        const steering = await input.next();
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'first',
+          total_cost_usd: 0.05,
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'second',
+          total_cost_usd: 0.06,
+          usage: {
+            input_tokens: 11,
+            cache_creation_input_tokens: 13,
+            cache_read_input_tokens: 17,
+            output_tokens: 19,
+          },
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: Reflect.get(steering.value as object, 'uuid'),
+          state: 'completed',
+        };
+      })();
+
+    await import('./index');
+
+    const finish = state.emitted.find(message => message.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { costUsd: 0.06 },
+    });
+    expect(finish?.totalUsage).toMatchObject({
+      inputTokens: {
+        total: 51,
+        noCache: 13,
+        cacheRead: 22,
+        cacheWrite: 16,
+      },
+      outputTokens: { total: 26 },
+    });
+  });
+
+  test.each([
+    { name: 'a single result', costs: [0.0494524], expected: 0.0494524 },
+    { name: 'a zero-cost result', costs: [0], expected: 0 },
+    { name: 'no reported cost', costs: [undefined], expected: undefined },
+    {
+      name: 'a resumed query with repeated cumulative totals',
+      costs: [0.1573332, 0.1573332],
+      expected: 0.1573332,
+    },
+    {
+      name: 'a resumed query with an increased cumulative total',
+      costs: [0.0298164, 0.05730615],
+      expected: 0.05730615,
+    },
+    {
+      name: 'a later result without a cost',
+      costs: [0.0494524, undefined],
+      expected: 0.0494524,
+    },
+    {
+      name: 'a later result reporting zero cost',
+      costs: [0.0494524, 0],
+      expected: 0,
+    },
+  ])(
+    'reports the latest available cost for $name',
+    async ({ costs, expected }) => {
+      state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+      state.firstTurn = false;
+      state.steering = costs.length > 1;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          await input.next();
+          const steering = state.steering ? await input.next() : undefined;
+
+          for (const cost of costs) {
+            yield {
+              type: 'result',
+              subtype: 'success',
+              result: 'done',
+              session_id: 'claude-session-1',
+              total_cost_usd: cost,
+            };
+          }
+          if (steering != null) {
+            yield {
+              type: 'command_lifecycle',
+              command_uuid: Reflect.get(steering.value as object, 'uuid'),
+              state: 'completed',
+            };
+          }
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).toMatchObject({
+        resume: 'claude-session-1',
+      });
+      const finishes = state.emitted.filter(
+        message => message.type === 'finish',
+      );
+      expect(finishes).toHaveLength(1);
+      expect(finishes[0]?.harnessMetadata).toEqual({
+        'claude-code': {
+          sessionId: 'claude-session-1',
+          ...(expected !== undefined ? { costUsd: expected } : {}),
+        },
+      });
+    },
+  );
+
+  test('reports an empty stop payload when no session id was observed', async () => {
+    await import('./index');
+
+    expect(state.onStop?.()).toEqual({});
+  });
+
   test('passes the requested JSON schema to the Agent SDK', async () => {
     const schema = {
       type: 'object',
@@ -143,5 +815,1612 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       outputFormat: { type: 'json_schema', schema },
     });
+  });
+
+  test('passes skill overrides into the Agent SDK settings', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      init: 'off',
+    };
+    state.start = {
+      ...state.start,
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toMatchObject({
+      skillOverrides,
+    });
+  });
+
+  test('merges model overrides with skill overrides', async () => {
+    const skillOverrides = { init: 'off' };
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      skillOverrides,
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+      },
+    });
+  });
+
+  test('omits settings when no contributions are configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+  });
+
+  test.each([
+    {
+      permissionMode: 'allow-reads' as const,
+      allowedTool: 'Read',
+      gatedTool: 'Edit',
+    },
+    {
+      permissionMode: 'allow-edits' as const,
+      allowedTool: 'Edit',
+      gatedTool: 'Bash',
+    },
+  ])(
+    'preserves $permissionMode approval boundaries with skill overrides',
+    async ({ permissionMode, allowedTool, gatedTool }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-workspace-permissions-'),
+      );
+      process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+      const skillOverrides = { init: 'off' };
+      state.start = {
+        ...state.start,
+        permissionMode,
+        skillOverrides,
+      };
+
+      await import('./index');
+
+      const options = state.queryArgs[0]?.options;
+      expect(options?.settings).toMatchObject({
+        skillOverrides,
+        permissions: {
+          ask: expect.arrayContaining([`${gatedTool}(*)`]),
+        },
+      });
+      expect(options?.canUseTool).toBeTypeOf('function');
+
+      const hooks = options?.hooks as {
+        PreToolUse: Array<{
+          hooks: Array<
+            (
+              input: Record<string, unknown>,
+              toolUseID: string,
+            ) => Promise<unknown>
+          >;
+        }>;
+      };
+      const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: allowedTool,
+            cwd: directory,
+            tool_input: { file_path: path.join(directory, 'file.txt') },
+            tool_use_id: 'allowed-tool',
+          },
+          'allowed-tool',
+        ),
+      ).resolves.toEqual({});
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: gatedTool,
+            tool_input: {},
+            tool_use_id: 'gated-tool',
+          },
+          'gated-tool',
+        ),
+      ).resolves.toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'defer',
+        },
+      });
+      await rm(directory, { recursive: true, force: true });
+    },
+  );
+
+  test.each([
+    { toolName: 'Read', toolInput: { file_path: 'file.txt' }, approved: true },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'new/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../skill/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '../skill/new.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../other/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: 'escape/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '../other/file.ipynb' },
+      approved: false,
+    },
+    { toolName: 'Glob', toolInput: { pattern: '**/*.ts' }, approved: true },
+    { toolName: 'Glob', toolInput: { pattern: '../*.ts' }, approved: false },
+    {
+      toolName: 'Glob',
+      toolInput: { pattern: '\\.\\./*.ts' },
+      approved: false,
+    },
+    {
+      toolName: 'Grep',
+      toolInput: { pattern: 'text', path: '../other' },
+      approved: false,
+    },
+    { toolName: 'Read', toolInput: {}, approved: false },
+    { toolName: 'EnterWorktree', toolInput: {}, approved: false },
+    { toolName: 'UnknownTool', toolInput: {}, approved: false },
+  ])(
+    'checks $toolName targets in both approval entry points',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-file-approvals-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const skill = path.join(directory, 'skill');
+        await mkdir(workDir);
+        await mkdir(skill);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(workDir, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          readableSkillRoots: [skill],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+        if (approved) {
+          expect(
+            (
+              await callback(toolName, toolInput, {
+                toolUseID: 'file-call',
+                blockedPath: path.join(directory, 'other', 'blocked.txt'),
+              })
+            ).behavior,
+          ).toBe('deny');
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
+  test('omits canUseTool when bypassing permissions', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
+  test('preserves inactive tool filtering when bypassing permissions', async () => {
+    state.start = {
+      ...state.start,
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+      disallowedTools: ['Bash'],
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+      },
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
+  test('maps a dotted AI Gateway model id to the id Claude Code expects', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      model: 'anthropic/claude-opus-5.5',
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test('keeps a context window suffix on the gateway model id', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5[1m]' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+      },
+    });
+  });
+
+  test('merges model overrides into the permission settings', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test.each(['claude-opus-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for %s',
+    async model => {
+      state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test('marks approval-gated external MCP tool calls as dynamic', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await canUseTool!(
+      'mcp__context7__query-docs',
+      { libraryId: '/vercel/next.js' },
+      { toolUseID: 'external-tool' },
+    );
+
+    expect(
+      state.emitted.find(
+        event =>
+          event.type === 'tool-call' && event.toolCallId === 'external-tool',
+      ),
+    ).toEqual({
+      type: 'tool-call',
+      toolCallId: 'external-tool',
+      toolName: 'mcp__context7__query-docs',
+      nativeName: 'mcp__context7__query-docs',
+      input: '{"libraryId":"/vercel/next.js"}',
+      providerExecuted: true,
+      dynamic: true,
+    });
+  });
+
+  test.each(['before', 'after'])(
+    'emits native calls once when permission callbacks run %s assistant messages',
+    async ordering => {
+      state.start.permissionMode = 'allow-edits';
+      const registered: string[] = [];
+      state.requestToolApproval = async id => {
+        expect(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        ).toBe(false);
+        registered.push(id);
+        return { approved: id === 'first', reason: 'Not allowed' };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          const canUseTool = args.options.canUseTool as (
+            name: string,
+            input: Record<string, unknown>,
+            options: { toolUseID: string },
+          ) => Promise<unknown>;
+          const assistant = {
+            type: 'assistant',
+            message: {
+              content: ['first', 'second'].map(id => ({
+                type: 'tool_use',
+                id,
+                name: 'Bash',
+                input: { command: 'pwd' },
+              })),
+            },
+          };
+          yield { type: 'stream_event', event: { type: 'message_start' } };
+          if (ordering === 'after') yield assistant;
+          for (const id of ['first', 'second']) {
+            const decision = await canUseTool(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: id },
+            );
+            expect(registered).toContain(id);
+            expect(decision).toEqual(
+              id === 'first'
+                ? {
+                    behavior: 'allow',
+                    updatedInput: { command: 'pwd' },
+                    toolUseID: id,
+                  }
+                : { behavior: 'deny', message: 'Not allowed', toolUseID: id },
+            );
+          }
+          if (ordering === 'before') yield assistant;
+          yield { type: 'stream_event', event: { type: 'message_stop' } };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+      await import('./index');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.toolCallId),
+      ).toEqual(['first', 'second']);
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['first', 'second']);
+    },
+  );
+
+  describe('deferred approvals', () => {
+    type Hook = (
+      input: Record<string, unknown>,
+      toolUseID: string,
+    ) => Promise<unknown>;
+    type CanUseTool = (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => Promise<unknown>;
+
+    const approvalHook = (args: QueryArgs) =>
+      (
+        args.options.hooks as {
+          PreToolUse: Array<{ matcher?: string; hooks: Hook[] }>;
+        }
+      ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+    const bash = {
+      hook_event_name: 'PreToolUse',
+      cwd: '/workspace',
+      tool_name: 'Bash',
+      tool_input: { command: 'pwd' },
+    };
+    const deferredResult = (id: string) => ({
+      type: 'result',
+      subtype: 'success',
+      result: '',
+      terminal_reason: 'tool_deferred',
+      deferred_tool_use: { id, name: 'Bash', input: { command: 'pwd' } },
+    });
+
+    beforeEach(() => {
+      state.start = { ...state.start, permissionMode: 'allow-reads' };
+    });
+
+    test('defers a call that needs approval and resumes it after the host answers', async () => {
+      const hookOutputs: unknown[] = [];
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          yield { type: 'system', subtype: 'init', session_id: 'session-1' };
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          if (state.queryArgs.length === 1) {
+            yield deferredResult('call-1');
+            return;
+          }
+          hookOutputs.push(
+            await (args.options.canUseTool as CanUseTool)(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: 'call-1' },
+            ),
+          );
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "defer",
+            },
+          },
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "allow",
+            },
+          },
+          {
+            "behavior": "allow",
+            "toolUseID": "call-1",
+            "updatedInput": {
+              "command": "pwd",
+            },
+          },
+        ]
+      `);
+      expect(state.queryArgs[1]?.options.resume).toBe('session-1');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['call-1']);
+    });
+
+    test('resumes a call the previous bridge deferred without asking the host again', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({
+        approved: false,
+        reason: 'Not now',
+      });
+      const hookOutputs: unknown[] = [];
+      state.createQuery = args =>
+        (async function* () {
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options.resume).toBe('session-1');
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "Not now",
+            },
+          },
+        ]
+      `);
+      expect(
+        state.emitted.filter(event => event.type === 'tool-approval-request'),
+      ).toEqual([]);
+    });
+
+    test('keeps continuing the workdir thread when the previous bridge named no conversation', async () => {
+      state.start = {
+        ...state.start,
+        continue: true,
+        deferredToolUseId: 'call-1',
+      };
+      state.firstTurn = true;
+      state.createQuery = () =>
+        (async function* () {
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+      expect(state.queryArgs[0]?.options.resume).toBeUndefined();
+    });
+
+    test('hands a steering message that arrives during the approval to the resumed query', async () => {
+      let releaseSteering!: () => void;
+      state.steering = true;
+      state.steeringGate = new Promise(resolve => {
+        releaseSteering = resolve;
+      });
+      state.requestToolApproval = async () => {
+        releaseSteering();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return { approved: true };
+      };
+      let resumedInput: unknown;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          if (state.queryArgs.length === 1) {
+            await input.next();
+            void input.next();
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          resumedInput = await Promise.race([
+            input.next().then(next => next.value),
+            new Promise(resolve => setTimeout(() => resolve('none'), 50)),
+          ]);
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(resumedInput).toMatchObject({
+        message: { content: [{ text: 'Actually, Paris, Texas.' }] },
+      });
+    });
+
+    test('reports the cumulative cost of the resumed query instead of adding the deferred one', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield { ...deferredResult('call-1'), total_cost_usd: 0.05 };
+            return;
+          }
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: 'done',
+            total_cost_usd: 0.08,
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'finish')?.harnessMetadata,
+      ).toMatchObject({ 'claude-code': { costUsd: 0.08 } });
+    });
+
+    test('registers for the host decision before it asks the host', async () => {
+      const requestedBeforeRegistering: boolean[] = [];
+      state.requestToolApproval = async id => {
+        requestedBeforeRegistering.push(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        );
+        return { approved: true };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestedBeforeRegistering).toEqual([false]);
+    });
+
+    test('names the resumed tool result after the previous bridge deferred the call', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          await approvalHook(args)(bash, 'call-1');
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'call-1',
+                  content: '/vercel/sandbox',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'tool-result')?.toolName,
+      ).toBe('bash');
+    });
+
+    test('reports other calls deferred in the same message as not run', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            yield {
+              type: 'assistant',
+              message: {
+                content: ['call-1', 'call-2'].map(id => ({
+                  type: 'tool_use',
+                  id,
+                  name: 'Bash',
+                  input: { command: 'pwd' },
+                })),
+              },
+            };
+            await approvalHook(args)(bash, 'call-1');
+            await approvalHook(args)(bash, 'call-2');
+            yield deferredResult('call-2');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(
+          event =>
+            event.type === 'tool-result' ||
+            event.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "isError": true,
+            "result": "Claude Code can wait for only one approval at a time, so this call did not run.",
+            "toolCallId": "call-1",
+            "toolName": "bash",
+            "type": "tool-result",
+          },
+          {
+            "approvalId": "call-2",
+            "toolCallId": "call-2",
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
+    });
+  });
+
+  test('allows ListAgents without approval in allow-reads mode', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool!('ListAgents', {}, { toolUseID: 'list-agents' }),
+    ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+    expect(
+      state.emitted.some(event => event.type === 'tool-approval-request'),
+    ).toBe(false);
+  });
+
+  test('routes questions through a PreToolUse hook in allow-all mode', async () => {
+    const nativeInput = {
+      questions: [
+        {
+          question: 'Which framework?',
+          header: 'Framework',
+          options: [
+            { label: 'React', description: 'React' },
+            { label: 'Vue', description: 'Vue' },
+          ],
+          multiSelect: false,
+        },
+      ],
+    };
+    state.requestToolResult = async () => ({
+      output: {
+        action: 'answered',
+        answers: {
+          'question-1': { optionIds: ['option-2'] },
+        },
+      },
+    });
+
+    await import('./index');
+
+    const hooks = state.queryArgs[0]?.options.hooks as {
+      PreToolUse: Array<{
+        matcher: string;
+        hooks: Array<
+          (
+            input: Record<string, unknown>,
+            toolUseID: string,
+            options: { signal: AbortSignal },
+          ) => Promise<unknown>
+        >;
+      }>;
+    };
+    const questionHook = hooks.PreToolUse[0];
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+    const result = await questionHook.hooks[0](
+      {
+        hook_event_name: 'PreToolUse',
+        tool_name: 'AskUserQuestion',
+        tool_input: nativeInput,
+        tool_use_id: 'question-tool',
+      },
+      'question-tool',
+      { signal: new AbortController().signal },
+    );
+
+    expect(questionHook.matcher).toBe('AskUserQuestion');
+    expect(state.emitted.filter(event => event.type === 'tool-call'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"allowPartialAnswers":true,"questions":[{"id":"question-1","question":"Which framework?","header":"Framework","options":[{"id":"option-1","label":"React","description":"React"},{"id":"option-2","label":"Vue","description":"Vue"}],"allowMultiple":false,"allowFreeForm":true}]}",
+          "nativeName": "AskUserQuestion",
+          "providerExecuted": false,
+          "providerMetadata": {
+            "claude-code": {
+              "nativeRequest": {
+                "questions": [
+                  {
+                    "header": "Framework",
+                    "multiSelect": false,
+                    "options": [
+                      {
+                        "description": "React",
+                        "label": "React",
+                      },
+                      {
+                        "description": "Vue",
+                        "label": "Vue",
+                      },
+                    ],
+                    "question": "Which framework?",
+                  },
+                ],
+              },
+            },
+          },
+          "toolCallId": "question-tool",
+          "toolName": "askUserQuestions",
+          "type": "tool-call",
+        },
+      ]
+    `);
+    expect(result).toEqual({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'allow',
+        updatedInput: {
+          ...nativeInput,
+          answers: { 'Which framework?': 'Vue' },
+        },
+      },
+    });
+  });
+
+  test('preserves root and nested open-object fields in host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'stripe_api_read',
+          inputSchema: {
+            type: 'object',
+            properties: { parameters: { type: 'object' } },
+            required: ['parameters'],
+          },
+        },
+      ],
+    };
+    const input = {
+      parameters: { customer: 'cus_example', limit: 1 },
+      account: 'acct_example',
+    };
+    state.messages = [
+      {
+        type: 'invoke-host-tools',
+        calls: [{ toolName: 'stripe_api_read', toolCallId: 'read-1', input }],
+      },
+      ...state.messages,
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'read-1',
+        toolName: 'stripe_api_read',
+        input: JSON.stringify(input),
+        providerExecuted: false,
+      },
+    ]);
+  });
+
+  test('passes host tool hints to Claude Code as MCP annotations and _meta', async () => {
+    const inputSchema = { type: 'object', properties: {} };
+    state.start = {
+      ...state.start,
+      tools: [
+        { name: 'search', inputSchema },
+        { name: 'send', inputSchema },
+        { name: 'load', inputSchema },
+        { name: 'plain', inputSchema },
+      ],
+      toolHints: {
+        search: { readOnly: true, alwaysLoad: true },
+        send: { readOnly: false },
+        load: { alwaysLoad: true },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.toolConfigs.get('search')).toMatchObject({
+      annotations: { readOnlyHint: true },
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('send')).toMatchObject({
+      annotations: { readOnlyHint: false },
+    });
+    expect(state.toolConfigs.get('send')).not.toHaveProperty('_meta');
+    expect(state.toolConfigs.get('load')).toMatchObject({
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('load')).not.toHaveProperty('annotations');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('annotations');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('_meta');
+  });
+
+  test('returns model-facing text and inline images as MCP content', async () => {
+    state.start.tools = [
+      { name: 'inspect', inputSchema: { type: 'object', properties: {} } },
+    ];
+    state.requestToolResult = async () => ({
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'host-1',
+        toolName: 'inspect',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    });
+    let handlerResult: unknown;
+    state.createQuery = () =>
+      (async function* () {
+        handlerResult = await state.toolHandlers.get('inspect')!(
+          {},
+          {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          },
+        );
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(handlerResult).toEqual({
+      content: [
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+      ],
+      isError: false,
+    });
+  });
+
+  test('uses callback metadata to correlate identical parallel host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+              unit: { type: 'string' },
+            },
+            required: ['city', 'unit'],
+          },
+        },
+      ],
+    };
+    state.messages = [
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 0,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-1',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 0,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 0 },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_start',
+          index: 1,
+          content_block: {
+            type: 'tool_use',
+            id: 'host-tool-2',
+            name: 'mcp__harness-tools__weather',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: {
+          type: 'content_block_delta',
+          index: 1,
+          delta: {
+            type: 'input_json_delta',
+            partial_json: '{"unit":"C","city":"Chicago"}',
+          },
+        },
+      },
+      {
+        type: 'stream_event',
+        event: { type: 'content_block_stop', index: 1 },
+      },
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'host-tool-1',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+            {
+              type: 'tool_use',
+              id: 'host-tool-2',
+              name: 'mcp__harness-tools__weather',
+              input: { city: 'Chicago', unit: 'C' },
+            },
+          ],
+        },
+      },
+      {
+        type: 'invoke-host-tools',
+        calls: [
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-2',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+          {
+            toolName: 'weather',
+            toolCallId: 'host-tool-1',
+            input: { city: 'Chicago', unit: 'C' },
+          },
+        ],
+      },
+      {
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-1',
+              content: '{}',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'host-tool-2',
+              content: '{}',
+            },
+          ],
+        },
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-1',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool-2',
+        toolName: 'weather',
+        input: '{"city":"Chicago","unit":"C"}',
+        providerExecuted: false,
+      },
+    ]);
+  });
+
+  test.each([
+    {
+      label: 'rejected before handler',
+      input: {},
+      reachedHandler: false,
+      isError: true,
+    },
+    {
+      label: 'normal success',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: false,
+    },
+    {
+      label: 'host execution error',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: true,
+    },
+  ])(
+    'reports exactly one completed host-tool attempt: $label',
+    async ({ input, reachedHandler, isError }) => {
+      state.start.tools = [
+        {
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ];
+      const requestToolResult = vi.fn(async () => ({
+        output: 'host result',
+        isError,
+      }));
+      state.requestToolResult = requestToolResult;
+      state.createQuery = () =>
+        (async function* () {
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'host-1',
+                name: 'mcp__harness-tools__weather',
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: JSON.stringify(input),
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: { type: 'content_block_stop', index: 0 },
+          };
+          yield {
+            type: 'assistant',
+            message: {
+              content: [
+                {
+                  type: 'tool_use',
+                  id: 'host-1',
+                  name: 'mcp__harness-tools__weather',
+                  input,
+                },
+              ],
+            },
+          };
+          const handler = state.toolHandlers.get('weather')!;
+          const invocation = handler(input, {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          });
+          if (reachedHandler) {
+            await invocation;
+          } else {
+            await expect(invocation).rejects.toThrow();
+          }
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'host-1',
+                  is_error: isError,
+                  content: reachedHandler
+                    ? 'host result'
+                    : 'Input validation error: city is required',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestToolResult).toHaveBeenCalledTimes(reachedHandler ? 1 : 0);
+      expect(
+        state.emitted.filter(
+          event =>
+            typeof event.type === 'string' &&
+            event.type.startsWith('tool-input-'),
+        ),
+      ).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'host-1',
+          toolName: 'weather',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'host-1',
+          delta: JSON.stringify(input),
+        },
+        { type: 'tool-input-end', id: 'host-1' },
+      ]);
+
+      const completedCalls = state.emitted.filter(
+        event => event.type === 'tool-call',
+      );
+      const results = state.emitted.filter(
+        event => event.type === 'tool-result',
+      );
+      expect(completedCalls).toHaveLength(1);
+      expect(results).toHaveLength(1);
+      expect(completedCalls[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+        providerExecuted: false,
+      });
+      expect(results[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+        isError,
+        result: reachedHandler
+          ? 'host result'
+          : 'Input validation error: city is required',
+      });
+      expect(state.emitted.some(event => event.type === 'finish-step')).toBe(
+        true,
+      );
+    },
+  );
+
+  test('reports only the final model call usage for the final step', async () => {
+    state.messages = [
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool-1',
+              name: 'Bash',
+              input: { command: 'pwd' },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 2 },
+        },
+      },
+      {
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-1',
+              content: '/tmp',
+            },
+          ],
+        },
+      },
+      {
+        type: 'assistant',
+        message: {
+          content: [{ type: 'text', text: 'done' }],
+          usage: { input_tokens: 20, output_tokens: 3 },
+        },
+      },
+      {
+        type: 'result',
+        subtype: 'success',
+        result: 'done',
+        usage: { input_tokens: 30, output_tokens: 5 },
+      },
+    ];
+
+    await import('./index');
+
+    const finishSteps = state.emitted.filter(
+      event => event.type === 'finish-step',
+    );
+    const finish = state.emitted.find(event => event.type === 'finish');
+
+    expect(finishSteps).toHaveLength(2);
+    expect(finishSteps[1]?.usage).toEqual({
+      inputTokens: {
+        total: 20,
+        noCache: 20,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: 3, text: 3 },
+    });
+    expect(finish?.totalUsage).toEqual({
+      inputTokens: {
+        total: 30,
+        noCache: 30,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: 5, text: 5 },
+    });
+  });
+
+  test('sends image prompt content as Claude image blocks', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        state.queryInputs.push((await input.next()).value);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+    state.start = {
+      ...state.start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  test('keeps the query open past the first result for an accepted steering message', async () => {
+    state.steering = true;
+
+    await import('./index');
+
+    expect(state.acceptedUserMessages).toEqual(['steering-message-1']);
+    expect(state.queryInputs).toHaveLength(2);
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      parent_tool_use_id: null,
+      uuid: expect.any(String),
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Inspect the project.' }],
+      },
+    });
+    expect(state.queryInputs[1]).toMatchObject({
+      type: 'user',
+      parent_tool_use_id: null,
+      uuid: 'steering-message-1',
+      priority: 'next',
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
+      },
+    });
+  });
+
+  test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query that stays in flight until `interrupt()` is called, then settles
+    // with the error-shaped result an interrupted Claude query reports.
+    let releaseInterrupt!: () => void;
+    const interrupted = new Promise<void>(resolve => {
+      releaseInterrupt = resolve;
+    });
+    const generator = (async function* () {
+      await interrupted;
+      yield {
+        type: 'result',
+        subtype: 'error_during_execution',
+        errors: ['Interrupted by user'],
+      };
+    })();
+    const interrupt = vi.fn(async () => releaseInterrupt());
+    const disposed = vi.fn();
+    const originalReturn = generator.return.bind(generator);
+    generator.return = ((value?: unknown) => {
+      disposed();
+      return originalReturn(value as never);
+    }) as typeof generator.return;
+
+    state.createQuery = () => {
+      // Abort only once the turn holds the query, so the graceful
+      // `interrupt()` path is taken rather than the pre-query hard abort.
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
+  });
+
+  test('falls back to a hard abort when interrupt() rejects, staying quiet', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const emitError = vi.fn();
+    state.emitError = emitError;
+
+    // A query whose `interrupt()` rejects; the hard-abort fallback fires the
+    // query's abort signal, on which the SDK iteration throws — exactly what
+    // the real CLI does when its process is killed mid-turn.
+    const interrupt = vi.fn(async () => {
+      throw new Error('interrupt is not supported');
+    });
+    const disposed = vi.fn();
+    state.createQuery = args => {
+      const abortSignal = (args.options as { abortSignal: AbortSignal })
+        .abortSignal;
+      const generator = (async function* () {
+        await new Promise<void>(resolve => {
+          if (abortSignal.aborted) return resolve();
+          abortSignal.addEventListener('abort', () => resolve(), {
+            once: true,
+          });
+        });
+        // The promise above settles only on abort, so the throw always fires.
+        if (abortSignal.aborted) {
+          throw Object.assign(new Error('This operation was aborted'), {
+            name: 'AbortError',
+          });
+        }
+        yield undefined as never;
+      })();
+      const originalReturn = generator.return.bind(generator);
+      generator.return = ((value?: unknown) => {
+        disposed();
+        return originalReturn(value as never);
+      }) as typeof generator.return;
+      queueMicrotask(() => turnAbort.abort());
+      return Object.assign(generator, { interrupt });
+    };
+
+    await import('./index');
+
+    // The graceful path was attempted, the hard abort took over…
+    expect(interrupt).toHaveBeenCalledTimes(1);
+    // …and neither the rejected interrupt nor the aborted iteration was
+    // reported as a turn failure: the stop is the host's own.
+    expect(emitError).not.toHaveBeenCalled();
+    expect(disposed).toHaveBeenCalled();
+  });
+  test('reports a result flagged `is_error` as a terminal error, even though its subtype is `success`', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    // What the CLI actually sends when the provider rejects the request: the
+    // `success` subtype, `is_error: true`, and the message in `result`.
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 400,
+        result: 'API Error: 400 the request was rejected',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'API Error: 400 the request was rejected',
+      message: 'claude-code terminal error',
+    });
+    // The turn must not also settle as a normal finish: that is what made a
+    // hard rejection look like an agent that simply returned nothing.
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
+
+  test('names the HTTP status when an errored result carries no message', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: true,
+        api_error_status: 529,
+        result: '   ',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).toHaveBeenCalledWith({
+      error: 'Claude Code reported an API error (HTTP 529)',
+      message: 'claude-code terminal error',
+    });
+  });
+
+  test('still finishes normally when a `success` result is not flagged as an error', async () => {
+    const emitError = vi.fn();
+    state.emitError = emitError;
+    state.messages = [
+      {
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result: 'done',
+      },
+    ];
+
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(state.emitted).toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
   });
 });

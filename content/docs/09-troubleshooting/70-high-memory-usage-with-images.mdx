@@ -17,7 +17,7 @@ This is especially noticeable when using `experimental_download` to process imag
 
 ## Background
 
-By default, the AI SDK includes the full request messages plus request and response bodies in the step results. When processing images, the request messages and request body can contain base64-encoded image data, which can be very large (a single image can be 1MB+ when base64 encoded). If you process many images and keep references to the results, this data accumulates in memory.
+When enabled with the `include` option, the AI SDK includes the full request messages plus request and response bodies in the step results. When processing images, the request messages and request body can contain base64-encoded image data, which can be very large (a single image can be 1MB+ when base64 encoded). If you process many images and keep references to the results, this data accumulates in memory.
 
 For example, processing 100 images of 500KB each would include ~50MB+ of request body data in memory.
 
@@ -30,7 +30,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   messages: [
     {
       role: 'user',
@@ -85,7 +85,7 @@ const results = [];
 
 for (const imageUrl of imageUrls) {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages: [
       {
         role: 'user',

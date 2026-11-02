@@ -76,6 +76,96 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  describe('detected languages', () => {
+    it.each([
+      { language: 'english', expected: 'en' },
+      { language: 'en', expected: 'en' },
+      { language: 'bn', expected: 'bn' },
+      { language: 'unknown', expected: undefined },
+      { language: 'en-US', expected: undefined },
+      { language: 'constructor', expected: undefined },
+      { languages: [{ code: 'en' }], expected: 'en' },
+      { languages: [{ code: 'fr' }], expected: 'fr' },
+      { languages: [{ code: 'en' }, { code: 'fr' }], expected: undefined },
+      { languages: [{ code: 'en-US' }], expected: undefined },
+      { languages: [{ code: 'english' }], expected: undefined },
+      { languages: [], expected: undefined },
+      { language: null, languages: null, expected: undefined },
+      { language: 'unknown', languages: [{ code: 'en' }], expected: 'en' },
+      { language: 'french', languages: [{ code: 'en' }], expected: 'fr' },
+    ])(
+      'normalizes $language / $languages to $expected',
+      async ({ expected, ...fields }) => {
+        const body = { text: 'Hello world', ...fields };
+        server.urls['https://api.openai.com/v1/audio/transcriptions'].response =
+          {
+            type: 'json-value',
+            body,
+          };
+
+        const result = await provider
+          .transcription('gpt-transcribe')
+          .doGenerate({
+            audio: audioData,
+            mediaType: 'audio/mpeg',
+            providerOptions: {
+              openai: { responseFormat: 'json', timestampGranularities: [] },
+            },
+          });
+
+        expect(result.language).toBe(expected);
+        expect(result.response.body).toEqual(body);
+        expect(result.warnings).toEqual([]);
+        expect(result.providerMetadata).toEqual(
+          fields.languages == null
+            ? undefined
+            : { openai: { languages: fields.languages } },
+        );
+      },
+    );
+
+    it('preserves detected languages alongside diarized segments', async () => {
+      const languages = [{ code: 'en' }, { code: 'fr-CA' }];
+      server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello world',
+          languages,
+          segments: [
+            {
+              type: 'transcript.text.segment',
+              id: 'segment-0',
+              start: 0,
+              end: 1,
+              text: 'Hello world',
+              speaker: 'A',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+      });
+
+      expect(result.language).toBeUndefined();
+      expect(result.providerMetadata).toEqual({
+        openai: {
+          languages,
+          segments: [
+            {
+              text: 'Hello world',
+              startSecond: 0,
+              endSecond: 1,
+              speaker: 'A',
+            },
+          ],
+        },
+      });
+    });
+  });
+
   it('should reject gpt-realtime-whisper for non-streaming transcription', async () => {
     await expect(
       provider.transcription('gpt-realtime-whisper').doGenerate({
@@ -83,6 +173,31 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       }),
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+  });
+
+  it.each(['gpt-live-transcribe', 'gpt-live-transcribe-2026-01-01'])(
+    'should reject %s for non-streaming transcription',
+    async modelId => {
+      await expect(
+        provider.transcription(modelId).doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+    },
+  );
+
+  it('should send gpt-transcribe to the REST transcription endpoint', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'gpt-transcribe',
+    });
   });
 
   it('should pass the model', async () => {
@@ -111,6 +226,93 @@ describe('doGenerate', () => {
       response_format: 'verbose_json',
     });
     expect(result.durationInSeconds).toBe(36.709999084472656);
+  });
+
+  it('should not send response_format or timestamps for gpt-transcribe by default', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBeUndefined();
+    expect(body!['timestamp_granularities[]']).toBeUndefined();
+  });
+
+  it('should not add response_format or timestamps when only a prompt is set', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          prompt: 'A spoken recording.',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBeUndefined();
+    expect(body!['timestamp_granularities[]']).toBeUndefined();
+    expect(body!.prompt).toBe('A spoken recording.');
+  });
+
+  it('should pass an explicit responseFormat unchanged for gpt-transcribe', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          responseFormat: 'verbose_json',
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBe('verbose_json');
+    expect(body!['timestamp_granularities[]']).toBe('word');
+  });
+
+  it('should default whisper-1 to verbose_json and segment timestamps when only a prompt is set', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('whisper-1').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          prompt: 'A spoken recording.',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBe('verbose_json');
+    expect(body!['timestamp_granularities[]']).toBe('segment');
+  });
+
+  it('should not send timestamps when responseFormat is json', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('gpt-4o-mini-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          responseFormat: 'json',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.response_format).toBe('json');
+    expect(body!['timestamp_granularities[]']).toBeUndefined();
   });
 
   it('should pass headers', async () => {
@@ -145,7 +347,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -160,6 +362,20 @@ describe('doGenerate', () => {
     expect(result.text).toMatchInlineSnapshot(
       `"Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies."`,
     );
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.usage).toStrictEqual({
+      type: 'duration',
+      seconds: 37,
+    });
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -262,11 +478,119 @@ describe('doGenerate', () => {
     expect(rest).toMatchInlineSnapshot(`
       {
         "model": "gpt-4o-transcribe",
-        "response_format": "json",
         "temperature": "0",
         "timestamp_granularities[]": "word",
       }
     `);
+  });
+
+  it('should support gpt-4o-transcribe-diarize', async () => {
+    prepareJsonFixtureResponse('openai-diarized-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "auto",
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "diarized_json",
+      }
+    `);
+
+    expect(result).toMatchObject({
+      text: 'Hello from Alice. Hello from Bob.',
+      durationInSeconds: 3.2,
+      segments: [
+        {
+          text: 'Hello from Alice.',
+          startSecond: 0,
+          endSecond: 1.5,
+        },
+        {
+          text: 'Hello from Bob.',
+          startSecond: 1.5,
+          endSecond: 3.2,
+        },
+      ],
+      providerMetadata: {
+        openai: {
+          segments: [
+            {
+              text: 'Hello from Alice.',
+              startSecond: 0,
+              endSecond: 1.5,
+              speaker: 'A',
+            },
+            {
+              text: 'Hello from Bob.',
+              startSecond: 1.5,
+              endSecond: 3.2,
+              speaker: 'B',
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('should pass diarization response format and chunking strategy provider options', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          responseFormat: 'json',
+          chunkingStrategy: 'auto',
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
+    expect(rest).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "auto",
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "json",
+        "temperature": "0",
+      }
+    `);
+  });
+
+  it('should serialize a server VAD chunking strategy', async () => {
+    prepareJsonFixtureResponse('openai-diarized-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          chunkingStrategy: {
+            type: 'server_vad',
+            threshold: 0.7,
+            prefixPaddingMs: 400,
+            silenceDurationMs: 300,
+          },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.chunking_strategy).toBe(
+      '{"type":"server_vad","threshold":0.7,"prefix_padding_ms":400,"silence_duration_ms":300}',
+    );
   });
 
   it('should pass timestamp_granularities when specified', async () => {
@@ -293,6 +617,58 @@ describe('doGenerate', () => {
         "timestamp_granularities[]": "segment",
       }
     `);
+  });
+
+  it('should read the duration from duration usage when the response has no duration', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        languages: [{ code: 'en' }],
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('gpt-transcribe').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(37);
+  });
+
+  it('should prefer the response duration over duration usage', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        duration: 36.71,
+        usage: { type: 'duration', seconds: 37 },
+      },
+    };
+
+    const result = await provider.transcription('whisper-1').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.durationInSeconds).toBe(36.71);
+  });
+
+  it('should not read a duration from token usage', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the Vercel AI SDK!',
+        usage: { type: 'tokens', input_tokens: 14, output_tokens: 45 },
+      },
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-transcribe')
+      .doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+    expect(result.durationInSeconds).toBeUndefined();
   });
 
   it('should work when no words, language, or duration are returned', async () => {
@@ -624,6 +1000,101 @@ describe('doStream', () => {
       modelId: 'gpt-realtime-whisper',
     });
   });
+
+  it.each([
+    ['gpt-live-transcribe', true],
+    ['gpt-live-transcribe-2026-01-01', true],
+    ['gpt-transcribe', false],
+    ['gpt-transcribe-2026-01-01', false],
+  ])(
+    'should stream %s and send the language hint as a languages list',
+    async (modelId, supportsDelay) => {
+      MockWebSocket.instances = [];
+      const model = new OpenAITranscriptionModel(modelId, {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        webSocket: MockWebSocket,
+      });
+
+      const result = await model.doStream({
+        audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerOptions: {
+          openai: { language: 'en', streaming: { delay: 'low' } },
+        },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      expect(ws.url.toString()).toBe(
+        'wss://api.openai.com/v1/realtime?intent=transcription',
+      );
+      ws.open();
+      await flush();
+
+      expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
+        type: 'session.update',
+        session: {
+          type: 'transcription',
+          audio: {
+            input: {
+              format: { type: 'audio/pcm', rate: 24000 },
+              transcription: {
+                model: modelId,
+                languages: ['en'],
+                ...(supportsDelay && { delay: 'low' }),
+              },
+              turn_detection: null,
+            },
+          },
+        },
+      });
+
+      ws.message({
+        type: 'conversation.item.input_audio_transcription.completed',
+        item_id: 'item-1',
+        transcript: 'Hello',
+      });
+      const parts = await partsPromise;
+      expect(parts).toContainEqual({
+        type: 'transcript-final',
+        id: 'item-1',
+        text: 'Hello',
+      });
+      expect(parts[0]).toEqual({
+        type: 'stream-start',
+        warnings: supportsDelay
+          ? []
+          : [
+              {
+                type: 'unsupported',
+                feature: 'providerOptions.openai.streaming.delay',
+                details: `OpenAI streaming transcription with ${modelId} does not support delay.`,
+              },
+            ],
+      });
+    },
+  );
+
+  it.each(['gpt-4o-transcribe', 'whisper-1'])(
+    'should reject %s for streaming transcription',
+    async modelId => {
+      const model = new OpenAITranscriptionModel(modelId, {
+        provider: 'test-provider',
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        webSocket: MockWebSocket,
+      });
+
+      await expect(
+        model.doStream({
+          audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+          inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+    },
+  );
 
   it('should accept dated gpt-realtime-whisper snapshot model IDs', async () => {
     MockWebSocket.instances = [];

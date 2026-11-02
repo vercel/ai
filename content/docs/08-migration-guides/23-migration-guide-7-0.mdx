@@ -1385,7 +1385,7 @@ if (isToolUIPart(part)) {
 
 The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
 
-Use `{ type: 'file-data' }` for all inline file content, including images.
+Use `{ type: 'file', mediaType, data: { type: 'data', data } }` for inline tool-result file content, including images, as described below. The legacy `file-data` variant still works through runtime auto-migration, but is deprecated.
 
 #### Tool Result Content: Migrate Away From `image-*` and `file-*` variants to `file`
 

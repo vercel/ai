@@ -40,7 +40,12 @@ function makeManager({
 } = {}) {
   const updateMock = update ?? vi.fn(async () => {});
   const sandbox = {
-    currentSession: () => ({ networkPolicy }),
+    currentSession: () => ({ networkPolicy, sessionId: 'session' }),
+    listSessions: async () => ({
+      async *[Symbol.asyncIterator]() {
+        yield { id: 'session', networkPolicy: { mode: 'custom' } };
+      },
+    }),
     update: updateMock,
   } as unknown as Sandbox;
   return {
@@ -123,6 +128,45 @@ describe('VercelNetworkPolicyManager', () => {
         ? policy.allow?.['api.example.com']
         : undefined,
     ).toHaveLength(3);
+  });
+
+  it('replaces an already managed transformation with the same match and headers', async () => {
+    const { manager, update } = makeManager();
+    const refreshedTransformation = {
+      ...credentialTransformation,
+      transform: {
+        headers: { authorization: 'Bearer refreshed-secret' },
+      },
+    } as const satisfies HarnessV1RequestTransformation;
+
+    await manager.addRequestTransformations([credentialTransformation]);
+    await manager.addRequestTransformations([refreshedTransformation]);
+
+    expect(getLastNetworkPolicy(update)).toEqual({
+      allow: {
+        '*': [],
+        'api.example.com': [
+          {
+            match: {
+              method: ['POST'],
+              path: { startsWith: '/v1/' },
+            },
+            transform: [
+              { headers: { authorization: 'Bearer refreshed-secret' } },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it('does not update the policy when adding the same transformation twice', async () => {
+    const { manager, update } = makeManager();
+
+    await manager.addRequestTransformations([credentialTransformation]);
+    await manager.addRequestTransformations([credentialTransformation]);
+
+    expect(update).toHaveBeenCalledOnce();
   });
 
   it('preserves forwarding rules across every policy operation and merges same-host values', async () => {

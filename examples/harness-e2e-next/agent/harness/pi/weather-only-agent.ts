@@ -11,7 +11,6 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { pi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherPiHarnessAgent = new HarnessAgent({
@@ -20,9 +19,6 @@ export const weatherPiHarnessAgent = new HarnessAgent({
   skills: [weatherForecastSkill, weatherCodesSkill],
   tools: { get_weather: weatherTool },
   activeTools: ['get_weather'],
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-  }),
   sandboxConfig: {
     onSession: async ({ session, sessionWorkDir, abortSignal }) => {
       await session.writeTextFile({
