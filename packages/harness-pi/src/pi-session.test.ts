@@ -2579,6 +2579,67 @@ describe('createPiSession', () => {
     }
   });
 
+  it('streams compaction requested between turns on the next turn', async () => {
+    let emitPiEvent: ((event: unknown) => void) | undefined;
+    const fakePi = createFakePiSession();
+    fakePi.session.subscribe = vi.fn(subscriber => {
+      emitPiEvent = subscriber;
+      return () => {};
+    });
+    fakePi.session.compact = vi.fn(async () => {
+      emitPiEvent?.({
+        type: 'compaction_end',
+        reason: 'manual',
+        result: { summary: 'Preserve decisions so far.', tokensBefore: 4096 },
+      });
+    });
+    piMock.session = fakePi.session;
+
+    const session = await createPiSession({
+      sessionId: 'session-compaction-between-turns',
+      sandboxSession: createThrowingSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+    });
+
+    try {
+      const turn1Emitted: HarnessV1StreamPart[] = [];
+      const turn1 = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'first turn',
+        emit: part => turn1Emitted.push(part),
+      });
+      await turn1.done;
+
+      await session.doCompact('Preserve decisions so far.');
+
+      const turn2Emitted: HarnessV1StreamPart[] = [];
+      const turn2 = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'second turn',
+        emit: part => turn2Emitted.push(part),
+      });
+      await turn2.done;
+
+      const compactions = turn2Emitted.filter(
+        part => part.type === 'compaction',
+      );
+      expect(compactions).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'manual',
+          summary: 'Preserve decisions so far.',
+          tokensBefore: 4096,
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('appends instructions without changing the user prompt or reloading MCP extensions', async () => {
     const prompt = vi.fn(async () => {});
     piMock.session = {
