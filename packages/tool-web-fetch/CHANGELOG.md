@@ -1,5 +1,15 @@
 # @ai-sdk/tool-web-fetch
 
+## 1.0.10
+
+### Patch Changes
+
+- dffe405: fix(tool-web-fetch): return a `network_error` result instead of throwing when a redirect has an invalid `Location` header
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
 ## 1.0.9
 
 ### Patch Changes

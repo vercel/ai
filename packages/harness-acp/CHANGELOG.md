@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.111
+
+### Patch Changes
+
+- 5d20d90: fix(harness-acp): recover missing tool approval input from observed updates
+- 5622bf1: Require host approval for native file operations outside the session workspace under restrictive permission modes. Automatic approvals now check every declared location, including symlinks and new-file destinations, and require approval when file locations are missing or cannot be resolved.
+  - @ai-sdk/harness@1.0.171
+
 ## 1.0.110
 
 ### Patch Changes

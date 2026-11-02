@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.160
+
+### Patch Changes
+
+- 5946558: Record the `gen_ai.client.inference.duration` OpenTelemetry histogram in seconds for `generateText` and `streamText` model calls, including errors, cancellation, and failed stream retry attempts, so configured metric exporters can report inference latency.
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
 ## 1.0.159
 
 ### Patch Changes
