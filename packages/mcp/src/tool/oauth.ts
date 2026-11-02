@@ -1478,9 +1478,16 @@ async function authInternal(
         authorizationCode === undefined &&
         (await provider.isClientInformationDynamicallyRegistered?.())
       ) {
+        // Do not save a new client pin while legacy tokens remain in storage.
+        if (!provider.invalidateCredentials) {
+          throw new MCPClientOAuthError({
+            message:
+              'invalidateCredentials is required to discard unbound legacy OAuth credentials; clear stored credentials before authorizing again',
+          });
+        }
         // Re-register legacy dynamic clients without transmitting their old
         // secret or refresh token to an unpinned authorization server.
-        await provider.invalidateCredentials?.('all');
+        await provider.invalidateCredentials('all');
         clientInformation = undefined;
         tokens = undefined;
       } else {
@@ -1589,7 +1596,14 @@ async function authInternal(
         currentAuthorizationServerInformation,
       });
     } else {
-      await provider.invalidateCredentials?.('tokens', {
+      // A later auth call must not combine stale tokens with the new flow pin.
+      if (!provider.invalidateCredentials) {
+        throw new MCPClientOAuthError({
+          message:
+            'invalidateCredentials is required to discard unbound legacy OAuth tokens; clear stored tokens before authorizing again',
+        });
+      }
+      await provider.invalidateCredentials('tokens', {
         tokens: { ...tokens },
       });
     }

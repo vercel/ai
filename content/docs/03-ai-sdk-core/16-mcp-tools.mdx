@@ -170,6 +170,9 @@ this enables re-registration for unbound legacy dynamic clients and recovery fro
 `invalid_client` / `unauthorized_client` refresh errors. Without that explicit
 signal the SDK treats existing clients as pre-registered and does not delete them;
 configure their trusted issuer/binding or clear the old registration manually.
+If unbound legacy tokens or dynamic credentials cannot be invalidated, the SDK
+throws before saving a new binding or registering a new client; clear that old
+storage manually before restarting authorization.
 Never infer an issuer for an existing secret from untrusted resource metadata.
 
 Persist the authorization-server binding before redirecting, along with a random

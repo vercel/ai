@@ -261,6 +261,43 @@ describe('OAuth authorization server binding', () => {
     expect(tokenCalls(fetchFn)).toHaveLength(0);
   });
 
+  it.each(['public', 'dynamic'] as const)(
+    'rejects repeated %s legacy auth attempts without invalidation before saving a new pin',
+    async kind => {
+      const memory = new MemoryProvider();
+      const oldClient = {
+        client_id: 'legacy-client',
+        ...(kind === 'dynamic' ? { client_secret: 'legacy-secret' } : {}),
+      };
+      const oldTokens = {
+        access_token: 'legacy-access',
+        refresh_token: 'legacy-refresh',
+        token_type: 'Bearer',
+      };
+      memory.client = oldClient;
+      memory.storedTokens = oldTokens;
+      const provider = {
+        ...memory,
+        invalidateCredentials: undefined,
+        isClientInformationDynamicallyRegistered: () => kind === 'dynamic',
+      };
+      const fetchFn = transport({
+        authorizationServer: 'https://other-login.example.com',
+      });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await expect(auth(provider, { serverUrl, fetchFn })).rejects.toThrow(
+          'invalidateCredentials is required',
+        );
+      }
+      expect(memory.client).toBe(oldClient);
+      expect(memory.storedTokens).toBe(oldTokens);
+      expect(memory.authorizationUrl).toBeUndefined();
+      expect(
+        fetchFn.mock.calls.every(([, init]) => init?.method !== 'POST'),
+      ).toBe(true);
+    },
+  );
+
   it.each(['invalid_client', 'unauthorized_client'])(
     'recovers from %s only for explicitly dynamic clients',
     async tokenError => {
