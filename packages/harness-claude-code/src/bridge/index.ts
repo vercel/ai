@@ -380,7 +380,7 @@ function createPermissionSettings(input: {
  * the id Claude Code expects (`claude-opus-5-5`) to the gateway id, which
  * stays the id sent to the gateway.
  */
-function createGatewayModelOverrides(
+function toGatewayModelOverride(
   model: string | undefined,
 ): Record<string, string> | undefined {
   if (!model?.startsWith('anthropic/')) return undefined;
@@ -388,6 +388,24 @@ function createGatewayModelOverrides(
   // suffix such as `[1m]` stays on the value.
   const id = model.slice('anthropic/'.length).replace(/\[[^\]]*\]$/, '');
   return id.includes('.') ? { [id.replace(/\./g, '-')]: model } : undefined;
+}
+
+/**
+ * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
+ * at other ids, which it misreads the same way. `model` comes last so that its
+ * entry wins a key it shares with an alias.
+ */
+function createGatewayModelOverrides(
+  model: string | undefined,
+  env: Record<string, string | undefined>,
+): Record<string, string> | undefined {
+  const overrides = {
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(model),
+  };
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
 }
 
 function needsHostApproval(input: {
@@ -667,7 +685,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
-  const modelOverrides = createGatewayModelOverrides(start.model);
+  const sdkEnv = { ...procEnv, ...start.env };
+  const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
     permissionMode,
@@ -710,7 +729,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.forwardSubagentText !== undefined
         ? { forwardSubagentText: start.forwardSubagentText }
         : {}),
-      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
+      ...(start.env !== undefined ? { env: sdkEnv } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
