@@ -396,7 +396,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: `providerOptions.openai.${option}`,
-          details: `The OpenAI provider does not support ${option} for streaming transcription.`,
+          details: `OpenAI streaming transcription does not support ${option}.`,
         });
       }
     }

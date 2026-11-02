@@ -1438,26 +1438,23 @@ describe('doStream', () => {
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.languages',
-          details:
-            'The OpenAI provider does not support languages for streaming transcription.',
+          details: 'OpenAI streaming transcription does not support languages.',
         },
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.keywords',
-          details:
-            'The OpenAI provider does not support keywords for streaming transcription.',
+          details: 'OpenAI streaming transcription does not support keywords.',
         },
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.prompt',
-          details:
-            'The OpenAI provider does not support prompt for streaming transcription.',
+          details: 'OpenAI streaming transcription does not support prompt.',
         },
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.temperature',
           details:
-            'The OpenAI provider does not support temperature for streaming transcription.',
+            'OpenAI streaming transcription does not support temperature.',
         },
       ],
     });
