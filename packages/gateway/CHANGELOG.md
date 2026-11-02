@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 3.0.227
+
+### Patch Changes
+
+- 3f6b482: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500.
+- 0b6be6d: feat(provider/gateway): add DeepSeek Search and Fetch tools
+
+  Share lazy tool-error validation across DeepSeek, Parallel, and Tako while preserving additional error fields.
+
+  Tako tool errors also accept `gateway_rate_limit` and `unknown`; exhaustive error switches may need to handle these cases. Parallel and Tako errors gain optional `retryAfter` and `statusText` fields.
+
+- c8b17f0: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.226
 
 ### Patch Changes
