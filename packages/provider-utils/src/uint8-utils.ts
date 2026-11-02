@@ -6,7 +6,15 @@ const { btoa, atob } = globalThis;
 export function convertBase64ToUint8Array(base64String: string) {
   const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const latin1string = atob(base64Url);
-  return Uint8Array.from(latin1string, byte => byte.codePointAt(0)!);
+
+  // Preallocate and fill: `Uint8Array.from(string, mapFn)` iterates per
+  // character and collects the mapped values before allocating the result,
+  // which peaks at ~25x the decoded size and blocks for ~1s on 20 MB inputs.
+  const bytes = new Uint8Array(latin1string.length);
+  for (let i = 0; i < latin1string.length; i++) {
+    bytes[i] = latin1string.charCodeAt(i);
+  }
+  return bytes;
 }
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
