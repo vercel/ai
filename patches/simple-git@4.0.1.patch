@@ -1,0 +1,37 @@
+diff --git a/dist/compat.d.ts b/dist/compat.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d81e41772096ee8557a7fd97194a6baa55daa73
+--- /dev/null
++++ b/dist/compat.d.ts
+@@ -0,0 +1,2 @@
++export * from './index.js';
++export { simpleGit as default } from './index.js';
+diff --git a/dist/compat.mjs b/dist/compat.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..9e6609940cb5d7823b65753b6ed1473bc395bdc2
+--- /dev/null
++++ b/dist/compat.mjs
+@@ -0,0 +1,2 @@
++export * from './index.mjs';
++export { simpleGit as default } from './index.mjs';
+diff --git a/package.json b/package.json
+index 39c3c07b962df1b9699d2f907c0e93db0d7d972c..88b2ed269ece734e9e59e45bc525d5645cd887af 100644
+--- a/package.json
++++ b/package.json
+@@ -28,12 +28,12 @@
+   "files": [
+     "dist"
+   ],
+-  "module": "dist/index.mjs",
+-  "types": "dist/index.d.ts",
++  "module": "dist/compat.mjs",
++  "types": "dist/compat.d.ts",
+   "exports": {
+     ".": {
+-      "types": "./dist/index.d.ts",
+-      "import": "./dist/index.mjs",
++      "types": "./dist/compat.d.ts",
++      "import": "./dist/compat.mjs",
+       "require": "./dist/index.cjs"
+     }
+   },

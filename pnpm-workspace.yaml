@@ -10,6 +10,7 @@ overrides:
   'piscina@4': 4.9.4
   'piscina@5': 5.3.2
   '@simple-git/argv-parser': 2.0.1
+  simple-git: 4.0.1
   tinyexec: 1.0.2
   oxlint: 1.56.0
   tar: 7.5.19
@@ -42,3 +43,6 @@ allowBuilds:
   node-liblzma: false
   protobufjs: false
   sharp: false
+
+patchedDependencies:
+  simple-git@4.0.1: patches/simple-git@4.0.1.patch

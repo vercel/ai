@@ -167,11 +167,15 @@ overrides:
   piscina@4: 4.9.4
   piscina@5: 5.3.2
   '@simple-git/argv-parser': 2.0.1
+  simple-git: 4.0.1
   tinyexec: 1.0.2
   oxlint: 1.56.0
   tar: 7.5.19
   '@workflow/world-local@4>undici': 7.29.0
   '@workflow/world-vercel@4>undici': 7.29.0
+
+patchedDependencies:
+  simple-git@4.0.1: 75b12f0345916d014617c48cdf8ff8dc9b551686d3e157a62dc51b397fd24f65
 
 importers:
 
@@ -22769,8 +22773,8 @@ packages:
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
 
-  simple-git@3.36.0:
-    resolution: {integrity: sha512-cGQjLjK8bxJw4QuYT7gxHw3/IouVESbhahSsHrX97MzCL1gu2u7oy38W6L2ZIGECEfIBG4BabsWDPjBxJENv9Q==}
+  simple-git@4.0.1:
+    resolution: {integrity: sha512-3OXqp9MDRL+IlkJz0qUkm7dZoxVi61xdX2RF8fOA2OHHA8BNAVD+UdiXZ+5VYkrYZZ31OCIcAm8F8xnHOSRmrg==}
 
   sirv@3.0.2:
     resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
@@ -27842,7 +27846,7 @@ snapshots:
       jiti: 2.7.0
       nanoid: 5.1.16
       node-machine-id: 1.1.12
-      simple-git: 3.36.0(supports-color@10.2.2)
+      simple-git: 4.0.1(patch_hash=75b12f0345916d014617c48cdf8ff8dc9b551686d3e157a62dc51b397fd24f65)(supports-color@10.2.2)
       ws: 8.21.0
       yaml: 2.9.1
       zod: 4.4.3
@@ -30965,7 +30969,7 @@ snapshots:
       perfect-debounce: 2.1.0
       pkg-types: 2.3.1
       semver: 7.8.5
-      simple-git: 3.36.0(supports-color@10.2.2)
+      simple-git: 4.0.1(patch_hash=75b12f0345916d014617c48cdf8ff8dc9b551686d3e157a62dc51b397fd24f65)(supports-color@10.2.2)
       sirv: 3.0.2
       structured-clone-es: 2.0.1
       tinyglobby: 0.2.17
@@ -31030,7 +31034,7 @@ snapshots:
       perfect-debounce: 2.1.0
       pkg-types: 2.3.1
       semver: 7.8.5
-      simple-git: 3.36.0(supports-color@10.2.2)
+      simple-git: 4.0.1(patch_hash=75b12f0345916d014617c48cdf8ff8dc9b551686d3e157a62dc51b397fd24f65)(supports-color@10.2.2)
       sirv: 3.0.2
       structured-clone-es: 2.0.1
       tinyglobby: 0.2.17
@@ -48653,7 +48657,7 @@ snapshots:
       simple-concat: 1.0.1
     optional: true
 
-  simple-git@3.36.0(supports-color@10.2.2):
+  simple-git@4.0.1(patch_hash=75b12f0345916d014617c48cdf8ff8dc9b551686d3e157a62dc51b397fd24f65)(supports-color@10.2.2):
     dependencies:
       '@kwsites/file-exists': 1.1.1(supports-color@10.2.2)
       '@kwsites/promise-deferred': 1.1.1
