@@ -290,7 +290,7 @@ The following optional provider options are available for Anthropic models:
   Determines how structured outputs are generated. Optional.
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
-  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
+  - `"auto"`: Use `"outputFormat"` when the model and schema support it, otherwise fall back to `"jsonTool"` (default). Schemas with recursive references, open objects, or more than ten optional properties use the JSON-tool fallback to avoid rejected requests or lost data.
 
 - `metadata` _object_
 

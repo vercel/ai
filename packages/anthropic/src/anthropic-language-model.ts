@@ -522,7 +522,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const supportsStructuredOutput =
       (config.supportsNativeStructuredOutput ?? true) &&
-      modelSupportsStructuredOutput;
+      modelSupportsStructuredOutput &&
+      (responseFormat?.type !== 'json' ||
+        responseFormat.schema == null ||
+        supportsNativeStructuredOutputSchema(responseFormat.schema));
 
     const supportsStrictTools =
       (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;

@@ -40,12 +40,12 @@ const CIRCULAR_SCHEMA: JSONSchema7 = {
 
 // Mirrors provider adapters (e.g. Bedrock, Vertex) that disable native
 // structured outputs by default.
-function createModel(modelId: string) {
+function createModel(modelId: string, supportsNativeStructuredOutput = false) {
   return new AnthropicLanguageModel(modelId, {
     provider: 'test-provider.messages',
     baseURL: 'https://api.anthropic.com/v1',
     headers: { 'x-api-key': 'test-api-key' },
-    supportsNativeStructuredOutput: false,
+    supportsNativeStructuredOutput,
     supportsStrictTools: false,
   });
 }
@@ -106,19 +106,43 @@ describe('structured outputs for models that reject forced tool use', () => {
     expect(body.output_config?.format?.schema).toEqual(schema);
   });
 
-  it('keeps the JSON response tool for self-referencing schemas', async () => {
-    respondWith([{ type: 'text', text: '{"root":{}}' }]);
+  it.each([false, true])(
+    'keeps the JSON response tool for self-referencing schemas (native support: %s)',
+    async supportsNativeStructuredOutput => {
+      respondWith([{ type: 'text', text: '{"root":{}}' }]);
 
-    await createModel('claude-sonnet-5-5').doGenerate(
-      jsonCall(CIRCULAR_SCHEMA),
-    );
+      await createModel(
+        'claude-sonnet-5-5',
+        supportsNativeStructuredOutput,
+      ).doGenerate(jsonCall(CIRCULAR_SCHEMA));
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.output_config).toBeUndefined();
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        'json',
+      ]);
+      expect(body.tool_choice).toMatchObject({ type: 'auto' });
+    },
+  );
+
+  it('keeps map values when native structured outputs are enabled', async () => {
+    respondWith([{ type: 'text', text: '{"scores":{"alice":42}}' }]);
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        scores: { type: 'object', additionalProperties: { type: 'number' } },
+      },
+      required: ['scores'],
+      additionalProperties: false,
+    };
+
+    await createModel('claude-sonnet-5-5', true).doGenerate(jsonCall(schema));
 
     const body = await server.calls[0].requestBodyJson;
     expect(body.output_config).toBeUndefined();
-    expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
-      'json',
+    expect(body.tools).toEqual([
+      expect.objectContaining({ name: 'json', input_schema: schema }),
     ]);
-    expect(body.tool_choice).toMatchObject({ type: 'auto' });
   });
 
   it.each([
