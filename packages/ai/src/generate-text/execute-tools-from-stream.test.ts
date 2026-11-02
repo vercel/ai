@@ -595,6 +595,74 @@ describe('executeToolsFromStream', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
+  it('should not sign automatically denied approval requests', async () => {
+    const tools = {
+      deniedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async () => 'denied-result',
+      }),
+      reviewedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async () => 'reviewed-result',
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'deniedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'reviewedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      abortSignal: undefined,
+      timeout: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolApproval: {
+        deniedTool: 'denied',
+        reviewedTool: 'user-approval',
+      },
+      toolApprovalSecret: 'test-secret',
+    });
+
+    const approvalRequests = (
+      await convertReadableStreamToArray(transformedStream)
+    ).filter(part => 'type' in part && part.type === 'tool-approval-request');
+
+    expect(approvalRequests).toHaveLength(2);
+
+    // A denied request can never be executed, so it carries no signature
+    // that a client could replay with `approved` flipped to true.
+    expect(approvalRequests[0]).toMatchObject({
+      approvalId: 'id-0',
+      isAutomatic: true,
+      toolCall: { toolCallId: 'call-1' },
+    });
+    expect(approvalRequests[0]).not.toHaveProperty('signature');
+
+    expect(approvalRequests[1]).toMatchObject({
+      approvalId: 'id-1',
+      toolCall: { toolCallId: 'call-2' },
+      signature: expect.any(String),
+    });
+  });
+
   it('should emit denied output after the approval response without executing auto-denied tools', async () => {
     let toolExecuted = false;
 

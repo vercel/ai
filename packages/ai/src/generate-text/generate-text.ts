@@ -1414,13 +1414,22 @@ async function generateTextInternal<
                 }
 
                 const approvalId = generateId();
-                const signature = await maybeSignApproval({
-                  secret: experimental_toolApprovalSecret,
-                  approvalId,
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  input: toolCall.input,
-                });
+
+                // The signature attests that the server issued an approval
+                // request that a client may answer. A denied request is never
+                // eligible for execution, so it must not be signed: a signed
+                // denial could otherwise be replayed with `approved` flipped
+                // to `true` and pass signature verification.
+                const signature =
+                  toolApprovalStatus.type === 'denied'
+                    ? undefined
+                    : await maybeSignApproval({
+                        secret: experimental_toolApprovalSecret,
+                        approvalId,
+                        toolCallId: toolCall.toolCallId,
+                        toolName: toolCall.toolName,
+                        input: toolCall.input,
+                      });
 
                 switch (toolApprovalStatus.type) {
                   case 'user-approval': {
@@ -1462,7 +1471,6 @@ async function generateTextInternal<
                       approvalId,
                       toolCall,
                       isAutomatic: true,
-                      ...(signature != null ? { signature } : {}),
                     };
                     stepToolApprovalResponses[toolCall.toolCallId] = {
                       type: 'tool-approval-response',

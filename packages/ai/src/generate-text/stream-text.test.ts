@@ -29896,6 +29896,104 @@ describe('streamText', () => {
       expect(execute).not.toHaveBeenCalled();
     });
 
+    it('should re-run a generic approval policy on a replayed tool call rebuilt from the tool definition', async () => {
+      const execute = vi.fn();
+      const approvalPolicy = vi.fn(({ toolCall }: { toolCall: any }) =>
+        toolCall.dynamic === true ||
+        toolCall.toolMetadata?.annotations?.destructiveHint === true
+          ? {
+              type: 'denied' as const,
+              reason: 'Destructive tools are restricted to admins.',
+            }
+          : ('user-approval' as const),
+      );
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Recovered.' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          drop_table: dynamicTool({
+            inputSchema: z.object({ table: z.string() }),
+            metadata: { annotations: { destructiveHint: true } },
+            execute,
+          }),
+        },
+        toolApproval: approvalPolicy,
+        messages: [
+          { role: 'user', content: 'drop the invoices table' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                // replayed from client history: no `toolMetadata`/`dynamic`
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'drop_table',
+                input: { table: 'invoices' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                isAutomatic: true,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'id-1',
+                // flipped from the server's `approved: false`
+                approved: true,
+              },
+            ],
+          },
+        ],
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        result.toUIMessageStream(),
+      );
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(approvalPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            dynamic: true,
+            toolMetadata: { annotations: { destructiveHint: true } },
+          }),
+        }),
+      );
+      expect(
+        chunks.filter(chunk =>
+          ['tool-output-available', 'tool-output-denied'].includes(chunk.type),
+        ),
+      ).toEqual([
+        {
+          type: 'tool-output-denied',
+          toolCallId: 'call-1',
+        },
+      ]);
+    });
+
     it('should surface the reason for streamed user approval requests', async () => {
       const result = streamText({
         model: createTestModel({
