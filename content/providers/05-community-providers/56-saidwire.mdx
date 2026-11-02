@@ -1,0 +1,125 @@
+---
+title: Saidwire
+description: Learn how to use the Saidwire provider for the AI SDK.
+---
+
+# Saidwire Provider
+
+[Saidwire](https://saidwire.com) provides English speech-to-text. The [Saidwire provider](https://github.com/Saidwire/ai-sdk-provider) adds Saidwire transcription models to the AI SDK, with segment and word timestamps.
+For more information, see the [Saidwire API documentation](https://saidwire.com/docs/api).
+
+## Setup
+
+The Saidwire provider is available in the `@saidwire/ai-sdk-provider` module and supports AI SDK 7. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @saidwire/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @saidwire/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @saidwire/ai-sdk-provider ai@^7" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @saidwire/ai-sdk-provider ai@^7" dark />
+  </Tab>
+</Tabs>
+
+Set your API key as an environment variable. You can get a key at [saidwire.com/dev](https://saidwire.com/dev).
+
+```bash
+export SAIDWIRE_API_KEY="your_api_key"
+```
+
+## Provider Instance
+
+You can import the default provider instance `saidwire` from `@saidwire/ai-sdk-provider`. It reads the `SAIDWIRE_API_KEY` environment variable:
+
+```ts
+import { saidwire } from '@saidwire/ai-sdk-provider';
+```
+
+To customize the setup, use `createSaidwire`:
+
+```ts
+import { createSaidwire } from '@saidwire/ai-sdk-provider';
+
+const saidwire = createSaidwire({
+  apiKey: process.env.SAIDWIRE_API_KEY,
+});
+```
+
+You can use the following optional settings:
+
+- **apiKey** _string_
+
+  API key sent in the `Authorization` header. Defaults to the `SAIDWIRE_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Base URL for API calls. Defaults to `https://api.saidwire.com/v1`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Transcription Models
+
+You can create a transcription model with `saidwire.transcription()` and use it with the `transcribe` function:
+
+```ts
+import { saidwire } from '@saidwire/ai-sdk-provider';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { text, segments, durationInSeconds } = await transcribe({
+  model: saidwire.transcription('saidwire-en'),
+  audio: await readFile('audio.wav'),
+});
+```
+
+Saidwire transcribes English only. WAV, MP3, FLAC, Ogg/Opus, WebM and M4A/MP4 files are supported.
+
+### Provider Options
+
+You can pass Saidwire-specific options with `providerOptions.saidwire`:
+
+```ts
+import { saidwire } from '@saidwire/ai-sdk-provider';
+import { transcribe } from 'ai';
+
+const result = await transcribe({
+  model: saidwire.transcription('saidwire-en'),
+  audio: new URL('https://example.com/audio.mp3'),
+  providerOptions: {
+    saidwire: {
+      timestampGranularities: ['word', 'segment'],
+    },
+  },
+});
+
+// per-word timings: [{ word, start, end }, ...]
+console.log(result.providerMetadata?.saidwire?.words);
+```
+
+The following options are available:
+
+- **language** _string_
+
+  The language of the audio: `en`, a regional tag such as `en-US`, or `english`. Optional.
+
+- **timestampGranularities** _Array&lt;'word' | 'segment'&gt;_
+
+  The timestamp detail to return. Defaults to `['segment']`. Add `'word'` to get per-word timings in `providerMetadata.saidwire.words`.
+
+### Model Capabilities
+
+| Model         | Transcription | Duration  | Segments  | Language  |
+| ------------- | ------------- | --------- | --------- | --------- |
+| `saidwire-en` | <Check />     | <Check /> | <Check /> | <Check /> |
