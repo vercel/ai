@@ -40,12 +40,17 @@ Remove the section if it's not needed.
 For features & bugfixes.
 Remove the section if it's not needed (e.g. for docs).
 Please explain how you verified that the change works end-to-end as expected.
-For bug fixes, reproduce the failure before the fix, then rerun the same
-reproduction to verify the expected behavior after the fix. Exercise the affected
-public API and the real provider or application flow where applicable.
-Keep reproduction-only files outside the checkout; do not commit them.
-Include the complete runnable reproduction here, along with setup and execution
-commands, prerequisites (without secrets), and observed before/after results.
+For bug-fix PRs:
+
+- Reproduce the failure before the fix, then rerun the same reproduction to verify
+  the expected behavior after the fix. Exercise the affected public API and the
+  real provider or application flow where applicable.
+- Keep reproduction-only files outside the checkout; do not commit them.
+- Include the complete runnable reproduction here, along with setup and execution
+  commands, prerequisites (without secrets), and observed before/after results.
+- Build and use the relevant checkout's local packages for both runs, and show how
+  the reproduction resolves those packages rather than published registry versions.
+
 State which provider or application flow was exercised and any verification limits.
 If a run was blocked, explain what could not be verified and why.
 Unit tests and mocked requests do not replace end-to-end verification.

@@ -287,16 +287,31 @@ record what could not be verified and why in the PR description.
 
 Keep the reproduction as a single runnable script outside the checkout (for
 example, in a temporary directory), using the issue's own snippet where possible.
-Do not commit reproduction-only files or add them to `examples/`. Do not add
-assertions or a test runner to the reproduction unless requested. Regression tests
-and reusable feature examples still belong in the repository.
+Do not commit reproduction-only files anywhere in the repository, including
+`examples/`. Do not add assertions or a test runner to the reproduction unless
+requested. Regression tests and reusable examples (including for fixed behavior)
+still belong in the repository.
+
+Build the affected workspace packages for each run and ensure the reproduction
+imports that checkout's local packages, rather than published registry versions.
+For example, a temporary JavaScript script using `ai` and `@ai-sdk/openai` can run
+via stdin from `examples/ai-functions` to resolve the workspace package links:
+
+```bash
+# From the workspace root, before each reproduction run:
+pnpm exec turbo build --filter=ai... --filter=@ai-sdk/openai...
+cd examples/ai-functions
+node --input-type=module < /tmp/ai-sdk-bug.mjs
+```
+
+Adapt the build filters and execution method to the affected packages and runtime.
 
 Follow `.github/pull_request_template.md`. Include the complete runnable
 reproduction, setup and execution commands, prerequisites (without secrets), and
 observed before/after results in the PR description's **End-to-End Verification**
-section. State which provider or application flow was exercised and any
-verification limits. Report unit/integration tests and linting elsewhere in the PR
-description.
+section. Show how both runs use the relevant checkout's code. State which provider
+or application flow was exercised and any verification limits. Report
+unit/integration tests and linting elsewhere in the PR description.
 
 A complete bug fix typically includes:
 
