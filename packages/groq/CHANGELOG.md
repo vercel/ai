@@ -1,5 +1,15 @@
 # @ai-sdk/groq
 
+## 3.0.81
+
+### Patch Changes
+
+- d900e58: fix(groq): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 3.0.80
 
 ### Patch Changes

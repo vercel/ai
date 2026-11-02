@@ -1,5 +1,14 @@
 # @ai-sdk/voyage
 
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 1.0.40
 
 ### Patch Changes

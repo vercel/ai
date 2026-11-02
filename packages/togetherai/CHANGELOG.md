@@ -1,5 +1,16 @@
 # @ai-sdk/togetherai
 
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/openai-compatible@2.0.90
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.95
 
 ### Patch Changes

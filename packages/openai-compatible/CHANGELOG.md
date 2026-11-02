@@ -1,5 +1,15 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.90
+
+### Patch Changes
+
+- d900e58: fix(openai-compatible): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.89
 
 ### Patch Changes

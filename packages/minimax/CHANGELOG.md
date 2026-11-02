@@ -1,5 +1,17 @@
 # @ai-sdk/minimax
 
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/anthropic@3.0.138
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.35
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.322
+
+### Patch Changes
+
+- d900e58: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- d900e58: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in prompt data validation and conversion
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+  - @ai-sdk/gateway@3.0.228
+
 ## 6.0.321
 
 ### Patch Changes
