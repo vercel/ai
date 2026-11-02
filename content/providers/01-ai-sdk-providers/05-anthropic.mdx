@@ -278,8 +278,13 @@ const second = await generateText({
 
 The provider adds the `message-threads-2026-08-12` beta header. On continuation it
 omits `system` and tool definitions from the request, even if supplied: Anthropic
-retains them from the create request. Tool definitions can still be supplied to
-the SDK for tool name mapping and execution.
+retains them from the create request. If the create request used tools, you must
+supply identical tool definitions to the SDK on continuation for tool name mapping,
+execution, tool choice, and tool beta headers. They are not uploaded again.
+Supplied system instructions are ignored on continuation; the provider emits a
+compatibility warning when supplied system or tool definitions are omitted.
+Start a new thread to change instructions rather than passing new leading system
+messages to a continuation.
 
 **Conversation management is explicit.** The provider does not retain history,
 remove previously sent messages, or automatically replay requests. Keep a full
@@ -288,6 +293,15 @@ duplicate messages or cause an API error. For tool calls, continue with only the
 new tool results. In a multi-step agent, use `prepareStep` to update the response
 ID and select only new messages; simply setting `thread: { type: 'create' }` on an
 agent does not automatically continue its thread.
+
+**Pin content-dependent beta headers.** The beta header set is fixed for a thread,
+but features such as PDFs and Files API references enable headers based on the
+messages in the current request. For example, when creating a thread with a PDF,
+set `anthropicBeta: ['pdfs-2024-09-25']` on both the create request and every
+continuation, including text-only continuations. The provider warns when message
+content enables a beta that has not been pinned explicitly through `anthropicBeta`
+or request headers. Plan for the features the conversation will use; start a new
+thread with full history if a later turn needs additional beta headers.
 
 Threads expire five minutes after their last request and can become unavailable
 earlier. Inspect `APICallError.data.error.details.error_code` (after narrowing the

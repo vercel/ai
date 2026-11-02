@@ -18,7 +18,11 @@ const options: LanguageModelV4CallOptions = {
   ],
 };
 
-async function call(method: string, callOptions: LanguageModelV4CallOptions) {
+async function call(
+  method: string,
+  callOptions: LanguageModelV4CallOptions,
+  targetModel = model,
+) {
   if (method === 'generate') {
     server.urls[url].response = {
       type: 'json-value',
@@ -26,7 +30,7 @@ async function call(method: string, callOptions: LanguageModelV4CallOptions) {
         fs.readFileSync('src/__fixtures__/anthropic-text.json', 'utf8'),
       ),
     };
-    return model.doGenerate(callOptions);
+    return targetModel.doGenerate(callOptions);
   }
   server.urls[url].response = {
     type: 'stream-chunks',
@@ -37,7 +41,7 @@ async function call(method: string, callOptions: LanguageModelV4CallOptions) {
       .map(chunk => `data: ${chunk}\n\n`),
   };
   return convertReadableStreamToArray(
-    (await model.doStream(callOptions)).stream,
+    (await targetModel.doStream(callOptions)).stream,
   );
 }
 
@@ -127,6 +131,130 @@ describe.each(['generate', 'stream'])('message threads (%s)', method => {
         ],
       },
     ]);
+  });
+
+  it('keeps pinned PDF beta headers across a text-only continuation', async () => {
+    const anthropicBeta = ['pdfs-2024-09-25'];
+    const first = await call(method, {
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data', data: new Uint8Array([1]) },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      providerOptions: {
+        anthropic: { thread: { type: 'create' }, anthropicBeta },
+      },
+    });
+    await call(method, {
+      prompt: [options.prompt[1]],
+      providerOptions: {
+        anthropic: {
+          thread: { type: 'continue', previousMessageId: 'msg_pdf' },
+          anthropicBeta,
+        },
+      },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+      server.calls[1].requestHeaders['anthropic-beta'],
+    );
+    const warnings = Array.isArray(first)
+      ? first.find(part => part.type === 'stream-start')?.warnings
+      : first.warnings;
+    expect(warnings).toEqual([]);
+  });
+
+  it('warns when message content enables an unpinned beta', async () => {
+    const result = await call(method, {
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data', data: new Uint8Array([1]) },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      providerOptions: { anthropic: { thread: { type: 'create' } } },
+    });
+    const warnings = Array.isArray(result)
+      ? result.find(part => part.type === 'stream-start')?.warnings
+      : result.warnings;
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        details: expect.stringContaining('pdfs-2024-09-25'),
+      }),
+    );
+  });
+
+  it('warns rather than silently dropping new leading system instructions', async () => {
+    const result = await call(method, {
+      ...options,
+      providerOptions: {
+        anthropic: {
+          thread: { type: 'continue', previousMessageId: 'msg_previous' },
+        },
+      },
+    });
+    const warnings = Array.isArray(result)
+      ? result.find(part => part.type === 'stream-start')?.warnings
+      : result.warnings;
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        details: expect.stringContaining(
+          'To change system instructions or tools, start a new thread',
+        ),
+      }),
+    );
+  });
+
+  it('supports a custom provider-options namespace', async () => {
+    await call(
+      method,
+      {
+        prompt: [options.prompt[1]],
+        providerOptions: {
+          custom: {
+            thread: { type: 'continue', previousMessageId: 'msg_custom' },
+          },
+        },
+      },
+      createAnthropic({ apiKey: 'test-key', name: 'custom.messages' })(
+        'claude-sonnet-4-6',
+      ),
+    );
+    expect((await server.calls[0].requestBodyJson).thread).toEqual({
+      type: 'continue',
+      previous_message_id: 'msg_custom',
+    });
+  });
+
+  it('retains JSON-tool choice while omitting its synthetic definition', async () => {
+    await call(method, {
+      prompt: [options.prompt[1]],
+      responseFormat: {
+        type: 'json',
+        schema: { type: 'object', properties: {} },
+      },
+      providerOptions: {
+        anthropic: {
+          structuredOutputMode: 'jsonTool',
+          thread: { type: 'continue', previousMessageId: 'msg_json' },
+        },
+      },
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('tools');
+    expect(body.tool_choice).toMatchObject({ type: 'any' });
   });
 
   it('allows empty continuation messages for pause_turn', async () => {

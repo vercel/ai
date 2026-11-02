@@ -660,6 +660,35 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       convertMediaPart: config.convertMediaPart,
     });
 
+    if (thread != null) {
+      const unpinnedBetas = [...betas].filter(
+        beta =>
+          !userSuppliedBetas.has(beta) &&
+          !anthropicOptions?.anthropicBeta?.includes(beta),
+      );
+      if (unpinnedBetas.length > 0) {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'providerOptions.anthropic.thread',
+          details:
+            `Message content enabled beta headers: ${unpinnedBetas.join(', ')}. ` +
+            'Thread requests require the same beta set on every turn. Pin these values with anthropicBeta on every request, or start a new thread when the set changes.',
+        });
+      }
+      if (
+        thread.type === 'continue' &&
+        (messagesPrompt.system != null || (tools?.length ?? 0) > 0)
+      ) {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'providerOptions.anthropic.thread',
+          details:
+            'Continuation uses the system prompt and tool definitions stored by the create request; supplied definitions are omitted from the wire request. ' +
+            'Supply identical tools for local tool handling and fixed request settings. To change system instructions or tools, start a new thread.',
+        });
+      }
+    }
+
     /*
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
      * options don't already specify them. Provider options always take precedence.
