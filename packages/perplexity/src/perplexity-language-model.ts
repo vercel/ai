@@ -250,14 +250,16 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       preparePerplexityTools({ tools, toolChoice });
     warnings.push(...toolWarnings);
 
-    const agentTools = [
-      ...((nativeTools ?? []) as PerplexityAgentTool[]),
-      ...functionTools,
-    ];
+    const agentTools =
+      toolChoice?.type === 'none'
+        ? []
+        : [...((nativeTools ?? []) as PerplexityAgentTool[]), ...functionTools];
 
     const body: Record<string, unknown> = {
       ...agentOptions,
       ...modelSelection,
+      // Presets can enable native tools even when no explicit tools are sent.
+      ...(toolChoice?.type === 'none' ? { max_tool_calls: 0 } : {}),
       input,
       max_output_tokens: maxOutputTokens,
       temperature,

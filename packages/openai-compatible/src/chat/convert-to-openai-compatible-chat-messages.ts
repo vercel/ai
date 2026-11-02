@@ -4,7 +4,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
   providerOptions?: SharedV2ProviderMetadata;
@@ -99,7 +103,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
                 ...partMetadata,
               });
@@ -132,7 +136,7 @@ export function convertToOpenAICompatibleChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
@@ -155,4 +159,16 @@ export function convertToOpenAICompatibleChatMessages(
   }
 
   return messages;
+}
+
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }

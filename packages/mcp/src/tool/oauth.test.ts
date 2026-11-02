@@ -701,7 +701,7 @@ describe('discoverAuthorizationServerMetadata', () => {
     });
 
     const metadata = await discoverAuthorizationServerMetadata(
-      'https://mcp.example.com',
+      'https://auth.example.com',
     );
 
     expect(metadata).toEqual(validOpenIdMetadata);
@@ -1564,6 +1564,12 @@ describe('registerClient', () => {
 });
 
 describe('auth function', () => {
+  const binding = {
+    issuer: 'https://auth.example.com',
+    authorization_server: 'https://auth.example.com/',
+    token_endpoint: 'https://auth.example.com/token',
+  };
+
   const mockProvider: OAuthClientProvider = {
     get redirectUrl() {
       return 'http://localhost:3000/callback';
@@ -1575,6 +1581,7 @@ describe('auth function', () => {
       };
     },
     clientInformation: vi.fn(),
+    saveClientInformation: vi.fn(),
     tokens: vi.fn(),
     saveTokens: vi.fn(),
     redirectToAuthorization: vi.fn(),
@@ -1613,7 +1620,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://resource.example.com',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             registration_endpoint: 'https://auth.example.com/register',
@@ -1700,6 +1707,7 @@ describe('auth function', () => {
 
     // Mock provider methods for authorization flow
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -1775,6 +1783,7 @@ describe('auth function', () => {
 
     // Mock provider methods for token exchange
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -1845,6 +1854,7 @@ describe('auth function', () => {
 
     // Mock provider methods for token refresh
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -1936,6 +1946,7 @@ describe('auth function', () => {
 
     // Mock provider methods
     (providerWithCustomValidation.clientInformation as Mock).mockResolvedValue({
+      ...binding,
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -1997,6 +2008,7 @@ describe('auth function', () => {
 
     // Mock provider methods
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -2046,7 +2058,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2060,6 +2072,9 @@ describe('auth function', () => {
 
     // Mock provider methods
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
+      issuer: 'https://api.example.com/mcp-server',
+      authorization_server: 'https://api.example.com/mcp-server',
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -2105,7 +2120,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2130,6 +2145,9 @@ describe('auth function', () => {
 
     // Mock provider methods for token exchange
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
+      issuer: 'https://api.example.com/mcp-server',
+      authorization_server: 'https://api.example.com/mcp-server',
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -2173,7 +2191,7 @@ describe('auth function', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://api.example.com/mcp-server',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2197,6 +2215,9 @@ describe('auth function', () => {
 
     // Mock provider methods for token refresh
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
+      issuer: 'https://api.example.com/mcp-server',
+      authorization_server: 'https://api.example.com/mcp-server',
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -2245,14 +2266,14 @@ describe('auth function', () => {
         });
       } else if (
         urlString ===
-        'https://auth.example.com/.well-known/oauth-authorization-server/path/name'
+        'https://auth.example.com/.well-known/oauth-authorization-server/oauth'
       ) {
         // Path-aware discovery on AS with path from serverUrl
         return Promise.resolve({
           ok: true,
           status: 200,
           json: async () => ({
-            issuer: 'https://auth.example.com',
+            issuer: 'https://auth.example.com/oauth',
             authorization_endpoint: 'https://auth.example.com/authorize',
             token_endpoint: 'https://auth.example.com/token',
             response_types_supported: ['code'],
@@ -2266,6 +2287,9 @@ describe('auth function', () => {
 
     // Mock provider methods
     (mockProvider.clientInformation as Mock).mockResolvedValue({
+      ...binding,
+      issuer: 'https://auth.example.com/oauth',
+      authorization_server: 'https://auth.example.com/oauth',
       client_id: 'test-client',
       client_secret: 'test-secret',
     });
@@ -2332,9 +2356,11 @@ describe('auth function', () => {
         };
       },
       clientInformation: vi.fn().mockResolvedValue({
+        ...binding,
         client_id: 'client123',
         client_secret: 'secret123',
       }),
+      saveClientInformation: vi.fn(),
       tokens: vi.fn().mockResolvedValue(undefined),
       saveTokens: vi.fn(),
       redirectToAuthorization: vi.fn(),

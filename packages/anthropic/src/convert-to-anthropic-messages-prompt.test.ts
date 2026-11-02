@@ -2231,6 +2231,129 @@ describe('cache control', () => {
       });
     });
 
+    it('should parse valid JSON string tool call input into an object', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: '{"city":"Paris","count":5}',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          system: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { city: 'Paris', count: 5 },
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should safely serialize tool results with BigInt and circular structures', async () => {
+      const circularValue: Record<string, unknown> = {
+        id: BigInt('9007199254740993'),
+      };
+      circularValue.self = circularValue;
+
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: circularValue as JSONValue,
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"id":"9007199254740993","self":"[Circular]"}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should serialize tool results that reuse non-circular objects', async () => {
+      const shared = { city: 'Paris' };
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"first":{"city":"Paris"},"second":{"city":"Paris"}}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should set cache_control on last assistant message part with message cache control', async () => {
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [

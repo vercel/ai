@@ -5,10 +5,29 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return '{}';
+      }
+      return input;
+    } catch {
+      return '{}';
+    }
+  }
+  return stringifyWithBigIntAndCycles(
     typeof input === 'object' && input !== null && !Array.isArray(input)
       ? input
       : {},
@@ -294,7 +313,7 @@ export function convertToOpenAIChatMessages({
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

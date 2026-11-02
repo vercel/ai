@@ -23,7 +23,7 @@ import {
 } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import { createServer } from 'node:http';
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 
 class InMemoryOAuthClientProvider implements OAuthClientProvider {
   private _tokens?: OAuthTokens;
@@ -39,18 +39,24 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
     this._tokens = tokens;
   }
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    const cmd =
+    if (!['http:', 'https:'].includes(authorizationUrl.protocol)) {
+      throw new Error('Authorization URL must use HTTP or HTTPS');
+    }
+    const url = authorizationUrl.toString();
+    const command =
       process.platform === 'win32'
-        ? `start ${authorizationUrl.toString()}`
+        ? 'rundll32'
         : process.platform === 'darwin'
-          ? `open "${authorizationUrl.toString()}"`
-          : `xdg-open "${authorizationUrl.toString()}"`;
-    exec(cmd, error => {
+          ? 'open'
+          : 'xdg-open';
+    const args =
+      process.platform === 'win32'
+        ? ['url.dll,FileProtocolHandler', url]
+        : [url];
+
+    execFile(command, args, error => {
       if (error) {
-        console.error(
-          'Open this URL to continue:',
-          authorizationUrl.toString(),
-        );
+        console.error('Open this URL to continue:', url);
       }
     });
   }
@@ -75,6 +81,10 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   }
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
     return this._clientInformation;
+  }
+  // This example only obtains client information through dynamic registration.
+  async isClientInformationDynamicallyRegistered(): Promise<boolean> {
+    return this._clientInformation !== undefined;
   }
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
     this._clientInformation = info;

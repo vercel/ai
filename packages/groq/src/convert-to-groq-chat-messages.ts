@@ -3,7 +3,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { GroqChatPrompt } from './groq-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -86,7 +90,7 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeGroqToolCallArguments(part.input),
                 },
               });
               break;
@@ -117,7 +121,7 @@ export function convertToGroqChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
@@ -138,4 +142,16 @@ export function convertToGroqChatMessages(
   }
 
   return messages;
+}
+
+function serializeGroqToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }

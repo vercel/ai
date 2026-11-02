@@ -3,7 +3,11 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type { MistralPrompt } from './mistral-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToMistralChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -81,7 +85,7 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeMistralToolCallArguments(part.input),
                 },
               });
               break;
@@ -120,7 +124,7 @@ export function convertToMistralChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
@@ -141,4 +145,16 @@ export function convertToMistralChatMessages(
   }
 
   return messages;
+}
+
+export function serializeMistralToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }

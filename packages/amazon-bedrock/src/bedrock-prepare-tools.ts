@@ -7,6 +7,7 @@ import {
 import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
+  getModelCapabilities,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
@@ -83,6 +84,13 @@ export async function prepareTools({
     reasoningBudgetTokens,
   });
   const functionTools = supportedTools.filter(t => t.type === 'function');
+  const disableParallelToolUseForRequest =
+    disableParallelToolUse ??
+    (isAnthropicModel &&
+    toolChoice?.type === 'tool' &&
+    !getModelCapabilities(modelId).rejectsForcedToolUse
+      ? true
+      : undefined);
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const bedrockTools: BedrockTool[] = [];
@@ -108,7 +116,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
-      disableParallelToolUse,
+      disableParallelToolUse: disableParallelToolUseForRequest,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -169,7 +177,7 @@ export async function prepareTools({
   if (
     isAnthropicModel &&
     !usingAnthropicTools &&
-    disableParallelToolUse &&
+    disableParallelToolUseForRequest &&
     bedrockTools.length > 0 &&
     toolChoice?.type !== 'none'
   ) {

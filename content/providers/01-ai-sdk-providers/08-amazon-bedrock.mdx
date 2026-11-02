@@ -227,6 +227,14 @@ choose how Amazon Bedrock generates structured outputs:
 - `"auto"`: Use native structured output when supported by the model and
   request, and otherwise fall back to the JSON tool. This is the default.
 
+Claude Opus 5, Sonnet 5, Opus 5.5, Sonnet 5.5, and Haiku 5.5 support native
+structured output in `"auto"` mode with thinking enabled or disabled. Auto mode
+keeps the fallback for recursive schemas, open objects, and schemas with too
+many optional properties. Explicit `"outputFormat"` retains schema sanitization.
+When the JSON fallback is used, caller `none` and named choices restrict the
+application tools exposed alongside the internal JSON tool. A named tool is
+available, but its invocation is not guaranteed by that fallback.
+
 In `"auto"` mode, Claude Sonnet 4.6 and Claude Haiku 4.5 use the JSON tool
 fallback because native structured output can be unreliable across workloads
 and Bedrock accounts. You can set `"outputFormat"` to opt into native structured

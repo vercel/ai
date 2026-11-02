@@ -4436,7 +4436,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it.each([undefined, 'jsonTool'] as const)(
+  it.each(['jsonTool'] as const)(
     'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
     async structuredOutputMode => {
       server.urls[opus55AnthropicGenerateUrl].response = {

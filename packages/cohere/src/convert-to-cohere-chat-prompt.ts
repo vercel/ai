@@ -4,13 +4,30 @@ import {
   type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
+  convertToBase64,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { cohereImagePartProviderOptions } from './cohere-chat-options';
 import type {
   CohereAssistantMessage,
   CohereChatPrompt,
   CohereUserMessageContent,
 } from './cohere-chat-prompt';
+
+function serializeCohereToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
 
 export async function convertToCohereChatPrompt(
   prompt: LanguageModelV2Prompt,
@@ -132,7 +149,7 @@ export async function convertToCohereChatPrompt(
                 type: 'function' as const,
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeCohereToolCallArguments(part.input),
                 },
               });
               break;
@@ -163,7 +180,7 @@ export async function convertToCohereChatPrompt(
               case 'content':
               case 'json':
               case 'error-json':
-                contentValue = JSON.stringify(output.value);
+                contentValue = stringifyWithBigIntAndCycles(output.value);
                 break;
             }
 
