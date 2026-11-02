@@ -374,10 +374,40 @@ export function replaceBinaryFieldPlaceholders(
 }
 
 /**
+ * Makes `JSON.stringify` give the placeholder for each of the arrays, instead
+ * of `{"0":…,"1":…}` with an entry for every byte: 24 MiB of bytes would
+ * become a string of more than 300 MB. That is what a validator, or the code
+ * that reports its issues, does with a value it puts into an error message.
+ * The property is not enumerable, so the arrays look the same otherwise.
+ * Returns the function that removes it again.
+ */
+function maskBinariesInJson(binaries: ReadonlyMap<string, Uint8Array>) {
+  for (const [placeholder, bytes] of binaries) {
+    Object.defineProperty(bytes, 'toJSON', {
+      value: () => placeholder,
+      configurable: true,
+    });
+  }
+
+  return () => {
+    for (const bytes of binaries.values()) {
+      Reflect.deleteProperty(bytes, 'toJSON');
+    }
+  };
+}
+
+/**
  * Wraps a schema so that it validates the extracted bytes in place of their
- * placeholders. The value parsed from the skeleton, and the value of a
- * validation error, keep the placeholders: reporting an error never prints the
- * bytes.
+ * placeholders. The value parsed from the skeleton, and the value of the
+ * validation error of the response, keep the placeholders: reporting an error
+ * never prints the bytes.
+ *
+ * The errors of the schema itself may hold the bytes: a Standard Schema
+ * validator wraps the value it was given into an error, and the issues it
+ * reports may carry the offending input. So that their messages do not grow
+ * with the image, the arrays stringify as their placeholders, and keep doing
+ * so as long as an error can refer to them. When the validation succeeds the
+ * arrays are plain again, for whoever receives them.
  */
 export function withBinaryFields<T>(
   schema: FlexibleSchema<T>,
@@ -392,11 +422,16 @@ export function withBinaryFields<T>(
   return jsonSchema<T>(
     {},
     {
-      validate: value => {
+      validate: async value => {
         const replaced = replaceBinaryFieldPlaceholders(value, binaries);
-        return actualSchema.validate
-          ? actualSchema.validate(replaced)
-          : { success: true, value: replaced as T };
+        const unmask = maskBinariesInJson(binaries);
+        const result = actualSchema.validate
+          ? await actualSchema.validate(replaced)
+          : { success: true as const, value: replaced as T };
+        if (result.success) {
+          unmask();
+        }
+        return result;
       },
     },
   );

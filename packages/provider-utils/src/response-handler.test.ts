@@ -16,7 +16,7 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
-import { jsonSchema, type FlexibleSchema } from './schema';
+import { jsonSchema, type FlexibleSchema, type StandardSchema } from './schema';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -410,6 +410,88 @@ describe('createJsonResponseHandler with experimental_binaryFields', () => {
     expect(error.cause.cause).toBe(failure);
     expect(error.cause.value).toEqual({ images: [placeholder(100_000)] });
     expect(error.cause.message.length).toBeLessThan(1000);
+  });
+
+  describe('when a Standard Schema validator rejects the response', () => {
+    // Not a Zod schema: the error is made from the value the validator was
+    // given, which holds the bytes, and the issues may carry the input they are
+    // about, like the issues of arktype do.
+    function createRejectingStandardSchema(
+      issueFor: (value: { images: unknown[] }) => object,
+    ): StandardSchema<unknown> {
+      return {
+        '~standard': {
+          version: 1,
+          vendor: 'custom',
+          validate: (value: { images: unknown[] }) => ({
+            issues: [issueFor(value)],
+          }),
+        },
+      } as StandardSchema<unknown>;
+    }
+
+    it('should not print the bytes in the message of the error', async () => {
+      const body = JSON.stringify({
+        images: [convertUint8ArrayToBase64(bytesOf(500_000))],
+        note: 5,
+      });
+
+      const error = await rejection(
+        runWithSchema(
+          createRejectingStandardSchema(() => ({
+            message: 'note must be a string',
+            path: ['note'],
+          })),
+          body,
+        ),
+      );
+
+      assert(APICallError.isInstance(error));
+      assert(TypeValidationError.isInstance(error.cause));
+      expect(error.cause.message).toContain('note must be a string');
+      expect(error.cause.message.length).toBeLessThan(1000);
+      // The error of the validator, which the one above wraps.
+      assert(TypeValidationError.isInstance(error.cause.cause));
+      expect(error.cause.cause.message.length).toBeLessThan(1000);
+      // Serializing its value later does not print the bytes either.
+      expect(JSON.stringify(error.cause.cause.value)).toBe(error.responseBody);
+    });
+
+    it('should not print the bytes that an issue carries', async () => {
+      const body = JSON.stringify({
+        images: [convertUint8ArrayToBase64(bytesOf(500_000))],
+      });
+
+      const error = await rejection(
+        runWithSchema(
+          createRejectingStandardSchema(({ images }) => ({
+            message: 'images[0] must be a string',
+            path: ['images', 0],
+            data: images[0],
+          })),
+          body,
+        ),
+      );
+
+      assert(APICallError.isInstance(error));
+      assert(TypeValidationError.isInstance(error.cause));
+      expect(error.cause.message).toContain('images[0] must be a string');
+      expect(error.cause.message.length).toBeLessThan(1000);
+    });
+  });
+
+  it('should return arrays that serialize like any other Uint8Array', async () => {
+    const bytes = bytesOf(100_000);
+
+    const result = await run(
+      new Response(
+        JSON.stringify({ images: [convertUint8ArrayToBase64(bytes)] }),
+      ),
+    );
+
+    const [image] = result.value.images;
+    assert(image instanceof Uint8Array);
+    expect(JSON.stringify(image)).toBe(JSON.stringify(Uint8Array.from(bytes)));
   });
 
   it('should return the bytes for a schema without a validate function', async () => {

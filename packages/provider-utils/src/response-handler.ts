@@ -232,6 +232,9 @@ export const createJsonResponseHandler = <T>(
      *   `JSONParseError` and `APICallError.responseBody` contain a short
      *   placeholder string such as `[binary data: 2097152 bytes; ref ...]` in
      *   place of the data.
+     * - `JSON.stringify` of a decoded `Uint8Array` gives the same placeholder
+     *   as long as the validation can fail, so the message of an error that a
+     *   validator builds from the value, or from its issues, stays short.
      */
     experimental_binaryFields?: readonly string[];
   } = {},

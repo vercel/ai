@@ -14,14 +14,13 @@ const imageMiB = 24;
 const imageCount = 2;
 const maxOldSpaceMiB = 48;
 
-// The child process generates the body lazily (it must not hold it either),
-// reads it through the handler and compares the decoded bytes with the bytes
-// it generated.
-const childScript = (distUrl: string) => `
+// The first part of the child process: it generates the body lazily (it must
+// not hold it either) as the stream `body`, of `count` images.
+const bodyScript = (distUrl: string, count: number) => `
   import { createJsonResponseHandler, jsonSchema } from ${JSON.stringify(distUrl)};
 
   const imageBytes = ${imageMiB} * 1024 * 1024;
-  const imageCount = ${imageCount};
+  const imageCount = ${count};
   const pieceBytes = 48 * 1024;
 
   function piece(imageIndex, pieceIndex, length) {
@@ -70,7 +69,13 @@ const childScript = (distUrl: string) => `
     },
     { highWaterMark: 0 },
   );
+`;
 
+// Reads the body through the handler and compares the decoded bytes with the
+// bytes that were generated.
+const decodeScript = (distUrl: string) =>
+  bodyScript(distUrl, imageCount) +
+  `
   const handler = createJsonResponseHandler(
     jsonSchema({}, { validate: value => ({ success: true, value }) }),
     { experimental_binaryFields: ['images[*]'] },
@@ -96,26 +101,71 @@ const childScript = (distUrl: string) => `
   process.stdout.write(matches ? 'decoded' : 'mismatch');
 `;
 
+// Reads the body of one image through the handler with a Standard Schema
+// validator that rejects it. The validator is not Zod's: its error is made from
+// the value it is given, and its issue carries the input it is about, like the
+// issues of arktype do. Both hold the decoded bytes, which must not end up in
+// the message: serialized byte by byte they are more than 300 MB of text.
+const rejectScript = (distUrl: string) =>
+  bodyScript(distUrl, 1) +
+  `
+  const schema = {
+    '~standard': {
+      version: 1,
+      vendor: 'custom',
+      validate: value => ({
+        issues: [
+          { message: 'images[0] must be a string', path: ['images', 0], data: value.images[0] },
+        ],
+      }),
+    },
+  };
+  const handler = createJsonResponseHandler(schema, {
+    experimental_binaryFields: ['images[*]'],
+  });
+  const error = await handler({
+    url: 'https://example.com',
+    requestBodyValues: {},
+    response: new Response(body),
+  }).then(
+    () => undefined,
+    error => error,
+  );
+
+  const message = error?.cause?.message ?? '';
+  process.stdout.write(
+    message.includes('images[0] must be a string') && message.length < 2000
+      ? 'rejected'
+      : 'unexpected: ' + message.slice(0, 200),
+  );
+`;
+
+async function runChild(script: (distUrl: string) => string) {
+  const distPath = resolve('dist/index.js');
+  const builtSource = await readFile(distPath, 'utf8');
+  // The child imports the build output: a stale build would test old code.
+  expect(builtSource, 'dist is stale: run `pnpm build`').toContain(
+    'experimental_binaryFields',
+  );
+
+  return execFileSync(
+    process.execPath,
+    [
+      `--max-old-space-size=${maxOldSpaceMiB}`,
+      '--input-type=module',
+      '--eval',
+      script(pathToFileURL(distPath).href),
+    ],
+    { encoding: 'utf8', timeout: 60_000 },
+  );
+}
+
 describe('createJsonResponseHandler with experimental_binaryFields memory regression', () => {
   it(`decodes ${imageCount} x ${imageMiB} MiB images within a ${maxOldSpaceMiB} MiB heap`, async () => {
-    const distPath = resolve('dist/index.js');
-    const builtSource = await readFile(distPath, 'utf8');
-    // The child imports the build output: a stale build would test old code.
-    expect(builtSource, 'dist is stale: run `pnpm build`').toContain(
-      'experimental_binaryFields',
-    );
+    expect(await runChild(decodeScript)).toBe('decoded');
+  }, 60_000);
 
-    const output = execFileSync(
-      process.execPath,
-      [
-        `--max-old-space-size=${maxOldSpaceMiB}`,
-        '--input-type=module',
-        '--eval',
-        childScript(pathToFileURL(distPath).href),
-      ],
-      { encoding: 'utf8', timeout: 60_000 },
-    );
-
-    expect(output).toBe('decoded');
+  it(`reports a Standard Schema validator that rejects a ${imageMiB} MiB image within a ${maxOldSpaceMiB} MiB heap`, async () => {
+    expect(await runChild(rejectScript)).toBe('rejected');
   }, 60_000);
 });
