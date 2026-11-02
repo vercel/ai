@@ -1297,6 +1297,45 @@ describe('convertToDeepSeekChatMessages', () => {
       });
     });
 
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      async input => {
+        const result = await convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'search',
+                  input,
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        });
+
+        expect(result.messages[0]).toEqual({
+          role: 'assistant',
+          content: '',
+          reasoning_content: undefined,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
     it('safely serializes BigInt and circular structures in tool call arguments', async () => {
       const cyclicInput: any = { id: 12345678901234567890n };
       cyclicInput.self = cyclicInput;

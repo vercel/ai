@@ -3004,3 +3004,25 @@ it('keeps non-ref tool results JSON serializable with BigInt and cycles', () => 
   ).toEqual({ count: '42', self: '[Circular]' });
   expect(() => JSON.stringify(result)).not.toThrow();
 });
+
+it('serializes BigInt returned by toJSON in structured tool results', () => {
+  const result = convertToGoogleMessages([
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call1',
+          toolName: 'inspect',
+          output: {
+            type: 'json',
+            value: { count: { toJSON: () => 42n } } as any,
+          },
+        },
+      ],
+    },
+  ]);
+  expect(
+    (result.contents[0].parts[0] as any).functionResponse.response.content,
+  ).toEqual({ count: '42' });
+});

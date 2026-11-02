@@ -4,7 +4,8 @@ import {
 } from '@ai-sdk/provider';
 import type { GroqChatPrompt } from './groq-api-types';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -12,21 +13,14 @@ import {
 
 function serializeGroqToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
   }
-  try {
-    return stringifyJSON(input);
-  } catch {
-    return '{}';
-  }
-}
-
-function safeStringifyGroqToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToGroqChatMessages(
@@ -159,7 +153,7 @@ export function convertToGroqChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = safeStringifyGroqToolOutput(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

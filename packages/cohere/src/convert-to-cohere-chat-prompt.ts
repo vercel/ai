@@ -5,7 +5,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
@@ -21,21 +22,14 @@ import type {
 
 function serializeCohereToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
   }
-  try {
-    return stringifyJSON(input);
-  } catch {
-    return '{}';
-  }
-}
-
-function safeStringifyCohereToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export async function convertToCohereChatPrompt(
@@ -197,7 +191,7 @@ export async function convertToCohereChatPrompt(
                 case 'content':
                 case 'json':
                 case 'error-json':
-                  contentValue = safeStringifyCohereToolOutput(output.value);
+                  contentValue = stringifyWithBigIntAndCycles(output.value);
                   break;
               }
 

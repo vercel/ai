@@ -8,7 +8,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -64,13 +65,14 @@ import {
 
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
   }
-  try {
-    return stringifyJSON(input === undefined ? {} : input);
-  } catch {
-    return '{}';
-  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
 }
 
 function mapToolCaller(
@@ -180,19 +182,23 @@ async function convertFunctionToolResultOutput({
   switch (output.type) {
     case 'text':
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+        hasOutputSchema
+          ? stringifyWithBigIntAndCycles(output.value)
+          : output.value,
       );
     case 'error-text':
     case 'error-json':
-      return convertScalarOutput(JSON.stringify({ error: output.value }));
+      return convertScalarOutput(
+        stringifyWithBigIntAndCycles({ error: output.value }),
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
+        hasOutputSchema ? stringifyWithBigIntAndCycles(reason) : reason,
       );
     }
     case 'json':
-      return convertScalarOutput(JSON.stringify(output.value));
+      return convertScalarOutput(stringifyWithBigIntAndCycles(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -1082,7 +1088,7 @@ export async function convertToOpenAIResponsesInput({
                   input:
                     typeof part.input === 'string'
                       ? part.input
-                      : JSON.stringify(part.input),
+                      : stringifyWithBigIntAndCycles(part.input),
                   ...(isAsync != null && { async: isAsync }),
                   id,
                 });
@@ -1319,7 +1325,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -1370,7 +1376,7 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                   });
                 }
               }
@@ -1488,7 +1494,9 @@ export async function convertToOpenAIResponsesInput({
                 }),
               );
               const serializedToolOutputs = toolOutputs.map(({ output }) =>
-                typeof output === 'string' ? output : JSON.stringify(output),
+                typeof output === 'string'
+                  ? output
+                  : stringifyWithBigIntAndCycles(output),
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
@@ -1671,7 +1679,7 @@ export async function convertToOpenAIResponsesInput({
               case 'error-text':
               case 'error-json':
                 outputValue = convertScalarOutput(
-                  JSON.stringify({ error: output.value }),
+                  stringifyWithBigIntAndCycles({ error: output.value }),
                 );
                 break;
               case 'execution-denied':
@@ -1680,7 +1688,9 @@ export async function convertToOpenAIResponsesInput({
                 );
                 break;
               case 'json':
-                outputValue = convertScalarOutput(JSON.stringify(output.value));
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles(output.value),
+                );
                 break;
               case 'content':
                 outputValue = output.value

@@ -3,7 +3,7 @@
  * ancestor cycles as "[Circular]". Reused objects, toJSON methods, and other JSON
  * serialization behavior are preserved. Getters and toJSON methods may throw.
  */
-export function stringifyJSON(value: unknown): string {
+export function stringifyWithBigIntAndCycles(value: unknown): string {
   const ancestors: object[] = [];
   return JSON.stringify(value, function (_key, value) {
     if (typeof value === 'bigint') {

@@ -4,10 +4,12 @@ import {
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type { ToolNameMapping } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  type ToolNameMapping,
+} from '@ai-sdk/provider-utils';
 import {
   convertToMistralChatMessages,
-  safeStringifyMistralToolOutput,
   serializeMistralToolCallArguments,
 } from './convert-to-mistral-chat-messages';
 import type {
@@ -58,7 +60,7 @@ export function convertToMistralConversationInputs(
         result:
           typeof result === 'string'
             ? result
-            : safeStringifyMistralToolOutput(result),
+            : stringifyWithBigIntAndCycles(result),
       });
       return;
     }

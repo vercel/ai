@@ -11,7 +11,8 @@ import type {
   OpenAICompatibleContentPart,
 } from './openai-compatible-api-types';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
@@ -189,21 +190,14 @@ function convertToolContentPart(
 
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
   }
-  try {
-    return stringifyJSON(input);
-  } catch {
-    return '{}';
-  }
-}
-
-function safeStringifyToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToOpenAICompatibleChatMessages(
@@ -332,14 +326,14 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             case 'json':
             case 'error-json':
-              contentValue = safeStringifyToolOutput(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
             case 'content':
               contentValue = supportsMultiPartToolContent
                 ? output.value.map(part =>
                     convertToolContentPart(part, provider),
                   )
-                : safeStringifyToolOutput(output.value);
+                : stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

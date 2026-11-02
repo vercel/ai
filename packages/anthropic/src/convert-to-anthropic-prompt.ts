@@ -9,7 +9,7 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
@@ -704,7 +704,7 @@ export async function convertToAnthropicPrompt({
                   case 'json':
                   case 'error-json':
                   default:
-                    contentValue = serializeToolOutput(output.value);
+                    contentValue = stringifyWithBigIntAndCycles(output.value);
                     break;
                 }
 
@@ -1736,14 +1736,6 @@ function getAnthropicCaller(
   }
 
   return caller?.type === 'direct' ? { type: 'direct' } : undefined;
-}
-
-function serializeToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
 }
 
 // wrap invalid tool call input because Anthropic requires it to be an object

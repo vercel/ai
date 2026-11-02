@@ -1005,7 +1005,7 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should preserve malformed string tool input and the tool error semantics', () => {
+  it('should normalize malformed tool call input and preserve the tool error semantics', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
@@ -1044,7 +1044,7 @@ describe('tool calls', () => {
           "tool_calls": [
             {
               "function": {
-                "arguments": "{"foo":"bar"",
+                "arguments": "{}",
                 "name": "thwomp",
               },
               "id": "quux",
@@ -1156,5 +1156,28 @@ it('preserves shared tool argument objects while replacing real cycles', async (
   });
   expect((result.messages[0] as any).tool_calls[0].function.arguments).toBe(
     '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
+});
+
+it('serializes tool results with BigInt and real cycles', async () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            output: { type: 'json', value },
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).content).toBe(
+    '{"count":"42","self":"[Circular]"}',
   );
 });

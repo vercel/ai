@@ -6998,7 +6998,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "SELECT 1",
+            "arguments": ""SELECT 1"",
             "call_id": "call_custom_001",
             "name": "write_sql",
             "type": "function_call",
@@ -7205,5 +7205,32 @@ it('preserves shared tool argument objects while replacing real cycles', async (
   });
   expect((result.input[0] as any).arguments).toBe(
     '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
+});
+
+it('serializes tool results with BigInt and real cycles', async () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const result = await convertToOpenAIResponsesInput({
+    prompt: [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            output: { type: 'json', value },
+          },
+        ],
+      },
+    ],
+    toolNameMapping: testToolNameMapping,
+    systemMessageMode: 'system',
+    providerOptionsName: 'openai',
+    store: false,
+  });
+  expect((result.input[0] as any).output).toBe(
+    '{"count":"42","self":"[Circular]"}',
   );
 });

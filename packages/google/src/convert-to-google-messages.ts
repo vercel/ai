@@ -6,7 +6,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
@@ -98,17 +98,13 @@ function serializeFunctionResponseContent(
   // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
   // result to preserve it without triggering Google's reference handling.
   if (containsJSONSchemaReference(value)) {
-    try {
-      return stringifyJSON(value);
-    } catch {
-      return String(value);
-    }
+    return stringifyWithBigIntAndCycles(value);
   }
 
   // Keep Google's structured response for ordinary JSON, but normalize values
   // that would otherwise fail when the final request body is serialized.
   return containsNonJsonValue(value)
-    ? secureJsonParse(stringifyJSON(value))
+    ? secureJsonParse(stringifyWithBigIntAndCycles(value))
     : value;
 }
 
@@ -121,6 +117,9 @@ function containsNonJsonValue(
   }
   if (typeof value !== 'object' || value === null) {
     return false;
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    return true;
   }
   if (ancestors.has(value)) {
     return true;

@@ -7,7 +7,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -61,21 +62,14 @@ function validateDeepSeekImageUrl({
 
 function serializeDeepSeekToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
   }
-  try {
-    return stringifyJSON(input);
-  } catch {
-    return '{}';
-  }
-}
-
-function safeStringifyDeepSeekToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export async function convertToDeepSeekChatMessages({
@@ -404,7 +398,7 @@ export async function convertToDeepSeekChatMessages({
               break;
             case 'json':
             case 'error-json':
-              contentValue = safeStringifyDeepSeekToolOutput(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
             case 'content': {
               const hasImagePart = output.value.some(
@@ -417,7 +411,7 @@ export async function convertToDeepSeekChatMessages({
               );
 
               if (!hasImagePart) {
-                contentValue = safeStringifyDeepSeekToolOutput(output.value);
+                contentValue = stringifyWithBigIntAndCycles(output.value);
                 break;
               }
 

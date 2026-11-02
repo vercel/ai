@@ -8,7 +8,8 @@ import type {
   MistralPrompt,
 } from './mistral-chat-prompt';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -30,21 +31,14 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
 
 export function serializeMistralToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
   }
-  try {
-    return stringifyJSON(input);
-  } catch {
-    return '{}';
-  }
-}
-
-export function safeStringifyMistralToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
-  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToMistralChatMessages(
@@ -195,7 +189,7 @@ export function convertToMistralChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = safeStringifyMistralToolOutput(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

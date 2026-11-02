@@ -6,7 +6,8 @@ import {
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
-  stringifyJSON,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -15,18 +16,25 @@ import {
 
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
-    return input;
-  }
-
-  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
     try {
-      return stringifyJSON(input);
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return '{}';
+      }
+      return input;
     } catch {
       return '{}';
     }
   }
-
-  return '{}';
+  return stringifyWithBigIntAndCycles(
+    typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input
+      : {},
+  );
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
@@ -335,14 +343,16 @@ export function convertToOpenAIChatMessages({
               break;
             case 'error-text':
             case 'error-json':
-              contentValue = JSON.stringify({ error: output.value });
+              contentValue = stringifyWithBigIntAndCycles({
+                error: output.value,
+              });
               break;
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

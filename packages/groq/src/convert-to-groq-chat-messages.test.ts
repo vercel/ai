@@ -344,6 +344,40 @@ describe('top-level-only media type resolution', () => {
       });
     });
 
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      input => {
+        const result = convertToGroqChatMessages([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input,
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toEqual({
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
     it('safely serializes BigInt and circular structures in tool call arguments', () => {
       const cyclicInput: any = { id: 12345678901234567890n };
       cyclicInput.self = cyclicInput;

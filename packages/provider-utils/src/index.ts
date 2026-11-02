@@ -166,4 +166,4 @@ export {
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
 
-export { stringifyJSON } from './stringify-json';
+export { stringifyWithBigIntAndCycles } from './stringify-with-bigint-and-cycles';

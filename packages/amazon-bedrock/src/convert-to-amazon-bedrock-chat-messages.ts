@@ -9,7 +9,7 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
-  stringifyJSON,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
@@ -702,15 +702,7 @@ async function convertToolResultOutput({
     case 'json':
     case 'error-json':
     default:
-      return [{ text: safeStringifyBedrockToolOutput(output.value) }];
-  }
-}
-
-function safeStringifyBedrockToolOutput(value: unknown): string {
-  try {
-    return stringifyJSON(value);
-  } catch {
-    return String(value);
+      return [{ text: stringifyWithBigIntAndCycles(output.value) }];
   }
 }
 
