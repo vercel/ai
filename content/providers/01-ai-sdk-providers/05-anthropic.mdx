@@ -392,10 +392,11 @@ availability and all limitations.
 
 The following optional provider options are available for Anthropic models:
 
-- `thread` _{ type: 'create' } | { type: 'continue'; previousMessageId: string }_
+- `thread` _object_
 
-  Optional. Creates or continues a short-lived server-side message thread. The
-  required beta header is added automatically. See [Message Threads](#message-threads).
+  Optional. Use `{ type: 'create' }` to create a short-lived server-side message
+  thread, or `{ type: 'continue', previousMessageId: string }` to continue one.
+  The required beta header is added automatically. See [Message Threads](#message-threads).
 
 - `disableParallelToolUse` _boolean_
 
