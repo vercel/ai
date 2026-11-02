@@ -8,6 +8,8 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -49,7 +51,15 @@ import {
 } from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
 }
 
 async function convertWebSearchToolResultOutput({
@@ -146,7 +156,7 @@ async function convertFunctionToolResultOutput({
     }
     case 'json':
     case 'error-json':
-      return convertScalarOutput(JSON.stringify(output.value));
+      return convertScalarOutput(stringifyWithBigIntAndCycles(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -901,7 +911,7 @@ export async function convertToOpenAIResponsesInput({
                   input:
                     typeof part.input === 'string'
                       ? part.input
-                      : JSON.stringify(part.input),
+                      : stringifyWithBigIntAndCycles(part.input),
                   ...(isAsync != null && { async: isAsync }),
                   id,
                 });
@@ -1101,7 +1111,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -1152,7 +1162,7 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                   });
                 }
               }
@@ -1238,7 +1248,9 @@ export async function convertToOpenAIResponsesInput({
                 }),
               );
               const serializedToolOutputs = toolOutputs.map(({ output }) =>
-                typeof output === 'string' ? output : JSON.stringify(output),
+                typeof output === 'string'
+                  ? output
+                  : stringifyWithBigIntAndCycles(output),
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
@@ -1394,7 +1406,9 @@ export async function convertToOpenAIResponsesInput({
                 break;
               case 'json':
               case 'error-json':
-                outputValue = convertScalarOutput(JSON.stringify(output.value));
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles(output.value),
+                );
                 break;
               case 'content':
                 outputValue = output.value

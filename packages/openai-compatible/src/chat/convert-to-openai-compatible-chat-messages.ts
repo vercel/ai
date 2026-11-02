@@ -5,6 +5,8 @@ import {
 } from '@ai-sdk/provider';
 import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
 } from '@ai-sdk/provider-utils';
@@ -25,6 +27,18 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
     default:
       return null;
   }
+}
+
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToOpenAICompatibleChatMessages(
@@ -181,7 +195,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
                 ...partMetadata,
                 // Include extra_content for Google Gemini thought signatures
@@ -231,7 +245,7 @@ export function convertToOpenAICompatibleChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

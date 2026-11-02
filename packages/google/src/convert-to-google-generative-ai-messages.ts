@@ -1,9 +1,11 @@
 import {
+  type JSONValue,
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   isUrlSupported,
   secureJsonParse,
@@ -105,6 +107,72 @@ function convertUrlToolResultPart(
     : undefined;
 }
 
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  if (containsJSONSchemaReference(value)) {
+    return stringifyWithBigIntAndCycles(value);
+  }
+
+  // Keep Google's structured response for ordinary JSON, but normalize values
+  // that would otherwise fail when the final request body is serialized.
+  return containsNonJsonValue(value)
+    ? secureJsonParse(stringifyWithBigIntAndCycles(value))
+    : value;
+}
+
+function containsNonJsonValue(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
+  if (typeof value === 'bigint') {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    return true;
+  }
+  if (ancestors.has(value)) {
+    return true;
+  }
+  ancestors.add(value);
+  try {
+    return Object.values(value).some(item =>
+      containsNonJsonValue(item, ancestors),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -151,12 +219,12 @@ function appendToolResultParts(
         if (functionResponsePart != null) {
           functionResponseParts.push(functionResponsePart);
         } else {
-          responseTextParts.push(JSON.stringify(contentPart));
+          responseTextParts.push(stringifyWithBigIntAndCycles(contentPart));
         }
         break;
       }
       default: {
-        responseTextParts.push(JSON.stringify(contentPart));
+        responseTextParts.push(stringifyWithBigIntAndCycles(contentPart));
         break;
       }
     }
@@ -234,7 +302,7 @@ function appendLegacyToolResultParts(
         break;
       }
       default:
-        parts.push({ text: JSON.stringify(contentPart) });
+        parts.push({ text: stringifyWithBigIntAndCycles(contentPart) });
         break;
     }
   }
@@ -462,7 +530,7 @@ export function convertToGoogleGenerativeAIMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args: parseToolCallInput(part.input),
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };
@@ -579,7 +647,7 @@ export function convertToGoogleGenerativeAIMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });
@@ -632,4 +700,15 @@ export function convertToGoogleGenerativeAIMessages(
         : undefined,
     contents,
   };
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  try {
+    return secureJsonParse(input);
+  } catch {
+    return input;
+  }
 }

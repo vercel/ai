@@ -8,6 +8,7 @@ import {
   type SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
@@ -585,7 +586,7 @@ export async function convertToAnthropicMessagesPrompt({
                   case 'json':
                   case 'error-json':
                   default:
-                    contentValue = JSON.stringify(output.value);
+                    contentValue = stringifyWithBigIntAndCycles(output.value);
                     break;
                 }
 
@@ -899,7 +900,7 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: parseToolCallInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
@@ -1563,4 +1564,22 @@ function getAnthropicCaller(
   }
 
   return caller?.type === 'direct' ? { type: 'direct' } : undefined;
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed;
+      }
+    } catch {
+      // Preserve malformed input for replay.
+    }
+  }
+  return input;
 }
