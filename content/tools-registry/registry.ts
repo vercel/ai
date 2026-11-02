@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'live-tennis-api',
+    name: 'Live Tennis API',
+    description:
+      'Live tennis scores, fixtures, players, rankings, head-to-head records and player stats as 25 AI SDK tools, covering ATP, WTA, Challenger, ITF and junior events. Live data works on the free plan. Paid plans add the results archive back to 1968, match-winner prices and model win probability.',
+    packageName: 'livetennisapi-ai',
+    tags: ['sports', 'tennis', 'live-data'],
+    apiKeyEnvName: 'LIVETENNISAPI_KEY',
+    installCommand: {
+      pnpm: 'pnpm add livetennisapi-ai',
+      npm: 'npm install livetennisapi-ai',
+      yarn: 'yarn add livetennisapi-ai',
+      bun: 'bun add livetennisapi-ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { livetennisTools } from 'livetennisapi-ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: livetennisTools(),
+  stopWhen: isStepCount(5),
+  prompt: 'Which tennis matches are live right now, and what is the score?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.livetennisapi.com/ai-sdk.html',
+    apiKeyUrl: 'https://livetennisapi.com/subscribe/free',
+    websiteUrl: 'https://livetennisapi.com',
+    npmUrl: 'https://www.npmjs.com/package/livetennisapi-ai',
+  },
 ];
