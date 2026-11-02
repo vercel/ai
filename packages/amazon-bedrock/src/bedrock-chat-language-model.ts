@@ -13,6 +13,7 @@ import type {
 import {
   getModelCapabilities,
   sanitizeJsonSchema,
+  supportsNativeStructuredOutputSchema,
 } from '@ai-sdk/anthropic/internal';
 import {
   lazySchema,
@@ -39,7 +40,10 @@ import {
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
-import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsClaude5NativeStructuredOutput,
+} from './bedrock-anthropic-model-support';
 import {
   bedrockFailedResponseHandler,
   BedrockErrorSchema,
@@ -211,6 +215,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
     const modelSupportsNativeStructuredOutput =
       this.config.modelFamily === 'anthropic' ||
+      supportsClaude5NativeStructuredOutput(this.modelId) ||
       (supportsNativeStructuredOutput(this.modelId) && isThinkingRequested);
 
     const useNativeStructuredOutput =
@@ -219,7 +224,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          modelSupportsNativeStructuredOutput));
+          modelSupportsNativeStructuredOutput &&
+          supportsNativeStructuredOutputSchema(responseFormat.schema)));
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
@@ -243,7 +249,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
     const { toolConfig, additionalTools, toolWarnings, betas } =
       await prepareTools({
-        tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
+        tools: jsonResponseTool
+          ? [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ]
+          : tools,
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,

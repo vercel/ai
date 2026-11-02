@@ -142,13 +142,18 @@ The following optional provider options are available for Anthropic models:
 
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format (default).
-  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"`.
+  - `"auto"`: Use `"outputFormat"` when the model and schema support it, otherwise fall back to `"jsonTool"`. Recursive schemas, open objects, and schemas with too many optional properties use the JSON tool to avoid rejection or loss of data. Explicit `"outputFormat"` retains schema sanitization.
 
 - `metadata` _object_
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
 
   - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
+
+When structured output uses the internal JSON tool, a caller's `none` tool
+choice excludes application tools, and a named choice retains only that
+application tool alongside the internal JSON tool. The named application tool
+is available but its invocation is not guaranteed by the JSON fallback.
 
 ### Structured Outputs and Tool Input Streaming
 

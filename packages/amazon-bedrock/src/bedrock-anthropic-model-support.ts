@@ -16,3 +16,12 @@ export function isAnthropicModel({
       reasoningBudgetTokens != null)
   );
 }
+
+// Keep the existing Claude 4 policy; Claude 5 native output does not require thinking.
+export function supportsClaude5NativeStructuredOutput(
+  modelId: string,
+): boolean {
+  return /claude-(?:(?:opus|sonnet)-5(?:-5)?|haiku-5-5)(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/.test(
+    modelId,
+  );
+}

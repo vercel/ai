@@ -45,6 +45,7 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
 
 /**
  * Maps the tool names of toolset tools (e.g. the computer toolset) to the
@@ -314,6 +315,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     const isAnthropicModel = isKnownModel || this.modelId.includes('claude-');
 
+    const supportsResponseSchema =
+      responseFormat?.type !== 'json' ||
+      responseFormat.schema == null ||
+      supportsNativeStructuredOutputSchema(responseFormat.schema);
+
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ??
       (this.modelId.includes('claude-fable-5-1') ||
@@ -323,7 +329,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         : 'jsonTool');
     let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
-      (structureOutputMode === 'auto' && supportsStructuredOutput);
+      (structureOutputMode === 'auto' &&
+        supportsStructuredOutput &&
+        supportsResponseSchema);
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
@@ -333,7 +341,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       rejectsForcedToolUse &&
       supportsStructuredOutput &&
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null
+      responseFormat.schema != null &&
+      supportsResponseSchema
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -795,7 +804,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [...(tools ?? []), jsonResponseTool],
+            tools: [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ],
             toolChoice:
               tools != null && tools.length > 0
                 ? { type: 'required' }

@@ -6,3 +6,4 @@ export { anthropicTools } from '../anthropic-tools';
 export type { AnthropicMessagesModelId } from '../anthropic-messages-options';
 export { prepareTools } from '../anthropic-prepare-tools';
 export { sanitizeJsonSchema } from '../sanitize-json-schema';
+export { supportsNativeStructuredOutputSchema } from '../supports-native-structured-output-schema';
