@@ -576,6 +576,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           }) ?? [],
         abortSignal: startOptions.abortSignal,
       });
+      if (settings.prepareSandbox != null) {
+        startOptions.abortSignal?.throwIfAborted();
+        await settings.prepareSandbox({
+          sandbox: toolSafeSandboxSession,
+          workDir,
+          abortSignal: startOptions.abortSignal,
+        });
+        startOptions.abortSignal?.throwIfAborted();
+      }
       const port = resolveBridgePort({
         sandboxSession,
         portOverride,
