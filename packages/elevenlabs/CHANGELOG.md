@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.77
+
+### Patch Changes
+
+- 8b2fa5b: feat(elevenlabs): transcribe a hosted file with `providerOptions.elevenlabs.sourceUrl`
+
 ## 3.0.76
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 5.0.36
+
+### Patch Changes
+
+- 3d6ac0a: fix(xai): map `incomplete_details.reason` to finish reason in Responses `generateText`, so `max_output_tokens` reports `length` instead of `other`
+
 ## 5.0.35
 
 ### Patch Changes

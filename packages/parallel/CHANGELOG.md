@@ -1,1 +1,7 @@
 # @ai-sdk/parallel
+
+## 3.0.0
+
+### Major Changes
+
+- 6a648d4: Add the Parallel provider for web-grounded boolean, choice, and score decisions. Preserve citations with excerpts, native probabilities, confidence, score legends, refusals, and token usage.
