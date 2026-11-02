@@ -172,6 +172,9 @@
       "path": "packages/otel"
     },
     {
+      "path": "packages/parallel"
+    },
+    {
       "path": "packages/perplexity"
     },
     {
