@@ -35,6 +35,8 @@ vi.mock('./do-stream-step.js', () => ({
 
 // Import after mocking
 const { modelCallIterator } = await import('./model-call-iterator.js');
+const { createWorkflowAgentTelemetryRecorder } =
+  await import('./workflow-agent-telemetry.js');
 const { doStreamStep } = await import('./do-stream-step.js');
 
 /**
@@ -785,6 +787,29 @@ describe('modelCallIterator', () => {
           },
         }),
       );
+    });
+
+    it('records the model-call start when the model step fails', async () => {
+      vi.useFakeTimers({ now: 5_000 });
+      vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+      vi.mocked(doStreamStep).mockRejectedValue(new Error('rejected'));
+      const recorder = createWorkflowAgentTelemetryRecorder();
+      const iterator = modelCallIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        telemetryRecorder: recorder.integration,
+      });
+
+      await expect(iterator.next()).rejects.toThrow('rejected');
+
+      expect(
+        recorder.events.map(({ type, timestamp }) => [type, timestamp]),
+      ).toEqual([
+        ['onStepStart', 5_000],
+        ['onLanguageModelCallStart', 5_000],
+      ]);
+      vi.useRealTimers();
     });
   });
 
