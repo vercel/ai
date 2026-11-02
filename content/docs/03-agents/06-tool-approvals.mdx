@@ -294,7 +294,7 @@ does not redact it from approval metadata.
 
 In the standard `useChat` pattern, the server rebuilds the conversation from the messages the client sends each turn. The server does not persist conversation state between requests. This means the message history is client-controlled input.
 
-Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
+Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. The policy is re-evaluated on a tool call that is rebuilt from the server's tool definitions: `toolMetadata`, `dynamic`, and `title` come from the tools you pass, never from the message history. A policy that denies a call based on these fields (for example MCP tool annotations) reaches the same decision on replay as when the model first made the call. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
 
 If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
 
@@ -316,6 +316,8 @@ const result = await agent.generate({
 ```
 
 The signature binds the approval to the exact tool name, tool call ID, and input arguments. Changing any of these after signing invalidates the approval.
+
+Only approval requests that a client may answer are signed: `user-approval` requests and automatic `approved` requests. An approval request that the policy denied carries no signature, so a client cannot replay a server-side denial with `approved` flipped to `true`.
 
 **Setting up the secret:**
 

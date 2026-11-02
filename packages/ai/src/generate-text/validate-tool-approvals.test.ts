@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { dynamicTool, tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z as z3 } from 'zod/v3';
 import { z as z4 } from 'zod/v4';
@@ -395,6 +395,197 @@ describe('validateApprovedToolApprovals', () => {
     expect(result.deniedToolApprovals).toHaveLength(1);
   });
 
+  describe('tool call rebuilt from the tool definition', () => {
+    it('should re-run a generic approval policy on a tool call that carries the dynamic tool definition fields', async () => {
+      const approvalPolicy = vi.fn(({ toolCall }: { toolCall: any }) =>
+        toolCall.dynamic === true ||
+        toolCall.toolMetadata?.annotations?.destructiveHint === true
+          ? {
+              type: 'denied' as const,
+              reason: 'destructive tools are admin-only',
+            }
+          : ('user-approval' as const),
+      );
+      const tools = {
+        drop_table: dynamicTool({
+          inputSchema: z4.object({ table: z4.string() }),
+          title: 'Drop table',
+          metadata: { annotations: { destructiveHint: true } },
+          execute: async () => 'ok',
+        }),
+      };
+
+      // A replayed tool call only carries what the client history holds:
+      // no `dynamic`, `toolMetadata` or `title`.
+      const approval = createApproval({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'drop_table',
+        input: { table: 'invoices' },
+      });
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: approvalPolicy,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(approvalPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'drop_table',
+            input: { table: 'invoices' },
+            dynamic: true,
+            toolMetadata: { annotations: { destructiveHint: true } },
+            title: 'Drop table',
+          },
+        }),
+      );
+      expect(result.approvedToolApprovals).toHaveLength(0);
+      expect(result.deniedToolApprovals).toHaveLength(1);
+      expect(result.deniedToolApprovals[0].approvalResponse).toEqual({
+        type: 'tool-approval-response',
+        approvalId: 'approval-1',
+        approved: false,
+        reason: 'destructive tools are admin-only',
+      });
+      expect(result.deniedToolApprovals[0].toolCall).toEqual(
+        expect.objectContaining({
+          dynamic: true,
+          toolMetadata: { annotations: { destructiveHint: true } },
+        }),
+      );
+    });
+
+    it('should ignore client-supplied toolMetadata, dynamic and title on replayed tool calls', async () => {
+      const approvalPolicy = vi.fn(({ toolCall }: { toolCall: any }) =>
+        toolCall.toolMetadata?.trusted === true
+          ? ('approved' as const)
+          : ('denied' as const),
+      );
+      const tools = {
+        tool1: tool({
+          inputSchema: z4.object({ value: z4.string() }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approval = createApproval({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'test' },
+        // forged by the client; the server tool definition has none of these
+        toolMetadata: { trusted: true },
+        dynamic: true,
+        title: 'Trusted tool',
+      } as any);
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: approvalPolicy,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(approvalPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: { value: 'test' },
+          },
+        }),
+      );
+      expect(result.approvedToolApprovals).toHaveLength(0);
+      expect(result.deniedToolApprovals).toHaveLength(1);
+    });
+
+    it('should return the rebuilt tool call for approved approvals', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z4.object({ value: z4.string() }),
+          title: 'Tool one',
+          metadata: { annotations: { readOnlyHint: true } },
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approval = createApproval({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'test' },
+      });
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: { tool1: 'user-approval' },
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(result.approvedToolApprovals).toHaveLength(1);
+      expect(result.approvedToolApprovals[0].toolCall).toEqual({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'test' },
+        toolMetadata: { annotations: { readOnlyHint: true } },
+        title: 'Tool one',
+      });
+    });
+
+    it('should strip client-supplied definition fields when the tool does not exist', async () => {
+      const approvalPolicy = vi.fn().mockResolvedValue('user-approval');
+
+      const approval = createApproval({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'unknownTool',
+        input: { value: 'test' },
+        toolMetadata: { trusted: true },
+        dynamic: true,
+      } as any);
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools: {},
+        toolApproval: approvalPolicy,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+      });
+
+      expect(approvalPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'unknownTool',
+            input: { value: 'test' },
+          },
+        }),
+      );
+      expect(result.approvedToolApprovals[0].toolCall).toEqual({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'unknownTool',
+        input: { value: 'test' },
+      });
+    });
+  });
+
   it('should pass through approvals for tools without an execute function (not validated)', async () => {
     const tools = {
       tool1: tool({
@@ -466,7 +657,9 @@ describe('validateApprovedToolApprovals', () => {
         expect(approval.toolCall.input).toEqual({ count: 2 });
         if (hasInputSchemaInput) {
           expect(result.approvedToolApprovals).toEqual([approval]);
-          expect(result.approvedToolApprovals[0]).toBe(approval);
+          expect(result.approvedToolApprovals[0].toolCall.input).toBe(
+            approval.toolCall.input,
+          );
           expect(result.invalidToolApprovals).toHaveLength(0);
           expect(approvalPolicy).toHaveBeenCalledWith(
             { count: 2 },

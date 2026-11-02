@@ -146,13 +146,22 @@ export function executeToolsFromStream<
             }
 
             const approvalId = generateId();
-            const signature = await maybeSignApproval({
-              secret: toolApprovalSecret,
-              approvalId,
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              input: chunk.input,
-            });
+
+            // The signature attests that the server issued an approval request
+            // that a client may answer. A denied request is never eligible for
+            // execution, so it must not be signed: a signed denial could
+            // otherwise be replayed with `approved` flipped to `true` and
+            // pass signature verification.
+            const signature =
+              toolApprovalStatus.type === 'denied'
+                ? undefined
+                : await maybeSignApproval({
+                    secret: toolApprovalSecret,
+                    approvalId,
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    input: chunk.input,
+                  });
 
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
@@ -175,7 +184,6 @@ export function executeToolsFromStream<
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
-                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',

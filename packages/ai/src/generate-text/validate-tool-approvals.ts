@@ -16,7 +16,49 @@ import { refineParsedToolCallInput } from './parse-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { verifyToolApprovalSignature } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { TypedToolCall } from './tool-call';
 import type { ToolInputRefinement } from './tool-input-refinement';
+
+/**
+ * Rebuilds the fields of a replayed tool call that are derived from the
+ * server's tool definition.
+ *
+ * On the model path, `toolMetadata`, `dynamic` and `title` are set from the
+ * tool definition when the tool call is parsed. On the replay path, the tool
+ * call is reconstructed from client-supplied message history: a UI tool part
+ * only carries `toolCallId`, `toolName`, `input` and `providerExecuted`, and a
+ * client can put any value on a model message. Whatever the history claims is
+ * discarded and the fields are re-derived from the tool definition, so that an
+ * approval policy sees the same tool call it would see on the model path. A
+ * policy that reads e.g. MCP tool annotations from `toolMetadata` or checks
+ * `dynamic` would otherwise reach a different decision when it is re-run on a
+ * replayed approval than when the model first made the call.
+ */
+function rebuildToolCallFromToolDefinition<TOOLS extends ToolSet>({
+  toolCall,
+  tool,
+}: {
+  toolCall: TypedToolCall<TOOLS>;
+  tool: TOOLS[keyof TOOLS] | undefined;
+}): TypedToolCall<TOOLS> {
+  const {
+    toolMetadata: _toolMetadata,
+    dynamic: _dynamic,
+    title: _title,
+    ...clientToolCall
+  } = toolCall;
+
+  if (tool == null) {
+    return clientToolCall as TypedToolCall<TOOLS>;
+  }
+
+  return {
+    ...clientToolCall,
+    ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
+    ...(tool.type === 'dynamic' ? { dynamic: true } : {}),
+    ...(tool.title != null ? { title: tool.title } : {}),
+  } as TypedToolCall<TOOLS>;
+}
 
 /**
  * Re-validates approved tool approvals reconstructed from client-supplied
@@ -57,13 +99,25 @@ export async function validateApprovedToolApprovals<
     CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
   > = [];
 
-  for (const approval of approvedToolApprovals) {
-    const { approvalRequest, toolCall } = approval;
+  for (const collectedApproval of approvedToolApprovals) {
+    const { approvalRequest } = collectedApproval;
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
     // than a prototype value that would silently skip input validation below.
-    const tool = getOwn(tools, toolCall.toolName);
+    const tool = getOwn(tools, collectedApproval.toolCall.toolName);
+
+    // The replayed tool call must carry the server-derived fields before the
+    // approval policy (and input refinement) run on it; the rebuilt call is
+    // also what gets executed and reported in the results.
+    const toolCall = rebuildToolCallFromToolDefinition({
+      toolCall: collectedApproval.toolCall,
+      tool,
+    });
+    const approval: CollectedToolApprovals<TOOLS> = {
+      ...collectedApproval,
+      toolCall,
+    };
 
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
