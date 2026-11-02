@@ -275,7 +275,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           ),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
+        // Preserve explicit null and avoid overwriting a raw reasoning_effort
+        // provider option when reasoningEffort is unset.
+        ...(compatibleOptions.reasoningEffort !== undefined
+          ? { reasoning_effort: compatibleOptions.reasoningEffort }
+          : {}),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:

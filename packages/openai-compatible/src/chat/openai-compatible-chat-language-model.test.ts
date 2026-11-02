@@ -1244,6 +1244,53 @@ describe('doGenerate', () => {
       expect(body.customOption).toBe('should-be-included');
     });
 
+    it('should send reasoningEffort null as reasoning_effort null', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body).toHaveProperty('reasoning_effort', null);
+      expect(body.reasoningEffort).toBeUndefined();
+    });
+
+    it('should omit reasoning_effort when no reasoning effort is set', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'reasoning_effort',
+      );
+    });
+
+    it.each([null, 'high'])(
+      'should not overwrite a raw reasoning_effort provider option set to %s',
+      async reasoningEffort => {
+        prepareJsonResponse({ content: 'test' });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'test-provider': { reasoning_effort: reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toHaveProperty(
+          'reasoning_effort',
+          reasoningEffort,
+        );
+      },
+    );
+
     it('should pass textVerbosity setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
@@ -3618,7 +3665,6 @@ describe('doStream', () => {
           ],
           "model": "grok-3",
           "presence_penalty": undefined,
-          "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
           "stop": undefined,

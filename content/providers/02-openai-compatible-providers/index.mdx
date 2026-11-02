@@ -438,9 +438,11 @@ The following provider options are available for chat models via `providerOption
   A unique identifier representing your end-user, which can help the provider to
   monitor and detect abuse.
 
-- **reasoningEffort** _string_
+- **reasoningEffort** _string | null_
 
   Reasoning effort for reasoning models. The exact values depend on the provider.
+  Set to `null` to send `"reasoning_effort": null` for providers that distinguish
+  an explicit `null` from an omitted field.
 
 - **textVerbosity** _string_
 
