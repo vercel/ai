@@ -320,7 +320,10 @@ const agent = new ToolLoopAgent({
 });
 ```
 
-This pattern is for a loop with client-side tools. Persist the original input and
+This pattern is for a loop with client-side tools that execute without approval.
+Provider-executed tool continuations and tool-approval flows require their own
+message selection. The compatibility warning about retained instructions and tool
+definitions is expected in this example. Persist the original input and
 each step's response messages for recovery; never rerun completed tools just to
 rebuild history. Do not reuse a static continuation ID across multiple steps.
 
@@ -371,7 +374,10 @@ same fixed settings; the agent example above does not handle paused server turns
 
 The `@ai-sdk/anthropic` provider supports this beta on the native Claude API and
 compatible Anthropic-managed endpoints. Anthropic's Claude Platform on AWS and
-Anthropic-managed Google Cloud are distinct from Amazon Bedrock and Vertex AI;
+Anthropic-managed Google Cloud are distinct from Amazon Bedrock and Vertex AI.
+The direct `@ai-sdk/anthropic-aws` provider supports message threads; with SigV4,
+use the same IAM role or IAM user throughout the thread.
+
 `@ai-sdk/amazon-bedrock/anthropic` and `@ai-sdk/google-vertex/anthropic` do not
 support message threads.
 
