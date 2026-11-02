@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.161
+
+### Patch Changes
+
+- 51ca5b7: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- 51ca5b7: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in data-content and file-part-data
+- 51ca5b7: fix(ai): support cross-realm binary buffers and circular structures in cloneModelMessages
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/gateway@4.0.134
+
 ## 7.0.160
 
 ### Patch Changes
