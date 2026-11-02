@@ -13,6 +13,8 @@ async function generate(
   modelId: string,
   schema: JSONSchema7,
   withTools = false,
+  options: Partial<LanguageModelV4CallOptions> = {},
+  method: 'doGenerate' | 'doStream' = 'doGenerate',
 ) {
   let body: Record<string, any> = {};
   const model = new AmazonBedrockChatLanguageModel(modelId, {
@@ -20,6 +22,9 @@ async function generate(
     generateId: () => 'test-id',
     fetch: async (_url, init) => {
       body = JSON.parse(String(init?.body));
+      if (method === 'doStream') {
+        return new Response(new Uint8Array());
+      }
       return new Response(
         JSON.stringify({
           output: {
@@ -41,12 +46,57 @@ async function generate(
     ...(withTools
       ? { tools: [{ type: 'function', name: 'lookup', inputSchema: SCHEMA }] }
       : {}),
+    ...options,
   };
-  await model.doGenerate(call);
+  if (method === 'doStream') {
+    const result = await model.doStream(call);
+    await result.stream.cancel();
+  } else {
+    await model.doGenerate(call);
+  }
   return body;
 }
 
 describe('Claude 5 structured outputs through Converse', () => {
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s fallback tool restrictions',
+    method => {
+      it.each([
+        [{ type: 'none' }, ['json']],
+        [{ type: 'tool', toolName: 'lookup' }, ['lookup', 'json']],
+        [{ type: 'auto' }, ['lookup', 'unused', 'json']],
+        [{ type: 'required' }, ['lookup', 'unused', 'json']],
+      ] satisfies Array<
+        [NonNullable<LanguageModelV4CallOptions['toolChoice']>, string[]]
+      >)(
+        'preserves caller tool choice %j',
+        async (toolChoice, expectedNames) => {
+          const body = await generate(
+            'anthropic.claude-opus-5',
+            { type: 'object', additionalProperties: true },
+            false,
+            {
+              toolChoice,
+              tools: [
+                { type: 'function', name: 'lookup', inputSchema: SCHEMA },
+                { type: 'function', name: 'unused', inputSchema: SCHEMA },
+              ],
+            },
+            method,
+          );
+          expect(
+            body.additionalModelRequestFields?.output_config,
+          ).toBeUndefined();
+          expect(
+            body.toolConfig.tools.map(
+              (tool: { toolSpec: { name: string } }) => tool.toolSpec.name,
+            ),
+          ).toEqual(expectedNames);
+        },
+      );
+    },
+  );
+
   it.each([
     'anthropic.claude-opus-5',
     'anthropic.claude-opus-5-5',

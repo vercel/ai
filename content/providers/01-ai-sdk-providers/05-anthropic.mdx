@@ -366,6 +366,12 @@ Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
 
+The JSON-tool fallback limits which application tools are available:
+`toolChoice: 'none'` sends only the internal JSON response tool, and a named tool
+choice sends only that application tool alongside the JSON response tool. The
+fallback can produce a JSON response without calling the named application tool;
+verify the selected call if your application requires it.
+
 When the JSON tool cannot be forced (for example with manual thinking) and the
 model answers in text without calling it, the text of its final answer is
 returned. Text before a tool call is still dropped.

@@ -1141,7 +1141,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [...(tools ?? []), jsonResponseTool],
+            tools: [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ],
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,

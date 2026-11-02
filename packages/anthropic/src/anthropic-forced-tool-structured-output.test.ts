@@ -202,6 +202,51 @@ describe('structured outputs for models that reject forced tool use', () => {
   describe.each(['doGenerate', 'doStream'] as const)(
     '%s with native support enabled',
     method => {
+      describe.each(['claude-sonnet-4-5', 'claude-sonnet-5-5'])(
+        'fallback tool restrictions for %s',
+        modelId => {
+          it.each([
+            [{ type: 'none' }, ['json']],
+            [{ type: 'tool', toolName: 'lookup' }, ['lookup', 'json']],
+            [{ type: 'auto' }, ['lookup', 'unused', 'web_search', 'json']],
+            [{ type: 'required' }, ['lookup', 'unused', 'web_search', 'json']],
+          ] satisfies Array<
+            [NonNullable<LanguageModelV4CallOptions['toolChoice']>, string[]]
+          >)(
+            'preserves caller tool choice %j',
+            async (toolChoice, expectedNames) => {
+              if (method === 'doStream') {
+                server.urls[URL].response = {
+                  type: 'stream-chunks',
+                  chunks: [],
+                };
+              } else {
+                respondWith([{ type: 'text', text: '{}' }]);
+              }
+              await createModel(modelId, true)[method]({
+                ...jsonCall({ type: 'object', additionalProperties: true }),
+                toolChoice,
+                tools: [
+                  { type: 'function', name: 'lookup', inputSchema: SCHEMA },
+                  { type: 'function', name: 'unused', inputSchema: SCHEMA },
+                  {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20250305',
+                    name: 'web_search',
+                    args: {},
+                  },
+                ],
+              });
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.output_config).toBeUndefined();
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(expectedNames);
+            },
+          );
+        },
+      );
+
       it.each(['claude-sonnet-4-5', 'claude-sonnet-5-5'])(
         'preserves an open schema using the JSON tool for %s',
         async modelId => {

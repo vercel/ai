@@ -46,6 +46,33 @@ async function generate(
 
 describe('Claude 5 structured outputs through InvokeModel', () => {
   it.each([
+    [{ type: 'none' }, ['json']],
+    [{ type: 'tool', toolName: 'lookup' }, ['lookup', 'json']],
+  ] satisfies Array<
+    [NonNullable<LanguageModelV4CallOptions['toolChoice']>, string[]]
+  >)(
+    'preserves caller tool choice %j during schema fallback',
+    async (toolChoice, expectedNames) => {
+      const { body } = await generate('us.anthropic.claude-sonnet-5-5', {
+        ...CALL,
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object', additionalProperties: true },
+        },
+        toolChoice,
+        tools: [
+          { type: 'function', name: 'lookup', inputSchema: SCHEMA },
+          { type: 'function', name: 'unused', inputSchema: SCHEMA },
+        ],
+      });
+      expect(body.output_config).toBeUndefined();
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+        expectedNames,
+      );
+    },
+  );
+
+  it.each([
     'global.anthropic.claude-sonnet-5-5',
     'us.anthropic.claude-opus-5-5',
     'anthropic.claude-fable-5-1',
