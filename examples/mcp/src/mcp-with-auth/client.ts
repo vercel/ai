@@ -82,6 +82,10 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
     return this._clientInformation;
   }
+  // This example only obtains client information through dynamic registration.
+  async isClientInformationDynamicallyRegistered(): Promise<boolean> {
+    return this._clientInformation !== undefined;
+  }
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
     this._clientInformation = info;
   }

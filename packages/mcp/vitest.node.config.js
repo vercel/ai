@@ -8,7 +8,11 @@ const version = JSON.parse(
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['**/*.test.ts', '**/*.test.tsx'],
+    include: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '../../examples/next-openai/app/api/mcp-with-auth/oauth-callback.test.ts',
+    ],
     setupFiles: [
       fileURLToPath(
         new URL('../../tools/setup-download-fetch.node.js', import.meta.url),

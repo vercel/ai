@@ -129,14 +129,25 @@ endpoint. Preserve the optional `issuer`, `authorization_server`, and
 `token_endpoint` fields when storing `OAuthClientInformation` and `OAuthTokens`,
 or implement the `authorizationServerInformation` and
 `saveAuthorizationServerInformation` provider hooks. An issuer or endpoint change
-requires a new authorization flow rather than reuse of existing credentials.
+throws an OAuth error before credential exchange. The application must explicitly
+clear the old credentials and pending flow before authorizing the new server.
 Legacy refresh tokens without a stored binding are not refreshed.
 
 Pre-registered confidential clients, including providers that use
 `addClientAuthentication`, must set their expected `issuer` on the client
-information or supply a trusted stored authorization-server binding. For example:
+information or supply a trusted stored authorization-server binding. Use the exact
+issuer string returned by that server's metadata, including its trailing slash.
+Before redirecting, the complete binding must also be persistable through
+`saveClientInformation` or `saveAuthorizationServerInformation`; a read-only client
+can instead configure all three binding fields in advance. An issuer alone does
+not store the pending flow's token endpoint.
+
+For fixed client configuration, implement these methods on your session-scoped
+provider in addition to its existing token, verifier, state, and redirect methods:
+
 
 ```ts
+// sessionStore is isolated to the authenticated user and MCP server.
 clientInformation() {
   return {
     client_id: process.env.OAUTH_CLIENT_ID!,
@@ -144,7 +155,22 @@ clientInformation() {
     issuer: 'https://login.example.com',
   };
 }
+authorizationServerInformation() {
+  return sessionStore.authorizationServerInformation;
+}
+saveAuthorizationServerInformation(info: OAuthAuthorizationServerInformation) {
+  sessionStore.authorizationServerInformation = info;
+}
 ```
+
+When upgrading an existing credential store, set
+`isClientInformationDynamicallyRegistered()` to `true` only for client information
+obtained through dynamic registration. Together with `invalidateCredentials`,
+this enables re-registration for unbound legacy dynamic clients and recovery from
+`invalid_client` / `unauthorized_client` refresh errors. Without that explicit
+signal the SDK treats existing clients as pre-registered and does not delete them;
+configure their trusted issuer/binding or clear the old registration manually.
+Never infer an issuer for an existing secret from untrusted resource metadata.
 
 Persist the authorization-server binding before redirecting, along with a random
 OAuth state. Providers can use `state`, `saveState`, and `storedState` to manage

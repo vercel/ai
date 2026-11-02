@@ -280,6 +280,17 @@ async function saveAuthorizationServerInformation({
     return true;
   }
 
+  // A fully pinned, read-only client already supplies the binding on callbacks.
+  const configuredBinding =
+    getAuthorizationServerInformationFromCredentials(clientInformation);
+  if (configuredBinding) {
+    assertAuthorizationServerInformationMatches({
+      storedAuthorizationServerInformation: configuredBinding,
+      currentAuthorizationServerInformation: authorizationServerInformation,
+    });
+    return true;
+  }
+
   return false;
 }
 
@@ -1416,7 +1427,7 @@ async function authInternal(
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
-  const tokens =
+  let tokens =
     authorizationCode === undefined ? await provider.tokens() : undefined;
   if (clientInformation) {
     // A flow pin must never override the issuer attached to the credentials.
@@ -1463,10 +1474,21 @@ async function authInternal(
       clientInformation.issuer == null &&
       !storedAuthorizationServerInformation
     ) {
-      throw new MCPClientOAuthError({
-        message:
-          'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
-      });
+      if (
+        authorizationCode === undefined &&
+        (await provider.isClientInformationDynamicallyRegistered?.())
+      ) {
+        // Re-register legacy dynamic clients without transmitting their old
+        // secret or refresh token to an unpinned authorization server.
+        await provider.invalidateCredentials?.('all');
+        clientInformation = undefined;
+        tokens = undefined;
+      } else {
+        throw new MCPClientOAuthError({
+          message:
+            'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
+        });
+      }
     }
   }
 

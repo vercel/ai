@@ -83,6 +83,10 @@ class InMemoryOAuthClientProvider {
     return this.credentials.clientInformation;
   }
 
+  // This example only obtains client information through dynamic registration.
+  async isClientInformationDynamicallyRegistered(): Promise<boolean> {
+    return this.credentials.clientInformation !== undefined;
+  }
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
     this.credentials.clientInformation = info;
   }

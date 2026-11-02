@@ -5,6 +5,7 @@ import {
   buildDiscoveryUrls,
   discoverAuthorizationServerMetadata,
   type OAuthClientProvider,
+  type OAuthAuthorizationServerInformation,
 } from './oauth';
 import {
   OAuthClientInformationSchema,
@@ -61,12 +62,14 @@ class MemoryProvider implements OAuthClientProvider {
 
 function transport(
   options: {
+    authorizationServer?: string;
     metadataIssuer?: string;
     tokenEndpoint?: string;
     noResourceMetadata?: boolean;
     tokenError?: string;
   } = {},
 ) {
+  const selectedIssuer = options.authorizationServer ?? issuer;
   return vi.fn<FetchFunction>(async (url, init) => {
     const href = String(url);
     if (href.includes('/.well-known/oauth-protected-resource')) {
@@ -74,27 +77,27 @@ function transport(
         ? new Response(null, { status: 404 })
         : Response.json({
             resource: serverUrl,
-            authorization_servers: [issuer],
+            authorization_servers: [selectedIssuer],
           });
     }
     if (href.includes('/.well-known/oauth-authorization-server')) {
       return Response.json({
-        issuer: options.metadataIssuer ?? issuer,
-        authorization_endpoint: `${issuer}/authorize`,
-        token_endpoint: options.tokenEndpoint ?? `${issuer}/token`,
-        registration_endpoint: `${issuer}/register`,
+        issuer: options.metadataIssuer ?? selectedIssuer,
+        authorization_endpoint: `${selectedIssuer}/authorize`,
+        token_endpoint: options.tokenEndpoint ?? `${selectedIssuer}/token`,
+        registration_endpoint: `${selectedIssuer}/register`,
         response_types_supported: ['code'],
         code_challenge_methods_supported: ['S256'],
       });
     }
-    if (href === `${issuer}/register`) {
+    if (href === `${selectedIssuer}/register`) {
       return Response.json({
         client_id: 'registered-client',
         client_secret: 'test-secret',
         redirect_uris: ['http://localhost:3000/callback'],
       });
     }
-    if (href === `${issuer}/token` && init?.method === 'POST') {
+    if (href === `${selectedIssuer}/token` && init?.method === 'POST') {
       return options.tokenError
         ? Response.json({ error: options.tokenError }, { status: 400 })
         : Response.json({
@@ -162,6 +165,136 @@ describe('OAuth authorization server binding', () => {
     expect(provider.client).toMatchObject(binding);
   });
 
+  it('completes a fixed client configuration using separate session binding storage', async () => {
+    const memory = new MemoryProvider();
+    const fixedClient = {
+      client_id: 'configured-client',
+      client_secret: 'test-secret',
+      issuer,
+    };
+    let storedBinding: OAuthAuthorizationServerInformation | undefined;
+    const provider = {
+      ...memory,
+      clientInformation: () => fixedClient,
+      saveClientInformation: undefined,
+      authorizationServerInformation: () => storedBinding,
+      saveAuthorizationServerInformation: (
+        value: OAuthAuthorizationServerInformation,
+      ) => {
+        storedBinding = value;
+      },
+    };
+    const fetchFn = transport();
+    expect(await auth(provider, { serverUrl, fetchFn })).toBe('REDIRECT');
+    expect(provider.clientInformation()).toBe(fixedClient);
+    expect(storedBinding?.tokenEndpoint).toBe(`${issuer}/token`);
+    expect(
+      await auth(provider, {
+        serverUrl,
+        fetchFn,
+        authorizationCode: 'test-code',
+        callbackState: 'request-state',
+      }),
+    ).toBe('AUTHORIZED');
+    expect(memory.storedTokens).toMatchObject(binding);
+  });
+
+  it('supports fully pinned read-only public client configuration without a save method', async () => {
+    const memory = new MemoryProvider();
+    const provider = {
+      ...memory,
+      clientInformation: () => ({ client_id: 'public-client', ...binding }),
+      saveClientInformation: undefined,
+    };
+    const fetchFn = transport();
+    expect(await auth(provider, { serverUrl, fetchFn })).toBe('REDIRECT');
+    expect(
+      await auth(provider, {
+        serverUrl,
+        fetchFn,
+        authorizationCode: 'test-code',
+        callbackState: 'request-state',
+      }),
+    ).toBe('AUTHORIZED');
+    expect(memory.storedTokens).toMatchObject(binding);
+  });
+
+  it('requires complete binding storage for an issuer-only read-only client', async () => {
+    const memory = new MemoryProvider();
+    await expect(
+      auth(
+        {
+          ...memory,
+          clientInformation: () => ({ client_id: 'public-client', issuer }),
+          saveClientInformation: undefined,
+        },
+        { serverUrl, fetchFn: transport() },
+      ),
+    ).rejects.toThrow('metadata must be saveable');
+    expect(memory.authorizationUrl).toBeUndefined();
+  });
+
+  it('re-registers explicitly identified unbound legacy dynamic clients', async () => {
+    const memory = new MemoryProvider();
+    memory.client = {
+      client_id: 'legacy-client',
+      client_secret: 'legacy-secret',
+    };
+    memory.storedTokens = {
+      access_token: 'legacy-access',
+      refresh_token: 'legacy-refresh',
+      token_type: 'Bearer',
+    };
+    const fetchFn = transport();
+    expect(
+      await auth(
+        { ...memory, isClientInformationDynamicallyRegistered: () => true },
+        { serverUrl, fetchFn },
+      ),
+    ).toBe('REDIRECT');
+    expect(memory.invalidations).toEqual(['all']);
+    expect(memory.client).toMatchObject({
+      client_id: 'registered-client',
+      ...binding,
+    });
+    expect(memory.storedTokens).toBeUndefined();
+    expect(tokenCalls(fetchFn)).toHaveLength(0);
+  });
+
+  it.each(['invalid_client', 'unauthorized_client'])(
+    'recovers from %s only for explicitly dynamic clients',
+    async tokenError => {
+      for (const dynamic of [true, false, undefined]) {
+        const memory = new MemoryProvider();
+        memory.client = { client_id: 'existing-client', ...binding };
+        memory.storedTokens = {
+          access_token: 'old-access',
+          token_type: 'Bearer',
+          refresh_token: 'test-refresh',
+          ...binding,
+        };
+        const provider = {
+          ...memory,
+          isClientInformationDynamicallyRegistered:
+            dynamic === undefined ? undefined : () => dynamic,
+        };
+        const promise = auth(provider, {
+          serverUrl,
+          fetchFn: transport({ tokenError }),
+        });
+        if (dynamic) {
+          expect(await promise).toBe('REDIRECT');
+          expect(memory.invalidations).toEqual(['all']);
+          expect(memory.client?.client_id).toBe('registered-client');
+        } else {
+          await expect(promise).rejects.toThrow();
+          expect(memory.invalidations).toEqual([]);
+          expect(memory.client?.client_id).toBe('existing-client');
+        }
+      }
+    },
+  );
+
   it('does not let a flow pin override the issuer on client credentials', async () => {
     const provider = new MemoryProvider();
     provider.client = {
@@ -201,6 +334,43 @@ describe('OAuth authorization server binding', () => {
     );
     expect(tokenCalls(fetchFn)).toHaveLength(0);
   });
+
+  it.each(['callback', 'refresh'] as const)(
+    'rejects a changed authorization server before %s credentials are sent',
+    async flow => {
+      const provider = new MemoryProvider();
+      const fetchFn = transport();
+      await auth(provider, { serverUrl, fetchFn });
+      if (flow === 'refresh') {
+        await auth(provider, {
+          serverUrl,
+          fetchFn,
+          authorizationCode: 'test-code',
+          callbackState: 'request-state',
+        });
+      }
+      const changedServer = transport({
+        authorizationServer: 'https://other-login.example.com',
+      });
+      await expect(
+        auth(provider, {
+          serverUrl,
+          fetchFn: changedServer,
+          ...(flow === 'callback'
+            ? {
+                authorizationCode: 'test-code',
+                callbackState: 'request-state',
+              }
+            : {}),
+        }),
+      ).rejects.toThrow('does not match the issuer');
+      expect(tokenCalls(changedServer)).toHaveLength(0);
+      expect(
+        changedServer.mock.calls.every(([, init]) => init?.method !== 'POST'),
+      ).toBe(true);
+      expect(provider.invalidations).toEqual([]);
+    },
+  );
 
   it('starts fresh authorization instead of refreshing unbound legacy tokens', async () => {
     const provider = new MemoryProvider();
