@@ -1709,7 +1709,7 @@ names, acronyms, and domain vocabulary. These hints are sent as repeated
 
 ```ts
 import { experimental_transcribe as transcribe } from 'ai';
-import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await transcribe({
   model: openai.transcription('gpt-transcribe'),
@@ -1719,7 +1719,7 @@ const result = await transcribe({
       languages: ['en', 'fr'],
       keywords: ['premium plan', 'AC-42'],
       prompt: 'A customer support call.',
-    } satisfies OpenAITranscriptionModelOptions,
+    },
   },
 });
 ```

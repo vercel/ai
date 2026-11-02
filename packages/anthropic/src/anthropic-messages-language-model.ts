@@ -160,6 +160,48 @@ type AnthropicMessagesConfig = {
   generateId?: () => string;
 };
 
+const TEXT_OR_THINKING_BLOCK_TYPES = new Set<string>([
+  'redacted_thinking',
+  'text',
+  'thinking',
+]);
+
+function isContinuationStopReason(
+  stopReason: string | null | undefined,
+): boolean {
+  return stopReason === 'pause_turn' || stopReason === 'tool_use';
+}
+
+/**
+ * Text parts to return when the JSON response tool is in use: the text after
+ * the last tool call or result, and only if the tool was never called.
+ */
+function getJsonResponseToolFallbackText<
+  PART extends { type: string; name?: unknown },
+>(
+  content: ReadonlyArray<PART>,
+  stopReason: string | null | undefined,
+  jsonResponseToolName: string,
+): Set<PART> {
+  const text = new Set<PART>();
+  if (isContinuationStopReason(stopReason)) {
+    return text;
+  }
+
+  for (const part of content) {
+    if (part.type === 'tool_use' && part.name === jsonResponseToolName) {
+      return new Set();
+    }
+    if (part.type === 'text') {
+      text.add(part);
+    } else if (!TEXT_OR_THINKING_BLOCK_TYPES.has(part.type)) {
+      text.clear();
+    }
+  }
+
+  return text;
+}
+
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
@@ -813,8 +855,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               ),
               jsonResponseTool,
             ],
-            toolChoice:
-              tools != null && tools.length > 0
+            toolChoice: rejectsForcedToolUse
+              ? { type: 'auto' }
+              : tools != null && tools.length > 0
                 ? { type: 'required' }
                 : { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
@@ -970,13 +1013,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
     let isJsonResponseFromTool = false;
 
+    // Keep final text if the model never called the JSON response tool.
+    const jsonResponseToolFallbackText =
+      jsonResponseToolName != null
+        ? getJsonResponseToolFallbackText(
+            response.content,
+            response.stop_reason,
+            jsonResponseToolName,
+          )
+        : undefined;
+
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          // when a json response tool is used, the tool call is returned as text,
-          // so we ignore the text content:
-          if (jsonResponseToolName == null) {
+          if (
+            jsonResponseToolFallbackText == null ||
+            jsonResponseToolFallbackText.has(part)
+          ) {
             const webSearchCitations = part.citations?.filter(
               citation => citation.type === 'web_search_result_location',
             );
@@ -1461,6 +1515,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
     let isJsonResponseFromTool = false;
+    let rawStopReason: string | null | undefined;
+    // Text held back while the JSON response tool is in use: it is only the
+    // answer if no tool block follows it and the model never calls the tool.
+    type HeldBackText = { id: string; text: string; citations: Citation[] };
+    const heldBackText: HeldBackText[] = [];
+    const heldBackTextByIndex = new Map<number, HeldBackText>();
+    const createTextEnd = (
+      id: string,
+      citations: Citation[],
+    ): LanguageModelV2StreamPart => ({
+      type: 'text-end',
+      id,
+      ...(citations.length > 0 && {
+        providerMetadata: { anthropic: { citations } },
+      }),
+    });
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
@@ -1522,9 +1592,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
 
               blockType = contentBlockType;
+              if (!TEXT_OR_THINKING_BLOCK_TYPES.has(contentBlockType)) {
+                heldBackText.length = 0;
+              }
 
               switch (contentBlockType) {
                 case 'text': {
+                  if (jsonResponseToolName != null) {
+                    const entry = {
+                      id: String(value.index),
+                      text: '',
+                      citations: [],
+                    };
+                    heldBackText.push(entry);
+                    heldBackTextByIndex.set(value.index, entry);
+                    return;
+                  }
                   contentBlocks[value.index] = {
                     type: 'text',
                     citations: [],
@@ -1924,9 +2007,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               const deltaType = value.delta.type;
               switch (deltaType) {
                 case 'text_delta': {
-                  // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
+                  // Hold text until we know whether the JSON response tool was called.
                   if (jsonResponseToolName != null) {
+                    const entry = heldBackTextByIndex.get(value.index);
+                    if (entry != null) entry.text += value.delta.text;
                     return;
                   }
 
@@ -2034,11 +2118,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   const citation = value.delta.citation;
                   const contentBlock = contentBlocks[value.index];
 
-                  if (
-                    contentBlock?.type === 'text' &&
-                    citation.type === 'web_search_result_location'
-                  ) {
-                    contentBlock.citations.push(citation);
+                  if (citation.type === 'web_search_result_location') {
+                    if (contentBlock?.type === 'text')
+                      contentBlock.citations.push(citation);
+                    heldBackTextByIndex
+                      .get(value.index)
+                      ?.citations.push(citation);
                   }
 
                   const source = createCitationSource(
@@ -2084,6 +2169,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               isMessageOpen = true;
               activeMessageId = value.message.id;
+              heldBackTextByIndex.clear();
 
               usage.inputTokens = value.message.usage.input_tokens;
               usage.cachedInputTokens =
@@ -2153,6 +2239,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               usage.totalTokens =
                 (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
 
+              rawStopReason = value.delta.stop_reason;
               finishReason = mapAnthropicStopReason({
                 finishReason: value.delta.stop_reason,
                 isJsonResponseFromTool,
@@ -2243,6 +2330,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             case 'message_stop': {
               isMessageOpen = false;
               activeMessageId = undefined;
+
+              // Text from a tool handoff or paused turn is not the final answer.
+              if (
+                !isJsonResponseFromTool &&
+                !isContinuationStopReason(rawStopReason)
+              ) {
+                for (const { id, text, citations } of heldBackText) {
+                  if (text.length === 0) continue;
+                  controller.enqueue({ type: 'text-start', id });
+                  controller.enqueue({ type: 'text-delta', id, delta: text });
+                  controller.enqueue(createTextEnd(id, citations));
+                }
+              }
+              heldBackText.length = 0;
 
               controller.enqueue({
                 type: 'finish',
