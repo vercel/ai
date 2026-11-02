@@ -3,6 +3,7 @@ import type {
   HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { asSchema } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDeepAgents } from './deepagents-harness';
@@ -221,6 +222,24 @@ describe('createDeepAgents', () => {
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+  });
+
+  it('registers the native delete tool as a mutation', async () => {
+    const harness = createDeepAgents();
+    const deleteTool = harness.builtinTools.delete;
+    expect(deleteTool).toBeDefined();
+    expect(deleteTool.toolUseKind).toBe('edit');
+    expect(deleteTool).not.toHaveProperty('commonName');
+    expect(deleteTool).not.toHaveProperty('nativeName');
+    const schema = asSchema(deleteTool.inputSchema!);
+    await expect(
+      schema.validate!({ file_path: '/workspace/file.txt' }),
+    ).resolves.toEqual({
+      success: true,
+      value: { file_path: '/workspace/file.txt' },
+    });
+    expect((await schema.validate!({})).success).toBe(false);
+    expect((await schema.validate!({ file_path: 1 })).success).toBe(false);
   });
 
   it('ships bridge dependencies and installs them in its bootstrap', async () => {

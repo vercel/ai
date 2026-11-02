@@ -1,5 +1,6 @@
 import type { StartMessage } from '../deepagents-bridge-protocol';
 import type { InterruptOnConfig } from 'langchain';
+import path from 'node:path';
 import { areFileToolPathsTrusted } from './permission-paths';
 
 export type PermissionMode = NonNullable<StartMessage['permissionMode']>;
@@ -11,7 +12,7 @@ export const NATIVE_TOOL_KIND: Readonly<
   read_file: 'readonly',
   write_file: 'edit',
   edit_file: 'edit',
-  delete_file: 'edit',
+  delete: 'edit',
   execute: 'bash',
   grep: 'readonly',
   glob: 'readonly',
@@ -76,7 +77,7 @@ export function buildInterruptOn(options: {
         'read_file',
         'write_file',
         'edit_file',
-        'delete_file',
+        'delete',
         'ls',
         'grep',
         'glob',
@@ -87,6 +88,7 @@ export function buildInterruptOn(options: {
         when: async ({ toolCall }) => {
           const args = toolCall.args;
           let target: unknown;
+          let globPrefix: string | undefined;
           const access = kind === 'edit' ? 'write' : 'read';
           if (nativeName === 'glob') {
             if (
@@ -100,16 +102,35 @@ export function buildInterruptOn(options: {
               args.path == null || args.path === '/'
                 ? options.workDir
                 : args.path;
+            /*
+             * Glob traversal starts at the pattern's literal prefix, which
+             * can itself contain a symlink even when following symlinks
+             * during traversal is disabled. Literal patterns must also be
+             * checked through their final component.
+             */
+            const segments = args.pattern.split('/');
+            const wildcardIndex = segments.findIndex(segment =>
+              /[*?]/.test(segment),
+            );
+            globPrefix = (
+              wildcardIndex === -1 ? segments : segments.slice(0, wildcardIndex)
+            ).join('/');
           } else if (nativeName === 'ls' || nativeName === 'grep') {
             target = args.path ?? '/';
           } else {
             target = 'file_path' in args ? args.file_path : args.path;
           }
           if (typeof target !== 'string') return true;
+          const paths = [target];
+          if (globPrefix) {
+            paths.push(
+              `${path.posix.resolve(options.workDir, target)}/${globPrefix}`,
+            );
+          }
           return !(await areFileToolPathsTrusted({
             workDir: options.workDir,
             cwd: options.workDir,
-            paths: [target],
+            paths,
             access,
             readableSkillRoots: options.readableSkillRoots,
           }));

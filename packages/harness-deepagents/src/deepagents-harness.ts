@@ -184,6 +184,13 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
     inputSchema: z.object({ pattern: z.string() }),
   }),
   // No common-name equivalent — keyed by native name.
+  delete: {
+    ...tool({
+      description: 'Delete a file or directory',
+      inputSchema: z.object({ file_path: z.string() }),
+    }),
+    toolUseKind: 'edit',
+  },
   ls: tool({
     description: 'List files in a directory',
     inputSchema: z.object({ path: z.string().optional() }),
