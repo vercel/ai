@@ -895,17 +895,18 @@ describe('OpenCode bridge turn settlement', () => {
 
     await import('./index');
 
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
+    expect(permissionReplyMock).toHaveBeenCalledTimes(3);
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'canonical-workdir-request',
       reply: 'once',
     });
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'dot-prefixed-directory-request',
       reply: 'once',
     });
-    expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
+    expect(permissionReplyMock).toHaveBeenCalledWith({
       sessionID: 'session-1',
       requestID: 'symlink-escape-request',
       reply: 'reject',
