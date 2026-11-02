@@ -616,6 +616,155 @@ describe('OpenCode bridge turn settlement', () => {
     });
   });
 
+  it.each(['observed', 'recovered'] as const)(
+    'scopes %s file approvals to one operation',
+    async source => {
+      const directory = mkdtempSync(
+        path.join(tmpdir(), 'opencode-call-permissions-'),
+      );
+      tempDirectories.push(directory);
+      const workDir = path.join(directory, 'workspace');
+      mkdirSync(workDir);
+      const input = {
+        filePath: path.join(directory, 'other-session', 'file.txt'),
+      };
+      const part = {
+        type: 'tool',
+        sessionID: 'session-1',
+        callID: 'file-call',
+        tool: 'read',
+        state: { status: 'running', input },
+      };
+      const requestToolApproval = vi.fn(async () => ({ approved: true }));
+      const emit = vi.fn();
+      const message = vi.fn(async () => ({ data: { parts: [part] } }));
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Inspect files.',
+        permissionMode: 'allow-reads',
+      };
+      bridgeMock.turn = {
+        emit,
+        requestToolResult: vi.fn(),
+        requestToolApproval,
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          message,
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                if (source === 'observed') {
+                  yield { type: 'message.part.updated', properties: { part } };
+                }
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'file-request',
+                    sessionID: 'session-1',
+                    action: 'read',
+                    resources: ['file.txt'],
+                    source: { callID: 'file-call', messageID: 'message-1' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(1),
+                );
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'external-request',
+                    sessionID: 'session-1',
+                    action: 'external_directory',
+                    resources: [directory],
+                    source: { callID: 'file-call', messageID: 'message-1' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(2),
+                );
+                yield {
+                  type: 'message.part.updated',
+                  properties: { part: { ...part, callID: 'next-call' } },
+                };
+                yield {
+                  type: 'permission.v2.asked',
+                  properties: {
+                    id: 'next-request',
+                    sessionID: 'session-1',
+                    action: 'read',
+                    resources: ['file.txt'],
+                    source: { callID: 'next-call' },
+                  },
+                };
+                await vi.waitFor(() =>
+                  expect(permissionReplyMock).toHaveBeenCalledTimes(3),
+                );
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'end test turn',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            permission: { reply: permissionReplyMock },
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      setBridgeArgv(workDir);
+      await import('./index');
+      expect(
+        permissionReplyMock.mock.calls.map(([value]) => value.reply),
+      ).toEqual(['once', 'once', 'once']);
+      expect(requestToolApproval.mock.calls).toEqual([
+        ['file-request'],
+        ['next-request'],
+      ]);
+      expect(message).toHaveBeenCalledTimes(source === 'recovered' ? 1 : 0);
+      if (source === 'recovered') {
+        expect(message).toHaveBeenCalledWith({
+          sessionID: 'session-1',
+          messageID: 'message-1',
+          directory: workDir,
+        });
+      }
+      const relevant = emit.mock.calls
+        .map(([value]) => value)
+        .filter(value =>
+          ['tool-call', 'tool-approval-request'].includes(value.type),
+        );
+      expect(relevant.map(value => value.type)).toEqual([
+        'tool-call',
+        'tool-approval-request',
+        'tool-call',
+        'tool-approval-request',
+      ]);
+      expect(relevant[0].input).toBe(JSON.stringify(input));
+    },
+  );
+
   it('uses canonical paths and accepts dot-prefixed children in restrictive modes', async () => {
     const tempDirectory = mkdtempSync(
       path.join(tmpdir(), 'opencode-permissions-'),
@@ -639,7 +788,10 @@ describe('OpenCode bridge turn settlement', () => {
     bridgeMock.turn = {
       emit: vi.fn(),
       requestToolResult: vi.fn(),
-      requestToolApproval: vi.fn(),
+      requestToolApproval: vi.fn(async () => ({
+        approved: false,
+        reason: 'Host rejected',
+      })),
       experimental_userMessages: createUserMessages(),
       abortSignal: new AbortController().signal,
       firstTurn: true,
@@ -681,6 +833,30 @@ describe('OpenCode bridge turn settlement', () => {
                   source: { callID: 'dot-prefixed-read-call' },
                 },
               };
+              await vi.waitFor(() =>
+                expect(permissionReplyMock).toHaveBeenCalledTimes(2),
+              );
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    type: 'tool',
+                    sessionID: 'session-1',
+                    callID: 'outside-read-call',
+                    tool: 'read',
+                    state: {
+                      status: 'running',
+                      input: {
+                        filePath: path.join(
+                          linkedWorkdir,
+                          'escape',
+                          'outside.txt',
+                        ),
+                      },
+                    },
+                  },
+                },
+              };
               yield {
                 type: 'permission.v2.asked',
                 properties: {
@@ -693,6 +869,9 @@ describe('OpenCode bridge turn settlement', () => {
                   source: { callID: 'outside-read-call' },
                 },
               };
+              await vi.waitFor(() =>
+                expect(permissionReplyMock).toHaveBeenCalledTimes(3),
+              );
               yield {
                 type: 'session.next.step.failed',
                 properties: {
@@ -719,18 +898,18 @@ describe('OpenCode bridge turn settlement', () => {
     expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
       sessionID: 'session-1',
       requestID: 'canonical-workdir-request',
-      reply: 'always',
+      reply: 'once',
     });
     expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
       sessionID: 'session-1',
       requestID: 'dot-prefixed-directory-request',
-      reply: 'always',
+      reply: 'once',
     });
     expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
       sessionID: 'session-1',
       requestID: 'symlink-escape-request',
       reply: 'reject',
-      message: 'External directory access rejected.',
+      message: 'Host rejected',
     });
   });
 

@@ -951,6 +951,12 @@ describe('createOpenCode adapter', () => {
       ]),
     );
     expect(skillWrites).toHaveLength(2);
+    expect(harnessUtilsMocks.channels.at(-1)?.sent).toContainEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
     expect(writes.some(write => write.path.includes('/.opencode/'))).toBe(
       false,
     );
