@@ -219,6 +219,12 @@ describe('JSON response tool fallback', () => {
         expect(result.content).toEqual([
           { type: 'text', text: '{"answer":"42"}' },
         ]);
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+          'json',
+        ]);
+        expect(body.tool_choice.type).toBe('auto');
+        expect(body.output_config).toBeUndefined();
       });
 
       it('returns text when the JSON tool is not called (stream)', async () => {
