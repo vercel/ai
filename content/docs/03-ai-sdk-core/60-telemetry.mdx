@@ -524,7 +524,8 @@ to collect it. A `TracerProvider` alone does not export metrics.
 Each language model call contributes one observation, including calls that fail or
 are cancelled. Streaming calls record the full response duration. In a workflow
 with multiple model calls, each call is recorded separately; local tool execution
-time is excluded.
+time is excluded. Each attempt of a retried model stream contributes its own
+observation, including failed attempts that close without a finish chunk.
 
 The histogram includes these attributes:
 

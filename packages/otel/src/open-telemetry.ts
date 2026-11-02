@@ -911,6 +911,9 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.stepContext) return;
 
+    // A retried stream may start a new attempt without ending the failed one.
+    this.recordInferenceDuration(state, { errorType: '_OTHER' });
+
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
     state.inferenceToolDefinitions = event.tools;
@@ -1238,6 +1241,11 @@ export class OpenTelemetry implements Telemetry {
   onStepEnd(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
+
+    // Streams can close after an error chunk without a model-call end event.
+    this.recordInferenceDuration(state, {
+      errorType: event.finishReason === 'error' ? '_OTHER' : undefined,
+    });
 
     if (event.finishReason === 'error') {
       state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });

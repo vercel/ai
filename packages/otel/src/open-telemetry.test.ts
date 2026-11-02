@@ -2986,6 +2986,79 @@ describe('OpenTelemetry', () => {
   });
 
   describe('stream errors', () => {
+    it.each([0, 1])(
+      'records failed stream attempts when streamRetries is %i',
+      async streamRetries => {
+        let now = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        const reader = createMetricReader();
+        const model = new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'test-model',
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                const failed = model.doStreamCalls.length === 1;
+                now += failed ? 500 : 750;
+                if (failed) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: new Error('provider failed'),
+                  });
+                } else {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '0',
+                    delta: 'recovered',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                }
+                controller.close();
+              },
+            }),
+          }),
+        });
+        const result = streamText({
+          model,
+          prompt: 'hello',
+          maxRetries: 0,
+          streamRetries,
+          onError: () => {},
+          telemetry: { integrations: integration },
+        });
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(streamRetries + 1);
+        const histogram = await collectInferenceDuration(reader);
+        expect(histogram.dataPoints).toHaveLength(streamRetries + 1);
+        const failure = histogram.dataPoints.find(
+          point => point.attributes['error.type'] === '_OTHER',
+        );
+        expect(failure?.value).toMatchObject({ count: 1, sum: 0.5 });
+        if (streamRetries === 1) {
+          expect(await result.text).toBe('recovered');
+          const success = histogram.dataPoints.find(
+            point => point.attributes['error.type'] == null,
+          );
+          expect(success?.value).toMatchObject({ count: 1, sum: 0.75 });
+        }
+      },
+    );
+
     it('records and exports streamText spans when the provider stream errors', async () => {
       const reader = createMetricReader();
       const sdkTrace = createSdkTracer();

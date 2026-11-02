@@ -13,7 +13,7 @@ import {
 } from '@opentelemetry/sdk-trace-base';
 import { generateText, registerTelemetry } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const spanExporter = new InMemorySpanExporter();
