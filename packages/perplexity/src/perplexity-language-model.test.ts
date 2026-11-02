@@ -256,6 +256,89 @@ describe.each(['doGenerate', 'doStream'] as const)('%s tool choice', method => {
       expect(body.max_tool_calls).toBe(0);
     });
 
+    it('omits disabled provider-defined tools without unsupported warnings', async () => {
+      prepareResponse();
+
+      const result = await model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'none' },
+        tools: [
+          {
+            type: 'provider',
+            id: 'perplexity.web_search',
+            name: 'search',
+            args: {},
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      if ('stream' in result) {
+        const parts = await convertReadableStreamToArray(result.stream);
+        expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+      } else {
+        expect(result.warnings).toEqual([]);
+      }
+    });
+
+    it('keeps prior tool calls and results while disabling new tool use', async () => {
+      prepareResponse();
+
+      await model[method]({
+        prompt: [
+          ...TEST_PROMPT,
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'Sunny' },
+              },
+            ],
+          },
+        ],
+        tools,
+        toolChoice: { type: 'none' },
+        providerOptions: {
+          perplexity: { tools: nativeTools, max_tool_calls: 5 },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.max_tool_calls).toBe(0);
+      expect(body.input).toEqual([
+        { type: 'message', role: 'user', content: 'Hello' },
+        {
+          type: 'function_call',
+          call_id: 'call-1',
+          name: 'weather',
+          arguments: '{}',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call-1',
+          name: 'weather',
+          output: 'Sunny',
+        },
+      ]);
+    });
+
     it.each([undefined, { type: 'auto' as const }])(
       'preserves tools and limits with tool choice %s',
       async toolChoice => {
