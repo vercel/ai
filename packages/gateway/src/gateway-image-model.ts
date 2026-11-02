@@ -74,7 +74,8 @@ export class GatewayImageModel implements ImageModelV4 {
     const gatewayOptions = providerOptions?.gateway;
     const streamingImageDecoding =
       gatewayOptions?.experimental_streamingImageDecoding === true;
-    let requestProviderOptions = providerOptions;
+    let requestProviderOptions: typeof providerOptions | undefined =
+      providerOptions;
     if (
       gatewayOptions &&
       'experimental_streamingImageDecoding' in gatewayOptions

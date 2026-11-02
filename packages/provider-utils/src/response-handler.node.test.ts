@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 // Two 24 MiB images in one JSON body: 64 MiB of base64 text. Reading that body
@@ -138,6 +138,45 @@ const rejectScript = (distUrl: string) =>
   );
 `;
 
+// Ordinary-sized chunks with many small values must keep skeleton bookkeeping
+// proportional to bytes, rather than allocating retained buffers per value.
+const smallValuesScript = (distUrl: string) => `
+  import { createJsonResponseHandler, jsonSchema } from ${JSON.stringify(distUrl)};
+  const encoder = new TextEncoder();
+  const group = '"","AA==","YQ=="';
+  const block = (group + ',').repeat(1024).slice(0, -1);
+  const blockCount = 24;
+  let index = -1;
+  const body = new ReadableStream({
+    pull(controller) {
+      if (index < 0) {
+        controller.enqueue(encoder.encode('{"images":['));
+      } else if (index < blockCount) {
+        controller.enqueue(encoder.encode((index ? ',' : '') + block));
+      } else {
+        controller.enqueue(encoder.encode(']}'));
+        controller.close();
+      }
+      index++;
+    },
+  }, { highWaterMark: 0 });
+  const handler = createJsonResponseHandler(
+    jsonSchema({}, { validate: value => ({ success: true, value }) }),
+    { experimental_binaryFields: ['images[*]'] },
+  );
+  const { value } = await handler({
+    url: 'https://example.com',
+    requestBodyValues: {},
+    response: new Response(body),
+  });
+  process.stdout.write(
+    value.images.length === blockCount * 1024 * 3 &&
+    value.images.every((item, index) => item === ['', 'AA==', 'YQ=='][index % 3])
+      ? 'preserved'
+      : 'mismatch',
+  );
+`;
+
 async function runChild(script: (distUrl: string) => string) {
   const distUrl = new URL('../dist/index.js', import.meta.url);
   const builtSource = await readFile(distUrl, 'utf8');
@@ -145,18 +184,20 @@ async function runChild(script: (distUrl: string) => string) {
   expect(builtSource, 'dist is stale: run `pnpm build`').toContain(
     'experimental_binaryFields',
   );
-  const buildTime = (await stat(distUrl)).mtimeMs;
+  // CI can restore artifacts built in another job, so compare their embedded
+  // source contents instead of timestamps from separate checkouts.
+  const sourceMap = JSON.parse(
+    await readFile(new URL('../dist/index.js.map', import.meta.url), 'utf8'),
+  ) as { sources: string[]; sourcesContent: string[] };
   for (const source of [
     'json-binary-field-scanner.ts',
     'response-handler.ts',
     'read-response-with-size-limit.ts',
   ]) {
     expect(
-      buildTime,
-      `dist is older than ${source}: run \`pnpm build\``,
-    ).toBeGreaterThanOrEqual(
-      (await stat(new URL(source, import.meta.url))).mtimeMs,
-    );
+      sourceMap.sourcesContent[sourceMap.sources.indexOf(`../src/${source}`)],
+      `dist does not match ${source}: run \`pnpm build\``,
+    ).toBe(await readFile(new URL(source, import.meta.url), 'utf8'));
   }
 
   return execFileSync(
@@ -178,5 +219,9 @@ describe('createJsonResponseHandler with experimental_binaryFields memory regres
 
   it(`reports a Standard Schema validator that rejects a ${imageMiB} MiB image within a ${maxOldSpaceMiB} MiB heap`, async () => {
     expect(await runChild(rejectScript)).toBe('rejected');
+  }, 60_000);
+
+  it(`preserves many empty and short matched strings within a ${maxOldSpaceMiB} MiB heap`, async () => {
+    expect(await runChild(smallValuesScript)).toBe('preserved');
   }, 60_000);
 });

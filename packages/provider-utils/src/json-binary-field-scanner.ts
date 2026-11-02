@@ -122,6 +122,8 @@ export function createJsonBinaryFieldScanner(
   // The skeleton, as bytes: it is decoded once at the end, like the regular
   // path decodes the whole body.
   const pieces: Uint8Array[] = [];
+  let piece = new Uint8Array(64 * 1024);
+  let pieceLength = 0;
   let size = 0;
   const binaries = new Map<string, Uint8Array>();
 
@@ -150,14 +152,29 @@ export function createJsonBinaryFieldScanner(
   let padding = 0; // `=` characters seen
 
   const add = (bytes: Uint8Array) => {
-    pieces.push(bytes);
-    size += bytes.length;
+    // Coalesce small fragments: retaining a buffer for each matched string
+    // would make metadata grow with the number of values, even empty ones.
+    for (let offset = 0; offset < bytes.length; ) {
+      const length = Math.min(
+        piece.length - pieceLength,
+        bytes.length - offset,
+      );
+      piece.set(bytes.subarray(offset, offset + length), pieceLength);
+      pieceLength += length;
+      offset += length;
+      size += length;
+      if (pieceLength === piece.length) {
+        pieces.push(piece);
+        piece = new Uint8Array(64 * 1024);
+        pieceLength = 0;
+      }
+    }
   };
 
   // Adds the part of a chunk to the skeleton. It is copied: a view on the
   // chunk would retain all of it.
   const emit = (chunk: Uint8Array, start: number, end: number) =>
-    add(new Uint8Array(chunk.subarray(start, end)));
+    add(chunk.subarray(start, end));
 
   const reset = () => {
     segments = [];
@@ -339,7 +356,9 @@ export function createJsonBinaryFieldScanner(
       restore();
     }
     return {
-      text: new TextDecoder().decode(join(pieces, size)),
+      text: new TextDecoder().decode(
+        join([...pieces, piece.subarray(0, pieceLength)], size),
+      ),
       binaries,
     };
   };
