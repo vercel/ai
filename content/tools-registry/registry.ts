@@ -751,4 +751,37 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'contextfetch',
+    name: 'ContextFetch',
+    description:
+      'Web search for AI agents at $1 per 1,000 searches. Each result comes with the parts of the page that answer the query, ready to cite, and any page can be read as clean Markdown. Try it without an API key: 25 calls a day are free.',
+    packageName: '@contextfetch/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'CONTEXTFETCH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @contextfetch/ai-sdk',
+      npm: 'npm install @contextfetch/ai-sdk',
+      yarn: 'yarn add @contextfetch/ai-sdk',
+      bun: 'bun add @contextfetch/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { contextfetchSearch, contextfetchContents } from '@contextfetch/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Postgres release? Cite sources.',
+  tools: {
+    webSearch: contextfetchSearch(),
+    readPages: contextfetchContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://contextfetch.dev/guides/integrations/web-search-vercel-ai-sdk',
+    apiKeyUrl: 'https://contextfetch.dev/get-started',
+    websiteUrl: 'https://contextfetch.dev',
+    npmUrl: 'https://www.npmjs.com/package/@contextfetch/ai-sdk',
+  },
 ];
