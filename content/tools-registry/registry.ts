@@ -23,6 +23,45 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
+    slug: 'redis-agent-memory',
+    name: 'Redis Agent Memory',
+    description:
+      'Add persistent memory to agents with tools to save, search, and update user preferences and facts across conversations.',
+    packageName: 'ai-sdk-redis-agent-memory',
+    tags: ['memory'],
+    apiKeyEnvName: 'AGENT_MEMORY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add ai-sdk-redis-agent-memory',
+      npm: 'npm install ai-sdk-redis-agent-memory',
+      yarn: 'yarn add ai-sdk-redis-agent-memory',
+      bun: 'bun add ai-sdk-redis-agent-memory',
+    },
+    codeExample: `import { ToolLoopAgent } from 'ai';
+import { createRedisAgentMemory, instructions } from 'ai-sdk-redis-agent-memory';
+
+const memory = createRedisAgentMemory({
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+});
+
+const agent = new ToolLoopAgent({
+  model: 'anthropic/claude-haiku-5.5',
+  instructions,
+  tools: memory.tools({ scope: { userId: 'user-123' } }),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that I prefer vegetarian meals.',
+});
+
+console.log(result.finalStep.text);`,
+    docsUrl:
+      'https://github.com/redis-developer/ai-sdk-redis-agent-memory/blob/main/TOOLS.md',
+    apiKeyUrl: 'https://cloud.redis.io/#/agent-memory',
+    websiteUrl: 'https://redis.io/agent-memory/',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-redis-agent-memory',
+  },
+  {
     slug: 'code-execution',
     name: 'Code Execution',
     description:
