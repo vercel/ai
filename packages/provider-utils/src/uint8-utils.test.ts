@@ -111,6 +111,17 @@ describe('convertBase64ToUint8Array', () => {
   it('handles an empty string', () => {
     expect(convertBase64ToUint8Array('')).toEqual(new Uint8Array());
   });
+
+  it('decodes every byte value at its position', () => {
+    const bytes = createBytes(100_000);
+    const base64 = convertUint8ArrayToBase64(bytes);
+
+    expect(convertBase64ToUint8Array(base64)).toEqual(bytes);
+  });
+
+  it('rejects characters outside the base64 alphabet', () => {
+    expect(() => convertBase64ToUint8Array('SGVs*G8=')).toThrow();
+  });
 });
 
 describe('convertToBase64', () => {
