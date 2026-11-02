@@ -168,6 +168,11 @@ const modelsWithLowHighMaxReasoningEffort = new Set<MistralChatModelId>([
   'zai-glm-latest',
 ]);
 
+const modelsRejectingReasoningNone = new Set<MistralChatModelId>([
+  'mistral-large-4',
+  'mistral-large-4-0',
+]);
+
 // https://api.mistral.ai/v1/models (2026-10-06)
 const reasoningEffortModelIds = new Set<MistralChatModelId>([
   'glm-5-2',
@@ -206,10 +211,18 @@ function createLanguageModelEntry(
       ? []
       : modelsWithLowHighMaxReasoningEffort.has(modelId)
         ? ['low', 'high', 'max']
-        : ['none', 'high'],
+        : modelsRejectingReasoningNone.has(modelId)
+          ? ['low', 'high']
+          : ['none', 'high'],
   );
+  // Conversations rejects low and medium by schema and none by model, so
+  // Mistral Large 4 only accepts high there.
   const conversationReasoning = reasoningCapabilities(
-    reasoningEffortModelIds.has(modelId) ? ['none', 'high'] : [],
+    reasoningEffortModelIds.has(modelId)
+      ? modelsRejectingReasoningNone.has(modelId)
+        ? ['high']
+        : ['none', 'high']
+      : [],
   );
   const chatOnly = { condition: 'Only supported on the Chat API.' };
   return {

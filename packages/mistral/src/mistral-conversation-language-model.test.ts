@@ -496,6 +496,66 @@ describe('Mistral web search', () => {
     ]);
   });
 
+  describe('reasoning effort', () => {
+    beforeEach(() => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: { conversation_id: 'conversation-1', outputs: [answer], usage },
+      };
+    });
+
+    it.each([
+      ['mistral-large-4', 'high', 'high'],
+      ['mistral-large-4', 'low', 'high'],
+      ['mistral-large-4', 'medium', 'high'],
+      ['mistral-large-4-0', 'high', 'high'],
+      ['mistral-small-latest', 'high', 'high'],
+    ] as const)(
+      'should map %s reasoning %s to reasoning_effort %s',
+      async (modelId, reasoning, effort) => {
+        await provider.conversation(modelId).doGenerate({
+          prompt,
+          reasoning,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          completion_args: { reasoning_effort: effort },
+        });
+      },
+    );
+
+    it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+      'should map reasoning none to reasoning_effort high for %s with a warning',
+      async modelId => {
+        const result = await provider.conversation(modelId).doGenerate({
+          prompt,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          completion_args: { reasoning_effort: 'high' },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "high".',
+        });
+      },
+    );
+
+    it('should keep none for models that accept it on Conversations', async () => {
+      await provider.conversation('mistral-small-latest').doGenerate({
+        prompt,
+        reasoning: 'none',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        completion_args: { reasoning_effort: 'none' },
+      });
+    });
+  });
+
   it('handles string output, reasoning, duplicate references, and references without URLs', async () => {
     server.urls[URL].response = {
       type: 'json-value',
