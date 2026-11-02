@@ -1098,25 +1098,66 @@ describe('GatewayImageModel', () => {
         },
       );
 
-      it('should keep the client option out of the request while preserving service options', async () => {
-        respondWith({ images: [largeBase64] });
-        const providerOptions = {
-          gateway: {
-            experimental_streamingImageDecoding: true,
-            tags: ['images'],
-          },
-          openai: { quality: 'hd' },
-        };
-        await createTestModel().doGenerate({ ...callOptions, providerOptions });
-        const body = await server.calls[0].requestBodyJson;
-        expect(body.providerOptions).toEqual({
-          gateway: { tags: ['images'] },
-          openai: { quality: 'hd' },
-        });
-        expect(
-          providerOptions.gateway.experimental_streamingImageDecoding,
-        ).toBe(true);
-      });
+      it.each([true, false])(
+        'should remove the client option set to %s while preserving service options',
+        async enabled => {
+          respondWith({ images: [largeBase64] });
+          const providerOptions = {
+            gateway: {
+              experimental_streamingImageDecoding: enabled,
+              tags: ['images'],
+            },
+            openai: { quality: 'hd' },
+          };
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions,
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.providerOptions).toEqual({
+            gateway: { tags: ['images'] },
+            openai: { quality: 'hd' },
+          });
+          expect(
+            providerOptions.gateway.experimental_streamingImageDecoding,
+          ).toBe(enabled);
+        },
+      );
+
+      it.each([true, false])(
+        'should omit providerOptions when the client option set to %s is its only entry',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toBeUndefined();
+        },
+      );
+
+      it.each([true, false])(
+        'should omit an empty gateway object when the client option is %s',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+              openai: { quality: 'hd' },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toEqual({
+            openai: { quality: 'hd' },
+          });
+        },
+      );
 
       it('should return images of 64 KiB and more as Uint8Array', async () => {
         respondWith({ images: [largeBase64] });

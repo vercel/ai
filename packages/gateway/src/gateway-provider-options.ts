@@ -63,7 +63,7 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
    * Experimental, image models only: decode large base64 images while reading
    * the response to reduce peak memory. Extracted images are returned as bytes;
    * if a result mixes extracted and small images, all are returned as bytes.
-   * Defaults to false. This client option is not sent to the Gateway service.
+   * Defaults to false. Image models remove this client option from requests.
    */
   experimental_streamingImageDecoding?: boolean;
 

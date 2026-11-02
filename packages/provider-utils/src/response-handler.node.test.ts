@@ -1,7 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { readFile, stat } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 // Two 24 MiB images in one JSON body: 64 MiB of base64 text. Reading that body
@@ -141,12 +139,25 @@ const rejectScript = (distUrl: string) =>
 `;
 
 async function runChild(script: (distUrl: string) => string) {
-  const distPath = resolve('dist/index.js');
-  const builtSource = await readFile(distPath, 'utf8');
+  const distUrl = new URL('../dist/index.js', import.meta.url);
+  const builtSource = await readFile(distUrl, 'utf8');
   // The child imports the build output: a stale build would test old code.
   expect(builtSource, 'dist is stale: run `pnpm build`').toContain(
     'experimental_binaryFields',
   );
+  const buildTime = (await stat(distUrl)).mtimeMs;
+  for (const source of [
+    'json-binary-field-scanner.ts',
+    'response-handler.ts',
+    'read-response-with-size-limit.ts',
+  ]) {
+    expect(
+      buildTime,
+      `dist is older than ${source}: run \`pnpm build\``,
+    ).toBeGreaterThanOrEqual(
+      (await stat(new URL(source, import.meta.url))).mtimeMs,
+    );
+  }
 
   return execFileSync(
     process.execPath,
@@ -154,7 +165,7 @@ async function runChild(script: (distUrl: string) => string) {
       `--max-old-space-size=${maxOldSpaceMiB}`,
       '--input-type=module',
       '--eval',
-      script(pathToFileURL(distPath).href),
+      script(distUrl.href),
     ],
     { encoding: 'utf8', timeout: 60_000 },
   );

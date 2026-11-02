@@ -81,7 +81,15 @@ export class GatewayImageModel implements ImageModelV4 {
     ) {
       const { experimental_streamingImageDecoding: _, ...serviceOptions } =
         gatewayOptions;
-      requestProviderOptions = { ...providerOptions, gateway: serviceOptions };
+      requestProviderOptions = { ...providerOptions };
+      if (Object.keys(serviceOptions).length > 0) {
+        requestProviderOptions.gateway = serviceOptions;
+      } else {
+        delete requestProviderOptions.gateway;
+      }
+      if (Object.keys(requestProviderOptions).length === 0) {
+        requestProviderOptions = undefined;
+      }
     }
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
