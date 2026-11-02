@@ -168,6 +168,13 @@ const modelsWithLowHighMaxReasoningEffort = new Set<MistralChatModelId>([
   'zai-glm-latest',
 ]);
 
+// Mistral Large 4 models accept only low and high reasoning effort and cannot
+// disable reasoning. Omitting reasoning_effort uses high.
+const modelsWithLowHighReasoningEffort = new Set<MistralChatModelId>([
+  'mistral-large-4',
+  'mistral-large-4-0',
+]);
+
 // https://api.mistral.ai/v1/models (2026-10-06)
 const reasoningEffortModelIds = new Set<MistralChatModelId>([
   'glm-5-2',
@@ -206,7 +213,9 @@ function createLanguageModelEntry(
       ? []
       : modelsWithLowHighMaxReasoningEffort.has(modelId)
         ? ['low', 'high', 'max']
-        : ['none', 'high'],
+        : modelsWithLowHighReasoningEffort.has(modelId)
+          ? ['low', 'high']
+          : ['none', 'high'],
   );
   const conversationReasoning = reasoningCapabilities(
     reasoningEffortModelIds.has(modelId) ? ['none', 'high'] : [],
