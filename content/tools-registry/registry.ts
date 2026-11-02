@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'sebbi',
+    name: 'sebbi',
+    description:
+      'Tamper-evident receipts for agent actions. sebbi gives your agent tools to seal a receipt for anything it does, check a receipt and reverse an action, each with a public link anyone can verify. Only SHA-256 fingerprints leave your app. No API key needed to start.',
+    packageName: 'sebbi',
+    tags: ['receipts', 'audit', 'compliance', 'verification'],
+    installCommand: {
+      pnpm: 'pnpm add sebbi',
+      npm: 'npm install sebbi',
+      yarn: 'yarn add sebbi',
+      bun: 'bun add sebbi',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { sebbiTools } from 'sebbi/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt:
+    'We just approved a 42 GBP refund on order 7. Seal a receipt for that action and give me the public link.',
+  tools: sebbiTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://sebbi.pro/receipts/ai-sdk',
+    apiKeyUrl: 'https://sebbi.pro/connect',
+    websiteUrl: 'https://sebbi.pro',
+    npmUrl: 'https://www.npmjs.com/package/sebbi',
+  },
 ];
