@@ -630,6 +630,28 @@ templates. `sandboxId` names the live sandbox, not its reusable template.
 The existing native `name` option still names the live sandbox; if both are
 supplied, their values must match.
 
+Set `templateName` to choose the name of the reusable template, for example to
+keep production and preview deployments on separate templates, or to list your
+templates by name prefix:
+
+```ts
+const template = await agent.getSandboxTemplate();
+
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template,
+  templateName: `my-app-${process.env.VERCEL_ENV}-${template?.identity}`,
+});
+```
+
+`templateName` replaces the derived name, which changes with the template's
+identity, the sandbox source, and SDK upgrades that invalidate templates. A
+template that already exists under your name is reused as is, so change the name
+when any of those change. The example above covers identity changes. If the
+source can change, add whatever identifies it to the name. Without a template,
+`templateName` has no effect.
+
 ## Settings
 
 `HarnessAgent` accepts these main settings:
