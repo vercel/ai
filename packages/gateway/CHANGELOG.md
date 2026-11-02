@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 2.0.175
+
+### Patch Changes
+
+- 80dca68: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500.
+- 74e240d: Backport: chore(provider/gateway): update gateway model settings files
+- a16b8df: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.174
 
 ### Patch Changes
