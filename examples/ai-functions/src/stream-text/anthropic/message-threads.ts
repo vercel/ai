@@ -18,6 +18,11 @@ run(async () => {
 
   // Consume the entire stream before continuing: the ID from message_start
   // cannot be continued until Anthropic has sent message_stop.
+  if ((await first.finishReason) === 'interrupted') {
+    throw new Error(
+      'The stream was interrupted; replay the conversation in a new thread.',
+    );
+  }
   const response = await first.response;
   if (response.id == null) throw new Error('Missing message ID.');
 

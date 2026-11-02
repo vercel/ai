@@ -314,7 +314,8 @@ conversation cannot be stored, send the full history without `thread`.
 
 Continue only from the latest response ID, which can be continued once. With
 `streamText`, fully consume the stream before using `await result.response` to
-continue. A partial or aborted stream must not be treated as a completed turn.
+continue. Check that `await result.finishReason` is not `'interrupted'` before continuing.
+A partial or aborted stream must not be treated as a completed turn.
 If a stream drops, recovery is the application's responsibility; don't blindly
 append a replay to output already shown to the user.
 

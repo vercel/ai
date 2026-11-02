@@ -1244,6 +1244,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ...userSuppliedBetas,
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
+      markCodeExecutionDynamic:
+        hasDynamicFilteringWebToolWithoutCodeExecution(anthropicTools),
       usesJsonResponseTool: jsonResponseTool != null,
       toolNameMapping,
       providerOptionsName,
@@ -1372,6 +1374,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      markCodeExecutionDynamic,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1388,9 +1391,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const citationDocuments = [
       ...this.extractCitationDocuments(options.prompt),
     ];
-
-    const markCodeExecutionDynamic =
-      hasDynamicFilteringWebToolWithoutCodeExecution(args.tools);
 
     const {
       responseHeaders,
@@ -2036,6 +2036,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      markCodeExecutionDynamic,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2052,9 +2053,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const citationDocuments = [
       ...this.extractCitationDocuments(options.prompt),
     ];
-
-    const markCodeExecutionDynamic =
-      hasDynamicFilteringWebToolWithoutCodeExecution(body.tools);
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({

@@ -22,12 +22,13 @@ async function call(
   method: string,
   callOptions: LanguageModelV4CallOptions,
   targetModel = model,
+  fixture = 'anthropic-text',
 ) {
   if (method === 'generate') {
     server.urls[url].response = {
       type: 'json-value',
       body: JSON.parse(
-        fs.readFileSync('src/__fixtures__/anthropic-text.json', 'utf8'),
+        fs.readFileSync(`src/__fixtures__/${fixture}.json`, 'utf8'),
       ),
     };
     return targetModel.doGenerate(callOptions);
@@ -35,7 +36,7 @@ async function call(
   server.urls[url].response = {
     type: 'stream-chunks',
     chunks: fs
-      .readFileSync('src/__fixtures__/anthropic-text.chunks.txt', 'utf8')
+      .readFileSync(`src/__fixtures__/${fixture}.chunks.txt`, 'utf8')
       .split('\n')
       .filter(Boolean)
       .map(chunk => `data: ${chunk}\n\n`),
@@ -215,6 +216,39 @@ describe.each(['generate', 'stream'])('message threads (%s)', method => {
         ),
       }),
     );
+  });
+
+  it('keeps implicit code execution dynamic for web tools on continuation', async () => {
+    const result = await call(
+      method,
+      {
+        prompt: [options.prompt[1]],
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_search_20260209',
+            name: 'research',
+            args: {},
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            thread: { type: 'continue', previousMessageId: 'msg_web' },
+          },
+        },
+      },
+      model,
+      'anthropic-programmatic-tool-calling.1',
+    );
+    const content = Array.isArray(result) ? result : result.content;
+    expect(content).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolName: 'code_execution',
+        dynamic: true,
+      }),
+    );
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty('tools');
   });
 
   it('supports a custom provider-options namespace', async () => {
