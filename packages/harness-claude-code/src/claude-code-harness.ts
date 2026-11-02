@@ -1670,7 +1670,12 @@ function createSession({
         thinking,
         ...(effort !== undefined ? { effort } : {}),
         ...(promptOpts.skills.length > 0
-          ? { skills: promptOpts.skills.map(skill => skill.name) }
+          ? {
+              skills: promptOpts.skills.map(skill => skill.name),
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+              ),
+            }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(toolHints == null ? {} : { toolHints }),
@@ -1749,7 +1754,12 @@ function createSession({
           thinking,
           ...(effort !== undefined ? { effort } : {}),
           ...(continueOpts.skills.length > 0
-            ? { skills: continueOpts.skills.map(skill => skill.name) }
+            ? {
+                skills: continueOpts.skills.map(skill => skill.name),
+                readableSkillRoots: continueOpts.skills.map(
+                  skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+                ),
+              }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
           ...(toolHints == null ? {} : { toolHints }),
