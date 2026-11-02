@@ -751,4 +751,38 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'precleared',
+    name: 'Precleared',
+    description:
+      "Check whether a cold or marketing email to an address is legal before your agent sends it. Precleared applies UK PECR and GDPR, US CAN-SPAM, Canada's CASL and the rules in Germany, France, Australia, Ireland and the Netherlands, looks UK recipients up on Companies House, and returns a verdict, the rule that decided it with its source, what the email's footer must include and a signed receipt.",
+    packageName: 'precleared',
+    tags: ['compliance', 'email', 'outbound', 'sales', 'legal'],
+    apiKeyEnvName: 'PRECLEARED_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add precleared zod',
+      npm: 'npm install precleared zod',
+      yarn: 'yarn add precleared zod',
+      bun: 'bun add precleared zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { Precleared } from 'precleared';
+import { preclearedTools } from 'precleared/ai-sdk';
+
+const client = new Precleared({ apiKey: process.env.PRECLEARED_API_KEY });
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Can I cold email jane@acme.co.uk about our bookkeeping software? The address was on their website.',
+  tools: await preclearedTools(client),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://precleared.dev/docs/ai-sdk',
+    apiKeyUrl: 'https://precleared.dev/get-key',
+    websiteUrl: 'https://precleared.dev',
+    npmUrl: 'https://www.npmjs.com/package/precleared',
+  },
 ];
