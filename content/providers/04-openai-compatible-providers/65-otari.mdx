@@ -1,0 +1,94 @@
+---
+title: Otari
+description: Use the Otari OpenAI compatible API with the AI SDK.
+---
+
+# Otari Provider
+
+[Otari](https://github.com/mozilla-ai/otari) is an open-source LLM gateway by Mozilla.ai that provides access to models from multiple providers through an OpenAI-compatible API, with API keys, budgets, usage tracking, and routing. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Otari provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Otari, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const otari = createOpenAICompatible({
+  name: 'otari',
+  baseURL: 'https://api.otari.ai/api/v1',
+  apiKey: process.env.OTARI_API_KEY,
+});
+```
+
+<Note>
+  Follow the [Otari
+  quickstart](https://docs.otari.ai/getting-started/quickstart) to create an API
+  key, and set the `OTARI_API_KEY` environment variable with your API key. If
+  you run your own Otari gateway, set `baseURL` to your gateway's address
+  followed by `/api/v1`, for example `http://localhost:8000/api/v1`.
+</Note>
+
+## Language Models
+
+You can create Otari models using the provider instance. The model ID is passed to the gateway unchanged and can take one of these forms:
+
+- `provider:model`, for example `anthropic:claude-sonnet-5-5`, to use a specific provider.
+- `provider/model`, for example `openai/gpt-6.1-sol`, to let Otari choose the provider on [otari.ai](https://otari.ai).
+- An alias or routing policy name configured in your gateway, for example `support-agent`.
+
+```ts
+const model = otari('anthropic:claude-sonnet-5-5');
+```
+
+### Example
+
+You can use Otari language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const otari = createOpenAICompatible({
+  name: 'otari',
+  baseURL: 'https://api.otari.ai/api/v1',
+  apiKey: process.env.OTARI_API_KEY,
+});
+
+const { text } = await generateText({
+  model: otari('anthropic:claude-sonnet-5-5'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+Otari language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const otari = createOpenAICompatible({
+  name: 'otari',
+  baseURL: 'https://api.otari.ai/api/v1',
+  apiKey: process.env.OTARI_API_KEY,
+});
+
+const result = streamText({
+  model: otari('openai:gpt-6.1-sol'),
+  prompt: 'Write a short haiku about routing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+See the [Otari documentation](https://docs.otari.ai) for more on API keys, budgets, and routing.
