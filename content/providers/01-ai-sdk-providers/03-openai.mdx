@@ -3543,6 +3543,32 @@ const result = await transcribe({
 });
 ```
 
+For `gpt-transcribe`, use `languages` for expected languages and `keywords` for
+names, acronyms, and domain vocabulary. These hints are sent as repeated
+`languages[]` and `keywords[]` multipart fields:
+
+```ts
+import { transcribe } from 'ai';
+import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('gpt-transcribe'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    openai: {
+      languages: ['en', 'fr'],
+      keywords: ['premium plan', 'AC-42'],
+      prompt: 'A customer support call.',
+    } satisfies OpenAITranscriptionModelOptions,
+  },
+});
+```
+
+Use `languages` instead of `language` with `gpt-transcribe`; do not send both.
+The API validates model support and language codes. These two options currently
+apply to REST transcription; the provider reports unsupported-option warnings
+if they are supplied to `experimental_streamTranscribe`.
+
 To get word-level timestamps, specify the granularity:
 
 ```ts highlight="8-9"
@@ -3590,6 +3616,16 @@ The following provider options are available:
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
   For streaming with `gpt-transcribe` and `gpt-live-transcribe`, it is sent as a single-entry `languages` list.
+  Optional.
+
+- **languages** _string[]_
+  Expected languages for REST transcription, such as `['en', 'fr']` for `gpt-transcribe`.
+  Use this instead of `language`; do not send both. The API validates model support.
+  Optional.
+
+- **keywords** _string[]_
+  Vocabulary hints for REST transcription, such as product names, acronyms, or technical terms.
+  Supported by `gpt-transcribe`; the API validates support for other models.
   Optional.
 
 - **prompt** _string_
