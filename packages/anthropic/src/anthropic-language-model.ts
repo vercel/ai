@@ -626,6 +626,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator(
       config.cacheControlProviderOptionsName,
+      thread != null && anthropicOptions?.cacheControl != null ? 1 : 0,
     );
 
     const toolNameMapping = createToolNameMapping({

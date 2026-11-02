@@ -263,7 +263,7 @@ export class AnthropicBatch implements BatchV4<{
       if (prepared.args.thread != null) {
         throw new UnsupportedFunctionalityError({
           functionality: 'message threads in batches',
-          message: 'Anthropic Message Batches do not support message threads.',
+          message: `Anthropic Message Batches do not support message threads (request "${request.id}").`,
         });
       }
       if (prepared.usesJsonResponseTool) {

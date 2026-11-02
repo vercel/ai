@@ -292,6 +292,41 @@ describe.each(['generate', 'stream'])('message threads (%s)', method => {
     expect(body.tool_choice).toMatchObject({ type: 'any' });
   });
 
+  it('counts top-level cache control toward the four-breakpoint limit', async () => {
+    const result = await call(method, {
+      prompt: [
+        {
+          role: 'user',
+          content: Array.from({ length: 4 }, (_, index) => ({
+            type: 'text' as const,
+            text: `Block ${index}`,
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          })),
+        },
+      ],
+      providerOptions: {
+        anthropic: {
+          thread: { type: 'create' },
+          cacheControl: { type: 'ephemeral' },
+        },
+      },
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.messages[0].content.filter(
+        (part: { cache_control?: unknown }) => part.cache_control != null,
+      ),
+    ).toHaveLength(3);
+    const warnings = Array.isArray(result)
+      ? result.find(part => part.type === 'stream-start')?.warnings
+      : result.warnings;
+    expect(warnings).toContainEqual(
+      expect.objectContaining({ feature: 'cacheControl breakpoint limit' }),
+    );
+  });
+
   it('allows empty continuation messages for pause_turn', async () => {
     await call(method, {
       prompt: [],

@@ -15,10 +15,11 @@ export const anthropicErrorDataSchema = lazySchema(() =>
         message: z.string(),
         details: z
           .object({
-            error_code: z.string().nullish(),
-            unsupported: z.array(z.string()).nullish(),
+            error_code: z.string().nullish().catch(undefined),
+            unsupported: z.array(z.string()).nullish().catch(undefined),
           })
-          .nullish(),
+          .nullish()
+          .catch(undefined),
       }),
     }),
   ),
