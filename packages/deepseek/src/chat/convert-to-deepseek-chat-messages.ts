@@ -5,7 +5,12 @@ import {
   type LanguageModelV3Prompt,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
+  convertToBase64,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
@@ -21,6 +26,18 @@ const supportedImageMediaTypes = new Set([
   'image/png',
   'image/webp',
 ]);
+
+function serializeDeepSeekToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -296,7 +313,7 @@ export async function convertToDeepSeekChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeDeepSeekToolCallArguments(part.input),
                 },
               });
               break;
@@ -348,7 +365,7 @@ export async function convertToDeepSeekChatMessages({
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

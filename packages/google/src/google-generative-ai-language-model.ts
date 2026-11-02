@@ -1,15 +1,16 @@
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  JSONObject,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+import {
+  APICallError,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3Source,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type JSONObject,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -37,7 +38,11 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
+} from './google-error';
 import {
   googleLanguageModelOptions,
   type GoogleGenerativeAIModelId,
@@ -684,11 +689,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       extraHeaders,
     );
 
+    const url = `${this.config.baseURL}/${getModelPath(
+      this.modelId,
+    )}:streamGenerateContent?alt=sse`;
     const streamGenerateContent = (body: typeof args) =>
       postJsonToApi({
-        url: `${this.config.baseURL}/${getModelPath(
-          this.modelId,
-        )}:streamGenerateContent?alt=sse`,
+        url,
         headers,
         body,
         failedResponseHandler: googleFailedResponseHandler,
@@ -828,6 +834,26 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              controller.enqueue({
+                type: 'error',
+                error: new APICallError({
+                  message: error.message,
+                  url,
+                  requestBodyValues: args,
+                  statusCode:
+                    error.code ??
+                    mapGoogleErrorStatusToHttpStatusCode(error.status),
+                  responseHeaders,
+                  responseBody: JSON.stringify({ error }),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -1768,6 +1794,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(

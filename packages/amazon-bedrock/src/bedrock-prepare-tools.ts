@@ -7,6 +7,7 @@ import {
 import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
+  getModelCapabilities,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import {
@@ -84,6 +85,13 @@ export async function prepareTools({
   });
   const ProviderTools = supportedTools.filter(t => t.type === 'provider');
   const functionTools = supportedTools.filter(t => t.type === 'function');
+  const rejectsForcedToolChoice =
+    isAnthropicModel && getModelCapabilities(modelId).rejectsForcedToolUse;
+  const disableParallelToolUseForRequest =
+    disableParallelToolUse ??
+    (isAnthropicModel && toolChoice?.type === 'tool' && !rejectsForcedToolChoice
+      ? true
+      : undefined);
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const bedrockTools: BedrockTool[] = [];
@@ -99,7 +107,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: ProviderTools,
       toolChoice,
-      disableParallelToolUse,
+      disableParallelToolUse: disableParallelToolUseForRequest,
       supportsStructuredOutput: false,
       supportsStrictTools: false,
     });
@@ -145,7 +153,8 @@ export async function prepareTools({
   }
 
   const filteredFunctionTools =
-    toolChoice?.type === 'tool'
+    toolChoice?.type === 'tool' &&
+    (!isAnthropicModel || rejectsForcedToolChoice)
       ? functionTools.filter(t => t.name === toolChoice.toolName)
       : functionTools;
 
@@ -179,7 +188,7 @@ export async function prepareTools({
   if (
     isAnthropicModel &&
     !usingAnthropicTools &&
-    disableParallelToolUse &&
+    disableParallelToolUseForRequest &&
     bedrockTools.length > 0 &&
     toolChoice?.type !== 'none'
   ) {

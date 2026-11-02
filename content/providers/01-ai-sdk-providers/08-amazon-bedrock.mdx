@@ -270,6 +270,17 @@ choose how Amazon Bedrock generates structured outputs:
 - `"auto"`: Use native structured output when supported and otherwise fall
   back to the JSON tool. This is the default.
 
+In `"auto"` mode, supported Claude 5 models use native output for compatible
+schemas. Recursive references, open objects, and schemas with more than ten
+optional properties fall back to the JSON tool, or JSON instructions for models
+that reject forced tool use.
+
+The JSON-tool fallback limits which application tools are available:
+`toolChoice: 'none'` sends only the internal JSON response tool, and a named tool
+choice sends only that application tool alongside the JSON response tool. The
+fallback can produce a JSON response without calling the named application tool;
+verify the selected call if your application requires it.
+
 In `"auto"` mode, Claude Sonnet 4.6 and Claude Haiku 4.5 use the JSON tool
 fallback because native structured output can be unreliable across workloads
 and Bedrock accounts. You can set `"outputFormat"` to opt into native structured

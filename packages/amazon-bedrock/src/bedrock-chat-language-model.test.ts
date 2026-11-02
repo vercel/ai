@@ -1,6 +1,7 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
 import type {
   LanguageModelV3CallOptions,
+  LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
@@ -4488,59 +4489,157 @@ describe('doGenerate', () => {
     expect(requestBody.toolConfig.toolChoice).toBeUndefined();
   });
 
-  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
-    prepareJsonFixtureResponse('bedrock-text');
+  describe('named tool choice', () => {
+    const forcedToolChoiceTools: LanguageModelV3FunctionTool[] = [
+      {
+        type: 'function',
+        name: 'getWeatherByCity',
+        description: 'Get weather by city',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getCurrentWeather',
+        description: 'Get current weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+          required: ['location'],
+          additionalProperties: false,
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWeatherForecast',
+        description: 'Get forecast',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            location: { type: 'string' },
+            days: { type: 'number' },
+          },
+          required: ['location', 'days'],
+          additionalProperties: false,
+        },
+      },
+    ];
 
-    await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'getWeatherByCity',
-          description: 'Get weather by city',
-          inputSchema: {
-            type: 'object',
-            properties: { city: { type: 'string' } },
-            required: ['city'],
-            additionalProperties: false,
+    it('should only send the forced tool for models that do not enforce a named tool choice', async () => {
+      server.urls[openaiGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
           },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
         },
-        {
-          type: 'function',
-          name: 'getCurrentWeather',
-          description: 'Get current weather',
-          inputSchema: {
-            type: 'object',
-            properties: { location: { type: 'string' } },
-            required: ['location'],
-            additionalProperties: false,
-          },
-        },
-        {
-          type: 'function',
-          name: 'getWeatherForecast',
-          description: 'Get forecast',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              location: { type: 'string' },
-              days: { type: 'number' },
-            },
-            required: ['location', 'days'],
-            additionalProperties: false,
-          },
-        },
-      ],
-      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
-      prompt: TEST_PROMPT,
+      };
+
+      await openaiModel.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+        'getWeatherByCity',
+      );
+      expect(requestBody.toolConfig.toolChoice).toEqual({
+        tool: { name: 'getWeatherByCity' },
+      });
     });
 
-    const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.toolConfig.tools).toHaveLength(1);
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
-      'getWeatherByCity',
-    );
-    expect(requestBody.toolConfig.toolChoice).toEqual({
-      tool: { name: 'getWeatherByCity' },
+    it('should send every tool and disable parallel tool use by default on Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.additionalModelRequestFields.tool_choice).toEqual({
+        type: 'tool',
+        name: 'getWeatherByCity',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+    });
+
+    it('should send every tool with the forced tool choice when parallel tool use is enabled', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            disableParallelToolUse: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.toolConfig.toolChoice).toEqual({
+        tool: { name: 'getWeatherByCity' },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.tool_choice,
+      ).toBeUndefined();
+    });
+
+    it('should send every tool with the Anthropic tool choice when parallel tool use is disabled', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        tools: forcedToolChoiceTools,
+        toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            disableParallelToolUse: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.toolConfig.tools.map((tool: any) => tool.toolSpec.name),
+      ).toEqual([
+        'getWeatherByCity',
+        'getCurrentWeather',
+        'getWeatherForecast',
+      ]);
+      expect(requestBody.additionalModelRequestFields.tool_choice).toEqual({
+        type: 'tool',
+        name: 'getWeatherByCity',
+        disable_parallel_tool_use: true,
+      });
+      expect(requestBody.toolConfig.toolChoice).toBeUndefined();
     });
   });
 
@@ -5764,26 +5863,18 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
-  it('should use the json tool fallback for claude-opus-5 (Bedrock rejects output_config.format)', async () => {
+  it('should use native structured output for claude-opus-5 (Bedrock supports output_config.format)', async () => {
     server.urls[opus5AnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
           message: {
             role: 'assistant',
-            content: [
-              {
-                toolUse: {
-                  toolUseId: 'json-tool-id',
-                  name: 'json',
-                  input: { name: 'Test' },
-                },
-              },
-            ],
+            content: [{ text: '{"name":"Test"}' }],
           },
         },
         usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
-        stopReason: 'tool_use',
+        stopReason: 'end_turn',
       },
     };
 
@@ -5808,32 +5899,34 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig).toBeUndefined();
     expect(
-      requestBody.additionalModelRequestFields?.output_config,
-    ).toBeUndefined();
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+        },
+        required: ['name'],
+      },
+    });
   });
 
-  it('should use the json tool fallback for claude-haiku-5-5 (Bedrock rejects output_config.format)', async () => {
+  it('should use native structured output for claude-haiku-5-5 (Bedrock supports output_config.format)', async () => {
     server.urls[haiku55AnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
           message: {
             role: 'assistant',
-            content: [
-              {
-                toolUse: {
-                  toolUseId: 'json-tool-id',
-                  name: 'json',
-                  input: { name: 'Test' },
-                },
-              },
-            ],
+            content: [{ text: '{"name":"Test"}' }],
           },
         },
         usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
-        stopReason: 'tool_use',
+        stopReason: 'end_turn',
       },
     };
 
@@ -5858,75 +5951,78 @@ describe('doGenerate', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
 
-    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+        },
+        required: ['name'],
+      },
+    });
+  });
+
+  it('should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode jsonTool', async () => {
+    server.urls[opus55AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"answer":"OK"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const result = await opus55AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return an answer of OK.' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+        },
+      },
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'jsonTool' },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
     expect(
       requestBody.additionalModelRequestFields?.output_config,
     ).toBeUndefined();
+    expect(requestBody.system).toEqual([
+      {
+        text:
+          'JSON schema:\n' +
+          '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}\n' +
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      },
+    ]);
+    expect(result.content).toEqual([{ type: 'text', text: '{"answer":"OK"}' }]);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+      undefined,
+    );
   });
-
-  it.each([undefined, 'jsonTool'] as const)(
-    'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
-    async structuredOutputMode => {
-      server.urls[opus55AnthropicGenerateUrl].response = {
-        type: 'json-value',
-        body: {
-          output: {
-            message: {
-              role: 'assistant',
-              content: [{ text: '{"answer":"OK"}' }],
-            },
-          },
-          usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
-          stopReason: 'end_turn',
-        },
-      };
-
-      const result = await opus55AnthropicModel.doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [{ type: 'text', text: 'Return an answer of OK.' }],
-          },
-        ],
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: {
-              answer: { type: 'string' },
-            },
-            required: ['answer'],
-          },
-        },
-        ...(structuredOutputMode != null && {
-          providerOptions: {
-            amazonBedrock: { structuredOutputMode },
-          },
-        }),
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-
-      expect(requestBody.toolConfig).toBeUndefined();
-      expect(
-        requestBody.additionalModelRequestFields?.output_config,
-      ).toBeUndefined();
-      expect(requestBody.system).toEqual([
-        {
-          text:
-            'JSON schema:\n' +
-            '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}\n' +
-            'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
-        },
-      ]);
-      expect(result.content).toEqual([
-        { type: 'text', text: '{"answer":"OK"}' },
-      ]);
-      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
-        undefined,
-      );
-    },
-  );
 
   it.each([
     {
@@ -6411,9 +6507,9 @@ describe('doGenerate', () => {
 
   it.each([
     [opusAnthropicModelId, opusAnthropicGenerateUrl],
-    [sonnet5AnthropicModelId, sonnet5AnthropicGenerateUrl],
+    [futureAnthropicModelId, futureAnthropicGenerateUrl],
   ])(
-    'should use JSON instructions instead of a response tool when structured output is combined with tools on %s',
+    'should use JSON instructions instead of a response tool when structured output is combined with tools on unsupported model %s',
     async (modelId, modelGenerateUrl) => {
       server.urls[modelGenerateUrl].response = {
         type: 'json-value',

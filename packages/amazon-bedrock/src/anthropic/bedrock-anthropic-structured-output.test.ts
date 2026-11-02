@@ -1,4 +1,4 @@
-import type { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import type { JSONSchema7, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { createBedrockAnthropic } from './bedrock-anthropic-provider';
 
@@ -14,7 +14,10 @@ const CALL: LanguageModelV3CallOptions = {
   responseFormat: { type: 'json', schema: SCHEMA },
 };
 
-async function generate(modelId: string) {
+async function generate(
+  modelId: string,
+  call: LanguageModelV3CallOptions = CALL,
+) {
   let body: Record<string, any> = {};
   const provider = createBedrockAnthropic({
     region: 'us-east-1',
@@ -37,15 +40,45 @@ async function generate(modelId: string) {
     },
   });
 
-  const result = await provider(modelId).doGenerate(CALL);
+  const result = await provider(modelId).doGenerate(call);
   return { body, result };
 }
 
-describe('structured outputs for Claude models that reject forced tool use', () => {
+describe('Claude 5 structured outputs through InvokeModel', () => {
+  it.each([
+    [{ type: 'none' }, ['json']],
+    [{ type: 'tool', toolName: 'lookup' }, ['lookup', 'json']],
+  ] satisfies Array<
+    [NonNullable<LanguageModelV3CallOptions['toolChoice']>, string[]]
+  >)(
+    'preserves caller tool choice %j during schema fallback',
+    async (toolChoice, expectedNames) => {
+      const { body } = await generate('us.anthropic.claude-sonnet-5-5', {
+        ...CALL,
+        responseFormat: {
+          type: 'json',
+          schema: { type: 'object', additionalProperties: true },
+        },
+        toolChoice,
+        tools: [
+          { type: 'function', name: 'lookup', inputSchema: SCHEMA },
+          { type: 'function', name: 'unused', inputSchema: SCHEMA },
+        ],
+      });
+      expect(body.output_config).toBeUndefined();
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+        expectedNames,
+      );
+    },
+  );
+
   it.each([
     'global.anthropic.claude-sonnet-5-5',
     'us.anthropic.claude-opus-5-5',
     'anthropic.claude-fable-5-1',
+    'us.anthropic.claude-haiku-5-5',
+    'us.anthropic.claude-sonnet-5',
+    'us.anthropic.claude-opus-5',
   ])('sends output_config.format for %s', async modelId => {
     const { body, result } = await generate(modelId);
 
@@ -56,10 +89,58 @@ describe('structured outputs for Claude models that reject forced tool use', () 
     expect(result.content).toEqual([{ type: 'text', text: '{"answer":"42"}' }]);
   });
 
-  it('keeps the json tool for models that accept forced tool use', async () => {
-    const { body } = await generate('us.anthropic.claude-haiku-5-5');
+  it('keeps the json tool when explicitly requested on a model that accepts forced tool use', async () => {
+    const { body } = await generate('us.anthropic.claude-haiku-5-5', {
+      ...CALL,
+      providerOptions: { anthropic: { structuredOutputMode: 'jsonTool' } },
+    });
 
     expect(body.output_config).toBeUndefined();
     expect(body.tool_choice).toEqual({ type: 'any' });
+  });
+
+  it.each([
+    ['an open object', { type: 'object', additionalProperties: true }],
+    [
+      'a recursive reference',
+      {
+        type: 'object',
+        properties: { child: { $ref: '#' } },
+        required: ['child'],
+        additionalProperties: false,
+      },
+    ],
+  ] as Array<[string, JSONSchema7]>)(
+    'preserves the JSON tool fallback for %s on the native-capable path',
+    async (_name, schema) => {
+      const { body } = await generate('us.anthropic.claude-sonnet-5-5', {
+        ...CALL,
+        responseFormat: { type: 'json', schema },
+      });
+
+      expect(body.output_config).toBeUndefined();
+      expect(body.tools).toEqual([
+        expect.objectContaining({ name: 'json', input_schema: schema }),
+      ]);
+      expect(body.tool_choice).toEqual({ type: 'auto' });
+    },
+  );
+
+  it('preserves strict tool definitions through InvokeModel', async () => {
+    const { body } = await generate('us.anthropic.claude-haiku-5-5', {
+      prompt: CALL.prompt,
+      tools: [
+        {
+          type: 'function',
+          name: 'answer',
+          inputSchema: SCHEMA,
+          strict: true,
+        },
+      ],
+    });
+
+    expect(body.tools).toEqual([
+      expect.objectContaining({ name: 'answer', strict: true }),
+    ]);
   });
 });

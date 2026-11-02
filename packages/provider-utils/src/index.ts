@@ -91,3 +91,5 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+
+export { stringifyWithBigIntAndCycles } from './stringify-with-bigint-and-cycles';

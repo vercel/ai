@@ -152,7 +152,7 @@ The following optional provider options are available for Anthropic models:
 
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
-  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
+  - `"auto"`: Use `"outputFormat"` when the model and schema support it, otherwise fall back to `"jsonTool"` (default). Schemas with recursive references, open objects, or more than ten optional properties use the JSON-tool fallback to avoid rejected requests or lost data.
 
 - `metadata` _object_
 
@@ -204,6 +204,12 @@ or `true`), which native structured outputs would return as `{}`.
 Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
+
+The JSON-tool fallback limits which application tools are available:
+`toolChoice: 'none'` sends only the internal JSON response tool, and a named tool
+choice sends only that application tool alongside the JSON response tool. The
+fallback can produce a JSON response without calling the named application tool;
+verify the selected call if your application requires it.
 
 When the JSON tool cannot be forced (for example with manual thinking) and the
 model answers in text without calling it, the text of its final answer is

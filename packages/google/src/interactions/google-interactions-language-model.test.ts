@@ -28,6 +28,46 @@ const provider = createGoogleGenerativeAI({
 
 const model = provider.interactions('gemini-2.5-flash');
 
+const DISABLED_TOOL_CASES: Array<{
+  name: string;
+  tools: Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>;
+}> = [
+  {
+    name: 'provider tools',
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'search',
+        args: {},
+      },
+      { type: 'provider', id: 'google.code_execution', name: 'code', args: {} },
+      {
+        type: 'provider',
+        id: 'google.mcp_server',
+        name: 'connector',
+        args: {
+          name: 'my-mcp',
+          url: 'https://example.com/mcp',
+          headers: { Authorization: 'Bearer test-connector-token' },
+          allowedTools: ['getWeather'],
+        },
+      },
+    ],
+  },
+];
+DISABLED_TOOL_CASES.push({
+  name: 'function and provider tools',
+  tools: [
+    ...DISABLED_TOOL_CASES[0].tools,
+    {
+      type: 'function',
+      name: 'getWeather',
+      inputSchema: { type: 'object', properties: {} },
+    },
+  ],
+});
+
 describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   const server = createTestServer({ [TEST_URL]: {} });
 
@@ -42,6 +82,21 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       ),
     };
   }
+
+  it.each(DISABLED_TOOL_CASES)(
+    'omits $name when toolChoice is none',
+    async ({ tools }) => {
+      prepareJsonFixtureResponse('basic');
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools,
+        toolChoice: { type: 'none' },
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
 
   describe('basic text', () => {
     beforeEach(() => {
@@ -2264,6 +2319,22 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       chunks,
     };
   }
+
+  it.each(DISABLED_TOOL_CASES)(
+    'omits $name when toolChoice is none',
+    async ({ tools }) => {
+      prepareChunksFixtureResponse('basic');
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools,
+        toolChoice: { type: 'none' },
+      });
+      await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
 
   it('serializes video response format controls and streams inline video data', async () => {
     server.urls[TEST_URL].response = {
