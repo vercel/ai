@@ -255,8 +255,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
       ...agentOptions,
       ...modelSelection,
       // Presets can enable native tools even when no explicit tools are sent.
-      max_tool_calls:
-        toolChoice?.type === 'none' ? 0 : agentOptions.max_tool_calls,
+      ...(toolChoice?.type === 'none' ? { max_tool_calls: 0 } : {}),
       input,
       max_output_tokens: maxOutputTokens,
       temperature,

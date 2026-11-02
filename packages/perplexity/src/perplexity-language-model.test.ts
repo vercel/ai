@@ -1323,3 +1323,30 @@ describe.each(['doGenerate', 'doStream'] as const)(
     );
   },
 );
+
+it.each(['doGenerate', 'doStream'] as const)(
+  '%s preserves the native tool limit with automatic selection',
+  async method => {
+    let body: Record<string, any> = {};
+    const model = new PerplexityLanguageModel('low', {
+      baseURL: 'https://api.perplexity.ai',
+      headers: () => ({}),
+      generateId: mockId(),
+      fetch: async (_url, init) => {
+        body = JSON.parse(String(init?.body));
+        throw new Error('request captured');
+      },
+    });
+    await expect(
+      model[method]({
+        prompt: TEST_PROMPT,
+        toolChoice: { type: 'auto' },
+        providerOptions: {
+          perplexity: { max_tool_calls: 10, tools: [{ type: 'web_search' }] },
+        },
+      }),
+    ).rejects.toThrow('request captured');
+    expect(body.max_tool_calls).toBe(10);
+    expect(body.tools).toEqual([{ type: 'web_search' }]);
+  },
+);
