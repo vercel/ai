@@ -260,6 +260,12 @@ export class AnthropicBatch implements BatchV4<{
           userSuppliedBetas: new Set(explicitBatchBetas),
         },
       });
+      if (prepared.args.thread != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'message threads in batches',
+          message: 'Anthropic Message Batches do not support message threads.',
+        });
+      }
       if (prepared.usesJsonResponseTool) {
         throw new UnsupportedFunctionalityError({
           functionality: 'batch responseFormat JSON-tool fallback',

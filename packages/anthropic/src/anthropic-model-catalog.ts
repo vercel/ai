@@ -15,6 +15,7 @@ type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
  */
 export const anthropicProviderOptions = {
   language: {
+    thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
     structuredOutputMode: {
       description: 'How structured outputs are generated.',

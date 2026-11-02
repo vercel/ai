@@ -30,6 +30,7 @@ describe('anthropicError', () => {
           "success": true,
           "value": {
             "error": {
+              "details": null,
               "message": "Overloaded",
               "type": "overloaded_error",
             },

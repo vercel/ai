@@ -598,6 +598,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       });
     }
 
+    const thread = anthropicOptions?.thread;
+    if (
+      thread != null &&
+      (compaction != null ||
+        contextManagement?.edits.some(
+          edit =>
+            edit.type !== 'clear_thinking_20251015' || edit.keep !== 'all',
+        ))
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.anthropic.thread',
+        message:
+          'Anthropic message threads do not support compaction or context editing, except clear_thinking_20251015 with keep: "all".',
+      });
+    }
+
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator(
       config.cacheControlProviderOptionsName,
@@ -897,7 +913,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
 
       // prompt:
-      system: messagesPrompt.system,
+      system: thread?.type === 'continue' ? undefined : messagesPrompt.system,
+      ...(thread != null && {
+        thread:
+          thread.type === 'create'
+            ? { type: 'create' as const }
+            : {
+                type: 'continue' as const,
+                previous_message_id: thread.previousMessageId,
+              },
+      }),
       messages: messagesPrompt.messages,
 
       ...(anthropicOptions?.safeguards &&
@@ -1178,12 +1203,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return {
       args: {
         ...baseArgs,
-        tools: anthropicTools,
+        tools: thread?.type === 'continue' ? undefined : anthropicTools,
         tool_choice: anthropicToolChoice,
         stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([
+        ...(thread != null ? ['message-threads-2026-08-12'] : []),
         ...betas,
         ...toolsBetas,
         ...userSuppliedBetas,

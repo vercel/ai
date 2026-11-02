@@ -244,9 +244,88 @@ Initial usage may be incomplete; use `result.usage` for final token counts.
 Like other custom parts, this event is included in response content and forwarded
 to UI message streams. It is ignored when replaying conversation history to Anthropic.
 
+### Message Threads
+
+[Anthropic message threads](https://platform.claude.com/docs/en/build-with-claude/message-threads)
+reduce request upload size and time to first token in long conversations. The first
+request sends the full conversation; subsequent requests send only new messages.
+Token usage, pricing, and rate limits remain unchanged. Prompt caching is separate.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const model = anthropic('claude-sonnet-4-6');
+const first = await generateText({
+  model,
+  system: 'Keep replies brief.',
+  prompt: 'Remember that my favorite color is cobalt blue.',
+  providerOptions: { anthropic: { thread: { type: 'create' } } },
+});
+
+if (first.response.id == null) throw new Error('Missing message ID.');
+
+const second = await generateText({
+  model,
+  prompt: 'What is my favorite color?',
+  providerOptions: {
+    anthropic: {
+      thread: { type: 'continue', previousMessageId: first.response.id },
+    },
+  },
+});
+```
+
+The provider adds the `message-threads-2026-08-12` beta header. On continuation it
+omits `system` and tool definitions from the request, even if supplied: Anthropic
+retains them from the create request. Tool definitions can still be supplied to
+the SDK for tool name mapping and execution.
+
+**Conversation management is explicit.** The provider does not retain history,
+remove previously sent messages, or automatically replay requests. Keep a full
+local copy of the conversation. Passing the entire history on continuation can
+duplicate messages or cause an API error. For tool calls, continue with only the
+new tool results. In a multi-step agent, use `prepareStep` to update the response
+ID and select only new messages; simply setting `thread: { type: 'create' }` on an
+agent does not automatically continue its thread.
+
+Threads expire five minutes after their last request and can become unavailable
+earlier. Inspect `APICallError.data.error.details.error_code` (after narrowing the
+unknown `data` value). On `thread_not_found`, `thread_already_continued`, or
+`thread_continue_in_flight`, replay the full conversation once with
+`thread: { type: 'create' }`, including the original system prompt and tools.
+Do not treat every 404 as an expired thread. Remove cache breakpoints from older
+replayed messages to stay within Anthropic's four-breakpoint limit. If the
+conversation cannot be stored, send the full history without `thread`.
+
+Continue only from the latest response ID, which can be continued once. With
+`streamText`, fully consume the stream before using `await result.response` to
+continue. A partial or aborted stream must not be treated as a completed turn.
+If a stream drops, recovery is the application's responsibility; don't blindly
+append a replay to output already shown to the user.
+
+To change the system prompt, tools, model, thinking, tool choice, output format,
+context management, top-level cache control, or beta headers, start a new thread
+with the full history. Fixed fields must otherwise have the same values on every
+request. Send MCP configuration and container IDs on each request that needs them.
+After a fallback model responds, start a new thread with the full history. After
+a refusal, start a new thread with the refused turn removed or rephrased.
+
+Threads do not support Message Batches, compaction, or context editing other than
+`clear_thinking_20251015` with `keep: 'all'`. They are not eligible for zero data
+retention or HIPAA readiness. Contents are encrypted in memory, never written to
+durable storage, and deleted within one hour of their last use. There is no API
+to list, read, or delete threads. See Anthropic's documentation for platform
+availability and all limitations.
+
 ### Provider options
 
 The following optional provider options are available for Anthropic models:
+
+- `thread` _{ type: 'create' } | { type: 'continue'; previousMessageId: string }_
+
+  Optional. Creates or continues a short-lived server-side message thread. The
+  required beta header is added automatically. See [Message Threads](#message-threads).
 
 - `disableParallelToolUse` _boolean_
 
