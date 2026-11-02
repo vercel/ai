@@ -1,6 +1,8 @@
 import { type LanguageModelV2DataContent, AISDKError } from '@ai-sdk/provider';
 import {
   type DataContent,
+  isUint8Array,
+  isArrayBuffer,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
@@ -13,8 +15,8 @@ import { splitDataUrl } from './split-data-url';
  */
 export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
-  z.instanceof(Uint8Array),
-  z.instanceof(ArrayBuffer),
+  z.custom<Uint8Array>(isUint8Array, { message: 'Must be a Uint8Array' }),
+  z.custom<ArrayBuffer>(isArrayBuffer, { message: 'Must be an ArrayBuffer' }),
   z.custom<Buffer>(
     // Buffer might not be available in some environments such as CloudFlare:
     (value: unknown): value is Buffer =>
@@ -30,12 +32,12 @@ export function convertToLanguageModelV2DataContent(
   mediaType: string | undefined;
 } {
   // Buffer & Uint8Array:
-  if (content instanceof Uint8Array) {
-    return { data: content, mediaType: undefined };
+  if (isUint8Array(content)) {
+    return { data: convertDataContentToUint8Array(content), mediaType: undefined };
   }
 
   // ArrayBuffer needs conversion to Uint8Array (lightweight):
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return { data: new Uint8Array(content), mediaType: undefined };
   }
 
@@ -79,11 +81,7 @@ export function convertDataContentToBase64String(content: DataContent): string {
     return content;
   }
 
-  if (content instanceof ArrayBuffer) {
-    return convertUint8ArrayToBase64(new Uint8Array(content));
-  }
-
-  return convertUint8ArrayToBase64(content);
+  return convertUint8ArrayToBase64(convertDataContentToUint8Array(content));
 }
 
 /**
@@ -95,8 +93,12 @@ Converts data content to a Uint8Array.
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {
-  if (content instanceof Uint8Array) {
-    return content;
+  if (isUint8Array(content)) {
+    if (content instanceof Uint8Array) {
+      return content;
+    }
+    const { buffer, byteOffset, byteLength } = content;
+    return new Uint8Array(buffer, byteOffset, byteLength);
   }
 
   if (typeof content === 'string') {
@@ -112,7 +114,7 @@ export function convertDataContentToUint8Array(
     }
   }
 
-  if (content instanceof ArrayBuffer) {
+  if (isArrayBuffer(content)) {
     return new Uint8Array(content);
   }
 

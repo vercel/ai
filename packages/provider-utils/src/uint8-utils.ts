@@ -38,6 +38,35 @@ export function convertUint8ArrayToBase64(array: Uint8Array): string {
   return btoa(chunks.join(''));
 }
 
+// Intrinsic getters check the built-in slots across realms without relying on
+// constructor names or user-defined Symbol.toStringTag properties.
+const typedArrayTag = Object.getOwnPropertyDescriptor(
+  Object.getPrototypeOf(Uint8Array.prototype),
+  Symbol.toStringTag,
+)!.get!;
+const arrayBufferByteLength = Object.getOwnPropertyDescriptor(
+  ArrayBuffer.prototype,
+  'byteLength',
+)!.get!;
+
+export function isUint8Array(value: unknown): value is Uint8Array {
+  return (
+    ArrayBuffer.isView(value) && typedArrayTag.call(value) === 'Uint8Array'
+  );
+}
+
+export function isArrayBuffer(value: unknown): value is ArrayBuffer {
+  if (typeof value !== 'object' || value === null || !('byteLength' in value)) {
+    return false;
+  }
+  try {
+    arrayBufferByteLength.call(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function convertToBase64(value: string | Uint8Array): string {
-  return value instanceof Uint8Array ? convertUint8ArrayToBase64(value) : value;
+  return isUint8Array(value) ? convertUint8ArrayToBase64(value) : value;
 }
