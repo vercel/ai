@@ -751,4 +751,37 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'grey-ridge-swap-gate',
+    name: 'Grey Ridge Swap Gate (pre-trade safety)',
+    description:
+      'Pre-trade token-safety gate for Base ERC-20s: a honeypot + sellability simulation, owner-renounce / mint / pause / blacklist admin checks, measured transfer tax, and the trade size weighed against pool liquidity — returned as a GO / HOLD / BLOCK verdict with reasons in a single call. Have the agent call it before any swap so it never buys a honeypot or a position it cannot exit. Paid inline per call in USDC on Base ($0.008, the x402 standard) — no account and no API key — and it fails closed (proceed:false) if the gate is ever unreachable.',
+    packageName: '@grey-ridge/vercel-ai-swap-gate',
+    tags: ['defi', 'security', 'base', 'onchain', 'trading'],
+    installCommand: {
+      pnpm: 'pnpm add @grey-ridge/vercel-ai-swap-gate',
+      npm: 'npm install @grey-ridge/vercel-ai-swap-gate',
+      yarn: 'yarn add @grey-ridge/vercel-ai-swap-gate',
+      bun: 'bun add @grey-ridge/vercel-ai-swap-gate',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createSwapGuard } from '@grey-ridge/vercel-ai-swap-gate';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.1-codex',
+  prompt:
+    'I want to buy $50 of 0x4200000000000000000000000000000000000006 on Base. Is it safe to trade?',
+  tools: {
+    // Give the agent's Base wallet key to pay $0.008 USDC per call via x402;
+    // omit it for the free preview. Fails closed (proceed:false) on any error.
+    swapGuard: createSwapGuard({ privateKey: process.env.PRIVATE_KEY }),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://api.greyridgesignals.ai/for-agents/vercel-ai-swap-gate',
+    websiteUrl: 'https://api.greyridgesignals.ai/for-agents',
+    npmUrl: 'https://www.npmjs.com/package/@grey-ridge/vercel-ai-swap-gate',
+  },
 ];
