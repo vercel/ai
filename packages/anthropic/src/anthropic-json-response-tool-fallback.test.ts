@@ -40,8 +40,8 @@ const CIRCULAR_SCHEMA: JSONSchema7 = {
   },
 } as JSONSchema7;
 
-// Mirrors provider adapters (e.g. Bedrock, Vertex) that disable native
-// structured outputs by default.
+// The call options below select jsonTool mode for response-path tests;
+// open-schema tests explicitly select auto to exercise native-output fallback.
 function createModel(modelId: string) {
   return new AnthropicMessagesLanguageModel(modelId, {
     provider: 'test-provider.messages',
@@ -208,6 +208,18 @@ describe('JSON response tool fallback', () => {
         expect(result.content).toEqual([
           { type: 'text', text: '{"answer":"42"}' },
         ]);
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+          'json',
+        ]);
+        expect(body.tool_choice.type).toBe('auto');
+        expect(body.output_config).toBeUndefined();
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported-setting',
+            setting: 'toolChoice',
+          }),
+        );
       });
 
       it('returns text when the JSON tool is not called (stream)', async () => {
