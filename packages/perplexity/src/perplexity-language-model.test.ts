@@ -1271,3 +1271,55 @@ describe('doStream', () => {
     ]);
   });
 });
+
+describe.each(['doGenerate', 'doStream'] as const)(
+  '%s disabled tools',
+  method => {
+    it.each(['low', 'openai/gpt-5'])(
+      'disables native, function and preset tools on %s',
+      async modelId => {
+        let body: Record<string, any> = {};
+        const model = new PerplexityLanguageModel(modelId, {
+          baseURL: 'https://api.perplexity.ai',
+          headers: () => ({}),
+          generateId: mockId(),
+          fetch: async (_url, init) => {
+            body = JSON.parse(String(init?.body));
+            throw new Error('request captured');
+          },
+        });
+        await expect(
+          model[method]({
+            prompt: TEST_PROMPT,
+            toolChoice: { type: 'none' },
+            tools: [
+              {
+                type: 'function',
+                name: 'lookup',
+                inputSchema: { type: 'object' },
+              },
+            ],
+            providerOptions: {
+              perplexity: {
+                max_tool_calls: 10,
+                tools: [
+                  {
+                    type: 'mcp',
+                    server_label: 'test',
+                    server_url: 'https://example.test/mcp',
+                    authorization: 'test-value',
+                  },
+                  { type: 'connector', server_label: 'test', id: 'test' },
+                  { type: 'web_search' },
+                ],
+              },
+            },
+          }),
+        ).rejects.toThrow('request captured');
+        expect(body.tools).toBeUndefined();
+        expect(body.max_tool_calls).toBe(0);
+        expect(JSON.stringify(body)).not.toContain('test-value');
+      },
+    );
+  },
+);
