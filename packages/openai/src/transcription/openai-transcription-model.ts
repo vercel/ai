@@ -142,6 +142,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
       const transcriptionModelOptions = {
         include: openAIOptions.include,
         language: openAIOptions.language,
+        languages: openAIOptions.languages,
+        keywords: openAIOptions.keywords,
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
