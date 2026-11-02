@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
@@ -96,20 +96,83 @@ describe('convertUint8ArrayToBase64', () => {
 });
 
 describe('convertBase64ToUint8Array', () => {
-  it('converts base64 to a byte array', () => {
-    expect(convertBase64ToUint8Array('SGVsbG8=')).toEqual(
-      new Uint8Array([72, 101, 108, 108, 111]),
-    );
-  });
+  const uint8ArrayWithFromBase64 = Uint8Array as { fromBase64?: unknown };
+  const hasFromBase64 =
+    typeof uint8ArrayWithFromBase64.fromBase64 === 'function';
 
-  it('supports base64url characters', () => {
-    expect(convertBase64ToUint8Array('-_8=')).toEqual(
-      new Uint8Array([251, 255]),
-    );
-  });
+  function describeDecoding() {
+    it('converts base64 to a byte array', () => {
+      expect(convertBase64ToUint8Array('SGVsbG8=')).toEqual(
+        new Uint8Array([72, 101, 108, 108, 111]),
+      );
+    });
 
-  it('handles an empty string', () => {
-    expect(convertBase64ToUint8Array('')).toEqual(new Uint8Array());
+    it('supports base64url characters', () => {
+      expect(convertBase64ToUint8Array('-_8=')).toEqual(
+        new Uint8Array([251, 255]),
+      );
+    });
+
+    it('supports mixed base64 and base64url characters', () => {
+      expect(convertBase64ToUint8Array('+_8=')).toEqual(
+        new Uint8Array([251, 255]),
+      );
+    });
+
+    it('supports missing padding', () => {
+      expect(convertBase64ToUint8Array('SGVsbG8')).toEqual(
+        new Uint8Array([72, 101, 108, 108, 111]),
+      );
+    });
+
+    it('ignores whitespace', () => {
+      expect(convertBase64ToUint8Array('SGVs\nbG8=\n')).toEqual(
+        new Uint8Array([72, 101, 108, 108, 111]),
+      );
+    });
+
+    it('handles an empty string', () => {
+      expect(convertBase64ToUint8Array('')).toEqual(new Uint8Array());
+    });
+
+    it('round-trips all byte values', () => {
+      const bytes = createBytes(100_000);
+
+      expect(
+        convertBase64ToUint8Array(convertUint8ArrayToBase64(bytes)),
+      ).toEqual(bytes);
+    });
+
+    it.each(['ab!c', 'SGVsb', 'SGV=sbG8', 'SGVsbG8=='])(
+      'throws for invalid base64 %j',
+      input => {
+        expect(() => convertBase64ToUint8Array(input)).toThrow();
+      },
+    );
+  }
+
+  describe.runIf(hasFromBase64)(
+    'when Uint8Array.fromBase64 is available',
+    () => {
+      describeDecoding();
+    },
+  );
+
+  describe('when Uint8Array.fromBase64 is unavailable', () => {
+    let fromBase64: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      fromBase64 = Object.getOwnPropertyDescriptor(Uint8Array, 'fromBase64');
+      delete uint8ArrayWithFromBase64.fromBase64;
+    });
+
+    afterEach(() => {
+      if (fromBase64 != null) {
+        Object.defineProperty(Uint8Array, 'fromBase64', fromBase64);
+      }
+    });
+
+    describeDecoding();
   });
 });
 
