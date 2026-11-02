@@ -20,6 +20,8 @@ it.each([
   ['global.anthropic.claude-sonnet-5-5', true, true],
   ['global.anthropic.claude-haiku-5-5', true, true],
   ['anthropic.claude-haiku-5', false, false],
+  ['anthropic.claude-haiku-5-5-preview', false, false],
+  ['anthropic.claude-haiku-5-5-9', false, false],
   ['anthropic.claude-sonnet-5-9', false, false],
   ['anthropic.claude-opus-5-60-v1', false, false],
   ['us.anthropic.claude-opus-6-v1:0', false, false],

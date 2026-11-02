@@ -522,10 +522,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const supportsStructuredOutput =
       (config.supportsNativeStructuredOutput ?? true) &&
-      modelSupportsStructuredOutput &&
-      (responseFormat?.type !== 'json' ||
-        responseFormat.schema == null ||
-        supportsNativeStructuredOutputSchema(responseFormat.schema));
+      modelSupportsStructuredOutput;
+
+    const supportsResponseSchema =
+      responseFormat?.type !== 'json' ||
+      responseFormat.schema == null ||
+      supportsNativeStructuredOutputSchema(responseFormat.schema);
 
     const supportsStrictTools =
       (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
@@ -534,7 +536,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions?.structuredOutputMode ?? 'auto';
     let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
-      (structureOutputMode === 'auto' && supportsStructuredOutput);
+      (structureOutputMode === 'auto' &&
+        supportsStructuredOutput &&
+        supportsResponseSchema);
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured

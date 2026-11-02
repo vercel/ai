@@ -36,6 +36,7 @@ import {
 import {
   getModelCapabilities,
   sanitizeJsonSchema,
+  supportsNativeStructuredOutputSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
@@ -421,7 +422,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          modelSupportsNativeStructuredOutput));
+          modelSupportsNativeStructuredOutput &&
+          supportsNativeStructuredOutputSchema(responseFormat.schema)));
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&

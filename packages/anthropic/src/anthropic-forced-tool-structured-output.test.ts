@@ -198,4 +198,57 @@ describe('structured outputs for models that reject forced tool use', () => {
     expect(body.output_config).toBeUndefined();
     expect(body.tool_choice).toMatchObject({ type: 'any' });
   });
+
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s with native support enabled',
+    method => {
+      it.each(['claude-sonnet-4-5', 'claude-sonnet-5-5'])(
+        'preserves an open schema using the JSON tool for %s',
+        async modelId => {
+          const schema: JSONSchema7 = {
+            type: 'object',
+            additionalProperties: true,
+          };
+          if (method === 'doStream') {
+            server.urls[URL].response = { type: 'stream-chunks', chunks: [] };
+          } else {
+            respondWith([{ type: 'text', text: '{}' }]);
+          }
+
+          await createModel(modelId, true)[method](jsonCall(schema));
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.output_config).toBeUndefined();
+          expect(body.tools).toEqual([
+            expect.objectContaining({ name: 'json', input_schema: schema }),
+          ]);
+          expect(body.tool_choice.type).toBe(
+            modelId === 'claude-sonnet-4-5' ? 'any' : 'auto',
+          );
+        },
+      );
+
+      it('preserves the beta header for tools with explicit outputFormat', async () => {
+        if (method === 'doStream') {
+          server.urls[URL].response = { type: 'stream-chunks', chunks: [] };
+        } else {
+          respondWith([{ type: 'text', text: '{}' }]);
+        }
+
+        await createModel('claude-sonnet-4-5', true)[method]({
+          ...jsonCall({ type: 'object', additionalProperties: true }),
+          tools: [{ type: 'function', name: 'lookup', inputSchema: SCHEMA }],
+          providerOptions: {
+            anthropic: { structuredOutputMode: 'outputFormat' },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.output_config?.format).toBeDefined();
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'structured-outputs-2025-11-13',
+        );
+      });
+    },
+  );
 });
