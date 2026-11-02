@@ -17,11 +17,7 @@ import type {
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type {
-  DownloadFunction,
-  ProviderOptions,
-  StreamTextTransform,
-} from './workflow-agent.js';
+import type { DownloadFunction, ProviderOptions } from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TTools>
@@ -77,9 +73,6 @@ export interface ModelCallOptions {
     requestMessages?: boolean;
   };
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
   /**
    * Set when the model step dispatches telemetry to globally registered
    * integrations, which are not available in the workflow body.

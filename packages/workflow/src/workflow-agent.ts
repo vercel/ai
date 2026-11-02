@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -172,14 +171,6 @@ export type TelemetryOptions<
   TRuntimeContext extends Context = Context,
   TTools extends ToolSet = ToolSet,
 > = CoreTelemetryOptions<TRuntimeContext, TTools>;
-
-/**
- * A transformation that is applied to the stream.
- */
-export type StreamTextTransform<TTools extends ToolSet> = (options: {
-  tools: TTools;
-  stopStream: () => void;
-}) => TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>;
 
 /**
  * Function to repair a tool call that failed to parse.
@@ -1262,15 +1253,6 @@ export type WorkflowAgentStreamOptions<
    * Defaults to false.
    */
   includeRawChunks?: boolean;
-
-  /**
-   * Optional stream transformations.
-   * They are applied in the order they are provided.
-   * The stream transformations must maintain the stream structure for streamText to work correctly.
-   */
-  experimental_transform?:
-    | StreamTextTransform<TTools>
-    | Array<StreamTextTransform<TTools>>;
 
   /**
    * Whether to send a 'finish' chunk to the writable stream when streaming completes.
@@ -2595,10 +2577,6 @@ export class WorkflowAgent<
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
       download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
-      experimental_transform: options.experimental_transform as
-        | StreamTextTransform<ToolSet>
-        | Array<StreamTextTransform<ToolSet>>
-        | undefined,
       experimental_sandbox: sandbox,
     });
 
