@@ -1,8 +1,9 @@
-import type {
-  ImageModelV4,
-  ImageModelV4ProviderMetadata,
-  ImageModelV4Result,
-  ImageModelV4Usage,
+import {
+  APICallError,
+  type ImageModelV4,
+  type ImageModelV4ProviderMetadata,
+  type ImageModelV4Result,
+  type ImageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -20,6 +21,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
+import type { Telemetry } from '../telemetry/telemetry';
 import type { Warning } from '../types/warning';
 import { generateImage } from './generate-image';
 
@@ -1884,5 +1886,356 @@ describe('data URL handling', () => {
         mediaType: 'image/jpeg',
       },
     ]);
+  });
+
+  describe('telemetry', () => {
+    function createRecordingIntegration() {
+      const events: Array<{ type: string; event: any }> = [];
+      const record =
+        (type: string) =>
+        (event: unknown): void => {
+          events.push({ type, event });
+        };
+
+      const integration: Telemetry = {
+        onStart: record('onStart'),
+        onImageModelCallStart: record('onImageModelCallStart'),
+        onImageModelCallEnd: record('onImageModelCallEnd'),
+        onImageModelCallError: record('onImageModelCallError'),
+        onEnd: record('onEnd'),
+        onError: record('onError'),
+      };
+
+      return { events, integration };
+    }
+
+    function createCallIdGenerator() {
+      let id = 0;
+      return () => `id-${id++}`;
+    }
+
+    it('should emit operation and model call events without raw image data', async () => {
+      const { events, integration } = createRecordingIntegration();
+      const maskData = convertBase64ToUint8Array(pngBase64);
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () =>
+            createMockResponse({
+              images: [pngBase64],
+              timestamp: testDate,
+              headers: { 'x-test': 'value' },
+              usage: { inputTokens: 5, outputTokens: 1, totalTokens: 6 },
+              providerMetaData: {
+                testProvider: { images: [{ revisedPrompt: 'revised' }] },
+              },
+            }),
+        }),
+        prompt: {
+          text: prompt,
+          images: [`data:image/jpeg;base64,${jpegBase64}`, 'https://x.y/z.png'],
+          mask: maskData,
+        },
+        n: 2,
+        size: '1024x1024',
+        seed: 42,
+        providerOptions: { testProvider: { style: 'vivid' } },
+        telemetry: {
+          functionId: 'generate-image-test',
+          integrations: integration,
+        },
+        _internal: { generateCallId: createCallIdGenerator() },
+      });
+
+      const startEvent = events.find(e => e.type === 'onStart')?.event;
+      expect(startEvent).toMatchObject({
+        callId: 'id-0',
+        operationId: 'ai.generateImage',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        prompt,
+        images: [
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            byteLength: convertBase64ToUint8Array(jpegBase64).byteLength,
+          },
+          { type: 'url', url: 'https://x.y/z.png' },
+        ],
+        mask: {
+          type: 'file',
+          mediaType: 'image/png',
+          byteLength: maskData.byteLength,
+        },
+        n: 2,
+        maxImagesPerCall: undefined,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: 42,
+        maxRetries: 2,
+        providerOptions: { testProvider: { style: 'vivid' } },
+        functionId: 'generate-image-test',
+      });
+      expect(JSON.stringify(startEvent)).not.toContain(jpegBase64);
+
+      const modelCallStartEvents = events
+        .filter(e => e.type === 'onImageModelCallStart')
+        .map(e => e.event);
+      const modelCallEndEvents = events
+        .filter(e => e.type === 'onImageModelCallEnd')
+        .map(e => e.event);
+
+      expect(modelCallStartEvents).toHaveLength(2);
+      expect(modelCallEndEvents).toHaveLength(2);
+      expect(modelCallEndEvents.map(e => e.imageCallId).sort()).toStrictEqual(
+        modelCallStartEvents.map(e => e.imageCallId).sort(),
+      );
+
+      expect(modelCallEndEvents[0]).toMatchObject({
+        callId: 'id-0',
+        operationId: 'ai.generateImage.doGenerate',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        n: 1,
+        images: [
+          {
+            mediaType: 'image/png',
+            byteLength: convertBase64ToUint8Array(pngBase64).byteLength,
+          },
+        ],
+        usage: { inputTokens: 5, outputTokens: 1, totalTokens: 6 },
+        warnings: [],
+        providerMetadata: {
+          testProvider: { images: [{ revisedPrompt: 'revised' }] },
+        },
+        response: {
+          timestamp: testDate,
+          modelId: 'test-model-id',
+          headers: { 'x-test': 'value' },
+        },
+      });
+
+      const endEvent = events.find(e => e.type === 'onEnd')?.event;
+      expect(endEvent).toMatchObject({
+        callId: 'id-0',
+        operationId: 'ai.generateImage',
+        images: [
+          {
+            mediaType: 'image/png',
+            byteLength: convertBase64ToUint8Array(pngBase64).byteLength,
+          },
+          {
+            mediaType: 'image/png',
+            byteLength: convertBase64ToUint8Array(pngBase64).byteLength,
+          },
+        ],
+        usage: { inputTokens: 10, outputTokens: 2, totalTokens: 12 },
+        warnings: [],
+        providerMetadata: {
+          testProvider: {
+            images: [
+              { revisedPrompt: 'revised' },
+              { revisedPrompt: 'revised' },
+            ],
+          },
+        },
+        responses: [
+          { timestamp: testDate, modelId: 'test-model-id' },
+          { timestamp: testDate, modelId: 'test-model-id' },
+        ],
+        functionId: 'generate-image-test',
+      });
+
+      expect(JSON.stringify(events)).not.toContain(pngBase64);
+      expect(events.map(e => e.type)).not.toContain('onImageModelCallError');
+      expect(events.map(e => e.type)).not.toContain('onError');
+      expect(events[0].type).toBe('onStart');
+      expect(events.at(-1)?.type).toBe('onEnd');
+    });
+
+    it('should emit a model call error event for a failed attempt that is retried', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const { events, integration } = createRecordingIntegration();
+        const error = new APICallError({
+          message: 'rate limited',
+          url: 'https://example.com',
+          requestBodyValues: {},
+          statusCode: 429,
+          isRetryable: true,
+        });
+        let attempt = 0;
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              attempt++;
+              if (attempt === 1) {
+                throw error;
+              }
+              return createMockResponse({ images: [pngBase64] });
+            },
+          }),
+          prompt,
+          telemetry: { integrations: integration },
+          _internal: { generateCallId: createCallIdGenerator() },
+        });
+
+        await vi.runAllTimersAsync();
+        await resultPromise;
+
+        expect(
+          events.map(({ type, event }) => [type, event.imageCallId]),
+        ).toStrictEqual([
+          ['onStart', undefined],
+          ['onImageModelCallStart', 'id-1'],
+          ['onImageModelCallError', 'id-1'],
+          ['onImageModelCallStart', 'id-2'],
+          ['onImageModelCallEnd', 'id-2'],
+          ['onEnd', undefined],
+        ]);
+        expect(events[2].event.error).toBe(error);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should emit a model call end event for an empty result that is retried', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const { events, integration } = createRecordingIntegration();
+        let attempt = 0;
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              attempt++;
+              return createMockResponse({
+                images: attempt === 1 ? [] : [pngBase64],
+              });
+            },
+          }),
+          prompt,
+          telemetry: { integrations: integration },
+          _internal: { generateCallId: createCallIdGenerator() },
+        });
+
+        await vi.runAllTimersAsync();
+        await resultPromise;
+
+        expect(
+          events.map(({ type, event }) => [
+            type,
+            event.imageCallId,
+            event.images?.length,
+          ]),
+        ).toStrictEqual([
+          ['onStart', undefined, undefined],
+          ['onImageModelCallStart', 'id-1', undefined],
+          ['onImageModelCallEnd', 'id-1', 0],
+          ['onImageModelCallStart', 'id-2', undefined],
+          ['onImageModelCallEnd', 'id-2', 1],
+          ['onEnd', undefined, 1],
+        ]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should emit model call error and operation error events when generation fails', async () => {
+      const { events, integration } = createRecordingIntegration();
+      const error = new Error('image generation failed');
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              throw error;
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          telemetry: { integrations: integration },
+          _internal: { generateCallId: createCallIdGenerator() },
+        }),
+      ).rejects.toBe(error);
+
+      expect(events.map(e => e.type)).toStrictEqual([
+        'onStart',
+        'onImageModelCallStart',
+        'onImageModelCallError',
+        'onError',
+      ]);
+      expect(events[3].event).toMatchObject({ callId: 'id-0', error });
+    });
+
+    it('should emit an operation error event when no images are generated', async () => {
+      const { events, integration } = createRecordingIntegration();
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () =>
+              createMockResponse({ images: [], isRetryable: false }),
+          }),
+          prompt,
+          telemetry: { integrations: integration },
+          _internal: { generateCallId: createCallIdGenerator() },
+        }),
+      ).rejects.toThrow('No image generated');
+
+      expect(events.map(e => e.type)).toStrictEqual([
+        'onStart',
+        'onImageModelCallStart',
+        'onImageModelCallEnd',
+        'onError',
+      ]);
+    });
+
+    it('should emit an operation error event when resolving maxImagesPerCall fails', async () => {
+      const { events, integration } = createRecordingIntegration();
+      const error = new Error('maxImagesPerCall failed');
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: () => {
+              throw error;
+            },
+          }),
+          prompt,
+          telemetry: { integrations: integration },
+          _internal: { generateCallId: createCallIdGenerator() },
+        }),
+      ).rejects.toBe(error);
+
+      expect(events.map(e => e.type)).toStrictEqual(['onStart', 'onError']);
+    });
+
+    it('should not measure image bytes when no telemetry integration is configured', async () => {
+      let byteLengthReads = 0;
+      class CountingImage extends Uint8Array {
+        override get byteLength() {
+          byteLengthReads++;
+          return super.byteLength;
+        }
+      }
+
+      await generateImage({
+        model: new MockImageModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              images: [new CountingImage(convertBase64ToUint8Array(pngBase64))],
+            }),
+        }),
+        prompt,
+        telemetry: { integrations: [] },
+      });
+
+      expect(byteLengthReads).toBe(0);
+    });
   });
 });

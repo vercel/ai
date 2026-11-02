@@ -20,12 +20,18 @@ import {
   type SpanOptions,
   type Tracer,
 } from '@opentelemetry/api';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
   experimental_decide,
   experimental_evaluate,
+  generateImage,
   generateObject,
   generateText,
   isStepCount,
@@ -40,6 +46,7 @@ import {
 import {
   MockEmbeddingModelV4,
   Experimental_DecisionMockModelV4,
+  MockImageModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -3897,5 +3904,106 @@ describe('LegacyOpenTelemetry speech and transcription operations', () => {
       }),
     );
     expect(tracer.spans[0].ended).toBe(true);
+  });
+});
+
+describe('LegacyOpenTelemetry generateImage', () => {
+  const pngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
+  function createSdkTracer() {
+    const exporter = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({
+      spanProcessors: [new SimpleSpanProcessor(exporter)],
+    });
+    return { exporter, tracer: provider.getTracer('test-tracer') };
+  }
+
+  it('records an operation span with a child span per image model call', async () => {
+    const { exporter, tracer } = createSdkTracer();
+
+    await generateImage({
+      model: new MockImageModelV4({
+        provider: 'openai.image',
+        modelId: 'gpt-image-1',
+        maxImagesPerCall: 1,
+        doGenerate: async () => ({
+          images: [pngBase64],
+          warnings: [],
+          usage: { inputTokens: 10, outputTokens: 1, totalTokens: 11 },
+          response: {
+            timestamp: new Date(0),
+            modelId: 'gpt-image-1-2025',
+            headers: undefined,
+          },
+        }),
+      }),
+      prompt: 'sunny day at the beach',
+      n: 2,
+      telemetry: {
+        functionId: 'image-fn',
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    const spans = exporter.getFinishedSpans();
+    const rootSpan = spans.find(span => span.name === 'ai.generateImage')!;
+    const childSpans = spans.filter(
+      span => span.name === 'ai.generateImage.doGenerate',
+    );
+
+    expect(spans).toHaveLength(3);
+    expect(childSpans).toHaveLength(2);
+    expect(rootSpan.attributes).toMatchObject({
+      'operation.name': 'ai.generateImage image-fn',
+      'ai.model.provider': 'openai.image',
+      'ai.model.id': 'gpt-image-1',
+      'ai.request.n': 2,
+      'ai.request.text': 'sunny day at the beach',
+      'ai.response.images': JSON.stringify([
+        { mediaType: 'image/png', byteLength: 67 },
+        { mediaType: 'image/png', byteLength: 67 },
+      ]),
+      'ai.usage.inputTokens': 20,
+      'ai.usage.outputTokens': 2,
+      'ai.usage.totalTokens': 22,
+    });
+    for (const childSpan of childSpans) {
+      expect(childSpan.parentSpanContext?.spanId).toBe(
+        rootSpan.spanContext().spanId,
+      );
+      expect(childSpan.attributes).toMatchObject({
+        'ai.request.n': 1,
+        'ai.response.model': 'gpt-image-1-2025',
+        'ai.usage.inputTokens': 10,
+      });
+    }
+    expect(JSON.stringify(spans.map(span => span.attributes))).not.toContain(
+      pngBase64,
+    );
+  });
+
+  it('records errors on image model call and operation spans', async () => {
+    const { exporter, tracer } = createSdkTracer();
+
+    await expect(
+      generateImage({
+        model: new MockImageModelV4({
+          doGenerate: async () => {
+            throw new Error('generation failed');
+          },
+        }),
+        prompt: 'sunny day at the beach',
+        maxRetries: 0,
+        telemetry: { integrations: new LegacyOpenTelemetry({ tracer }) },
+      }),
+    ).rejects.toThrow('generation failed');
+
+    expect(
+      exporter.getFinishedSpans().map(span => [span.name, span.status.code]),
+    ).toStrictEqual([
+      ['ai.generateImage.doGenerate', SpanStatusCode.ERROR],
+      ['ai.generateImage', SpanStatusCode.ERROR],
+    ]);
   });
 });

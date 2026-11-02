@@ -233,6 +233,9 @@ export function createTelemetryDispatcher({
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
+    onImageModelCallStart: mergeTelemetryCallback('onImageModelCallStart'),
+    onImageModelCallEnd: mergeTelemetryCallback('onImageModelCallEnd'),
+    onImageModelCallError: mergeTelemetryCallback('onImageModelCallError'),
     experimental_onDecideStart: mergeTelemetryCallback(
       'experimental_onDecideStart',
       'experimental_onEvaluateStart',

@@ -10,6 +10,7 @@ export type TelemetryTracingEventType =
   | 'embedMany'
   | 'rerank'
   | 'generateSpeech'
+  | 'generateImage'
   | 'transcribe'
   | 'streamTranscribe'
   | 'experimental_decide';

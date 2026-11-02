@@ -46,6 +46,13 @@ import type {
   GenerateSpeechStartEvent,
 } from '../generate-speech/speech-events';
 import type {
+  GenerateImageEndEvent,
+  GenerateImageStartEvent,
+  ImageModelCallEndEvent,
+  ImageModelCallErrorEvent,
+  ImageModelCallStartEvent,
+} from '../generate-image/image-events';
+import type {
   StreamTranscriptionEndEvent,
   StreamTranscriptionStartEvent,
   TranscriptionEndEvent,
@@ -78,6 +85,7 @@ type OperationStartEvent =
   | EmbedStartEvent
   | RerankStartEvent
   | GenerateSpeechStartEvent
+  | GenerateImageStartEvent
   | TranscriptionStartEvent;
 
 type OperationEndEvent =
@@ -86,6 +94,7 @@ type OperationEndEvent =
   | EmbedEndEvent
   | RerankEndEvent
   | GenerateSpeechEndEvent
+  | GenerateImageEndEvent
   | TranscriptionEndEvent;
 
 export interface TelemetryDispatcher {
@@ -124,6 +133,9 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  onImageModelCallStart?: Callback<ImageModelCallStartEvent>;
+  onImageModelCallEnd?: Callback<ImageModelCallEndEvent>;
+  onImageModelCallError?: Callback<ImageModelCallErrorEvent>;
   experimental_onDecideStart?: Callback<DecideStartEvent>;
   experimental_onDecisionModelCallStart?: Callback<DecisionModelCallStartEvent>;
   experimental_onDecisionModelCallEnd?: Callback<DecisionModelCallEndEvent>;
@@ -145,8 +157,8 @@ export interface Telemetry {
   /**
    * Called when an operation begins. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), reranking, speech generation, and
-   * non-streaming transcription operations.
+   * embedding (embed/embedMany), reranking, image generation, speech
+   * generation, and non-streaming transcription operations.
    *
    * Use the `operationId` field to distinguish between operation types.
    */
@@ -259,6 +271,32 @@ export interface Telemetry {
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
+  /**
+   * Called when an individual image model call (doGenerate) begins.
+   * A `generateImage` call can make multiple image model calls when more
+   * images are requested than the model supports per call. Each retry attempt
+   * is a separate image model call.
+   */
+  onImageModelCallStart?: Callback<
+    InferTelemetryEvent<ImageModelCallStartEvent>
+  >;
+
+  /**
+   * Called when an individual image model call (doGenerate) completes.
+   * Contains metadata about the generated images, usage, and warnings.
+   * Raw image data is not included.
+   */
+  onImageModelCallEnd?: Callback<InferTelemetryEvent<ImageModelCallEndEvent>>;
+
+  /**
+   * Called when an individual image model call (doGenerate) fails before it
+   * returns a result. Use it to close image-model-call spans.
+   * `onImageModelCallEnd` is not called for such a call.
+   */
+  onImageModelCallError?: Callback<
+    InferTelemetryEvent<ImageModelCallErrorEvent>
+  >;
+
   /** @deprecated Use `experimental_onDecideStart` instead. */
   experimental_onEvaluateStart?: Callback<
     InferTelemetryEvent<DecideStartEvent>
@@ -312,8 +350,8 @@ export interface Telemetry {
   /**
    * Called when an operation completes. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), reranking, speech generation, and
-   * non-streaming transcription operations.
+   * embedding (embed/embedMany), reranking, image generation, speech
+   * generation, and non-streaming transcription operations.
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */

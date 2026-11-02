@@ -221,6 +221,7 @@ export function DevToolsTelemetry(
         operationId === 'ai.embedMany' ||
         operationId === 'ai.rerank' ||
         operationId === 'ai.generateSpeech' ||
+        operationId === 'ai.generateImage' ||
         operationId === 'ai.transcribe'
       ) {
         return;
