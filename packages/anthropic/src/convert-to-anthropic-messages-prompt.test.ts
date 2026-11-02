@@ -4398,7 +4398,7 @@ describe('cache control', () => {
 
     it('should safely serialize tool results with BigInt and circular structures', async () => {
       const circularValue: Record<string, unknown> = {
-        id: 9007199254740993n,
+        id: BigInt('9007199254740993'),
       };
       circularValue.self = circularValue;
 

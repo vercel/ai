@@ -6140,7 +6140,7 @@ it('preserves shared tool argument objects while replacing real cycles', async (
 });
 
 it('serializes tool results with BigInt and real cycles', async () => {
-  const value: any = { count: 42n };
+  const value: any = { count: BigInt('42') };
   value.self = value;
   const result = await convertToOpenAIResponsesInput({
     prompt: [

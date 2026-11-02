@@ -1381,7 +1381,7 @@ describe('parallel tool calls', () => {
   it('should handle circular references and BigInt with $ref in tool-result safely', async () => {
     const cyclicSchema: any = {
       $ref: '#/components/schemas/Item',
-      count: 100n,
+      count: BigInt('100'),
     };
     cyclicSchema.self = cyclicSchema;
 
@@ -2118,7 +2118,7 @@ it.each(['{"city":', 'null'])(
 );
 
 it('keeps non-ref tool results JSON serializable with BigInt and cycles', () => {
-  const value: any = { count: 42n };
+  const value: any = { count: BigInt('42') };
   value.self = value;
   const result = convertToGoogleGenerativeAIMessages([
     {
@@ -2150,7 +2150,7 @@ it('serializes BigInt returned by toJSON in structured tool results', () => {
           toolName: 'inspect',
           output: {
             type: 'json',
-            value: { count: { toJSON: () => 42n } } as any,
+            value: { count: { toJSON: () => BigInt('42') } } as any,
           },
         },
       ],

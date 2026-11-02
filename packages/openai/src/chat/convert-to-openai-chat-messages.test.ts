@@ -673,7 +673,9 @@ describe('tool calls', () => {
   });
 
   it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
-    const circularArgs: Record<string, unknown> = { count: 9007199254740993n };
+    const circularArgs: Record<string, unknown> = {
+      count: BigInt('9007199254740993'),
+    };
     circularArgs.self = circularArgs;
 
     const result = convertToOpenAIChatMessages({
@@ -889,7 +891,7 @@ it('preserves shared tool argument objects while replacing real cycles', async (
 });
 
 it('serializes tool results with BigInt and real cycles', async () => {
-  const value: any = { count: 42n };
+  const value: any = { count: BigInt('42') };
   value.self = value;
   const result = convertToOpenAIChatMessages({
     prompt: [

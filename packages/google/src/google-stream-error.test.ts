@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { createGoogleGenerativeAI } from './google-provider';
 
@@ -30,8 +31,7 @@ describe('stream error envelopes', () => {
       const { stream } = await provider('gemini-2.5-flash').doStream({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       });
-      const parts = [];
-      for await (const part of stream) parts.push(part);
+      const parts = await convertReadableStreamToArray(stream);
       const failure = parts.find(part => part.type === 'error');
       expect(APICallError.isInstance(failure?.error)).toBe(true);
       expect(failure?.error).toMatchObject({

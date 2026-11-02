@@ -12,7 +12,9 @@ describe('stringifyWithBigIntAndCycles', () => {
   });
 
   it('preserves repeated array items and nested cycles', () => {
-    const shared: Record<string, unknown> = { count: 9007199254740993n };
+    const shared: Record<string, unknown> = {
+      count: BigInt('9007199254740993'),
+    };
     shared.self = shared;
     expect(stringifyWithBigIntAndCycles([shared, shared])).toBe(
       '[{"count":"9007199254740993","self":"[Circular]"},{"count":"9007199254740993","self":"[Circular]"}]',
@@ -23,8 +25,8 @@ describe('stringifyWithBigIntAndCycles', () => {
     expect(
       stringifyWithBigIntAndCycles({
         date: new Date('2026-11-02T00:00:00Z'),
-        count: { toJSON: () => 42n },
-        nested: { toJSON: () => ({ count: 43n }) },
+        count: { toJSON: () => BigInt('42') },
+        nested: { toJSON: () => ({ count: BigInt('43') }) },
       }),
     ).toBe(
       '{"date":"2026-11-02T00:00:00.000Z","count":"42","nested":{"count":"43"}}',

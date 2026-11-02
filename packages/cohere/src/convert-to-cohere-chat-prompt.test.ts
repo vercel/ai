@@ -430,7 +430,7 @@ describe('tool argument and output serialization resilience', () => {
   );
 
   it('safely serializes BigInt and circular structures in tool call arguments', async () => {
-    const cyclicInput: any = { id: 12345678901234567890n };
+    const cyclicInput: any = { id: BigInt('12345678901234567890') };
     cyclicInput.self = cyclicInput;
 
     const result = await convertToCohereChatPrompt([
@@ -457,7 +457,7 @@ describe('tool argument and output serialization resilience', () => {
   });
 
   it('safely serializes BigInt and circular structures in tool responses', async () => {
-    const cyclicOutput: any = { count: 999999999999999999n };
+    const cyclicOutput: any = { count: BigInt('999999999999999999') };
     cyclicOutput.self = cyclicOutput;
 
     const result = await convertToCohereChatPrompt([
