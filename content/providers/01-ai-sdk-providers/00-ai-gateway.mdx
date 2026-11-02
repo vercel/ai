@@ -227,6 +227,40 @@ started, AI SDK Core exposes it as a
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
 
+## Image Models
+
+AI Gateway supports image generation through `generateImage`. To reduce peak
+memory when receiving large images, opt in to streaming base64 decoding:
+
+```ts
+import { generateImage } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { image } = await generateImage({
+  model: 'bfl/flux-kontext-pro',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(image.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving base64 strings in provider results.
+When enabled, canonical base64 images of at least 64 KiB are decoded while the
+response arrives. The model returns these images as `Uint8Array`; if a response
+mixes extracted bytes with smaller images, all images in that result become
+bytes. Images that cannot be extracted retain the regular decoding path.
+
+This experimental option changes what image-model middleware sees in
+`result.images`. `GeneratedFile` still provides both `uint8Array` and `base64`,
+but reading `base64` can require re-encoding. Validation errors contain short
+placeholders for extracted data. The option is handled by the client and is
+not sent to the Gateway service.
+
 ## Batch
 
 <Note type="warning">

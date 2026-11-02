@@ -7,6 +7,7 @@ import {
   lazySchema,
   zodSchema,
   combineHeaders,
+  convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -70,6 +71,18 @@ export class GatewayImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
+    const gatewayOptions = providerOptions?.gateway;
+    const streamingImageDecoding =
+      gatewayOptions?.experimental_streamingImageDecoding === true;
+    let requestProviderOptions = providerOptions;
+    if (
+      gatewayOptions &&
+      'experimental_streamingImageDecoding' in gatewayOptions
+    ) {
+      const { experimental_streamingImageDecoding: _, ...serviceOptions } =
+        gatewayOptions;
+      requestProviderOptions = { ...providerOptions, gateway: serviceOptions };
+    }
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -88,7 +101,9 @@ export class GatewayImageModel implements ImageModelV4 {
           ...(size && { size }),
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
-          ...(providerOptions && { providerOptions }),
+          ...(requestProviderOptions && {
+            providerOptions: requestProviderOptions,
+          }),
           ...(files && {
             files: files.map(file => maybeEncodeImageFile(file)),
           }),
@@ -96,6 +111,9 @@ export class GatewayImageModel implements ImageModelV4 {
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayImageResponseSchema,
+          streamingImageDecoding
+            ? { experimental_binaryFields: ['images[*]'] }
+            : undefined,
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -106,7 +124,7 @@ export class GatewayImageModel implements ImageModelV4 {
       });
 
       return {
-        images: responseBody.images, // Always base64 strings from server
+        images: toImageModelImages(responseBody.images),
         ...(responseBody.isRetryable != null && {
           isRetryable: responseBody.isRetryable,
         }),
@@ -156,6 +174,21 @@ function maybeEncodeImageFile(file: ImageModelV4File) {
   return file;
 }
 
+// A result holds either strings or bytes. Images that the response handler
+// decoded while reading arrive as `Uint8Array`, smaller ones stay base64
+// strings, so a mix is decoded to bytes.
+function toImageModelImages(
+  images: Array<string | Uint8Array>,
+): Array<string> | Array<Uint8Array> {
+  if (images.every((image): image is string => typeof image === 'string')) {
+    return images;
+  }
+
+  return images.map(image =>
+    typeof image === 'string' ? convertBase64ToUint8Array(image) : image,
+  );
+}
+
 const providerMetadataEntrySchema = () =>
   z
     .object({
@@ -196,7 +229,10 @@ const gatewayImageUsageSchema = () =>
 const gatewayImageResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      images: z.array(z.string()), // Always base64 strings over the wire
+      // Base64 strings over the wire. Large ones are decoded to bytes while the
+      // response is read (`experimental_binaryFields`), see
+      // `toImageModelImages`.
+      images: z.array(z.union([z.string(), z.instanceof(Uint8Array)])),
       isRetryable: z.boolean().optional(),
       warnings: z.array(gatewayImageWarningSchema()).optional(),
       providerMetadata: z
