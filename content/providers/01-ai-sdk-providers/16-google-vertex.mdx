@@ -292,7 +292,12 @@ const googleVertex = createGoogleVertex({
 
 ##### Optional Provider Settings
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
   It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.

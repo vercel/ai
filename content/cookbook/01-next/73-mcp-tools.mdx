@@ -23,7 +23,7 @@ import {
   streamText,
   toUIMessageStream,
 } from 'ai';
-import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+import { StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 // Optional: Official transports if you prefer them
 // import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   try {
     // Initialize an MCP client to connect to a `stdio` MCP server (local only):
-    const transport = new Experimental_StdioMCPTransport({
+    const transport = new StdioMCPTransport({
       command: 'node',
       args: ['src/stdio/dist/server.js'],
     });

@@ -122,7 +122,10 @@ You can use the following optional settings to customize the OpenAI provider ins
   It must be a single DNS label (letters, digits, and hyphens).
   You can use `baseURL` instead to specify the URL prefix.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
 
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.

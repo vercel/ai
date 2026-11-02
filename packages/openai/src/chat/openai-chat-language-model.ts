@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,14 +28,12 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
-  getOpenAILanguageModelCapabilities,
-  resolveOpenAIReasoningEffort,
-} from '../openai-language-model-capabilities';
+import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
 } from '../openai-stream-error';
+import { resolveOpenAIReasoningEffort } from '../resolve-openai-reasoning-effort';
 import {
   convertOpenAIChatUsage,
   type OpenAIChatUsage,
@@ -57,7 +57,7 @@ type OpenAIChatConfig = {
   provider: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
   requestModelId?: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -122,12 +122,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const {
+      capabilities: { language: modelCapabilities },
+      requestConfig: { language: modelRequestConfig },
+    } = getOpenAILanguageModelEntry(this.modelId);
 
     // Some models reject function tools unless reasoning is disabled, even
     // when no reasoning effort is sent, so reasoning is set to 'none'.
     const requiresNoReasoningEffort =
-      !modelCapabilities.supportsChatFunctionToolsWithReasoning &&
+      !modelCapabilities.endpoints.chat.functionToolsWithReasoning &&
       openaiOptions.reasoningEffort == null &&
       (tools?.some(tool => tool.type === 'function') ?? false);
 
@@ -150,14 +153,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           reasoning,
           // Only the Responses API supports `max`.
           supportedReasoningEfforts:
-            modelCapabilities.supportedReasoningEfforts?.filter(
+            modelCapabilities.reasoning.efforts?.filter(
               effort => effort !== 'max',
             ),
           warnings,
         });
 
     const isReasoningModel =
-      openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
+      openaiOptions.forceReasoning ??
+      modelCapabilities.reasoning.support === true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -181,7 +185,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelCapabilities.systemMessageMode),
+            : modelRequestConfig.systemMessageMode),
       },
     );
 
@@ -261,7 +265,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportsConfigurationUpdate &&
+      !modelCapabilities.promptCache.retention &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
@@ -280,7 +284,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         resolvedReasoningEffort !== 'none' ||
-        !modelCapabilities.supportsNonReasoningParameters
+        modelCapabilities.reasoning.sampling !== 'reasoning-effort-none'
       ) {
         if (baseArgs.temperature != null) {
           baseArgs.temperature = undefined;
@@ -346,10 +350,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (
-      this.modelId.startsWith('gpt-4o-search-preview') ||
-      this.modelId.startsWith('gpt-4o-mini-search-preview')
-    ) {
+    } else if (!modelCapabilities.endpoints.chat.temperatureWithoutReasoning) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
@@ -364,7 +365,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !modelCapabilities.supportsFlexProcessing
+      !modelCapabilities.serviceTiers.flex
     ) {
       warnings.push({
         type: 'unsupported',
@@ -379,7 +380,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     if (
       (openaiOptions.serviceTier === 'priority' ||
         openaiOptions.serviceTier === 'fast') &&
-      !modelCapabilities.supportsPriorityProcessing
+      !modelCapabilities.serviceTiers.priority
     ) {
       warnings.push({
         type: 'unsupported',
@@ -423,7 +424,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.config.requestModelId ?? this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -526,7 +530,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

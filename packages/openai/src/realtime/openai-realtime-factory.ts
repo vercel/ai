@@ -6,11 +6,13 @@ import {
 } from '@ai-sdk/provider';
 import { OpenAIRealtimeModelLive } from '../live/openai-realtime-model-live';
 import {
+  getOpenAIRealtimeModelEntry,
+  type OpenAIKnownLiveModelId,
+} from '../openai-model-catalog';
+import {
   OpenAIRealtimeModel,
   type OpenAIRealtimeModelConfig,
 } from './openai-realtime-model';
-
-const knownLiveModelIds = ['gpt-live-1'] as const;
 
 export type OpenAIRealtimeOptions = {
   /** Overrides model ID routing, including for early-access models. */
@@ -21,7 +23,7 @@ export interface OpenAIRealtimeFactory extends RealtimeFactoryV4 {
   (modelId: string, options: { api: 'live' }): OpenAIRealtimeModelLive;
   (modelId: string, options: { api: 'realtime' }): OpenAIRealtimeModel;
   (
-    modelId: (typeof knownLiveModelIds)[number],
+    modelId: OpenAIKnownLiveModelId,
     options?: { api?: undefined },
   ): OpenAIRealtimeModelLive;
   (modelId: string, options?: OpenAIRealtimeOptions): RealtimeModelV4;
@@ -46,9 +48,7 @@ function resolveRealtimeApi(
     return api;
   }
 
-  return knownLiveModelIds.some(knownModelId => knownModelId === modelId)
-    ? 'live'
-    : 'realtime';
+  return getOpenAIRealtimeModelEntry(modelId).requestConfig.realtime.api;
 }
 
 export function createOpenAIRealtimeFactory(

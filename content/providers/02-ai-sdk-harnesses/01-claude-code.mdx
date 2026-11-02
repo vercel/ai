@@ -107,7 +107,15 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
   MCP configuration, such as a project `.mcp.json` or user settings.
+- `toolHints`: Claude Code hints for host tools, keyed by tool name.
+  `readOnly: true` marks a tool without side effects, so Claude Code can run
+  its calls in parallel and allows it in plan mode; calls to other host tools
+  run one at a time. `alwaysLoad: true` sends the tool's definition from the
+  first request when Claude Code's tool search is on, instead of deferring it
+  until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
+- `skillOverrides`: per-skill visibility overrides. Values can be `on`,
+  `name-only`, `user-invocable-only`, or `off`.
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
 - `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
@@ -144,6 +152,27 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+### Skill Overrides
+
+Use `skillOverrides` to control how named skills are exposed to Claude Code
+without changing shared user-level configuration. Values can be `'on'`,
+`'name-only'`, `'user-invocable-only'`, or `'off'`:
+
+```ts
+const harness = createClaudeCode({
+  skillOverrides: {
+    'update-config': 'off',
+    'fewer-permission-prompts': 'off',
+    'keybindings-help': 'off',
+    init: 'off',
+  },
+});
+```
+
+Skills without an override keep their Claude Code defaults, so other bundled
+skills such as `code-review`, `simplify`, and `claude-api` remain available
+when provided by the installed Claude Code runtime.
 
 ## Structured Output
 
@@ -227,7 +256,10 @@ Additional Claude Code built-ins may also appear in `agent.tools` when they do
 not fit a common tool shape.
 
 Claude Code supports built-in tool approval requests when `permissionMode` is
-`allow-reads` or `allow-edits`.
+`allow-reads` or `allow-edits`. A call waiting for approval is kept in the
+Claude Code session, so an approval answered after a resume runs that same
+call, even in a new sandbox. Claude Code waits for one approval at a time, so
+parallel calls that need approval run one after another.
 
 ## Related
 

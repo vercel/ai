@@ -263,6 +263,8 @@ const agentSettings = {
     type: 'session-config-option' as const,
     path: 'model',
   },
+  resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
 } as const;
 
 const permissionModeMapping = {
@@ -1661,6 +1663,201 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('resolves host tool calls through the adapter resolver', async () => {
+    const resolveHostToolCall = vi.fn(
+      ({
+        toolCall,
+        serverName,
+        toolNames,
+      }: {
+        toolCall: { rawInput?: unknown };
+        serverName: string;
+        toolNames: ReadonlyArray<string>;
+      }) => {
+        const rawInput = toolCall.rawInput as Record<string, unknown>;
+        return rawInput.server === serverName &&
+          toolNames.includes(rawInput.tool as string)
+          ? {
+              toolName: rawInput.tool as string,
+              input: rawInput.arguments as Record<string, unknown>,
+            }
+          : undefined;
+      },
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      resolveHostToolCall,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Use the weather tool.',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-1',
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-2',
+      toolCall: {
+        toolCallId: 'call-2',
+        title: 'Read README.md',
+        rawInput: { path: 'README.md' },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+
+    expect(resolveHostToolCall).toHaveBeenCalledWith({
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    expect(
+      channel.sent.filter(
+        (message: unknown) =>
+          (message as { type?: string }).type === 'tool-result',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "output": {
+            "hostToolCall": {
+              "input": {
+                "city": "Lima",
+              },
+              "toolName": "weather",
+            },
+          },
+          "toolCallId": "resolution-1",
+          "type": "tool-result",
+        },
+        {
+          "output": {
+            "hostToolCall": null,
+          },
+          "toolCallId": "resolution-2",
+          "type": "tool-result",
+        },
+      ]
+    `);
+    await session.doDestroy();
+  });
+
+  it.each([
+    {
+      name: 'unknown tool name',
+      resolveHostToolCall: () => ({ toolName: 'unknown', input: {} }),
+    },
+    {
+      name: 'non-object input',
+      resolveHostToolCall: () => ({
+        toolName: 'weather',
+        input: null as unknown as Record<string, unknown>,
+      }),
+    },
+    {
+      name: 'thrown error',
+      resolveHostToolCall: () => {
+        throw new Error('resolver failed');
+      },
+    },
+  ])(
+    'fails the turn when the host tool resolver has a $name',
+    async ({ resolveHostToolCall }) => {
+      const harness = createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        resolveHostToolCall,
+      });
+      const session = await harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns: [],
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+      const events: Array<{ type: string }> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Use the weather tool.',
+        emit: event => events.push(event),
+      });
+      const channel = harnessUtilsMocks.channels[0]!;
+      const done = Promise.resolve(control.done).catch(
+        (error: unknown) => error,
+      );
+
+      channel.emit({
+        type: 'acp-host-tool-call-resolution-request',
+        requestId: 'resolution-1',
+        toolCall: { toolCallId: 'call-1', title: 'Weather', rawInput: {} },
+        serverName: 'ai-sdk-harness-tools',
+        toolNames: ['weather'],
+      });
+
+      expect(await done).toBeInstanceOf(Error);
+      expect(events.map(event => event.type)).toContain('error');
+      expect(
+        channel.sent.filter(
+          (message: unknown) =>
+            (message as { type?: string }).type === 'tool-result' ||
+            (message as { type?: string }).type === 'abort',
+        ),
+      ).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'resolution-1',
+          output: { hostToolCall: null },
+        },
+        { type: 'abort' },
+      ]);
+      await session.doDestroy();
+    },
+  );
+
   it('reserves the host-tool MCP server name', () => {
     expect(() =>
       createACP({
@@ -2368,6 +2565,8 @@ describe('createACP', () => {
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
       modelMapping: agentSettings.modelMapping,
+      resolveHostToolCall: agentSettings.resolveHostToolCall,
+      isMcpToolCall: agentSettings.isMcpToolCall,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',

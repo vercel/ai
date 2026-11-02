@@ -89,6 +89,99 @@ const harness: HarnessV1 = {
   doStart: async () => fakeSession([]),
 };
 
+test.each([
+  {
+    toolName: 'bash',
+    nativeName: 'Bash',
+    input: { command: 'echo hello', description: 'Print hello' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        command: z.string(),
+        description: z.string().optional(),
+      }),
+    }),
+  },
+  {
+    toolName: 'write',
+    nativeName: 'Write',
+    input: { file_path: 'hello.txt', content: 'hello' },
+    builtinTool: tool({
+      inputSchema: z.object({ file_path: z.string(), content: z.string() }),
+    }),
+  },
+  {
+    toolName: 'edit',
+    nativeName: 'Edit',
+    input: { file_path: 'hello.txt', old_string: 'hello', new_string: 'hi' },
+    builtinTool: tool({
+      inputSchema: z.object({
+        file_path: z.string(),
+        old_string: z.string(),
+        new_string: z.string(),
+      }),
+    }),
+  },
+])(
+  'preserves $nativeName in built-in tool approval metadata',
+  async ({ toolName, nativeName, input, builtinTool }) => {
+    const events: HarnessV1StreamPart[] = [
+      { type: 'stream-start' },
+      { type: 'tool-input-start', id: 'c1', toolName, providerExecuted: true },
+      { type: 'tool-input-delta', id: 'c1', delta: JSON.stringify(input) },
+      {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName,
+        input: JSON.stringify(input),
+        providerExecuted: true,
+        nativeName,
+      },
+      { type: 'tool-input-end', id: 'c1' },
+      { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' },
+    ];
+    const { result, done } = runPrompt({
+      harness: { ...harness, harnessId: 'claude-code' },
+      session: fakeSession(events),
+      prompt: 'Run the shell command `echo hello`',
+      instructions: undefined,
+      tools: { [toolName]: builtinTool },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'error') throw part.error;
+      parts.push(part);
+    }
+    await done;
+    const expectedToolCall = {
+      type: 'tool-call',
+      toolCallId: 'c1',
+      toolName,
+      input,
+      providerExecuted: true,
+      providerMetadata: { 'claude-code': { nativeToolName: nativeName } },
+    };
+    expect(parts.find(part => part.type === 'tool-call')).toEqual(
+      expectedToolCall,
+    );
+    expect(parts.filter(part => part.type === 'tool-approval-request')).toEqual(
+      [
+        {
+          type: 'tool-approval-request',
+          approvalId: 'a1',
+          toolCall: expectedToolCall,
+        },
+      ],
+    );
+    const steps = await result.steps;
+    expect(steps[0]?.toolCalls).toEqual([expectedToolCall]);
+  },
+);
+
 const questionsHarness: HarnessV1 = {
   ...harness,
   builtinTools: {

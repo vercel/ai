@@ -38,9 +38,39 @@ describe('GoogleJSONAccumulator', () => {
           "currentJSON": {
             "location": "Boston, MA",
           },
-          "textDelta": ", MA",
+          "textDelta": ", MA"",
         }
       `);
+    });
+
+    it('should close a continued string on its final chunk', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Bos', willContinue: true },
+      ]);
+
+      const finalChunkResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'ton' },
+      ]);
+
+      expect(finalChunkResult.textDelta).toBe('ton"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
+    });
+
+    it('should close a continued string on an empty final chunk', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
+      ]);
+
+      const finalChunkResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: '' },
+      ]);
+
+      expect(finalChunkResult.textDelta).toBe('"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
     });
 
     it('should accumulate a complete string arg (no willContinue)', () => {
@@ -176,7 +206,7 @@ describe('GoogleJSONAccumulator', () => {
           "currentJSON": {
             "query": "Boston "Logan"",
           },
-          "textDelta": "gan\\"",
+          "textDelta": "gan\\""",
         }
       `);
     });
@@ -437,7 +467,7 @@ describe('GoogleJSONAccumulator', () => {
               ],
             },
           },
-          "textDelta": " to 375°F.",
+          "textDelta": " to 375°F."",
         }
       `);
     });
@@ -614,6 +644,21 @@ describe('GoogleJSONAccumulator', () => {
       expect(result.text).toBe(result.finalJSON);
     });
 
+    it('should close a continued string on a string terminator', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
+      ]);
+
+      const terminatorResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location' },
+      ]);
+
+      expect(terminatorResult.textDelta).toBe('"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
+    });
+
     it('should continue into an empty container when children follow', () => {
       const result = accumulate([
         [{ jsonPath: '$.recipe' }],
@@ -695,7 +740,7 @@ describe('GoogleJSONAccumulator', () => {
 
       expect(accumulator.finalize()).toMatchInlineSnapshot(`
         {
-          "closingDelta": ""}",
+          "closingDelta": "}",
           "finalJSON": "{"location":"Boston, MA"}",
         }
       `);

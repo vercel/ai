@@ -1258,6 +1258,60 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends skill overrides and host tool hints to the bridge', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      'fewer-permission-prompts': 'off',
+      init: 'off',
+    } as const;
+    const toolHints = { search: { readOnly: true, alwaysLoad: true } };
+    const harness = createClaudeCode({ skillOverrides, toolHints });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Search the docs.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ skillOverrides, toolHints });
+
+    await session.doDestroy();
+  });
+
+  it('omits skill overrides when they are not configured', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'inspect the project',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).not.toHaveProperty('skillOverrides');
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -1344,9 +1398,10 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends environment configuration when rerunning a continued turn', async () => {
+  it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
-    const harness = createClaudeCode({ env });
+    const toolHints = { search: { readOnly: true } };
+    const harness = createClaudeCode({ env, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1369,7 +1424,37 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ env, continue: true });
+    expect(lastStart()).toMatchObject({ env, toolHints, continue: true });
+
+    await session.doDestroy();
+  });
+
+  it('sends skill overrides when rerunning a continued turn', async () => {
+    const skillOverrides = { init: 'off' } as const;
+    const harness = createClaudeCode({ skillOverrides });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ skillOverrides, continue: true });
 
     await session.doDestroy();
   });
@@ -1513,6 +1598,61 @@ describe('createClaudeCode adapter', () => {
 
     await session.doDestroy();
   });
+
+  it.each(['continueFrom', 'resumeFrom'] as const)(
+    'resumes a deferred approval when rerunning a continued turn (%s)',
+    async lifecycle => {
+      const continueFrom = {
+        type: 'continue-turn' as const,
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1' as const,
+        data: {},
+        pendingToolApprovals: [
+          {
+            approvalId: 'call-1',
+            toolCallId: 'call-1',
+            toolName: 'bash',
+            input: '{"command":"pwd"}',
+            kind: 'builtin' as const,
+            providerExecuted: true,
+            nativeName: 'Bash',
+          },
+        ],
+      };
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        permissionMode: 'allow-reads',
+        ...(lifecycle === 'continueFrom'
+          ? { continueFrom }
+          : {
+              resumeFrom: {
+                type: 'resume-session' as const,
+                harnessId: 'claude-code',
+                specificationVersion: 'harness-v1' as const,
+                data: {},
+                continueFrom,
+              },
+            }),
+      });
+      const control = await session.doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+
+      expect(lastStart()).toMatchObject({ deferredToolUseId: 'call-1' });
+
+      await session.doDestroy();
+    },
+  );
 
   it('sends the question timeout and excludeDynamicSections after attaching', async () => {
     const harness = createClaudeCode({

@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   withUserAgentSuffix,
   type FetchFunction,
@@ -38,13 +40,14 @@ export interface OpenResponsesProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
    */
-  headers?: Record<string, string> | (() => Record<string, string>);
+  headers?: Resolvable<Record<string, string>>;
 
   /**
    * Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -112,18 +115,20 @@ export function createOpenResponses(
   );
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        ...(options.apiKey
-          ? {
-              Authorization: `Bearer ${options.apiKey}`,
-            }
-          : {}),
-        ...(typeof options.headers === 'function'
-          ? options.headers()
-          : options.headers),
-      },
-      options.userAgentSuffix ?? `ai-sdk-open-responses/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      resolveWith(options.headers, headers =>
+        withUserAgentSuffix(
+          {
+            ...(apiKey
+              ? {
+                  Authorization: `Bearer ${apiKey}`,
+                }
+              : {}),
+            ...headers,
+          },
+          options.userAgentSuffix ?? `ai-sdk-open-responses/${VERSION}`,
+        ),
+      ),
     );
 
   const createResponsesModel = (modelId: string) => {

@@ -9113,6 +9113,42 @@ describe('generateText', () => {
           }
         `);
       });
+
+      it('should pass custom schema keywords such as propertyOrdering to the model', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: `{ "apple": "red", "zebra": "striped" }` },
+            ],
+          },
+        });
+
+        await generateText({
+          model,
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z
+              .object({ zebra: z.string(), apple: z.string() })
+              .meta({ propertyOrdering: ['apple', 'zebra'] }),
+          }),
+        });
+
+        expect(model.doGenerateCalls[0].responseFormat).toEqual({
+          type: 'json',
+          schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: {
+              zebra: { type: 'string' },
+              apple: { type: 'string' },
+            },
+            required: ['zebra', 'apple'],
+            additionalProperties: false,
+            propertyOrdering: ['apple', 'zebra'],
+          },
+        });
+      });
     });
 
     describe('provider-selected structured output', () => {

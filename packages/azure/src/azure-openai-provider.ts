@@ -25,12 +25,14 @@ import {
   loadSetting,
   normalizeHeaders,
   parseProviderOptions,
+  resolveWith,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import {
@@ -192,9 +194,9 @@ export interface AzureOpenAIProviderSettings {
   baseURL?: string;
 
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. A callback is resolved before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * A function that returns an access token for Microsoft Entra
@@ -293,31 +295,32 @@ export function createAzure(
     });
   }
 
-  const getHeaders = (api: 'openai' | 'speech' | 'mai' = 'openai') => {
-    const authHeaders = tokenProvider
-      ? {}
-      : {
-          [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
-            loadApiKey({
-              apiKey: options.apiKey,
-              environmentVariableName: 'AZURE_API_KEY',
-              description:
-                api === 'speech'
-                  ? 'Azure Speech'
-                  : api === 'mai'
-                    ? 'Azure MAI'
-                    : 'Azure OpenAI',
-            }),
-        };
+  const getHeaders = (api: 'openai' | 'speech' | 'mai' = 'openai') =>
+    resolveWith(tokenProvider ? undefined : options.apiKey, apiKey => {
+      const authHeaders = tokenProvider
+        ? {}
+        : {
+            [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
+              loadApiKey({
+                apiKey,
+                environmentVariableName: 'AZURE_API_KEY',
+                description:
+                  api === 'speech'
+                    ? 'Azure Speech'
+                    : api === 'mai'
+                      ? 'Azure MAI'
+                      : 'Azure OpenAI',
+              }),
+          };
 
-    return withUserAgentSuffix(
-      {
-        ...authHeaders,
-        ...options.headers,
-      },
-      `ai-sdk-azure/${VERSION}`,
-    );
-  };
+      return withUserAgentSuffix(
+        {
+          ...authHeaders,
+          ...options.headers,
+        },
+        `ai-sdk-azure/${VERSION}`,
+      );
+    });
 
   const fetch: FetchFunction | undefined = tokenProvider
     ? async (input, init) => {
@@ -502,7 +505,7 @@ export function createAzure(
           tokenProvider
             ? {
                 authorization: `Bearer ${await tokenProvider()}`,
-                ...getHeaders('mai'),
+                ...(await getHeaders('mai')),
               }
             : getHeaders('mai'),
         webSocket: options.webSocket,

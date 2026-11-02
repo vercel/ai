@@ -9,6 +9,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -554,7 +555,10 @@ export class ElevenLabsSpeechModel
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler:
@@ -747,7 +751,7 @@ export class ElevenLabsSpeechModel
     // The API key goes in the init message (not a header) so native
     // WebSockets work; it is kept out of the reported request body.
     const { 'xi-api-key': apiKey, ...headers } = combineHeaders(
-      this.config.headers?.(),
+      await resolve(this.config.headers),
       options.headers,
     );
 

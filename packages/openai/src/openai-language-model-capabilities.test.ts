@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getOpenAILanguageModelCapabilities } from './openai-language-model-capabilities';
+import { getOpenAILanguageModelCapabilities } from './openai-model-catalog';
 
 describe('getOpenAILanguageModelCapabilities', () => {
   describe('isReasoningModel', () => {

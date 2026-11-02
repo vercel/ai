@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -40,7 +42,7 @@ type OpenAICompatibleEmbeddingConfig = {
 
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 };
@@ -154,7 +156,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,

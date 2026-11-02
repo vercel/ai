@@ -2,7 +2,7 @@
 
 import ChatInput from '@/components/chat-input';
 import {
-  experimental_MCPAppRenderer as MCPAppRenderer,
+  MCPAppRenderer,
   useChat,
   type MCPAppBridgeHandlers,
   type MCPAppMetadata,

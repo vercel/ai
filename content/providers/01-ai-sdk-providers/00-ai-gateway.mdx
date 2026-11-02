@@ -91,7 +91,12 @@ You can use the following optional settings to customize the AI Gateway provider
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   API key or Vercel access token that is being sent using the `Authorization`
   header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
@@ -1417,6 +1422,100 @@ for await (const part of result.stream) {
 }
 ```
 
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools call
+DeepSeek's standalone Search/Fetch APIs from AI Gateway and work with supported
+tool-calling models from any provider. They are separate from a model's built-in
+web search. No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch({
+      count: 5,
+      needContent: true,
+    }),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+The Search tool supports the following optional configuration options:
+
+- **query** _string_
+
+  Pin the search query; otherwise the model chooses it. Queries contain 1–128 Unicode characters and cannot be all whitespace.
+
+- **count** _number_
+
+  Number of results, 1–50 (default: 10).
+
+- **needContent** _boolean_
+
+  Include available page content (default: false).
+
+- **oriQuestion** _string | null_
+
+  Original question, 1–128 Unicode characters. `null` means not provided.
+
+- **localization** _string_
+
+  IP address used to localize results; developer configuration only.
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ content, title? }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+The Fetch tool supports the following optional configuration option:
+
+- **url** _string_
+
+  Pin the HTTP(S) URL; otherwise the model chooses it.
+
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
+
+The tools also work with `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch(),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
+
 ### Custom Reporting
 
 Track usage per end-user and categorize requests with tags, then query the data through the reporting API.
@@ -1522,7 +1621,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1533,8 +1632,7 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
-      only: ['vertex', 'anthropic'], // Only use these providers
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1551,6 +1649,8 @@ The following gateway provider options are available:
 - **only** _string[]_
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
@@ -1664,7 +1764,7 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking:
+You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1676,7 +1776,7 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
-      only: ['anthropic', 'vertex'], // Only allow these providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
     } satisfies GatewayProviderOptions,
   },
 });
