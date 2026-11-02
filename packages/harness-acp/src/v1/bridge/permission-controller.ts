@@ -5,7 +5,7 @@ import type {
   RequestPermissionResponse,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
-import type { HostToolCall } from './resolve-host-tool-call';
+import type { HostToolCall } from './host-tool-call-resolver';
 
 type PendingPermission = {
   cancel(): void;
@@ -29,7 +29,7 @@ export function createACPPermissionController({
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: {
     toolCall: ToolCallUpdate;
-  }) => HostToolCall | undefined;
+  }) => Promise<HostToolCall | undefined>;
   onHostToolPermissionAllowed?: (options: {
     toolCallId: string;
     call: HostToolCall;
@@ -41,6 +41,7 @@ export function createACPPermissionController({
   cancelAll(): void;
 } {
   const pendingPermissions = new Map<string, PendingPermission>();
+  let cancellationGeneration = 0;
 
   return {
     async requestPermission(request) {
@@ -70,7 +71,11 @@ export function createACPPermissionController({
         });
         return cancelled();
       }
-      const call = claimHostToolPermission({ toolCall: request.toolCall });
+      const generation = cancellationGeneration;
+      const call = await claimHostToolPermission({
+        toolCall: request.toolCall,
+      });
+      if (generation !== cancellationGeneration) return cancelled();
       if (call != null) {
         onHostToolPermissionAllowed?.({
           toolCallId: request.toolCall.toolCallId,
@@ -136,6 +141,7 @@ export function createACPPermissionController({
       }
     },
     cancelAll() {
+      cancellationGeneration += 1;
       for (const pending of pendingPermissions.values()) {
         pending.cancel();
       }

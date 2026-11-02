@@ -1,6 +1,7 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createFixtureHostToolCallResolver } from './__fixtures__/fixture-host-tool-call-resolver';
 import { loadWeatherApprovalFixture } from './__fixtures__/weather-approval-fixture';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import { startHostToolRelay, type HostToolRelayTurn } from './host-tool-relay';
@@ -10,81 +11,90 @@ import { createACPPermissionController } from './permission-controller';
 describe('host weather approval stream', () => {
   afterEach(() => vi.useRealTimers());
 
-  it.each([
-    { tool_name: 'ai-sdk-harness-tools__get_weather' },
-    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: null },
-    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: [] },
-  ])(
-    'does not silently claim an unresolved deferred permission: %j',
-    async rawInput => {
-      const permission = loadWeatherApprovalFixture({
-        harness: 'github-copilot',
-      }).find(event => event.type === 'permission');
-      if (permission?.type !== 'permission')
-        throw new Error('Missing captured permission.');
-      const events: HarnessV1StreamPart[] = [];
-      const nativeApproval = vi.fn(() => new Promise(() => {}));
-      const allowed = vi.fn();
-      const emitter = createEmitStreamEvent({
-        emit: event => events.push(event),
-        emitToolCallCandidate: vi.fn(),
-        builtinTools: [],
-        hostToolServerName: 'ai-sdk-harness-tools',
-        hostTools: [{ name: 'get_weather', inputSchema: { type: 'object' } }],
-      });
-      const authorization = createHostToolRelayAuthorization({
-        serverName: 'ai-sdk-harness-tools',
-        toolNames: ['get_weather'],
-      });
-      const controller = createACPPermissionController({
-        turn: {
-          emit: (event: HarnessV1StreamPart) => events.push(event),
-          requestToolApproval: nativeApproval,
-          emitWarning: vi.fn(),
-        } as unknown as BridgeTurn,
-        sessionId: permission.value.sessionId,
-        permissionMode: 'allow-edits',
-        hasPermissionModeMapping: true,
-        emitToolCall: emitter.permissionToolCall,
-        claimHostToolPermission: emitter.claimHostToolPermission,
-        onHostToolPermissionAllowed: allowed,
-      });
-      try {
-        const request = controller.requestPermission({
-          ...permission.value,
-          toolCall: {
-            ...permission.value.toolCall,
-            title: 'mcp__ai-sdk-harness-tools__get_weather',
-            rawInput,
+  it('authorizes a late-identifying host call without suppressing its released stream events', async () => {
+    vi.useFakeTimers();
+    const [initial, identifying] = loadWeatherApprovalFixture({
+      harness: 'cursor',
+    }).filter(event => event.type === 'update');
+    if (initial.value.sessionUpdate !== 'tool_call') {
+      throw new Error('Missing captured initial tool call.');
+    }
+    const events: HarnessV1StreamPart[] = [];
+    const hostToolCallResolver = createFixtureHostToolCallResolver({
+      toolNames: ['get_weather'],
+    });
+    const emitter = createEmitStreamEvent({
+      emit: event => events.push(event),
+      emitToolCallCandidate: vi.fn(),
+      builtinTools: [],
+      hostToolServerName: 'ai-sdk-harness-tools',
+      hostTools: [{ name: 'get_weather', inputSchema: { type: 'object' } }],
+      hostToolCallResolver,
+    });
+    const authorization = createHostToolRelayAuthorization();
+    try {
+      for (const event of [initial, identifying]) {
+        const update = event.value;
+        if (
+          update.sessionUpdate !== 'tool_call' &&
+          update.sessionUpdate !== 'tool_call_update'
+        ) {
+          throw new Error('Missing captured tool update.');
+        }
+        const hold = emitter.deferFlush();
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
+        emitter.message({
+          message: {
+            kind: 'session_update',
+            notification: { sessionId: 'session-1', update },
+            update,
           },
         });
-        expect(nativeApproval).toHaveBeenCalledOnce();
-        expect(allowed).not.toHaveBeenCalled();
-        expect(
-          events.filter(event => event.type === 'tool-approval-request'),
-        ).toHaveLength(1);
-        const pendingAuthorization = authorization.waitForToolCallAuthorization(
-          { toolName: 'get_weather', input: rawInput },
-        );
-        authorization.close();
-        await expect(pendingAuthorization).resolves.toBe(false);
-        controller.cancelAll();
-        await expect(request).resolves.toMatchInlineSnapshot(`
-        {
-          "outcome": {
-            "outcome": "cancelled",
-          },
+        const hostToolCall = await resolution;
+        authorization.observeUpdate({ update, hostToolCall });
+        emitter.applyHostToolCall({
+          toolCallId: update.toolCallId,
+          hostToolCall,
+        });
+        hold.release();
+        if (event === initial) {
+          await vi.advanceTimersByTimeAsync(1000);
+          expect(
+            emitter.isToolCallReleased({ toolCallId: update.toolCallId }),
+          ).toBe(true);
         }
-      `);
-      } finally {
-        controller.cancelAll();
-        authorization.close();
-        emitter.close();
       }
-    },
-  );
 
-  it.each(['cursor', 'github-copilot', 'fx'])(
+      await expect(
+        authorization.waitForToolCallAuthorization({
+          toolName: 'get_weather',
+          input: { city: 'Austin' },
+        }),
+      ).resolves.toBe(true);
+      const toolCalls = events.filter(event => event.type === 'tool-call');
+      expect(toolCalls).toHaveLength(1);
+      expect(toolCalls[0].toolCallId).toBe(initial.value.toolCallId);
+      expect(
+        toolCalls.map(({ input, providerExecuted }) => ({
+          input,
+          providerExecuted,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"providerIdentifier":"ai-sdk-harness-tools","toolName":"get_weather","args":{"city":"Austin"}}",
+            "providerExecuted": true,
+          },
+        ]
+      `);
+    } finally {
+      authorization.close();
+      emitter.close();
+      hostToolCallResolver.close();
+    }
+  });
+
+  it.each(['cursor', 'github-copilot'])(
     'emits only the canonical relay call and result for %s',
     async harness => {
       vi.useFakeTimers();
@@ -98,18 +108,18 @@ describe('host weather approval stream', () => {
       const tools = [
         { name: 'get_weather', inputSchema: { type: 'object' as const } },
       ];
+      const hostToolCallResolver = createFixtureHostToolCallResolver({
+        toolNames: ['get_weather'],
+      });
       const emitter = createEmitStreamEvent({
         emit: event => events.push(event),
         emitToolCallCandidate: candidate,
         builtinTools: [],
         hostToolServerName: 'ai-sdk-harness-tools',
         hostTools: tools,
+        hostToolCallResolver,
       });
-      const authorization = createHostToolRelayAuthorization({
-        serverName: 'ai-sdk-harness-tools',
-        toolNames: ['get_weather'],
-        ttlMs: 20,
-      });
+      const authorization = createHostToolRelayAuthorization({ ttlMs: 20 });
       const controller = createACPPermissionController({
         turn: {
           emit: (event: HarnessV1StreamPart) => events.push(event),
@@ -126,16 +136,23 @@ describe('host weather approval stream', () => {
       try {
         for (const event of fixture) {
           if (event.type === 'update') {
-            authorization.observeUpdate({ update: event.value });
+            const update = event.value;
+            const hostToolCall =
+              update.sessionUpdate === 'tool_call' ||
+              update.sessionUpdate === 'tool_call_update'
+                ? hostToolCallResolver.resolveUpdateNow({ update })
+                : undefined;
+            authorization.observeUpdate({ update, hostToolCall });
             emitter.message({
               message: {
                 kind: 'session_update',
                 notification: {
                   sessionId: permission.value.sessionId,
-                  update: event.value,
+                  update,
                 },
-                update: event.value,
+                update,
               },
+              hostToolCall,
             });
           } else {
             await vi.advanceTimersByTimeAsync(2000);

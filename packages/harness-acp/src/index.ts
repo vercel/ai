@@ -9,6 +9,8 @@ export type {
   ACPEmbeddedResource,
   ACPImageContent,
   ACPMetadata,
+  ACPResolvedHostToolCall,
+  ACPResolveHostToolCall,
   ACPResourceLink,
   ACPRole,
   ACPTextContent,

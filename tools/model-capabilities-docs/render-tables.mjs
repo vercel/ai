@@ -1,14 +1,10 @@
-const overviewColumns = [
-  ['Image Input', 'inputs.image'],
-  ['Object Generation', 'objectGeneration'],
-  ['Tool Usage', 'tools.usage'],
-  ['Tool Streaming', 'tools.streaming'],
-];
-
-export function renderCapabilityTable(entries, { capability, columns }) {
+export function renderCapabilityTable(
+  entries,
+  { capability, columns, formatModelId },
+) {
   return renderTable(
     ['Model', ...columns.map(([heading]) => heading)],
-    renderCapabilityRows(entries, capability, columns),
+    renderCapabilityRows(entries, capability, columns, formatModelId),
   );
 }
 
@@ -32,47 +28,6 @@ export function replaceGeneratedTable(source, id, table) {
   );
 }
 
-export function replaceOverviewRows(source, provider, entries) {
-  const lines = source.split('\n');
-  const indices = lines.flatMap((line, index) =>
-    line.startsWith('|') && line.split('|')[1]?.trim() === provider
-      ? [index]
-      : [],
-  );
-  if (
-    indices.length === 0 ||
-    indices.some((index, position) => index !== indices[0] + position)
-  ) {
-    throw new Error(
-      `The provider overview must contain one contiguous group of ${provider} rows.`,
-    );
-  }
-  let headerIndex = indices[0];
-  while (headerIndex > 0 && lines[headerIndex - 1].startsWith('|'))
-    headerIndex--;
-  const expectedHeaders = [
-    'Provider',
-    'Model',
-    ...overviewColumns.map(([heading]) => heading),
-  ];
-  const headers = lines[headerIndex]
-    .split('|')
-    .slice(1, -1)
-    .map(cell => cell.trim());
-  if (headers.join('|') !== expectedHeaders.join('|')) {
-    throw new Error('Unexpected provider overview capability columns.');
-  }
-  const widths = lines[headerIndex + 1]
-    .split('|')
-    .slice(1, -1)
-    .map(cell => cell.trim().length);
-  const rows = renderCapabilityRows(entries, 'language', overviewColumns).map(
-    row => renderRow([provider, ...row], widths),
-  );
-  lines.splice(indices[0], indices.length, ...rows);
-  return lines.join('\n');
-}
-
 export function formatSupport(value) {
   if (value === true) return '<Check />';
   if (value === false) return '<Cross />';
@@ -87,11 +42,16 @@ export function formatSupport(value) {
   throw new Error(`Invalid capability value: ${String(value)}`);
 }
 
-function renderCapabilityRows(entries, capability, columns) {
+function renderCapabilityRows(
+  entries,
+  capability,
+  columns,
+  formatModelId = id => id,
+) {
   return entries
     .filter(([, { capabilities }]) => capabilities[capability] != null)
     .map(([modelId, { capabilities }]) => [
-      `\`${modelId}\``,
+      `\`${formatModelId(modelId)}\``,
       ...columns.map(([, path, format = formatSupport]) =>
         format(readPath(capabilities[capability], path)),
       ),

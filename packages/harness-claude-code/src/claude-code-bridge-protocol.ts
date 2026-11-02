@@ -31,12 +31,18 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+const skillOverridesSchema = z.record(
+  z.string(),
+  z.enum(['on', 'name-only', 'user-invocable-only', 'off']),
+);
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: harnessPromptContentSchema,
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  skillOverrides: skillOverridesSchema.optional(),
   maxBudgetUsd: z.number().optional(),
   strictMcpConfig: z.boolean().optional(),
   questionTimeoutMs: z.number().optional(),

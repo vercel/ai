@@ -2543,6 +2543,73 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass propertyOrdering in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            zebra: { type: 'string', const: 'striped' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              propertyOrdering: ['banana', 'yellow'],
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  tango: { type: 'string' },
+                  alpha: { type: 'number' },
+                },
+                propertyOrdering: ['alpha', 'tango'],
+              },
+            },
+          },
+          propertyOrdering: ['apple', 'items', 'zebra'],
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        zebra: { type: 'string', enum: ['striped'] },
+        apple: {
+          type: 'object',
+          properties: {
+            yellow: { type: 'string' },
+            banana: { type: 'string' },
+          },
+          propertyOrdering: ['banana', 'yellow'],
+        },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              tango: { type: 'string' },
+              alpha: { type: 'number' },
+            },
+            propertyOrdering: ['alpha', 'tango'],
+          },
+        },
+      },
+      propertyOrdering: ['apple', 'items', 'zebra'],
+    });
+  });
+
   it('should preserve local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 

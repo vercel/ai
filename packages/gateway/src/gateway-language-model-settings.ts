@@ -120,6 +120,7 @@ export type GatewayModelId =
   | 'inclusionai/ling-3.0-flash-sante'
   | 'inclusionai/ling-3.0-flash-vl'
   | 'inclusionai/ling-3.1-flash'
+  | 'inclusionai/ling-3.1-flash-1019'
   | 'inference-net/schematron-v2-small'
   | 'inference-net/schematron-v2-turbo'
   | 'interfaze/interfaze-beta'

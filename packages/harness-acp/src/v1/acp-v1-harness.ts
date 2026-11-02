@@ -54,7 +54,11 @@ import {
   type ACPAuthenticationProfileIdentity,
   type ACPClientApp,
 } from '../acp-auth';
-import type { ACPToolCall } from '../acp-tool-call';
+import type {
+  ACPResolvedHostToolCall,
+  ACPResolveHostToolCall,
+  ACPToolCall,
+} from '../acp-tool-call';
 import { createACPBootstrap, resolveACPAgentLaunch } from './acp-v1-bootstrap';
 import {
   outboundMessageSchema,
@@ -431,6 +435,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               permissionModeMapping,
               mcpServers: settings.mcpServers,
               isMcpToolCall: settings.isMcpToolCall,
+              resolveHostToolCall: settings.resolveHostToolCall,
               initialGuidanceApplied: resolveACPInitialGuidanceApplied({
                 isResume: true,
                 lifecycleState: lifecycleData,
@@ -741,6 +746,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         permissionModeMapping,
         mcpServers: settings.mcpServers,
         isMcpToolCall: settings.isMcpToolCall,
+        resolveHostToolCall: settings.resolveHostToolCall,
         initialGuidanceApplied: resolveACPInitialGuidanceApplied({
           isResume,
           lifecycleState: lifecycleData,
@@ -1010,6 +1016,7 @@ function createSession({
   permissionModeMapping,
   mcpServers,
   isMcpToolCall,
+  resolveHostToolCall,
   initialGuidanceApplied: initialGuidanceAppliedAtStart,
   instructionsFingerprint: instructionsFingerprintAtStart,
   sandbox,
@@ -1046,7 +1053,8 @@ function createSession({
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: StartMessage['permissionModeMapping'];
   mcpServers: Record<string, unknown> | undefined;
-  isMcpToolCall: ((toolCall: ACPToolCall) => boolean) | undefined;
+  isMcpToolCall: (toolCall: ACPToolCall) => boolean;
+  resolveHostToolCall: ACPResolveHostToolCall;
   initialGuidanceApplied: boolean;
   instructionsFingerprint: string | undefined;
   sandbox: SandboxSession;
@@ -1201,7 +1209,7 @@ function createSession({
             }) === true;
           dynamicToolCalls.set(
             event.toolCall.toolCallId,
-            isMcpToolCall?.(event.toolCall) === true,
+            isMcpToolCall(event.toolCall) === true,
           );
           channel.send({
             type: 'tool-result',
@@ -1216,6 +1224,53 @@ function createSession({
             output: { suppress: false },
           });
         }
+      }),
+    );
+    subscriptions.push(
+      channel.on('acp-host-tool-call-resolution-request', event => {
+        let hostToolCall: ACPResolvedHostToolCall | undefined;
+        try {
+          hostToolCall = resolveHostToolCall({
+            toolCall: event.toolCall,
+            serverName: event.serverName,
+            toolNames: event.toolNames,
+          });
+          if (
+            hostToolCall != null &&
+            (!event.toolNames.includes(hostToolCall.toolName) ||
+              !isRecord(hostToolCall.input))
+          ) {
+            throw new Error(
+              `${harnessId} ACP resolveHostToolCall must return undefined or one of the provided toolNames with an object input.`,
+            );
+          }
+        } catch (error) {
+          channel.send({
+            type: 'tool-result',
+            toolCallId: event.requestId,
+            output: { hostToolCall: null },
+          });
+          closeForwardedBlock();
+          forward({ type: 'error', error });
+          try {
+            channel.send({ type: 'abort' });
+          } catch {}
+          settle({ error });
+          return;
+        }
+        channel.send({
+          type: 'tool-result',
+          toolCallId: event.requestId,
+          output: {
+            hostToolCall:
+              hostToolCall == null
+                ? null
+                : {
+                    toolName: hostToolCall.toolName,
+                    input: hostToolCall.input,
+                  },
+          },
+        });
       }),
     );
     subscriptions.push(

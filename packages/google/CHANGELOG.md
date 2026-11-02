@@ -1,5 +1,20 @@
 # @ai-sdk/google
 
+## 4.0.109
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- dfed8e8: Consolidate Google language model capabilities and request policies into a model catalog shared by runtime resolution and generated documentation, preserving existing Google and Vertex request behavior.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.108
 
 ### Patch Changes

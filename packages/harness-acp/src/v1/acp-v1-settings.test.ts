@@ -16,6 +16,8 @@ const baseSettings = {
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: { PROVIDER_BASE_URL: 'https://provider.example' },
   modelMapping: { type: 'session-config-option', path: 'model' },
+  isMcpToolCall: () => false,
+  resolveHostToolCall: () => undefined,
 } as const satisfies ACPV1Settings;
 
 function validate(settings: Partial<ACPV1Settings>): () => void {
@@ -55,6 +57,20 @@ describe('validateACPV1Settings', () => {
     expect(validate({ harnessId: 'Example ACP' })).toThrow(
       'stable kebab-case identifier',
     );
+  });
+
+  it('requires tool call classification and host tool resolution callbacks', () => {
+    expect(
+      validate({
+        isMcpToolCall: undefined as unknown as ACPV1Settings['isMcpToolCall'],
+      }),
+    ).toThrow('ACP isMcpToolCall must be a function.');
+    expect(
+      validate({
+        resolveHostToolCall:
+          undefined as unknown as ACPV1Settings['resolveHostToolCall'],
+      }),
+    ).toThrow('ACP resolveHostToolCall must be a function.');
   });
 
   it('rejects empty locked artifacts and install commands', () => {

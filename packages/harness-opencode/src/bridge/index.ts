@@ -62,6 +62,10 @@ import {
 import { toOpenCodePromptParts } from './opencode-prompt';
 
 type Emit = (msg: Record<string, unknown>) => void;
+/* Resolves once the approval request has been sent to the host. */
+type EmitApprovalRequest = (
+  msg: Record<string, unknown>,
+) => void | Promise<void>;
 
 type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
@@ -148,6 +152,13 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   skill: 'edit',
   todowrite: 'edit',
 };
+/*
+ * How long an approval request waits for its tool call to reach the host.
+ * OpenCode reports the call right after asking, so this only bounds a missing
+ * report; after it the request is sent as before.
+ */
+const APPROVAL_TOOL_CALL_WAIT_MS = 5_000;
+
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const args = parseArgs(argv.slice(2));
@@ -1090,9 +1101,39 @@ async function consumeEvents({
         taskSessionIds.add(subagentSessionId);
       }
     };
+  /*
+   * OpenCode asks for permission while a tool call is still pending and
+   * reports the call as running only afterwards, but the host must receive
+   * the call before its approval request. An approval request for a call that
+   * has not been sent yet waits for it, at most APPROVAL_TOOL_CALL_WAIT_MS.
+   * The bridge only starts waiting for the host's answer once the request is
+   * sent, so the host is not told the step is paused before it has the call.
+   */
+  const sentToolCallIds = new Set<string>();
+  const approvalsAwaitingToolCall = new Map<string, () => void>();
+  const emitToHost: Emit = message => {
+    emit(message);
+    if (message.type !== 'tool-call') return;
+    const toolCallId = String(message.toolCallId);
+    sentToolCallIds.add(toolCallId);
+    approvalsAwaitingToolCall.get(toolCallId)?.();
+  };
+  const emitApprovalRequest: EmitApprovalRequest = async message => {
+    const toolCallId = String(message.toolCallId);
+    if (!sentToolCallIds.has(toolCallId)) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      await new Promise<void>(resolve => {
+        timeout = setTimeout(resolve, APPROVAL_TOOL_CALL_WAIT_MS);
+        approvalsAwaitingToolCall.set(toolCallId, resolve);
+      });
+      clearTimeout(timeout);
+      approvalsAwaitingToolCall.delete(toolCallId);
+    }
+    emit(message);
+  };
   const emitStreamEvent = createEmitStreamEvent({
     state,
-    emit,
+    emit: emitToHost,
     emitWarning: turn.emitWarning,
     emitError: turn.emitError,
     toWireToolName,
@@ -1222,6 +1263,7 @@ async function consumeEvents({
       if (consumeEvent(next.value)) break;
     }
   } finally {
+    for (const release of approvalsAwaitingToolCall.values()) release();
     void iterator.return?.();
   }
 
@@ -1270,7 +1312,7 @@ async function consumeEvents({
           permissionMode,
           inactiveBuiltinToolNames,
           turn,
-          emit,
+          emit: isDescendant ? emit : emitApprovalRequest,
           event,
           waitFor,
         }),
@@ -1283,7 +1325,7 @@ async function consumeEvents({
           permissionMode,
           inactiveBuiltinToolNames,
           turn,
-          emit,
+          emit: isDescendant ? emit : emitApprovalRequest,
           event,
           waitFor,
         }),
@@ -1416,7 +1458,7 @@ async function handlePermissionV2({
   permissionMode: StartMessage['permissionMode'];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   event: OpenCodeEvent;
   waitFor?: WaitForHostInput;
 }): Promise<void> {
@@ -1459,7 +1501,7 @@ async function handlePermission({
   permissionMode: StartMessage['permissionMode'];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   event: OpenCodeEvent;
   waitFor?: WaitForHostInput;
 }): Promise<void> {
@@ -1505,7 +1547,7 @@ async function selectPermissionReply({
   permissionMode: StartMessage['permissionMode'];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   waitFor?: WaitForHostInput;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const requestApproval = async () => {
@@ -1517,7 +1559,7 @@ async function selectPermissionReply({
   };
   const toolName = toPermissionToolName(action);
   if (isBuiltinToolInactive({ toolName, inactiveBuiltinToolNames })) {
-    emit({
+    await emit({
       type: 'tool-approval-request',
       approvalId: requestID,
       toolCallId,
@@ -1543,7 +1585,7 @@ async function selectPermissionReply({
       : kind === 'readonly';
   if (allowed) return { reply: 'always' };
 
-  emit({
+  await emit({
     type: 'tool-approval-request',
     approvalId: requestID,
     toolCallId,

@@ -1,5 +1,24 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.174
+
+### Patch Changes
+
+- 31d83e2: feat(harness-claude-code): support `skillOverrides` adapter setting for selective skill overrides
+  - @ai-sdk/harness@1.0.170
+
+## 1.0.173
+
+### Patch Changes
+
+- edd4d4f: fix(harness-claude-code): correctly map dotted AI Gateway model IDs to the ID shapes Claude Code expects
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
 ## 1.0.172
 
 ### Patch Changes

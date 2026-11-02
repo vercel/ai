@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.35
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+
 ## 4.0.34
 
 ### Patch Changes

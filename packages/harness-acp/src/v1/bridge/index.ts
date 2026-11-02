@@ -32,6 +32,7 @@ import {
 } from './acp-diagnostics';
 import { monitorACPAgentStderr } from './agent-stderr-monitor';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { createHostToolCallResolver } from './host-tool-call-resolver';
 import { resolveACPInstructionConfiguration } from './instruction-mapping';
 import {
   startHostToolRelay,
@@ -237,7 +238,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   void cancellationFailure.catch(() => {});
   let cancellationRequested = false;
   let cancellationFailureError: Error | undefined;
-  const hostToolAuthorization = createHostToolRelayAuthorization({
+  const hostToolAuthorization = createHostToolRelayAuthorization();
+  const hostToolCallResolver = createHostToolCallResolver({
+    turn,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     toolNames: (start.tools ?? []).map(tool => tool.name),
   });
@@ -245,6 +248,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     if (cancellationRequested) return;
     cancellationRequested = true;
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     activePermissionController?.cancelAll();
     try {
       if (connection == null) {
@@ -291,6 +295,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     builtinTools: start.builtinTools,
     hostToolServerName: HOST_TOOL_MCP_SERVER_NAME,
     hostTools: start.tools ?? [],
+    hostToolCallResolver,
   });
   if (bridgeConfiguration.askUserQuestionsRequestMethod != null) {
     activeQuestionRequest = {
@@ -357,6 +362,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         once: true,
       });
     }
+    let pendingHostToolResolutions: Promise<void> = Promise.resolve();
     for (;;) {
       let message: acp.ActiveSessionMessage;
       try {
@@ -387,16 +393,45 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
-        hostToolAuthorization.observeUpdate({ update: message.update });
+        const update = message.update;
+        const isToolUpdate =
+          update.sessionUpdate === 'tool_call' ||
+          update.sessionUpdate === 'tool_call_update';
         for (const rawValue of captured?.precedingRawValues ?? []) {
           emitStreamEvent.raw({ rawValue });
         }
-        emitStreamEvent.message({
-          message,
-          rawUpdate: captured?.rawUpdate,
-        });
+        if (!isToolUpdate) {
+          hostToolAuthorization.observeUpdate({ update });
+          emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+          continue;
+        }
+        /*
+         * Host tool resolution requires a round trip to the host. Updates are
+         * still recorded as soon as they arrive, so that a permission request
+         * received meanwhile can be matched against them, and the resolution
+         * is applied once it is known. Resolutions are applied in update
+         * order. The flush hold keeps a host tool call from being released to
+         * the stream while its resolution is pending. Released tool calls
+         * still need resolution for relay authorization, even though their
+         * stream events can no longer be suppressed.
+         */
+        const flushHold = emitStreamEvent.deferFlush();
+        const resolution = hostToolCallResolver.resolveUpdate({ update });
+        emitStreamEvent.message({ message, rawUpdate: captured?.rawUpdate });
+        pendingHostToolResolutions = pendingHostToolResolutions
+          .then(() => resolution)
+          .catch(() => undefined)
+          .then(hostToolCall => {
+            hostToolAuthorization.observeUpdate({ update, hostToolCall });
+            emitStreamEvent.applyHostToolCall({
+              toolCallId: update.toolCallId,
+              hostToolCall,
+            });
+          })
+          .finally(() => flushHold.release());
         continue;
       }
+      await pendingHostToolResolutions;
       for (const rawValue of streamCapture?.drainRawValues() ?? []) {
         emitStreamEvent.raw({ rawValue });
       }
@@ -404,6 +439,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   } finally {
     hostToolAuthorization.close();
+    hostToolCallResolver.close();
     if (activeQuestionRequest?.turn === turn) {
       activeQuestionRequest = undefined;
     }
