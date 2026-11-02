@@ -6126,10 +6126,56 @@ describe('doStream', () => {
         status: 'INVALID_ARGUMENT',
         isRetryable: false,
       },
-      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNAVAILABLE',
+        statusCode: 503,
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: null,
+        status: 'RESOURCE_EXHAUSTED',
+        statusCode: 429,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'DEADLINE_EXCEEDED',
+        statusCode: 504,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'PERMISSION_DENIED',
+        statusCode: 403,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNKNOWN',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'FUTURE_STATUS',
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'UNAVAILABLE',
+        isRetryable: false,
+      },
     ])(
       'should surface $status and finish with error (partial text: $partialText)',
-      async ({ partialText, code, status, isRetryable }) => {
+      async ({ partialText, code, status, statusCode, isRetryable }) => {
         const error = {
           code,
           message: 'Provider error',
@@ -6174,7 +6220,7 @@ describe('doStream', () => {
             message: error.message,
             type: status,
             code: code ?? undefined,
-            statusCode: code ?? undefined,
+            statusCode: code ?? statusCode,
             isRetryable,
             data: error,
           },
