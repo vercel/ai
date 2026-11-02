@@ -15,6 +15,8 @@ export type MoonshotAIChatModelId =
   | 'kimi-k2.7-code'
   | 'kimi-k2.7-code-highspeed'
   | 'kimi-k3'
+  | 'kimi-k3.1-pro'
+  | 'kimi-k3.1-pro-highspeed'
   | (string & {});
 
 export function isMoonshotAIKimiModel(modelId: MoonshotAIChatModelId): boolean {
@@ -37,7 +39,13 @@ export function getMoonshotAIModelFamily(
   if (modelId === 'kimi-k2.7-code' || modelId === 'kimi-k2.7-code-highspeed') {
     return 'kimi-k2.7';
   }
-  if (modelId === 'kimi-k3') return 'kimi-k3';
+  if (
+    modelId === 'kimi-k3' ||
+    modelId === 'kimi-k3.1-pro' ||
+    modelId === 'kimi-k3.1-pro-highspeed'
+  ) {
+    return 'kimi-k3';
+  }
   if (modelId.startsWith('moonshot-v1-')) return 'moonshot-v1';
   return 'unknown';
 }
@@ -118,6 +126,17 @@ export const moonshotaiLanguageModelOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Context caching options for Kimi K3 models. `ttl` selects the cache
+       * write tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.literal('implicit').optional(),
+          ttl: z.enum(['5m', '1h']).optional(),
+        })
+        .optional(),
+
+      /**
        * A stable identifier used to help Moonshot detect users violating usage
        * policies. Recommended to hash the username or email address.
        */
@@ -174,6 +193,15 @@ export type MoonshotAILanguageModelOptions = {
    */
   reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
   promptCacheKey?: string;
+
+  /**
+   * Context caching options for Kimi K3 models. `ttl` selects the cache write
+   * tier (`5m` or `1h`). Moonshot uses `5m` when omitted.
+   */
+  promptCacheOptions?: {
+    mode?: 'implicit';
+    ttl?: '5m' | '1h';
+  };
   safetyIdentifier?: string;
 };
 

@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -50,7 +52,7 @@ import { preparePerplexityTools } from './perplexity-prepare-tools';
 
 type PerplexityAgentConfig = {
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -100,6 +102,7 @@ function getResponseMetadata(response: {
 
 function getProviderMetadata(
   usage: PerplexityUsage | null | undefined,
+  searchQueries: string[],
 ): SharedV4ProviderMetadata {
   const cost = usage?.cost;
   const numSearchQueries = usage?.tool_calls_details
@@ -115,6 +118,7 @@ function getProviderMetadata(
         numSearchQueries,
       },
       images: null,
+      searchQueries: searchQueries.length > 0 ? searchQueries : null,
       cost:
         cost == null
           ? null
@@ -171,6 +175,22 @@ function hasSearchResultId(source: PerplexityUrlSource): boolean {
 
 function getSearchResults(item: PerplexityOutputItem) {
   return item.type === 'search_results' ? (item.results ?? []) : [];
+}
+
+/**
+ * Appends web search queries in the order Perplexity ran them, skipping
+ * duplicates. The same queries can arrive in reasoning events, output items,
+ * and the completed response.
+ */
+function collectSearchQueries(
+  target: string[],
+  queries: readonly string[] | null | undefined,
+) {
+  for (const query of queries ?? []) {
+    if (!target.includes(query)) {
+      target.push(query);
+    }
+  }
 }
 
 function getFetchedSources(item: PerplexityOutputItem) {
@@ -270,26 +290,20 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     let reasoningConfig = agentOptions.reasoning;
     if (reasoningConfig == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-        });
-      } else {
-        const effort = mapReasoningToProviderEffort({
-          reasoning,
-          effortMap: {
-            minimal: 'minimal',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            xhigh: 'xhigh',
-            max: 'xhigh',
-          },
-          warnings,
-        });
-        reasoningConfig = effort == null ? undefined : { effort };
-      }
+      // Reasoning cannot be disabled, so reasoning 'none' maps to the lowest
+      // effort.
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: {
+          minimal: 'minimal',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'xhigh',
+        },
+        warnings,
+      });
+      reasoningConfig = effort == null ? undefined : { effort };
     }
 
     const body: Record<string, unknown> = {
@@ -337,7 +351,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -364,6 +381,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const content: LanguageModelV4Content[] = [];
     const sourceIndexesByUrl = new Map<string, number>();
+    const searchQueries: string[] = [];
     let hasFunctionCall = false;
 
     const addSource = (source: PerplexityUrlSource) => {
@@ -398,6 +416,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           }
         }
       } else if (item.type === 'search_results') {
+        collectSearchQueries(searchQueries, item.queries);
         for (const result of getSearchResults(item)) {
           addSource(createSource(result, this.config.generateId));
         }
@@ -458,7 +477,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         body: rawResponse,
       },
       warnings,
-      providerMetadata: getProviderMetadata(response.usage),
+      providerMetadata: getProviderMetadata(response.usage, searchQueries),
     };
   }
 
@@ -470,7 +489,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/agent`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -495,6 +517,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     const textStates = new Map<string, { text: string; ended: boolean }>();
     const emittedSourceUrls = new Set<string>();
     const pendingSourcesByUrl = new Map<string, PerplexityUrlSource>();
+    const searchQueries: string[] = [];
     const seenFunctionCalls = new Set<string>();
     const generateId = this.config.generateId;
 
@@ -672,6 +695,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                   }
                 }
               }
+              if (item.type === 'search_results') {
+                collectSearchQueries(searchQueries, item.queries);
+              }
               for (const result of getSearchResults(item)) {
                 emitSource(createSource(result, generateId));
               }
@@ -746,7 +772,12 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 break;
               }
 
-              case 'response.reasoning.search_queries':
+              case 'response.reasoning.search_queries': {
+                emitReasoningThought(value.thought);
+                collectSearchQueries(searchQueries, value.queries);
+                break;
+              }
+
               case 'response.reasoning.fetch_url_queries': {
                 emitReasoningThought(value.thought);
                 break;
@@ -866,7 +897,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertPerplexityUsage(usage),
-              providerMetadata: getProviderMetadata(usage),
+              providerMetadata: getProviderMetadata(usage, searchQueries),
             });
           },
         }),

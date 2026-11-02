@@ -40,6 +40,15 @@ jobs:
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
+      - name: Verify generated model capability documentation
+        run: pnpm run verify:model-capabilities-docs
+
+      - name: Verify package README files
+        run: pnpm run verify:readmes
+
+      - name: Verify harness bridge package.json files
+        run: pnpm run verify:harness-bridge-package-json
+
   konsistent:
     name: 'Code Consistency'
     runs-on: ubuntu-latest

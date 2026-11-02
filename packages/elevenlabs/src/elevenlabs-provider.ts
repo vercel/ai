@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -42,9 +44,10 @@ export interface ElevenLabsProvider extends ProviderV4 {
 
 export interface ElevenLabsProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -59,7 +62,8 @@ export interface ElevenLabsProviderSettings {
 
   /**
    * Custom WebSocket implementation. Required in runtimes whose native
-   * WebSocket constructor does not support headers for realtime transcription.
+   * WebSocket constructor does not support headers, for realtime
+   * transcription and streaming speech.
    */
   webSocket?: WebSocketConstructor;
 }
@@ -71,16 +75,18 @@ export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
 ): ElevenLabsProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'xi-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ELEVENLABS_API_KEY',
-          description: 'ElevenLabs',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-elevenlabs/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'xi-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'ELEVENLABS_API_KEY',
+            description: 'ElevenLabs',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-elevenlabs/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
@@ -98,6 +104,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {

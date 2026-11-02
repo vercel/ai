@@ -169,6 +169,13 @@ vi.mock('@cline/core', async importOriginal => {
               clineMock.modelOptions.push(options);
               return { stream: vi.fn() };
             },
+            listProviders: () =>
+              config.providerConfigs.map(providerConfig => ({
+                id: providerConfig.providerId,
+                name: providerConfig.providerId,
+                defaultModelId: `${providerConfig.providerId}-default-model`,
+                models: [],
+              })),
           };
         },
       ),
@@ -211,6 +218,51 @@ describe('createClineSession instructions', () => {
         /## Sandbox\n\nTest sandbox\n\nUse turbo build\.$/,
       );
       expect(clineMock.runInputs).toEqual(['do the thing']);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the Cline provider default model on stream-start when no model is set', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'cline-default-model',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the requested model on stream-start', async () => {
+    const session = await createSession();
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        model: 'anthropic/claude-sonnet-4.6',
+        prompt: 'do the thing',
+        emit,
+      });
+      await control.done;
+
+      expect(emit).toHaveBeenCalledWith({
+        type: 'stream-start',
+        modelId: 'anthropic/claude-sonnet-4.6',
+      });
     } finally {
       await session.doDestroy();
     }

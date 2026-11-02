@@ -679,7 +679,7 @@ describe('AnthropicLanguageModel', () => {
         expect(result.warnings).toEqual([]);
       });
 
-      it('should map reasoning "xhigh" to adaptive thinking with effort "max"', async () => {
+      it('should map reasoning "xhigh" to adaptive thinking with effort "high"', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
         const result = await provider('claude-sonnet-4-6').doGenerate({
@@ -690,13 +690,13 @@ describe('AnthropicLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody).toMatchObject({
           thinking: { type: 'adaptive', display: 'summarized' },
-          output_config: { effort: 'max' },
+          output_config: { effort: 'high' },
         });
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
         });
       });
 
@@ -13656,7 +13656,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.output_config?.effort).toBe('xhigh');
   });
 
-  it('should map xhigh reasoning effort to max for claude-opus-4-6', async () => {
+  it('should map xhigh reasoning effort to high for claude-opus-4-6', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     await provider('claude-opus-4-6').doGenerate({
@@ -13665,7 +13665,7 @@ describe('claude-opus-4-7 specific behavior', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.output_config?.effort).toBe('max');
+    expect(requestBody.output_config?.effort).toBe('high');
   });
 
   it('should include task_budget in output_config and add beta header', async () => {
@@ -14322,7 +14322,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     });
   });
 
-  it('should map reasoning "none" to between_tools thinking', async () => {
+  it('should map reasoning "none" to between_tools thinking with a compatibility warning', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     const result = await provider('claude-sonnet-5-5').doGenerate({
@@ -14333,7 +14333,14 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.thinking).toEqual({ type: 'between_tools' });
     expect(requestBody.output_config).toBeUndefined();
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          "reasoning 'none' is not supported by claude-sonnet-5-5; thinking cannot be disabled. Using 'between_tools' thinking, the lowest thinking setting, instead.",
+      },
+    ]);
   });
 
   it('should map reasoning "xhigh" to adaptive thinking with effort "xhigh"', async () => {

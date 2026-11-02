@@ -35,7 +35,11 @@ export type MistralChatModelId =
   | 'mistral-vibe-cli-with-tools'
   | 'voxtral-small-2507'
   | 'voxtral-small-latest'
+  | 'zai-glm-5'
   | 'zai-glm-5-2'
+  | 'zai-glm-5-3'
+  | 'zai-glm-5-3-flash'
+  | 'zai-glm-latest'
   | (string & {});
 
 export const mistralLanguageModelChatOptions = () =>
@@ -83,8 +87,11 @@ export const mistralLanguageModelChatOptions = () =>
      *
      * - `'high'`: Enable reasoning
      * - `'none'`: Disable reasoning
+     * - `'low'`, `'max'`: Lowest and highest reasoning effort for models that
+     *   support them, e.g. `zai-glm-5-3`, which accepts `'low'`, `'high'`, and
+     *   `'max'` but not `'none'`
      */
-    reasoningEffort: z.enum(['high', 'none']).optional(),
+    reasoningEffort: z.enum(['high', 'none', 'low', 'max']).optional(),
   });
 export const mistralLanguageModelChatOptionsValidator = lazySchema(() =>
   zodSchema(mistralLanguageModelChatOptions()),

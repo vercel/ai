@@ -83,10 +83,13 @@ You can use the following optional settings to customize the xAI provider instan
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.x.ai/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `XAI_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -157,20 +160,22 @@ The AI SDK option accepts these values, but each xAI model supports a subset:
   challenging problems, complex math, multi-step logic, and competition-level
   tasks.
 - `'xhigh'` — Uses the most reasoning tokens for the most challenging tasks.
-  This level is only supported by `grok-4.6`.
+  This level is supported by `grok-4.6` and `grok-4.7`.
 
 <Note>
   Support and defaults are model-specific. `grok-4.3` supports `'none'`,
   `'low'`, `'medium'`, and `'high'`. `grok-4.5` supports `'low'`, `'medium'`,
   and `'high'`, defaults to `'high'`, and cannot disable reasoning. `grok-4.6`
-  supports `'low'`, `'medium'`, `'high'`, and `'xhigh'`, and defaults to
-  `'high'`. The `grok-4.20-reasoning` and `grok-4.20-non-reasoning` variants do
-  not accept this option. For `grok-4.20-multi-agent`, `'low'`, `'medium'`, and
-  `'high'` control the number of agents instead of reasoning depth. See xAI's
-  [reasoning
+  and `grok-4.7` support `'low'`, `'medium'`, `'high'`, and `'xhigh'`, and
+  default to `'high'`. The `grok-4.20-reasoning` and `grok-4.20-non-reasoning`
+  variants do not accept this option. For `grok-4.20-multi-agent`, `'low'`,
+  `'medium'`, and `'high'` control the number of agents instead of reasoning
+  depth. See xAI's [reasoning
   docs](https://docs.x.ai/developers/model-capabilities/text/reasoning) and
   [Grok 4.6 model page](https://docs.x.ai/developers/models/grok-4.6) for
-  current details.
+  current details. The SDK currently maps the portable `reasoning: 'xhigh'`
+  setting directly only for `grok-4.6`; use
+  `providerOptions.xai.reasoningEffort: 'xhigh'` to request it on `grok-4.7`.
 </Note>
 
 ### Priority Processing
@@ -329,6 +334,8 @@ const { text, sources } = await generateText({
 console.log(text);
 console.log('Citations:', sources);
 ```
+
+Each citation is returned as one `source`. With `streamText`, each citation is emitted once as a `source` stream part, as soon as it is added.
 
 #### Web Search Parameters
 
@@ -704,8 +711,11 @@ text models within the same batch.
 
 ## Model Capabilities
 
+{/* model-capabilities:xai-language:start */}
+
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
 | ----------------------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
+| `grok-4.7`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.6`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.5`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4.20-reasoning`         | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
@@ -716,8 +726,11 @@ text models within the same batch.
 | `grok-4-fast-reasoning`       | <Check />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-4-fast-non-reasoning`   | <Check />   | <Check />         | <Check />  | <Check />      | <Cross /> |
 | `grok-code-fast-1`            | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `grok-4`                      | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
 | `grok-3`                      | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross /> |
 | `grok-3-mini`                 | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+
+{/* model-capabilities:xai-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -864,9 +877,13 @@ const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
 
 ### Model Capabilities
 
+{/* model-capabilities:xai-speech:start */}
+
 | Model     | Language  | Speed     | Output Formats             |
 | --------- | --------- | --------- | -------------------------- |
 | `default` | <Check /> | <Check /> | mp3, wav, pcm, mulaw, alaw |
+
+{/* model-capabilities:xai-speech:end */}
 
 ## Transcription Models
 
@@ -982,10 +999,14 @@ const result = await transcribe({
 
 ### Model Capabilities
 
+{/* model-capabilities:xai-transcription:start */}
+
 | Model                       | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
 | --------------------------- | ---------------- | --------- | --------------- | ----------- | ------------ |
 | `default`                   | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
 | `grok-voice-transcribe-2.0` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+
+{/* model-capabilities:xai-transcription:end */}
 
 <Note>
   Word timestamps, diarization results, and segments are only returned on the
@@ -1124,11 +1145,15 @@ const { images } = await generateImage({
 
 ### Image Model Capabilities
 
+{/* model-capabilities:xai-image:start */}
+
 | Model                    | Resolution         | Aspect Ratios                                                                                                              | Image Editing |
 | ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | `grok-imagine-image-2.0` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `21:9`, `5:2`, `auto` | <Check />     |
 | `grok-imagine-image-pro` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
 | `grok-imagine-image`     | `1k`               | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
+
+{/* model-capabilities:xai-image:end */}
 
 `grok-imagine-image-2.0` is xAI's latest image model.
 

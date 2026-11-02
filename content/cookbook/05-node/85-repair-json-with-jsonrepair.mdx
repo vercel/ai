@@ -54,7 +54,7 @@ const result = await generateText({
 });
 
 const repairedText = jsonrepair(result.text);
-const parseResult = safeParseJSON({ text: repairedText });
+const parseResult = await safeParseJSON({ text: repairedText });
 
 if (!parseResult.success) {
   throw parseResult.error;

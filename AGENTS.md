@@ -62,6 +62,7 @@ pnpm build          # Build all packages
 | `pnpm test`              | Run all tests (excludes examples)                                 |
 | `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
+| `pnpm konsistent`        | Run code consistency validation and checks                        |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |

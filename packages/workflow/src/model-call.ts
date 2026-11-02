@@ -7,7 +7,7 @@ import type {
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import type {
-  Experimental_LanguageModelStreamPart,
+  LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
   StepResultPerformance,
@@ -24,7 +24,7 @@ import type {
 } from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
+  | LanguageModelStreamPart<TTools>
   | {
       type: 'tool-approval-request';
       approvalId: string;

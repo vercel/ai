@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.119",
+  "version": "5.0.129",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -89,7 +89,7 @@
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "google-auth-library": "^10.6.2"
+    "google-auth-library": "^11.3.1"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",

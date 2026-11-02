@@ -1346,7 +1346,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       );
 
       it.each(['none', 'minimal'])(
-        'should omit unsupported GPT-6 reasoning effort %s',
+        'should send provider reasoning effort %s unchanged for GPT-6 models',
         async reasoningEffort => {
           const { warnings } = await createModel('gpt-6-astra').doGenerate({
             prompt: TEST_PROMPT,
@@ -1357,21 +1357,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           });
 
-          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
             model: 'gpt-6-astra',
-            input: [
-              {
-                role: 'user',
-                content: [{ type: 'input_text', text: 'Hello' }],
-              },
-            ],
+            reasoning: { effort: reasoningEffort },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it.each(['none', 'minimal'] as const)(
+        'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+        async reasoning => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: 'gpt-6-astra',
+            reasoning: { effort: 'low' },
           });
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported',
-              feature: 'reasoningEffort',
-              details:
-                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
             },
           ]);
         },
@@ -1421,6 +1431,60 @@ describe('OpenAIResponsesLanguageModel', () => {
             details: 'logprobs is not supported for reasoning models',
           },
         ]);
+      });
+
+      it('should keep logprob settings for GPT-5 reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.top_logprobs).toBe(5);
+        expect(body.include).toStrictEqual(['message.output_text.logprobs']);
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it.each([
+        ['gpt-5.5', 'minimal', 'low'],
+        ['gpt-5.1', 'xhigh', 'high'],
+        ['gpt-5-nano', 'none', 'minimal'],
+      ] as const)(
+        'should map unsupported reasoning for %s from %s to %s',
+        async (modelId, reasoning, expectedEffort) => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+            expectedEffort,
+          );
+          expect(warnings).toStrictEqual([
+            {
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+            },
+          ]);
+        },
+      );
+
+      it('should send max reasoning for GPT-5.6 models', async () => {
+        const { warnings } = await createModel('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+          'max',
+        );
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
@@ -2119,6 +2183,22 @@ describe('OpenAIResponsesLanguageModel', () => {
               'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
+      });
+
+      it('should send prompt cache retention for GPT-5 models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).prompt_cache_retention,
+        ).toBe('24h');
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should omit legacy prompt cache retention for GPT-6 models', async () => {
@@ -5171,7 +5251,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             server.urls['https://api.openai.com/v1/responses'].response = {
@@ -7220,6 +7300,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         );
 
         expect(textParts).toHaveLength(2);
+        expect(result.structuredOutputText).toBeUndefined();
         expect(textParts[0].providerMetadata?.openai).toMatchObject({
           itemId: 'msg_0465b6d1ae1f97c500699f883243a481a3b50b985223592984',
           phase: 'commentary',
@@ -7229,6 +7310,322 @@ describe('OpenAIResponsesLanguageModel', () => {
           phase: 'final_answer',
         });
       });
+
+      function message(
+        id: string,
+        phase: 'commentary' | 'final_answer' | undefined,
+        ...texts: string[]
+      ) {
+        return {
+          type: 'message',
+          id,
+          role: 'assistant',
+          status: 'completed',
+          phase,
+          content: texts.map(text => ({
+            type: 'output_text',
+            text,
+            annotations: [],
+          })),
+        };
+      }
+
+      it.each([
+        {
+          name: 'JSON commentary before a final answer',
+          output: [
+            message('draft', 'commentary', '{"items":[]}'),
+            message('final', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'non-JSON commentary before a final answer',
+          output: [
+            message('draft', 'commentary', 'Let me think.'),
+            message('final', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['Let me think.', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'identical final answers',
+          output: [
+            message('first', 'final_answer', '{"items":["result"]}'),
+            message('last', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['{"items":["result"]}', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'different final answers followed by commentary',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', '{"items":["result"]}'),
+            message('commentary', 'commentary', 'Finished.'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":["result"]}', 'Finished.'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'a final answer split across text parts',
+          output: [
+            message('draft', 'commentary', '{"items":[]}'),
+            message('final', 'final_answer', '{"items":', '["result"]}'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":', '["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'a malformed final answer without falling back to a draft',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', '{"items":'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":'],
+          structuredOutputText: '{"items":',
+        },
+        {
+          name: 'an empty final answer without falling back to a draft',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', ''),
+          ],
+          expectedTexts: ['{"items":[]}', ''],
+          structuredOutputText: '',
+        },
+        {
+          name: 'a final answer without text parts',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer'),
+          ],
+          expectedTexts: ['{"items":[]}'],
+          structuredOutputText: '',
+        },
+        {
+          name: 'messages without phases',
+          output: [
+            message('first', undefined, '{"items":'),
+            message('last', undefined, '["result"]}'),
+          ],
+          expectedTexts: ['{"items":', '["result"]}'],
+          structuredOutputText: undefined,
+        },
+        {
+          name: 'commentary without an explicit final answer',
+          output: [message('commentary', 'commentary', '{"items":[]}')],
+          expectedTexts: ['{"items":[]}'],
+          structuredOutputText: undefined,
+        },
+      ])(
+        'should preserve all text and select structured output for $name',
+        async ({ output, expectedTexts, structuredOutputText }) => {
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_json',
+              model: 'gpt-5.3-codex',
+              output,
+              usage: { input_tokens: 13, output_tokens: 7 },
+            },
+          };
+
+          const result = await createModel('gpt-5.3-codex').doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json' },
+          });
+
+          expect(result.content.map(part => part.type)).toEqual(
+            expectedTexts.map(() => 'text'),
+          );
+          expect(
+            result.content
+              .filter(part => part.type === 'text')
+              .map(part => part.text),
+          ).toEqual(expectedTexts);
+          expect(result.structuredOutputText).toBe(structuredOutputText);
+        },
+      );
+
+      it.each([
+        ['openai', 'openai'],
+        ['azure.responses', 'azure'],
+      ])(
+        'should preserve all content and response details while selecting structured output for %s',
+        async (provider, providerMetadataKey) => {
+          const annotations = [
+            {
+              type: 'url_citation',
+              start_index: 0,
+              end_index: 5,
+              url: 'https://example.com/draft',
+              title: 'Draft source',
+            },
+          ];
+          const draftLogprobs = [
+            { token: 'Draft', logprob: -0.1, top_logprobs: [] },
+          ];
+          const finalLogprobs = [
+            { token: '{', logprob: -0.2, top_logprobs: [] },
+          ];
+          const body = {
+            id: 'resp_json',
+            model: 'gpt-4o',
+            output: [
+              {
+                ...message('draft', 'commentary'),
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Draft.',
+                    annotations,
+                    logprobs: draftLogprobs,
+                  },
+                ],
+              },
+              {
+                type: 'reasoning',
+                id: 'reasoning',
+                encrypted_content: 'encrypted',
+                summary: [{ type: 'summary_text', text: 'Thinking.' }],
+              },
+              {
+                type: 'function_call',
+                id: 'function',
+                call_id: 'call',
+                name: 'weather',
+                arguments: '{"location":"Paris"}',
+              },
+              {
+                ...message('final', 'final_answer'),
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '{"items":',
+                    annotations: [],
+                    logprobs: finalLogprobs,
+                  },
+                  {
+                    type: 'output_text',
+                    text: '["result"]}',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 13,
+              input_tokens_details: { cached_tokens: 3 },
+              output_tokens: 7,
+              output_tokens_details: { reasoning_tokens: 2 },
+            },
+          };
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'json-value',
+            body,
+          };
+
+          const result = await new OpenAIResponsesLanguageModel('gpt-4o', {
+            provider,
+            url: ({ path }) => `https://api.openai.com/v1${path}`,
+            headers: () => ({ Authorization: 'Bearer APIKEY' }),
+            generateId: mockId(),
+          }).doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              schema: {
+                type: 'object',
+                properties: {
+                  items: { type: 'array', items: { type: 'string' } },
+                },
+                required: ['items'],
+                additionalProperties: false,
+              },
+            },
+            providerOptions: { [providerMetadataKey]: { logprobs: 1 } },
+          });
+
+          expect(result.content).toEqual([
+            {
+              type: 'text',
+              text: 'Draft.',
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'draft',
+                  phase: 'commentary',
+                  annotations,
+                },
+              },
+              citations: [
+                {
+                  startIndex: 0,
+                  endIndex: 5,
+                  source: {
+                    type: 'source',
+                    sourceType: 'url',
+                    id: 'https://example.com/draft',
+                    url: 'https://example.com/draft',
+                    title: 'Draft source',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              id: 'id-0',
+              url: 'https://example.com/draft',
+              title: 'Draft source',
+            },
+            {
+              type: 'reasoning',
+              text: 'Thinking.',
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'reasoning',
+                  reasoningEncryptedContent: 'encrypted',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call',
+              toolName: 'weather',
+              input: '{"location":"Paris"}',
+              providerMetadata: {
+                [providerMetadataKey]: { itemId: 'function' },
+              },
+            },
+            ...['{"items":', '["result"]}'].map(text => ({
+              type: 'text',
+              text,
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'final',
+                  phase: 'final_answer',
+                },
+              },
+            })),
+          ]);
+          expect(result.structuredOutputText).toBe('{"items":["result"]}');
+          expect(
+            result.providerMetadata?.[providerMetadataKey].logprobs,
+          ).toEqual([draftLogprobs, finalLogprobs]);
+          expect(result.finishReason).toEqual({
+            unified: 'tool-calls',
+            raw: undefined,
+          });
+          expect(result.usage).toMatchObject({
+            inputTokens: { total: 13, noCache: 10, cacheRead: 3 },
+            outputTokens: { total: 7, text: 5, reasoning: 2 },
+            raw: body.usage,
+          });
+          expect(result.response?.body).toEqual(body);
+        },
+      );
     });
   });
 
@@ -8877,7 +9274,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'streaming web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             const item = {

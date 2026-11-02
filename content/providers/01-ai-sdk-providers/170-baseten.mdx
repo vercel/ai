@@ -86,11 +86,14 @@ You can use the following optional settings to customize the Baseten provider in
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://inference.baseten.co/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `BASETEN_API_KEY` environment variable. It is recommended you set the environment variable using `export` so you do not need to include the field every time.
   You can grab your Baseten API Key [here](https://app.baseten.co/settings/api_keys)
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **modelURL** _string_
 

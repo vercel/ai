@@ -162,6 +162,19 @@ async function generateModelCall(
     performance: { responseTimeMs },
   });
   abortSignal?.throwIfAborted();
+  // Reject before parsing so tool calls are neither repaired nor executed.
+  if (
+    toolChoice.type === 'none' &&
+    response.content.some(part => part.type === 'tool-call')
+  ) {
+    throw new ToolChoiceViolationError({
+      toolChoice,
+      finishReason: response.finishReason.unified,
+      provider: model.provider,
+      modelId: model.modelId,
+      content: response.content,
+    });
+  }
   const repairedToolCallIds = new Set<string>();
   const repairToolCall = options.repairToolCall;
   const trackedRepairToolCall = repairToolCall

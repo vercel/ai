@@ -22,6 +22,10 @@ describe('MoonshotAILanguageModelOptions', () => {
       reasoningHistory?: 'disabled' | 'interleaved' | 'preserved';
       strictJsonSchema?: boolean;
       promptCacheKey?: string;
+      promptCacheOptions?: {
+        mode?: 'implicit';
+        ttl?: '5m' | '1h';
+      };
       safetyIdentifier?: string;
     }>();
   });

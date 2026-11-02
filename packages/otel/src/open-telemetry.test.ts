@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import {
   context,
+  metrics,
   SpanKind,
   SpanStatusCode,
   trace,
@@ -18,6 +19,13 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
+import {
+  AggregationTemporality,
+  DataPointType,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import { z } from 'zod/v4';
 import {
   embed,
@@ -468,11 +476,153 @@ function makeToolCallFinishEvent(
 describe('OpenTelemetry', () => {
   let tracer: MockTracer;
   let integration: Telemetry;
+  let meterProvider: MeterProvider | undefined;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
     integration = new OpenTelemetry({ tracer });
+  });
+
+  afterEach(async () => {
+    if (meterProvider != null) {
+      metrics.disable();
+      await meterProvider.shutdown();
+      meterProvider = undefined;
+    }
+    vi.restoreAllMocks();
+  });
+
+  function createMetricReader() {
+    const reader = new PeriodicExportingMetricReader({
+      exporter: new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE),
+      exportIntervalMillis: 60_000,
+    });
+    meterProvider = new MeterProvider({ readers: [reader] });
+    metrics.setGlobalMeterProvider(meterProvider);
+    return reader;
+  }
+
+  async function collectInferenceDuration(
+    reader: PeriodicExportingMetricReader,
+  ) {
+    const { resourceMetrics, errors } = await reader.collect();
+    expect(errors).toEqual([]);
+    const metric = resourceMetrics.scopeMetrics
+      .flatMap(scope => scope.metrics)
+      .find(
+        metric => metric.descriptor.name === 'gen_ai.client.inference.duration',
+      );
+    expect(metric?.dataPointType).toBe(DataPointType.HISTOGRAM);
+    if (metric?.dataPointType !== DataPointType.HISTOGRAM) {
+      throw new Error('Missing inference duration histogram');
+    }
+    return metric;
+  }
+
+  describe('inference duration metrics', () => {
+    it('exports seconds and model attributes with a meter registered after initialization', async () => {
+      metrics.disable();
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+
+      const reader = createMetricReader();
+      const endEvent = makeLanguageModelCallEndEvent({
+        modelId: 'response-model',
+      });
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!({
+        ...endEvent,
+        performance: { ...endEvent.performance, responseTimeMs: 1234 },
+      });
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      const histogram = await collectInferenceDuration(reader);
+      expect(histogram.descriptor.unit).toBe('s');
+      expect(histogram.dataPoints).toMatchObject([
+        {
+          attributes: {
+            'gen_ai.operation.name': 'chat',
+            'gen_ai.provider.name': 'openai',
+            'gen_ai.request.model': 'gpt-4',
+            'gen_ai.response.model': 'response-model',
+          },
+          value: {
+            count: 1,
+            sum: 1.234,
+            buckets: {
+              boundaries: [
+                0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12,
+                10.24, 20.48, 40.96, 81.92,
+              ],
+            },
+          },
+        },
+      ]);
+      expect(histogram.dataPoints[0].attributes).not.toHaveProperty(
+        'error.type',
+      );
+    });
+
+    it('records the full streamed response duration once', async () => {
+      let now = 0;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      const reader = createMetricReader();
+      let finish!: () => void;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                now += 200;
+                controller.enqueue({ type: 'text-start', id: '0' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '0',
+                  delta: 'hello',
+                });
+                finish = () => {
+                  now += 1400;
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                  controller.close();
+                };
+              },
+            }),
+          }),
+        }),
+        prompt: 'hello',
+        telemetry: { integrations: integration },
+      });
+      const streamReader = result.stream.getReader();
+      while ((await streamReader.read()).value?.type !== 'text-delta') {}
+      expect((await reader.collect()).resourceMetrics.scopeMetrics).toEqual([]);
+      finish();
+      while (!(await streamReader.read()).done) {}
+      streamReader.releaseLock();
+
+      expect(
+        (await collectInferenceDuration(reader)).dataPoints[0].value,
+      ).toMatchObject({
+        count: 1,
+        sum: 1.6,
+      });
+    });
   });
 
   describe('onStart (generateText)', () => {
@@ -532,6 +682,52 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+  });
+
+  describe('agentSpanName', () => {
+    describe.each(['ai.generateText', 'ai.generateObject'])(
+      '%s',
+      operationId => {
+        it.each([
+          {
+            agentSpanName: undefined,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'modelId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent my-agent',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: undefined,
+            expectedName: 'invoke_agent gpt-4',
+          },
+        ])(
+          'uses $expectedName with agentSpanName=$agentSpanName and functionId=$functionId',
+          ({ agentSpanName, functionId, expectedName }) => {
+            integration = new OpenTelemetry({ tracer, agentSpanName });
+
+            integration.onStart!(makeOnStartEvent({ operationId, functionId }));
+
+            expect(tracer.spans[0].name).toBe(expectedName);
+            expect(getStartSpanAttributes(tracer, 0)).toMatchObject({
+              'gen_ai.operation.name': 'invoke_agent',
+              'gen_ai.request.model': 'gpt-4',
+            });
+            expect(getStartSpanAttributes(tracer, 0)['gen_ai.agent.name']).toBe(
+              functionId,
+            );
+          },
+        );
+      },
+    );
   });
 
   describe('onStepStart', () => {
@@ -2195,6 +2391,56 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records error on step and chat spans and keeps the root span open for onEnd', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+
+      integration.onStepError!({
+        ...makeStepStartEvent(),
+        error: new Error('step failed'),
+      } as any);
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": false,
+            "name": "invoke_agent gpt-4",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+        ]
+      `);
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(tracer.spans[0].ended).toBe(true);
+      expect(tracer.spans[0].status).toBeUndefined();
+    });
+  });
+
   describe('onError', () => {
     it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2655,6 +2901,7 @@ describe('OpenTelemetry', () => {
 
   describe('abort', () => {
     it('closes streamText spans when AbortController aborts the stream', async () => {
+      const reader = createMetricReader();
       const abortController = new AbortController();
       let pullCalls = 0;
 
@@ -2727,11 +2974,93 @@ describe('OpenTelemetry', () => {
           },
         ]
       `);
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'AbortError' },
+            value: { count: 1 },
+          },
+        ],
+      );
     });
   });
 
   describe('stream errors', () => {
+    it.each([0, 1])(
+      'records failed stream attempts when streamRetries is %i',
+      async streamRetries => {
+        let now = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        const reader = createMetricReader();
+        const model = new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'test-model',
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                const failed = model.doStreamCalls.length === 1;
+                now += failed ? 500 : 750;
+                if (failed) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: new Error('provider failed'),
+                  });
+                } else {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '0',
+                    delta: 'recovered',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                }
+                controller.close();
+              },
+            }),
+          }),
+        });
+        const result = streamText({
+          model,
+          prompt: 'hello',
+          maxRetries: 0,
+          streamRetries,
+          onError: () => {},
+          telemetry: { integrations: integration },
+        });
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(streamRetries + 1);
+        const histogram = await collectInferenceDuration(reader);
+        expect(histogram.dataPoints).toHaveLength(streamRetries + 1);
+        const failure = histogram.dataPoints.find(
+          point => point.attributes['error.type'] === '_OTHER',
+        );
+        expect(failure?.value).toMatchObject({ count: 1, sum: 0.5 });
+        if (streamRetries === 1) {
+          expect(await result.text).toBe('recovered');
+          const success = histogram.dataPoints.find(
+            point => point.attributes['error.type'] == null,
+          );
+          expect(success?.value).toMatchObject({ count: 1, sum: 0.75 });
+        }
+      },
+    );
+
     it('records and exports streamText spans when the provider stream errors', async () => {
+      const reader = createMetricReader();
       const sdkTrace = createSdkTracer();
       const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
       let pullCalls = 0;
@@ -2796,6 +3125,14 @@ describe('OpenTelemetry', () => {
       );
       expect(chatSpan.parentSpanContext?.spanId).toBe(
         stepSpan.spanContext().spanId,
+      );
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'Error' },
+            value: { count: 1 },
+          },
+        ],
       );
     });
   });
