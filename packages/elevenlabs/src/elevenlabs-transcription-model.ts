@@ -29,6 +29,7 @@ const elevenLabsTranscriptionModelOptionsSchema = lazySchema(() =>
         .default('word'),
       diarize: z.boolean().nullish().default(false),
       fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
+      sourceUrl: z.string().nullish(),
     }),
   ),
 );
@@ -71,18 +72,33 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
 
     // Create form data with base fields
     const formData = new FormData();
-    const blob =
-      audio instanceof Uint8Array
-        ? new Blob([audio])
-        : new Blob([convertBase64ToUint8Array(audio)]);
-
     formData.append('model_id', this.modelId);
-    const fileExtension = mediaTypeToExtension(mediaType);
-    formData.append(
-      'file',
-      new File([blob], 'audio', { type: mediaType }),
-      `audio.${fileExtension}`,
-    );
+
+    // ElevenLabs accepts exactly one of `file` or `source_url`.
+    const sourceUrl = elevenlabsOptions?.sourceUrl;
+    if (sourceUrl != null) {
+      formData.append('source_url', sourceUrl);
+
+      if (audio.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        });
+      }
+    } else {
+      const blob =
+        audio instanceof Uint8Array
+          ? new Blob([audio])
+          : new Blob([convertBase64ToUint8Array(audio)]);
+      const fileExtension = mediaTypeToExtension(mediaType);
+      formData.append(
+        'file',
+        new File([blob], 'audio', { type: mediaType }),
+        `audio.${fileExtension}`,
+      );
+    }
+
     formData.append('diarize', 'true');
 
     // Add provider-specific options

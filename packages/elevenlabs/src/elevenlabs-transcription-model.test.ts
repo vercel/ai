@@ -218,6 +218,47 @@ describe('doGenerate', () => {
       expect(multipart!.file.type).toBe('audio/wav');
       expect(multipart!.file.size).toBe(40169);
     });
+
+    it('should send source_url instead of a file when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      const multipart = await server.calls[0].requestBodyMultipart;
+      expect(multipart).not.toHaveProperty('file');
+      expect(multipart).toEqual(
+        expect.objectContaining({
+          model_id: 'scribe_v1',
+          source_url: 'https://example.com/audio.mp3',
+        }),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn that audio is ignored when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).not.toHaveProperty(
+        'file',
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        },
+      ]);
+    });
   });
 
   describe('response headers', () => {
