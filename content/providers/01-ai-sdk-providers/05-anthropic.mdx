@@ -326,6 +326,12 @@ request. Send MCP configuration and container IDs on each request that needs the
 After a fallback model responds, start a new thread with the full history. After
 a refusal, start a new thread with the refused turn removed or rephrased.
 
+The `@ai-sdk/anthropic` provider supports this beta on the native Claude API and
+compatible Anthropic-managed endpoints. Anthropic's Claude Platform on AWS and
+Anthropic-managed Google Cloud are distinct from Amazon Bedrock and Vertex AI;
+`@ai-sdk/amazon-bedrock/anthropic` and `@ai-sdk/google-vertex/anthropic` do not
+support message threads.
+
 Threads do not support Message Batches, compaction, or context editing other than
 `clear_thinking_20251015` with `keep: 'all'`. They are not eligible for zero data
 retention or HIPAA readiness. Contents are encrypted in memory, never written to

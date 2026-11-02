@@ -4,6 +4,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createAnthropic } from './anthropic-provider';
+import { AnthropicLanguageModel } from './anthropic-language-model';
 
 const url = 'https://api.anthropic.com/v1/messages';
 const server = createTestServer({ [url]: {} });
@@ -390,6 +391,39 @@ describe('thread errors', () => {
         statusCode: 404,
         data: { error: { details: { error_code: 'thread_not_found' } } },
       });
+    },
+  );
+});
+
+describe.each([
+  'bedrock.anthropic.messages',
+  'googleVertex.anthropic.messages',
+])('unsupported thread platform %s', provider => {
+  it.each(['generate', 'stream'])(
+    'rejects %s before making a request',
+    async method => {
+      const compatibleModel = new AnthropicLanguageModel('claude-sonnet-4-6', {
+        provider,
+        baseURL: 'https://unsupported.example/v1',
+        headers: {},
+        fetch: async () => {
+          throw new Error('Must not fetch');
+        },
+      });
+      await expect(
+        call(
+          method,
+          {
+            ...options,
+            providerOptions: { anthropic: { thread: { type: 'create' } } },
+          },
+          compatibleModel,
+        ),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message: `${provider} does not support Anthropic message threads.`,
+      });
+      expect(server.calls).toHaveLength(0);
     },
   );
 });

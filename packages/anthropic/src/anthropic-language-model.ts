@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type JSONObject,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
@@ -272,6 +273,8 @@ export type AnthropicLanguageModelConfig = {
   generateId?: () => string;
   supportsNativeStructuredOutput?: boolean;
   supportsStrictTools?: boolean;
+  /** Opt in only for platforms that support Anthropic message threads. */
+  supportsMessageThreads?: boolean;
   /** Maximum temperature for compatible providers. Defaults to 1. */
   maxTemperature?: number;
   /** Preserve temperature and topP with thinking for compatible providers. */
@@ -599,6 +602,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     }
 
     const thread = anthropicOptions?.thread;
+    if (thread != null && config.supportsMessageThreads !== true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Anthropic message threads',
+        message: `${config.provider} does not support Anthropic message threads.`,
+      });
+    }
     if (
       thread != null &&
       (compaction != null ||
