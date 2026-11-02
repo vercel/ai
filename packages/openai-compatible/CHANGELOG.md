@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.89
+
+### Patch Changes
+
+- 03066cf: fix(openai-compatible): send `reasoningEffort: null` as `"reasoning_effort": null`, and stop an unset `reasoningEffort` from overwriting a raw `reasoning_effort` provider option
+
 ## 2.0.88
 
 ### Patch Changes
