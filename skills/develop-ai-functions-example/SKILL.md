@@ -160,7 +160,7 @@ Write examples when:
 
 2. **Implementing a new feature**: Demonstrate the feature with at least one provider example
 
-3. **Reproducing a bug**: Create an example that shows the issue for debugging
+3. **Reproducing a bug**: Follow the [bug-fix workflow in AGENTS.md](../../AGENTS.md#bug-fixes). Use a temporary script outside the checkout to reproduce the failure end-to-end, then rerun it to verify the fix. Put the complete runnable script, commands, and observed before/after results in the PR description's **End-to-End Verification** section, following `.github/pull_request_template.md`. Do not commit reproduction-only examples.
 
 4. **Adding provider-specific options**: Show how to use `providerOptions` for provider-specific settings
 

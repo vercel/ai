@@ -278,16 +278,32 @@ These guidelines outline typical artifacts for different task types. Use judgmen
 
 ### Bug Fixes
 
-A bug reproduction should be a single runnable script in
-`examples/ai-functions` (usually `src/reproduction/`), using the issue's own
-snippet where possible. Do not add assertions or a test runner unless requested.
+Reproduce the reported bug end-to-end before changing production code, then rerun
+the same reproduction against the fix to confirm the expected behavior. Exercise
+the affected public API and the real provider or application flow where applicable.
+Unit tests and mocked requests do not replace end-to-end verification. If either
+run is blocked (for example, by missing credentials or an unavailable service),
+record what could not be verified and why in the PR description.
+
+Keep the reproduction as a single runnable script outside the checkout (for
+example, in a temporary directory), using the issue's own snippet where possible.
+Do not commit reproduction-only files or add them to `examples/`. Do not add
+assertions or a test runner to the reproduction unless requested. Regression tests
+and reusable feature examples still belong in the repository.
+
+Follow `.github/pull_request_template.md`. Include the complete runnable
+reproduction, setup and execution commands, prerequisites (without secrets), and
+observed before/after results in the PR description's **End-to-End Verification**
+section. State which provider or application flow was exercised and any
+verification limits. Report unit/integration tests and linting elsewhere in the PR
+description.
 
 A complete bug fix typically includes:
 
-1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
+1. **End-to-end reproduction**: Run a temporary reproduction that demonstrates the bug before fixing
 2. **Unit tests**: Add tests that would fail without the fix (regression tests)
 3. **Implementation**: Fix the bug
-4. **Manual verification**: Run the reproduction example to confirm the fix
+4. **End-to-end verification**: Rerun the same reproduction to confirm the fix and include the complete script, commands, and before/after results in the PR description
 5. **Changeset**: Describe what was broken and how it's fixed
 
 ### New Features
