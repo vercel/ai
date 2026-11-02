@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'suprsend',
+    name: 'SuprSend',
+    description:
+      'Let your agents send multi-channel notifications (email, SMS, push, in-app inbox, WhatsApp, Slack) through SuprSend workflows, and manage users, notification preferences and lists.',
+    packageName: 'suprsend-vercel-ai-sdk',
+    tags: ['notifications', 'email', 'sms', 'push', 'messaging'],
+    apiKeyEnvName: 'SUPRSEND_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add suprsend-vercel-ai-sdk ai zod',
+      npm: 'npm install suprsend-vercel-ai-sdk ai zod',
+      yarn: 'yarn add suprsend-vercel-ai-sdk ai zod',
+      bun: 'bun add suprsend-vercel-ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { suprsendTools } from 'suprsend-vercel-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: suprsendTools(),
+  stopWhen: isStepCount(3),
+  prompt: 'Send the order-shipped notification to user_123 for order 1042.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/ADHESHsuryatej/suprsend-vercel-ai-sdk#readme',
+    apiKeyUrl: 'https://docs.suprsend.com/docs/developer/api-keys',
+    websiteUrl: 'https://www.suprsend.com',
+    npmUrl: 'https://www.npmjs.com/package/suprsend-vercel-ai-sdk',
+  },
 ];
