@@ -14,7 +14,7 @@ async function main() {
       deepseek_fetch: gateway.tools.deepseekFetch(),
     },
   });
-  for await (const part of result.stream) {
+  for await (const part of result.fullStream) {
     if (part.type === 'text-delta') process.stdout.write(part.text);
     if (part.type === 'tool-call') console.log('Tool call:', part);
     if (part.type === 'tool-error') console.error('Tool error:', part.error);

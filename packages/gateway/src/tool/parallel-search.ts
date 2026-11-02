@@ -3,15 +3,11 @@ import {
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-<<<<<<< HEAD
 import { z } from 'zod';
-=======
-import { z } from '../zod';
 import {
   gatewayToolErrorSchema,
   type GatewayToolError,
 } from './gateway-tool-error';
->>>>>>> 2099d455e4 (feat(provider/gateway): add DeepSeek Search and Fetch tools (#23836))
 
 const parallelSearchModes = [
   'turbo',

@@ -11,7 +11,6 @@ describe('deepseekFetch', () => {
       type: 'provider',
       id: 'gateway.deepseek_fetch',
       args: { url: 'https://example.com' },
-      isProviderExecuted: true,
     });
   });
 

@@ -1,9 +1,9 @@
 import {
-  createProviderExecutedToolFactory,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from '../zod';
+import { z } from 'zod';
 import {
   gatewayToolErrorSchema,
   type GatewayToolError,
@@ -52,15 +52,16 @@ const deepseekFetchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const deepseekFetchToolFactory = createProviderExecutedToolFactory<
-  DeepSeekFetchInput,
-  DeepSeekFetchOutput,
-  DeepSeekFetchConfig
->({
-  id: 'gateway.deepseek_fetch',
-  inputSchema: deepseekFetchInputSchema,
-  outputSchema: deepseekFetchOutputSchema,
-});
+export const deepseekFetchToolFactory =
+  createProviderToolFactoryWithOutputSchema<
+    DeepSeekFetchInput,
+    DeepSeekFetchOutput,
+    DeepSeekFetchConfig
+  >({
+    id: 'gateway.deepseek_fetch',
+    inputSchema: deepseekFetchInputSchema,
+    outputSchema: deepseekFetchOutputSchema,
+  });
 
 export const deepseekFetch = (
   config: DeepSeekFetchConfig = {},

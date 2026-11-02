@@ -15,7 +15,6 @@ describe('deepseekSearch', () => {
       type: 'provider',
       id: 'gateway.deepseek_search',
       args: config,
-      isProviderExecuted: true,
     });
   });
 

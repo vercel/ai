@@ -1,7 +1,26 @@
 import { describe, expect, it, vi } from 'vitest';
+import type * as Zod3 from 'zod';
 import type * as Zod from 'zod/v4';
 
 const { constructed } = vi.hoisted(() => ({ constructed: vi.fn() }));
+
+vi.mock('zod', async importOriginal => {
+  const actual = await importOriginal<typeof Zod3>();
+  return {
+    ...actual,
+    z: new Proxy(actual.z, {
+      get(target, key) {
+        const value = Reflect.get(target, key);
+        return typeof value === 'function'
+          ? (...args: unknown[]) => {
+              constructed();
+              return Reflect.apply(value, undefined, args);
+            }
+          : value;
+      },
+    }),
+  };
+});
 
 vi.mock('zod/v4', async importOriginal => {
   const actual = await importOriginal<typeof Zod>();
@@ -46,12 +65,8 @@ vi.mock('zod/v4', async importOriginal => {
 describe('lazy schema initialization', () => {
   it('defers schema construction until first use', async () => {
     constructed.mockClear();
-<<<<<<< HEAD
     await import('./gateway-embedding-model');
-=======
-    await import('./gateway-batch');
     await import('./gateway-tools');
->>>>>>> 2099d455e4 (feat(provider/gateway): add DeepSeek Search and Fetch tools (#23836))
     expect(constructed).not.toHaveBeenCalled();
   });
 });
