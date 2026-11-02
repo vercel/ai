@@ -1116,11 +1116,12 @@ async function generateTextInternal<
 
               // steering messages are delivered when they are in the messages
               // that are sent to the model after prepareStep:
-              const deliveredSteeringMessages =
+              const deliveredSteeringMessages = (
                 steeringRun?.resolveTakenMessages({
                   stepNumber,
                   sentMessages: stepMessages,
-                }) ?? [];
+                }) ?? []
+              ).map(({ message }) => message);
 
               const promptMessages = await convertToLanguageModelPrompt({
                 prompt: {
