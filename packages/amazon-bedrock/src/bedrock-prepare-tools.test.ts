@@ -394,6 +394,10 @@ describe('prepareTools', () => {
     it.each([
       'anthropic.claude-sonnet-4-6-v1',
       'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+      'anthropic.claude-sonnet-5',
+      'us.anthropic.claude-opus-5',
+      'global.anthropic.claude-sonnet-5-5',
+      'global.anthropic.claude-haiku-5-5',
     ])('should keep strict mode enabled for %s', async modelId => {
       const result = await prepareTools({
         tools: [
@@ -495,8 +499,6 @@ describe('prepareTools', () => {
       'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
-      'us.anthropic.claude-opus-5',
-      'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
     ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({

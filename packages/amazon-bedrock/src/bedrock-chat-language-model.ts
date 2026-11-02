@@ -29,6 +29,7 @@ import {
 import {
   getModelCapabilities,
   sanitizeJsonSchema,
+  supportsNativeStructuredOutputSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
@@ -299,7 +300,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          modelSupportsNativeStructuredOutput));
+          modelSupportsNativeStructuredOutput &&
+          supportsNativeStructuredOutputSchema(responseFormat.schema)));
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
@@ -331,7 +333,17 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const { toolConfig, additionalTools, toolWarnings, betas } =
       await prepareTools({
-        tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
+        tools: jsonResponseTool
+          ? [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ]
+          : tools,
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
