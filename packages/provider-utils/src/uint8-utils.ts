@@ -3,10 +3,26 @@
 // "TypeError: Illegal invocation: function called with incorrect this reference"
 const { btoa, atob } = globalThis;
 
-export function convertBase64ToUint8Array(base64String: string) {
-  const base64Url = base64String.replace(/-/g, '+').replace(/_/g, '/');
-  const latin1string = atob(base64Url);
-  return Uint8Array.from(latin1string, byte => byte.codePointAt(0)!);
+export function convertBase64ToUint8Array(base64String: string): Uint8Array {
+  const base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
+
+  // Uint8Array.fromBase64 is only available on Node.js 25+ (and recent
+  // browsers / edge runtimes), so we fall back to atob on older runtimes.
+  const { fromBase64 } = Uint8Array as {
+    fromBase64?: (base64: string) => Uint8Array;
+  };
+  if (typeof fromBase64 === 'function') {
+    return fromBase64.call(Uint8Array, base64);
+  }
+
+  // Fill a preallocated array instead of using Uint8Array.from(string, mapFn),
+  // which iterates per character and needs ~25x the decoded size in memory:
+  const latin1string = atob(base64);
+  const bytes = new Uint8Array(latin1string.length);
+  for (let i = 0; i < latin1string.length; i++) {
+    bytes[i] = latin1string.charCodeAt(i);
+  }
+  return bytes;
 }
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
