@@ -1,5 +1,6 @@
 import type { SharedV4ProviderReference } from '@ai-sdk/provider';
 import { isBuffer } from './is-buffer';
+import { isArrayBuffer, isUint8Array } from './uint8-utils';
 
 /**
  * Checks whether a value is a provider reference (a mapping of provider names
@@ -12,9 +13,9 @@ export function isProviderReference(
   return (
     typeof data === 'object' &&
     data !== null &&
-    !(data instanceof Uint8Array) &&
+    !isUint8Array(data) &&
     !(data instanceof URL) &&
-    !(data instanceof ArrayBuffer) &&
+    !isArrayBuffer(data) &&
     !isBuffer(data) &&
     !('type' in data)
   );
