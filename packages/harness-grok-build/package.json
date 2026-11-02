@@ -38,7 +38,8 @@
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-acp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@iarna/toml": "3.0.0"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
