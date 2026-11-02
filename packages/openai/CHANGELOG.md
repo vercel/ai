@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.107
+
+### Patch Changes
+
+- 4ae6986: fix(openai): preserve valid JSON string tool arguments and serialize BigInt and cycles in tool calls and results, retaining malformed argument replay fallbacks
+- 226b7da: Forward `languages` and `keywords` transcription hints as repeated multipart fields instead of silently dropping them. Warn when these REST-only options are supplied to streaming transcription.
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 4.0.106
 
 ### Patch Changes
