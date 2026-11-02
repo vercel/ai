@@ -28,6 +28,7 @@ jobs:
       issues: write
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
+    environment: npm-release
     steps:
       - name: Configure Git
         run: |
