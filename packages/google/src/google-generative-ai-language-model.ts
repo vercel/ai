@@ -1,3 +1,4 @@
+import { APICallError } from '@ai-sdk/provider';
 import type {
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -29,7 +30,7 @@ import { continueGoogleStream } from './continue-google-stream';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import { getGoogleErrorSchema, googleFailedResponseHandler, mapGoogleErrorStatusToHttpStatusCode } from './google-error';
 import type { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   type GoogleGenerativeAIModelId,
@@ -490,11 +491,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       options.headers,
     );
 
+    const url = `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`;
     const streamGenerateContent = (body: typeof args) =>
       postJsonToApi({
-        url: `${this.config.baseURL}/${getModelPath(
-          this.modelId,
-        )}:streamGenerateContent?alt=sse`,
+        url,
         headers,
         body,
         failedResponseHandler: googleFailedResponseHandler,
@@ -590,6 +592,27 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = 'error';
+              const error = value.error;
+              controller.enqueue({
+                type: 'error',
+                error: new APICallError({
+                  message: error.message,
+                  url,
+                  requestBodyValues: args,
+                  statusCode:
+                    error.code ??
+                    mapGoogleErrorStatusToHttpStatusCode(error.status),
+                  responseHeaders,
+                  responseBody: JSON.stringify({ error }),
+                  data: error,
+                }),
+              });
+              return;
+            }
+
 
             if (value.usageMetadata != null) {
               requestUsageMetadata = value.usageMetadata;
@@ -1277,6 +1300,7 @@ export type SafetyRatingSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       candidates: z
         .array(
           z.object({
