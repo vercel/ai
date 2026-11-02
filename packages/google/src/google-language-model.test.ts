@@ -6129,6 +6129,20 @@ describe('doStream', () => {
       {
         partialText: false,
         code: null,
+        status: 'CANCELLED',
+        statusCode: 499,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'ABORTED',
+        statusCode: 409,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
         status: 'UNAVAILABLE',
         statusCode: 503,
         isRetryable: true,
@@ -6174,7 +6188,7 @@ describe('doStream', () => {
         isRetryable: false,
       },
     ])(
-      'should surface $status and finish with error (partial text: $partialText)',
+      'should surface $status with code $code and finish with error (partial text: $partialText)',
       async ({ partialText, code, status, statusCode, isRetryable }) => {
         const error = {
           code,
