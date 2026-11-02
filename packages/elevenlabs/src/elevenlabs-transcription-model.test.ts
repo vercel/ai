@@ -298,6 +298,51 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should send source_url instead of a file when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+        {
+          "diarize": "true",
+          "file_format": "other",
+          "model_id": "scribe_v1",
+          "source_url": "https://example.com/audio.mp3",
+          "tag_audio_events": "true",
+          "timestamps_granularity": "word",
+        }
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn that audio is ignored when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body).not.toHaveProperty('file');
+      expect(body).toMatchObject({
+        source_url: 'https://example.com/audio.mp3',
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        },
+      ]);
+    });
+
     it.each([
       ['without provider options', undefined, ['true']],
       ['with empty provider options', {}, ['true']],
