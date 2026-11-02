@@ -115,6 +115,43 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### OAuth Credential Storage
+
+Keep each user's OAuth tokens, client information, PKCE verifier, and pending
+callback state in storage scoped to that user's authenticated application session
+and MCP server. Never share one OAuth provider instance across unrelated users.
+The local Next.js OAuth example starts a separate authorization flow for each
+request and is disabled in production; deployed apps need authenticated sessions
+before they can persist and reuse credentials.
+
+The SDK binds saved credentials to the discovered authorization server and token
+endpoint. Preserve the optional `issuer`, `authorization_server`, and
+`token_endpoint` fields when storing `OAuthClientInformation` and `OAuthTokens`,
+or implement the `authorizationServerInformation` and
+`saveAuthorizationServerInformation` provider hooks. An issuer or endpoint change
+requires a new authorization flow rather than reuse of existing credentials.
+Legacy refresh tokens without a stored binding are not refreshed.
+
+Pre-registered confidential clients, including providers that use
+`addClientAuthentication`, must set their expected `issuer` on the client
+information or supply a trusted stored authorization-server binding. For example:
+
+```ts
+clientInformation() {
+  return {
+    client_id: process.env.OAUTH_CLIENT_ID!,
+    client_secret: process.env.OAUTH_CLIENT_SECRET!,
+    issuer: 'https://login.example.com',
+  };
+}
+```
+
+Persist the authorization-server binding before redirecting, along with a random
+OAuth state. Providers can use `state`, `saveState`, and `storedState` to manage
+state; pass the callback's `state` and optional `iss` values to `auth` as
+`callbackState` and `callbackIssuer`. Reject callbacks that do not match the
+initiating session before exchanging their code.
+
 ### Closing the MCP Client
 
 After initialization, you should close the MCP client based on your usage pattern:

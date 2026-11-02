@@ -17,7 +17,10 @@ export type {
   ClientCapabilities as experimental_MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
-export type { OAuthClientProvider } from './tool/oauth';
+export type {
+  OAuthAuthorizationServerInformation,
+  OAuthClientProvider,
+} from './tool/oauth';
 export type {
   OAuthClientInformation,
   OAuthClientMetadata,

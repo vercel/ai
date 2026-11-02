@@ -13,72 +13,54 @@ import {
   type OAuthClientMetadata,
   type OAuthTokens,
 } from '@ai-sdk/mcp';
-import { createServer } from 'node:http';
+import { randomUUID } from 'node:crypto';
+import { createAuthorizationCallback } from './oauth-callback';
 
-type AuthGlobalState = {
-  pendingAuthorizationUrl: string | null;
-};
-
-const AUTH_GLOBAL_KEY = '__mcpAuth';
-
-function getAuthState(): AuthGlobalState {
-  const g = globalThis as any;
-  if (!g[AUTH_GLOBAL_KEY]) {
-    g[AUTH_GLOBAL_KEY] = {
-      pendingAuthorizationUrl: null,
-    } as AuthGlobalState;
-  }
-  return g[AUTH_GLOBAL_KEY] as AuthGlobalState;
-}
-
-function setPendingAuthorizationUrl(url: string | null): void {
-  getAuthState().pendingAuthorizationUrl = url;
-}
-
-// In-memory storage for OAuth state per server origin
-const oauthStateStore = new Map<
-  string,
-  {
+// This local development example authorizes each request independently.
+// Persisting credentials across requests requires authenticated application sessions.
+class InMemoryOAuthClientProvider {
+  private credentials: {
     tokens?: OAuthTokens;
     codeVerifier?: string;
     clientInformation?: OAuthClientInformation;
+  } = {};
+  pendingAuthorizationUrl: string | undefined;
+
+  constructor(
+    private readonly _redirectUrl: string,
+    private authorizationState: string,
+  ) {}
+
+  async state(): Promise<string> {
+    return this.authorizationState;
   }
->();
 
-class InMemoryOAuthClientProvider {
-  private serverOrigin: string;
-  private _redirectUrl: string;
-
-  constructor(serverUrl: string | URL, callbackPort: number) {
-    this.serverOrigin = new URL(serverUrl).origin;
-    this._redirectUrl = `http://localhost:${callbackPort}/callback`;
+  async saveState(state: string): Promise<void> {
+    this.authorizationState = state;
   }
 
-  private getState() {
-    if (!oauthStateStore.has(this.serverOrigin)) {
-      oauthStateStore.set(this.serverOrigin, {});
-    }
-    return oauthStateStore.get(this.serverOrigin)!;
+  async storedState(): Promise<string> {
+    return this.authorizationState;
   }
 
   async tokens(): Promise<OAuthTokens | undefined> {
-    return this.getState().tokens;
+    return this.credentials.tokens;
   }
 
   async saveTokens(tokens: OAuthTokens): Promise<void> {
-    this.getState().tokens = tokens;
+    this.credentials.tokens = tokens;
   }
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    setPendingAuthorizationUrl(authorizationUrl.toString());
+    this.pendingAuthorizationUrl = authorizationUrl.toString();
   }
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
-    this.getState().codeVerifier = codeVerifier;
+    this.credentials.codeVerifier = codeVerifier;
   }
 
   async codeVerifier(): Promise<string> {
-    const verifier = this.getState().codeVerifier;
+    const verifier = this.credentials.codeVerifier;
     if (!verifier) throw new Error('No code verifier saved');
     return verifier;
   }
@@ -98,11 +80,11 @@ class InMemoryOAuthClientProvider {
   }
 
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
-    return this.getState().clientInformation;
+    return this.credentials.clientInformation;
   }
 
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
-    this.getState().clientInformation = info;
+    this.credentials.clientInformation = info;
   }
 
   addClientAuthentication = async (
@@ -110,7 +92,7 @@ class InMemoryOAuthClientProvider {
     params: URLSearchParams,
     _url: string | URL,
   ): Promise<void> => {
-    const info = this.getState().clientInformation;
+    const info = this.credentials.clientInformation;
     if (!info) {
       return;
     }
@@ -149,7 +131,7 @@ class InMemoryOAuthClientProvider {
   };
 
   async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier') {
-    const state = this.getState();
+    const state = this.credentials;
     if (scope === 'all' || scope === 'tokens') state.tokens = undefined;
     if (scope === 'all' || scope === 'client')
       state.clientInformation = undefined;
@@ -157,100 +139,91 @@ class InMemoryOAuthClientProvider {
   }
 }
 
-function waitForAuthorizationCode(port: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const server = createServer((req, res) => {
-      if (!req.url) {
-        res.writeHead(400).end('Bad request');
-        return;
-      }
-      const url = new URL(req.url, `http://localhost:${port}`);
-      if (url.pathname !== '/callback') {
-        res.writeHead(404).end('Not found');
-        return;
-      }
-      const code = url.searchParams.get('code');
-      const err = url.searchParams.get('error');
-      if (code) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(
-          '<html><body><h1>Authorization Successful</h1><p>You can close this window.</p><script>window.close();</script></body></html>',
-        );
-        setTimeout(() => server.close(), 100);
-        resolve(code);
-      } else {
-        res
-          .writeHead(400)
-          .end(`Authorization failed: ${err ?? 'missing code'}`);
-        setTimeout(() => server.close(), 100);
-        reject(new Error(`Authorization failed: ${err ?? 'missing code'}`));
-      }
-    });
-    server.listen(port, () => {
-      console.log(`OAuth callback server: http://localhost:${port}/callback`);
-    });
-  });
-}
-
 export async function POST(req: Request) {
+  const requestUrl = new URL(req.url);
+  if (
+    process.env.NODE_ENV === 'production' ||
+    !['localhost', '127.0.0.1', '[::1]'].includes(requestUrl.hostname) ||
+    req.headers.get('origin') !== requestUrl.origin
+  ) {
+    return Response.json(
+      {
+        error:
+          'This OAuth example is available only from the local development app.',
+      },
+      { status: 403 },
+    );
+  }
   const body = await req.json();
   const messages = body.messages;
   const serverUrl: string = 'https://mcp.vercel.com/';
-  const callbackPort = 8090;
 
   try {
     const stream = createUIMessageStream({
       originalMessages: messages,
       execute: async ({ writer }) => {
+        const state = randomUUID();
+        const callback = await createAuthorizationCallback(state, req.signal);
         const authProvider = new InMemoryOAuthClientProvider(
-          serverUrl,
-          callbackPort,
+          callback.redirectUrl,
+          state,
         );
 
-        // Attempt auth; if redirect is needed, instruct client to open URL, then wait and complete.
-        const result = await auth(authProvider, {
-          serverUrl: new URL(serverUrl),
-        });
+        try {
+          // Attempt auth; if redirect is needed, instruct client to open URL, then wait and complete.
+          const result = await auth(authProvider, {
+            serverUrl: new URL(serverUrl),
+          });
 
-        if (result !== 'AUTHORIZED') {
-          const url = getAuthState().pendingAuthorizationUrl;
-          if (url) {
-            writer.write({
-              type: 'data-oauth',
-              data: { url },
-              transient: true,
+          if (result !== 'AUTHORIZED') {
+            const url = authProvider.pendingAuthorizationUrl;
+            if (url) {
+              writer.write({
+                type: 'data-oauth',
+                data: { url },
+                transient: true,
+              });
+            }
+
+            const {
+              code: authorizationCode,
+              state: callbackState,
+              issuer: callbackIssuer,
+            } = await callback.authorizationCode;
+            await auth(authProvider, {
+              serverUrl: new URL(serverUrl),
+              authorizationCode,
+              callbackState,
+              callbackIssuer,
             });
           }
 
-          const authorizationCode =
-            await waitForAuthorizationCode(callbackPort);
-          await auth(authProvider, {
-            serverUrl: new URL(serverUrl),
-            authorizationCode,
-          });
-        }
-
-        const mcpClient = await createMCPClient({
-          transport: { type: 'http', url: serverUrl, authProvider },
-        });
-
-        try {
-          const tools = await mcpClient.tools();
-
-          const result = streamText({
-            model: openai('gpt-4o-mini'),
-            tools,
-            stopWhen: stepCountIs(10),
-            system:
-              'You are a helpful assistant with access to protected tools.',
-            messages: convertToModelMessages(messages),
+          const mcpClient = await createMCPClient({
+            transport: { type: 'http', url: serverUrl, authProvider },
           });
 
-          writer.merge(
-            result.toUIMessageStream({ originalMessages: messages }),
-          );
+          try {
+            const tools = await mcpClient.tools();
+
+            const result = streamText({
+              model: openai('gpt-4o-mini'),
+              abortSignal: req.signal,
+              tools,
+              stopWhen: stepCountIs(10),
+              system:
+                'You are a helpful assistant with access to protected tools.',
+              messages: convertToModelMessages(messages),
+            });
+
+            writer.merge(
+              result.toUIMessageStream({ originalMessages: messages }),
+            );
+            await result.consumeStream();
+          } finally {
+            await mcpClient.close();
+          }
         } finally {
-          await mcpClient.close();
+          callback.close();
         }
       },
     });
