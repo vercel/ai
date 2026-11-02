@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.0.44
+
+### Patch Changes
+
+- 0a069bd: fix(provider-utils): support cross-realm Uint8Array and ArrayBuffer in binary type guards and base64 conversion
+- 0a069bd: fix(provider-utils): decode base64 into a preallocated Uint8Array to avoid ~25x transient memory and long event-loop blocking on large files
+- 0a069bd: Add `stringifyWithBigIntAndCycles` for provider tool serialization that converts BigInt values to decimal strings and replaces ancestor cycles while preserving shared references and `toJSON` behavior.
+
 ## 3.0.43
 
 ### Patch Changes

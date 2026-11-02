@@ -1,5 +1,16 @@
 # @ai-sdk/google
 
+## 2.0.108
+
+### Patch Changes
+
+- 0a069bd: fix(google): handle cycles and BigInt in functionResponse and parse string functionCall arguments
+- 0a069bd: Map Google RPC status names to HTTP status codes when streamed errors omit a numeric code, so transient failures such as `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are marked retryable.
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+  - @ai-sdk/provider-utils@3.0.44
+
 ## 2.0.107
 
 ### Patch Changes

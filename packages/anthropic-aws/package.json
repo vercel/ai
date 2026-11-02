@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/anthropic-aws",
-  "version": "0.1.27",
+  "version": "0.1.28",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

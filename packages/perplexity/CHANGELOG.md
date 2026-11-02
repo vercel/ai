@@ -1,5 +1,15 @@
 # @ai-sdk/perplexity
 
+## 2.1.6
+
+### Patch Changes
+
+- 0a069bd: Honor `toolChoice: 'none'` by omitting function and native tools and disabling preset tool calls with `max_tool_calls: 0`.
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+  - @ai-sdk/provider-utils@3.0.44
+
 ## 2.1.5
 
 ### Patch Changes
