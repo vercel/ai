@@ -46,7 +46,12 @@ vi.mock('zod/v4', async importOriginal => {
 describe('lazy schema initialization', () => {
   it('defers schema construction until first use', async () => {
     constructed.mockClear();
+<<<<<<< HEAD
     await import('./gateway-embedding-model');
+=======
+    await import('./gateway-batch');
+    await import('./gateway-tools');
+>>>>>>> 2099d455e4 (feat(provider/gateway): add DeepSeek Search and Fetch tools (#23836))
     expect(constructed).not.toHaveBeenCalled();
   });
 });

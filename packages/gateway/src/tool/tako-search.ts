@@ -3,7 +3,15 @@ import {
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import { z } from 'zod';
+=======
+import { z } from '../zod';
+import {
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
+>>>>>>> 2099d455e4 (feat(provider/gateway): add DeepSeek Search and Fetch tools (#23836))
 
 export type TakoSearchEffort = 'deep' | 'fast' | 'instant';
 
@@ -246,18 +254,7 @@ export interface TakoSearchResponse {
   related?: Array<Record<string, unknown>> | null;
 }
 
-export interface TakoSearchError {
-  error:
-    | 'api_error'
-    | 'configuration_error'
-    | 'execution_error'
-    | 'invalid_input'
-    | 'rate_limit'
-    | 'timeout'
-    | 'unknown_tool';
-  statusCode?: number;
-  message: string;
-}
+export type TakoSearchError = GatewayToolError;
 
 export type TakoSearchOutput = TakoSearchError | TakoSearchResponse;
 
@@ -570,19 +567,7 @@ const takoSearchOutputSchema = lazySchema(() =>
           related: z.array(z.object({}).passthrough()).nullish(),
         })
         .passthrough(),
-      z.object({
-        error: z.enum([
-          'api_error',
-          'configuration_error',
-          'execution_error',
-          'invalid_input',
-          'rate_limit',
-          'timeout',
-          'unknown_tool',
-        ]),
-        statusCode: z.number().optional(),
-        message: z.string(),
-      }),
+      gatewayToolErrorSchema(),
     ]),
   ),
 );
