@@ -7,6 +7,8 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -405,7 +407,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolCallArguments(part.input),
                 ...(isAsync != null && { async: isAsync }),
                 id: canUseItemId ? id : undefined,
               });
@@ -496,7 +498,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -522,7 +524,7 @@ export async function convertToOpenAIResponsesInput({
               } else {
                 warnings.push({
                   type: 'other',
-                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                 });
               }
               break;
@@ -577,11 +579,11 @@ export async function convertToOpenAIResponsesInput({
             case 'error-json':
               contentValue =
                 promptCacheBreakpoint == null
-                  ? JSON.stringify(output.value)
+                  ? stringifyWithBigIntAndCycles(output.value)
                   : [
                       {
                         type: 'input_text',
-                        text: JSON.stringify(output.value),
+                        text: stringifyWithBigIntAndCycles(output.value),
                         prompt_cache_breakpoint: promptCacheBreakpoint,
                       },
                     ];
@@ -679,3 +681,16 @@ const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
+
+
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
+}

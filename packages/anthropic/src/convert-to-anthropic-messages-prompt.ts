@@ -7,6 +7,8 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse,
   convertToBase64,
   parseProviderOptions,
   validateTypes,
@@ -439,7 +441,7 @@ export async function convertToAnthropicMessagesPrompt({
                   case 'json':
                   case 'error-json':
                   default:
-                    contentValue = JSON.stringify(output.value);
+                    contentValue = stringifyWithBigIntAndCycles(output.value);
                     break;
                 }
 
@@ -673,7 +675,7 @@ export async function convertToAnthropicMessagesPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: part.input,
+                  input: parseToolCallInput(part.input),
                   cache_control: cacheControl,
                 });
                 break;
@@ -999,4 +1001,23 @@ function getAnthropicToolsetName({
   )?.toolsetName;
 
   return typeof fromMetadata === 'string' ? fromMetadata : undefined;
+}
+
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed;
+      }
+    } catch {
+      // Preserve malformed input for replay.
+    }
+  }
+  return input;
 }

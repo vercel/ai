@@ -789,3 +789,123 @@ describe('tool calls', () => {
     `);
   });
 });
+
+it('preserves shared tool argument objects while replacing real cycles', async () => {
+  const shared = { value: 42 };
+  const input: Record<string, unknown> = { a: shared, b: shared };
+  input.self = input;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'assistant' as const,
+        content: [
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call_shared',
+            toolName: 'inspect',
+            input,
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).tool_calls[0].function.arguments).toBe(
+    '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
+});
+
+it('serializes tool results with BigInt and real cycles', async () => {
+  const value: any = { count: BigInt('42') };
+  value.self = value;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            output: { type: 'json', value },
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).content).toBe(
+    '{"count":"42","self":"[Circular]"}',
+  );
+});
+
+  it('should preserve pre-serialized string tool arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"city":"Tokyo"}',
+              toolCallId: 'call-1',
+              toolName: 'getWeather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: '{"city":"Tokyo"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
+    const circularArgs: Record<string, unknown> = { count: BigInt('9007199254740993') };
+    circularArgs.self = circularArgs;
+
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: circularArgs,
+              toolCallId: 'call-2',
+              toolName: 'computeStats',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-2',
+            function: {
+              name: 'computeStats',
+              arguments: '{"count":"9007199254740993","self":"[Circular]"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });

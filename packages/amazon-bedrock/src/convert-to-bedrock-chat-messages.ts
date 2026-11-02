@@ -6,7 +6,9 @@ import {
   type SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  stringifyWithBigIntAndCycles,
+  secureJsonParse, convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   type BedrockAssistantMessage,
   type BedrockCachePoint,
@@ -205,7 +207,7 @@ export async function convertToBedrockChatMessages(
                   case 'error-json':
                   default:
                     toolResultContent = [
-                      { text: JSON.stringify(output.value) },
+                      { text: stringifyWithBigIntAndCycles(output.value) },
                     ];
                     break;
                 }
@@ -358,6 +360,21 @@ export async function convertToBedrockChatMessages(
 
 // wrap invalid tool call input because Bedrock requires it to be an object
 function toBedrockToolInput(input: unknown): JSONObject {
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed as JSONObject;
+      }
+    } catch {
+      // Malformed JSON falls through to the rawInvalidInput wrapper.
+    }
+  }
+
   return typeof input === 'object' && input !== null && !Array.isArray(input)
     ? (input as JSONObject)
     : { rawInvalidInput: input as JSONValue };
