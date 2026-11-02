@@ -751,4 +751,34 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'wayza',
+    name: 'Wayza',
+    description:
+      'Give your agent its own Wayza address so it can reach people and other AIs. It can ask a question and get a recorded answer that says whether a person gave it, make a link anyone can answer from their phone with no account, answer the Wayza links people send it, and send and read messages. No key to try it locally; set WAYZA_KEY when deployed.',
+    packageName: '@wayza/human',
+    tags: ['human-in-the-loop', 'agent-to-agent', 'messaging', 'approval'],
+    apiKeyEnvName: 'WAYZA_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @wayza/human ai',
+      npm: 'npm install @wayza/human ai',
+      yarn: 'yarn add @wayza/human ai',
+      bun: 'bun add @wayza/human ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { wayzaTools } from '@wayza/human/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: wayzaTools({ name: "Sam's assistant" }),
+  stopWhen: isStepCount(5),
+  prompt: 'Ask my friends whether dinner on Friday should be at 7 or 8.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://wayza.com/docs/ai-sdk/',
+    apiKeyUrl: 'https://wayza.com/docs/ai-sdk/',
+    websiteUrl: 'https://wayza.com',
+    npmUrl: 'https://www.npmjs.com/package/@wayza/human',
+  },
 ];
