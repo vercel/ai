@@ -6,6 +6,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyJSON,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
@@ -67,18 +68,26 @@ function convertUrlToolResultPart(
   };
 }
 
-function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
-  if (Array.isArray(value)) {
-    return value.some(containsJSONSchemaReference);
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
   }
 
-  if (typeof value !== 'object' || value === null) {
+  if (seen.has(value)) {
     return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
   }
 
   return Object.entries(value).some(
     ([key, nestedValue]) =>
-      key === '$ref' || containsJSONSchemaReference(nestedValue),
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
   );
 }
 
@@ -88,7 +97,42 @@ function serializeFunctionResponseContent(
   // Google reserves { $ref: displayName } in structured function responses for
   // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
   // result to preserve it without triggering Google's reference handling.
-  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+  if (containsJSONSchemaReference(value)) {
+    try {
+      return stringifyJSON(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  // Keep Google's structured response for ordinary JSON, but normalize values
+  // that would otherwise fail when the final request body is serialized.
+  return containsNonJsonValue(value)
+    ? secureJsonParse(stringifyJSON(value))
+    : value;
+}
+
+function containsNonJsonValue(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
+  if (typeof value === 'bigint') {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (ancestors.has(value)) {
+    return true;
+  }
+  ancestors.add(value);
+  try {
+    return Object.values(value).some(item =>
+      containsNonJsonValue(item, ancestors),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /*
@@ -586,7 +630,7 @@ export function convertToGoogleMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args: parseToolCallInput(part.input),
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };
@@ -774,4 +818,15 @@ export function convertToGoogleMessages(
         : undefined,
     contents,
   };
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  try {
+    return secureJsonParse(input);
+  } catch {
+    return input;
+  }
 }

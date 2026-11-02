@@ -165,3 +165,5 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+
+export { stringifyJSON } from './stringify-json';

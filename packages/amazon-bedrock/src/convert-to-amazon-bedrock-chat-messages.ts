@@ -9,11 +9,13 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  stringifyJSON,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
   parseProviderOptions,
   resolveFullMediaType,
+  secureJsonParse,
   stripFileExtension,
 } from '@ai-sdk/provider-utils';
 import {
@@ -700,12 +702,35 @@ async function convertToolResultOutput({
     case 'json':
     case 'error-json':
     default:
-      return [{ text: JSON.stringify(output.value) }];
+      return [{ text: safeStringifyBedrockToolOutput(output.value) }];
+  }
+}
+
+function safeStringifyBedrockToolOutput(value: unknown): string {
+  try {
+    return stringifyJSON(value);
+  } catch {
+    return String(value);
   }
 }
 
 // wrap invalid tool call input because Bedrock requires it to be an object
 function toBedrockToolInput(input: unknown): JSONObject {
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed as JSONObject;
+      }
+    } catch {
+      // malformed JSON falls through to rawInvalidInput wrapper
+    }
+  }
+
   return typeof input === 'object' && input !== null && !Array.isArray(input)
     ? (input as JSONObject)
     : { rawInvalidInput: input as JSONValue };

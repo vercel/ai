@@ -874,6 +874,79 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should preserve pre-serialized string tool arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"city":"Tokyo"}',
+              toolCallId: 'call-1',
+              toolName: 'getWeather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: '{"city":"Tokyo"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
+    const circularArgs: Record<string, unknown> = { count: 9007199254740993n };
+    circularArgs.self = circularArgs;
+
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: circularArgs,
+              toolCallId: 'call-2',
+              toolName: 'computeStats',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-2',
+            function: {
+              name: 'computeStats',
+              arguments: '{"count":"9007199254740993","self":"[Circular]"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should send empty string content for assistant messages with no tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
@@ -932,7 +1005,7 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should normalize malformed tool call input and preserve the tool error semantics', () => {
+  it('should preserve malformed string tool input and the tool error semantics', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
@@ -971,7 +1044,7 @@ describe('tool calls', () => {
           "tool_calls": [
             {
               "function": {
-                "arguments": "{}",
+                "arguments": "{"foo":"bar"",
                 "name": "thwomp",
               },
               "id": "quux",
@@ -1060,4 +1133,28 @@ describe('tool calls', () => {
       ]
     `);
   });
+});
+
+it('preserves shared tool argument objects while replacing real cycles', async () => {
+  const shared = { value: 42 };
+  const input: Record<string, unknown> = { a: shared, b: shared };
+  input.self = input;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'assistant' as const,
+        content: [
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call_shared',
+            toolName: 'inspect',
+            input,
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).tool_calls[0].function.arguments).toBe(
+    '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
 });

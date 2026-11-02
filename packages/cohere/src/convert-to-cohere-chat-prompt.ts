@@ -5,6 +5,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyJSON,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
@@ -17,6 +18,25 @@ import type {
   CohereChatPrompt,
   CohereUserMessageContent,
 } from './cohere-chat-prompt';
+
+function serializeCohereToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  try {
+    return stringifyJSON(input);
+  } catch {
+    return '{}';
+  }
+}
+
+function safeStringifyCohereToolOutput(value: unknown): string {
+  try {
+    return stringifyJSON(value);
+  } catch {
+    return String(value);
+  }
+}
 
 export async function convertToCohereChatPrompt(
   prompt: LanguageModelV4Prompt,
@@ -141,7 +161,7 @@ export async function convertToCohereChatPrompt(
                 type: 'function' as const,
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeCohereToolCallArguments(part.input),
                 },
               });
               break;
@@ -177,7 +197,7 @@ export async function convertToCohereChatPrompt(
                 case 'content':
                 case 'json':
                 case 'error-json':
-                  contentValue = JSON.stringify(output.value);
+                  contentValue = safeStringifyCohereToolOutput(output.value);
                   break;
               }
 

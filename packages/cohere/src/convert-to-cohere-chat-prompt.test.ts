@@ -505,4 +505,117 @@ describe('convert to cohere chat prompt', () => {
       );
     });
   });
+
+  describe('tool argument and output serialization resilience', () => {
+    it('preserves string tool call arguments without double-stringifying', async () => {
+      const result = await convertToCohereChatPrompt([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"cohere command","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(result.messages[0]).toEqual({
+        role: 'assistant',
+        content: undefined,
+        tool_plan: undefined,
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'search',
+              arguments: '{"query":"cohere command","limit":5}',
+            },
+          },
+        ],
+      });
+    });
+
+    it('safely serializes BigInt and circular structures in tool call arguments', async () => {
+      const cyclicInput: any = { id: 12345678901234567890n };
+      cyclicInput.self = cyclicInput;
+
+      const result = await convertToCohereChatPrompt([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'process',
+              input: cyclicInput,
+            },
+          ],
+        },
+      ]);
+
+      const message = result.messages[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
+      expect(args).toContain('"id":"12345678901234567890"');
+      expect(args).toContain('"self":"[Circular]"');
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', async () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const result = await convertToCohereChatPrompt([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result.messages[0].content as string;
+      expect(content).toContain('"count":"999999999999999999"');
+      expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', async () => {
+      const shared = { city: 'Paris' };
+
+      const result = await convertToCohereChatPrompt([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result.messages[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
+    });
+  });
 });

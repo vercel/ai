@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
+  stringifyJSON,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -13,11 +14,19 @@ import {
 } from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(
-    typeof input === 'object' && input !== null && !Array.isArray(input)
-      ? input
-      : {},
-  );
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+    try {
+      return stringifyJSON(input);
+    } catch {
+      return '{}';
+    }
+  }
+
+  return '{}';
 }
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };

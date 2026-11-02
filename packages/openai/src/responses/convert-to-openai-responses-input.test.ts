@@ -6998,7 +6998,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": ""SELECT 1"",
+            "arguments": "SELECT 1",
             "call_id": "call_custom_001",
             "name": "write_sql",
             "type": "function_call",
@@ -7178,4 +7178,32 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
   });
+});
+
+it('preserves shared tool argument objects while replacing real cycles', async () => {
+  const shared = { value: 42 };
+  const input: Record<string, unknown> = { a: shared, b: shared };
+  input.self = input;
+  const result = await convertToOpenAIResponsesInput({
+    prompt: [
+      {
+        role: 'assistant' as const,
+        content: [
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call_shared',
+            toolName: 'inspect',
+            input,
+          },
+        ],
+      },
+    ],
+    toolNameMapping: testToolNameMapping,
+    systemMessageMode: 'system',
+    providerOptionsName: 'openai',
+    store: false,
+  });
+  expect((result.input[0] as any).arguments).toBe(
+    '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
 });

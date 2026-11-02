@@ -8,6 +8,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyJSON,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -62,7 +63,14 @@ import {
 } from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    return input;
+  }
+  try {
+    return stringifyJSON(input === undefined ? {} : input);
+  } catch {
+    return '{}';
+  }
 }
 
 function mapToolCaller(

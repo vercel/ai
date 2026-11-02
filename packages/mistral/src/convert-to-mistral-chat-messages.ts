@@ -8,6 +8,7 @@ import type {
   MistralPrompt,
 } from './mistral-chat-prompt';
 import {
+  stringifyJSON,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -25,6 +26,25 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   throw new UnsupportedFunctionalityError({
     functionality: `file part data type ${part.data.type}`,
   });
+}
+
+export function serializeMistralToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  try {
+    return stringifyJSON(input);
+  } catch {
+    return '{}';
+  }
+}
+
+export function safeStringifyMistralToolOutput(value: unknown): string {
+  try {
+    return stringifyJSON(value);
+  } catch {
+    return String(value);
+  }
 }
 
 export function convertToMistralChatMessages(
@@ -125,7 +145,7 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeMistralToolCallArguments(part.input),
                 },
               });
               break;
@@ -175,7 +195,7 @@ export function convertToMistralChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = safeStringifyMistralToolOutput(output.value);
               break;
           }
 

@@ -7,6 +7,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyJSON,
   convertToBase64,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -55,6 +56,25 @@ function validateDeepSeekImageUrl({
       prompt,
       message: 'DeepSeek image URLs must not exceed 8192 characters.',
     });
+  }
+}
+
+function serializeDeepSeekToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  try {
+    return stringifyJSON(input);
+  } catch {
+    return '{}';
+  }
+}
+
+function safeStringifyDeepSeekToolOutput(value: unknown): string {
+  try {
+    return stringifyJSON(value);
+  } catch {
+    return String(value);
   }
 }
 
@@ -333,7 +353,7 @@ export async function convertToDeepSeekChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeDeepSeekToolCallArguments(part.input),
                 },
               });
               break;
@@ -384,7 +404,7 @@ export async function convertToDeepSeekChatMessages({
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = safeStringifyDeepSeekToolOutput(output.value);
               break;
             case 'content': {
               const hasImagePart = output.value.some(
@@ -397,7 +417,7 @@ export async function convertToDeepSeekChatMessages({
               );
 
               if (!hasImagePart) {
-                contentValue = JSON.stringify(output.value);
+                contentValue = safeStringifyDeepSeekToolOutput(output.value);
                 break;
               }
 
