@@ -3,13 +3,14 @@
 // "TypeError: Illegal invocation: function called with incorrect this reference"
 const { btoa, atob } = globalThis;
 
-export function convertBase64ToUint8Array(base64String: string): Uint8Array {
+export function convertBase64ToUint8Array(
+  base64String: string,
+): Uint8Array<ArrayBuffer> {
   const base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
 
-  // Uint8Array.fromBase64 is only available on Node.js 25+ (and recent
-  // browsers / edge runtimes), so we fall back to atob on older runtimes.
+  // Uint8Array.fromBase64 is quicker but is only available on Node.js 25+
   const { fromBase64 } = Uint8Array as {
-    fromBase64?: (base64: string) => Uint8Array;
+    fromBase64?: (base64: string) => Uint8Array<ArrayBuffer>;
   };
   if (typeof fromBase64 === 'function') {
     return fromBase64.call(Uint8Array, base64);
