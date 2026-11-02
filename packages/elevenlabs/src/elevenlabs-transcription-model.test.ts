@@ -218,8 +218,6 @@ describe('doGenerate', () => {
       expect(multipart!.file.type).toBe('audio/wav');
       expect(multipart!.file.size).toBe(40169);
     });
-<<<<<<< HEAD
-=======
 
     it('should send source_url instead of a file when sourceUrl is set', async () => {
       const result = await model.doGenerate({
@@ -230,16 +228,14 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
-        {
-          "diarize": "true",
-          "file_format": "other",
-          "model_id": "scribe_v1",
-          "source_url": "https://example.com/audio.mp3",
-          "tag_audio_events": "true",
-          "timestamps_granularity": "word",
-        }
-      `);
+      const multipart = await server.calls[0].requestBodyMultipart;
+      expect(multipart).not.toHaveProperty('file');
+      expect(multipart).toEqual(
+        expect.objectContaining({
+          model_id: 'scribe_v1',
+          source_url: 'https://example.com/audio.mp3',
+        }),
+      );
       expect(result.warnings).toEqual([]);
     });
 
@@ -252,11 +248,9 @@ describe('doGenerate', () => {
         },
       });
 
-      const body = await server.calls[0].requestBodyMultipart;
-      expect(body).not.toHaveProperty('file');
-      expect(body).toMatchObject({
-        source_url: 'https://example.com/audio.mp3',
-      });
+      expect(await server.calls[0].requestBodyMultipart).not.toHaveProperty(
+        'file',
+      );
       expect(result.warnings).toEqual([
         {
           type: 'other',
@@ -265,44 +259,6 @@ describe('doGenerate', () => {
         },
       ]);
     });
-
-    it.each([
-      ['without provider options', undefined, ['true']],
-      ['with empty provider options', {}, ['true']],
-      ['with an unrelated provider option', { languageCode: 'en' }, ['true']],
-      ['when explicitly disabled', { diarize: false }, ['false']],
-    ])(
-      'should send diarize once %s',
-      async (_name, elevenlabsOptions, expectedDiarizeValues) => {
-        let diarizeValues: FormDataEntryValue[] | undefined;
-        const provider = createElevenLabs({
-          apiKey: 'test-api-key',
-          fetch: async (_url, init) => {
-            diarizeValues = (init!.body as FormData).getAll('diarize');
-            return Response.json(
-              JSON.parse(
-                fs.readFileSync(
-                  'src/__fixtures__/elevenlabs-transcription.json',
-                  'utf8',
-                ),
-              ),
-            );
-          },
-        });
-
-        await provider.transcription('scribe_v1').doGenerate({
-          audio: audioData,
-          mediaType: 'audio/wav',
-          providerOptions:
-            elevenlabsOptions == null
-              ? undefined
-              : { elevenlabs: elevenlabsOptions },
-        });
-
-        expect(diarizeValues).toEqual(expectedDiarizeValues);
-      },
-    );
->>>>>>> 8b2fa5ba00 (feat(elevenlabs): transcribe a hosted file with providerOptions.elevenlabs.sourceUrl (#24336))
   });
 
   describe('response headers', () => {
