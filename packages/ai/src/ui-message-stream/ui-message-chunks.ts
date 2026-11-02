@@ -183,6 +183,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
             z.looseObject({
               type: z.literal('text'),
               text: z.string(),
+              providerMetadata: providerMetadataSchema.optional(),
             }),
             z.looseObject({
               type: z.literal('file'),
@@ -190,6 +191,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
               url: z.string(),
               filename: z.string().optional(),
               providerReference: z.record(z.string(), z.string()).optional(),
+              providerMetadata: providerMetadataSchema.optional(),
             }),
           ]),
         ),

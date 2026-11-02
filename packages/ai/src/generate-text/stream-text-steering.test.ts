@@ -864,6 +864,52 @@ describe('streamText experimental_steering', () => {
       expect(types).not.toContain('steering-message');
     });
 
+    it('should keep provider options of delivered messages in converted model messages', async () => {
+      const steering = createSteering();
+      void steering.steer({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Use Celsius.',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      });
+
+      const model = createModel([() => textStream('It is 20 degrees.')]);
+
+      const result = streamText({
+        model,
+        prompt: 'What is the weather in Paris?',
+        experimental_steering: steering,
+      });
+
+      let message: UIMessage | undefined;
+      for await (const uiMessage of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        message = uiMessage;
+      }
+
+      const [steeringMessage] = await convertToModelMessages([message!]);
+
+      expect(steeringMessage).toEqual({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Use Celsius.',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+        ],
+      });
+    });
+
     it('should add delivered messages to the ui message and keep them in converted model messages', async () => {
       const steering = createSteering();
 

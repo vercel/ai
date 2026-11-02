@@ -181,6 +181,52 @@ describe('toUIMessageChunk', () => {
     });
   });
 
+  it('keeps provider options of steering message parts as provider metadata', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'I meant Paris, Texas.',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+            {
+              type: 'file',
+              data: new URL('https://example.com/map.png'),
+              mediaType: 'image/png',
+              providerOptions: { openai: { imageDetail: 'low' } },
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [
+        {
+          type: 'text',
+          text: 'I meant Paris, Texas.',
+          providerMetadata: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'https://example.com/map.png',
+          providerMetadata: { openai: { imageDetail: 'low' } },
+        },
+      ],
+    });
+  });
+
   it('maps files in steering messages to ui file parts', () => {
     expect(
       toUIMessageChunk({

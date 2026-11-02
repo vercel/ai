@@ -430,8 +430,13 @@ function convertUserMessageToUIParts(
   }
 
   return message.content.map((part): TextUIPart | FileUIPart => {
+    const providerMetadata =
+      part.providerOptions != null
+        ? { providerMetadata: part.providerOptions }
+        : {};
+
     if (part.type === 'text') {
-      return { type: 'text', text: part.text };
+      return { type: 'text', text: part.text, ...providerMetadata };
     }
 
     const { data, mediaType: dataUrlMediaType } =
@@ -444,6 +449,7 @@ function convertUserMessageToUIParts(
       type: 'file' as const,
       mediaType,
       ...(filename != null ? { filename } : {}),
+      ...providerMetadata,
     };
 
     switch (data.type) {
