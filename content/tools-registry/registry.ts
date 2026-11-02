@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'things-to-do',
+    name: 'Things To Do API',
+    description:
+      'Search local events in plain words: concerts, comedy, pop-ups, markets, classes and more. Time and place are read out of the query, and each event comes back with local times, venue and coordinates, price and a link.',
+    packageName: 'thingstodo-ai',
+    tags: ['events', 'search', 'local', 'travel'],
+    apiKeyEnvName: 'THINGSTODO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add thingstodo-ai',
+      npm: 'npm install thingstodo-ai',
+      yarn: 'yarn add thingstodo-ai',
+      bun: 'bun add thingstodo-ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { thingsToDoTools } from 'thingstodo-ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-opus-5.5',
+  tools: thingsToDoTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Plan a Saturday in San Francisco: a market in the morning, live music at night.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://thingstodoapi.com/docs/ai-sdk/',
+    apiKeyUrl: 'https://thingstodoapi.com/signup/',
+    websiteUrl: 'https://thingstodoapi.com',
+    npmUrl: 'https://www.npmjs.com/package/thingstodo-ai',
+  },
 ];
