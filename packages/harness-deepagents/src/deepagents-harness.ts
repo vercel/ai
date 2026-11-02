@@ -190,7 +190,7 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
       inputSchema: z.object({ file_path: z.string() }),
     }),
     toolUseKind: 'edit',
-  },
+  } as HarnessV1BuiltinTool<{ file_path: string }, any>,
   ls: tool({
     description: 'List files in a directory',
     inputSchema: z.object({ path: z.string().optional() }),

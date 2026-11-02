@@ -1,11 +1,12 @@
 import type {
+  HarnessV1BuiltinTool,
   HarnessV1NetworkSandboxSession,
   HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { asSchema } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
@@ -227,6 +228,9 @@ describe('createDeepAgents', () => {
   it('registers the native delete tool as a mutation', async () => {
     const harness = createDeepAgents();
     const deleteTool = harness.builtinTools.delete;
+    expectTypeOf(deleteTool).toEqualTypeOf<
+      HarnessV1BuiltinTool<{ file_path: string }, any>
+    >();
     expect(deleteTool).toBeDefined();
     expect(deleteTool.toolUseKind).toBe('edit');
     expect(deleteTool).not.toHaveProperty('commonName');
