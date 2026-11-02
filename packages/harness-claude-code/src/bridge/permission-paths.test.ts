@@ -36,6 +36,8 @@ describe('file permission paths', () => {
     { target: 'nested/../file.txt', trusted: true },
     { target: '.', trusted: true },
     { target: '..config', trusted: true },
+    { target: '~notes/file.txt', trusted: true },
+    { target: 'nested/file name.txt', trusted: true },
     { target: 'new/nested/file.txt', trusted: true },
     { target: 'internal/new.txt', trusted: true },
     { target: '../other/file.txt', trusted: false },
@@ -50,6 +52,12 @@ describe('file permission paths', () => {
     { target: 'missing/../file.txt', trusted: false },
     { target: '', trusted: false },
     { target: ' ', trusted: false },
+    { target: '~', trusted: false },
+    { target: '~/file.txt', trusted: false },
+    { target: ' ~/file.txt ', trusted: false },
+    { target: ' file.txt', trusted: false },
+    { target: 'file.txt ', trusted: false },
+    { target: '\tfile.txt\n', trusted: false },
     { target: 'file\0.txt', trusted: false },
   ])('checks $target as trusted=$trusted', async ({ target, trusted }) => {
     await expect(
@@ -62,6 +70,20 @@ describe('file permission paths', () => {
       }),
     ).resolves.toBe(trusted);
   });
+  it.each(['read', 'write'] as const)(
+    'requires approval for whitespace-wrapped absolute paths on %s',
+    async access => {
+      await expect(
+        areFileToolPathsTrusted({
+          workDir,
+          cwd: workDir,
+          paths: [` ${path.join(directory, 'other', 'file.txt')} `],
+          access,
+          readableSkillRoots: [],
+        }),
+      ).resolves.toBe(false);
+    },
+  );
   it('checks every target and permits skill reads but not skill writes', async () => {
     const options = {
       workDir,

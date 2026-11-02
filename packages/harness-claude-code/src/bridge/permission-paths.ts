@@ -21,7 +21,18 @@ export async function areFileToolPathsTrusted(options: {
       }
     }
     for (const filePath of options.paths) {
-      if (typeof filePath !== 'string' || filePath.trim().length === 0) {
+      /*
+       * Grep and Glob trim paths and expand home-directory shorthand after
+       * the approval hook. Require approval for these forms so a literal
+       * workdir-relative path cannot authorize a different resolved path.
+       */
+      if (
+        typeof filePath !== 'string' ||
+        filePath.length === 0 ||
+        filePath !== filePath.trim() ||
+        filePath === '~' ||
+        filePath.startsWith('~/')
+      ) {
         return false;
       }
       if (
