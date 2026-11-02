@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildInterruptOn,
   builtinToolRequiresApproval,
@@ -27,43 +30,149 @@ describe('builtinToolRequiresApproval', () => {
 });
 
 describe('buildInterruptOn', () => {
-  it('returns undefined when no gating is needed', () => {
-    expect(buildInterruptOn(undefined, undefined)).toBeUndefined();
-    expect(buildInterruptOn('allow-all', undefined)).toBeUndefined();
-  });
-
-  it('gates only execute under allow-edits', () => {
-    expect(buildInterruptOn('allow-edits', undefined)).toEqual({
-      execute: { allowedDecisions: ['approve', 'reject'] },
-    });
-  });
-
-  it('gates write, edit, and execute under allow-reads', () => {
-    expect(buildInterruptOn('allow-reads', undefined)).toEqual({
-      write_file: { allowedDecisions: ['approve', 'reject'] },
-      edit_file: { allowedDecisions: ['approve', 'reject'] },
-      execute: { allowedDecisions: ['approve', 'reject'] },
-      task: { allowedDecisions: ['approve', 'reject'] },
-      write_todos: { allowedDecisions: ['approve', 'reject'] },
-    });
-  });
-
-  it('does not gate inactive built-in tools from the filtering policy alone', () => {
+  const options = {
+    workDir: '/workspace',
+    readableSkillRoots: [],
+    builtinToolFiltering: undefined,
+  };
+  const conditional = {
+    allowedDecisions: ['approve', 'reject'],
+    when: expect.any(Function),
+  };
+  const unconditional = { allowedDecisions: ['approve', 'reject'] };
+  it('does not gate unrestricted sessions', () => {
     expect(
-      buildInterruptOn(undefined, { mode: 'deny', toolNames: ['read'] }),
+      buildInterruptOn({ ...options, permissionMode: undefined }),
+    ).toBeUndefined();
+    expect(
+      buildInterruptOn({ ...options, permissionMode: 'allow-all' }),
     ).toBeUndefined();
   });
-
-  it('excludes inactive built-in tools from permission approval gating', () => {
+  it('checks file targets and gates shell execution under allow-edits', () => {
     expect(
-      buildInterruptOn('allow-reads', { mode: 'deny', toolNames: ['write'] }),
+      buildInterruptOn({ ...options, permissionMode: 'allow-edits' }),
     ).toEqual({
-      edit_file: { allowedDecisions: ['approve', 'reject'] },
-      execute: { allowedDecisions: ['approve', 'reject'] },
-      task: { allowedDecisions: ['approve', 'reject'] },
-      write_todos: { allowedDecisions: ['approve', 'reject'] },
+      read_file: conditional,
+      write_file: conditional,
+      edit_file: conditional,
+      delete_file: conditional,
+      ls: conditional,
+      grep: conditional,
+      glob: conditional,
+      execute: unconditional,
     });
   });
+  it('checks reads and gates mutations under allow-reads', () => {
+    expect(
+      buildInterruptOn({ ...options, permissionMode: 'allow-reads' }),
+    ).toEqual({
+      read_file: conditional,
+      ls: conditional,
+      grep: conditional,
+      glob: conditional,
+      write_file: unconditional,
+      edit_file: unconditional,
+      delete_file: unconditional,
+      execute: unconditional,
+      task: unconditional,
+      write_todos: unconditional,
+    });
+  });
+  it('does not approve inactive built-ins through permission gating', () => {
+    expect(
+      buildInterruptOn({
+        ...options,
+        permissionMode: 'allow-reads',
+        builtinToolFiltering: { mode: 'deny', toolNames: ['write'] },
+      }),
+    ).not.toHaveProperty('write_file');
+    expect(
+      buildInterruptOn({
+        ...options,
+        permissionMode: undefined,
+        builtinToolFiltering: { mode: 'deny', toolNames: ['read'] },
+      }),
+    ).toBeUndefined();
+  });
+});
+
+describe('file approval predicates', () => {
+  let directory: string;
+  let workDir: string;
+  let skill: string;
+  beforeEach(async () => {
+    directory = await mkdtemp(path.join(tmpdir(), 'deepagents-approvals-'));
+    workDir = path.join(directory, 'workspace');
+    skill = path.join(directory, 'skill');
+    await mkdir(workDir);
+    await mkdir(skill);
+    await symlink(skill, path.join(workDir, 'external'));
+  });
+  afterEach(async () => {
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  it.each([
+    { name: 'read_file', args: { file_path: 'file.txt' }, interrupts: false },
+    {
+      name: 'write_file',
+      args: { file_path: 'new/file.txt' },
+      interrupts: false,
+    },
+    { name: 'edit_file', args: { path: 'file.txt' }, interrupts: false },
+    {
+      name: 'read_file',
+      args: { file_path: '../skill/file.txt' },
+      interrupts: false,
+    },
+    {
+      name: 'write_file',
+      args: { file_path: '../skill/file.txt' },
+      interrupts: true,
+    },
+    {
+      name: 'read_file',
+      args: { file_path: '../unknown/file.txt' },
+      interrupts: true,
+    },
+    {
+      name: 'read_file',
+      args: { file_path: null, path: 'file.txt' },
+      interrupts: true,
+    },
+    {
+      name: 'write_file',
+      args: { file_path: 'external/file.txt' },
+      interrupts: true,
+    },
+    { name: 'read_file', args: {}, interrupts: true },
+    { name: 'ls', args: {}, interrupts: true },
+    { name: 'grep', args: { pattern: 'text' }, interrupts: true },
+    { name: 'grep', args: { pattern: 'text', path: '.' }, interrupts: false },
+    { name: 'glob', args: { pattern: '**/*.ts' }, interrupts: false },
+    { name: 'glob', args: { pattern: '*.ts', path: '/' }, interrupts: false },
+    { name: 'glob', args: { pattern: '../*.ts' }, interrupts: true },
+    { name: 'glob', args: { pattern: '\\.\\./*.ts' }, interrupts: true },
+    {
+      name: 'glob',
+      args: { pattern: '*.ts', path: '../unknown' },
+      interrupts: true,
+    },
+  ])(
+    '$name $args requires approval=$interrupts',
+    async ({ name, args, interrupts }) => {
+      const config = buildInterruptOn({
+        permissionMode: 'allow-edits',
+        builtinToolFiltering: undefined,
+        workDir,
+        readableSkillRoots: [skill],
+      })!;
+      const when = config[name].when!;
+      await expect(
+        when({ toolCall: { name, args } } as Parameters<typeof when>[0]),
+      ).resolves.toBe(interrupts);
+    },
+  );
 });
 
 describe('isBuiltinToolIncluded', () => {

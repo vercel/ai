@@ -717,6 +717,13 @@ function createSession({
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
         skillsChanged: skillWriteResult.changed,
+        ...(promptOpts.skills.length > 0
+          ? {
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${homeDir}/.agents/skills/${skill.name}`,
+              ),
+            }
+          : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),

@@ -590,6 +590,34 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
+  it('forwards individual active skill directories as readable roots', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    });
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Read reference.md.',
+        },
+      ],
+      tools: [],
+      prompt: 'Use demo.',
+      emit: () => {},
+    });
+    expect(sentMessages[0]).toEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
+    await session.doDestroy();
+  });
+
   it('passes thinking configuration to the bridge', async () => {
     sentMessages.length = 0;
     const harness = createDeepAgents({
