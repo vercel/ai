@@ -294,6 +294,36 @@ new tool results. In a multi-step agent, use `prepareStep` to update the respons
 ID and select only new messages; simply setting `thread: { type: 'create' }` on an
 agent does not automatically continue its thread.
 
+For example, with an existing client-side `weather` tool:
+
+```ts
+import { ToolLoopAgent, stepCountIs } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model,
+  tools: { weather },
+  stopWhen: stepCountIs(5),
+  prepareStep: ({ steps }) => {
+    const previous = steps.at(-1);
+    if (previous == null) {
+      return { providerOptions: { anthropic: { thread: { type: 'create' } } } };
+    }
+    const previousMessageId = previous.response.id;
+    if (previousMessageId == null) throw new Error('Missing message ID.');
+    return {
+      messages: previous.response.messages.filter(m => m.role === 'tool'),
+      providerOptions: {
+        anthropic: { thread: { type: 'continue', previousMessageId } },
+      },
+    };
+  },
+});
+```
+
+This pattern is for a loop with client-side tools. Persist the original input and
+each step's response messages for recovery; never rerun completed tools just to
+rebuild history. Do not reuse a static continuation ID across multiple steps.
+
 **Pin content-dependent beta headers.** The beta header set is fixed for a thread,
 but features such as PDFs and Files API references enable headers based on the
 messages in the current request. For example, when creating a thread with a PDF,
@@ -323,8 +353,21 @@ To change the system prompt, tools, model, thinking, tool choice, output format,
 context management, top-level cache control, or beta headers, start a new thread
 with the full history. Fixed fields must otherwise have the same values on every
 request. Send MCP configuration and container IDs on each request that needs them.
-After a fallback model responds, start a new thread with the full history. After
-a refusal, start a new thread with the refused turn removed or rephrased.
+After a fallback model responds, start a new thread with the full history. Detect
+this through a `fallback_message` entry in
+`providerMetadata.anthropic.iterations`. After a refusal (`finishReason ===
+'content-filter'` or `rawFinishReason === 'refusal'`), start a new thread with the
+refused turn removed or rephrased.
+
+On models that bind preserved thinking to the prompt prefix, changing system
+instructions or tools can invalidate earlier reasoning. Remove the earlier
+reasoning parts, or set `sendReasoning: false`, when creating that new thread.
+
+The provider-level interface accepts empty continuation prompts for `pause_turn`,
+but `generateText` and `streamText` currently reject empty `messages`. Check
+`rawFinishReason === 'pause_turn'` to detect this case. Resuming an empty turn
+requires using the provider-level `doGenerate` or `doStream` interface with the
+same fixed settings; the agent example above does not handle paused server turns.
 
 The `@ai-sdk/anthropic` provider supports this beta on the native Claude API and
 compatible Anthropic-managed endpoints. Anthropic's Claude Platform on AWS and
