@@ -71,6 +71,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
 
     // Create form data with base fields
     const formData = new FormData();
+<<<<<<< HEAD
     const blob =
       audio instanceof Uint8Array
         ? new Blob([audio])
@@ -84,6 +85,36 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
       `audio.${fileExtension}`,
     );
     formData.append('diarize', 'true');
+=======
+    formData.append('model_id', this.modelId);
+
+    // ElevenLabs accepts exactly one of `file` or `source_url`.
+    const sourceUrl = elevenlabsOptions?.sourceUrl;
+    if (sourceUrl != null) {
+      formData.append('source_url', sourceUrl);
+
+      if (audio.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        });
+      }
+    } else {
+      const blob =
+        audio instanceof Uint8Array
+          ? new Blob([audio as Uint8Array<ArrayBuffer>])
+          : new Blob([convertBase64ToUint8Array(audio)]);
+      const fileExtension = mediaTypeToExtension(mediaType);
+      formData.append(
+        'file',
+        new File([blob], 'audio', { type: mediaType }),
+        `audio.${fileExtension}`,
+      );
+    }
+
+    formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
+>>>>>>> 8b2fa5ba00 (feat(elevenlabs): transcribe a hosted file with providerOptions.elevenlabs.sourceUrl (#24336))
 
     // Add provider-specific options
     if (elevenlabsOptions) {
