@@ -33,7 +33,10 @@ export function convertToLanguageModelV2DataContent(
 } {
   // Buffer & Uint8Array:
   if (isUint8Array(content)) {
-    return { data: convertDataContentToUint8Array(content), mediaType: undefined };
+    return {
+      data: convertDataContentToUint8Array(content),
+      mediaType: undefined,
+    };
   }
 
   // ArrayBuffer needs conversion to Uint8Array (lightweight):

@@ -1003,7 +1003,6 @@ function getAnthropicToolsetName({
   return typeof fromMetadata === 'string' ? fromMetadata : undefined;
 }
 
-
 function parseToolCallInput(input: unknown): unknown {
   if (typeof input === 'string') {
     try {

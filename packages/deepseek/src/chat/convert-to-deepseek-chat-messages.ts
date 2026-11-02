@@ -7,7 +7,10 @@ import {
 } from '@ai-sdk/provider';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,

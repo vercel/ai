@@ -86,8 +86,11 @@ export async function prepareTools({
   const functionTools = supportedTools.filter(t => t.type === 'function');
   const disableParallelToolUseForRequest =
     disableParallelToolUse ??
-    (isAnthropicModel && toolChoice?.type === 'tool' &&
-     !getModelCapabilities(modelId).rejectsForcedToolUse ? true : undefined);
+    (isAnthropicModel &&
+    toolChoice?.type === 'tool' &&
+    !getModelCapabilities(modelId).rejectsForcedToolUse
+      ? true
+      : undefined);
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const bedrockTools: BedrockTool[] = [];

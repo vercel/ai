@@ -624,7 +624,10 @@ it.each([
 });
 
 it('should omit empty hint arrays while preserving the singular language option', async () => {
-  server.urls['https://api.openai.com/v1/audio/transcriptions'].response = { type: 'json-value', body: { text: 'Hello' } };
+  server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+    type: 'json-value',
+    body: { text: 'Hello' },
+  };
   await model.doGenerate({
     audio: audioData,
     mediaType: 'audio/mpeg',

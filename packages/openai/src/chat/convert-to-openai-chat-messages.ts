@@ -7,7 +7,9 @@ import {
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64 } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {

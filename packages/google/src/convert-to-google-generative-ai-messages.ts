@@ -11,7 +11,9 @@ import type {
 } from './google-generative-ai-prompt';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64 } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
   'skip_thought_signature_validator';
@@ -339,7 +341,6 @@ function appendLegacyToolResultParts({
   }
 }
 
-
 function serializeFunctionResponseContent(
   value: JSONValue,
 ): JSONValue | string {
@@ -349,7 +350,6 @@ function serializeFunctionResponseContent(
     ? secureJsonParse(stringifyWithBigIntAndCycles(value))
     : value;
 }
-
 
 function containsNonJsonValue(
   value: unknown,
@@ -376,7 +376,6 @@ function containsNonJsonValue(
     ancestors.delete(value);
   }
 }
-
 
 function parseToolCallInput(input: unknown): unknown {
   if (typeof input !== 'string') {

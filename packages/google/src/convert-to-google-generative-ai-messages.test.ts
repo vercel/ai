@@ -695,7 +695,11 @@ describe('parallel tool calls', () => {
 
     const content = (result.contents[0].parts[0] as any).functionResponse
       .response.content;
-    expect(content).toEqual({ $ref: '#/components/schemas/Item', count: '100', self: '[Circular]' });
+    expect(content).toEqual({
+      $ref: '#/components/schemas/Item',
+      count: '100',
+      self: '[Circular]',
+    });
   });
 
   it('should preserve reused non-circular objects with $ref in tool-result', async () => {
@@ -782,7 +786,6 @@ describe('tool results with thought signatures', () => {
     expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
   });
 });
-
 
 it.each(['{"city":', 'null'])(
   'retains malformed input or parsed null without throwing: %s',

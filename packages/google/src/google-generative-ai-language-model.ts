@@ -1,13 +1,13 @@
-import { APICallError } from '@ai-sdk/provider';
-import type {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Source,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+import {
+  APICallError,
+  type LanguageModelV2,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Content,
+  type LanguageModelV2FinishReason,
+  type LanguageModelV2Source,
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2Usage,
+  type SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -30,7 +30,11 @@ import { continueGoogleStream } from './continue-google-stream';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
-import { getGoogleErrorSchema, googleFailedResponseHandler, mapGoogleErrorStatusToHttpStatusCode } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
+} from './google-error';
 import type { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   type GoogleGenerativeAIModelId,
@@ -492,8 +496,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     );
 
     const url = `${this.config.baseURL}/${getModelPath(
-          this.modelId,
-        )}:streamGenerateContent?alt=sse`;
+      this.modelId,
+    )}:streamGenerateContent?alt=sse`;
     const streamGenerateContent = (body: typeof args) =>
       postJsonToApi({
         url,
@@ -612,7 +616,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               });
               return;
             }
-
 
             if (value.usageMetadata != null) {
               requestUsageMetadata = value.usageMetadata;

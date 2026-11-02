@@ -5,7 +5,9 @@ import {
 import type { MistralPrompt } from './mistral-chat-prompt';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64 } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToMistralChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -144,7 +146,6 @@ export function convertToMistralChatMessages(
 
   return messages;
 }
-
 
 export function serializeMistralToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {

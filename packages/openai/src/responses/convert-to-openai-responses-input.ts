@@ -682,7 +682,6 @@ export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
 
-
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {
     try {

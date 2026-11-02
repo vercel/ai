@@ -1463,7 +1463,6 @@ describe('additional file format tests', () => {
   });
 });
 
-
 describe('tool input and output serialization resilience', () => {
   it('parses valid JSON string tool input into structured object', async () => {
     const { messages } = await convertToBedrockChatMessages([

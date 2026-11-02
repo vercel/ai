@@ -17,6 +17,10 @@ export function preparePerplexityTools({
   const preparedTools: PerplexityAgentTool[] = [];
   const warnings: LanguageModelV2CallWarning[] = [];
 
+  if (toolChoice?.type === 'none') {
+    return { tools: [], warnings };
+  }
+
   for (const tool of tools ?? []) {
     if (tool.type === 'provider-defined') {
       warnings.push({ type: 'unsupported-tool', tool });

@@ -6,7 +6,9 @@ import {
 import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64 } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
   providerOptions?: SharedV2ProviderMetadata;
@@ -158,7 +160,6 @@ export function convertToOpenAICompatibleChatMessages(
 
   return messages;
 }
-
 
 function serializeToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {

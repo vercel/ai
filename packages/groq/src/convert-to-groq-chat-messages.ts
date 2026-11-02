@@ -5,7 +5,9 @@ import {
 import type { GroqChatPrompt } from './groq-api-types';
 import {
   stringifyWithBigIntAndCycles,
-  secureJsonParse, convertToBase64 } from '@ai-sdk/provider-utils';
+  secureJsonParse,
+  convertToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV2Prompt,
@@ -141,7 +143,6 @@ export function convertToGroqChatMessages(
 
   return messages;
 }
-
 
 function serializeGroqToolCallArguments(input: unknown): string {
   if (typeof input === 'string') {

@@ -80,18 +80,37 @@ describe('prepareTools', () => {
 
 describe('named tool cache compatibility', () => {
   const tools = ['lookup', 'unused'].map(name => ({
-    type: 'function' as const, name, inputSchema: { type: 'object' as const },
+    type: 'function' as const,
+    name,
+    inputSchema: { type: 'object' as const },
   }));
-  it.each([undefined, true, false])('retains the catalog with disableParallelToolUse %s', async disableParallelToolUse => {
-    const result = await prepareTools({ tools, modelId: ANTHROPIC_MODEL,
-      toolChoice: { type: 'tool', toolName: 'lookup' }, disableParallelToolUse });
-    expect(result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name)).toEqual(['lookup', 'unused']);
-    if (disableParallelToolUse === false) {
-      expect(result.additionalTools).toBeUndefined();
-      expect(result.toolConfig.toolChoice).toEqual({ tool: { name: 'lookup' } });
-    } else {
-      expect(result.additionalTools).toEqual({ tool_choice: { type: 'tool', name: 'lookup', disable_parallel_tool_use: true } });
-      expect(result.toolConfig.toolChoice).toBeUndefined();
-    }
-  });
+  it.each([undefined, true, false])(
+    'retains the catalog with disableParallelToolUse %s',
+    async disableParallelToolUse => {
+      const result = await prepareTools({
+        tools,
+        modelId: ANTHROPIC_MODEL,
+        toolChoice: { type: 'tool', toolName: 'lookup' },
+        disableParallelToolUse,
+      });
+      expect(
+        result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+      ).toEqual(['lookup', 'unused']);
+      if (disableParallelToolUse === false) {
+        expect(result.additionalTools).toBeUndefined();
+        expect(result.toolConfig.toolChoice).toEqual({
+          tool: { name: 'lookup' },
+        });
+      } else {
+        expect(result.additionalTools).toEqual({
+          tool_choice: {
+            type: 'tool',
+            name: 'lookup',
+            disable_parallel_tool_use: true,
+          },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      }
+    },
+  );
 });
