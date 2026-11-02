@@ -261,6 +261,13 @@ Claude Code session, so an approval answered after a resume runs that same
 call, even in a new sandbox. Claude Code waits for one approval at a time, so
 parallel calls that need approval run one after another.
 
+In these modes, file reads are automatically approved only within the session
+workdir or an active skill's directory. `allow-edits` automatically approves
+file changes only within the workdir. Paths outside those directories, including
+symlink targets, and paths that cannot be resolved require host approval.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

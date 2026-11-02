@@ -1732,6 +1732,10 @@ describe('createClaudeCode adapter', () => {
 
     expect(lastStart()).toMatchObject({
       skills: ['weather-forecast', 'weather-codes'],
+      readableSkillRoots: [
+        '/home/vercel-sandbox/.claude/skills/weather-forecast',
+        '/home/vercel-sandbox/.claude/skills/weather-codes',
+      ],
     });
 
     const skillWrites = writes.filter(write =>
