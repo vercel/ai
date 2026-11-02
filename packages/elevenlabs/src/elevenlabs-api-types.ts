@@ -97,4 +97,10 @@ export type ElevenLabsTranscriptionAPITypes = {
    * @default 'other'
    */
   file_format?: 'pcm_s16le_16' | 'other';
+
+  /**
+   * The HTTPS URL of the file to transcribe.
+   * Exactly one of `file` or `source_url` must be provided.
+   */
+  source_url?: string;
 };

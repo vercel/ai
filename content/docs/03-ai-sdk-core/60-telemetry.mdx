@@ -16,7 +16,7 @@ to see providers that offer monitoring and tracing for AI SDK applications.
 
 ### Step 1: Register the OpenTelemetry integration
 
-OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
+OpenTelemetry collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -512,6 +512,37 @@ The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 The `OpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
+
+#### Inference duration metric
+
+For `generateText` and `streamText`, `OpenTelemetry` also records the
+[`gen_ai.client.inference.duration`](https://github.com/open-telemetry/semantic-conventions-genai/blob/3fe84604a581b3d50dd5b4bd29383b462d2a5018/docs/gen-ai/client-inference.md#metric-gen_aiclientinferenceduration)
+histogram in seconds, following the development GenAI semantic conventions.
+Configure a global OpenTelemetry `MeterProvider` with a metric reader and exporter
+to collect it. A `TracerProvider` alone does not export metrics.
+
+Each language model call contributes one observation, including calls that fail or
+are cancelled. Streaming calls record the full response duration. In a workflow
+with multiple model calls, each call is recorded separately; local tool execution
+time is excluded. Each attempt of a retried model stream contributes its own
+observation, including failed attempts that close without a finish chunk.
+
+The histogram includes these attributes:
+
+- `gen_ai.operation.name`: `"chat"`
+- `gen_ai.provider.name`: the normalized provider name
+- `gen_ai.request.model`: the requested model ID
+- `gen_ai.response.model`: the response model ID, when available
+- `error.type`: the error name for thrown errors, `"AbortError"` for cancellation,
+  or `"_OTHER"` when a call ends with an error finish reason or an unknown error
+
+The default bucket boundary advice is `[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64,
+1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92]` seconds. Your OpenTelemetry SDK
+configuration can override aggregation and bucket boundaries.
+
+Setting `telemetry.isEnabled` to `false` disables these metrics for a call.
+Setting `recordInputs` or `recordOutputs` to `false` does not disable duration
+metrics. The `LegacyOpenTelemetry` integration does not emit this histogram.
 
 #### generateText / streamText
 
