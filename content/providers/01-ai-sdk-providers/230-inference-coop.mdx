@@ -1,0 +1,276 @@
+---
+title: Inference Cooperative
+description: Learn how to use the Inference Cooperative provider with the AI SDK.
+---
+
+# Inference Cooperative Provider
+
+The [Inference Cooperative](https://inference.coop) is a member-governed AI
+cooperative that serves models from multiple providers through a single
+OpenAI-compatible gateway. Model IDs carry a provider prefix, so you choose
+not just _which_ model runs but _where_: `tinfoil/` models run in hardware
+enclaves (TEE) for architectural privacy, while `greenpt/` and `regolo/`
+models run on 100% renewable energy in the EU.
+
+Inference Cooperative models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/inference-coop` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
+
+```ts
+import { generateText } from 'ai';
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+
+const { text } = await generateText({
+  model: inferenceCoop('greenpt/deepseek-v4.1-flash'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The current [AI Gateway model catalog](https://vercel.com/ai-gateway/models) does not list Inference Cooperative models. Use `@ai-sdk/inference-coop` for the APIs on this page. To use other models through Gateway, install `ai` and configure a Gateway API key:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [Gateway documentation](/providers/ai-sdk-providers/ai-gateway) for supported models and APIs.
+
+## Using `@ai-sdk/inference-coop`
+
+For direct access to the Inference Cooperative, install `ai` and `@ai-sdk/inference-coop`:
+
+<InstallPackages packages="ai @ai-sdk/inference-coop" />
+
+Set your [member API key](https://dashboard.inference.coop) in the
+`INFERENCE_COOP_API_KEY` environment variable:
+
+```bash
+export INFERENCE_COOP_API_KEY=your_api_key_here
+```
+
+API keys are created in the [Member Dashboard](https://dashboard.inference.coop).
+API usage draws from the same monthly allowance as the co-op chat.
+
+## Provider Instance
+
+You can import the default provider instance `inferenceCoop` from
+`@ai-sdk/inference-coop`:
+
+```ts
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+```
+
+For custom configuration, you can import `createInferenceCoop` and create a
+provider instance with your settings:
+
+```ts
+import { createInferenceCoop } from '@ai-sdk/inference-coop';
+
+const inferenceCoop = createInferenceCoop({
+  apiKey: process.env.INFERENCE_COOP_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Inference
+Cooperative provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://gateway.inference.coop/v1`.
+
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when
+  keys rotate. The function can return a string or a promise. Credential
+  caching and refresh are managed by the function.
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `INFERENCE_COOP_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation.
+
+## Language Models
+
+```ts
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: inferenceCoop('greenpt/deepseek-v4.1-flash'),
+  prompt: 'What is the capital of France?',
+});
+```
+
+The model ID selects both the model and the co-op provider tier it runs on:
+
+| Model                         | Provider | Privacy       | Green energy | Vision    |
+| ----------------------------- | -------- | ------------- | ------------ | --------- |
+| `greenpt/deepseek-v4.1-flash` | GreenPT  | policy-based  | <Check />    | <Check /> |
+| `tinfoil/deepseek-v4-1-flash` | Tinfoil  | architectural | <Cross />    | <Check /> |
+| `tinfoil/glm-5.3`             | Tinfoil  | architectural | <Cross />    | <Cross /> |
+| `tinfoil/gpt-oss-120b`        | Tinfoil  | architectural | <Cross />    | <Cross /> |
+| `greenpt/glm-5.3-flash`       | GreenPT  | policy-based  | <Check />    | <Cross /> |
+| `greenpt/glm-5.3`             | GreenPT  | policy-based  | <Check />    | <Cross /> |
+| `regolo/apertus-70b`          | Regolo   | policy + ZDR  | <Check />    | <Check /> |
+| `regolo/qwen3.5-122b`         | Regolo   | policy + ZDR  | <Check />    | <Check /> |
+
+<Note>
+  <strong>Architectural</strong> privacy (Tinfoil) means the model runs in
+  encrypted hardware enclaves — even the provider cannot read your prompts.
+  <strong>Policy-based</strong> privacy rests on the provider's data-handling
+  commitments; Regolo adds a written zero-data-retention (ZDR) policy.
+</Note>
+
+The co-op serves an evolving catalog of models, so model IDs are typed as
+`string`. Embedding models are not supported by the gateway.
+
+## Image Models
+
+You can create models that call the co-op gateway's
+`/images/generations` endpoint using the `.image()` factory method:
+
+```ts
+const model = inferenceCoop.image('regolo/qwen-image');
+```
+
+Use image models with [`generateImage`](/docs/reference/ai-sdk-core/generate-image):
+
+```ts
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+import { generateImage } from 'ai';
+
+const result = await generateImage({
+  model: inferenceCoop.image('regolo/qwen-image'),
+  prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
+  size: '512x512',
+});
+```
+
+`regolo/qwen-image` generates base64-encoded JPEGs from a text prompt and is
+billed per pixel generated. It runs on Regolo — renewable-powered EU hosting
+with a zero-data-retention policy.
+
+## Transcription Models
+
+You can create models that call the co-op gateway's `/audio/transcriptions`
+endpoint using the `.transcription()` factory method:
+
+```ts
+const model = inferenceCoop.transcription('tinfoil/whisper-large-v3-turbo');
+```
+
+Use transcription models with [`transcribe`](/docs/reference/ai-sdk-core/transcribe):
+
+```ts
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: inferenceCoop.transcription('tinfoil/whisper-large-v3-turbo'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+Transcription models support additional provider options. Pass them through
+`providerOptions['inference-coop']` and use
+`InferenceCoopTranscriptionModelOptions` for type checking:
+
+```ts highlight="9-13"
+import {
+  inferenceCoop,
+  type InferenceCoopTranscriptionModelOptions,
+} from '@ai-sdk/inference-coop';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: inferenceCoop.transcription('tinfoil/whisper-large-v3-turbo'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    'inference-coop': {
+      language: 'en',
+      temperature: 0.5,
+    } satisfies InferenceCoopTranscriptionModelOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **language** _string_
+
+  The language of the audio, such as `en`. Providing it can improve accuracy
+  and speed.
+
+- **prompt** _string_
+
+  An optional hint to guide the model's style or to continue a previous
+  audio segment.
+
+- **temperature** _number_
+
+  The sampling temperature, between 0 and 1.
+
+The normalized result includes the transcript text, the detected language,
+timed segments, and the duration in seconds. Transcription runs inside
+Tinfoil's enclaves, so audio gets the same architectural privacy as the
+co-op's private chat models.
+
+## Speech Models
+
+You can create models that call the co-op gateway's `/audio/speech` endpoint
+using the `.speech()` factory method:
+
+```ts
+const model = inferenceCoop.speech('tinfoil/voxtral-tts');
+```
+
+Use speech models with [`generateSpeech`](/docs/reference/ai-sdk-core/generate-speech):
+
+```ts
+import { inferenceCoop } from '@ai-sdk/inference-coop';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: inferenceCoop.speech('tinfoil/voxtral-tts'),
+  text: 'Hello from the Inference Cooperative!',
+  voice: 'neutral_female',
+});
+```
+
+<Note>
+  The `voice` option is required — the gateway rejects speech requests without
+  it. The audio is returned as WAV; pass `outputFormat` (e.g. `'mp3'`) to
+  request another format. The `instructions` and `language` options are not
+  supported by the endpoint; use a language-specific voice instead.
+</Note>
+
+The following voices are available:
+
+- **English:** `neutral_female`, `neutral_male`, `casual_female`,
+  `casual_male`, `cheerful_female`
+- **French:** `fr_female`, `fr_male`
+- **German:** `de_female`, `de_male`
+- **Spanish:** `es_female`, `es_male`
+- **Italian:** `it_female`, `it_male`
+- **Portuguese:** `pt_female`, `pt_male`
+- **Dutch:** `nl_female`, `nl_male`
+- **Hindi:** `hi_female`, `hi_male`
+- **Arabic:** `ar_male`
+
+Speech synthesis runs inside Tinfoil's enclaves, so voice data gets the
+same architectural privacy as the co-op's private chat models.
