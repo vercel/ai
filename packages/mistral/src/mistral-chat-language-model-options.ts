@@ -91,7 +91,9 @@ export const mistralLanguageModelChatOptions = () =>
      *   support them, e.g. `zai-glm-5-3`, which accepts `'low'`, `'high'`, and
      *   `'max'` but not `'none'`
      */
-    reasoningEffort: z.enum(['high', 'none', 'low', 'max']).optional(),
+    reasoningEffort: z
+      .enum(['high', 'none', 'low', 'medium', 'max'])
+      .optional(),
   });
 export const mistralLanguageModelChatOptionsValidator = lazySchema(() =>
   zodSchema(mistralLanguageModelChatOptions()),
