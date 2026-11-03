@@ -886,7 +886,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
           pending.resolve(result);
         } else {
           const bufferedBytes =
-            JSON.stringify(result).length + msg.toolCallId.length;
+            JSON.stringify(result).length + String(msg.toolCallId).length;
           bufferedToolResults.push({
             toolCallId: msg.toolCallId,
             result,
