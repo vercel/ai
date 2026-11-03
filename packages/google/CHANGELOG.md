@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 4.0.111
+
+### Patch Changes
+
+- a32df11: Omit all Google Interactions tools when `toolChoice` is `none`, including provider-defined tools.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
 ## 4.0.110
 
 ### Patch Changes
