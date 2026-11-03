@@ -376,6 +376,11 @@ type InboundControl =
 
 const WS_OPEN = 1;
 
+// Matches the 16 MiB the ACP sibling relay caps its request body at. Results
+// are held only until their request arrives, so this bounds a stalled
+// correlation rather than normal traffic.
+const BUFFERED_TOOL_RESULTS_MAX_BYTES = 16 * 1024 * 1024;
+
 /**
  * Boot the bridge: bind the WebSocket server, announce `bridge-ready`, and
  * service host connections for the lifetime of the process. Resolves once the
@@ -538,6 +543,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
       }) => boolean;
     }
   >();
+  // A tool result can arrive before its request, so unmatched results are held
+  // until a matching request collects them. Nothing bounded that hold before:
+  // an entry whose request never arrives stayed for the life of the process.
   const bufferedToolResults: Array<{
     toolCallId: string;
     result: {
@@ -545,7 +553,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
       isError?: boolean;
       toolResult?: ToolResultPart;
     };
+    bytes: number;
   }> = [];
+  let bufferedToolResultBytes = 0;
   const pendingToolApprovals = new Map<
     string,
     (response: { approved: boolean; reason?: string }) => void
@@ -798,9 +808,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
                 request.matches?.(buffered.result) === true,
             );
             if (bufferedIndex >= 0) {
-              return Promise.resolve(
-                bufferedToolResults.splice(bufferedIndex, 1)[0].result,
-              );
+              const [collected] = bufferedToolResults.splice(bufferedIndex, 1);
+              bufferedToolResultBytes -= collected.bytes;
+              return Promise.resolve(collected.result);
             }
             return new Promise(resolve => {
               pendingToolResults.set(request.toolCallId, {
@@ -875,10 +885,23 @@ export async function runBridge<TStart extends { type: 'start' }>(
           pendingToolResults.delete(pendingId);
           pending.resolve(result);
         } else {
+          const bufferedBytes = JSON.stringify(result).length;
           bufferedToolResults.push({
             toolCallId: msg.toolCallId,
             result,
+            bytes: bufferedBytes,
           });
+          bufferedToolResultBytes += bufferedBytes;
+          // Drop the oldest entries once the buffer passes its cap. Newer
+          // entries stay, because the correlation this buffer exists for is
+          // between a recent result and the request that follows it.
+          while (
+            bufferedToolResultBytes > BUFFERED_TOOL_RESULTS_MAX_BYTES &&
+            bufferedToolResults.length > 0
+          ) {
+            const evicted = bufferedToolResults.shift();
+            if (evicted) bufferedToolResultBytes -= evicted.bytes;
+          }
         }
         return;
       }

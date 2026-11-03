@@ -707,4 +707,162 @@ describe('runBridge', () => {
       expect(exited).toBe(true);
     });
   });
+
+  describe('buffered tool results', () => {
+    // Buffered entries are measured with `JSON.stringify(result).length`, and
+    // an output of MIB - 13 characters serialises to `{"output":"…"}` of
+    // exactly one MiB, so the 16 MiB cap fills after exactly sixteen entries.
+    const MIB = 1024 * 1024;
+    const ONE_MIB_OUTPUT = 'x'.repeat(MIB - 13);
+
+    const byToolCallId = (a: string, b: string): number =>
+      Number(a.slice(3)) - Number(b.slice(3));
+
+    /**
+     * Request every id at once and classify each by whether it settled within
+     * a macrotask. A buffered result resolves in a microtask; one the bridge
+     * never held leaves its request pending.
+     */
+    async function collectOrMiss(
+      turn: BridgeTurn,
+      ids: string[],
+    ): Promise<{ resolved: string[]; pending: string[] }> {
+      const resolved: string[] = [];
+      const pending: string[] = [];
+      await Promise.all(
+        ids.map(
+          id =>
+            new Promise<void>(resolve => {
+              let settled = false;
+              void turn.requestToolResult(id).then(() => {
+                settled = true;
+                resolved.push(id);
+              });
+              setTimeout(() => {
+                if (!settled) pending.push(id);
+                resolve();
+              }, 50);
+            }),
+        ),
+      );
+      return {
+        resolved: resolved.sort(byToolCallId),
+        pending: pending.sort(byToolCallId),
+      };
+    }
+
+    it('evicts the oldest unmatched results when the buffer passes its cap', async () => {
+      const ids = Array.from({ length: 20 }, (_, index) => `tc-${index}`);
+      let outcome: { resolved: string[]; pending: string[] } | undefined;
+      let resolveOutcome!: () => void;
+      const outcomeReady = new Promise<void>(resolve => {
+        resolveOutcome = resolve;
+      });
+      let endTurn!: () => void;
+      const turnDone = new Promise<void>(resolve => {
+        endTurn = resolve;
+      });
+
+      const handle = await startBridge({
+        onStart: async (_start, turn) => {
+          outcome = await collectOrMiss(turn, ids);
+          resolveOutcome();
+          await turnDone;
+        },
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+
+      // Results may arrive between turns; send them before `start` so the
+      // buffer is already over its cap when the next turn asks for them.
+      for (const id of ids) {
+        client.send({
+          type: 'tool-result',
+          toolCallId: id,
+          output: ONE_MIB_OUTPUT,
+        });
+      }
+      client.send({ type: 'start' });
+
+      await outcomeReady;
+      endTurn();
+
+      // 20 MiB of results against a 16 MiB cap: the newest sixteen survive and
+      // the four oldest were evicted rather than retained forever.
+      expect(outcome?.resolved).toEqual(ids.slice(4));
+      expect(outcome?.pending).toEqual(ids.slice(0, 4));
+    });
+
+    it('subtracts a collected entry from the byte counter', async () => {
+      const initialIds = Array.from(
+        { length: 16 },
+        (_, index) => `tc-${index}`,
+      );
+      let collected: unknown;
+      let nextStillBuffered: boolean | undefined;
+      let resolveChecked!: () => void;
+      const checked = new Promise<void>(resolve => {
+        resolveChecked = resolve;
+      });
+      let sentinelRequested!: () => void;
+      const sentinelRequest = new Promise<void>(resolve => {
+        sentinelRequested = resolve;
+      });
+      let endTurn!: () => void;
+      const turnDone = new Promise<void>(resolve => {
+        endTurn = resolve;
+      });
+
+      const handle = await startBridge({
+        onStart: async (_start, turn) => {
+          // Exactly at the cap: sixteen entries, none evicted yet.
+          const first = await turn.requestToolResult('tc-0');
+          collected = first.output;
+
+          // Have the socket append one more MiB, using a sentinel result to
+          // observe the frame boundary: frames are handled in order, so the
+          // append has been buffered by the time the sentinel resolves.
+          const sentinel = turn.requestToolResult('sentinel');
+          sentinelRequested();
+          await sentinel;
+
+          // If collecting tc-0 had not decremented the counter, this
+          // seventeenth MiB would have pushed the buffer over the cap and
+          // evicted tc-1.
+          const check = await collectOrMiss(turn, ['tc-1']);
+          nextStillBuffered = check.resolved.length === 1;
+          resolveChecked();
+          await turnDone;
+        },
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      for (const id of initialIds) {
+        client.send({
+          type: 'tool-result',
+          toolCallId: id,
+          output: ONE_MIB_OUTPUT,
+        });
+      }
+      client.send({ type: 'start' });
+
+      await sentinelRequest;
+      client.send({
+        type: 'tool-result',
+        toolCallId: 'tc-16',
+        output: ONE_MIB_OUTPUT,
+      });
+      client.send({
+        type: 'tool-result',
+        toolCallId: 'sentinel',
+        output: 'sentinel',
+      });
+
+      await checked;
+      endTurn();
+
+      expect(collected).toBe(ONE_MIB_OUTPUT);
+      expect(nextStillBuffered).toBe(true);
+    });
+  });
 });
