@@ -725,6 +725,45 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 
@@ -2501,6 +2540,73 @@ describe('doGenerate', () => {
         },
       },
       required: ['elements'],
+    });
+  });
+
+  it('should pass propertyOrdering in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            zebra: { type: 'string', const: 'striped' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              propertyOrdering: ['banana', 'yellow'],
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  tango: { type: 'string' },
+                  alpha: { type: 'number' },
+                },
+                propertyOrdering: ['alpha', 'tango'],
+              },
+            },
+          },
+          propertyOrdering: ['apple', 'items', 'zebra'],
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        zebra: { type: 'string', enum: ['striped'] },
+        apple: {
+          type: 'object',
+          properties: {
+            yellow: { type: 'string' },
+            banana: { type: 'string' },
+          },
+          propertyOrdering: ['banana', 'yellow'],
+        },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              tango: { type: 'string' },
+              alpha: { type: 'number' },
+            },
+            propertyOrdering: ['alpha', 'tango'],
+          },
+        },
+      },
+      propertyOrdering: ['apple', 'items', 'zebra'],
     });
   });
 
@@ -5185,13 +5291,13 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "low"', async () => {
+      it('should map reasoning "none" to thinkingLevel "low" with compatibility warning', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini3Model.doGenerate({
+        const { warnings } = await gemini3Model.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -5200,6 +5306,12 @@ describe('doGenerate', () => {
           generationConfig: {
             thinkingConfig: { thinkingLevel: 'low' },
           },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
         });
       });
 
@@ -5460,13 +5572,37 @@ describe('doGenerate', () => {
       const gemini25ProModel = provider.chat('gemini-2.5-pro');
       const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
 
-      it('should map reasoning "none" to thinkingBudget 0', async () => {
+      it('should map reasoning "none" to the minimum thinkingBudget for Gemini 2.5 Pro', async () => {
         server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini25ProModel.doGenerate({
+        const { warnings } = await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 128 },
+          },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not supported by this model. mapped to the minimum reasoning budget of 128 tokens.',
+        });
+      });
+
+      it('should map reasoning "none" to thinkingBudget 0 for models that can disable thinking', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25FlashLiteModel.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -5930,6 +6066,46 @@ describe('doStream', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareStreamResponse({ content: ['done'] });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const result = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+    await convertReadableStreamToArray(result.stream);
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   describe('in-stream errors', () => {
     it.each([
       {
@@ -5950,10 +6126,70 @@ describe('doStream', () => {
         status: 'INVALID_ARGUMENT',
         isRetryable: false,
       },
-      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+      {
+        partialText: false,
+        code: null,
+        status: 'CANCELLED',
+        statusCode: 499,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'ABORTED',
+        statusCode: 409,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNAVAILABLE',
+        statusCode: 503,
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: null,
+        status: 'RESOURCE_EXHAUSTED',
+        statusCode: 429,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'DEADLINE_EXCEEDED',
+        statusCode: 504,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'PERMISSION_DENIED',
+        statusCode: 403,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNKNOWN',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'FUTURE_STATUS',
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'UNAVAILABLE',
+        isRetryable: false,
+      },
     ])(
-      'should surface $status and finish with error (partial text: $partialText)',
-      async ({ partialText, code, status, isRetryable }) => {
+      'should surface $status with code $code and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, statusCode, isRetryable }) => {
         const error = {
           code,
           message: 'Provider error',
@@ -5998,7 +6234,7 @@ describe('doStream', () => {
             message: error.message,
             type: status,
             code: code ?? undefined,
-            statusCode: code ?? undefined,
+            statusCode: code ?? statusCode,
             isRetryable,
             data: error,
           },

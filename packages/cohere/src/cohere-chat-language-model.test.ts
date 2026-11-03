@@ -248,7 +248,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'AI provides automation and efficiency.',
+                  data: Buffer.from(
+                    'AI provides automation and efficiency.',
+                  ).toString('base64'),
                 },
                 mediaType: 'text/plain',
                 filename: 'ai-benefits.txt',
@@ -272,7 +274,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'This is a test document.',
+                  data: Buffer.from('This is a test document.').toString(
+                    'base64',
+                  ),
                 },
                 mediaType: 'text/plain',
                 filename: 'test.txt',

@@ -102,7 +102,7 @@ export class HttpMCPTransport implements MCPTransport {
     this.onSessionIdChange = onSessionIdChange;
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
   setProtocolVersion(version: string): void {

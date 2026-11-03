@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -222,7 +223,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/upload',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -239,7 +243,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/pre-recorded',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.audio_url,
@@ -279,7 +286,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         validateUrl: true,
         credentialedOrigin: apiOrigin,
         trustedOrigin: apiOrigin,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,

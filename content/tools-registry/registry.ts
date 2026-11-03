@@ -751,4 +751,71 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'agentsvc',
+    name: 'agentsvc',
+    description:
+      'More than 120 pay-per-call tools for agents in one package: web scraping to Markdown, token safety checks before a swap, smart-money and whale tracking, agent memory and inboxes, PDF and OCR, company and sanctions checks. Paid per call with a prepaid credit token or USDC via x402, no subscription.',
+    packageName: 'agentsvc',
+    tags: ['web-scraping', 'crypto', 'memory', 'x402', 'payments'],
+    apiKeyEnvName: 'AGENTSVC_CREDIT_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add agentsvc',
+      npm: 'npm install agentsvc',
+      yarn: 'yarn add agentsvc',
+      bun: 'bun add agentsvc',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAgentsvc } from 'agentsvc';
+import { agentsvcTools } from 'agentsvc/ai-sdk';
+
+const svc = createAgentsvc({
+  creditToken: process.env.AGENTSVC_CREDIT_TOKEN,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: await agentsvcTools(svc, ['web-scrape', 'token-precheck', 'token-smart-money']),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Is BRETT (0x532f27101965dd16442E59d40670FaF5eBB142E4) on Base safe to buy, and who is buying it right now?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentsvc.io/docs/ai-sdk',
+    apiKeyUrl: 'https://agentsvc.io/credits',
+    websiteUrl: 'https://agentsvc.io',
+    npmUrl: 'https://www.npmjs.com/package/agentsvc',
+  },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
 ];

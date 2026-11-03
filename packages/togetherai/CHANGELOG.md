@@ -1,5 +1,66 @@
 # @ai-sdk/togetherai
 
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/openai-compatible@3.0.84
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [5006d83]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/openai-compatible@3.0.83
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.83
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/openai-compatible@3.0.82
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/openai-compatible@3.0.81
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+
 ## 3.0.79
 
 ### Patch Changes

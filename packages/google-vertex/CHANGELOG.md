@@ -1,5 +1,109 @@
 # @ai-sdk/google-vertex
 
+## 5.0.131
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [a32df11]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/google@4.0.111
+  - @ai-sdk/anthropic@4.0.96
+  - @ai-sdk/openai-compatible@3.0.84
+
+## 5.0.130
+
+### Patch Changes
+
+- Updated dependencies [2cd0a97]
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [5006d83]
+- Updated dependencies [4ae6986]
+- Updated dependencies [8ad7873]
+  - @ai-sdk/anthropic@4.0.95
+  - @ai-sdk/google@4.0.110
+  - @ai-sdk/openai-compatible@3.0.83
+  - @ai-sdk/provider-utils@5.0.73
+
+## 5.0.129
+
+### Patch Changes
+
+- Updated dependencies [f4c5f1e]
+- Updated dependencies [e10aebb]
+- Updated dependencies [b0d51fe]
+  - @ai-sdk/anthropic@4.0.94
+
+## 5.0.128
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [dfed8e8]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/google@4.0.109
+  - @ai-sdk/openai-compatible@3.0.82
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/anthropic@4.0.93
+
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [9f108f8]
+- Updated dependencies [b1bcea1]
+- Updated dependencies [61a315e]
+  - @ai-sdk/google@4.0.108
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/anthropic@4.0.92
+  - @ai-sdk/openai-compatible@3.0.81
+
+## 5.0.126
+
+### Patch Changes
+
+- Updated dependencies [50da4c5]
+  - @ai-sdk/anthropic@4.0.91
+
+## 5.0.125
+
+### Patch Changes
+
+- 38a5b84: support Google Auth Library 11 in `@ai-sdk/google-vertex`
+
+## 5.0.124
+
+### Patch Changes
+
+- Updated dependencies [63bf860]
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/anthropic@4.0.90
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/google@4.0.107
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 5.0.123
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+  - @ai-sdk/anthropic@4.0.89
+  - @ai-sdk/google@4.0.106
+
 ## 5.0.122
 
 ### Patch Changes

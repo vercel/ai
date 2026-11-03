@@ -1,5 +1,84 @@
 # @ai-sdk/azure
 
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/deepseek@3.0.79
+  - @ai-sdk/openai@4.0.108
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [226b7da]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/deepseek@3.0.78
+  - @ai-sdk/openai@4.0.107
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.114
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/deepseek@3.0.77
+  - @ai-sdk/openai@4.0.106
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.113
+
+### Patch Changes
+
+- Updated dependencies [47b1d8b]
+- Updated dependencies [d07b475]
+- Updated dependencies [61a315e]
+  - @ai-sdk/openai@4.0.105
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/deepseek@3.0.76
+
+## 4.0.112
+
+### Patch Changes
+
+- c3b6fef: fix(azure): treat all Azure Speech 502s as retryable again. MAI-Voice-2.1 now rejects unknown voices and unsupported styles with a 400, so the Envoy protocol-error 502 special case is removed.
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [599a97f]
+- Updated dependencies [8375141]
+- Updated dependencies [7eac057]
+- Updated dependencies [436374e]
+- Updated dependencies [9026c7d]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai@4.0.104
+  - @ai-sdk/deepseek@3.0.75
+
+## 4.0.111
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- Updated dependencies [e64ed82]
+- Updated dependencies [02dbab1]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai@4.0.103
+  - @ai-sdk/deepseek@3.0.74
+
 ## 4.0.110
 
 ### Patch Changes

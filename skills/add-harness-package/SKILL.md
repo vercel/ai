@@ -85,7 +85,7 @@ Required package basics:
 - dev dependencies matching existing harness packages
 - `"engines": { "node": ">=22" }`
 
-For bridge packages, add any bridge asset copy step required for files under `src/bridge/`.
+For bridge packages, ensure all bridge assets under `src/bridge/` are copied into `dist/bridge/` and can be read from there. Read `.agents/guidelines/harness-bridge-assets.md` for detailed requirements.
 
 Bridge dependency rules (bridge-backed harnesses):
 

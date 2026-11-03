@@ -375,10 +375,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      headers,
-    );
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
+    const combinedHeaders = await getHeaders();
 
     const submit = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
@@ -402,7 +401,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } = await this.pollForImageUrl({
       pollUrl,
       requestId,
-      headers: combinedHeaders,
+      headers: getHeaders,
       abortSignal,
       pollOverrides: {
         pollIntervalMillis: bflOptions?.pollIntervalMillis,
@@ -425,7 +424,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         : undefined,
       // Signed BFL downloads need no credentials; custom proxies may need them.
       headers: useCustomDownloadHeaders
-        ? combinedHeaders
+        ? await getHeaders()
         : { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
@@ -472,7 +471,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }: {
     pollUrl: string;
     requestId: string;
-    headers: Record<string, string | undefined>;
+    headers: Resolvable<Record<string, string | undefined>>;
     abortSignal: AbortSignal | undefined;
     pollOverrides?: {
       pollIntervalMillis?: number;
@@ -519,7 +518,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           trustedOrigin: this.config.baseURL,
           // Only send credentials when it stays on a trusted provider host.
           headers: isTrustedUrl(url.toString(), this.config.baseURL)
-            ? headers
+            ? await resolve(headers)
             : undefined,
           failedResponseHandler: bflFailedResponseHandler,
           successfulResponseHandler: createJsonResponseHandler(bflPollSchema),

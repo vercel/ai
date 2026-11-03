@@ -1,5 +1,91 @@
 # @ai-sdk/harness-fx
 
+## 1.0.89
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+  - @ai-sdk/mcp@2.0.90
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+  - @ai-sdk/mcp@2.0.89
+
+## 1.0.87
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.85
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [c3af430]
+- Updated dependencies [1afa510]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/mcp@2.0.88
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/mcp@2.0.87
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.167
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [ade2a33]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/mcp@2.0.86
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.81
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+  - @ai-sdk/mcp@2.0.85
+
 ## 1.0.80
 
 ### Patch Changes

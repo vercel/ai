@@ -1,5 +1,110 @@
 # ai
 
+## 7.0.162
+
+### Patch Changes
+
+- 857ca45: Restore server-defined tool metadata, dynamic status, and title when validating tool approval continuations so approval policies receive the same tool definition fields as new model calls.
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/gateway@4.0.135
+
+## 7.0.161
+
+### Patch Changes
+
+- 51ca5b7: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- 51ca5b7: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in data-content and file-part-data
+- 51ca5b7: fix(ai): support cross-realm binary buffers and circular structures in cloneModelMessages
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/gateway@4.0.134
+
+## 7.0.160
+
+### Patch Changes
+
+- a71172d: fix(ai): clarify inverted smoothStream prefix error message
+- cf27969: add steering.queue() to send a message once the current task is done
+- 17b6923: fix(ai): validate streamed data parts against `dataPartSchemas`
+
+  `processUIMessageStream` looked up `dataPartSchemas` by the full chunk type (`data-weather`) instead of the bare part name (`weather`), so `useChat` / `Chat` never validated streamed data parts. Invalid data parts now raise a `TypeValidationError`.
+
+- Updated dependencies [2099d45]
+- Updated dependencies [d05ff62]
+  - @ai-sdk/gateway@4.0.133
+
+## 7.0.159
+
+### Patch Changes
+
+- Updated dependencies [cbc9ac0]
+  - @ai-sdk/gateway@4.0.132
+
+## 7.0.158
+
+### Patch Changes
+
+- 8ba3a5c: fix(ai): repair partial JSON that ends with a minus sign at the start of an array
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [f850782]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/gateway@4.0.131
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 7.0.157
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- eb768e2: Fix Next.js Edge Runtime warnings from Node.js runtime detection used by telemetry tracing.
+- Updated dependencies [9ca8bcf]
+- Updated dependencies [61a315e]
+  - @ai-sdk/gateway@4.0.130
+  - @ai-sdk/provider-utils@5.0.71
+
+## 7.0.156
+
+### Patch Changes
+
+- Updated dependencies [9f19c79]
+  - @ai-sdk/gateway@4.0.129
+
+## 7.0.155
+
+### Patch Changes
+
+- b6b9dca: chore(ai): remove runtime validation of inputs that TypeScript types already guarantee
+
+  `streamText`, `generateText`, `generateObject` and `streamObject` no longer validate messages against the `ModelMessage` schema. This removes a cost that grew linearly with message history and was paid on every `streamText` step. Type checks on call settings, steering messages, tool caller configuration, `smoothStream` chunking, `experimental_streamSpeech` text input, the shape of `decide` state and questions, and the batch reference version have also been removed. Value constraints that types cannot express, such as integer ranges, non-empty collections, unknown keys, and non-finite numbers or cycles in `decide` JSON input, are still validated.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/gateway@4.0.128
+
+## 7.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- c8e8866: Add `aiVersion` to telemetry events so tracing-channel subscribers and telemetry integrations can identify the emitting `ai` package version, including in bundled applications and applications with multiple SDK versions.
+- 1cf95c6: add experimental steering to generateText, streamText and ToolLoopAgent
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/gateway@4.0.127
+
 ## 7.0.153
 
 ### Patch Changes

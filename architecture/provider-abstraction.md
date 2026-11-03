@@ -3,6 +3,9 @@
 This document explains how AI functions, model specifications, and provider implementations connect in the AI SDK.
 It starts with an abstract high-level view and then details each V4 model type, including the AI functions that use it and small UML diagrams.
 
+See [Model capabilities](model-capabilities.md) for the shared metadata contract
+and provider profiles that drive runtime behavior and generated documentation.
+
 ## High-Level Architecture
 
 - **AI functions**: user-facing language functions (for example, `streamText`)
@@ -57,14 +60,12 @@ classDiagram
 
 The `reasoning` field on [`LanguageModelV4CallOptions`](../packages/provider/src/language-model/v4/language-model-v4-call-options.ts) controls how much reasoning a model performs before responding. Possible values: `'provider-default'`, `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, `'max'`.
 
-Use `isCustomReasoning(reasoning)` from `@ai-sdk/provider-utils` to check whether the caller supplied a custom value (anything other than `undefined` or `'provider-default'`). If it returns `false`, no action is needed. If `true`:
+The intended behavior, including how unsupported values are mapped, is described in the [reasoning guide](../content/docs/03-ai-sdk-core/26-reasoning.mdx#how-values-are-mapped). To implement it:
 
-1. **`'none'`** — Disable reasoning. Only some providers support this; others should emit an unsupported warning.
-2. **Any other value** — Map it to the provider's native configuration using one of two strategies:
-   - **Effort mapping** (use `mapReasoningToProviderEffort`): Maps the spec enum to a provider-specific effort string via an `effortMap`. If the exact level has no provider equivalent, coerce to the next lower level; if there is no lower level, coerce to the next higher one. Emits a compatibility warning when coercion occurs, or an unsupported warning if no mapping exists at all.
-   - **Budget mapping** (use `mapReasoningToProviderBudget`): Maps the spec enum to an absolute token budget. Takes the model's maximum reasoning budget (or overall max output tokens if no separate reasoning limit exists), multiplies by a percentage for each level (defaults: minimal 2%, low 10%, medium 30%, high 60%, xhigh 90%, max 95%), and clamps the result between `minReasoningBudget` (default 1024) and `maxReasoningBudget`. Custom percentages can be provided per provider.
-
-Providers that do **not** support reasoning configuration at the API level should emit an unsupported warning when `isCustomReasoning` returns `true`.
+- Use `isCustomReasoning(reasoning)` to check whether the caller supplied a value other than `undefined` or `'provider-default'`.
+- Use `mapReasoningToProviderEffort` for effort-based APIs. Its `effortMap` should list only the levels the model supports (including `none` if it can disable reasoning); the helper rounds other values and emits the warnings.
+- Use `mapReasoningToProviderBudget` for token-budget APIs. Handle `'none'` before calling it when the model can disable reasoning.
+- Providers and models that do not support reasoning configuration at the API level should emit an unsupported warning.
 
 Resolve explicit provider values before mapping the corresponding portable fields so warnings describe values actually sent. Preserve each adapter's existing handling of partial configuration: Bedrock fills missing thinking type, effort, or budget fields while preserving explicit values. An explicit budget on a budget-based model must not prevent deriving a missing enabled type. See the [reasoning precedence guide](../content/docs/03-ai-sdk-core/26-reasoning.mdx).
 

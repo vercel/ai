@@ -1,5 +1,6 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -489,7 +490,10 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: deepgramFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

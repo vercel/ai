@@ -360,6 +360,7 @@ describe('doGenerate', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -715,6 +716,126 @@ describe('doGenerate', () => {
       model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
+    });
+  });
+
+  it('should map unsupported top-level reasoning for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'minimal',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'low',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      },
+    ]);
+  });
+
+  it('should map max reasoning to xhigh for GPT-6 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-6-sol').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'max',
+    });
+
+    expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+      'xhigh',
+    );
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+      },
+    ]);
+  });
+
+  describe('GPT-5.6 with function tools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'test-tool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+    const toolsWarning = {
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'gpt-5.6-luna does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.',
+    };
+
+    it('should send reasoning effort none with a warning when reasoning is requested', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+        tools,
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'none',
+      );
+      expect(result.warnings).toStrictEqual([toolsWarning]);
+    });
+
+    it.each(['none', 'provider-default', undefined] as const)(
+      'should send reasoning effort none without a warning when reasoning is %s',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'none',
+        );
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it('should send providerOptions reasoningEffort unchanged', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const result = await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        tools,
+        providerOptions: { openai: { reasoningEffort: 'low' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should not change reasoning without tools', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      await provider.chat('gpt-5.6-luna').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'low',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
     });
   });
 
@@ -1757,7 +1878,7 @@ describe('doGenerate', () => {
     );
 
     it.each(['none', 'minimal'] as const)(
-      'should omit unsupported GPT-6 reasoning effort %s',
+      'should send provider reasoning effort %s unchanged for GPT-6 models',
       async reasoningEffort => {
         prepareJsonFixtureResponse('openai-text');
 
@@ -1771,13 +1892,32 @@ describe('doGenerate', () => {
         expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-6-astra',
           messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: reasoningEffort,
+        });
+        expect(result.warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+      async reasoning => {
+        prepareJsonFixtureResponse('openai-text');
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+          reasoning_effort: 'low',
         });
         expect(result.warnings).toStrictEqual([
           {
-            type: 'unsupported',
-            feature: 'reasoningEffort',
-            details:
-              'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+            type: 'compatibility',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
           },
         ]);
       },
@@ -2221,6 +2361,20 @@ describe('doGenerate', () => {
         ttl: '30m',
       },
     });
+  });
+
+  it('should send prompt cache retention for GPT-5 models', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const result = await provider.chat('gpt-5.5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { promptCacheRetention: '24h' } },
+    });
+
+    expect((await server.calls[0].requestBodyJson).prompt_cache_retention).toBe(
+      '24h',
+    );
+    expect(result.warnings).toStrictEqual([]);
   });
 
   it('should omit legacy prompt cache retention for GPT-6 models', async () => {
@@ -3852,6 +4006,7 @@ describe('doStream', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -4488,3 +4643,41 @@ describe('doStream', () => {
     });
   });
 });
+
+it.each(['generate', 'stream'] as const)(
+  'reports the custom HTTP request URL for %s',
+  async mode => {
+    const url = 'https://model.example.test:8443/private/v1/chat/completions';
+    const fetch = vi.fn(async (_url: RequestInfo | URL) =>
+      mode === 'generate'
+        ? Response.json({
+            id: 'test',
+            object: 'chat.completion',
+            created: 1,
+            model: 'test-model',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'hello' },
+                finish_reason: 'stop',
+              },
+            ],
+          })
+        : new Response('data: [DONE]\n\n', {
+            headers: { 'content-type': 'text/event-stream' },
+          }),
+    );
+    const provider = createOpenAI({
+      apiKey: 'test-only',
+      baseURL: 'https://model.example.test:8443/private/v1',
+      fetch,
+    });
+    const model = provider.chat('test-model');
+    const result =
+      mode === 'generate'
+        ? await model.doGenerate({ prompt: TEST_PROMPT })
+        : await model.doStream({ prompt: TEST_PROMPT });
+    expect(result.request?.url).toBe(url);
+    expect(fetch.mock.calls[0][0]).toBe(url);
+  },
+);

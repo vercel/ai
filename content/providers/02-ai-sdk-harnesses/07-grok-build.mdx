@@ -210,8 +210,11 @@ scheduler tools, and image-generation tools.
 
 Grok Build does not advertise ACP session modes for its permission behavior.
 When Grok sends an ACP permission request, the ACP harness applies the
-configured Harness `permissionMode` based on the tool kind. Grok may handle
-safe built-in operations internally without sending a permission request.
+configured Harness `permissionMode` based on the tool kind. Under `allow-reads`
+and `allow-edits`, file operations are automatically approved only when every
+declared location resolves within the session working directory. Grok may
+handle safe built-in operations internally without sending a permission
+request.
 
 ## Known Limitations
 

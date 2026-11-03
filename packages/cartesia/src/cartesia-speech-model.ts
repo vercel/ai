@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -281,7 +282,10 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
         path: '/tts/bytes',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

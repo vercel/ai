@@ -71,6 +71,7 @@ run(async () => {
   }
 
   console.log('Text:', await result.text);
+  console.log('Timestamped segments:', await result.segments);
   console.log('Language:', await result.language);
   console.log('Duration:', await result.durationInSeconds);
   console.log('Warnings:', await result.warnings);

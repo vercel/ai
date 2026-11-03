@@ -194,6 +194,18 @@ describe('prepareGoogleInteractionsTools', () => {
         expect(result.toolWarnings).toEqual([]);
         expect(result.tools).toEqual([expected]);
       });
+
+      it(`omits ${title} when toolChoice is none`, () => {
+        const result = prepareGoogleInteractionsTools({
+          tools: [{ type: 'provider', id, name: id.split('.')[1], args }],
+          toolChoice: { type: 'none' },
+        });
+        expect(result).toEqual({
+          tools: undefined,
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
     }
 
     it('warns and drops unknown google.* provider-defined tools', () => {
@@ -237,12 +249,16 @@ describe('prepareGoogleInteractionsTools', () => {
       expect(result.toolChoice).toBe('any');
     });
 
-    it('maps "none" to "none"', () => {
+    it('omits function tools when toolChoice is none', () => {
       const result = prepareGoogleInteractionsTools({
         tools: [FUNCTION_TOOL],
         toolChoice: { type: 'none' },
       });
-      expect(result.toolChoice).toBe('none');
+      expect(result).toEqual({
+        tools: undefined,
+        toolChoice: undefined,
+        toolWarnings: [],
+      });
     });
 
     it('maps { type: "tool", toolName } to { allowed_tools: { mode: "validated", tools: [name] } }', () => {

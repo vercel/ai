@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -40,7 +42,7 @@ import { mapCohereFinishReason } from './map-cohere-finish-reason';
 type CohereChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -171,7 +173,10 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -252,7 +257,10 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -494,10 +502,6 @@ function resolveCohereThinking({
     maxReasoningBudget: 32768,
     warnings,
   });
-
-  if (tokenBudget == null) {
-    return {};
-  }
 
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
