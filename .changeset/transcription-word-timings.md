@@ -7,4 +7,4 @@
 '@ai-sdk/xai': patch
 ---
 
-Expose transcription word timings separately from segments and accept shared timestampGranularities
+Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
