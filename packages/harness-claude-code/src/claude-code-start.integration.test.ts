@@ -16,6 +16,7 @@ async function startTurn({
   idempotentStart = true,
   startDuringReconnect = false,
   submitDuringReconnect = false,
+  submitBeforeFirstEvent = false,
 }: {
   drop: boolean;
   acceptBeforeDrop?: boolean;
@@ -23,6 +24,7 @@ async function startTurn({
   idempotentStart?: boolean;
   startDuringReconnect?: boolean;
   submitDuringReconnect?: boolean;
+  submitBeforeFirstEvent?: boolean;
 }) {
   const server = new WebSocketServer({ port: 0, host: '127.0.0.1' });
   await once(server, 'listening');
@@ -51,13 +53,14 @@ async function startTurn({
           lastSeq,
           capabilities: {
             idempotentStart,
-            experimental_userMessageResponses: submitDuringReconnect,
+            experimental_userMessageResponses:
+              submitDuringReconnect || submitBeforeFirstEvent,
           },
         }),
       );
     };
     if (leg === 1) disconnectIdle = () => socket.close(1001, 'idle drop');
-    if (startDuringReconnect && leg === 2) {
+    if ((startDuringReconnect || submitDuringReconnect) && leg === 2) {
       sendReconnectHello = sendHello;
       resolveReconnect();
     } else {
@@ -84,6 +87,7 @@ async function startTurn({
       frames.push({ leg, ...message });
       if (message.type === 'resume' && acceptedIds.size > 0) finish();
       if (message.type === 'user-message') {
+        if (submitBeforeFirstEvent && leg === 1) return;
         const accepted = acceptedIds.size > 0;
         socket.send(
           JSON.stringify({
@@ -107,7 +111,7 @@ async function startTurn({
       if (acceptedIds.has(message.startId!)) return;
       acceptedIds.add(message.startId!);
       state = 'running';
-      if (!submitDuringReconnect) finish();
+      if (!submitDuringReconnect && !submitBeforeFirstEvent) finish();
     });
   });
   const abort = new AbortController();
@@ -165,7 +169,10 @@ async function startTurn({
     abortSignal: abort.signal,
     emit: event => events.push(event.type),
   });
-  if (submitDuringReconnect) {
+  if (submitBeforeFirstEvent) {
+    await Promise.all([control.submitUserMessage!('Follow-up'), control.done]);
+  } else if (submitDuringReconnect) {
+    await reconnecting;
     const submission = control.submitUserMessage!('Follow-up');
     sendReconnectHello!();
     await Promise.all([submission, control.done]);
@@ -176,6 +183,32 @@ async function startTurn({
 }
 
 describe('Claude Code turn start delivery', () => {
+  it('retries a lost start before resending a pending user message', async () => {
+    const { control, frames, acceptedIds, events } = await startTurn({
+      drop: true,
+      submitBeforeFirstEvent: true,
+    });
+    await control.done;
+    expect(
+      frames.filter(frame => frame.leg === 2).map(frame => frame.type),
+    ).toEqual(['resume', 'start', 'user-message']);
+    expect(acceptedIds.size).toBe(1);
+    expect(events).toEqual(['finish']);
+  });
+
+  it('retries a lost start before steering queued during reconnect', async () => {
+    const { control, frames, acceptedIds, events } = await startTurn({
+      drop: true,
+      submitDuringReconnect: true,
+    });
+    await control.done;
+    expect(
+      frames.filter(frame => frame.leg === 2).map(frame => frame.type),
+    ).toEqual(['resume', 'start', 'user-message']);
+    expect(acceptedIds.size).toBe(1);
+    expect(events).toEqual(['finish']);
+  });
+
   it('starts a turn without a dropped connection', async () => {
     const { control, frames, acceptedIds, events } = await startTurn({
       drop: false,

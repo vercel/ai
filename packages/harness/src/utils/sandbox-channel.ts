@@ -394,14 +394,21 @@ export class SandboxChannel<
    * Queue a frame if disconnected. `onSent` runs in a microtask after the frame
    * is handed to the socket, not after bridge acknowledgement. Reconnect
    * handlers run before notifications for frames flushed on that connection.
+   * Set `queueIfDisconnected` to false when the caller owns reconnect replay.
    */
-  send(message: TIn, { onSent }: { onSent?: () => void } = {}): void {
+  send(
+    message: TIn,
+    {
+      onSent,
+      queueIfDisconnected = true,
+    }: { onSent?: () => void; queueIfDisconnected?: boolean } = {},
+  ): void {
     if (this.terminal) {
       throw new Error(
         `SandboxChannel: cannot send ${message.type} — channel is closed.`,
       );
     }
-    this.rawSend(JSON.stringify(message), onSent);
+    this.rawSend(JSON.stringify(message), onSent, queueIfDisconnected);
   }
 
   /**
@@ -644,11 +651,15 @@ export class SandboxChannel<
     });
   }
 
-  private rawSend(text: string, onSent?: () => void): void {
+  private rawSend(
+    text: string,
+    onSent?: () => void,
+    queueIfDisconnected = true,
+  ): void {
     if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
       if (onSent) queueMicrotask(onSent);
-    } else {
+    } else if (queueIfDisconnected) {
       this.pendingSends.push({ text, onSent });
     }
   }

@@ -20,6 +20,7 @@ const channelListeners = new Map<
   Set<(event: Record<string, unknown>) => void>
 >();
 let connectOnOpen = false;
+let channelSendError: Error | undefined;
 
 function dispatchChannelEvent(event: Record<string, unknown>): void {
   for (const listener of channelListeners.get(String(event.type)) ?? []) {
@@ -140,6 +141,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       msg: Record<string, unknown>,
       { onSent }: { onSent?: () => void } = {},
     ): void {
+      if (channelSendError != null) throw channelSendError;
       sentMessages.push(msg);
       if (onSent) queueMicrotask(onSent);
     }
@@ -327,6 +329,7 @@ describe('createClaudeCode adapter', () => {
     subscribedEventTypes.length = 0;
     channelListeners.clear();
     connectOnOpen = false;
+    channelSendError = undefined;
     wsMock.reset();
   });
 
@@ -1998,6 +2001,35 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('bridge WebSocket startup', () => {
+    it('cleans up a turn whose initial start cannot be sent', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      channelSendError = new Error('channel is closed');
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Hello',
+          emit: () => {},
+        }),
+      ).rejects.toThrow('channel is closed');
+      expect(vi.getTimerCount()).toBe(0);
+      expect(
+        [...channelListeners.values()].every(listeners => listeners.size === 0),
+      ).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      channelSendError = undefined;
+      await session.doDestroy();
+    });
+
     it('clears the startup deadline when the caller aborts', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {

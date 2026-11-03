@@ -1456,13 +1456,6 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
-    const userMessageSubmitter = supportsUserMessageResponses()
-      ? experimental_createBridgeUserMessageSubmitter({
-          send: message => channel.send(message),
-          onResponse: listener => channel.on('user-message-response', listener),
-          onReconnect: listener => channel.onReconnect(listener),
-        })
-      : undefined;
     const unsubs: Array<() => void> = [];
     let pendingStart: Extract<InboundMessage, { type: 'start' }> | undefined;
     let awaitingStartSend = false;
@@ -1541,6 +1534,17 @@ function createSession({
         }
       }),
     );
+
+    // Retry the turn start before the submitter replays pending steering.
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          // The submitter owns replay, after the turn start has been retried.
+          send: message =>
+            channel.send(message, { queueIfDisconnected: false }),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const eventTypes = [
       'stream-start',
@@ -1675,7 +1679,15 @@ function createSession({
           );
         }, turnStartTimeoutMs);
         startTimer.unref?.();
-        sendPendingStart();
+        try {
+          sendPendingStart();
+        } catch (error) {
+          // The caller never receives control when the initial send throws.
+          // Consume its rejection and remove the timer and turn listeners.
+          void done.catch(() => {});
+          settleError(error);
+          throw error;
+        }
       },
     };
   };
