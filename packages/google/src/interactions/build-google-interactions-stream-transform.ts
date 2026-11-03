@@ -22,6 +22,7 @@ import {
   annotationsToSources,
   builtinToolResultToSources,
 } from './extract-google-interactions-sources';
+import { addGoogleInteractionsUsage } from './google-interactions-continuation';
 import { mapGoogleInteractionsFinishReason } from './map-google-interactions-finish-reason';
 import type {
   GoogleInteractionsAnnotation,
@@ -149,6 +150,8 @@ export function buildGoogleInteractionsStreamTransform({
 > {
   let interactionId: string | undefined;
   let usage: GoogleInteractionsUsage | undefined;
+  let completedUsage: GoogleInteractionsUsage | undefined;
+  let hopIndex = -1;
   let serviceTier: string | undefined = headerServiceTier;
   let finishStatus: GoogleInteractionsStatus | string | undefined;
   let hasFunctionCall = false;
@@ -199,6 +202,31 @@ export function buildGoogleInteractionsStreamTransform({
 
       switch (eventType) {
         case 'interaction.created': {
+          if (hopIndex >= 0) {
+            // A checkpoint can fall inside an open text/thought block. Close
+            // that block before the next hop starts reusing its step indices.
+            for (const open of openBlocks.values()) {
+              const google: Record<string, string> = {};
+              if (interactionId != null) google.interactionId = interactionId;
+              if (open.kind === 'reasoning' && open.signature != null)
+                google.signature = open.signature;
+              if (open.kind === 'text' || open.kind === 'reasoning') {
+                controller.enqueue({
+                  type: open.kind === 'text' ? 'text-end' : 'reasoning-end',
+                  id: open.id,
+                  ...(Object.keys(google).length > 0
+                    ? { providerMetadata: { google } }
+                    : {}),
+                });
+              }
+            }
+            openBlocks.clear();
+            completedUsage = addGoogleInteractionsUsage(completedUsage, usage);
+            usage = undefined;
+          }
+          hopIndex++;
+          hasCompletionEvent = false;
+          finishStatus = undefined;
           const event = value as Extract<
             GoogleInteractionsEvent,
             { event_type: 'interaction.created' }
@@ -261,7 +289,7 @@ export function buildGoogleInteractionsStreamTransform({
               }
             | undefined;
           const index = event.index;
-          const blockId = `${interactionId ?? 'interaction'}:${index}`;
+          const blockId = `${interactionId ?? (hopIndex > 0 ? `interaction-${hopIndex}` : 'interaction')}:${index}`;
           const stepType = step?.type;
 
           if (stepType === 'model_output') {
@@ -828,6 +856,9 @@ export function buildGoogleInteractionsStreamTransform({
                 | 'interaction.requires_action';
             }
           >;
+          if ('usage' in event && event.usage != null) {
+            usage = event.usage as GoogleInteractionsUsage;
+          }
           if (event.status != null) {
             finishStatus = event.status;
           } else if (eventType === 'interaction.requires_action') {
@@ -897,7 +928,9 @@ export function buildGoogleInteractionsStreamTransform({
     flush(controller) {
       const isInterrupted =
         !hasCompletionEvent &&
-        (finishStatus == null || finishStatus === 'in_progress');
+        (finishStatus == null ||
+          finishStatus === 'in_progress' ||
+          finishStatus === 'requires_continuation');
       const finishReason: LanguageModelV4FinishReason = {
         unified: isInterrupted
           ? 'interrupted'
@@ -908,8 +941,9 @@ export function buildGoogleInteractionsStreamTransform({
         raw: isInterrupted ? undefined : finishStatus,
       };
 
+      const totalUsage = addGoogleInteractionsUsage(completedUsage, usage);
       const outputTokensByModality =
-        getGoogleInteractionsOutputTokensByModality(usage);
+        getGoogleInteractionsOutputTokensByModality(totalUsage);
 
       const providerMetadata: SharedV4ProviderMetadata = {
         google: {
@@ -922,7 +956,7 @@ export function buildGoogleInteractionsStreamTransform({
       controller.enqueue({
         type: 'finish',
         finishReason,
-        usage: convertGoogleInteractionsUsage(usage),
+        usage: convertGoogleInteractionsUsage(totalUsage),
         providerMetadata,
       });
     },

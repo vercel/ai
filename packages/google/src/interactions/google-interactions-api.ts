@@ -27,6 +27,7 @@ const usageSchema = () =>
   z
     .object({
       total_input_tokens: z.number().nullish(),
+      initial_input_tokens: z.number().nullish(),
       total_output_tokens: z.number().nullish(),
       total_thought_tokens: z.number().nullish(),
       total_cached_tokens: z.number().nullish(),
@@ -55,6 +56,7 @@ const interactionStatusSchema = () =>
   z.enum([
     'in_progress',
     'requires_action',
+    'requires_continuation',
     'completed',
     'failed',
     'cancelled',
@@ -296,6 +298,7 @@ export const googleInteractionsResponseSchema = lazySchema(() =>
         usage: usageSchema().nullish(),
         service_tier: z.string().nullish(),
         previous_interaction_id: z.string().nullish(),
+        continuation_token: z.string().nullish(),
         response_modalities: z.array(z.string()).nullish(),
       })
       .loose(),
@@ -499,6 +502,8 @@ export const googleInteractionsEventSchema = lazySchema(() =>
           event_id: z.string().nullish(),
           interaction_id: z.string().nullish(),
           status: status.nullish(),
+          continuation_token: z.string().nullish(),
+          usage: usageSchema().nullish(),
         })
         .loose();
 
@@ -529,6 +534,7 @@ export const googleInteractionsEventSchema = lazySchema(() =>
               id: z.string().nullish(),
               status: status.nullish(),
               usage: usageSchema().nullish(),
+              continuation_token: z.string().nullish(),
               service_tier: z.string().nullish(),
             })
             .loose(),

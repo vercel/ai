@@ -40,6 +40,7 @@ export type {
   GoogleInteractionsModelId,
   GoogleInteractionsVideoOptions,
 } from './interactions/google-interactions-language-model-options';
+export { GoogleInteractionsContinuationError } from './interactions/google-interactions-continuation-error';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 export {
