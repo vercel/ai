@@ -1,4 +1,8 @@
-import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   resolve,
   combineHeaders,
@@ -21,6 +25,12 @@ import {
   type GroqTranscriptionModelId,
 } from './groq-transcription-model-options';
 import type { GroqTranscriptionAPITypes } from './groq-api-types';
+
+type GroqTranscriptionCallOptions =
+  | Parameters<TranscriptionModelV4['doGenerate']>[0]
+  | (Parameters<NonNullable<TranscriptionModelV4['doGenerateFromUrl']>>[0] & {
+      mediaType?: undefined;
+    });
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -58,7 +68,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: GroqTranscriptionCallOptions) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -70,18 +80,34 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
 
     // Create form data with base fields
     const formData = new FormData();
-    const blob =
-      audio instanceof Uint8Array
-        ? new Blob([audio as Uint8Array<ArrayBuffer>])
-        : new Blob([convertBase64ToUint8Array(audio)]);
-
     formData.append('model', this.modelId);
-    const fileExtension = mediaTypeToExtension(mediaType);
-    formData.append(
-      'file',
-      new File([blob], 'audio', { type: mediaType }),
-      `audio.${fileExtension}`,
-    );
+    if (audio instanceof URL) {
+      if (
+        !['https:', 'http:'].includes(audio.protocol) ||
+        audio.username !== '' ||
+        audio.password !== '' ||
+        audio.hash !== ''
+      ) {
+        throw new InvalidArgumentError({
+          argument: 'audio',
+          message:
+            'Groq URL transcription requires an HTTP(S) URL without userinfo or fragments.',
+        });
+      }
+      formData.append('url', audio.href);
+    } else {
+      const blob =
+        audio instanceof Uint8Array
+          ? new Blob([audio as Uint8Array<ArrayBuffer>])
+          : new Blob([convertBase64ToUint8Array(audio)]);
+      const audioMediaType = mediaType ?? 'audio/wav';
+      const fileExtension = mediaTypeToExtension(audioMediaType);
+      formData.append(
+        'file',
+        new File([blob], 'audio', { type: audioMediaType }),
+        `audio.${fileExtension}`,
+      );
+    }
 
     // Add provider-specific options
     if (groqOptions) {
@@ -124,6 +150,18 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    return this.generate(options);
+  }
+
+  async doGenerateFromUrl(
+    options: Parameters<
+      NonNullable<TranscriptionModelV4['doGenerateFromUrl']>
+    >[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    return this.generate(options);
+  }
+
+  private async generate(options: GroqTranscriptionCallOptions) {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, responseFormat, warnings } = await this.getArgs(options);
 

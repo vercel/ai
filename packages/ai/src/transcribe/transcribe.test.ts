@@ -1,4 +1,8 @@
-import type { JSONObject, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  APICallError,
+  type JSONObject,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -84,6 +88,140 @@ describe('transcribe', () => {
 
   afterEach(() => {
     logWarningsSpy.mockRestore();
+  });
+
+  it.each(['http:', 'https:'])(
+    'passes %s audio URLs directly to capable models with accurate telemetry',
+    async protocol => {
+      const url = new URL(`${protocol}//example.com/large-audio.mp3`);
+      const events: Array<{ byteLength?: number; mediaType?: string }> = [];
+      const doGenerate = vi.fn();
+      const doGenerateFromUrl = vi.fn(async () =>
+        createMockResponse(sampleTranscript),
+      );
+      const controller = new AbortController();
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+        audio: url,
+        maxRetries: 0,
+        abortSignal: controller.signal,
+        headers: { 'custom-header': 'value' },
+        providerOptions: { groq: { language: 'en' } },
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              if (event.operationId === 'ai.transcribe')
+                events.push(event.audio);
+            },
+            onEnd: event => {
+              if (event.operationId === 'ai.transcribe')
+                events.push(event.audio);
+            },
+          },
+        },
+      });
+      expect(result.text).toBe(sampleTranscript.text);
+      expect(doGenerate).not.toHaveBeenCalled();
+      expect(doGenerateFromUrl).toHaveBeenCalledWith({
+        audio: url,
+        abortSignal: controller.signal,
+        headers: expect.objectContaining({ 'custom-header': 'value' }),
+        providerOptions: { groq: { language: 'en' } },
+      });
+      expect(events).toEqual([
+        { byteLength: undefined, mediaType: undefined },
+        { byteLength: undefined, mediaType: undefined },
+      ]);
+    },
+  );
+
+  it('retries native URL calls without switching to file upload', async () => {
+    const audio = new URL('https://example.com/audio.mp3');
+    const doGenerate = vi.fn();
+    const doGenerateFromUrl = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new APICallError({
+          message: 'Retry this request',
+          url: 'https://example.com/transcriptions',
+          requestBodyValues: {},
+          statusCode: 429,
+          responseHeaders: { 'retry-after-ms': '0' },
+          isRetryable: true,
+        }),
+      )
+      .mockResolvedValue(createMockResponse(sampleTranscript));
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio,
+      maxRetries: 1,
+    });
+    expect(result.text).toBe(sampleTranscript.text);
+    expect(doGenerateFromUrl).toHaveBeenCalledTimes(2);
+    expect(doGenerateFromUrl).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ audio }),
+    );
+    expect(doGenerate).not.toHaveBeenCalled();
+  });
+
+  it('emits a correlated error when native URL transcription fails', async () => {
+    const error = new Error('Provider could not fetch audio');
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+    await expect(
+      transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerateFromUrl: async () => {
+            throw error;
+          },
+        }),
+        audio: new URL('https://example.com/audio.mp3'),
+        maxRetries: 0,
+        telemetry: { integrations: { onStart, onEnd, onError } },
+        _internal: { generateCallId: () => 'url-error' },
+      }),
+    ).rejects.toBe(error);
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'url-error' }),
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'url-error', error }),
+    );
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('preserves explicit custom downloads even for URL-capable models', async () => {
+    const download = vi.fn(async () => ({
+      data: audioData,
+      mediaType: 'audio/mpeg',
+    }));
+    const doGenerateFromUrl = vi.fn();
+    const doGenerate = vi.fn(async () => createMockResponse(sampleTranscript));
+    await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio: new URL('https://example.com/audio.mp3'),
+      download,
+    });
+    expect(download).toHaveBeenCalledOnce();
+    expect(doGenerateFromUrl).not.toHaveBeenCalled();
+    expect(doGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: audioData, mediaType: 'audio/mpeg' }),
+    );
+  });
+
+  it('continues sending bytes to file transcription for URL-capable models', async () => {
+    const doGenerateFromUrl = vi.fn();
+    const doGenerate = vi.fn(async () => createMockResponse(sampleTranscript));
+    await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio: audioData,
+    });
+    expect(doGenerateFromUrl).not.toHaveBeenCalled();
+    expect(doGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: audioData }),
+    );
   });
 
   it('should send args to doGenerate', async () => {
