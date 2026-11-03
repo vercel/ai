@@ -32053,6 +32053,7 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
+                "dynamic": undefined,
                 "input": {
                   "value": "value",
                 },
@@ -32060,11 +32061,14 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
+                "toolMetadata": undefined,
                 "toolName": "tool1",
                 "type": "tool-result",
               },
               {
+                "dynamic": undefined,
                 "input": {
                   "value": "value",
                 },
@@ -32072,7 +32076,9 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
+                "toolMetadata": undefined,
                 "toolName": "tool1",
                 "type": "tool-result",
               },

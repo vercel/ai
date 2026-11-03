@@ -55,7 +55,6 @@ describe.each(['generateText', 'streamText'] as const)(
         const messages = await convertToModelMessages(
           [
             {
-              id: 'assistant',
               role: 'assistant',
               parts: [
                 {
