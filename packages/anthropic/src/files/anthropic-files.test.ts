@@ -130,6 +130,7 @@ describe('AnthropicFiles', () => {
         .mockResolvedValueOnce('first-token')
         .mockResolvedValueOnce('refreshed-token');
       const files = createAnthropic({
+        baseURL: 'https://api.anthropic.com/v1',
         authToken,
         headers: { 'anthropic-beta': 'provider-beta' },
       }).files();
