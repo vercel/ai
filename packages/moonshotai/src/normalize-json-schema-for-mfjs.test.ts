@@ -189,43 +189,78 @@ describe('type + anyOf on the same node', () => {
   it('moves type into anyOf branches that lack one', () => {
     const result = normalizeJsonSchemaForMFJS({
       type: 'object',
-      anyOf: [
-        { properties: { city: { type: 'string' } }, required: ['city'] },
-        {
-          properties: { lat: { type: 'number' }, lon: { type: 'number' } },
-          required: ['lat', 'lon'],
+      properties: {
+        location: {
+          type: 'object',
+          anyOf: [
+            { properties: { city: { type: 'string' } }, required: ['city'] },
+            {
+              properties: { lat: { type: 'number' }, lon: { type: 'number' } },
+              required: ['lat', 'lon'],
+            },
+          ],
         },
-      ],
+      },
     });
 
     expect(result).toEqual({
-      anyOf: [
-        {
-          type: 'object',
-          properties: { city: { type: 'string' } },
-          required: ['city'],
+      type: 'object',
+      properties: {
+        location: {
+          anyOf: [
+            {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            },
+            {
+              type: 'object',
+              properties: { lat: { type: 'number' }, lon: { type: 'number' } },
+              required: ['lat', 'lon'],
+            },
+          ],
         },
-        {
-          type: 'object',
-          properties: { lat: { type: 'number' }, lon: { type: 'number' } },
-          required: ['lat', 'lon'],
-        },
-      ],
+      },
     });
   });
 
   it('keeps branch types when already present', () => {
     const result = normalizeJsonSchemaForMFJS({
       type: 'object',
-      anyOf: [{ type: 'string' }, { properties: { lat: { type: 'number' } } }],
+      properties: {
+        value: {
+          type: 'object',
+          anyOf: [
+            { type: 'string' },
+            { properties: { lat: { type: 'number' } } },
+          ],
+        },
+      },
     });
 
     expect(result).toEqual({
-      anyOf: [
-        { type: 'string' },
-        { type: 'object', properties: { lat: { type: 'number' } } },
-      ],
+      type: 'object',
+      properties: {
+        value: {
+          anyOf: [
+            { type: 'string' },
+            { type: 'object', properties: { lat: { type: 'number' } } },
+          ],
+        },
+      },
     });
+  });
+
+  it('keeps type "object" at the root beside anyOf', () => {
+    const schema = {
+      type: 'object',
+      anyOf: [
+        { properties: { city: { type: 'string' } }, required: ['city'] },
+        { properties: { lat: { type: 'number' } }, required: ['lat'] },
+      ],
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual(schema);
   });
 
   it('splits type at nested levels, not just the root', () => {
@@ -266,6 +301,85 @@ describe('type + anyOf on the same node', () => {
   });
 });
 
+describe('root unions of objects', () => {
+  const city = {
+    type: 'object',
+    properties: { city: { type: 'string' } },
+    required: ['city'],
+  };
+  const coords = {
+    properties: { lat: { type: 'number' } },
+    required: ['lat'],
+  };
+
+  it('types a root anyOf of objects as an object', () => {
+    expect(normalizeJsonSchemaForMFJS({ anyOf: [city, coords] })).toEqual({
+      type: 'object',
+      anyOf: [city, coords],
+    });
+  });
+
+  it('types a root oneOf of objects as an object', () => {
+    expect(normalizeJsonSchemaForMFJS({ oneOf: [city, coords] })).toEqual({
+      type: 'object',
+      oneOf: [city, coords],
+    });
+  });
+
+  it('resolves local $ref branches', () => {
+    const schema = {
+      $defs: { City: city, Coords: coords },
+      anyOf: [{ $ref: '#/$defs/City' }, { $ref: '#/definitions/Coords' }],
+      definitions: { Coords: coords },
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual({
+      type: 'object',
+      ...schema,
+    });
+  });
+
+  it('throws for a non-local $ref branch', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, { $ref: 'https://example.com/coords.json' }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('requires every root union to be objects', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, coords],
+        oneOf: [city, { type: 'string' }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('throws for a nullable object branch', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({
+        anyOf: [city, { type: ['object', 'null'], properties: {} }],
+      }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+
+  it('passes an object root with anyOf nested in allOf through unchanged', () => {
+    const schema = {
+      type: 'object',
+      allOf: [{ anyOf: [city, coords] }],
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual(schema);
+  });
+
+  it('still throws for a root union with a non-object branch', () => {
+    expect(() =>
+      normalizeJsonSchemaForMFJS({ anyOf: [city, { type: 'string' }] }),
+    ).toThrow(UnsupportedFunctionalityError);
+  });
+});
+
 describe('root guard', () => {
   it('throws for a non-object root type', () => {
     expect(() =>
@@ -287,7 +401,7 @@ describe('root guard', () => {
 
   it('produces a clear error message', () => {
     expect(() => normalizeJsonSchemaForMFJS({ type: 'array' })).toThrow(
-      'tool parameters must be a JSON Schema object with type "object" for moonshotai (MFJS)',
+      'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)',
     );
   });
 });

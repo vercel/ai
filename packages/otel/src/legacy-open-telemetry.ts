@@ -23,6 +23,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
@@ -883,6 +884,16 @@ export class LegacyOpenTelemetry implements Telemetry {
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     this.onStepEnd(event);
+  }
+
+  onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    recordSpanError(state.stepSpan, event.error);
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
   }
 
   onEnd(

@@ -36,6 +36,13 @@ export interface SandboxChannelReconnectOptions {
 
 export interface SandboxChannelConnectOptions {
   readonly abortSignal: AbortSignal;
+
+  /**
+   * Why the channel is connecting: `'open'` for the initial
+   * {@link SandboxChannel.open} call, `'reconnect'` for an attempt to recover
+   * from a transient disconnect.
+   */
+  readonly reason: 'open' | 'reconnect';
 }
 
 export interface SandboxChannelOptions<TOut> {
@@ -86,6 +93,11 @@ type Listener<TOut extends { type: string }, T extends EventTypeOf<TOut>> = (
 type BufferedEvent<TOut extends { type: string }> = {
   message: TOut;
   listeners?: ReadonlyArray<Listener<TOut, EventTypeOf<TOut>>>;
+};
+
+type PendingSend = {
+  text: string;
+  onSent?: () => void;
 };
 
 /*
@@ -250,7 +262,7 @@ export class SandboxChannel<
   /** Channel is fully torn down; `send` throws and `onClose` has fired. */
   private terminal = false;
   private _lastSeenEventId = 0;
-  private readonly pendingSends: string[] = [];
+  private readonly pendingSends: PendingSend[] = [];
   private dispatchChain: Promise<void> = Promise.resolve();
   private activeConnectAbortController: AbortController | undefined;
   private reconnectAbortController: AbortController | undefined;
@@ -296,6 +308,7 @@ export class SandboxChannel<
     try {
       const ws = await this.connect({
         abortSignal: abortController.signal,
+        reason: 'open',
       });
       this.wire(ws);
       this.ws = ws;
@@ -377,13 +390,26 @@ export class SandboxChannel<
     };
   }
 
-  send(message: TIn): void {
+  /**
+   * Queue a frame if disconnected. `onSent` runs in a microtask after the frame
+   * is handed to the socket, not after bridge acknowledgement. Reconnect
+   * handlers run before notifications for frames flushed on that connection.
+   * Set `queueIfDisconnected` to false when the caller owns reconnect replay;
+   * an unsent frame is then discarded and its `onSent` callback never runs.
+   */
+  send(
+    message: TIn,
+    {
+      onSent,
+      queueIfDisconnected = true,
+    }: { onSent?: () => void; queueIfDisconnected?: boolean } = {},
+  ): void {
     if (this.terminal) {
       throw new Error(
         `SandboxChannel: cannot send ${message.type} — channel is closed.`,
       );
     }
-    this.rawSend(JSON.stringify(message));
+    this.rawSend(JSON.stringify(message), onSent, queueIfDisconnected);
   }
 
   /**
@@ -528,6 +554,7 @@ export class SandboxChannel<
         try {
           const ws = await this.connect({
             abortSignal: abortController.signal,
+            reason: 'reconnect',
           });
           if (this.terminal || this.closing) {
             closeWebSocket({ ws });
@@ -590,10 +617,11 @@ export class SandboxChannel<
 
   private connect({
     abortSignal,
+    reason,
   }: SandboxChannelConnectOptions): Promise<WebSocket> {
     return awaitWebSocketConnection({
       connection: Promise.resolve().then(() =>
-        this.connectThunk({ abortSignal }),
+        this.connectThunk({ abortSignal, reason }),
       ),
       abortSignal,
     });
@@ -624,18 +652,36 @@ export class SandboxChannel<
     });
   }
 
-  private rawSend(text: string): void {
-    if (this.connected && this.ws) {
+  private rawSend(
+    text: string,
+    onSent?: () => void,
+    queueIfDisconnected = true,
+  ): void {
+    if (this.connected && this.ws && this.ws.readyState === this.ws.OPEN) {
       this.ws.send(text);
-    } else {
-      this.pendingSends.push(text);
+      if (onSent) queueMicrotask(onSent);
+    } else if (queueIfDisconnected) {
+      this.pendingSends.push({ text, onSent });
     }
   }
 
   private flushPending(): void {
-    if (!this.connected || !this.ws) return;
-    const queued = this.pendingSends.splice(0);
-    for (const text of queued) this.ws.send(text);
+    let sent = 0;
+    try {
+      while (
+        sent < this.pendingSends.length &&
+        this.connected &&
+        this.ws &&
+        this.ws.readyState === this.ws.OPEN
+      ) {
+        const { text, onSent } = this.pendingSends[sent];
+        this.ws.send(text);
+        sent++;
+        if (onSent) queueMicrotask(onSent);
+      }
+    } finally {
+      this.pendingSends.splice(0, sent);
+    }
   }
 
   private enqueue(work: () => void | Promise<void>): void {

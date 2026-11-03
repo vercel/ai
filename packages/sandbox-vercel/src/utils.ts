@@ -1,5 +1,5 @@
 import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
-import { Sandbox } from '@vercel/sandbox';
+import { Sandbox, Snapshot } from '@vercel/sandbox';
 
 /**
  * Flattens an intersection of object types into a single object type so the
@@ -53,6 +53,7 @@ export const DEFAULT_SANDBOX_RUNTIME = 'node24';
 
 const SNAPSHOT_POLL_INTERVAL_MS = 500;
 const SNAPSHOT_POLL_TIMEOUT_MS = 30_000;
+const TEMPLATE_SNAPSHOT_WAIT_TIMEOUT_MS = 60_000;
 
 type SandboxLookupParams = {
   fetch?: typeof fetch;
@@ -231,27 +232,41 @@ export async function ensureTemplateSnapshot({
     return cachedSnapshotId;
   }
 
-  const prepared = await Sandbox.getOrCreate({
-    ...baseParams,
-    name: templateName,
-    persistent: true,
-    snapshotExpiration: baseParams.snapshotExpiration ?? 0,
-    onCreate,
-    ...(abortSignal ? { signal: abortSignal } : {}),
-  });
-  let snapshotId = prepared.currentSnapshotId;
-  if (snapshotId == null) {
-    const stopped = await prepared.stop(
-      abortSignal ? { signal: abortSignal } : undefined,
-    );
-    snapshotId =
-      stopped.snapshot?.id ??
-      (await pollForTemplateSnapshot({
-        name: templateName,
-        lookupParams,
-        abortSignal,
-      }));
+  const snapshotExpiration = baseParams.snapshotExpiration ?? 0;
+  let createdSnapshotId: string | undefined;
+  let onCreateStarted = false;
+
+  try {
+    await Sandbox.getOrCreate({
+      ...baseParams,
+      name: templateName,
+      persistent: false,
+      snapshotExpiration,
+      onCreate: async sandbox => {
+        onCreateStarted = true;
+        await onCreate(sandbox);
+        const snapshot = await sandbox.snapshot({
+          expiration: snapshotExpiration,
+          ...(abortSignal ? { signal: abortSignal } : {}),
+        });
+        createdSnapshotId = snapshot.snapshotId;
+      },
+      ...(abortSignal ? { signal: abortSignal } : {}),
+    });
+  } catch (error) {
+    if (onCreateStarted || !isSandboxNameConflictError(error)) {
+      throw error;
+    }
   }
+
+  const snapshotId =
+    createdSnapshotId ??
+    (await pollForTemplateSnapshotWithTimeout({
+      name: templateName,
+      lookupParams,
+      abortSignal,
+      timeoutMs: TEMPLATE_SNAPSHOT_WAIT_TIMEOUT_MS,
+    }));
   snapshotCache?.set(templateName, snapshotId);
   return snapshotId;
 }
@@ -271,7 +286,6 @@ export function createLiveSandboxFromSnapshot({
     runtime: _runtime,
     image: _image,
     source: _source,
-    persistent: _persistent,
     ...forkParams
   } = baseParams;
   return Sandbox.create({
@@ -291,23 +305,72 @@ export async function pollForTemplateSnapshot({
   lookupParams: SandboxLookupParams;
   abortSignal: AbortSignal | undefined;
 }): Promise<string> {
-  const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
+  return pollForTemplateSnapshotWithTimeout({
+    name,
+    lookupParams,
+    abortSignal,
+    timeoutMs: SNAPSHOT_POLL_TIMEOUT_MS,
+  });
+}
+
+async function pollForTemplateSnapshotWithTimeout({
+  name,
+  lookupParams,
+  abortSignal,
+  timeoutMs,
+}: {
+  name: string;
+  lookupParams: SandboxLookupParams;
+  abortSignal: AbortSignal | undefined;
+  timeoutMs: number;
+}): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+
   while (Date.now() < deadline) {
     abortSignal?.throwIfAborted();
-    const refreshed = await Sandbox.get({
+
+    const snapshots = await Snapshot.list({
       ...lookupParams,
       name,
-      resume: false,
+      sortOrder: 'desc',
       ...(abortSignal ? { signal: abortSignal } : {}),
     });
-    if (refreshed.currentSnapshotId) {
-      return refreshed.currentSnapshotId;
+    for await (const snapshot of snapshots) {
+      if (
+        snapshot.status === 'created' &&
+        snapshot.creationMethod === 'manual'
+      ) {
+        return snapshot.id;
+      }
     }
+
     await new Promise<void>(resolve =>
       setTimeout(resolve, SNAPSHOT_POLL_INTERVAL_MS),
     );
   }
   throw new Error(
     `Timed out waiting for snapshot of template "${name}" to publish.`,
+  );
+}
+
+function isSandboxNameConflictError(error: unknown): boolean {
+  if (typeof error !== 'object' || error == null) {
+    return false;
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    response?: { status?: unknown };
+    json?: { error?: { message?: unknown } };
+  };
+  const messages = [candidate.message, candidate.json?.error?.message];
+  return (
+    (candidate.response?.status === 400 ||
+      candidate.response?.status === 409) &&
+    messages.some(
+      message =>
+        typeof message === 'string' &&
+        /sandbox.*name.*already exists/i.test(message),
+    )
   );
 }

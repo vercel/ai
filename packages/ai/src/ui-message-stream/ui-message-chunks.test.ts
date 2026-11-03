@@ -16,6 +16,19 @@ function createEventStream(value: unknown): ReadableStream<Uint8Array> {
 }
 
 describe('uiMessageChunkSchema', () => {
+  it('accepts interrupted finish chunks over SSE', async () => {
+    const chunk = { type: 'finish', finishReason: 'interrupted' };
+
+    expect(
+      await convertReadableStreamToArray(
+        parseJsonEventStream({
+          stream: createEventStream(chunk),
+          schema: uiMessageChunkSchema,
+        }),
+      ),
+    ).toEqual([{ success: true, value: chunk, rawValue: chunk }]);
+  });
+
   it('returns UI message chunks', async () => {
     const chunk = await validateTypes({
       schema: uiMessageChunkSchema,

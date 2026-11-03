@@ -12,10 +12,12 @@ import {
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  resolve,
   validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { AnthropicFiles } from './anthropic-files';
@@ -103,10 +105,11 @@ export interface AnthropicProviderSettings {
 
   /**
    * Auth token that is being sent using the `Authorization: Bearer` header.
-   * It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   * Can be a string, a promise, or a function returning either. Functions are
+   * called before each request to support short-lived tokens and token refresh.
    * Only one of `apiKey` or `authToken` is required.
    */
-  authToken?: string;
+  authToken?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -157,18 +160,8 @@ export function createAnthropic(
     });
   }
 
-  const getHeaders = () => {
-    const authHeaders: Record<string, string> = options.authToken
-      ? { Authorization: `Bearer ${options.authToken}` }
-      : {
-          'x-api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'ANTHROPIC_API_KEY',
-            description: 'Anthropic',
-          }),
-        };
-
-    return withUserAgentSuffix(
+  const createHeaders = (authHeaders: Record<string, string>) =>
+    withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
@@ -176,6 +169,28 @@ export function createAnthropic(
       },
       `ai-sdk-anthropic/${VERSION}`,
     );
+
+  const getHeaders = () => {
+    const authToken = options.authToken;
+
+    if (authToken) {
+      const token = typeof authToken === 'function' ? authToken() : authToken;
+      const createBearerHeaders = (token: string) =>
+        createHeaders({ Authorization: `Bearer ${token}` });
+
+      // Keep synchronous credentials serializable across workflow boundaries.
+      return typeof token === 'string'
+        ? createBearerHeaders(token)
+        : resolve(token).then(createBearerHeaders);
+    }
+
+    return createHeaders({
+      'x-api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'ANTHROPIC_API_KEY',
+        description: 'Anthropic',
+      }),
+    });
   };
 
   const languageModelConfig = {

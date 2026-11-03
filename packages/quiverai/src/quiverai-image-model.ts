@@ -6,6 +6,10 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -35,7 +39,7 @@ import type {
 interface QuiverAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -119,7 +123,10 @@ export class QuiverAIImageModel implements ImageModelV4 {
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const combinedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}${getOperationPath(operation)}`,
@@ -1015,23 +1022,29 @@ function collectWarnings({
 // Limited schemas focused on what is needed for the implementation.
 // This approach limits breakages when the API changes and keeps the
 // response handler efficient.
-const svgUsageSchema = z.object({
-  total_tokens: z.number().int().nonnegative(),
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-});
+const svgUsageSchema = () =>
+  z.object({
+    total_tokens: z.number().int().nonnegative(),
+    input_tokens: z.number().int().nonnegative(),
+    output_tokens: z.number().int().nonnegative(),
+  });
 
-const svgDocumentSchema = z.object({
-  svg: z.string().min(1),
-  mime_type: z.literal('image/svg+xml'),
-  loop_period_ms: z.number().int().nonnegative().nullish(),
-  opening_animation_ms: z.number().int().nonnegative().nullish(),
-});
+const svgDocumentSchema = () =>
+  z.object({
+    svg: z.string().min(1),
+    mime_type: z.literal('image/svg+xml'),
+    loop_period_ms: z.number().int().nonnegative().nullish(),
+    opening_animation_ms: z.number().int().nonnegative().nullish(),
+  });
 
-const svgGenerationResponseSchema = z.object({
-  id: z.string().min(1),
-  created: z.number().int().nonnegative(),
-  data: z.array(svgDocumentSchema).min(1),
-  usage: svgUsageSchema.nullish(),
-  credits: z.number().int().nonnegative().nullish(),
-});
+const svgGenerationResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().min(1),
+      created: z.number().int().nonnegative(),
+      data: z.array(svgDocumentSchema()).min(1),
+      usage: svgUsageSchema().nullish(),
+      credits: z.number().int().nonnegative().nullish(),
+    }),
+  ),
+);

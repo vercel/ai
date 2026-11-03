@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     WS_NO_BUFFER_UTIL: '1',
   },
   transpilePackages: ['pi-mcp-adapter'],
+  outputFileTracingIncludes: {
+    '/**': [
+      './agent/harness/acp-codex/bridge/package.json',
+      './agent/harness/acp-codex/bridge/pnpm-lock.yaml',
+    ],
+  },
   serverExternalPackages: [
     'libfx',
     '@cline/agents',

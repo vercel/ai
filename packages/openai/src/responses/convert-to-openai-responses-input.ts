@@ -8,6 +8,11 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   convertToBase64,
   getTopLevelMediaType,
   isNonNullable,
@@ -20,7 +25,10 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
+import {
+  openaiResponsesSystemMessageOptionsSchema,
+  openaiResponsesToolResultOptionsSchema,
+} from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -36,6 +44,7 @@ import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
+  OpenAIResponsesPromptCacheBreakpoint,
   OpenAIResponsesReasoning,
   OpenAIResponsesToolCaller,
   OpenAIResponsesWebSearchCall,
@@ -55,7 +64,15 @@ import {
 } from './expand-parallel-tool-call';
 
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return stringifyWithBigIntAndCycles(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input === undefined ? {} : input);
 }
 
 function mapToolCaller(
@@ -141,7 +158,7 @@ async function convertFunctionToolResultOutput({
   output: LanguageModelV4ToolResultOutput;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
-  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
+  promptCacheBreakpoint?: OpenAIResponsesPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV4Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -165,19 +182,23 @@ async function convertFunctionToolResultOutput({
   switch (output.type) {
     case 'text':
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+        hasOutputSchema
+          ? stringifyWithBigIntAndCycles(output.value)
+          : output.value,
       );
     case 'error-text':
     case 'error-json':
-      return convertScalarOutput(JSON.stringify({ error: output.value }));
+      return convertScalarOutput(
+        stringifyWithBigIntAndCycles({ error: output.value }),
+      );
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
+        hasOutputSchema ? stringifyWithBigIntAndCycles(reason) : reason,
       );
     }
     case 'json':
-      return convertScalarOutput(JSON.stringify(output.value));
+      return convertScalarOutput(stringifyWithBigIntAndCycles(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -386,14 +407,12 @@ function collectCompleteParallelToolResultGroups({
   return completeGroups;
 }
 
-type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
-
 function getPromptCacheBreakpoint(
   providerOptions: SharedV4ProviderOptions | undefined,
   providerOptionsName: string,
-): OpenAIPromptCacheBreakpoint | undefined {
+): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
-    | OpenAIPromptCacheBreakpoint
+    | OpenAIResponsesPromptCacheBreakpoint
     | undefined;
 }
 
@@ -405,7 +424,7 @@ function getScalarToolResultPromptCacheBreakpoint({
   output: LanguageModelV4ToolResultOutput;
   toolResultProviderOptions: SharedV4ProviderOptions | undefined;
   providerOptionsName: string;
-}): OpenAIPromptCacheBreakpoint | undefined {
+}): OpenAIResponsesPromptCacheBreakpoint | undefined {
   return output.type === 'content'
     ? undefined
     : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
@@ -1069,7 +1088,7 @@ export async function convertToOpenAIResponsesInput({
                   input:
                     typeof part.input === 'string'
                       ? part.input
-                      : JSON.stringify(part.input),
+                      : stringifyWithBigIntAndCycles(part.input),
                   ...(isAsync != null && { async: isAsync }),
                   id,
                 });
@@ -1221,6 +1240,9 @@ export async function convertToOpenAIResponsesInput({
                   input.push({
                     type: 'shell_call_output',
                     call_id: part.toolCallId,
+                    ...(parsedOutput.maxOutputLength != null && {
+                      max_output_length: parsedOutput.maxOutputLength,
+                    }),
                     output: parsedOutput.output.map(item => ({
                       stdout: item.stdout,
                       stderr: item.stderr,
@@ -1303,7 +1325,7 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                     });
                   }
 
@@ -1354,7 +1376,7 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${stringifyWithBigIntAndCycles(part)}.`,
                   });
                 }
               }
@@ -1472,7 +1494,9 @@ export async function convertToOpenAIResponsesInput({
                 }),
               );
               const serializedToolOutputs = toolOutputs.map(({ output }) =>
-                typeof output === 'string' ? output : JSON.stringify(output),
+                typeof output === 'string'
+                  ? output
+                  : stringifyWithBigIntAndCycles(output),
               );
               const hasPromptCacheBreakpoint = toolOutputs.some(
                 ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
@@ -1562,6 +1586,9 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'shell_call_output',
               call_id: part.toolCallId,
+              ...(parsedOutput.maxOutputLength != null && {
+                max_output_length: parsedOutput.maxOutputLength,
+              }),
               output: parsedOutput.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1652,7 +1679,7 @@ export async function convertToOpenAIResponsesInput({
               case 'error-text':
               case 'error-json':
                 outputValue = convertScalarOutput(
-                  JSON.stringify({ error: output.value }),
+                  stringifyWithBigIntAndCycles({ error: output.value }),
                 );
                 break;
               case 'execution-denied':
@@ -1661,7 +1688,9 @@ export async function convertToOpenAIResponsesInput({
                 );
                 break;
               case 'json':
-                outputValue = convertScalarOutput(JSON.stringify(output.value));
+                outputValue = convertScalarOutput(
+                  stringifyWithBigIntAndCycles(output.value),
+                );
                 break;
               case 'content':
                 outputValue = output.value
@@ -1794,6 +1823,19 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
             ...(caller != null && { caller }),
           });
+
+          const options = await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions: part.providerOptions,
+            schema: openaiResponsesToolResultOptionsSchema,
+          });
+          if (options?.additionalTools?.length) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: options.additionalTools,
+            });
+          }
         }
 
         break;
@@ -1832,11 +1874,15 @@ export async function convertToOpenAIResponsesInput({
   return { input, warnings };
 }
 
-const openaiResponsesReasoningProviderOptionsSchema = z.object({
-  itemId: z.string().nullish(),
-  reasoningEncryptedContent: z.string().nullish(),
-});
+const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      itemId: z.string().nullish(),
+      reasoningEncryptedContent: z.string().nullish(),
+    }),
+  ),
+);
 
-export type OpenAIResponsesReasoningProviderOptions = z.infer<
+export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;

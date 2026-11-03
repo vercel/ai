@@ -11,6 +11,8 @@ import {
   type OpenResponsesProviderSettings,
 } from '@ai-sdk/open-responses';
 import {
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -122,16 +124,25 @@ function prepareQuiverAICall(options: LanguageModelV4CallOptions): {
   }
 
   const warnings: SharedV4Warning[] = [];
-  const omitReasoning = options.reasoning === 'none' && reasoningEffort == null;
-  if (omitReasoning) {
-    warnings.push({ type: 'unsupported', feature: 'reasoning effort none' });
-  }
+  const reasoning =
+    reasoningEffort == null && isCustomReasoning(options.reasoning)
+      ? mapReasoningToProviderEffort({
+          reasoning: options.reasoning,
+          effortMap: {
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+          },
+          warnings,
+        })
+      : options.reasoning;
 
   return {
     warnings,
     options: {
       ...options,
-      reasoning: omitReasoning ? undefined : options.reasoning,
+      reasoning,
       prompt: options.prompt.map(message =>
         message.role !== 'assistant'
           ? message

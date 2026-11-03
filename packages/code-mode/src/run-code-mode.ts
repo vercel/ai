@@ -23,6 +23,7 @@ import {
   CodeModeAbortedError,
   CodeModeBridgeLimitError,
   CodeModeConcurrencyError,
+  CodeModeCpuTimeoutError,
   CodeModeDetachedBridgeRequestError,
   CodeModeError,
   CodeModeProtocolError,
@@ -47,6 +48,7 @@ import { fromJsonPayload, toJsonPayload } from './utils/serialization.js';
 const SOURCE_LINE_OFFSET = 1;
 const MAX_RUN_LIMIT = 2_147_483_647;
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_CPU_TIMEOUT_MS = 10_000;
 const DEFAULT_MEMORY_LIMIT_BYTES = 64 * 1024 * 1024;
 const DEFAULT_STACK_LIMIT_BYTES = 2 * 1024 * 1024;
 const DEFAULT_MAX_RESULT_BYTES = 1024 * 1024;
@@ -160,6 +162,7 @@ export async function runCodeMode(input: RunCodeModeInput): Promise<unknown> {
 
 interface ResolvedExecutionPolicy {
   timeoutMs: number;
+  cpuTimeoutMs: number;
   memoryLimitBytes: number;
   maxStackSizeBytes: number;
   maxResultBytes: number;
@@ -176,6 +179,7 @@ function resolveExecutionPolicy(
 ): ResolvedExecutionPolicy {
   return {
     timeoutMs: policy.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    cpuTimeoutMs: policy.cpuTimeoutMs ?? DEFAULT_CPU_TIMEOUT_MS,
     memoryLimitBytes: policy.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES,
     maxStackSizeBytes: policy.maxStackSizeBytes ?? DEFAULT_STACK_LIMIT_BYTES,
     maxResultBytes: policy.maxResultBytes ?? DEFAULT_MAX_RESULT_BYTES,
@@ -363,6 +367,7 @@ function toRunLimits(
 ): RunLimits {
   return {
     timeoutMs: policy.timeoutMs,
+    cpuTimeoutMs: policy.cpuTimeoutMs,
     memoryLimitBytes: policy.memoryLimitBytes,
     maxStackSizeBytes: policy.maxStackSizeBytes,
     maxResultBytes: expandedSerializationLimit(policy.maxResultBytes),
@@ -643,6 +648,11 @@ function toCodeModeRuntimeError(error: unknown): unknown {
         new CodeModeTimeoutError(Number(details?.timeoutMs ?? 0)),
         error,
       );
+    case 'RUN_CPU_TIMEOUT':
+      return copyStack(
+        new CodeModeCpuTimeoutError(Number(details?.cpuTimeoutMs ?? 0)),
+        error,
+      );
     case 'RUN_CONCURRENCY_LIMIT':
       return copyStack(
         new CodeModeConcurrencyError(Number(details?.maxWorkers ?? 0)),
@@ -679,6 +689,7 @@ function toCodeModeRuntimeError(error: unknown): unknown {
 function translateLimitPath(message: string): string {
   const paths: Record<string, string> = {
     'limits.timeoutMs': 'executionPolicy.timeoutMs',
+    'limits.cpuTimeoutMs': 'executionPolicy.cpuTimeoutMs',
     'limits.memoryLimitBytes': 'executionPolicy.memoryLimitBytes',
     'limits.maxStackSizeBytes': 'executionPolicy.maxStackSizeBytes',
     'limits.maxResultBytes': 'executionPolicy.maxResultBytes',

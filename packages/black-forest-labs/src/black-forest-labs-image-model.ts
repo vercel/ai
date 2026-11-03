@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -373,10 +375,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      headers,
-    );
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
+    const combinedHeaders = await getHeaders();
 
     const submit = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
@@ -400,7 +401,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } = await this.pollForImageUrl({
       pollUrl,
       requestId,
-      headers: combinedHeaders,
+      headers: getHeaders,
       abortSignal,
       pollOverrides: {
         pollIntervalMillis: bflOptions?.pollIntervalMillis,
@@ -423,7 +424,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         : undefined,
       // Signed BFL downloads need no credentials; custom proxies may need them.
       headers: useCustomDownloadHeaders
-        ? combinedHeaders
+        ? await getHeaders()
         : { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
@@ -470,7 +471,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }: {
     pollUrl: string;
     requestId: string;
-    headers: Record<string, string | undefined>;
+    headers: Resolvable<Record<string, string | undefined>>;
     abortSignal: AbortSignal | undefined;
     pollOverrides?: {
       pollIntervalMillis?: number;
@@ -517,7 +518,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           trustedOrigin: this.config.baseURL,
           // Only send credentials when it stays on a trusted provider host.
           headers: isTrustedUrl(url.toString(), this.config.baseURL)
-            ? headers
+            ? await resolve(headers)
             : undefined,
           failedResponseHandler: bflFailedResponseHandler,
           successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
@@ -595,45 +596,54 @@ function gcd(a: number, b: number): number {
   return x;
 }
 
-const bflSubmitSchema = z.object({
-  id: z.string(),
-  polling_url: z.url(),
-  cost: z.number().nullish(),
-  input_mp: z.number().nullish(),
-  output_mp: z.number().nullish(),
-});
+const bflSubmitSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      polling_url: z.url(),
+      cost: z.number().nullish(),
+      input_mp: z.number().nullish(),
+      output_mp: z.number().nullish(),
+    }),
+  ),
+);
 
-const bflStatus = z.union([
-  z.literal('Content Moderated'),
-  z.literal('Generating'),
-  z.literal('Pending'),
-  z.literal('Reasoning'),
-  z.literal('Ready'),
-  z.literal('Error'),
-  z.literal('Failed'),
-  z.literal('Request Moderated'),
-  z.literal('Task not found'),
-]);
+const bflStatus = () =>
+  z.union([
+    z.literal('Content Moderated'),
+    z.literal('Generating'),
+    z.literal('Pending'),
+    z.literal('Reasoning'),
+    z.literal('Ready'),
+    z.literal('Error'),
+    z.literal('Failed'),
+    z.literal('Request Moderated'),
+    z.literal('Task not found'),
+  ]);
 
-const bflPollSchema = z
-  .object({
-    status: bflStatus.optional(),
-    state: bflStatus.optional(),
-    details: z.unknown().optional(),
-    result: z
+const bflPollSchema = lazySchema(() =>
+  zodSchema(
+    z
       .object({
-        sample: z.url(),
-        seed: z.number().optional(),
-        start_time: z.number().optional(),
-        end_time: z.number().optional(),
-        duration: z.number().optional(),
+        status: bflStatus().optional(),
+        state: bflStatus().optional(),
+        details: z.unknown().optional(),
+        result: z
+          .object({
+            sample: z.url(),
+            seed: z.number().optional(),
+            start_time: z.number().optional(),
+            end_time: z.number().optional(),
+            duration: z.number().optional(),
+          })
+          .nullish(),
       })
-      .nullish(),
-  })
-  .refine(v => v.status != null || v.state != null, {
-    message: 'Missing status in Black Forest Labs poll response',
-  })
-  .transform(v => ({
-    status: (v.status ?? v.state)!,
-    result: v.result,
-  }));
+      .refine(v => v.status != null || v.state != null, {
+        message: 'Missing status in Black Forest Labs poll response',
+      })
+      .transform(v => ({
+        status: (v.status ?? v.state)!,
+        result: v.result,
+      })),
+  ),
+);

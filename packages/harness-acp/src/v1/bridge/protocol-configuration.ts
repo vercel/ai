@@ -12,6 +12,21 @@ export type ACPInitializeResult = {
   readonly agentCapabilities?: Readonly<Record<string, unknown>> | null;
 };
 
+export function isACPImagePromptSupported({
+  initialization,
+  nonTextContentTypes,
+}: {
+  initialization: ACPInitializeResult;
+  nonTextContentTypes?: ReadonlyArray<'image'>;
+}): boolean {
+  const promptCapabilities =
+    initialization.agentCapabilities?.promptCapabilities;
+  return (
+    (isRecord(promptCapabilities) && promptCapabilities.image === true) ||
+    nonTextContentTypes?.includes('image') === true
+  );
+}
+
 export function createACPInitializeRequest({
   protocolVersion,
   clientApp,

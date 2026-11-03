@@ -1,6 +1,9 @@
 import { APICallError } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { mockId } from '@ai-sdk/provider-utils/test';
+import {
+  convertArrayToReadableStream,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
   TestResponseController,
@@ -114,6 +117,56 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  describe('id generation', () => {
+    it('generates the default id only on first access and keeps it stable', () => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ generateId });
+
+      expect(generateId).not.toHaveBeenCalled();
+      const id = chat.id;
+      expect(id).toBe('id-0');
+      expect(chat.id).toBe(id);
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+
+    it.each(['existing-chat', ''])('preserves the explicit id %j', id => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ id, generateId });
+
+      expect(chat.id).toBe(id);
+      expect(generateId).not.toHaveBeenCalled();
+    });
+
+    it('uses the same lazily generated id for sending and resuming', async () => {
+      const sendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+      );
+      const reconnectToStream = vi.fn(async () => null);
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({
+        generateId,
+        transport: { sendMessages, reconnectToStream },
+      });
+
+      expect(generateId).not.toHaveBeenCalled();
+      await chat.resumeStream();
+      expect(reconnectToStream).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(sendMessages).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+      expect(chat.id).toBe('id-0');
+    });
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -3275,6 +3328,271 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it.each(['output-available', 'output-error'] as const)(
+      'should not automatically submit a late %s after an interrupted response',
+      async state => {
+        const sendMessages = vi.fn(async () =>
+          convertArrayToReadableStream<UIMessageChunk>([
+            { type: 'start', messageId: 'assistant-1' },
+            { type: 'start-step' },
+            {
+              type: 'tool-input-available',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: {},
+            },
+            { type: 'finish-step' },
+            { type: 'finish', finishReason: 'interrupted' },
+          ]),
+        );
+        const sendAutomaticallyWhen = vi.fn(
+          lastAssistantMessageIsCompleteWithToolCalls,
+        );
+        const chat = new TestChat({
+          transport: { sendMessages, reconnectToStream: async () => null },
+          sendAutomaticallyWhen,
+        });
+
+        await chat.sendMessage({ text: 'Hello' });
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'call-1',
+          ...(state === 'output-available'
+            ? { output: 'tool-result' }
+            : { state, errorText: 'Tool failed' }),
+        });
+
+        expect(chat.lastMessage?.parts).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-test-tool',
+            toolCallId: 'call-1',
+            state,
+            ...(state === 'output-available'
+              ? { output: 'tool-result' }
+              : { errorText: 'Tool failed' }),
+          }),
+        );
+        expect(sendMessages).toHaveBeenCalledOnce();
+        expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+        expect(chat.status).toBe('ready');
+      },
+    );
+
+    it('should not automatically submit a late approval after an interrupted response', async () => {
+      const sendMessages = vi.fn(async () =>
+        convertArrayToReadableStream<UIMessageChunk>([
+          { type: 'start', messageId: 'assistant-1' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'test-tool',
+            input: {},
+          },
+          {
+            type: 'tool-approval-request',
+            toolCallId: 'call-1',
+            approvalId: 'approval-1',
+          },
+          { type: 'finish-step' },
+          { type: 'finish', finishReason: 'interrupted' },
+        ]),
+      );
+      const sendAutomaticallyWhen = vi.fn(
+        lastAssistantMessageIsCompleteWithApprovalResponses,
+      );
+      const chat = new TestChat({
+        transport: { sendMessages, reconnectToStream: async () => null },
+        sendAutomaticallyWhen,
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+      await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+
+      expect(chat.lastMessage?.parts).toContainEqual(
+        expect.objectContaining({
+          toolCallId: 'call-1',
+          state: 'approval-responded',
+          approval: { id: 'approval-1', approved: true },
+        }),
+      );
+      expect(sendMessages).toHaveBeenCalledOnce();
+      expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+    });
+
+    it('should preserve interrupted output without an error or automatic follow-up', async () => {
+      const sendMessages = vi.fn(async () =>
+        convertArrayToReadableStream<UIMessageChunk>([
+          { type: 'start', messageId: 'assistant-1' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Partial answer' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish', finishReason: 'interrupted' },
+        ]),
+      );
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+      const sendAutomaticallyWhen = vi.fn(
+        () => sendMessages.mock.calls.length < 2,
+      );
+      const chat = new TestChat({
+        transport: { sendMessages, reconnectToStream: async () => null },
+        onError,
+        onFinish,
+        sendAutomaticallyWhen,
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+
+      expect(sendMessages).toHaveBeenCalledOnce();
+      expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'interrupted',
+          isAbort: false,
+          isDisconnect: false,
+          isError: false,
+        }),
+      );
+      expect(chat.status).toBe('ready');
+      expect(getMessageText(chat.lastMessage)).toBe('Partial answer');
+    });
+
+    it.each(['continue', 'new-message'] as const)(
+      'should allow explicit %s and subsequent automatic tool follow-ups after interruption',
+      async action => {
+        const completed = createResolvablePromise<void>();
+        let requestCount = 0;
+        const sendMessages = vi.fn(async () => {
+          requestCount++;
+          return convertArrayToReadableStream<UIMessageChunk>(
+            requestCount < 3
+              ? [
+                  {
+                    type: 'start',
+                    messageId:
+                      action === 'continue'
+                        ? 'assistant-1'
+                        : `assistant-${requestCount}`,
+                  },
+                  { type: 'start-step' },
+                  {
+                    type: 'tool-input-available',
+                    toolCallId: `call-${requestCount}`,
+                    toolName: 'test-tool',
+                    input: {},
+                  },
+                  { type: 'finish-step' },
+                  {
+                    type: 'finish',
+                    finishReason:
+                      requestCount === 1 ? 'interrupted' : 'tool-calls',
+                  },
+                ]
+              : [
+                  { type: 'start', messageId: 'assistant-3' },
+                  { type: 'start-step' },
+                  { type: 'text-start', id: 'text-1' },
+                  { type: 'text-delta', id: 'text-1', delta: 'Done' },
+                  { type: 'text-end', id: 'text-1' },
+                  { type: 'finish-step' },
+                  { type: 'finish', finishReason: 'stop' },
+                ],
+          );
+        });
+        const sendAutomaticallyWhen = vi.fn(
+          lastAssistantMessageIsCompleteWithToolCalls,
+        );
+        const chat = new TestChat({
+          transport: { sendMessages, reconnectToStream: async () => null },
+          sendAutomaticallyWhen,
+          onFinish: () => {
+            if (requestCount === 3) completed.resolve();
+          },
+        });
+
+        await chat.sendMessage({ text: 'Hello' });
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'call-1',
+          output: 'first result',
+        });
+        expect(sendMessages).toHaveBeenCalledOnce();
+
+        await chat.sendMessage(
+          action === 'continue' ? undefined : { text: 'Try another request' },
+        );
+        expect(sendMessages).toHaveBeenCalledTimes(2);
+
+        if (action === 'new-message') {
+          sendAutomaticallyWhen.mockClear();
+          sendAutomaticallyWhen.mockReturnValueOnce(true);
+          await chat.addToolOutput({
+            tool: 'test-tool',
+            toolCallId: 'call-1',
+            output: 'updated first result',
+          });
+          expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+          expect(sendMessages).toHaveBeenCalledTimes(2);
+          sendAutomaticallyWhen.mockReset();
+          sendAutomaticallyWhen.mockImplementation(
+            lastAssistantMessageIsCompleteWithToolCalls,
+          );
+        }
+
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'call-2',
+          output: 'second result',
+        });
+        await completed.promise;
+        expect(sendMessages).toHaveBeenCalledTimes(3);
+        expect(getMessageText(chat.lastMessage)).toBe('Done');
+      },
+    );
+
+    it('should not continue an interrupted last message when an older tool result arrives', async () => {
+      let requestCount = 0;
+      const sendMessages = vi.fn(async () => {
+        requestCount++;
+        return convertArrayToReadableStream<UIMessageChunk>([
+          { type: 'start', messageId: `assistant-${requestCount}` },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-available',
+            toolCallId: `call-${requestCount}`,
+            toolName: 'test-tool',
+            input: {},
+          },
+          { type: 'finish-step' },
+          {
+            type: 'finish',
+            finishReason: requestCount === 1 ? 'tool-calls' : 'interrupted',
+          },
+        ]);
+      });
+      const sendAutomaticallyWhen = vi.fn(() => false);
+      const chat = new TestChat({
+        transport: { sendMessages, reconnectToStream: async () => null },
+        sendAutomaticallyWhen,
+      });
+
+      await chat.sendMessage({ text: 'First request' });
+      await chat.sendMessage({ text: 'Second request' });
+      sendAutomaticallyWhen.mockClear();
+      sendAutomaticallyWhen.mockReturnValue(true);
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'call-1',
+        output: 'late first result',
+      });
+
+      expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+      expect(sendMessages).toHaveBeenCalledTimes(2);
+    });
+
     it('should reject addToolOutput when the async predicate rejects', async () => {
       const chat = new TestChat({
         id: '123',
