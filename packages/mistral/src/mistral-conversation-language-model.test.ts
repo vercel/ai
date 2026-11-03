@@ -625,6 +625,32 @@ describe('Mistral web search', () => {
     },
   );
 
+  it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+    'maps reasoning none to reasoning_effort high with a warning for %s',
+    async modelId => {
+      const result = await provider.conversation(modelId).doGenerate({
+        prompt,
+        reasoning: 'none',
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        completion_args: { reasoning_effort: 'high' },
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "high".',
+      });
+    },
+  );
+
+  it('sends reasoning_effort none for reasoning none', async () => {
+    await model.doGenerate({ prompt, reasoning: 'none' });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      completion_args: { reasoning_effort: 'none' },
+    });
+  });
+
   it('warns about unsupported Conversations options', async () => {
     const result = await model.doGenerate({
       prompt,
