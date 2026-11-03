@@ -1744,6 +1744,50 @@ describe('doGenerate', () => {
       expect(body.customOption).toBe('should-be-included');
     });
 
+    it('should pass raw verbosity through when textVerbosity is not set', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'low',
+      );
+    });
+
+    it('should prefer textVerbosity over raw verbosity', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low', textVerbosity: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'high',
+      );
+    });
+
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -4195,7 +4239,6 @@ describe('doStream', () => {
           "tools": undefined,
           "top_p": undefined,
           "user": undefined,
-          "verbosity": undefined,
         },
       }
     `);
