@@ -2590,19 +2590,19 @@ describe('createPiSession', () => {
         return () => {};
       });
       fakePi.session.compact = vi.fn(async () => {
-        emitPiEvent?.({
-          type: 'compaction_end',
-          reason: 'manual',
-          result: {
-            summary: `Summary ${++compactionCount}`,
-            tokensBefore: 4096 + compactionCount,
-          },
-        });
+        const result = {
+          summary: `Summary ${++compactionCount}`,
+          tokensBefore: 4096 + compactionCount,
+          firstKeptEntryId: 'entry-1',
+        };
+        emitPiEvent?.({ type: 'compaction_end', reason: 'manual', result });
+        return result;
       });
       piMock.session = fakePi.session;
 
       const session = await createPiSession({
         sessionId: 'session-compaction-between-turns',
+        isResume: false,
         sandboxSession: createThrowingSandboxSession(),
         sessionWorkDir: '/sandbox/work',
         settings: {},
@@ -2631,6 +2631,9 @@ describe('createPiSession', () => {
         });
         await turn2.done;
 
+        expect(turn2Emitted.slice(0, count + 1).map(part => part.type)).toEqual(
+          ['stream-start', ...Array(count).fill('compaction')],
+        );
         const compactions = turn2Emitted.filter(
           part => part.type === 'compaction',
         );
