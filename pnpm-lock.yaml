@@ -3921,9 +3921,6 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
-      livekit-client:
-        specifier: ^2.23.0
-        version: 2.23.0(@types/dom-mediacapture-record@1.0.22)
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
@@ -3937,6 +3934,9 @@ importers:
       '@vercel/ai-tsdown-config':
         specifier: workspace:*
         version: link:../../tools/tsdown-config
+      livekit-client:
+        specifier: ^2.23.0
+        version: 2.23.0(@types/dom-mediacapture-record@1.0.22)
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)

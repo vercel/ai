@@ -7,7 +7,12 @@ description: Learn how to use Mistral AI with AI Gateway and the direct provider
 
 The [Mistral AI](https://mistral.ai/) provider supports language models,
 embeddings, speech, transcription, and realtime voice agents.
-You can use Mistral AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
+You can use Mistral AI language models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
+
+<Note>
+  Realtime voice agents require the direct `@ai-sdk/mistral` provider and are
+  not available through AI Gateway.
+</Note>
 
 ```ts provider="mistral" model="mistral/mistral-medium-3.5"
 import { generateText } from 'ai';
@@ -824,6 +829,9 @@ is redacted from request metadata and API call errors returned by the provider.
 
 ## Realtime Voice Agents
 
+Realtime voice agents require the direct `@ai-sdk/mistral` provider. AI Gateway
+does not currently support Mistral voice agents.
+
 `mistral.experimental_realtime()` connects to Mistral's
 [managed voice agents](https://docs.mistral.ai/studio/audio/voice-agents/overview):
 Mistral handles transcription, response generation, speech, and interruptions.
@@ -832,9 +840,13 @@ existing realtime hook to send microphone audio and play the response.
 
 <Note type="warning">Realtime voice agents are experimental.</Note>
 
-Install the provider and React hook:
+Install the provider, React hook, and optional `livekit-client` peer dependency
+required for browser voice connections:
 
-<InstallPackages packages="ai @ai-sdk/mistral @ai-sdk/react" />
+<InstallPackages packages="ai @ai-sdk/mistral @ai-sdk/react livekit-client" />
+
+Server-side consumers that only create and close sessions or use other Mistral
+models do not need `livekit-client`.
 
 Keep `MISTRAL_API_KEY` on your server. Create a route that starts and closes
 sessions with server-owned configuration:
