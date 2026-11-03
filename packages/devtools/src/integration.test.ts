@@ -106,10 +106,16 @@ describe('DevToolsTelemetry', () => {
     }
   });
 
-  it('ignores embed/rerank operations', async () => {
+  it('ignores operations without DevTools step support', async () => {
     const integration = createIntegration();
 
-    for (const operationId of ['ai.embed', 'ai.embedMany', 'ai.rerank']) {
+    for (const operationId of [
+      'ai.embed',
+      'ai.embedMany',
+      'ai.rerank',
+      'ai.generateSpeech',
+      'ai.transcribe',
+    ]) {
       await integration.onStart!({ operationId, callId: 'x' } as any);
     }
 
@@ -202,6 +208,104 @@ describe('DevToolsTelemetry', () => {
           ],
         }
       `);
+    });
+
+    it('stores binary prompts and transformed tool media as base64', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'data',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      await integration.onStepEnd!(
+        makeStepFinishEvent({
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'screenshot',
+              toolCallId: 'call-1',
+              output: { base64: 'raw execute output' },
+            },
+          ],
+          response: {
+            id: 'resp-1',
+            modelId: 'test-model',
+            timestamp: new Date('2025-01-01'),
+            messages: [
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolName: 'screenshot',
+                    toolCallId: 'call-1',
+                    output: {
+                      type: 'content',
+                      value: [
+                        {
+                          type: 'file',
+                          mediaType: 'image/png',
+                          data: {
+                            type: 'data',
+                            data: new Uint8Array([137, 80, 78, 71]),
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(JSON.parse(mockCreateStep.mock.calls[0][0].input)).toMatchObject({
+        prompt: [
+          {
+            content: [
+              {
+                data: { data: 'iVBORw==' },
+              },
+            ],
+          },
+        ],
+      });
+      const capturedOutput = JSON.parse(
+        mockUpdateStepResult.mock.calls[0][1].output,
+      );
+      expect(capturedOutput).not.toHaveProperty('toolResults');
+      expect(capturedOutput.response.messages).toMatchObject([
+        {
+          content: [
+            {
+              output: {
+                value: [
+                  {
+                    data: { data: 'iVBORw==' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]);
     });
   });
 
@@ -308,6 +412,28 @@ describe('DevToolsTelemetry', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('onStepError', () => {
+    it('records the error on the failed step only once', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(makeStepStartEvent());
+
+      await integration.onStepError!({
+        ...makeStepStartEvent({ stepNumber: 0 }),
+        error: new Error('step failed'),
+      } as any);
+      await integration.onError!({
+        callId: 'call-1',
+        error: new Error('call failed'),
+      });
+
+      expect(mockUpdateStepResult).toHaveBeenCalledTimes(1);
+      expect(mockUpdateStepResult.mock.calls[0][1].error).toBe('step failed');
+      expect(mockUpdateStepResult.mock.calls[0][1].output).toBeNull();
     });
   });
 

@@ -4,6 +4,7 @@ import {
   harnessV1BridgeReadySchema,
   harnessV1BridgeStartBaseSchema,
 } from '@ai-sdk/harness';
+import { harnessPromptContentSchema } from '@ai-sdk/harness/utils';
 import { z } from 'zod/v4';
 
 /*
@@ -30,14 +31,53 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+const skillOverridesSchema = z.record(
+  z.string(),
+  z.enum(['on', 'name-only', 'user-invocable-only', 'off']),
+);
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  prompt: harnessPromptContentSchema,
+  readableSkillRoots: z.array(z.string()).optional(),
+  instructions: z.string().optional(),
   thinking: thinkingSchema,
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  skillOverrides: skillOverridesSchema.optional(),
+  maxBudgetUsd: z.number().optional(),
+  strictMcpConfig: z.boolean().optional(),
+  questionTimeoutMs: z.number().optional(),
+  excludeDynamicSections: z.boolean().optional(),
+  agentProgressSummaries: z.boolean().optional(),
+  forwardSubagentText: z.boolean().optional(),
+  env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
+  toolHints: z
+    .record(
+      z.string(),
+      z.object({
+        readOnly: z.boolean().optional(),
+        alwaysLoad: z.boolean().optional(),
+      }),
+    )
+    .optional(),
   // Resume signal. When true, the bridge passes `{ continue: true }` to the
   // Claude SDK so the in-workdir thread state is rehydrated. The host sets this
   // on the first prompt after a cross-process resume.
   continue: z.boolean().optional(),
+  // Exact conversation to resume, as the Claude SDK's `resume` option.
+  //
+  // Preferred over `continue` whenever the host knows which conversation it
+  // means: `continue` resolves to the most recent thread in the workdir, which
+  // is the wrong one as soon as anything else has run there since — including
+  // a resume that itself started a new thread. Mutually exclusive with
+  // `continue` in the SDK, so the bridge sends one or the other.
+  resumeSessionId: z.string().optional(),
+  // A tool call the previous bridge deferred while it waited for host
+  // approval. The bridge resumes `resumeSessionId` without a prompt once the
+  // host answers, so Claude Code runs that same call.
+  deferredToolUseId: z.string().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

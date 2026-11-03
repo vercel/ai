@@ -46,6 +46,20 @@ export const xaiSpeechModelOptionsSchema = lazySchema(() =>
        * Normalize written-form text into spoken-form text before synthesis.
        */
       textNormalization: z.boolean().nullish(),
+
+      /**
+       * Return character-level timing metadata alongside the audio. When
+       * enabled, the response carries per-character start/end times and the
+       * total duration, exposed via `providerMetadata.xai`.
+       */
+      withTimestamps: z.boolean().nullish(),
+
+      /**
+       * Map of phrases to spoken substitutions applied before synthesis.
+       * Values may be respellings (`{ 'Acme Mobile': 'Acme Mobull' }`) or IPA
+       * phonetics (`{ nginx: '/ˈɛndʒɪn ˈɛks/' }`).
+       */
+      replace: z.record(z.string(), z.string()).nullish(),
     }),
   ),
 );

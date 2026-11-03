@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result1 = await generateText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -22,7 +22,7 @@ run(async () => {
   } = providerMetadata;
 
   const result2 = await generateText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'Summarize in 2 sentences',
     providerOptions: {
       openai: {

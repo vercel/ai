@@ -5,11 +5,15 @@ import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
+import GetUserNameToolView from '@/components/tool/get-user-name-tool-view';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
 import HarnessFileToolView from '@/components/tool/harness-file-tool-view';
 import HarnessToolView from '@/components/tool/harness-tool-view';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 
 export default function PiHarnessChat({
   apiRoute,
@@ -19,12 +23,13 @@ export default function PiHarnessChat({
   exampleLabel: string;
 }) {
   const { chatId, resetChatId } = useChatId();
-  const { error, status, sendMessage, messages, regenerate } =
+  const { error, status, sendMessage, messages, regenerate, addToolOutput } =
     useChat<PiHarnessAgentMessage>({
       id: chatId,
       transport: new DefaultChatTransport({
         api: apiRoute,
       }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     });
 
   return (
@@ -67,12 +72,27 @@ export default function PiHarnessChat({
                     <img
                       key={index}
                       src={part.url}
-                      alt="Generated image"
-                      className="mb-2"
+                      alt="Image attachment"
+                      className="mb-2 max-w-full max-h-64 rounded"
                     />
                   );
                 }
                 return null;
+              }
+              case 'tool-getUserName': {
+                return (
+                  <GetUserNameToolView
+                    key={index}
+                    invocation={part}
+                    onSubmit={({ toolCallId, name }) =>
+                      addToolOutput({
+                        tool: 'getUserName',
+                        toolCallId,
+                        output: { name },
+                      })
+                    }
+                  />
+                );
               }
               case 'tool-bash': {
                 return <HarnessBashToolView invocation={part} key={index} />;
@@ -149,7 +169,7 @@ export default function PiHarnessChat({
       <ChatInput
         status={status}
         maxWidth="5xl"
-        onSubmit={text => sendMessage({ text })}
+        onSubmit={parts => sendMessage({ parts })}
       />
     </div>
   );

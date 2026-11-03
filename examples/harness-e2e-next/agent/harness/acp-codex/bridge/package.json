@@ -1,0 +1,13 @@
+{
+  "name": "acp-codex-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@agentclientprotocol/codex-acp": "1.1.4",
+    "@agentclientprotocol/sdk": "1.7.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "ws": "8.21.0",
+    "zod": "4.4.3"
+  }
+}

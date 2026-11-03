@@ -17,7 +17,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages: convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools: {

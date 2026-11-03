@@ -11,6 +11,25 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 - **Resumable**: Workflow runs survive restarts and can be reconnected
 - **Telemetry E2E Harness**: Visit `/telemetry` to run deterministic WorkflowAgent telemetry scenarios for lifecycle events, tool execution, context filtering, approvals, errors, and reconnects
 - **Sandbox E2E Harness**: Visit `/sandbox` to run a deterministic WorkflowAgent sandbox tool execution scenario
+- **Async Video Workflow**: Visit `/async-apis` to find recent repository maintainers and turn their GitHub avatars into short FAL videos while workflow progress streams to the browser
+
+## Non-streaming generation
+
+`workflow/generate-summary.ts` demonstrates durable generation without a writable stream:
+
+```ts
+import { start } from 'workflow/api';
+import { generateSummary } from './workflow/generate-summary';
+
+const run = await start(generateSummary, [modelId, text]);
+const { summary, usage } = await run.returnValue;
+```
+
+Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures. Its `timeout` is a model-call deadline that persists across tool suspension; it does not cancel a waiting hook. Use `run.cancel()` to cancel the workflow run. Keep external effects inside durable steps and use idempotency keys when the external service supports them.
+
+### Non-streaming approvals
+
+`workflow/generate-approved-action.ts` demonstrates signed approvals without a writable. Set `WORKFLOW_TOOL_APPROVAL_SECRET` in the runtime environment. Start the workflow with a model ID and conversation; save the returned `responseMessages` alongside the original history. Show the requested tool/input to the user. In a second invocation, pass the saved history plus a tool message containing `{ type: 'tool-approval-response', approvalId, approved }`, using the returned request ID and the user's decision. Keep the original signature and tool input unchanged. The example action returns a record without writing to an external service.
 
 ## Testing `toModelOutput`
 
@@ -35,8 +54,19 @@ The `calculate` tool has no `toModelOutput`, so its model-facing output stays th
 ## Running
 
 1. Install dependencies: `pnpm install`
-2. Start the dev server: `pnpm dev`
-3. Open http://localhost:3000
+2. Create `.env.local` and add the API keys needed by the page you want to run:
+
+   ```bash
+   ANTHROPIC_API_KEY=...
+   FAL_API_KEY=...
+   GITHUB_TOKEN=...
+   ```
+
+   `GITHUB_TOKEN` needs read access to the repository submitted on the async
+   APIs page. Public-repository access is enough for public repositories.
+
+3. Start the dev server: `pnpm dev`
+4. Open http://localhost:3000
 
 ## Telemetry
 
@@ -45,3 +75,22 @@ Open http://localhost:3000/telemetry to run deterministic WorkflowAgent telemetr
 ## Sandbox
 
 Open http://localhost:3000/sandbox to run a deterministic WorkflowAgent `experimental_sandbox` scenario. The harness verifies that the sandbox session provided to `agent.stream` is available during tool execution.
+
+## Async APIs
+
+Open http://localhost:3000/async-apis and submit a GitHub repository URL. The
+workflow queries merged pull requests from the last 30 days, ranks the human
+users who merged them, downloads the top three avatars, and generates a
+five-second image-to-video clip for each maintainer with FAL's
+`luma-dream-machine/ray-2/image-to-video` model.
+
+The workflow passes the new `webhook` option to `experimental_generateVideo`.
+It uses Workflow DevKit's `createWebhook()` to give FAL a durable callback URL.
+The workflow suspends until FAL calls that URL, then checks the completed job
+and streams the result to the page without polling.
+
+FAL cannot call a webhook on a private loopback address. When this example runs
+on plain `localhost`, it automatically uses the same async start/status API with
+durable polling instead. Deploy it to Vercel, or set `WORKFLOW_LOCAL_BASE_URL`
+to a public HTTPS URL that forwards to the local server, to exercise the webhook
+path locally.

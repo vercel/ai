@@ -2,6 +2,7 @@ import type {
   GenerateTextStartEvent,
   GenerateTextStepStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepStartEvent,
   GenerateObjectStepEndEvent,
@@ -15,6 +16,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 type OperationType = 'generate' | 'stream';
 
@@ -41,6 +43,19 @@ export interface DevToolsTelemetryOptions {
 }
 
 const activeSteps = new Map<string, StepState>();
+
+async function failStep(stepState: StepState, error: unknown) {
+  activeSteps.delete(stepState.stepId);
+  await updateStepResult(stepState.stepId, {
+    duration_ms: Date.now() - stepState.startTime,
+    output: null,
+    usage: null,
+    error: error instanceof Error ? error.message : String(error),
+    raw_request: null,
+    raw_response: null,
+    raw_chunks: null,
+  });
+}
 
 let signalHandlersRegistered = false;
 const registerSignalHandlers = () => {
@@ -204,7 +219,9 @@ export function DevToolsTelemetry(
       if (
         operationId === 'ai.embed' ||
         operationId === 'ai.embedMany' ||
-        operationId === 'ai.rerank'
+        operationId === 'ai.rerank' ||
+        operationId === 'ai.generateSpeech' ||
+        operationId === 'ai.transcribe'
       ) {
         return;
       }
@@ -261,7 +278,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt,
           tools: stepStartEvent.tools
             ? Object.entries(stepStartEvent.tools).map(([name, tool]) => ({
@@ -311,7 +328,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: stepStartEvent.promptMessages,
           maxOutputTokens: state.settings.maxOutputTokens,
           temperature: state.settings.temperature,
@@ -353,7 +370,7 @@ export function DevToolsTelemetry(
 
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
-        output: JSON.stringify(output),
+        output: serializeForDevTools(output),
         usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body
@@ -407,6 +424,19 @@ export function DevToolsTelemetry(
       state.stepStates.delete(stepResult.stepNumber);
     },
 
+    onStepError: async event => {
+      const stepErrorEvent = event as GenerateTextStepErrorEvent<ToolSet>;
+
+      const state = callStates.get(stepErrorEvent.callId);
+      if (!state) return;
+
+      const stepState = state.stepStates.get(stepErrorEvent.stepNumber);
+      if (!stepState) return;
+
+      await failStep(stepState, stepErrorEvent.error);
+      state.stepStates.delete(stepErrorEvent.stepNumber);
+    },
+
     onEnd: async event => {
       const endEvent = event as { callId: string };
       callStates.delete(endEvent.callId);
@@ -423,21 +453,9 @@ export function DevToolsTelemetry(
       if (!state) return;
 
       const cause = errorObj?.error ?? error;
-      const errorMessage =
-        cause instanceof Error ? cause.message : String(cause);
 
       for (const [, stepState] of state.stepStates) {
-        activeSteps.delete(stepState.stepId);
-        const durationMs = Date.now() - stepState.startTime;
-        await updateStepResult(stepState.stepId, {
-          duration_ms: durationMs,
-          output: null,
-          usage: null,
-          error: errorMessage,
-          raw_request: null,
-          raw_response: null,
-          raw_chunks: null,
-        });
+        await failStep(stepState, cause);
       }
 
       callStates.delete(callId);

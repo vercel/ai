@@ -23,7 +23,7 @@ export class MCPClientError extends AISDKError {
 
   /**
    * HTTP status code from the failed response, when the error originated
-   * from the streamable HTTP transport. Undefined for stdio transport
+   * from an HTTP-based transport. Undefined for stdio transport
    * errors and for failures that do not have an associated response
    * status (e.g. network errors, abort). Distinct from `code`, which is
    * the JSON-RPC application error code.

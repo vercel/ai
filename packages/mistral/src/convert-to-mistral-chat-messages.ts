@@ -3,8 +3,13 @@ import {
   type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import type { MistralPrompt } from './mistral-chat-prompt';
+import type {
+  MistralAssistantMessageContent,
+  MistralPrompt,
+} from './mistral-chat-prompt';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
@@ -22,6 +27,18 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   throw new UnsupportedFunctionalityError({
     functionality: `file part data type ${part.data.type}`,
   });
+}
+
+export function serializeMistralToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToMistralChatMessages(
@@ -101,6 +118,8 @@ export function convertToMistralChatMessages(
 
       case 'assistant': {
         let text = '';
+        let hasReasoning = false;
+        const contentParts: Array<MistralAssistantMessageContent> = [];
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -111,6 +130,7 @@ export function convertToMistralChatMessages(
           switch (part.type) {
             case 'text': {
               text += part.text;
+              contentParts.push({ type: 'text', text: part.text });
               break;
             }
             case 'tool-call': {
@@ -119,13 +139,18 @@ export function convertToMistralChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeMistralToolCallArguments(part.input),
                 },
               });
               break;
             }
             case 'reasoning': {
-              text += part.text;
+              hasReasoning = true;
+              contentParts.push({
+                type: 'thinking',
+                thinking: [{ type: 'text', text: part.text }],
+                closed: true,
+              });
               break;
             }
             default: {
@@ -138,7 +163,7 @@ export function convertToMistralChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: hasReasoning ? contentParts : text,
           prefix: isLastMessage ? true : undefined,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -164,7 +189,7 @@ export function convertToMistralChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

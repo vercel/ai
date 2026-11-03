@@ -8,7 +8,7 @@ import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../../src/util/value-of';
 
 export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: {
+  [NAME in keyof TOOLS]-?: {
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;

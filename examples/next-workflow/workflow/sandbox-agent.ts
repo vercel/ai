@@ -32,6 +32,9 @@ function createSandbox({ label }: { label: string }): SandboxSession {
     writeFile: notImplemented,
     writeBinaryFile: notImplemented,
     writeTextFile: notImplemented,
+    stat: notImplemented,
+    listDirectory: notImplemented,
+    deleteFile: notImplemented,
     spawn: notImplemented,
     run: async ({ command }) => {
       return {
@@ -104,6 +107,9 @@ export async function sandboxChat(
 
 export function toUIMessageStream(
   readable: ReadableStream<ModelCallStreamPart>,
+  uiStartIndex = 0,
 ) {
-  return readable.pipeThrough(createModelCallToUIChunkTransform());
+  return readable.pipeThrough(
+    createModelCallToUIChunkTransform({ uiStartIndex }),
+  );
 }

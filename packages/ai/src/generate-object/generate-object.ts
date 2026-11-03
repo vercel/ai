@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -96,8 +97,9 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_repairText - A function that attempts to repair the raw output of the model
+ * @param repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
  *
  * @param telemetry - Optional telemetry configuration.
  *
@@ -168,6 +170,14 @@ export async function generateObject<
       /**
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
+       */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
        */
       experimental_repairText?: RepairTextFunction;
 
@@ -254,6 +264,16 @@ export async function generateObject<
       };
     },
 ): Promise<GenerateObjectResult<RESULT>> {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'generateObject',
+        message: 'Use generateText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model: modelArg,
     output = 'object',
@@ -265,7 +285,8 @@ export async function generateObject<
     maxRetries: maxRetriesArg,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
@@ -369,6 +390,7 @@ export async function generateObject<
       prompt: standardizedPrompt,
       supportedUrls: await model.supportedUrls,
       download,
+      abortSignal,
       provider: model.provider.split('.')[0],
     });
 
@@ -426,7 +448,7 @@ export async function generateObject<
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
     const request: Omit<LanguageModelRequestMetadata, 'messages'> =
-      generateResult.request ?? {};
+      sanitizeRequestMetadata(generateResult.request) ?? {};
     const response: Omit<LanguageModelResponseMetadata, 'messages'> =
       responseData;
 
@@ -458,7 +480,7 @@ export async function generateObject<
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
-      text,
+      generateResult.structuredOutputText ?? text,
       outputStrategy,
       repairText,
       {

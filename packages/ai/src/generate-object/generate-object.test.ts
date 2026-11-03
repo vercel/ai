@@ -62,6 +62,49 @@ describe('generateObject', () => {
 
   describe('output = "object"', () => {
     describe('result.object', () => {
+      it('should parse structured output text while preserving raw callback text and response metadata', async () => {
+        const draft = '{"content":"draft"}';
+        const finalAnswer = '{"content":"final"}';
+        const responseBody = { output: [draft, finalAnswer] };
+        const onStepEnd = vi.fn();
+
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'reasoning', text: 'Checking both answers.' },
+                { type: 'text', text: draft },
+                { type: 'text', text: finalAnswer },
+              ],
+              structuredOutputText: finalAnswer,
+              response: {
+                ...dummyResponseValues.response,
+                body: responseBody,
+              },
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepEnd,
+        });
+
+        expect(result.object).toEqual({ content: 'final' });
+        expect(result.reasoning).toBe('Checking both answers.');
+        expect(result.response.body).toEqual(responseBody);
+        expect(result.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
+        expect(onStepEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            objectText: draft + finalAnswer,
+            reasoning: 'Checking both answers.',
+            response: result.response,
+            usage: result.usage,
+          }),
+        );
+      });
+
       it('should generate object', async () => {
         const model = new MockLanguageModelV4({
           doGenerate: {
@@ -73,6 +116,16 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+        });
+
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'generateObject',
+              message: 'Use generateText with an output setting instead.',
+            },
+          ],
         });
 
         expect(result.object).toMatchInlineSnapshot(`
@@ -210,8 +263,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -231,8 +284,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -591,7 +644,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(JSONParseError);
             expect(text).toStrictEqual(
               '{ "content": "provider metadata test" ',
@@ -622,7 +675,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -653,7 +706,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -665,6 +718,51 @@ describe('generateObject', () => {
         await expect(result).rejects.toThrow(
           'No object generated: response did not match schema.',
         );
+      });
+
+      it('should support the deprecated experimental_repairText option', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairText: async ({ text }) => text + ' }',
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should prefer repairText over experimental_repairText', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          repairText: async ({ text }) => text + ' }',
+          experimental_repairText: async () => {
+            throw new Error('deprecated alias should not be called');
+          },
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
       });
     });
 
@@ -784,7 +882,7 @@ describe('generateObject', () => {
             }),
             schema: z.object({ content: z.string() }),
             prompt: 'prompt',
-            experimental_repairText: async ({ text }) => text + '{',
+            repairText: async ({ text }) => text + '{',
           });
 
           fail('must throw error');
@@ -1591,4 +1689,37 @@ describe('generateObject', () => {
       });
     });
   });
+});
+
+it('sanitizes provider request URLs in object results and callbacks', async () => {
+  const onStepEnd = vi.fn();
+  const onFinish = vi.fn();
+  const result = await generateObject({
+    model: new MockLanguageModelV4({
+      doGenerate: {
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: '{"value":"hello"}' }],
+        request: {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        },
+      },
+    }),
+    schema: z.object({ value: z.string() }),
+    prompt: 'hello',
+    onStepEnd,
+    onFinish,
+  });
+  expect(result.request.url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onFinish]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
 });

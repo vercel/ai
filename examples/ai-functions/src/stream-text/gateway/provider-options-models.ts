@@ -11,7 +11,7 @@ run(async () => {
     prompt: 'Tell me a short tale of the krakens of the deep.',
     providerOptions: {
       gateway: {
-        models: ['openai/gpt-5-nano', 'zai/glm-4.6'],
+        models: ['openai/gpt-5.4-nano', 'zai/glm-4.6'],
       } satisfies GatewayProviderOptions,
     },
   });

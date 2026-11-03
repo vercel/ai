@@ -525,6 +525,34 @@ The `unknown` finish reason has been removed. It is now returned as `other`.
 
 ## AI SDK UI
 
+### Tool UI Part Approval States
+
+AI SDK 6 adds `approval-requested`, `approval-responded`, and `output-denied`
+to the tool UI part `state` union. Update exhaustive `switch` statements and
+other state handling to cover the three approval states.
+
+```tsx filename="AI SDK 6"
+switch (part.state) {
+  case 'input-streaming':
+    return 'Loading input';
+  case 'input-available':
+    return 'Input ready';
+  case 'approval-requested':
+    return 'Approval requested';
+  case 'approval-responded':
+    return 'Approval response received';
+  case 'output-available':
+    return 'Output ready';
+  case 'output-error':
+    return part.errorText;
+  case 'output-denied':
+    return 'Tool call denied';
+}
+```
+
+See [Tool execution approval](/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval)
+for handling approval requests and responses in a chat UI.
+
 ### Tool UI Part Helper Functions Rename
 
 The tool UI part helper functions have been renamed to better reflect their purpose and to accommodate both static and dynamic tool parts ([PR #XXXX](https://github.com/vercel/ai/pull/XXXX)).

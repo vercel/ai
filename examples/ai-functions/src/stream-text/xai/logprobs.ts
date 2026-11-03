@@ -1,4 +1,4 @@
-import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -13,7 +13,7 @@ run(async () => {
       xai: {
         logprobs: true,
         topLogprobs: 3,
-      } satisfies XaiLanguageModelChatOptions,
+      } satisfies XaiLanguageModelResponsesOptions,
     },
   });
 

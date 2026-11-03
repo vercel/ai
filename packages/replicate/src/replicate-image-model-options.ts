@@ -25,6 +25,19 @@ export const replicateImageModelOptionsSchema = lazySchema(() =>
       maxWaitTimeInSeconds: z.number().positive().nullish(),
 
       /**
+       * Interval in milliseconds between polling attempts when the prediction
+       * does not complete within the synchronous wait duration.
+       * Defaults to 500 milliseconds.
+       */
+      pollIntervalMillis: z.number().int().positive().nullish(),
+
+      /**
+       * Maximum number of polling attempts before giving up.
+       * Defaults to 240 attempts.
+       */
+      maxPollAttempts: z.number().int().positive().nullish(),
+
+      /**
        * Guidance scale for classifier-free guidance.
        * Higher values make the output more closely match the prompt.
        */
