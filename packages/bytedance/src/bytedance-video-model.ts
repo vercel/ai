@@ -304,7 +304,7 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       body.duration = options.duration;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       body.seed = options.seed;
     }
 

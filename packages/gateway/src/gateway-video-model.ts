@@ -354,7 +354,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       ...(resolution && { resolution }),
       ...(duration && { duration }),
       ...(fps && { fps }),
-      ...(seed && { seed }),
+      ...(seed != null && { seed }),
       ...(generateAudio !== undefined && { generateAudio }),
       ...(providerOptions && { providerOptions }),
       ...(image && { image: maybeEncodeVideoFile(image) }),
