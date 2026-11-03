@@ -306,6 +306,34 @@ describe('AnthropicFiles', () => {
     });
   });
 
+  it.each([undefined, null, '2027-01-01T00:00:00Z'])(
+    'maps upload and metadata fields consistently with expiry %s',
+    async expiresAt => {
+      const response = {
+        type: 'json-value' as const,
+        body: { ...successfulResponse.body, expires_at: expiresAt },
+      };
+      server.urls['https://api.anthropic.com/v1/files'].response = response;
+      server.urls['https://api.anthropic.com/v1/files/file-abc123'].response =
+        response;
+      const files = createFiles();
+      const uploaded = await files.uploadFile({
+        data: { type: 'text', text: 'hello' },
+        mediaType: 'text/plain',
+      });
+      const metadata = await files.getFileMetadata({
+        file: uploaded.providerReference,
+      });
+      expect(metadata).toEqual(uploaded);
+      expect(metadata).toMatchObject({
+        mediaType: 'application/pdf',
+        byteSize: 12345,
+        createdAt: new Date('2025-04-14T12:00:00Z'),
+        expiresAt: expiresAt == null ? undefined : new Date(expiresAt),
+      });
+    },
+  );
+
   describe('deleteFile', () => {
     it('should delete a file via DELETE', async () => {
       server.urls['https://api.anthropic.com/v1/files/file-abc123'].response = {
@@ -453,16 +481,15 @@ describe('AnthropicFiles', () => {
       expect(server.calls[0].requestMethod).toBe('GET');
       expect(result.providerReference).toEqual({ anthropic: 'file-abc123' });
       expect(result.filename).toBe('test.pdf');
+      expect(result.mediaType).toBe('application/pdf');
       expect(result.byteSize).toBe(12345);
       expect(result.createdAt).toEqual(new Date('2025-04-14T12:00:00Z'));
       expect(result.providerMetadata).toEqual({
         anthropic: {
-          id: 'file-abc123',
-          type: 'file',
           filename: 'test.pdf',
-          mime_type: 'application/pdf',
-          size_bytes: 12345,
-          created_at: '2025-04-14T12:00:00Z',
+          mimeType: 'application/pdf',
+          sizeBytes: 12345,
+          createdAt: '2025-04-14T12:00:00Z',
           downloadable: true,
         },
       });

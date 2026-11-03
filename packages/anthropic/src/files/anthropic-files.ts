@@ -22,6 +22,7 @@ import {
   resolve,
   type Resolvable,
   type FetchFunction,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
@@ -114,17 +115,12 @@ export class AnthropicFiles implements FilesV4 {
       providerReference: { anthropic: response.id },
       mediaType: response.mime_type ?? mediaType,
       filename: response.filename ?? filename,
-      providerMetadata: {
-        anthropic: {
-          filename: response.filename,
-          mimeType: response.mime_type,
-          sizeBytes: response.size_bytes,
-          createdAt: response.created_at,
-          ...(response.downloadable != null
-            ? { downloadable: response.downloadable }
-            : {}),
-        },
-      },
+      byteSize: response.size_bytes ?? undefined,
+      createdAt:
+        response.created_at != null ? new Date(response.created_at) : undefined,
+      expiresAt:
+        response.expires_at != null ? new Date(response.expires_at) : undefined,
+      providerMetadata: { anthropic: this.toFileMetadata(response) },
     };
   }
 
@@ -173,12 +169,34 @@ export class AnthropicFiles implements FilesV4 {
       warnings: [],
       providerReference: { anthropic: response.id },
       filename: response.filename ?? undefined,
+      mediaType: response.mime_type ?? undefined,
       byteSize: response.size_bytes ?? undefined,
       createdAt:
         response.created_at != null ? new Date(response.created_at) : undefined,
-      providerMetadata: {
-        anthropic: response,
-      },
+      expiresAt:
+        response.expires_at != null ? new Date(response.expires_at) : undefined,
+      providerMetadata: { anthropic: this.toFileMetadata(response) },
+    };
+  }
+
+  private toFileMetadata(
+    response: InferSchema<typeof anthropicUploadFileResponseSchema>,
+  ) {
+    return {
+      ...(response.filename != null ? { filename: response.filename } : {}),
+      ...(response.mime_type != null ? { mimeType: response.mime_type } : {}),
+      ...(response.size_bytes != null
+        ? { sizeBytes: response.size_bytes }
+        : {}),
+      ...(response.created_at != null
+        ? { createdAt: response.created_at }
+        : {}),
+      ...(response.downloadable != null
+        ? { downloadable: response.downloadable }
+        : {}),
+      ...(response.expires_at != null
+        ? { expiresAt: response.expires_at }
+        : {}),
     };
   }
 

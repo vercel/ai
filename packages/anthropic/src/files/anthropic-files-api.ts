@@ -11,6 +11,7 @@ export const anthropicUploadFileResponseSchema = lazySchema(() =>
       size_bytes: z.number().nullish(),
       created_at: z.string().nullish(),
       downloadable: z.boolean().nullish(),
+      expires_at: z.string().nullish(),
     }),
   ),
 );
