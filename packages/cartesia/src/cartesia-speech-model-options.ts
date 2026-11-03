@@ -100,9 +100,9 @@ export const cartesiaSpeechModelOptionsSchema = lazySchema(() =>
       /** Controls the speed of the generated speech. */
       speed: z.number().min(0.6).max(1.5).nullish(),
       /** Volume of the generated speech, between 0.5 and 2. Sonic 3 and newer. */
-      volume: z.number().min(0.5).max(2).nullish(),
+      volume: z.number().min(0.5).max(2).optional(),
       /** Emotion of the generated speech. Beta, works best with English. Sonic 3 and newer. */
-      emotion: z.enum(cartesiaSpeechEmotions).nullish(),
+      emotion: z.enum(cartesiaSpeechEmotions).optional(),
       /** The language to generate speech in (ISO 639-1 code). */
       language: z.string().nullish(),
     }),

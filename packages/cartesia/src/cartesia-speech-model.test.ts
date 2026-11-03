@@ -222,6 +222,8 @@ describe('CartesiaSpeechModel', () => {
       ['volume below the range', { volume: 0.4 }],
       ['volume above the range', { volume: 2.1 }],
       ['an unknown emotion', { emotion: 'banana' }],
+      ['a null volume', { volume: null }],
+      ['a null emotion', { emotion: null }],
     ])('should reject %s before sending a request', async (_, options) => {
       prepareAudioResponse();
 
