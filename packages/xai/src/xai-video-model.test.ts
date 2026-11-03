@@ -162,6 +162,134 @@ describe('XaiVideoModel', () => {
       expect(server.calls).toHaveLength(1);
     });
 
+    it.each([
+      ['generation', {}, 'generations'],
+      [
+        'editing',
+        { mode: 'edit-video', videoUrl: 'https://example.com/source.mp4' },
+        'edits',
+      ],
+      [
+        'legacy editing',
+        { videoUrl: 'https://example.com/source.mp4' },
+        'edits',
+      ],
+      [
+        'extension',
+        { mode: 'extend-video', videoUrl: 'https://example.com/source.mp4' },
+        'extensions',
+      ],
+    ])(
+      'forwards upload delivery for %s without persisting the signed URL',
+      async (_name, modeOptions, endpoint) => {
+        const uploadUrl =
+          'https://storage.example.com/video.mp4?signature=test-secret';
+        const result = await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { ...modeOptions, output: { uploadUrl } } },
+        });
+        expect(server.calls[0].requestUrl).toBe(
+          `${TEST_BASE_URL}/videos/${endpoint}`,
+        );
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          output: { upload_url: uploadUrl },
+        });
+        expect(result.operation).toStrictEqual({
+          requestId: 'req-123',
+          hasUploadUrl: true,
+        });
+        expect(JSON.stringify(result)).not.toContain('test-secret');
+      },
+    );
+
+    it.each([
+      [
+        'moderation',
+        { status: 'done', video: { respect_moderation: false } },
+        'content policy violation',
+      ],
+      [
+        'failure',
+        { status: 'failed', error: { message: 'upload failed' } },
+        'Video generation failed',
+      ],
+      ['expiry', { status: 'expired' }, 'expired'],
+    ])('preserves %s failures in upload mode', async (_name, body, error) => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body,
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'error',
+        error: expect.stringContaining(error),
+      });
+    });
+
+    it('keeps a pending upload pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { status: 'pending' },
+      };
+      expect(
+        await createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).toMatchObject({ status: 'pending' });
+    });
+
+    it('keeps Files storage options independent of upload delivery', async () => {
+      await createModel().doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            output: {
+              uploadUrl:
+                'https://storage.example.com/dest.mp4?signature=secret',
+            },
+            storageOptions: { filename: 'copy.mp4', publicUrl: true },
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output: { upload_url: expect.any(String) },
+        storage_options: { filename: 'copy.mp4', public_url: true },
+      });
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            respect_moderation: true,
+            storage_error: 'Files persistence failed',
+            file_output: {
+              file_id: 'file-1',
+              filename: 'copy.mp4',
+              public_url: 'https://files.x.ai/copy.mp4',
+            },
+          },
+        },
+      };
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+        providerMetadata: {
+          xai: {
+            storageError: 'Files persistence failed',
+            fileOutput: {
+              fileId: 'file-1',
+              publicUrl: 'https://files.x.ai/copy.mp4',
+            },
+          },
+        },
+      });
+    });
+
     it('preserves the missing URL error otherwise', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
