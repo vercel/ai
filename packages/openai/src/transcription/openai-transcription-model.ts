@@ -195,12 +195,41 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const responseFormat =
       openAIOptions?.responseFormat ?? requestConfig.responseFormat;
 
-    // Timestamps are only returned with verbose_json, so only default to
-    // segments when that format is used.
+    // Only verbose_json accepts timestamp_granularities. Diarized JSON
+    // always returns segment timings without a timestamp control.
     const timestampGranularities =
       openAIOptions?.timestampGranularities ??
       requestedTimestampGranularities ??
       (responseFormat === 'verbose_json' ? ['segment'] : undefined);
+
+    for (const granularity of requestedTimestampGranularities ?? []) {
+      if (
+        openAIOptions?.timestampGranularities != null &&
+        !openAIOptions.timestampGranularities.includes(granularity)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `The "${granularity}" timestamp granularity is excluded by providerOptions.openai.timestampGranularities.`,
+        });
+      }
+    }
+
+    for (const granularity of timestampGranularities ?? []) {
+      if (
+        responseFormat !== 'verbose_json' &&
+        !(responseFormat === 'diarized_json' && granularity === 'segment')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature:
+            openAIOptions?.timestampGranularities != null
+              ? 'providerOptions.openai.timestampGranularities'
+              : 'timestampGranularities',
+          details: `OpenAI transcription with the ${responseFormat ?? 'default JSON'} response format does not support ${granularity} timestamps.`,
+        });
+      }
+    }
 
     const chunkingStrategy =
       openAIOptions?.chunkingStrategy ?? requestConfig.chunkingStrategy;
@@ -213,7 +242,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       keywords: openAIOptions?.keywords,
       prompt: openAIOptions?.prompt,
       temperature: openAIOptions?.temperature,
-      timestamp_granularities: timestampGranularities,
+      timestamp_granularities:
+        responseFormat === 'verbose_json' ? timestampGranularities : undefined,
     };
 
     for (const [key, value] of Object.entries(transcriptionModelOptions)) {
