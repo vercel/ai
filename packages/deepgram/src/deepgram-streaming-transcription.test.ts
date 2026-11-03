@@ -33,9 +33,9 @@ class MockWebSocket {
   message(value: unknown) {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
-  serverClose(code = 1000) {
+  serverClose(code = 1000, reason?: string) {
     this.readyState = 3;
-    this.onclose?.({ code });
+    this.onclose?.({ code, reason });
   }
 }
 
@@ -525,6 +525,22 @@ describe('Deepgram streaming transcription', () => {
     MockWebSocket.instances[0].open();
     await rejected;
     expect(MockWebSocket.instances[0].close).toHaveBeenCalled();
+  });
+
+  it('preserves server close codes and reasons in the error', async () => {
+    const result = await model().doStream!({
+      audio: new ReadableStream(),
+      inputAudioFormat,
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const failure = expect(parts).rejects.toThrow(
+      'closed unexpectedly (1008): DATA-0000',
+    );
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    socket.serverClose(1008, 'DATA-0000');
+    await failure;
+    expect(socket.close).toHaveBeenCalled();
   });
 
   it('pauses input reads until the WebSocket send buffer drains', async () => {
