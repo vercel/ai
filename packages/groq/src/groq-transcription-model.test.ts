@@ -64,7 +64,7 @@ describe('doGenerate', () => {
   it('sends the audio URL without a file attachment', async () => {
     prepareJsonResponse();
     const audio = new URL('https://storage.example.com/large-audio.mp3');
-    const result = await model.doGenerateFromUrl({
+    const result = await model.doGenerateFromUrl!({
       audio,
       providerOptions: {
         groq: {
@@ -97,7 +97,7 @@ describe('doGenerate', () => {
     'https://example.com/audio.mp3#fragment',
   ])('rejects unsupported URL forms before HTTP: %s', async value => {
     await expect(
-      model.doGenerateFromUrl({ audio: new URL(value) }),
+      model.doGenerateFromUrl!({ audio: new URL(value) }),
     ).rejects.toThrow(
       'Groq URL transcription requires an HTTP(S) URL without userinfo or fragments.',
     );
@@ -173,7 +173,7 @@ describe('doGenerate', () => {
       const providerOptions = { groq: { responseFormat: 'text' } };
       const result =
         input === 'url'
-          ? await model.doGenerateFromUrl({
+          ? await model.doGenerateFromUrl!({
               audio: new URL('https://example.com/audio.mp3'),
               providerOptions,
             })

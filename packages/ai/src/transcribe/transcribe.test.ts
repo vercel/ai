@@ -110,12 +110,10 @@ describe('transcribe', () => {
         telemetry: {
           integrations: {
             onStart: event => {
-              if (event.operationId === 'ai.transcribe')
-                events.push(event.audio);
+              if ('audio' in event) events.push(event.audio);
             },
             onEnd: event => {
-              if (event.operationId === 'ai.transcribe')
-                events.push(event.audio);
+              if ('audio' in event) events.push(event.audio);
             },
           },
         },
