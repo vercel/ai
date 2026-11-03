@@ -98,6 +98,30 @@ describe('XaiTranscriptionModel', () => {
 });
 
 describe('doGenerate', () => {
+  it('should expose word timings separately from segments', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect(result.words).toEqual([
+      { text: 'Hello', startSecond: 0, endSecond: 1 },
+      { text: 'from the AI SDK!', startSecond: 1, endSecond: 2.5 },
+    ]);
+    expect(result.segments).toEqual(result.words);
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'xAI transcription returns word timings and does not provide separate caption segments.',
+      },
+    ]);
+  });
+
   it('should send a multipart request with the audio file', async () => {
     prepareJsonResponse();
 

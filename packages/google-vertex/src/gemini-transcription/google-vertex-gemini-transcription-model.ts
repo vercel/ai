@@ -168,8 +168,21 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const googleOptions = await this.parseOptions(options.providerOptions);
+    if (options.timestampGranularities?.includes('segment')) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'Vertex Gemini transcription returns word timings and does not provide separate caption segments.',
+      });
+    }
+    const resolvedOptions =
+      googleOptions?.wordTimestamp == null &&
+      options.timestampGranularities?.includes('word')
+        ? { ...googleOptions, wordTimestamp: true }
+        : googleOptions;
     const audioTranscriptionConfig =
-      buildAudioTranscriptionConfig(googleOptions);
+      buildAudioTranscriptionConfig(resolvedOptions);
 
     const requestBody = {
       contents: [
@@ -222,6 +235,11 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       startSecond: number;
       endSecond: number;
     }> = [];
+    const words: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }> = [];
     for (const part of parts) {
       const transcription = part.audioTranscription;
       if (transcription == null) continue;
@@ -232,13 +250,16 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
         if (word.word == null || startSecond == null || endSecond == null) {
           continue;
         }
-        segments.push({ text: word.word, startSecond, endSecond });
+        const timing = { text: word.word, startSecond, endSecond };
+        words.push(timing);
+        segments.push({ ...timing });
       }
     }
 
     return {
       text,
       segments,
+      ...(words.length > 0 ? { words } : {}),
       language,
       durationInSeconds: undefined,
       warnings,

@@ -2,6 +2,12 @@ import type { JSONObject } from '../../json-value/json-value';
 
 type TranscriptionModelV4ProviderOptions = Record<string, JSONObject>;
 
+/**
+ * Timing detail to request from a transcription model.
+ * `word` is word highlighting. `segment` is caption-sized phrases.
+ */
+export type TranscriptionModelV4TimestampGranularity = 'word' | 'segment';
+
 export type TranscriptionModelV4CallOptions = {
   /**
    * Audio data to transcribe.
@@ -15,6 +21,15 @@ export type TranscriptionModelV4CallOptions = {
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   mediaType: string;
+
+  /**
+   * Word and segment timings to request.
+   *
+   * Adapters map this onto the provider's native control when that provider
+   * option is omitted. An explicit provider option wins. Adapters warn when
+   * they cannot provide a requested granularity.
+   */
+  timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 
   /**
    * Additional provider-specific options that are passed through to the provider
