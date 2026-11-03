@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createCartesia } from './cartesia-provider';
@@ -380,23 +381,22 @@ describe('CartesiaSpeechModel', () => {
       });
     });
 
-    it('should throw InvalidArgumentError when both locale and language are passed in providerOptions', async () => {
-      prepareAudioResponse();
-
-      await expect(
-        model.doGenerate({
+    it('rejects conflicting provider locale and language before sending a request', async () => {
+      const error = await model
+        .doGenerate({
           text: 'Hello, world!',
           voice: 'test-voice-id',
-          providerOptions: {
-            cartesia: {
-              locale: 'en-GB',
-              language: 'en',
-            },
-          },
-        }),
-      ).rejects.toThrow(
-        'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
-      );
+          providerOptions: { cartesia: { locale: 'en-GB', language: 'en' } },
+        })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
+      });
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
