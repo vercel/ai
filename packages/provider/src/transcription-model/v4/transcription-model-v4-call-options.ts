@@ -4,7 +4,7 @@ type TranscriptionModelV4ProviderOptions = Record<string, JSONObject>;
 
 /**
  * Timing detail to request from a transcription model.
- * `word` is word highlighting. `segment` is caption-sized phrases.
+ * `word` is for word highlighting. `segment` is for caption-sized phrases.
  */
 export type TranscriptionModelV4TimestampGranularity = 'word' | 'segment';
 
@@ -25,9 +25,11 @@ export type TranscriptionModelV4CallOptions = {
   /**
    * Word and segment timings to request.
    *
-   * Adapters map this onto the provider's native control when that provider
-   * option is omitted. An explicit provider option wins. Adapters warn when
-   * they cannot provide a requested granularity.
+   * Supporting adapters map this onto the provider's native control when that
+   * provider option is omitted. An explicit provider option wins. Supporting
+   * adapters warn when they cannot provide a requested granularity.
+   * An empty array requests no additional timing detail; it does not suppress
+   * timings returned by default.
    */
   timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 

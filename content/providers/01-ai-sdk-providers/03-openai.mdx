@@ -3569,26 +3569,29 @@ The API validates model support and language codes. These two options currently
 apply to REST transcription; the provider reports unsupported-option warnings
 if they are supplied to `experimental_streamTranscribe`.
 
-To get word-level timestamps, specify the granularity:
+To get word and caption timings together, use the shared setting with a
+model that supports `verbose_json`, such as Whisper:
 
-```ts highlight="8-9"
+```ts
 import { transcribe } from 'ai';
-import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await transcribe({
   model: openai.transcription('whisper-1'),
   audio: new Uint8Array([1, 2, 3, 4]),
-  providerOptions: {
-    openai: {
-      //timestampGranularities: ['word'],
-      timestampGranularities: ['segment'],
-    } satisfies OpenAITranscriptionModelOptions,
-  },
+  timestampGranularities: ['word', 'segment'],
 });
 
-// Access word-level timestamps
-console.log(result.segments); // Array of segments with startSecond/endSecond
+console.log(result.words);
+console.log(result.segments);
 ```
+
+`providerOptions.openai.timestampGranularities` takes precedence over the shared
+setting. If neither is set, `verbose_json` defaults to segment timings.
+`timestamp_granularities` is sent only for `verbose_json`; other formats warn
+about unavailable requested timings. `diarized_json` provides segment timings
+but does not provide word timings. Existing segment behavior is preserved:
+if the response has words but no segments, `segments` also contains those words.
 
 `gpt-4o-transcribe-diarize` identifies speakers in a recording. It defaults to
 the `diarized_json` response format and automatic chunking:

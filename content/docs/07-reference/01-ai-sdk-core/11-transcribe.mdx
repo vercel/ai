@@ -45,7 +45,7 @@ console.log(transcript);
       type: "Array<'word' | 'segment'>",
       isOptional: true,
       description:
-        'Word and segment timings to request. Providers map this onto their native control when the matching provider option is omitted. An explicit provider option wins. A warning is returned when a provider cannot supply a requested granularity.',
+        'Word and segment timings to request. Supported by the OpenAI, Azure Speech, Vertex Gemini, and xAI adapters. Explicit provider options take precedence; these adapters warn about unavailable requested timings. AI Gateway warns that it does not forward this option; use provider options or a direct provider model. Omit this option to keep provider defaults. An empty array requests no additional timing detail; it does not suppress timings returned by default.',
     },
     {
       name: 'providerOptions',
@@ -106,8 +106,9 @@ console.log(transcript);
     {
       name: 'words',
       type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
+      isOptional: true,
       description:
-        'Word-level timings when the provider returns them. Empty when word timestamps were not requested or the provider did not report them. Segments stay phrase- or utterance-level.',
+        'Word-level timings when the adapter exposes them, including timings returned by default. Undefined when unavailable. Existing segments behavior is preserved: some providers also put word timings in segments.',
     },
     {
       name: 'language',

@@ -31,9 +31,9 @@ export type TranscriptionModelV4Result = {
   }>;
 
   /**
-   * Word-level timings, when the provider returns them separately from segments.
-   * Segments stay phrase- or utterance-level. Words are only set when the
-   * provider reported word timestamps.
+   * Word-level timings reported by the provider, whether requested or returned
+   * by default. Existing `segments` behavior is preserved; some providers also
+   * put word timings in `segments`. Omitted when word timings are unavailable.
    */
   words?: Array<{
     /**

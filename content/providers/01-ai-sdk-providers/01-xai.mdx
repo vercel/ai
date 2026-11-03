@@ -910,6 +910,13 @@ const result = await transcribe({
 });
 ```
 
+Word timings returned by xAI are exposed in the optional `result.words`
+array, including when no timing option is set. `result.segments` continues to
+contain those same word timings for compatibility. The shared
+`timestampGranularities: ['word']` option requires no additional xAI control.
+xAI does not provide separate caption segments and warns if `'segment'` is
+requested.
+
 ### Provider Options
 
 You can pass xAI-specific controls using `providerOptions.xai`:
