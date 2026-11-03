@@ -156,6 +156,50 @@ describe('Deepgram streaming transcription', () => {
     expect(socket.close).toHaveBeenCalledWith(1000);
   });
 
+  it.each(['Bearer', 'bearer'])(
+    'authenticates temporary tokens using the %s subprotocol',
+    async scheme => {
+      const result = await model().doStream!({
+        audio: audio(),
+        inputAudioFormat,
+        headers: { authorization: `${scheme} temporary-jwt` },
+      });
+      expect(MockWebSocket.instances[0].protocols).toEqual([
+        'bearer',
+        'temporary-jwt',
+      ]);
+      expect(result.request?.body).not.toContain('temporary-jwt');
+      await result.stream.cancel();
+    },
+  );
+
+  it('rejects unsupported authentication schemes without exposing credentials', async () => {
+    await expect(
+      model().doStream!({
+        audio: audio(),
+        inputAudioFormat,
+        headers: { authorization: 'Basic secret' },
+      }),
+    ).rejects.toThrow('must use the Token or Bearer scheme');
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
+  it('omits undefined headers before resolving the authentication scheme', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      headers: { authorization: undefined, 'X-Optional': undefined },
+    });
+    expect(MockWebSocket.instances[0].protocols).toBeUndefined();
+    expect(MockWebSocket.instances[0].options?.headers).not.toHaveProperty(
+      'authorization',
+    );
+    expect(MockWebSocket.instances[0].options?.headers).not.toHaveProperty(
+      'X-Optional',
+    );
+    await result.stream.cancel();
+  });
+
   it('maps revisable and final transcripts, word timings, channels, language, raw events and usage', async () => {
     const result = await model().doStream!({
       audio: audio(),

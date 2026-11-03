@@ -124,9 +124,18 @@ export async function streamDeepgramTranscription(
   );
   // The subprotocol authentication channel also works with native WebSockets,
   // which cannot send custom HTTP headers. Never put credentials in the URL.
-  const protocols = authorization?.startsWith('Token ')
-    ? ['token', authorization.slice('Token '.length)]
-    : undefined;
+  const credentials = authorization?.match(/^(Token|Bearer) (\S+)$/i);
+  if (authorization != null && credentials == null) {
+    throw new InvalidArgumentError({
+      argument: 'headers',
+      message:
+        'Deepgram streaming authorization must use the Token or Bearer scheme.',
+    });
+  }
+  const protocols =
+    credentials != null
+      ? [credentials[1].toLowerCase(), credentials[2]]
+      : undefined;
   const timestamp = config._internal?.currentDate?.() ?? new Date();
   let finished = false;
   let cleanup: () => void = () => {};
