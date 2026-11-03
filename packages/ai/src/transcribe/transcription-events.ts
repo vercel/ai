@@ -48,13 +48,13 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions;
-
-  /** Requested shared timing granularities, when specified. */
-  readonly timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 };
 
 export type TranscriptionStartEvent =
-  TranscriptionStartEventFor<'ai.transcribe'>;
+  TranscriptionStartEventFor<'ai.transcribe'> & {
+    /** Requested shared timing granularities, when specified. */
+    readonly timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
+  };
 
 export type StreamTranscriptionStartEvent =
   TranscriptionStartEventFor<'ai.streamTranscribe'>;
@@ -93,13 +93,6 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
     readonly endSecond: number;
   }>;
 
-  /** Word timings returned by the provider, whether requested or returned by default. */
-  readonly words?: Array<{
-    readonly text: string;
-    readonly startSecond: number;
-    readonly endSecond: number;
-  }>;
-
   /** The detected language. */
   readonly language: string | undefined;
 
@@ -119,7 +112,15 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
   readonly response: TranscriptionModelResponseMetadata;
 };
 
-export type TranscriptionEndEvent = TranscriptionEndEventFor<'ai.transcribe'>;
+export type TranscriptionEndEvent =
+  TranscriptionEndEventFor<'ai.transcribe'> & {
+    /** Word timings returned by the provider, whether requested or returned by default. */
+    readonly words?: Array<{
+      readonly text: string;
+      readonly startSecond: number;
+      readonly endSecond: number;
+    }>;
+  };
 
 export type StreamTranscriptionEndEvent =
   TranscriptionEndEventFor<'ai.streamTranscribe'>;
