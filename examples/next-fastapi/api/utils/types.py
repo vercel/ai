@@ -25,3 +25,4 @@ class ClientPart(BaseModel):
     input: Optional[Any] = None
     output: Optional[Any] = None
     state: Optional[str] = None
+    errorText: Optional[str] = None
