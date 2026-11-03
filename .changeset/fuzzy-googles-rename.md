@@ -2,4 +2,4 @@
 "@ai-sdk/codemod": patch
 ---
 
-fix(codemod): preserve explicit Google provider import aliases and their references
+Preserve Google provider import bindings and application exports during the v7 migration, and map deprecated provider option types to their actual replacements.

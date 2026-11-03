@@ -10,4 +10,11 @@ describe('rename-google-generative-ai-to-google', () => {
   it('preserves provider wrappers and their explicitly aliased imports', () => {
     testTransform(transformer, 'rename-google-generative-ai-to-google-wrapper');
   });
+
+  it('preserves bindings, exports and property names while migrating provider types', () => {
+    testTransform(
+      transformer,
+      'rename-google-generative-ai-to-google-bindings',
+    );
+  });
 });
