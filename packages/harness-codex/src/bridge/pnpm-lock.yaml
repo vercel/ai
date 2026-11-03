@@ -9,51 +9,51 @@ importers:
   .:
     dependencies:
       '@openai/codex':
-        specifier: 0.155.0
-        version: 0.155.0
+        specifier: 0.165.0
+        version: 0.165.0
       ws:
         specifier: 8.21.0
         version: 8.21.0
 
 packages:
 
-  '@openai/codex@0.155.0':
-    resolution: {integrity: sha512-35a85Hbwy9WXkDTJumLjTcmMgpR7BMdrTloWBVGjoA+FBCh7jb3+cYp2W+3U4klqGAjAskoIvQZv7/eedmCjHA==}
+  '@openai/codex@0.165.0':
+    resolution: {integrity: sha512-aiwtQVp2KBhJld966CuU5bVfQ46VNB4mNTl6giX3WGZdt4euI3tv2RUqJpnupPNA8DXHg2z+RoQ0Zfw87dy8Lw==}
     engines: {node: '>=16'}
     hasBin: true
 
-  '@openai/codex@0.155.0-darwin-arm64':
-    resolution: {integrity: sha512-c0vbt2ZS6XiXq9gQkNictu7PH0deMyq/bw4Ia9bdihU1iJHuGuwC5vD4swU4xhLUKoTs4tMOHwYWKaofFZcVRg==}
+  '@openai/codex@0.165.0-darwin-arm64':
+    resolution: {integrity: sha512-MQ/Z0Xw9v08DHunnzodi9NwA844MI3+RO72IM8o0Lr/UemnlEoBMCxpojstxX6mf5ZQwUrIg0yekDd9cFZ29hg==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [darwin]
 
-  '@openai/codex@0.155.0-darwin-x64':
-    resolution: {integrity: sha512-Epo33vwukf4uPyxg1c7+7+P4J6YgggdwQrCR/BRGuhjpadZAzoAntfm54CPCNHvW6uSq8BHQX/e9G+f5/0XQ7Q==}
+  '@openai/codex@0.165.0-darwin-x64':
+    resolution: {integrity: sha512-mxMtlntnUq0Xb8rjvHph3Ws045Q82BLbeKRRdkN70Es9mho/D/Blh1ShZvzQOnsoeVw8lbV9fOLjW1vncoufKQ==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [darwin]
 
-  '@openai/codex@0.155.0-linux-arm64':
-    resolution: {integrity: sha512-iMyMjIYHlBUUDeTEGeEftQozQz0h7nYYCaLDJlZnqDF2Y0+bfdD/ppDS3vsw6mIz/z49haC6TCer11iEWO6fsA==}
+  '@openai/codex@0.165.0-linux-arm64':
+    resolution: {integrity: sha512-qdrYdcabxn3biX2qTtb/GuuMk20ZAQYxcmY7lHcp6CkAzyqsXbL0vIJFwWJr83/pNM+CUZH4YaTPns2kN7ZIfA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
 
-  '@openai/codex@0.155.0-linux-x64':
-    resolution: {integrity: sha512-CiXkVTy4ERdFSXXP8n98/iOyVUCOYFPQ8cuwgeOEEbLhe1LnlQbgH/H8ZeuxO9WXKIZLJg0x626UgR9axY2zSA==}
+  '@openai/codex@0.165.0-linux-x64':
+    resolution: {integrity: sha512-FotDc7bVHwaommtsdDP8PPrH0a5IwC/t8H/LhdEcH4EBqgeYFRCtptiHcuwgvNRCLbTbOyFE/Ur6GzYCljgaSQ==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [linux]
 
-  '@openai/codex@0.155.0-win32-arm64':
-    resolution: {integrity: sha512-aFIONQhKxg+XEVsInLRI2OG8S9OUvfK+nzc4sWcbn8DgxlmuPkbVzloSrD5psh1lKnG4s2qd3QK8tCClSgLzJw==}
+  '@openai/codex@0.165.0-win32-arm64':
+    resolution: {integrity: sha512-6HLE44VQECPITRZN85NCV/w268Fw/083VKe+5ReOKO9wlL6Kyq1j1mLP2vZ3rmr0goG/HOykrJpZZT0aUD1ntg==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [win32]
 
-  '@openai/codex@0.155.0-win32-x64':
-    resolution: {integrity: sha512-yfB9DHAB0YLTy3oD4one21pzGIJ99b+U/PW4htAq6OLccPSZa8OZz5HeN3XVy1a2/BbCqwWmK+w4p/aG/3DCRw==}
+  '@openai/codex@0.165.0-win32-x64':
+    resolution: {integrity: sha512-f5LMyugPSnAovnTnR1N+SNHSTfWZ+ym5A4H3zZHz/zhuMGMGZD8IxUdlSUlEbiENYyPXrJ8G3Jh+CLyzTfQB6Q==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
@@ -72,31 +72,31 @@ packages:
 
 snapshots:
 
-  '@openai/codex@0.155.0':
+  '@openai/codex@0.165.0':
     optionalDependencies:
-      '@openai/codex-darwin-arm64': '@openai/codex@0.155.0-darwin-arm64'
-      '@openai/codex-darwin-x64': '@openai/codex@0.155.0-darwin-x64'
-      '@openai/codex-linux-arm64': '@openai/codex@0.155.0-linux-arm64'
-      '@openai/codex-linux-x64': '@openai/codex@0.155.0-linux-x64'
-      '@openai/codex-win32-arm64': '@openai/codex@0.155.0-win32-arm64'
-      '@openai/codex-win32-x64': '@openai/codex@0.155.0-win32-x64'
+      '@openai/codex-darwin-arm64': '@openai/codex@0.165.0-darwin-arm64'
+      '@openai/codex-darwin-x64': '@openai/codex@0.165.0-darwin-x64'
+      '@openai/codex-linux-arm64': '@openai/codex@0.165.0-linux-arm64'
+      '@openai/codex-linux-x64': '@openai/codex@0.165.0-linux-x64'
+      '@openai/codex-win32-arm64': '@openai/codex@0.165.0-win32-arm64'
+      '@openai/codex-win32-x64': '@openai/codex@0.165.0-win32-x64'
 
-  '@openai/codex@0.155.0-darwin-arm64':
+  '@openai/codex@0.165.0-darwin-arm64':
     optional: true
 
-  '@openai/codex@0.155.0-darwin-x64':
+  '@openai/codex@0.165.0-darwin-x64':
     optional: true
 
-  '@openai/codex@0.155.0-linux-arm64':
+  '@openai/codex@0.165.0-linux-arm64':
     optional: true
 
-  '@openai/codex@0.155.0-linux-x64':
+  '@openai/codex@0.165.0-linux-x64':
     optional: true
 
-  '@openai/codex@0.155.0-win32-arm64':
+  '@openai/codex@0.165.0-win32-arm64':
     optional: true
 
-  '@openai/codex@0.155.0-win32-x64':
+  '@openai/codex@0.165.0-win32-x64':
     optional: true
 
   ws@8.21.0: {}

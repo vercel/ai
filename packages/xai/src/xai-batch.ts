@@ -22,6 +22,7 @@ import {
   type ImageModelV4Result,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertImageModelFileToDataUri,
   convertBase64ToUint8Array,
@@ -102,17 +103,18 @@ type XaiBatchPreparedRequest = {
   warnings: SharedV4Warning[];
 };
 
-const xaiBatchImageResponseSchema = z.object({
-  data: z.array(
-    z.object({
-      url: z.string().nullish(),
-      b64_json: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
-      respect_moderation: z.boolean().nullish(),
-    }),
-  ),
-  usage: z.object({ cost_in_usd_ticks: z.number().nullish() }).nullish(),
-});
+const xaiBatchImageResponseSchema = () =>
+  z.object({
+    data: z.array(
+      z.object({
+        url: z.string().nullish(),
+        b64_json: z.string().nullish(),
+        revised_prompt: z.string().nullish(),
+        respect_moderation: z.boolean().nullish(),
+      }),
+    ),
+    usage: z.object({ cost_in_usd_ticks: z.number().nullish() }).nullish(),
+  });
 
 type XaiBatchResponseConversion =
   | { success: true; result: LanguageModelV4GenerateResult }
@@ -143,86 +145,91 @@ const xaiBatchResponseSchema = lazySchema(() =>
 
 type XaiBatchResponse = InferSchema<typeof xaiBatchResponseSchema>;
 
-const xaiBatchErrorSchema = z.object({
-  code: z.union([z.string(), z.number()]).nullish(),
-  message: z.string().nullish(),
-});
+const xaiBatchErrorSchema = () =>
+  z.object({
+    code: z.union([z.string(), z.number()]).nullish(),
+    message: z.string().nullish(),
+  });
 
-const xaiBatchResultSchema = z.object({
-  batch_request_id: z.string(),
-  batch_result: z
-    .object({
-      response: z
-        .object({
-          chat_get_completion: z.unknown().nullish(),
-          image_generation: z.unknown().nullish(),
-        })
-        .nullish(),
-      error: xaiBatchErrorSchema.nullish(),
-    })
-    .nullish(),
-  error_message: z.string().nullish(),
-});
+const xaiBatchResultSchema = () =>
+  z.object({
+    batch_request_id: z.string(),
+    batch_result: z
+      .object({
+        response: z
+          .object({
+            chat_get_completion: z.unknown().nullish(),
+            image_generation: z.unknown().nullish(),
+          })
+          .nullish(),
+        error: xaiBatchErrorSchema().nullish(),
+      })
+      .nullish(),
+    error_message: z.string().nullish(),
+  });
 
-type XaiBatchResult = z.infer<typeof xaiBatchResultSchema>;
+type XaiBatchResult = z.infer<ReturnType<typeof xaiBatchResultSchema>>;
 
 // xAI returns text batch results in Chat Completions API shape even when the
 // request was submitted to the Responses API endpoint.
-const xaiBatchTextResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z
-    .array(
-      z.object({
-        message: z.object({
-          role: z.enum(['assistant', 'tool']),
-          content: z.string().nullish(),
-          reasoning_content: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                id: z.string(),
-                type: z.literal('function'),
-                function: z.object({
-                  name: z.string(),
-                  arguments: z.string(),
+const xaiBatchTextResponseSchema = () =>
+  z.object({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
+    choices: z
+      .array(
+        z.object({
+          message: z.object({
+            role: z.enum(['assistant', 'tool']),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  type: z.literal('function'),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
                 }),
-              }),
-            )
-            .nullish(),
+              )
+              .nullish(),
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
         }),
-        index: z.number(),
-        finish_reason: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-      total_tokens: z.number(),
-      cost_in_usd_ticks: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({ cached_tokens: z.number().nullish() })
-        .nullish(),
-      completion_tokens_details: z
-        .object({ reasoning_tokens: z.number().nullish() })
-        .nullish(),
-    })
-    .nullish(),
-  citations: z.array(z.string().url()).nullish(),
-  service_tier: z.string().nullish(),
-  code: z.string().nullish(),
-  error: z.string().nullish(),
-});
+      )
+      .nullish(),
+    usage: z
+      .object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+        total_tokens: z.number(),
+        cost_in_usd_ticks: z.number().nullish(),
+        prompt_tokens_details: z
+          .object({ cached_tokens: z.number().nullish() })
+          .nullish(),
+        completion_tokens_details: z
+          .object({ reasoning_tokens: z.number().nullish() })
+          .nullish(),
+      })
+      .nullish(),
+    citations: z.array(z.string().url()).nullish(),
+    service_tier: z.string().nullish(),
+    code: z.string().nullish(),
+    error: z.string().nullish(),
+  });
 
-type XaiBatchTextResponse = z.infer<typeof xaiBatchTextResponseSchema>;
+type XaiBatchTextResponse = z.infer<
+  ReturnType<typeof xaiBatchTextResponseSchema>
+>;
 
 const xaiBatchResultsPageSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      results: z.array(xaiBatchResultSchema),
+      results: z.array(xaiBatchResultSchema()),
       pagination_token: z.string().nullish(),
     }),
   ),
@@ -308,14 +315,12 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     }
     formData.append('file', file, filename);
 
-    const headers = combineHeaders(
-      this.options.config.headers?.(),
-      options.headers,
-    );
-
     const { value: uploadedFile } = await postFormDataToApi({
       url: this.getUrl('/files'),
-      headers,
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -327,7 +332,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
 
     const { value: batch } = await postJsonToApi({
       url: this.getUrl('/batches'),
-      headers,
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         name: xaiBatchName,
         input_file_id: uploadedFile.id,
@@ -372,7 +380,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
       url: this.getUrl(
         `/batches/${encodeURIComponent(options.batchId)}:cancel`,
       ),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {},
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -396,7 +407,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
 
     const { value: page } = await getFromApi({
       url: url.toString(),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiBatchListResponseSchema,
@@ -438,7 +452,10 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   ): Promise<XaiBatchResponse> {
     const { value: batch } = await getFromApi({
       url: this.getUrl(`/batches/${encodeURIComponent(options.batchId)}`),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiBatchResponseSchema,
@@ -469,7 +486,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
           `/batches/${encodeURIComponent(options.batchId)}/results?${query}`,
         ),
         headers: combineHeaders(
-          this.options.config.headers?.(),
+          await resolve(this.options.config.headers),
           options.headers,
         ),
         failedResponseHandler: xaiFailedResponseHandler,
@@ -512,7 +529,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     if (response?.chat_get_completion != null) {
       const validation = await safeValidateTypes({
         value: response.chat_get_completion,
-        schema: zodSchema(xaiBatchTextResponseSchema),
+        schema: zodSchema(xaiBatchTextResponseSchema()),
       });
       if (!validation.success) {
         return invalidXaiBatchResult(result.batch_request_id);
@@ -537,7 +554,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
     if (response?.image_generation != null) {
       const validation = await safeValidateTypes({
         value: response.image_generation,
-        schema: zodSchema(xaiBatchImageResponseSchema),
+        schema: zodSchema(xaiBatchImageResponseSchema()),
       });
       if (!validation.success) {
         return invalidXaiImageBatchResult(result.batch_request_id);
@@ -631,7 +648,7 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
   }
 
   private async convertImageBatchResponse(
-    response: z.infer<typeof xaiBatchImageResponseSchema>,
+    response: z.infer<ReturnType<typeof xaiBatchImageResponseSchema>>,
     abortSignal: AbortSignal | undefined,
   ): Promise<ImageModelV4Result> {
     const hasAllBase64 = response.data.every(image => image.b64_json != null);

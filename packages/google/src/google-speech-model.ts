@@ -353,6 +353,9 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     return {
       audio,
       warnings,
+      ...(response.usageMetadata != null && {
+        usage: response.usageMetadata,
+      }),
       request: {
         body: JSON.stringify(requestBody),
       },

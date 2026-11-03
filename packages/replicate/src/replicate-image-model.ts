@@ -4,6 +4,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -47,6 +50,30 @@ export class ReplicateImageModel implements ImageModelV4 {
   get maxImagesPerCall(): number {
     // Flux-2 models support up to 8 input images
     return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-2-pro' ||
+      this.modelId === 'black-forest-labs/flux-2-dev' ||
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return this.supportsFileInputs === true ? false : undefined;
   }
 
   get provider(): string {
@@ -165,9 +192,8 @@ export class ReplicateImageModel implements ImageModelV4 {
         ? { prefer: `wait=${maxWaitTimeInSeconds}` }
         : { prefer: 'wait' };
 
-    const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
 
     const { value: initialPrediction, responseHeaders } = await postJsonToApi({
       url:
@@ -176,7 +202,7 @@ export class ReplicateImageModel implements ImageModelV4 {
           ? `${this.config.baseURL}/predictions`
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
-      headers: combineHeaders(resolvedHeaders, headers, preferHeader),
+      headers: combineHeaders(await getHeaders(), preferHeader),
 
       body: {
         input: {
@@ -203,7 +229,7 @@ export class ReplicateImageModel implements ImageModelV4 {
 
     const prediction = await this.pollPrediction({
       prediction: initialPrediction,
-      headers: combineHeaders(resolvedHeaders, headers),
+      headers: getHeaders,
       pollIntervalMillis: pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
       maxPollAttempts: maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
       abortSignal,
@@ -255,7 +281,7 @@ export class ReplicateImageModel implements ImageModelV4 {
     abortSignal,
   }: {
     prediction: ReplicateImagePrediction;
-    headers: Record<string, string | undefined>;
+    headers: Resolvable<Record<string, string | undefined>>;
     pollIntervalMillis: number;
     maxPollAttempts: number;
     abortSignal: AbortSignal | undefined;
@@ -274,7 +300,7 @@ export class ReplicateImageModel implements ImageModelV4 {
         validateUrl: true,
         credentialedOrigin: this.config.baseURL,
         trustedOrigin: this.config.baseURL,
-        headers,
+        headers: await resolve(headers),
         successfulResponseHandler: createJsonResponseHandler(
           replicateImageResponseSchema,
         ),
@@ -315,13 +341,25 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
-  output: z.union([z.array(z.string()), z.string()]).nullish(),
-  error: z.string().nullish(),
-  urls: z.object({
-    get: z.string(),
-  }),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum([
+        'starting',
+        'processing',
+        'succeeded',
+        'failed',
+        'canceled',
+      ]),
+      output: z.union([z.array(z.string()), z.string()]).nullish(),
+      error: z.string().nullish(),
+      urls: z.object({
+        get: z.string(),
+      }),
+    }),
+  ),
+);
 
-type ReplicateImagePrediction = z.infer<typeof replicateImageResponseSchema>;
+type ReplicateImagePrediction = InferSchema<
+  typeof replicateImageResponseSchema
+>;

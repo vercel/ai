@@ -1,3 +1,4 @@
+import { DelayedPromise } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -23,7 +24,110 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
+const testStep: TextStreamPart<{}> & { type: 'finish-step' } = {
+  type: 'finish-step',
+  response: { id: 'r', modelId: 'm', timestamp: new Date(0) },
+  usage: testUsage,
+  performance: {
+    effectiveOutputTokensPerSecond: 0,
+    outputTokensPerSecond: 0,
+    inputTokensPerSecond: 0,
+    effectiveTotalTokensPerSecond: 0,
+    stepTimeMs: 0,
+    responseTimeMs: 0,
+    toolExecutionMs: {},
+    timeToFirstOutputMs: undefined,
+  },
+  finishReason: 'stop',
+  rawFinishReason: 'stop',
+  providerMetadata: undefined,
+};
+
 describe('toUIMessageStream', () => {
+  it('includes finish-step metadata in the snapshot before forwarding the boundary', async () => {
+    const onStepEnd = vi.fn();
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream<{}, UIMessage<{ totalTokens: number | undefined }>>({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'start-step', request: {}, warnings: [] },
+          testStep,
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+        generateMessageId: () => 'assistant-1',
+        messageMetadata: ({ part }) =>
+          part.type === 'finish-step'
+            ? { totalTokens: part.usage.totalTokens }
+            : undefined,
+        onStepEnd,
+        onEnd,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      { type: 'start', messageId: 'assistant-1' },
+      { type: 'start-step' },
+      { type: 'message-metadata', messageMetadata: { totalTokens: 2 } },
+      { type: 'finish-step' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+    expect(onStepEnd).toHaveBeenCalledOnce();
+    expect(onStepEnd.mock.calls[0][0].responseMessage.metadata).toEqual({
+      totalTokens: 2,
+    });
+    expect(onStepEnd.mock.calls[0][0].responseMessage).toEqual(
+      onEnd.mock.calls[0][0].responseMessage,
+    );
+  });
+
+  it.each([false, true])(
+    'resolves the deprecated step callback alias (onStepEnd provided: %s)',
+    async hasOnStepEnd => {
+      const onStepEnd = vi.fn();
+      const onStepFinish = vi.fn();
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream([{ type: 'start' }, testStep]),
+          onStepEnd: hasOnStepEnd ? onStepEnd : undefined,
+          onStepFinish,
+        }),
+      );
+      expect(onStepEnd).toHaveBeenCalledTimes(hasOnStepEnd ? 1 : 0);
+      expect(onStepFinish).toHaveBeenCalledTimes(hasOnStepEnd ? 0 : 1);
+    },
+  );
+
+  it('awaits the UI callback before delivering finish-step', async () => {
+    const callbackStarted = new DelayedPromise<void>();
+    const callbackFinished = new DelayedPromise<void>();
+    const reader = toUIMessageStream({
+      stream: convertArrayToReadableStream([{ type: 'start' }, testStep]),
+      onStepEnd: async () => {
+        callbackStarted.resolve(undefined);
+        await callbackFinished.promise;
+      },
+    }).getReader();
+
+    expect((await reader.read()).value).toEqual({ type: 'start' });
+    const nextRead = reader.read();
+    await callbackStarted.promise;
+    let boundaryDelivered = false;
+    void nextRead.then(() => {
+      boundaryDelivered = true;
+    });
+    await Promise.resolve();
+    expect(boundaryDelivered).toBe(false);
+    callbackFinished.resolve(undefined);
+    expect((await nextRead).value).toEqual({ type: 'finish-step' });
+    expect((await reader.read()).done).toBe(true);
+  });
+
   it('maps text and lifecycle parts to UI message chunks', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
@@ -251,6 +355,104 @@ describe('toUIMessageStream', () => {
         },
       ],
     });
+  });
+
+  it('calls onStepEnd with the accumulated UI message', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      { type: 'start' },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', text: 'First' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        response: { id: 'r1', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't2' },
+      { type: 'text-delta', id: 't2', text: 'Second' },
+      { type: 'text-end', id: 't2' },
+      {
+        type: 'finish-step',
+        response: { id: 'r2', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        totalUsage: testUsage,
+      },
+    ];
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-msg-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hi' }],
+      },
+    ];
+    const onStepEnd = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        originalMessages,
+        generateMessageId: () => 'assistant-msg-1',
+        onStepEnd,
+      }),
+    );
+
+    expect(onStepEnd).toHaveBeenCalledTimes(2);
+    expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+      isContinuation: false,
+      responseMessage: {
+        id: 'assistant-msg-1',
+        role: 'assistant',
+        parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+      },
+      messages: [
+        originalMessages[0],
+        {
+          id: 'assistant-msg-1',
+          role: 'assistant',
+          parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+        },
+      ],
+    });
+    expect(onStepEnd.mock.calls[1][0].responseMessage.parts).toMatchObject([
+      { type: 'step-start' },
+      { type: 'text', text: 'First' },
+      { type: 'step-start' },
+      { type: 'text', text: 'Second' },
+    ]);
   });
 
   it('calls onEnd when stream finishes', async () => {

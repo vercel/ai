@@ -1,12 +1,16 @@
 import {
+  lazySchema,
+  zodSchema,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
   loadOptionalSetting,
+  resolve,
   postJsonToApi,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
@@ -36,16 +40,16 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
-import { GatewayEvaluationModel } from './gateway-evaluation-model';
+import { GatewayDecisionModel } from './gateway-decision-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
-import { GatewaySpeechModel } from './gateway-speech-model';
+import { GatewaySpeechModel, toGatewaySpeechUrl } from './gateway-speech-model';
 import {
   GatewayTranscriptionModel,
   toGatewayTranscriptionUrl,
 } from './gateway-transcription-model';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
-import type { GatewayEvaluationModelId } from './gateway-evaluation-model-settings';
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -55,19 +59,21 @@ import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import type {
-  EmbeddingModelV4,
-  Experimental_BatchV4 as BatchV4,
-  ImageModelV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
-  Experimental_VideoModelV4,
-  Experimental_EvaluationModelV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  ProviderV4,
-  LanguageModelV4,
+import {
+  LoadAPIKeyError,
+  type EmbeddingModelV4,
+  type Experimental_BatchV4 as BatchV4,
+  type ImageModelV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
+  type Experimental_VideoModelV4,
+  type Experimental_DecisionModelV4,
+  type Experimental_StreamingSpeechModelV4,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type ProviderV4,
+  type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
 
@@ -159,16 +165,24 @@ export interface GatewayProvider extends ProviderV4 {
   rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
 
   /**
-   * Creates a model for evaluating state against questions.
+   * Creates a model for deciding answers to questions against shared state.
    */
-  evaluation(modelId: GatewayEvaluationModelId): Experimental_EvaluationModelV4;
+  decision(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
 
   /**
-   * Creates a model for evaluating state against questions.
+   * Creates a model for deciding answers to questions against shared state.
    */
+  decisionModel(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
   evaluationModel(
-    modelId: GatewayEvaluationModelId,
-  ): Experimental_EvaluationModelV4;
+    modelId: GatewayDecisionModelId,
+  ): Experimental_DecisionModelV4 & {
+    doEvaluate: Experimental_DecisionModelV4['doDecide'];
+  };
+  /** @deprecated Use `decision` instead. */
+  evaluation(
+    modelId: GatewayDecisionModelId,
+  ): ReturnType<GatewayProvider['evaluationModel']>;
 
   /**
    * Creates a model for text-to-speech generation.
@@ -207,6 +221,14 @@ export interface GatewayProvider extends ProviderV4 {
   experimental_transcription: GatewayTranscriptionFactory;
 
   /**
+   * Experimental streaming-speech entry point. Callable like
+   * `speech(modelId)`, plus `getToken` for minting a short-lived client
+   * secret (`vcst_`) a browser can use to open the streaming speech
+   * WebSocket without holding the Gateway credential.
+   */
+  experimental_speech: GatewaySpeechFactory;
+
+  /**
    * Gateway-specific tools executed server-side.
    */
   tools: typeof gatewayTools;
@@ -242,7 +264,43 @@ export interface GatewayTranscriptionFactory {
   ): Promise<GatewayTranscriptionFactoryGetTokenResult>;
 }
 
+export type GatewaySpeechFactoryGetTokenOptions = {
+  model: GatewaySpeechModelId;
+  /** Token lifetime in seconds. Gateway default is 60s (max 300s). */
+  expiresAfterSeconds?: number;
+};
+
+export type GatewaySpeechFactoryGetTokenResult = {
+  /** The minted `vcst_` client secret. */
+  token: string;
+  /** WebSocket URL of the streaming speech surface for this model. */
+  url: string;
+  /** Token expiry, epoch seconds. */
+  expiresAt?: number;
+};
+
+/**
+ * Streaming-speech factory: callable like `speech(modelId)`, plus a
+ * server-side `getToken` that mints a speech-bound short-lived client secret
+ * (`vcst_`). The browser connects with
+ * `createGateway({ apiKey: token }).speech(modelId)`; the token rides the
+ * same auth subprotocol an API key does, without exposing the credential.
+ */
+export interface GatewaySpeechFactory {
+  (modelId: GatewaySpeechModelId): Experimental_StreamingSpeechModelV4;
+
+  getToken(
+    options: GatewaySpeechFactoryGetTokenOptions,
+  ): Promise<GatewaySpeechFactoryGetTokenResult>;
+}
+
 export interface GatewayProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
    */
@@ -251,8 +309,9 @@ export interface GatewayProviderSettings {
   /**
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
+   * A callback is resolved before each request and must return a non-empty key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Vercel team ID or slug to scope requests for access tokens that can access
@@ -272,10 +331,10 @@ export interface GatewayProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Custom WebSocket implementation used for streaming transcription. This is
-   * useful for testing or for runtimes without a global WebSocket. A
-   * header-capable implementation is not required — Gateway WebSocket auth is
-   * carried in the subprotocols.
+   * Custom WebSocket implementation used for streaming transcription and
+   * streaming speech. This is useful for testing or for runtimes without a
+   * global WebSocket. A header-capable implementation is not required —
+   * Gateway WebSocket auth is carried in the subprotocols.
    */
   webSocket?: WebSocketConstructor;
 
@@ -295,10 +354,14 @@ export interface GatewayProviderSettings {
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 /** Response shape of `POST /v1/realtime/client-secrets`. `expiresAt` is epoch seconds. */
-const gatewayClientSecretResponseSchema = z.object({
-  token: z.string(),
-  expiresAt: z.number().nullish(),
-});
+const gatewayClientSecretResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string(),
+      expiresAt: z.number().nullish(),
+    }),
+  ),
+);
 
 /**
  * Create a remote provider instance.
@@ -330,12 +393,16 @@ export function createGateway(
           : {}),
         ...options.headers,
       },
-      `ai-sdk/gateway/${VERSION}`,
+      `ai-sdk-gateway/${VERSION}`,
     );
 
-  const getHeaders = async () => {
+  const getHeaders = async (
+    onResolved?: (headers: Record<string, string | undefined>) => void,
+  ) => {
     try {
-      return createAuthHeaders(await getGatewayAuthToken(options));
+      const headers = createAuthHeaders(await getGatewayAuthToken(options));
+      onResolved?.(headers);
+      return headers;
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -371,7 +438,7 @@ export function createGateway(
   const mintClientSecret = async (params: {
     modelId: string;
     expiresAfterSeconds?: number;
-    routeKind?: 'transcription';
+    routeKind?: 'speech' | 'transcription';
   }): Promise<{ token: string; expiresAt?: number }> => {
     assertGatewayClientSecretServerEnvironment();
     const auth = await getRealtimeAuthToken();
@@ -449,6 +516,7 @@ export function createGateway(
   const createBatch = () =>
     new GatewayBatch({
       provider: 'gateway',
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -460,9 +528,13 @@ export function createGateway(
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
 
+      let resolvedHeaders: Record<string, string | undefined> | undefined;
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
-        headers: getHeaders,
+        headers: () =>
+          getHeaders(headers => {
+            resolvedHeaders = headers;
+          }),
         fetch: options.fetch,
       })
         .getAvailableModels()
@@ -473,7 +545,7 @@ export function createGateway(
         .catch(async (error: unknown) => {
           throw await asGatewayError(
             error,
-            await parseAuthMethod(await getHeaders()),
+            await parseAuthMethod(resolvedHeaders ?? {}),
           );
         });
     }
@@ -482,46 +554,58 @@ export function createGateway(
   };
 
   const getCredits = async () => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayFetchMetadata({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getCredits()
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getSpendReport = async (params: GatewaySpendReportParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewaySpendReport({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getSpendReport(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayGenerationInfoFetcher({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getGenerationInfo(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
@@ -583,8 +667,8 @@ export function createGateway(
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
-  const createEvaluationModel = (modelId: GatewayEvaluationModelId) => {
-    return new GatewayEvaluationModel(modelId, {
+  const createDecisionModel = (modelId: GatewayDecisionModelId) => {
+    return new GatewayDecisionModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
@@ -592,8 +676,10 @@ export function createGateway(
       o11yHeaders: createO11yHeaders(),
     });
   };
-  provider.evaluationModel = createEvaluationModel;
-  provider.evaluation = createEvaluationModel;
+  provider.decisionModel = createDecisionModel;
+  provider.decision = createDecisionModel;
+  provider.evaluationModel = createDecisionModel;
+  provider.evaluation = createDecisionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',
@@ -601,10 +687,35 @@ export function createGateway(
       headers: getHeaders,
       fetch: options.fetch,
       o11yHeaders: createO11yHeaders(),
+      webSocket: options.webSocket,
     });
   };
   provider.speechModel = createSpeechModel;
   provider.speech = createSpeechModel;
+  // Callable like `speech(modelId)`; `getToken` mints a speech-bound client
+  // secret (server-side only) the browser uses to connect via
+  // `createGateway({ apiKey: token }).speech(modelId)`.
+  provider.experimental_speech = Object.assign(
+    (modelId: GatewaySpeechModelId) => createSpeechModel(modelId),
+    {
+      getToken: async (
+        tokenOptions: GatewaySpeechFactoryGetTokenOptions,
+      ): Promise<GatewaySpeechFactoryGetTokenResult> => {
+        const secret = await mintClientSecret({
+          modelId: tokenOptions.model,
+          routeKind: 'speech',
+          ...(tokenOptions.expiresAfterSeconds != null && {
+            expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+          }),
+        });
+        return {
+          token: secret.token,
+          url: toGatewaySpeechUrl(baseURL, tokenOptions.model),
+          ...(secret.expiresAt != null && { expiresAt: secret.expiresAt }),
+        };
+      },
+    },
+  ) as GatewaySpeechFactory;
   const createTranscriptionModel = (modelId: GatewayTranscriptionModelId) => {
     return new GatewayTranscriptionModel(modelId, {
       provider: 'gateway',
@@ -683,8 +794,22 @@ export const gateway = createGateway();
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
+  const resolvedApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? options.apiKey
+      : await resolve(options.apiKey);
+  if (
+    options.apiKey != null &&
+    typeof options.apiKey !== 'string' &&
+    (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+  ) {
+    throw new LoadAPIKeyError({
+      message: 'AI Gateway API key must be a non-empty string.',
+    });
+  }
+
   const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
+    settingValue: resolvedApiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
   });
 
@@ -705,7 +830,7 @@ export async function getGatewayAuthToken(
 function assertGatewayClientSecretServerEnvironment(): void {
   if (typeof globalThis.window !== 'undefined') {
     throw new Error(
-      'AI Gateway client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken() or gateway.experimental_transcription.getToken() from your server and pass the returned token to the client.',
+      'AI Gateway client secrets must be minted server-side: minting needs your Gateway credential, which must never reach the browser. Call gateway.experimental_realtime.getToken(), gateway.experimental_transcription.getToken(), or gateway.experimental_speech.getToken() from your server and pass the returned token to the client.',
     );
   }
 }

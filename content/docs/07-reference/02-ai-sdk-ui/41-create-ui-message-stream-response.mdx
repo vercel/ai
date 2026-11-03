@@ -109,6 +109,13 @@ const response = createUIMessageStreamResponse({
       description: 'Additional headers for the response.',
     },
     {
+      name: 'keepAliveMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Interval in milliseconds for sending SSE keep-alive comments. When set, an opening comment is sent immediately and additional comments are sent after the stream has been idle for the configured interval.',
+    },
+    {
       name: 'consumeSseStream',
       type: '(options: { stream: ReadableStream<string> }) => PromiseLike<void> | void',
       isOptional: true,

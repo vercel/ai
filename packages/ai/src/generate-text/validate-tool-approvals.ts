@@ -57,13 +57,31 @@ export async function validateApprovedToolApprovals<
     CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
   > = [];
 
-  for (const approval of approvedToolApprovals) {
-    const { approvalRequest, toolCall } = approval;
+  for (const collectedApproval of approvedToolApprovals) {
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
     // than a prototype value that would silently skip input validation below.
-    const tool = getOwn(tools, toolCall.toolName);
+    const tool = getOwn(tools, collectedApproval.toolCall.toolName);
+
+    // History can omit or alter these fields. Rebuild them from the current
+    // server-side definition before input refinement and approval policy checks,
+    // just as parsing a new model tool call does.
+    const {
+      toolMetadata: _toolMetadata,
+      dynamic: _dynamic,
+      ...toolCallFromHistory
+    } = collectedApproval.toolCall;
+    const approval: CollectedToolApprovals<TOOLS> = {
+      ...collectedApproval,
+      toolCall: {
+        ...toolCallFromHistory,
+        ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
+        ...(tool?.type === 'dynamic' ? { dynamic: true } : {}),
+        title: tool?.title,
+      } as typeof collectedApproval.toolCall,
+    };
+    const { approvalRequest, toolCall } = approval;
 
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
@@ -117,9 +135,13 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
+          // Clone both inputs into the current realm before comparing them.
+          const revalidatedInput = structuredClone(revalidatedToolCall.input);
+          const approvedInput = structuredClone(toolCall.input);
+
           // Revalidation must never change the operation that was approved,
           // including when older or projected history omits the schema input.
-          if (!isDeepEqualData(revalidatedToolCall.input, toolCall.input)) {
+          if (!isDeepEqualData(revalidatedInput, approvedInput)) {
             validationError = new Error(
               'Approved tool input does not match the validated schema output.',
             );

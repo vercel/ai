@@ -12,6 +12,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -32,6 +34,7 @@ import { XaiVideoModel } from './xai-video-model';
 import type { XaiVideoModelId } from './xai-video-settings';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
+import type { XaiTranscriptionModelId } from './xai-transcription-model-options';
 
 export interface XaiProvider extends ProviderV4 {
   (modelId: XaiResponsesModelId): LanguageModelV4;
@@ -88,13 +91,15 @@ export interface XaiProvider extends ProviderV4 {
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
-  transcription(): TranscriptionModelV4;
+  transcription(modelId?: XaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
-  transcriptionModel(): TranscriptionModelV4;
+  transcriptionModel(modelId?: XaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Returns the xAI files interface for uploading files.
@@ -120,8 +125,9 @@ export interface XaiProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -146,16 +152,18 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     options.baseURL ?? 'https://api.x.ai/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'XAI_API_KEY',
-          description: 'xAI API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/xai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'XAI_API_KEY',
+            description: 'xAI API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-xai/${VERSION}`,
+      ),
     );
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
@@ -204,8 +212,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createTranscriptionModel = () => {
-    return new XaiTranscriptionModel('', {
+  const createTranscriptionModel = (modelId: XaiTranscriptionModelId = '') => {
+    return new XaiTranscriptionModel(modelId, {
       provider: 'xai.transcription',
       baseURL,
       headers: getHeaders,

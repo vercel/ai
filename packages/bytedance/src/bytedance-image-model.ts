@@ -5,6 +5,9 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
@@ -42,6 +45,22 @@ export class ByteDanceImageModel implements ImageModelV4 {
   // `generateImage` fans `n` out into `n` calls. Batches of related images are
   // available via the `sequentialImageGeneration` provider option instead.
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'dola-seedream-5-0-pro-260628',
+      'seedream-5-0-260128',
+      'seedream-5-0-lite-260128',
+      'seedream-4-5-251128',
+      'seedream-4-0-250828',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -182,7 +201,7 @@ export class ByteDanceImageModel implements ImageModelV4 {
 }
 
 function mapImageUsage(
-  usage: z.infer<typeof byteDanceImageResponseSchema>['usage'],
+  usage: InferSchema<typeof byteDanceImageResponseSchema>['usage'],
 ): ImageModelV4Usage | undefined {
   return usage == null
     ? undefined
@@ -195,25 +214,33 @@ function mapImageUsage(
 
 // Minimal schema focused on what the implementation needs. This limits
 // breakages when the API adds fields and keeps parsing efficient.
-const byteDanceImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
-  usage: z
-    .object({
-      output_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const byteDanceImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ b64_json: z.string() })),
+      usage: z
+        .object({
+          output_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
-const byteDanceErrorSchema = z.object({
-  error: z
-    .object({
-      message: z.string(),
-      code: z.string().nullish(),
-    })
-    .nullish(),
-  message: z.string().nullish(),
-});
+const byteDanceErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z
+        .object({
+          message: z.string(),
+          code: z.string().nullish(),
+        })
+        .nullish(),
+      message: z.string().nullish(),
+    }),
+  ),
+);
 
 const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: byteDanceErrorSchema,

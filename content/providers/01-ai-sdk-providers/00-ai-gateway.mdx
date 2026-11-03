@@ -78,11 +78,25 @@ const gateway = createGateway({
 
 You can use the following optional settings to customize the AI Gateway provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   API key or Vercel access token that is being sent using the `Authorization`
   header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
@@ -213,6 +227,40 @@ started, AI SDK Core exposes it as a
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
 
+## Image Models
+
+AI Gateway supports image generation through `generateImage`. To reduce peak
+memory when receiving large images, opt in to streaming base64 decoding:
+
+```ts
+import { generateImage } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { image } = await generateImage({
+  model: 'bfl/flux-kontext-pro',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(image.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving base64 strings in provider results.
+When enabled, canonical base64 images of at least 64 KiB are decoded while the
+response arrives. The model returns these images as `Uint8Array`; if a response
+mixes extracted bytes with smaller images, all images in that result become
+bytes. Images that cannot be extracted retain the regular decoding path.
+
+This experimental option changes what image-model middleware sees in
+`result.images`. `GeneratedFile` still provides both `uint8Array` and `base64`,
+but reading `base64` can require re-encoding. Validation errors contain short
+placeholders for extracted data. The option is handled by the client and is
+not sent to the Gateway service.
+
 ## Batch
 
 <Note type="warning">
@@ -238,7 +286,7 @@ import {
 // The receiver uses this token to look up the expected batch and signing
 // secret before trusting anything in the webhook body.
 const token = randomUUID();
-const model = 'anthropic/claude-haiku-4.5' as const;
+const model = 'anthropic/claude-haiku-5.5' as const;
 
 // Reserve the token before starting so an early delivery finds a retryable
 // pending record rather than an unknown callback.
@@ -455,6 +503,69 @@ console.log(ranking);
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
+## Streaming Speech Models
+
+<Note type="warning">
+  Streaming speech is experimental and the API may change in patch releases.
+</Note>
+
+Speech models that support streaming can be used with
+`experimental_streamSpeech`. The gateway provider connects to AI Gateway over a
+WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
+Gateway WebSocket auth is carried in the subprotocols, so no header-capable
+WebSocket implementation is needed.
+
+Streaming speech works only with models that the
+[AI Gateway model catalog](https://vercel.com/ai-gateway/models) lists with
+streaming speech support. The model ID below is illustrative; check the catalog
+for current availability.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  text: textStream, // a string, or an array or stream of strings and/or text parts
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
+### Streaming Speech in the Browser
+
+To stream speech from browser code without exposing your Gateway credential,
+mint a short-lived client secret on your server with
+`gateway.experimental_speech.getToken()` and pass the token to the browser.
+The token is bound to the streaming speech surface and the requested model.
+
+```ts
+// Server
+import { gateway } from '@ai-sdk/gateway';
+
+const { token } = await gateway.experimental_speech.getToken({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  expiresAfterSeconds: 60,
+});
+```
+
+```ts
+// Browser
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const gateway = createGateway({ apiKey: token });
+
+const result = streamSpeech({
+  model: gateway.experimental_speech('elevenlabs/eleven-flash-v2.5'),
+  text: textStream,
+});
+```
+
 ## Realtime Models
 
 <Note type="warning">
@@ -620,21 +731,25 @@ import { gateway, generateText } from 'ai';
 
 // Make a request
 const result = await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
 // Get the generation ID from provider metadata
-const generationId = result.providerMetadata?.gateway?.generationId;
+const generationId = result.providerMetadata?.gateway?.generationId as
+  | string
+  | undefined;
 
 // Look up detailed generation info
-const generation = await gateway.getGenerationInfo({ id: generationId });
+if (generationId) {
+  const generation = await gateway.getGenerationInfo({ id: generationId });
 
-console.log(`Model: ${generation.model}`);
-console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.promptTokens}`);
-console.log(`Completion tokens: ${generation.completionTokens}`);
+  console.log(`Model: ${generation.model}`);
+  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
+  console.log(`Latency: ${generation.latency}ms`);
+  console.log(`Prompt tokens: ${generation.promptTokens}`);
+  console.log(`Completion tokens: ${generation.completionTokens}`);
+}
 ```
 
 With `streamText`, you can capture the generation ID from the first chunk via `stream`:
@@ -643,7 +758,7 @@ With `streamText`, you can capture the generation ID from the first chunk via `s
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -673,7 +788,7 @@ a tool is running:
 import { gateway, generateText } from 'ai';
 
 await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
   onLanguageModelCallEnd({ providerMetadata }) {
     const generationId = providerMetadata?.gateway?.generationId as
@@ -720,7 +835,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
 });
 
@@ -1219,7 +1334,7 @@ for await (const part of result.stream) {
 
 #### Parallel Search
 
-The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search-beta/search). This tool is optimized for LLM consumption, returning relevant excerpts from web pages that can replace multiple keyword searches with a single call.
+The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search/search). The model provides a research objective and a few keyword queries, and the tool returns relevant excerpts from web pages, optimized for LLM consumption.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1247,7 +1362,8 @@ const result = await generateText({
   prompt: 'Find detailed information about TypeScript 5.0 features.',
   tools: {
     parallel_search: gateway.tools.parallelSearch({
-      mode: 'agentic',
+      mode: 'advanced',
+      location: 'us',
       maxResults: 5,
       sourcePolicy: {
         includeDomains: ['typescriptlang.org', 'github.com'],
@@ -1266,11 +1382,15 @@ console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 
 The Parallel Search tool supports the following optional configuration options:
 
-- **mode** _'one-shot' | 'agentic'_
+- **mode** _'turbo' | 'fast' | 'basic' | 'advanced'_
 
-  Mode preset for different use cases:
-  - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
-  - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
+  Search mode. Defaults to `'basic'`. See the [AI Gateway web search docs](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-parallel-search) for pricing.
+  - `'turbo'` - Lowest latency, shorter excerpts. Supports English and Japanese only.
+  - `'fast'` - Low latency, shorter excerpts.
+  - `'basic'` - Balanced latency and excerpt depth (default).
+  - `'advanced'` - Most thorough retrieval, higher latency.
+
+  `'one-shot'` and `'agentic'` are deprecated but still accepted: `'one-shot'` runs as `'basic'` and `'agentic'` runs as `'advanced'`.
 
 - **maxResults** _number_
 
@@ -1279,20 +1399,34 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-  - `includeDomains` - List of domains to include in search results
-  - `excludeDomains` - List of domains to exclude from search results
-  - `afterDate` - Only include results published after this date (ISO 8601 format)
+  - `includeDomains` - Domains or domain/path prefixes to include, such as `'wikipedia.org'` or `'docs.python.org/3'`. When set, `excludeDomains` is ignored.
+  - `excludeDomains` - Domains or domain/path prefixes to exclude
+  - `afterDate` - Only include results published on or after this date (`YYYY-MM-DD`)
+
+  The include and exclude lists can hold up to 200 entries combined.
+
+- **maxCharsTotal** _number_
+
+  Maximum total characters across all result excerpts.
 
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
   - `maxCharsPerResult` - Maximum characters per result
-  - `maxCharsTotal` - Maximum total characters across all results
+  - `maxCharsTotal` - Deprecated; use the top-level `maxCharsTotal`
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-  - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
+  - `maxAgeSeconds` - Maximum age of cached content, in seconds, before a live fetch is attempted. Minimum 600; lower values are raised to 600.
+  - `timeoutSeconds` - Timeout for a live fetch, in seconds. The gateway caps it to stay within its own tool timeout.
+  - `disableCacheFallback` - Return an error instead of older cached content when a live fetch fails. Defaults to `false`.
+
+- **location** _string_
+
+  ISO 3166-1 alpha-2 country code to localize results, such as `'us'`. Invalid codes are ignored with a warning.
+
+Each tool result contains a `search_id` and `results`, ordered by decreasing relevance, and may include a `session_id`. Each result has a `url`, a `title`, a `publish_date` (both may be `null`), and `excerpts` (an array of markdown strings). The result can also include `warnings`, for example when an invalid `location` is ignored.
 
 The tool works with both `generateText` and `streamText`:
 
@@ -1321,6 +1455,100 @@ for await (const part of result.stream) {
   }
 }
 ```
+
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools call
+DeepSeek's standalone Search/Fetch APIs from AI Gateway and work with supported
+tool-calling models from any provider. They are separate from a model's built-in
+web search. No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch({
+      count: 5,
+      needContent: true,
+    }),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+The Search tool supports the following optional configuration options:
+
+- **query** _string_
+
+  Pin the search query; otherwise the model chooses it. Queries contain 1–128 Unicode characters and cannot be all whitespace.
+
+- **count** _number_
+
+  Number of results, 1–50 (default: 10).
+
+- **needContent** _boolean_
+
+  Include available page content (default: false).
+
+- **oriQuestion** _string | null_
+
+  Original question, 1–128 Unicode characters. `null` means not provided.
+
+- **localization** _string_
+
+  IP address used to localize results; developer configuration only.
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ content, title? }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+The Fetch tool supports the following optional configuration option:
+
+- **url** _string_
+
+  Pin the HTTP(S) URL; otherwise the model chooses it.
+
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
+
+The tools also work with `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch(),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
 
 ### Custom Reporting
 
@@ -1375,7 +1603,7 @@ The `getSpendReport()` method accepts the following parameters:
 - **groupBy** _string_ - Aggregation dimension: `'day'` (default), `'user'`, `'model'`, `'tag'`, `'provider'`, or `'credential_type'`
 - **datePart** _string_ - Time granularity when `groupBy` is `'day'`: `'day'` or `'hour'`
 - **userId** _string_ - Filter to a specific user
-- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5'`)
+- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5.5'`)
 - **provider** _string_ - Filter to a specific provider (e.g. `'anthropic'`)
 - **credentialType** _string_ - Filter by `'byok'` or `'system'` credentials
 - **tags** _string[]_ - Filter to requests matching these tags
@@ -1399,7 +1627,7 @@ import { gateway, streamText } from 'ai';
 
 // 1. Make requests with tags
 const result = streamText({
-  model: gateway('anthropic/claude-haiku-4.5'),
+  model: gateway('anthropic/claude-haiku-5.5'),
   prompt: 'Summarize this quarter's results',
   providerOptions: {
     gateway: {
@@ -1427,19 +1655,18 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
-      only: ['vertex', 'anthropic'], // Only use these providers
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1457,6 +1684,8 @@ The following gateway provider options are available:
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
 
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
+
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
 - **sort** _'cost' | 'ttft' | 'tps'_
@@ -1472,11 +1701,15 @@ The following gateway provider options are available:
 
   When `sort` is active, the response's `providerMetadata.gateway.routing.sort` object contains the sort option used, the resulting execution order, per-provider metric values, and any providers that were deprioritized.
 
-- **models** _string[]_
+- **models** _string[] | [GatewayModelFallback, ...string[]]_
 
-  Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
+  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
+
+  A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Leave out `question` to check every question of that type: `{ confidenceBelow: 0.6 }` matches when any Choice or Score answer is below 0.6, and a request with no Choice or Score questions never matches it. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
+
+  Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or `{ atLeast: { count, conditions: [...] } }`. Each condition list holds 1 to 20 conditions. `atLeast.count` must be an integer from `1` through the number of conditions. Conditions nest at most 5 levels deep. Question IDs are 1 to 256 characters, and the conditional `model` must not be empty. The SDK checks these bounds before sending the request, and the gateway also checks that each question exists and has a kind that matches its condition. String error fallbacks may follow the conditional entry.
 
 - **user** _string_
 
@@ -1565,19 +1798,19 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking:
+You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
-      only: ['anthropic', 'vertex'], // Only allow these providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1596,17 +1829,74 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-5.4 first
+// 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try gemini-3-flash-preview
+// 3. If that fails, try google/gemini-3.8-flash
 // 4. Return the result from the first model that succeeds
 ```
+
+#### Conditional Decision Fallbacks Example
+
+Conditional model entries are available only for decision requests. Keep the
+configuration under `providerOptions.gateway.models`. `experimental_decide`
+does not have a top-level fallback option.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { experimental_decide } from 'ai';
+
+const questions = {
+  department: {
+    type: 'choice',
+    instructions: 'Which team should handle this?',
+    criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+  },
+  requestsRefund: {
+    type: 'boolean',
+    instructions: 'Is the customer requesting money back?',
+  },
+} as const;
+
+const result = await experimental_decide({
+  model: 'typesafe-ai/jev',
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions,
+  providerOptions: {
+    gateway: {
+      models: [
+        {
+          model: 'openai/gpt-5.6-sol',
+          when: {
+            any: [
+              { question: 'department', confidenceBelow: 0.6 },
+              {
+                question: 'requestsRefund',
+                probabilityBetween: [0.4, 0.6],
+              },
+            ],
+          },
+        },
+      ],
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+// The model that produced the answers, the fallback when the condition matched.
+console.log(result.response.modelId);
+console.log(JSON.stringify(result.providerMetadata?.gateway?.routing, null, 2));
+```
+
+When the condition matches, `result.response.modelId` names the fallback model,
+and `providerMetadata.gateway.routing.modelAttempts` lists the primary and
+fallback attempts. The successful attempt of each stage carries its own
+`generationId`, `usage`, and cost fields, and the first fallback attempt lists
+the questions that triggered it in `triggeredBy`.
 
 #### Zero Data Retention Example
 
@@ -1617,7 +1907,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
@@ -1636,7 +1926,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this proprietary business data...',
   providerOptions: {
     gateway: {
@@ -1655,7 +1945,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
@@ -1693,7 +1983,7 @@ import { generateText } from 'ai';
 import fs from 'node:fs';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   messages: [
     {
       role: 'user',

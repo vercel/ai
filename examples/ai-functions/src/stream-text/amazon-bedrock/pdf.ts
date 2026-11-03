@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-5-5'),
     messages: [
       {
         role: 'user',

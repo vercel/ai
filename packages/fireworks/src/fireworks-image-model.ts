@@ -1,5 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -96,7 +98,7 @@ function getPollUrlForModel(
 interface FireworksImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   /**
    * Poll interval in milliseconds between status checks for async models.
@@ -116,6 +118,31 @@ interface FireworksImageModelConfig {
 export class FireworksImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'accounts/fireworks/models/flux-kontext-pro' ||
+      this.modelId === 'accounts/fireworks/models/flux-kontext-max'
+    ) {
+      return true;
+    }
+
+    return [
+      'accounts/fireworks/models/flux-1-dev-fp8',
+      'accounts/fireworks/models/flux-1-schnell-fp8',
+      'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+      'accounts/fireworks/models/japanese-stable-diffusion-xl',
+      'accounts/fireworks/models/playground-v2-1024px-aesthetic',
+      'accounts/fireworks/models/SSD-1B',
+      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -204,7 +231,6 @@ export class FireworksImageModel implements ImageModelV4 {
 
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
     const fireworksOptions =
       (await parseProviderOptions({
         provider: 'fireworks',
@@ -226,7 +252,7 @@ export class FireworksImageModel implements ImageModelV4 {
     if (backendConfig?.urlFormat === 'workflows_async') {
       return this.doGenerateAsync({
         body,
-        headers: combinedHeaders,
+        headers,
         abortSignal,
         warnings,
         currentDate,
@@ -236,7 +262,7 @@ export class FireworksImageModel implements ImageModelV4 {
     // Handle sync models that return binary directly
     const { value: response, responseHeaders } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),
-      headers: combinedHeaders,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -267,7 +293,7 @@ export class FireworksImageModel implements ImageModelV4 {
     currentDate,
   }: {
     body: Record<string, unknown>;
-    headers: Record<string, string | undefined>;
+    headers: Record<string, string | undefined> | undefined;
     abortSignal: AbortSignal | undefined;
     warnings: Array<SharedV4Warning>;
     currentDate: Date;
@@ -275,7 +301,7 @@ export class FireworksImageModel implements ImageModelV4 {
     // Submit the generation request
     const { value: submitResponse } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),
-      headers,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createJsonResponseHandler(
@@ -304,7 +330,7 @@ export class FireworksImageModel implements ImageModelV4 {
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
       trustedOrigin: this.config.baseURL,
-      headers,
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -331,7 +357,7 @@ export class FireworksImageModel implements ImageModelV4 {
     abortSignal,
   }: {
     requestId: string;
-    headers: Record<string, string | undefined>;
+    headers: Record<string, string | undefined> | undefined;
     abortSignal: AbortSignal | undefined;
   }): Promise<string> {
     const pollIntervalMillis =
@@ -356,7 +382,7 @@ export class FireworksImageModel implements ImageModelV4 {
       while (true) {
         const { value: pollResponse } = await postJsonToApi({
           url: pollUrl,
-          headers,
+          headers: combineHeaders(await resolve(this.config.headers), headers),
           body: { id: requestId },
           failedResponseHandler: createStatusCodeErrorResponseHandler(),
           successfulResponseHandler: createJsonResponseHandler(

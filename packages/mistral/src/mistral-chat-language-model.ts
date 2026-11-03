@@ -9,6 +9,11 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -36,40 +41,20 @@ import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  mistralLanguageModelChatOptions,
+  mistralLanguageModelChatOptionsValidator,
   type MistralChatModelId,
 } from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
+import { getMistralLanguageModelEntry } from './mistral-model-catalog';
 
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
-
-// https://api.mistral.ai/v1/models (2026-09-10)
-const reasoningEffortModelIds = new Set<MistralChatModelId>([
-  'glm-5-2',
-  'labs-leanstral-1-5',
-  'labs-leanstral-1-5-1',
-  'magistral-medium-latest',
-  'magistral-small-latest',
-  'mistral-medium',
-  'mistral-medium-2604',
-  'mistral-medium-3',
-  'mistral-medium-3-5',
-  'mistral-medium-3.5',
-  'mistral-medium-latest',
-  'mistral-small-2603',
-  'mistral-small-latest',
-  'mistral-vibe-cli-fast',
-  'mistral-vibe-cli-latest',
-  'mistral-vibe-cli-with-tools',
-  'zai-glm-5-2',
-]);
 
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -129,34 +114,27 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelChatOptions,
+        schema: mistralLanguageModelChatOptionsValidator,
       })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort = reasoningEffortModelIds.has(this.modelId);
+    const { reasoning: reasoningCapabilities } = getMistralLanguageModelEntry(
+      this.modelId,
+    ).capabilities.language;
 
     let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined);
+    if (reasoningCapabilities.support) {
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: Object.fromEntries(
+          reasoningCapabilities.efforts.map(effort => [effort, effort]),
+        ),
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
@@ -168,9 +146,12 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
-    // For Mistral we need to need to instruct the model to return a JSON object.
+    // For Mistral we need to instruct the model when using JSON Object mode.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    if (
+      responseFormat?.type === 'json' &&
+      (!structuredOutputs || responseFormat.schema == null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
@@ -256,7 +237,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -335,7 +319,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -345,8 +332,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: MistralUsage | undefined = undefined;
@@ -361,7 +349,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof mistralChatChunkSchema>>,
+          ParseResult<InferSchema<typeof mistralChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -378,6 +366,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -501,7 +490,9 @@ function extractReasoningContent(
     .join('');
 }
 
-function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
+function extractTextContent(
+  content: z.infer<ReturnType<typeof mistralContentSchema>>,
+) {
   if (typeof content === 'string') {
     return content;
   }
@@ -534,98 +525,110 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
   return textContent.length ? textContent.join('') : undefined;
 }
 
-const mistralContentSchema = z
-  .union([
-    z.string(),
-    z.array(
-      z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('text'),
-          text: z.string(),
-        }),
-        z.object({
-          type: z.literal('image_url'),
-          image_url: z.union([
-            z.string(),
-            z.object({
-              url: z.string(),
-              detail: z.string().nullable(),
-            }),
-          ]),
-        }),
-        z.object({
-          type: z.literal('reference'),
-          reference_ids: z.array(z.union([z.string(), z.number()])),
-        }),
-        z.object({
-          type: z.literal('thinking'),
-          thinking: z.array(
-            z.object({
-              type: z.literal('text'),
-              text: z.string(),
-            }),
-          ),
-        }),
-      ]),
-    ),
-  ])
-  .nullish();
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const mistralChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant'),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  object: z.literal('chat.completion'),
-  usage: mistralUsageSchema,
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const mistralChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number().nullish(),
-              id: z.string().nullish(),
-              function: z.object({
-                name: z.string().nullish(),
-                arguments: z.string().nullish(),
+const mistralContentSchema = () =>
+  z
+    .union([
+      z.string(),
+      z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('image_url'),
+            image_url: z.union([
+              z.string(),
+              z.object({
+                url: z.string(),
+                detail: z.string().nullable(),
               }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+            ]),
+          }),
+          z.object({
+            type: z.literal('reference'),
+            reference_ids: z.array(z.union([z.string(), z.number()])),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.array(
+              z.object({
+                type: z.literal('text'),
+                text: z.string(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+    ])
+    .nullish();
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const mistralChatResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant'),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      object: z.literal('chat.completion'),
+      usage: mistralUsageSchema,
     }),
   ),
-  usage: mistralUsageSchema.nullish(),
-});
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const mistralChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).optional(),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(),
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: mistralUsageSchema.nullish(),
+    }),
+  ),
+);

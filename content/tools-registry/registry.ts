@@ -437,7 +437,7 @@ console.log(text);`,
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
@@ -474,7 +474,7 @@ const { tools } = await createBashTool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
   stopWhen: isStepCount(5),
@@ -536,7 +536,7 @@ await browserbase.closeSession();`,
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
@@ -624,5 +624,279 @@ console.log(text);`,
     docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
     websiteUrl: 'https://www.fatstack.net',
     npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
+  },
+  {
+    slug: 'pushary',
+    name: 'Pushary',
+    description:
+      'Require a named person to approve selected AI SDK tool calls from their phone before local tool execution. Pushary plugs into toolApproval and fails closed when approval is denied, expires, or goes unanswered.',
+    packageName: '@pushary/ai-sdk',
+    tags: ['approval', 'human-in-the-loop', 'security', 'phone'],
+    apiKeyEnvName: 'PUSHARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pushary/ai-sdk ai zod',
+      npm: 'npm install @pushary/ai-sdk ai zod',
+      yarn: 'yarn add @pushary/ai-sdk ai zod',
+      bun: 'bun add @pushary/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { pusharyApproval } from '@pushary/ai-sdk';
+import { z } from 'zod';
+
+// Derive this stable ID from the authenticated user on your server.
+// Enroll the user once before running the agent; see the Pushary guide below.
+const externalId = 'user_123';
+
+const lookupOrder = tool({
+  description: 'Look up an order',
+  inputSchema: z.object({ orderId: z.string() }),
+  execute: async ({ orderId }) => ({
+    orderId,
+    total: 40,
+    refundable: true,
+  }),
+});
+
+const issueRefund = tool({
+  description: 'Refund an order',
+  inputSchema: z.object({
+    orderId: z.string(),
+    amount: z.number().positive(),
+  }),
+  execute: async ({ orderId, amount }) => ({
+    orderId,
+    amount,
+    refunded: true,
+  }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund, lookupOrder },
+  toolApproval: pusharyApproval({
+    apiKey: process.env.PUSHARY_API_KEY!,
+    externalId,
+    policy: false,
+    tools: ['issueRefund'],
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Look up order 1234 and refund it in full.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
+    apiKeyUrl: 'https://pushary.com/onboarding/partner',
+    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
+  },
+  {
+    slug: 'pexafy',
+    name: 'Pexafy',
+    description:
+      'Pexafy adds semantic stock photo search to your agents: describe a scene in plain English and get real, free-to-use photographs from Unsplash, Pexels, Pixabay and six more libraries, each with an image URL, alt text, license and credit line.',
+    packageName: 'pexafy-ai-sdk',
+    tags: ['images', 'photos', 'search'],
+    apiKeyEnvName: 'PEXAFY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add pexafy-ai-sdk',
+      npm: 'npm install pexafy-ai-sdk',
+      yarn: 'yarn add pexafy-ai-sdk',
+      bun: 'bun add pexafy-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pexafyTools } from 'pexafy-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-4.5',
+  tools: pexafyTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find a header photo for a blog post about remote work, with its credit line.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.pexafy.com/ai-sdk',
+    apiKeyUrl: 'https://pexafy.com/dashboard/api-keys/create/',
+    websiteUrl: 'https://pexafy.com',
+    npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
+  },
+  {
+    slug: 'agentmail',
+    name: 'AgentMail',
+    description:
+      'Give your agents real email inboxes. Create inboxes programmatically, send, receive, reply, search, and manage threaded email conversations.',
+    packageName: 'agentmail-toolkit',
+    tags: ['email', 'inbox', 'agents', 'automation'],
+    apiKeyEnvName: 'AGENTMAIL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agentmail-toolkit',
+      npm: 'npm install agentmail-toolkit',
+      yarn: 'yarn add agentmail-toolkit',
+      bun: 'bun add agentmail-toolkit',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { AgentMailToolkit } from 'agentmail-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  tools: new AgentMailToolkit().getTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Create an inbox for yourself, then check it for new messages and reply to anything urgent.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.agentmail.to/integrations/ai-sdk',
+    apiKeyUrl: 'https://console.agentmail.to',
+    websiteUrl: 'https://agentmail.to',
+    npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
+  },
+  {
+    slug: 'agentsvc',
+    name: 'agentsvc',
+    description:
+      'More than 120 pay-per-call tools for agents in one package: web scraping to Markdown, token safety checks before a swap, smart-money and whale tracking, agent memory and inboxes, PDF and OCR, company and sanctions checks. Paid per call with a prepaid credit token or USDC via x402, no subscription.',
+    packageName: 'agentsvc',
+    tags: ['web-scraping', 'crypto', 'memory', 'x402', 'payments'],
+    apiKeyEnvName: 'AGENTSVC_CREDIT_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add agentsvc',
+      npm: 'npm install agentsvc',
+      yarn: 'yarn add agentsvc',
+      bun: 'bun add agentsvc',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAgentsvc } from 'agentsvc';
+import { agentsvcTools } from 'agentsvc/ai-sdk';
+
+const svc = createAgentsvc({
+  creditToken: process.env.AGENTSVC_CREDIT_TOKEN,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: await agentsvcTools(svc, ['web-scrape', 'token-precheck', 'token-smart-money']),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Is BRETT (0x532f27101965dd16442E59d40670FaF5eBB142E4) on Base safe to buy, and who is buying it right now?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentsvc.io/docs/ai-sdk',
+    apiKeyUrl: 'https://agentsvc.io/credits',
+    websiteUrl: 'https://agentsvc.io',
+    npmUrl: 'https://www.npmjs.com/package/agentsvc',
+  },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
+  {
+    slug: 'm91',
+    name: 'M91',
+    description:
+      "Human-in-the-loop approval for AI SDK agents. Gate any tool with toolApproval: before it runs, M91 rings a person's phone at full volume through silent mode and Do Not Disturb, escalating to a voice call, and the tool runs only if they approve. A rejection, timeout or M91 error denies it. Also provides m91_request_approval and m91_send_alert tools the model can call itself.",
+    packageName: '@msg91comm/m91',
+    tags: ['approval', 'human-in-the-loop', 'alerting', 'phone'],
+    apiKeyEnvName: 'M91_SEND_LINK',
+    installCommand: {
+      pnpm: 'pnpm add @msg91comm/m91 ai',
+      npm: 'npm install @msg91comm/m91 ai',
+      yarn: 'yarn add @msg91comm/m91 ai',
+      bun: 'bun add @msg91comm/m91 ai',
+    },
+    codeExample: `import { generateText, isStepCount, jsonSchema, tool } from 'ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91ToolApproval } from '@msg91comm/m91/integrations/vercel-ai';
+
+// The send link comes from a channel in the M91 app. Keep it secret.
+const client = new M91Client(process.env.M91_SEND_LINK!);
+
+const issueRefund = tool({
+  description: 'Simulate a refund approval; no payment is issued.',
+  inputSchema: jsonSchema<{ orderId: string; amount: number }>({
+    type: 'object',
+    properties: { orderId: { type: 'string' }, amount: { type: 'number' } },
+    required: ['orderId', 'amount'],
+  }),
+  // Replace this simulation with your payment API before issuing real refunds.
+  execute: async ({ orderId, amount }) => ({ simulated: true, orderId, amount }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund },
+  // issueRefund rings a phone first and runs only if a person taps Approve.
+  // A rejection, no answer within 10 minutes, or an M91 error denies it.
+  toolApproval: createM91ToolApproval(client, {
+    tools: ['issueRefund'],
+    timeoutSeconds: 600,
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Order ORD-40122 never arrived. Refund the customer 48 USD.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/MSG91/m91-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://m91-api.msg91.com/docs',
+    websiteUrl: 'https://m91.msg91.com',
+    npmUrl: 'https://www.npmjs.com/package/@msg91comm/m91',
+  },
+  {
+    slug: 'olostep',
+    name: 'Olostep',
+    description:
+      'Web search, scraping, crawling and cited answers for AI SDK agents. Returns structured data and page content for model use.',
+    packageName: '@olostep/ai-sdk',
+    tags: ['search', 'scraping', 'crawl', 'extraction'],
+    apiKeyEnvName: 'OLOSTEP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @olostep/ai-sdk',
+      npm: 'npm install @olostep/ai-sdk',
+      yarn: 'yarn add @olostep/ai-sdk',
+      bun: 'bun add @olostep/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { olostepTools } from '@olostep/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Read the Next.js 15 release notes and list the breaking changes, with sources.',
+  tools: olostepTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.olostep.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://www.olostep.com/dashboard',
+    websiteUrl: 'https://www.olostep.com',
+    npmUrl: 'https://www.npmjs.com/package/@olostep/ai-sdk',
   },
 ];

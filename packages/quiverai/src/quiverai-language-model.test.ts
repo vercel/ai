@@ -113,7 +113,7 @@ describe('QuiverAI language model', () => {
         'x-custom': 'custom-value',
       });
       expect(
-        server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+        server.calls[0].requestUserAgent?.match(/ai-sdk-quiverai\//g),
       ).toHaveLength(1);
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchObject({
@@ -325,9 +325,9 @@ describe('QuiverAI language model', () => {
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/quiverai/');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-quiverai/');
     expect(
-      server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+      server.calls[0].requestUserAgent?.match(/ai-sdk-quiverai\//g),
     ).toHaveLength(1);
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'arrow-2',
@@ -495,7 +495,7 @@ describe('QuiverAI language model', () => {
   );
 
   it.each(['doGenerate', 'doStream'] as const)(
-    'validates native reasoning and warns for unsupported top-level reasoning in %s',
+    'validates native reasoning and maps unsupported top-level reasoning in %s',
     async method => {
       const model = createQuiverAI({ apiKey: 'test-api-key' })('arrow-2');
       for (const quiverai of [
@@ -518,10 +518,14 @@ describe('QuiverAI language model', () => {
             )?.warnings
           : result.warnings;
       expect(warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'reasoning effort none',
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "none" is not directly supported by this model. mapped to effort "low".',
       });
-      expect((await server.calls[0].requestBodyJson).reasoning).toBeUndefined();
+      expect((await server.calls[0].requestBodyJson).reasoning).toMatchObject({
+        effort: 'low',
+      });
     },
   );
 

@@ -5,7 +5,7 @@ import { join } from 'path';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = amazonBedrock('us.anthropic.claude-sonnet-5');
+  const model = amazonBedrock('us.anthropic.claude-sonnet-5-5');
 
   const testCases = [
     {

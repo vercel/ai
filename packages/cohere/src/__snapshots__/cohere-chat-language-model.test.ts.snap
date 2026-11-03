@@ -212,9 +212,9 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 992,
       "cacheWrite": undefined,
-      "noCache": 1683,
+      "noCache": 691,
       "total": 1683,
     },
     "outputTokens": {
@@ -328,9 +328,9 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 1344,
       "cacheWrite": undefined,
-      "noCache": 1394,
+      "noCache": 50,
       "total": 1394,
     },
     "outputTokens": {
@@ -425,9 +425,9 @@ exports[`doGenerate > text > should extract text response 1`] = `
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 448,
       "cacheWrite": undefined,
-      "noCache": 507,
+      "noCache": 59,
       "total": 507,
     },
     "outputTokens": {
@@ -564,9 +564,9 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
   },
   "usage": {
     "inputTokens": {
-      "cacheRead": undefined,
+      "cacheRead": 992,
       "cacheWrite": undefined,
-      "noCache": 1549,
+      "noCache": 557,
       "total": 1549,
     },
     "outputTokens": {
@@ -623,9 +623,9 @@ exports[`doStream > empty tool call > should handle empty tool call arguments 1`
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 704,
         "cacheWrite": undefined,
-        "noCache": 1445,
+        "noCache": 741,
         "total": 1445,
       },
       "outputTokens": {
@@ -943,9 +943,9 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 1360,
         "cacheWrite": undefined,
-        "noCache": 1394,
+        "noCache": 34,
         "total": 1394,
       },
       "outputTokens": {
@@ -1191,9 +1191,9 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 448,
         "cacheWrite": undefined,
-        "noCache": 507,
+        "noCache": 59,
         "total": 507,
       },
       "outputTokens": {
@@ -1335,9 +1335,9 @@ exports[`doStream > tool call > should stream tool deltas 1`] = `
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 1504,
         "cacheWrite": undefined,
-        "noCache": 1549,
+        "noCache": 45,
         "total": 1549,
       },
       "outputTokens": {

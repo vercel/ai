@@ -9,6 +9,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -265,7 +268,7 @@ export class GoogleVideoModel implements VideoModelV4 {
   }
 
   private async buildCompletedResult(
-    finalOperation: z.infer<typeof googleOperationSchema>,
+    finalOperation: InferSchema<typeof googleOperationSchema>,
     responseHeaders: Record<string, string> | undefined,
     warnings: SharedV4Warning[],
     currentDate: Date,
@@ -441,33 +444,37 @@ export class GoogleVideoModel implements VideoModelV4 {
   }
 }
 
-const googleOperationSchema = z.object({
-  name: z.string().nullish(),
-  done: z.boolean().nullish(),
-  error: z
-    .object({
-      code: z.number().nullish(),
-      message: z.string(),
-      status: z.string().nullish(),
-    })
-    .nullish(),
-  response: z
-    .object({
-      generateVideoResponse: z
+const googleOperationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      name: z.string().nullish(),
+      done: z.boolean().nullish(),
+      error: z
         .object({
-          generatedSamples: z
-            .array(
-              z.object({
-                video: z
-                  .object({
-                    uri: z.string().nullish(),
-                  })
-                  .nullish(),
-              }),
-            )
+          code: z.number().nullish(),
+          message: z.string(),
+          status: z.string().nullish(),
+        })
+        .nullish(),
+      response: z
+        .object({
+          generateVideoResponse: z
+            .object({
+              generatedSamples: z
+                .array(
+                  z.object({
+                    video: z
+                      .object({
+                        uri: z.string().nullish(),
+                      })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
+            })
             .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);

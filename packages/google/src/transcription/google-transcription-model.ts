@@ -7,6 +7,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertToBase64,
@@ -217,6 +219,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       language: undefined,
       durationInSeconds: undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -226,7 +229,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       ...(response.usage != null
         ? {
             providerMetadata: {
-              google: { usage: response.usage as JSONObject },
+              google: { usage: response.usage },
             },
           }
         : {}),
@@ -434,6 +437,7 @@ function createGoogleLiveTranscriptionStream({
           segments: [],
           language,
           durationInSeconds: undefined,
+          usage: usageMetadata,
           ...(usageMetadata != null
             ? { providerMetadata: { google: { usageMetadata } } }
             : {}),
@@ -682,33 +686,38 @@ function validateLiveInputAudioFormat(
   }
 }
 
-const googleInteractionsWordAnnotationSchema = z.object({
-  type: z.string().nullish(),
-  text: z.string().nullish(),
-  speaker: z.string().nullish(),
-  start_offset: z.string().nullish(),
-  end_offset: z.string().nullish(),
-});
+const googleInteractionsWordAnnotationSchema = () =>
+  z.object({
+    type: z.string().nullish(),
+    text: z.string().nullish(),
+    speaker: z.string().nullish(),
+    start_offset: z.string().nullish(),
+    end_offset: z.string().nullish(),
+  });
 
-const googleInteractionsTranscriptionResponseSchema = z.object({
-  status: z.string().nullish(),
-  steps: z
-    .array(
-      z.object({
-        type: z.string().nullish(),
-        content: z
-          .array(
-            z.object({
-              type: z.string().nullish(),
-              text: z.string().nullish(),
-              annotations: z
-                .array(googleInteractionsWordAnnotationSchema)
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-  usage: z.record(z.string(), z.unknown()).nullish(),
-});
+const googleInteractionsTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      steps: z
+        .array(
+          z.object({
+            type: z.string().nullish(),
+            content: z
+              .array(
+                z.object({
+                  type: z.string().nullish(),
+                  text: z.string().nullish(),
+                  annotations: z
+                    .array(googleInteractionsWordAnnotationSchema())
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+      usage: z.record(z.string(), z.json()).nullish(),
+    }),
+  ),
+);

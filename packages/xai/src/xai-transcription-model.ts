@@ -5,6 +5,10 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -25,15 +29,17 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
+import { getXaiTranscriptionModelEntry } from './xai-model-catalog';
 import {
   xaiTranscriptionModelOptionsSchema,
+  type XaiTranscriptionModelId,
   type XaiTranscriptionModelOptions,
 } from './xai-transcription-model-options';
 
 interface XaiTranscriptionModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   _internal?: {
@@ -64,7 +70,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: '';
+    modelId: XaiTranscriptionModelId;
     config: XaiTranscriptionModelConfig;
   }) {
     return new XaiTranscriptionModel(options.modelId, options.config);
@@ -75,7 +81,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   constructor(
-    readonly modelId: '',
+    readonly modelId: XaiTranscriptionModelId,
     private readonly config: XaiTranscriptionModelConfig,
   ) {}
 
@@ -92,36 +98,15 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
     });
 
     const formData = new FormData();
-    const transcriptionOptions = {
+    appendXaiSttParams(formData, {
+      ...getXaiSttParams(this.modelId, xaiOptions),
       audio_format: xaiOptions?.audioFormat,
-      sample_rate: xaiOptions?.sampleRate,
-      language: xaiOptions?.language,
       format: xaiOptions?.format,
-      multichannel: xaiOptions?.multichannel,
-      channels: xaiOptions?.channels,
-      diarize: xaiOptions?.diarize,
-      filler_words: xaiOptions?.fillerWords,
-    };
-
-    for (const [key, value] of Object.entries(transcriptionOptions)) {
-      if (value != null) {
-        formData.append(key, String(value));
-      }
-    }
-
-    if (xaiOptions?.keyterm != null) {
-      const keyterms = Array.isArray(xaiOptions.keyterm)
-        ? xaiOptions.keyterm
-        : [xaiOptions.keyterm];
-
-      for (const keyterm of keyterms) {
-        formData.append('keyterm', keyterm);
-      }
-    }
+    });
 
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
     const fileExtension = mediaTypeToExtension(mediaType);
 
@@ -147,7 +132,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/stt`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -174,6 +162,13 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words?.some(word => word.speaker != null) && {
+        providerMetadata: {
+          xai: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 
@@ -208,24 +203,28 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
 
     if (
       xaiOptions?.audioFormat == null &&
-      !isKnownInputAudioFormat(options.inputAudioFormat.type)
+      !inputAudioFormatEncodings.has(options.inputAudioFormat.type)
     ) {
       warnings.push({
         type: 'other',
         message:
           `Unrecognized inputAudioFormat.type "${options.inputAudioFormat.type}"; ` +
           `falling back to raw PCM encoding. ` +
-          `Use audio/pcm, audio/pcmu, or audio/pcma, ` +
+          `Use ${[...inputAudioFormatEncodings.keys()].join(', ')}, ` +
           `or set providerOptions.xai.audioFormat explicitly.`,
       });
     }
 
     const url = buildXaiStreamingTranscriptionUrl({
       baseURL: this.config.baseURL ?? 'https://api.x.ai/v1',
+      modelId: this.modelId,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: xaiOptions,
     });
-    const headers = combineHeaders(this.config.headers?.(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     return {
       request: { body: url.toString() },
@@ -466,84 +465,77 @@ function createXaiStreamingTranscriptionStream({
 
 function buildXaiStreamingTranscriptionUrl({
   baseURL,
+  modelId,
   inputAudioFormat,
   providerOptions,
 }: {
   baseURL: string;
+  modelId: XaiTranscriptionModelId;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: XaiTranscriptionModelOptions | undefined;
 }) {
   const url = toWebSocketUrl(`${baseURL}/stt`);
+  const params = getXaiSttParams(modelId, providerOptions);
 
-  appendSearchParam(
-    url,
-    'sample_rate',
-    providerOptions?.sampleRate ?? inputAudioFormat.rate,
-  );
-  appendSearchParam(
-    url,
-    'encoding',
-    providerOptions?.audioFormat ??
-      encodingFromInputAudioFormat(inputAudioFormat.type),
-  );
-  appendSearchParam(url, 'language', providerOptions?.language);
-  appendSearchParam(url, 'diarize', providerOptions?.diarize);
-  appendSearchParam(url, 'filler_words', providerOptions?.fillerWords);
-  appendSearchParam(url, 'multichannel', providerOptions?.multichannel);
-  appendSearchParam(url, 'channels', providerOptions?.channels);
-  appendSearchParam(
-    url,
-    'interim_results',
-    providerOptions?.streaming?.interimResults,
-  );
-  appendSearchParam(
-    url,
-    'endpointing',
-    providerOptions?.streaming?.endpointing,
-  );
-  appendSearchParam(url, 'smart_turn', providerOptions?.streaming?.smartTurn);
-  appendSearchParam(
-    url,
-    'smart_turn_timeout',
-    providerOptions?.streaming?.smartTurnTimeout,
-  );
-
-  if (providerOptions?.keyterm != null) {
-    const keyterms = Array.isArray(providerOptions.keyterm)
-      ? providerOptions.keyterm
-      : [providerOptions.keyterm];
-    for (const keyterm of keyterms) {
-      url.searchParams.append('keyterm', keyterm);
-    }
-  }
+  appendXaiSttParams(url.searchParams, {
+    ...params,
+    sample_rate: params.sample_rate ?? inputAudioFormat.rate,
+    encoding:
+      providerOptions?.audioFormat ??
+      inputAudioFormatEncodings.get(inputAudioFormat.type) ??
+      'pcm',
+    interim_results: providerOptions?.streaming?.interimResults,
+    endpointing: providerOptions?.streaming?.endpointing,
+    smart_turn: providerOptions?.streaming?.smartTurn,
+    smart_turn_timeout: providerOptions?.streaming?.smartTurnTimeout,
+  });
 
   return url;
 }
 
-function appendSearchParam(
-  url: URL,
-  key: string,
-  value: string | number | boolean | null | undefined,
+function getXaiSttParams(
+  modelId: XaiTranscriptionModelId,
+  options: XaiTranscriptionModelOptions | undefined,
 ) {
-  if (value != null) {
-    url.searchParams.set(key, String(value));
+  return {
+    model:
+      getXaiTranscriptionModelEntry(modelId).requestConfig.transcription.model,
+    sample_rate: options?.sampleRate,
+    language: options?.language,
+    multichannel: options?.multichannel,
+    channels: options?.channels,
+    diarize: options?.diarize,
+    filler_words: options?.fillerWords,
+    vad_threshold: options?.vadThreshold,
+    keyterm: options?.keyterm,
+  };
+}
+
+function appendXaiSttParams(
+  target: { append(name: string, value: string): void },
+  params: Record<
+    string,
+    string | number | boolean | string[] | null | undefined
+  >,
+) {
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item != null) {
+        target.append(key, String(item));
+      }
+    }
   }
 }
 
-function isKnownInputAudioFormat(type: string): boolean {
-  return type === 'audio/pcm' || type === 'audio/pcmu' || type === 'audio/pcma';
-}
-
-function encodingFromInputAudioFormat(type: string): 'pcm' | 'mulaw' | 'alaw' {
-  switch (type) {
-    case 'audio/pcmu':
-      return 'mulaw';
-    case 'audio/pcma':
-      return 'alaw';
-    default:
-      return 'pcm';
-  }
-}
+const inputAudioFormatEncodings = new Map<
+  string,
+  NonNullable<XaiTranscriptionModelOptions['audioFormat']>
+>([
+  ['audio/pcm', 'pcm'],
+  ['audio/pcmu', 'mulaw'],
+  ['audio/pcma', 'alaw'],
+  ['audio/opus', 'opus'],
+]);
 
 function channelId(channelIndex: number | undefined): string | undefined {
   return channelIndex == null ? undefined : `channel-${channelIndex}`;
@@ -558,17 +550,22 @@ function timingFromXaiEvent(event: XaiStreamingTranscriptionEvent) {
   };
 }
 
-const xaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const xaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            speaker: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

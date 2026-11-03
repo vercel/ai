@@ -1,7 +1,7 @@
 /**
  * Integration test workflows for WorkflowAgent using mock providers.
  */
-import { tool } from 'ai';
+import { tool, type ModelMessage, type LanguageModelUsage } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { retryingModel } from './retrying-model.js';
@@ -808,4 +808,63 @@ export async function agentSandboxE2e() {
     secondPrepareStepSawConstructorSandbox,
     prepareStepSawStepSandbox,
   };
+}
+
+export async function agentGenerateE2e(repair: boolean): Promise<{
+  text: string;
+  output: string;
+  toolOutputs: number[];
+  responseMessages: ModelMessage[];
+  usage: LanguageModelUsage;
+  events: string[];
+}> {
+  'use workflow';
+  const events: string[] = [];
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: repair ? '{' : '{"a":3,"b":7}',
+      },
+      { type: 'text', text: 'The sum is 10' },
+    ]),
+    tools: {
+      addNumbers: tool({
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      }),
+    },
+    onStepEnd: () => {
+      events.push('step');
+    },
+    onEnd: () => {
+      events.push('end');
+    },
+  });
+  const result = await agent.generate({
+    prompt: 'Add 3 and 7',
+    repairToolCall: repairToolCall as any,
+  });
+  return {
+    text: result.text,
+    output: result.output,
+    toolOutputs: result.staticToolResults.map(result => result.output),
+    responseMessages: result.responseMessages,
+    usage: result.usage,
+    events,
+  };
+}
+
+export async function agentGenerateUndefinedFailureE2e() {
+  'use workflow';
+  try {
+    await new WorkflowAgent({
+      model: mockSequenceModel([{ type: 'error', error: undefined }]),
+      maxRetries: 0,
+    }).generate({ prompt: 'fail' });
+    return { rejected: false, wasUndefined: false };
+  } catch (error) {
+    return { rejected: true, wasUndefined: error === undefined };
+  }
 }

@@ -1,3 +1,4 @@
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -559,25 +560,74 @@ describe('user messages', () => {
     );
   });
 
-  it('should throw error for file parts with provider references', async () => {
-    expect(() =>
-      convertToOpenAICompatibleChatMessages([
+  it.each(['application/pdf', 'image/png'])(
+    'should convert %s provider references to file IDs',
+    mediaType => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'custom-provider': 'file-123',
+                    openai: 'file-other',
+                  },
+                },
+                mediaType,
+                filename: 'document.pdf',
+                providerOptions: {
+                  openaiCompatible: { customOption: 'value' },
+                },
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      );
+
+      expect(result).toEqual([
         {
           role: 'user',
           content: [
             {
               type: 'file',
-              data: {
-                type: 'reference' as const,
-                reference: { openaiCompatible: 'file-123' },
-              },
-              mediaType: 'image/png',
+              file: { file_id: 'file-123' },
+              customOption: 'value',
             },
           ],
         },
-      ]),
+      ]);
+    },
+  );
+
+  it('should reject a reference without an ID for the configured provider', () => {
+    const reference = { openai: 'file-other' };
+
+    expect(() =>
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'reference', reference },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      ),
     ).toThrow(
-      "'file parts with provider references' functionality not supported",
+      new NoSuchProviderReferenceError({
+        provider: 'custom-provider',
+        reference,
+      }),
     );
   });
 });
@@ -696,6 +746,105 @@ describe('tool calls', () => {
         role: 'tool',
         content: 'It is sunny today',
         tool_call_id: 'call-1',
+      },
+    ]);
+  });
+
+  it('should stringify multi-part tool content by default', () => {
+    const value = [
+      { type: 'text' as const, text: 'image result' },
+      {
+        type: 'file' as const,
+        data: { type: 'data' as const, data: 'iVBORw0KGgo=' },
+        mediaType: 'image/png',
+      },
+    ];
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'useImage',
+            output: { type: 'content', value },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: JSON.stringify(value),
+      },
+    ]);
+  });
+
+  it('should convert multi-part tool content when supported', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { 'custom-provider': 'file-123' },
+                    },
+                    mediaType: 'application/pdf',
+                  },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { provider: 'custom-provider', supportsMultiPartToolContent: true },
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: [
+          { type: 'text', text: 'image result' },
+          { type: 'file', file: { file_id: 'file-123' } },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'data:image/png;base64,iVBORw0KGgo=',
+            },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+          },
+        ],
       },
     ]);
   });
@@ -1634,6 +1783,152 @@ describe('top-level-only media type resolution', () => {
     expect((result[0].content as unknown[])[0]).toEqual({
       type: 'image_url',
       image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  describe('tool argument and output serialization resilience', () => {
+    it('preserves string tool call arguments without double-stringifying', () => {
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"san francisco","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(result[0]).toEqual({
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'search',
+              arguments: '{"query":"san francisco","limit":5}',
+            },
+          },
+        ],
+      });
+    });
+
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      input => {
+        const result = convertToOpenAICompatibleChatMessages([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input,
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toEqual({
+          role: 'assistant',
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
+    it('safely serializes BigInt and circular structures in tool call arguments', () => {
+      const cyclicInput: any = { id: 12345678901234567890n };
+      cyclicInput.self = cyclicInput;
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'process',
+              input: cyclicInput,
+            },
+          ],
+        },
+      ]);
+
+      const message = result[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
+      expect(args).toContain('"id":"12345678901234567890"');
+      expect(args).toContain('"self":"[Circular]"');
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"count":"999999999999999999"');
+      expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', () => {
+      const shared = { city: 'Paris' };
+
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
     });
   });
 });

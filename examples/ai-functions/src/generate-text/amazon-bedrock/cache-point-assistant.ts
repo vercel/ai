@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
     messages: [
       {
         role: 'assistant',

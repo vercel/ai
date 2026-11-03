@@ -5,6 +5,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   withUserAgentSuffix,
   type FetchFunction,
@@ -12,7 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   createOpenResponsesExtensionRegistry,
-  type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from './open-responses-extension';
 import { createOpenResponsesTools } from './open-responses-tools';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
@@ -38,13 +40,14 @@ export interface OpenResponsesProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
    */
-  headers?: Record<string, string> | (() => Record<string, string>);
+  headers?: Resolvable<Record<string, string>>;
 
   /**
    * Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -90,7 +93,7 @@ export interface OpenResponsesProviderSettings {
   /**
    * User-agent suffix for requests.
    *
-   * @default `ai-sdk/open-responses/<version>`
+   * @default `ai-sdk-open-responses/<version>`
    */
   userAgentSuffix?: string;
 
@@ -99,7 +102,7 @@ export interface OpenResponsesProviderSettings {
    *
    * @experimental This API may change in a future release.
    */
-  experimental_extensions?: readonly OpenResponsesExtension[];
+  experimental_extensions?: readonly OpenResponsesExtensionRegistration[];
 }
 
 export function createOpenResponses(
@@ -112,18 +115,20 @@ export function createOpenResponses(
   );
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        ...(options.apiKey
-          ? {
-              Authorization: `Bearer ${options.apiKey}`,
-            }
-          : {}),
-        ...(typeof options.headers === 'function'
-          ? options.headers()
-          : options.headers),
-      },
-      options.userAgentSuffix ?? `ai-sdk/open-responses/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      resolveWith(options.headers, headers =>
+        withUserAgentSuffix(
+          {
+            ...(apiKey
+              ? {
+                  Authorization: `Bearer ${apiKey}`,
+                }
+              : {}),
+            ...headers,
+          },
+          options.userAgentSuffix ?? `ai-sdk-open-responses/${VERSION}`,
+        ),
+      ),
     );
 
   const createResponsesModel = (modelId: string) => {

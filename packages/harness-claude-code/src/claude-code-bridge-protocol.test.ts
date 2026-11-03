@@ -56,6 +56,14 @@ describe('outboundMessageSchema', () => {
     },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
+    {
+      type: 'raw',
+      rawValue: {
+        type: 'stream_event',
+        event: { type: 'message_stop' },
+        usage: { input_tokens: 1, output_tokens: 2 },
+      },
+    },
   ];
 
   for (const sample of cases) {
@@ -83,6 +91,38 @@ describe('outboundMessageSchema', () => {
 });
 
 describe('inboundMessageSchema', () => {
+  it('keeps the question timeout and excludeDynamicSections on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        questionTimeoutMs: 600_000,
+        excludeDynamicSections: true,
+      }),
+    ).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+  });
+
+  it('keeps strict MCP config and the budget limit on a start message', () => {
+    expect(
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        tools: [],
+        thinking: { type: 'adaptive', display: 'summarized' },
+        strictMcpConfig: true,
+        maxBudgetUsd: 0.5,
+      }),
+    ).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
   it('accepts a start message', () => {
     expect(() =>
       inboundMessageSchema.parse({
@@ -92,11 +132,26 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
+        agentProgressSummaries: true,
+        forwardSubagentText: true,
         env: { DEPLOYMENT_ENV: 'staging' },
         thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a start message with text and image prompt content', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+        thinking: { type: 'disabled' },
       }),
     ).not.toThrow();
   });
@@ -110,6 +165,44 @@ describe('inboundMessageSchema', () => {
         resumeSessionId: 'claude-session-1',
       }),
     ).not.toThrow();
+  });
+
+  it('preserves skill overrides', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      skillOverrides: {
+        'enabled-skill': 'on',
+        'name-only-skill': 'name-only',
+        'user-invocable-skill': 'user-invocable-only',
+        'disabled-skill': 'off',
+      },
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it('rejects unsupported skill override modes', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        skillOverrides: { init: 'disabled' },
+      }),
+    ).toThrow();
+  });
+
+  it('does not preserve arbitrary native settings', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      settings: { permissions: { defaultMode: 'bypassPermissions' } },
+    });
+
+    expect(parsed).not.toHaveProperty('settings');
   });
 
   it('rejects a non-string resumeSessionId', () => {

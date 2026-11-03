@@ -299,20 +299,20 @@ The `createProviderRegistry` function returns a `Provider` instance. It has the 
   ]}
 />
 
-## Experimental evaluation models
+## Experimental decision models
 
-The inferred return type also exposes `evaluationModel('providerId:modelId')`,
-returning `Experimental_EvaluationModelV4`. The provider must expose an
-`evaluationModel` factory. Custom separators and model ID
+The inferred return type also exposes `decisionModel('providerId:modelId')`,
+returning `Experimental_DecisionModelV4`. The provider must expose an
+`decisionModel` factory. Custom separators and model ID
 inference work as they do for video models. Language and image middleware do not
-wrap evaluation models. `ProviderRegistryProvider` remains a stable interface;
-use the inferred return type or `Experimental_EvaluationProviderRegistry` to
-retain experimental evaluation access.
+wrap decision models. `ProviderRegistryProvider` remains a stable interface;
+use the inferred return type or `Experimental_DecisionProviderRegistry` to
+retain experimental decision access.
 
-Unavailable evaluation capabilities or models throw `NoSuchModelError` with
-`modelType: 'evaluationModel'`; unknown registry providers throw
+Unavailable decision capabilities or models throw `NoSuchModelError` with
+`modelType: 'decisionModel'`; unknown registry providers throw
 `NoSuchProviderError`. These capabilities are structural extensions and are not
-added to the stable `ProviderV4` contract. Direct evaluation string IDs default
+added to the stable `ProviderV4` contract. Direct decision string IDs default
 to Gateway when no default provider is configured.
-See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+See [Decisions](/docs/ai-sdk-core/decisions#model-aliases-and-registries)
 for runnable usage patterns.

@@ -209,6 +209,8 @@ The exception is per-session bridge authentication tokens, which bridge-backed a
 
 Credential brokering requires a `HarnessV1NetworkSandboxSession` implementation with `addRequestTransformations()` and is strongly recommended. The adapter installs outbound HTTPS request transformations that match the placeholder and destination, then inject the real credential after the request leaves the sandbox security boundary.
 
+On every brokered start or resume, bridge-backed adapters must call `resolveSandboxCredentialEnvironment` from `@ai-sdk/harness/utils`. It returns only currently present credential names, preserves sandbox-facing values for matching names, and generates placeholders for newly present names. Use that result in the sandbox environment and persist it in the next lifecycle state; build request transformations against the current host credentials.
+
 When `addRequestTransformations()` is unavailable, adapters fall back to forwarding authentication values into the sandbox process. This is the only supported case in which real model or provider credentials may enter the sandbox. The adapter warns if a real credential remains in the forwarded environment. It does not warn if `credentialForwarding` replaces every real credential with a caller-managed value.
 
 The optional `credentialForwarding` adapter setting provides advanced control over each value before it enters the sandbox. It receives a non-secret placeholder when credential brokering is available and the real credential otherwise; its return value is what the sandbox process receives. It does not restrict which credentials the adapter can discover or access on the host.

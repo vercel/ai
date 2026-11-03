@@ -375,7 +375,7 @@ export async function runHarnessAgent<OUTPUT = unknown>(
       await destroyQuietly(session);
       resumeFrom = undefined;
     } else {
-      resumeFrom = await session.detach().catch(() => state.resumeFrom);
+      resumeFrom = await session.detach();
     }
 
     return {

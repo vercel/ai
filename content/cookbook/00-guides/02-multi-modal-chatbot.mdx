@@ -355,7 +355,7 @@ With the AI SDK's unified provider interface you can easily switch to other prov
 ```tsx filename="app/api/chat/route.ts"
 // Using Anthropic
 const result = streamText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   messages: await convertToModelMessages(messages),
 });
 

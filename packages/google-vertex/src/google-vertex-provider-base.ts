@@ -6,16 +6,19 @@ import {
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  InvalidArgumentError,
+  LoadAPIKeyError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   normalizeHeaders,
@@ -56,15 +59,25 @@ function isEndpointModelId(modelId: string): boolean {
 
 // set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
-  apiKey: string,
+  apiKey: Resolvable<string>,
   customFetch?: FetchFunction,
 ): FetchFunction {
   return async (url, init) => {
+    const resolvedApiKey = await resolve(apiKey);
+    if (
+      typeof apiKey !== 'string' &&
+      (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+    ) {
+      throw new LoadAPIKeyError({
+        message: 'Google Vertex API key must be a non-empty string.',
+      });
+    }
+
     const modifiedInit: RequestInit = {
       ...init,
       headers: {
         ...(init?.headers ? normalizeHeaders(init.headers) : {}),
-        'x-goog-api-key': apiKey,
+        'x-goog-api-key': resolvedApiKey,
       },
     };
     return (customFetch ?? fetch)(url.toString(), modifiedInit);
@@ -151,8 +164,9 @@ export interface GoogleVertexProviderSettings {
    * Optional. The API key for the Google Cloud project. If provided, the
    * provider will use express mode with API key authentication. Defaults to
    * the value of the `GOOGLE_VERTEX_API_KEY` environment variable.
+   * A callback is resolved before each request and must return a non-empty key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
@@ -212,10 +226,13 @@ export interface GoogleVertexProviderSettings {
 export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
-  const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
-  });
+  const apiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+        })
+      : options.apiKey;
 
   const loadGoogleVertexProject = () =>
     loadSetting({
@@ -225,13 +242,22 @@ export function createGoogleVertex(
       description: 'Google Vertex project',
     });
 
-  const loadGoogleVertexLocation = () =>
-    loadSetting({
+  const loadGoogleVertexLocation = () => {
+    const location = loadSetting({
       settingValue: options.location,
       settingName: 'location',
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
       description: 'Google Vertex location',
     });
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
@@ -240,6 +266,11 @@ export function createGoogleVertex(
   const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
+    }
+
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
     }
 
     const region = loadGoogleVertexLocation();
@@ -255,12 +286,9 @@ export function createGoogleVertex(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
-        endpoint ? '' : '/publishers/google'
-      }`
-    );
+    return `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+      endpoint ? '' : '/publishers/google'
+    }`;
   };
 
   const createConfig = (
@@ -271,7 +299,7 @@ export function createGoogleVertex(
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
         originalHeaders,
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
       );
     };
 

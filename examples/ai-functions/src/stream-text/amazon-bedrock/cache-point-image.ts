@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
     maxOutputTokens: 512,
     messages: [
       {

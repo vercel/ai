@@ -6,10 +6,8 @@ The **[Moonshot AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/moons
 
 ## Setup
 
-The Moonshot AI provider is available in the `@ai-sdk/moonshotai` module. You can install it with
-
 ```bash
-npm i @ai-sdk/moonshotai
+npm i ai @ai-sdk/moonshotai
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `moonshotai` from `@ai-sdk/moonshotai`:
-
-```ts
-import { moonshotai } from '@ai-sdk/moonshotai';
-```
-
-## Language Model Example
+## Usage
 
 ```ts
 import { moonshotai } from '@ai-sdk/moonshotai';
@@ -40,58 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Reasoning Effort Example (Kimi K3)
-
-```ts
-import {
-  moonshotai,
-  type MoonshotAILanguageModelOptions,
-} from '@ai-sdk/moonshotai';
-import { generateText } from 'ai';
-
-const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k3'),
-  prompt: 'Solve this problem step by step: What is 15% of 240?',
-  providerOptions: {
-    moonshotai: {
-      reasoningEffort: 'high',
-    } satisfies MoonshotAILanguageModelOptions,
-  },
-});
-
-console.log(reasoningText);
-console.log(text);
-```
-
-Kimi K2.6 supports thinking and non-thinking modes. Enable it with
-`thinking: { type: 'enabled' }` or disable it with
-`thinking: { type: 'disabled' }`.
-
-Kimi K2.7 Code always has thinking enabled and uses Preserved Thinking. Keep
-reasoning history in multi-turn conversations:
-
-```ts
-import {
-  moonshotai,
-  type MoonshotAILanguageModelOptions,
-} from '@ai-sdk/moonshotai';
-import { generateText } from 'ai';
-
-const { text, reasoningText } = await generateText({
-  model: moonshotai('kimi-k2.7-code'),
-  prompt: 'Solve this problem step by step: What is 15% of 240?',
-  providerOptions: {
-    moonshotai: {
-      thinking: { type: 'enabled' },
-      reasoningHistory: 'preserved',
-    } satisfies MoonshotAILanguageModelOptions,
-  },
-});
-
-console.log(reasoningText);
-console.log(text);
-```
-
-## Documentation
-
-Please check out the **[Moonshot AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai)** for more information.
+See the [Moonshot AI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai) for more information.

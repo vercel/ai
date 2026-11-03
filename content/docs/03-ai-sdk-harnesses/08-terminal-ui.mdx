@@ -6,8 +6,8 @@ description: Use @ai-sdk/tui with HarnessAgent.
 # Harnesses with Terminal UI
 
 `@ai-sdk/tui` can render harness streams, tool calls, reasoning sections, and
-approval prompts in a terminal. Because `HarnessAgent` requires a session on
-every call, wrap it with a small `AgentTUIAgent` adapter that injects one
+approval prompts in a terminal. Because `HarnessAgent` requires a session for
+`generate` and `stream` calls, wrap it with a small `AgentTUIAgent` adapter that injects one
 session for the lifetime of the terminal UI.
 
 ## Installation

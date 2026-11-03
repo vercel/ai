@@ -82,7 +82,39 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    await expect(transport.start()).rejects.toThrow();
+    let caughtError: MCPClientError | undefined;
+    try {
+      await transport.start();
+    } catch (error) {
+      caughtError = error as MCPClientError;
+    }
+
+    expect(caughtError).toBeInstanceOf(MCPClientError);
+    expect(caughtError?.statusCode).toBe(500);
+    expect(caughtError?.url).toBe('http://localhost:3000/sse');
+    expect(caughtError?.responseBody).toBe('Internal Server Error');
+  });
+
+  it('should reject when the connection closes before receiving an endpoint', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
+
+    const connectPromise = transport.start();
+    await controller.close();
+
+    await expect(connectPromise).rejects.toThrow(
+      'MCP SSE Transport Error: Connection closed before endpoint event was received',
+    );
+    expect(reportedError).toBeInstanceOf(MCPClientError);
   });
 
   it('should handle valid JSON-RPC messages', async () => {

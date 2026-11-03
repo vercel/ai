@@ -8,6 +8,24 @@ import semver from 'semver';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+const sdkPackagesToSync = [
+  '@agentclientprotocol/sdk',
+  '@modelcontextprotocol/sdk',
+];
+
+/*
+ * ACP adapters with an npm-locked source replace the harness-acp bridge
+ * manifest with their own bridge manifest, so their manifests must declare
+ * every harness-acp bridge dependency at the same version.
+ */
+const acpBridgeManifestPath = 'packages/harness-acp/src/v1/bridge/package.json';
+const acpNpmLockedBridgeManifestPaths = [
+  'packages/harness-github-copilot/src/bridge/package.json',
+  'packages/harness-grok-build/src/bridge/package.json',
+  'examples/ai-functions/src/lib/codex-acp-bridge/package.json',
+  'examples/harness-e2e-next/agent/harness/acp-codex/bridge/package.json',
+];
+
 const adapterConfigs = [
   {
     name: 'ACP',
@@ -212,6 +230,64 @@ export function validatePrimaryVersionAlignment({
   ];
 }
 
+export function validateSynchronizedSdkVersions({ manifests }) {
+  const errors = [];
+
+  for (const packageName of sdkPackagesToSync) {
+    const declarations = manifests.flatMap(
+      ({ adapterName, manifest, manifestPath }) => {
+        const spec = getDependencySpec({ manifest, packageName });
+        return spec == null ? [] : [{ adapterName, manifestPath, spec }];
+      },
+    );
+
+    if (declarations.length < 2) continue;
+
+    const [firstDeclaration, ...otherDeclarations] = declarations;
+    for (const declaration of otherDeclarations) {
+      if (declaration.spec === firstDeclaration.spec) continue;
+
+      errors.push(
+        `Harness adapter manifests declare different versions of ${packageName}: ` +
+          `${firstDeclaration.spec} in ${firstDeclaration.adapterName} ` +
+          `(${firstDeclaration.manifestPath}) and ${declaration.spec} in ` +
+          `${declaration.adapterName} (${declaration.manifestPath}).`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+export function validateACPBridgeDependencies({
+  acpBridgeManifest,
+  acpBridgeManifestPath,
+  manifests,
+}) {
+  const errors = [];
+
+  for (const [packageName, expectedSpec] of Object.entries(
+    acpBridgeManifest.dependencies ?? {},
+  )) {
+    for (const { manifest, manifestPath } of manifests) {
+      const spec = manifest.dependencies?.[packageName];
+      if (spec == null) {
+        errors.push(
+          `${manifestPath} does not declare ${packageName}@${expectedSpec} ` +
+            `from ${acpBridgeManifestPath} in its dependencies.`,
+        );
+      } else if (spec !== expectedSpec) {
+        errors.push(
+          `${manifestPath} declares ${packageName}@${spec}, but ` +
+            `${acpBridgeManifestPath} declares ${packageName}@${expectedSpec}.`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
 function discoverAdapterPackageDirs() {
   return globSync('packages/harness-*/package.json', {
     cwd: repoRoot,
@@ -248,7 +324,25 @@ function main() {
     return;
   }
 
+  const acpBridgeDependencyErrors = validateACPBridgeDependencies({
+    acpBridgeManifest: readJson(resolve(repoRoot, acpBridgeManifestPath)),
+    acpBridgeManifestPath,
+    manifests: acpNpmLockedBridgeManifestPaths.map(manifestPath => ({
+      manifest: readJson(resolve(repoRoot, manifestPath)),
+      manifestPath,
+    })),
+  });
+  if (acpBridgeDependencyErrors.length > 0) {
+    reportErrors({
+      heading: 'ACP bridge dependency alignment failed',
+      errors: acpBridgeDependencyErrors,
+    });
+    process.exitCode = 1;
+    return;
+  }
+
   const adapterData = [];
+  const synchronizedSdkManifests = [];
   const peerCompatibilityErrors = [];
   let verifiedManifestCount = 0;
 
@@ -267,6 +361,29 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    synchronizedSdkManifests.push({
+      adapterName: adapter.name,
+      manifest: rootManifest,
+      manifestPath: relative(repoRoot, rootPackageJsonPath),
+    });
+
+    const bridgePackageJsonPath = resolve(
+      repoRoot,
+      adapter.packageDir,
+      adapter.bridgePath ?? 'src/bridge',
+      'package.json',
+    );
+    const bridgeManifest = existsSync(bridgePackageJsonPath)
+      ? readJson(bridgePackageJsonPath)
+      : undefined;
+    if (bridgeManifest != null) {
+      synchronizedSdkManifests.push({
+        adapterName: `${adapter.name} bridge`,
+        manifest: bridgeManifest,
+        manifestPath: relative(repoRoot, bridgePackageJsonPath),
+      });
+    }
+
     if (adapter.primarySdk == null) {
       continue;
     }
@@ -316,15 +433,6 @@ function main() {
     );
     verifiedManifestCount++;
 
-    const bridgePackageJsonPath = resolve(
-      repoRoot,
-      adapter.packageDir,
-      adapter.bridgePath ?? 'src/bridge',
-      'package.json',
-    );
-    const bridgeManifest = existsSync(bridgePackageJsonPath)
-      ? readJson(bridgePackageJsonPath)
-      : undefined;
     if (bridgeManifest != null) {
       peerCompatibilityErrors.push(
         ...validatePeerRanges({
@@ -345,6 +453,18 @@ function main() {
       rootManifest,
       rootPackageJsonPath,
     });
+  }
+
+  const synchronizedSdkVersionErrors = validateSynchronizedSdkVersions({
+    manifests: synchronizedSdkManifests,
+  });
+  if (synchronizedSdkVersionErrors.length > 0) {
+    reportErrors({
+      heading: 'Harness adapter shared SDK version alignment failed',
+      errors: synchronizedSdkVersionErrors,
+    });
+    process.exitCode = 1;
+    return;
   }
 
   if (peerCompatibilityErrors.length > 0) {
@@ -385,6 +505,11 @@ function main() {
       `adapter manifest${verifiedManifestCount === 1 ? '' : 's'}.`,
   );
   console.log('✓ Verified primary SDK versions match across bridge manifests.');
+  console.log('✓ Verified shared SDK versions match across harness manifests.');
+  console.log(
+    '✓ Verified npm-locked ACP bridge manifests include the harness-acp ' +
+      'bridge dependencies.',
+  );
 }
 
 if (

@@ -88,7 +88,7 @@ describe('ACP recovered session', () => {
     );
   });
 
-  it('sends implementation-specific prompt metadata', async () => {
+  it('sends agent-specific prompt metadata', async () => {
     const request = vi.fn(async () => ({ stopReason: 'end_turn' as const }));
     const session = createACPRecoveredSession({
       agent: { request } as unknown as acp.ClientContext,

@@ -18,7 +18,7 @@
     "@ai-sdk/svelte": "workspace:*",
     "@sveltejs/adapter-vercel": "^6.3.3",
     "@sveltejs/kit": "^2.70.2",
-    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/node": "22.19.19",
     "ai": "workspace:*",
     "autoprefixer": "^10.5.0",
@@ -30,8 +30,8 @@
     "tailwind-variants": "^1.0.0",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.3",
+    "typescript": "6.0.3",
+    "vite": "^7.3.5",
     "zod": "3.25.76"
   }
 }

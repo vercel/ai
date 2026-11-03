@@ -68,7 +68,7 @@ The `options` parameter is now required and type-checked. If you don't provide i
 
 ## Modifying Agent Settings
 
-Use `prepareCall` to modify any agent setting. Return only the settings you want to change.
+Use `prepareCall` to modify any agent setting. The returned object replaces the call settings, so spread the incoming settings and override only the ones you want to change.
 
 ### Dynamic Model Selection
 

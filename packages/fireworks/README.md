@@ -6,10 +6,8 @@ The **[Fireworks provider](https://ai-sdk.dev/providers/ai-sdk-providers/firewor
 
 ## Setup
 
-The Fireworks provider is available in the `@ai-sdk/fireworks` module. You can install it with
-
 ```bash
-npm i @ai-sdk/fireworks
+npm i ai @ai-sdk/fireworks
 ```
 
 ## Skill for Coding Agents
@@ -20,15 +18,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `fireworks` from `@ai-sdk/fireworks`:
-
-```ts
-import { fireworks } from '@ai-sdk/fireworks';
-```
-
-## Language Model Example
+## Usage
 
 ```ts
 import { fireworks } from '@ai-sdk/fireworks';
@@ -40,22 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Image Model Examples
-
-```ts
-import { fireworks } from '@ai-sdk/fireworks';
-import { generateImage } from 'ai';
-import fs from 'fs';
-
-const { image } = await generateImage({
-  model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
-  prompt: 'A serene mountain landscape at sunset',
-});
-const filename = `image-${Date.now()}.png`;
-fs.writeFileSync(filename, image.uint8Array);
-console.log(`Image saved to ${filename}`);
-```
-
-## Documentation
-
-Please check out the **[Fireworks provider](https://ai-sdk.dev/providers/ai-sdk-providers/fireworks)** for more information.
+See the [Fireworks Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/fireworks) for more information.

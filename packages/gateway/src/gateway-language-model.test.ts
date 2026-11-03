@@ -54,6 +54,30 @@ describe('GatewayLanguageModel', () => {
     });
   });
 
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s cancellation',
+    method => {
+      it.each(['AbortError', 'TimeoutError'])(
+        'should preserve the original %s from fetch',
+        async name => {
+          const error = new DOMException('Request cancelled', name);
+          const controller = new AbortController();
+          controller.abort(error);
+          const model = createTestModel({
+            fetch: vi.fn().mockRejectedValue(error),
+          });
+
+          await expect(
+            model[method]({
+              prompt: TEST_PROMPT,
+              abortSignal: controller.signal,
+            }),
+          ).rejects.toBe(error);
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
     function prepareJsonResponse({
       content = { type: 'text', text: '' },

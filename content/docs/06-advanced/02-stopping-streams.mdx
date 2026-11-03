@@ -120,12 +120,12 @@ const result = streamText({
   model: __MODEL__,
   prompt: 'Write a long story...',
   abortSignal: controller.signal,
-  onAbort: ({ steps }) => {
+  onAbort: async ({ steps }) => {
     // Called when stream is aborted - persist partial results
     await savePartialResults(steps);
     await logAbortEvent(steps.length);
   },
-  onEnd: ({ steps, totalUsage }) => {
+  onEnd: async ({ steps, totalUsage }) => {
     // Called when stream completes normally
     await saveFinalResults(steps, totalUsage);
   },

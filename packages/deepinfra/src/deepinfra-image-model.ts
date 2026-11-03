@@ -4,6 +4,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -28,7 +30,7 @@ import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 interface DeepInfraImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -38,6 +40,27 @@ interface DeepInfraImageModelConfig {
 export class DeepInfraImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'stabilityai/sd3.5',
+      'black-forest-labs/FLUX-1.1-pro',
+      'black-forest-labs/FLUX-1-schnell',
+      'black-forest-labs/FLUX-1-dev',
+      'black-forest-labs/FLUX-pro',
+      'black-forest-labs/FLUX.1-Kontext-dev',
+      'black-forest-labs/FLUX.1-Kontext-pro',
+      'Qwen/Qwen-Image-Edit',
+      'stabilityai/sd3.5-medium',
+      'stabilityai/sdxl-turbo',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -88,7 +111,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
-        headers: combineHeaders(this.config.headers?.(), headers),
+        headers: combineHeaders(await resolve(this.config.headers), headers),
         formData: convertToFormData<DeepInfraFormDataInput>(
           {
             model: this.modelId,
@@ -129,7 +152,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     const splitSize = size?.split('x');
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         prompt,
         num_images: n,

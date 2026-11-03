@@ -54,6 +54,50 @@ describe('ByteDanceImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'seedream-5-0-260128',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      ...[
+        'dola-seedream-5-0-pro-260628',
+        'seedream-5-0-lite-260128',
+        'seedream-4-5-251128',
+        'seedream-4-0-250828',
+      ].map(modelId => ({
+        modelId,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      })),
+      ...['not-seedream', 'custom-seedream-model', 'seedream-future'].map(
+        modelId => ({
+          modelId,
+          supportsFileInputs: undefined,
+          supportsMaskInputs: undefined,
+        }),
+      ),
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new ByteDanceImageModel(modelId, {
+          provider: 'bytedance.image',
+          baseURL: 'https://api.example.com',
+          headers: () => ({}),
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();

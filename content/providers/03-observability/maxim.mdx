@@ -137,7 +137,7 @@ for await (const textPart of textStream) {
 
 ### **Using Custom Metadata**
 
-```javascript
+```ts
 import { MaximVercelProviderMetadata } from '@maximai/maxim-js/vercel-ai-sdk';
 
 const response = await generateText({
@@ -181,10 +181,13 @@ const response = await generateText({
 
 ## Streaming Support
 
-```javascript
+```ts
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { wrapMaximAISDKModel, MaximVercelProviderMetadata } from '@maximai/maxim-js/vercel-ai-sdk';
+import {
+  wrapMaximAISDKModel,
+  MaximVercelProviderMetadata,
+} from '@maximai/maxim-js/vercel-ai-sdk';
 
 const model = wrapMaximAISDKModel(openai('gpt-6-astra'), logger);
 
@@ -197,7 +200,7 @@ const { textStream } = await streamText({
       traceName: 'Story Generation',
       traceTags: {
         type: 'creative',
-        format: 'streaming'
+        format: 'streaming',
       },
     } as MaximVercelProviderMetadata,
   },
@@ -219,7 +222,7 @@ import { wrapMaximAISDKModel } from '@maximai/maxim-js/vercel-ai-sdk';
 // Wrap different provider models
 const openaiModel = wrapMaximAISDKModel(openai('gpt-6-astra'), logger);
 const anthropicModel = wrapMaximAISDKModel(
-  anthropic('claude-sonnet-5'),
+  anthropic('claude-sonnet-5-5'),
   logger,
 );
 const googleModel = wrapMaximAISDKModel(google('gemini-pro'), logger);
@@ -236,18 +239,21 @@ const responses = await Promise.all([
 
 ### **API Route Example**
 
-```javascript
-// app/api/chat/route.js
+```ts
+// app/api/chat/route.ts
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { wrapMaximAISDKModel, MaximVercelProviderMetadata } from '@maximai/maxim-js/vercel-ai-sdk';
-import { Maxim } from "@maximai/maxim-js";
+import {
+  wrapMaximAISDKModel,
+  MaximVercelProviderMetadata,
+} from '@maximai/maxim-js/vercel-ai-sdk';
+import { Maxim } from '@maximai/maxim-js';
 
-const maxim = new Maxim({ apiKey });
+const maxim = new Maxim({ apiKey: process.env.MAXIM_API_KEY });
 const logger = await maxim.logger({ id: process.env.MAXIM_LOG_REPO_ID });
 const model = wrapMaximAISDKModel(openai('gpt-6-astra'), logger);
 
-export async function POST(req) {
+export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
@@ -259,7 +265,7 @@ export async function POST(req) {
         traceName: 'Chat API',
         traceTags: {
           endpoint: '/api/chat',
-          type: 'conversation'
+          type: 'conversation',
         },
       } as MaximVercelProviderMetadata,
     },

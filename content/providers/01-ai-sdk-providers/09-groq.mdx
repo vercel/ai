@@ -1,18 +1,64 @@
 ---
 title: Groq
-description: Learn how to use Groq.
+description: Learn how to use Groq with AI Gateway and the direct provider.
 ---
 
 # Groq Provider
 
 The [Groq](https://groq.com/) provider contains language model support for the Groq API.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/groq` to connect directly to Groq.
 
-## Setup
+```ts provider="groq" model="openai/gpt-oss-120b"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Groq provider is available via the `@ai-sdk/groq` module.
-You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/groq" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['groq']`. This sends the request to Groq first, then falls back to other available providers of the same model if Groq is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Groq. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Groq through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/groq`
+
+For direct access to Groq, install `ai` and `@ai-sdk/groq`:
+
+<InstallPackages packages="ai @ai-sdk/groq" />
+
+Set your Groq API credential in the `GROQ_API_KEY` environment variable:
+
+```bash
+export GROQ_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/groq`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/groq` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -40,10 +86,13 @@ You can use the following optional settings to customize the Groq provider insta
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.groq.com/openai/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `GROQ_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -105,7 +154,7 @@ The following optional provider options are available for Groq language models:
     - Supported values:
       - `none`: Disable reasoning. The model will not use any reasoning tokens.
       - `default`: Enable reasoning.
-  - `gpt-oss20b/gpt-oss120b`
+  - `openai/gpt-oss-20b` and `openai/gpt-oss-120b`
     - Supported values:
       - `low`: Use a low level of reasoning effort.
       - `medium`: Use a medium level of reasoning effort.
@@ -282,28 +331,32 @@ const { text } = await generateText({
 
 ## Model Capabilities
 
-| Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `gemma2-9b-it`                                  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `llama-3.1-8b-instant`                          | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `llama-3.3-70b-versatile`                       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/llama-guard-4-12b`                  | <Check />   | <Check />         | <Cross />  | <Cross />      |
-| `deepseek-r1-distill-llama-70b`                 | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/llama-4-maverick-17b-128e-instruct` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/llama-4-scout-17b-16e-instruct`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/llama-prompt-guard-2-22m`           | <Cross />   | <Check />         | <Cross />  | <Cross />      |
-| `meta-llama/llama-prompt-guard-2-86m`           | <Cross />   | <Check />         | <Cross />  | <Cross />      |
-| `moonshotai/kimi-k2-instruct-0905`              | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `qwen/qwen3.6-27b`                              | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `llama-guard-3-8b`                              | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `llama3-70b-8192`                               | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `llama3-8b-8192`                                | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mixtral-8x7b-32768`                            | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `qwen-qwq-32b`                                  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `qwen-2.5-32b`                                  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-r1-distill-qwen-32b`                  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `openai/gpt-oss-20b`                            | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `openai/gpt-oss-120b`                           | <Cross />   | <Check />         | <Check />  | <Check />      |
+{/* model-capabilities:groq-language:start */}
+
+| Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming | Browser Search |
+| ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- | -------------- |
+| `gemma2-9b-it`                                  | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `llama-3.1-8b-instant`                          | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `llama-3.3-70b-versatile`                       | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `meta-llama/llama-guard-4-12b`                  | <Check />   | <Check />         | <Cross />  | <Cross />      | <Cross />      |
+| `deepseek-r1-distill-llama-70b`                 | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `meta-llama/llama-4-maverick-17b-128e-instruct` | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `meta-llama/llama-4-scout-17b-16e-instruct`     | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `meta-llama/llama-prompt-guard-2-22m`           | <Cross />   | <Check />         | <Cross />  | <Cross />      | <Cross />      |
+| `meta-llama/llama-prompt-guard-2-86m`           | <Cross />   | <Check />         | <Cross />  | <Cross />      | <Cross />      |
+| `moonshotai/kimi-k2-instruct-0905`              | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `qwen/qwen3.6-27b`                              | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `llama-guard-3-8b`                              | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `llama3-70b-8192`                               | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `llama3-8b-8192`                                | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `mixtral-8x7b-32768`                            | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `qwen-qwq-32b`                                  | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `qwen-2.5-32b`                                  | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `deepseek-r1-distill-qwen-32b`                  | <Cross />   | <Check />         | <Check />  | <Check />      | <Cross />      |
+| `openai/gpt-oss-20b`                            | <Cross />   | <Check />         | <Check />  | <Check />      | <Check />      |
+| `openai/gpt-oss-120b`                           | <Cross />   | <Check />         | <Check />  | <Check />      | <Check />      |
+
+{/* model-capabilities:groq-language:end */}
 
 <Note>
   The tables above list the most commonly used models. Please see the [Groq
@@ -318,14 +371,16 @@ Groq provides a browser search tool that offers interactive web browsing capabil
 
 ### Supported Models
 
-Browser search is only available for these specific models:
+Browser search is available on Groq's GPT-OSS models, for example:
 
 - `openai/gpt-oss-20b`
 - `openai/gpt-oss-120b`
 
 <Note type="warning">
-  Browser search will only work with the supported models listed above. Using it
-  with other models will generate a warning and the tool will be ignored.
+  Known model IDs without browser search support (such as the Llama, Qwen, and
+  Kimi models) will generate a warning and the tool will be ignored. Unknown
+  model IDs are forwarded with the tool, and the Groq API decides whether it is
+  supported.
 </Note>
 
 ### Basic Usage
@@ -380,13 +435,13 @@ for await (const delta of result.stream) {
 ### Best Practices
 
 - Use `toolChoice: 'required'` to ensure the browser search is activated
-- Only supported on `openai/gpt-oss-20b` and `openai/gpt-oss-120b` models
+- Use a model that supports browser search, such as `openai/gpt-oss-20b` or `openai/gpt-oss-120b`
 - The tool works automatically - no configuration parameters needed
 - Server-side execution means no additional API keys or setup required
 
 ### Model Validation
 
-The provider automatically validates model compatibility:
+The provider ignores the tool for known model IDs without browser search support:
 
 ```ts
 // ✅ Supported - will work
@@ -400,7 +455,7 @@ const result = await generateText({
   model: groq('llama-3.1-8b-instant'),
   tools: { browser_search: groq.tools.browserSearch({}) },
 });
-// Warning: "Browser search is only supported on models: openai/gpt-oss-20b, openai/gpt-oss-120b"
+// Warning: "Browser search is not supported on model llama-3.1-8b-instant."
 ```
 
 <Note>
@@ -465,7 +520,11 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `whisper-large-v3`       | <Check />     | <Check /> | <Check /> | <Check /> |
-| `whisper-large-v3-turbo` | <Check />     | <Check /> | <Check /> | <Check /> |
+{/* model-capabilities:groq-transcription:start */}
+
+| Model                    | Transcription | Streaming | Duration                                                     | Segments                                                     | Language                                                     |
+| ------------------------ | ------------- | --------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `whisper-large-v3`       | <Check />     | <Cross /> | Conditional: Returned when responseFormat is 'verbose_json'. | Conditional: Returned when responseFormat is 'verbose_json'. | Conditional: Returned when responseFormat is 'verbose_json'. |
+| `whisper-large-v3-turbo` | <Check />     | <Cross /> | Conditional: Returned when responseFormat is 'verbose_json'. | Conditional: Returned when responseFormat is 'verbose_json'. | Conditional: Returned when responseFormat is 'verbose_json'. |
+
+{/* model-capabilities:groq-transcription:end */}

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     prompt: 'Find out weather data in SF',
     stopWhen: isStepCount(10),
     tools: {

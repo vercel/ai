@@ -26,6 +26,8 @@ export {
   type InferToolOutput,
   type Experimental_SandboxSession,
   type Experimental_SandboxProcess,
+  type Experimental_SandboxFileStat,
+  type Experimental_SandboxDirectoryEntry,
   type Experimental_ToolCallerTool,
   type Schema,
   type Tool,
@@ -41,7 +43,7 @@ export * from './agent';
 export * from './batch';
 export * from './embed';
 export * from './error';
-export * from './evaluate';
+export * from './decide';
 export * from './generate-image';
 export * from './generate-object';
 export * from './generate-speech';

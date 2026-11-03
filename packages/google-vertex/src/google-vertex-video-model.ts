@@ -9,6 +9,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -443,30 +446,34 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
   }
 }
 
-const googleVertexOperationSchema = z.object({
-  name: z.string().nullish(),
-  done: z.boolean().nullish(),
-  error: z
-    .object({
-      code: z.number().nullish(),
-      message: z.string(),
-      status: z.string().nullish(),
-    })
-    .nullish(),
-  response: z
-    .object({
-      videos: z
-        .array(
-          z.object({
-            bytesBase64Encoded: z.string().nullish(),
-            gcsUri: z.string().nullish(),
-            mimeType: z.string().nullish(),
-          }),
-        )
+const googleVertexOperationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      name: z.string().nullish(),
+      done: z.boolean().nullish(),
+      error: z
+        .object({
+          code: z.number().nullish(),
+          message: z.string(),
+          status: z.string().nullish(),
+        })
         .nullish(),
-      raiMediaFilteredCount: z.number().nullish(),
-    })
-    .nullish(),
-});
+      response: z
+        .object({
+          videos: z
+            .array(
+              z.object({
+                bytesBase64Encoded: z.string().nullish(),
+                gcsUri: z.string().nullish(),
+                mimeType: z.string().nullish(),
+              }),
+            )
+            .nullish(),
+          raiMediaFilteredCount: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
-type VertexOperation = z.infer<typeof googleVertexOperationSchema>;
+type VertexOperation = InferSchema<typeof googleVertexOperationSchema>;

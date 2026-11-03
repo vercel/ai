@@ -34,9 +34,9 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-embedding-model-settings.ts',
     typeName: 'GatewayEmbeddingModelId',
   },
-  evaluation: {
-    outputFile: 'gateway-evaluation-model-settings.ts',
-    typeName: 'GatewayEvaluationModelId',
+  decision: {
+    outputFile: 'gateway-decision-model-settings.ts',
+    typeName: 'GatewayDecisionModelId',
   },
   image: {
     outputFile: 'gateway-image-model-settings.ts',
@@ -115,10 +115,13 @@ async function main() {
   const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
-    if (!modelsByType[model.type]) {
-      modelsByType[model.type] = [];
+    // Gateway's catalog migrates evaluation models to decision one at a time.
+    // so treat evaluation as decision for now.
+    const type = model.type === 'evaluation' ? 'decision' : model.type;
+    if (!modelsByType[type]) {
+      modelsByType[type] = [];
     }
-    modelsByType[model.type].push(model.id);
+    modelsByType[type].push(model.id);
   }
 
   const writtenPaths: string[] = [];

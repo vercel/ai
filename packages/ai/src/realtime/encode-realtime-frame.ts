@@ -3,14 +3,19 @@ export const REALTIME_MAX_FRAME_BYTES = 128 * 1024;
 export const REALTIME_MAX_BUFFERED_BYTES = 128 * 1024;
 
 export type EncodedRealtimeFrame = {
-  data: string | ArrayBuffer | ArrayBufferView | Blob;
+  data: string | ArrayBuffer | ArrayBufferView<ArrayBuffer> | Blob;
   byteLength: number;
 };
 
 /** Serialize once, measuring the exact payload passed to the browser. */
 export function encodeRealtimeFrame(value: unknown): EncodedRealtimeFrame {
-  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value))
+  if (value instanceof ArrayBuffer)
     return { data: value, byteLength: value.byteLength };
+  if (ArrayBuffer.isView(value))
+    return {
+      data: value as ArrayBufferView<ArrayBuffer>,
+      byteLength: value.byteLength,
+    };
   if (value instanceof Blob) return { data: value, byteLength: value.size };
   const data = typeof value === 'string' ? value : JSON.stringify(value);
   if (data === undefined)

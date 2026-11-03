@@ -6,6 +6,7 @@
 
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
   type Experimental_BridgeUserMessage,
@@ -19,7 +20,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
  * compiled `bridge/index.mjs`. They are declared `external` in
- * tsup.config.ts and resolved at runtime from the node_modules that this
+ * tsdown.config.ts and resolved at runtime from the node_modules that this
  * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
  * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
  * package — is the single source of truth for these packages and their
@@ -30,7 +31,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
  * in sync, or the bridge will either get the dependency bundled in or fail
  * to resolve it in the sandbox:
  *   1. the import statement below,
- *   2. the `external` array in tsup.config.ts, and
+ *   2. the `external` array in tsdown.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
@@ -46,12 +47,15 @@ import {
   createEmitStreamEvent,
   defaultUsage,
   emitFinishStep,
-  finishApprovalStep,
+  markWaitingOnHostInput,
+  clearWaitingOnHostInput,
+  resolveMcpHandlerToolUseId,
   isExternalMcpTool,
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
+import { areFileToolPathsTrusted } from './permission-paths';
 import {
   resolveInactiveNativeTools,
   resolveNativeTools,
@@ -99,6 +103,7 @@ const NATIVE_TOOL_KINDS: Readonly<
   TaskGet: 'readonly',
   TaskList: 'readonly',
   TaskOutput: 'readonly',
+  ListAgents: 'readonly',
   ListMcpResources: 'readonly',
   ReadMcpResource: 'readonly',
   Write: 'edit',
@@ -163,9 +168,13 @@ function createPermissionOptions(input: {
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
-  finishApprovalStep: (approvalId: string) => void;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
+  approvalDecisions: Map<string, { approved: boolean; reason?: string }>;
+  toolCwds: Map<string, string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -203,41 +212,61 @@ function createPermissionOptions(input: {
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
-      options: { toolUseID: string },
+      options: { toolUseID: string; blockedPath?: string },
     ) => {
-      if (toolName.startsWith('mcp__harness-tools__')) {
-        return { behavior: 'allow', updatedInput: toolInput };
-      }
       if (
-        !inactiveNativeTools.has(toolName) &&
-        !nativeToolRequiresApproval({
-          nativeName: toolName,
+        !(await needsHostApproval({
+          toolName,
+          toolInput,
           permissionMode,
-        })
+          inactiveNativeTools,
+          cwd: input.toolCwds.get(options.toolUseID) ?? '',
+          readableSkillRoots: input.start.readableSkillRoots ?? [],
+          blockedPath: options.blockedPath,
+        }))
       ) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
 
       const approvalId = options.toolUseID;
+      /*
+       * The permission ask rules still apply after the approval hook allowed a
+       * resumed deferred call, so apply that decision instead of asking the
+       * host again.
+       */
+      if (input.approvalDecisions.get(approvalId)?.approved === true) {
+        input.approvalDecisions.delete(approvalId);
+        return {
+          behavior: 'allow',
+          updatedInput: toolInput,
+          toolUseID: approvalId,
+        };
+      }
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
-      input.emit({
-        type: 'tool-call',
-        toolCallId: approvalId,
-        toolName: toCommonName(toolName),
-        nativeName: toolName,
-        input: JSON.stringify(toolInput ?? {}),
-        providerExecuted: true,
-        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
-      });
+      if (!input.emittedToolCallIds.has(approvalId)) {
+        input.emittedToolCallIds.add(approvalId);
+        input.emit({
+          type: 'tool-call',
+          toolCallId: approvalId,
+          toolName: toCommonName(toolName),
+          nativeName: toolName,
+          input: JSON.stringify(toolInput ?? {}),
+          providerExecuted: true,
+          ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
+        });
+      }
+      const decisionPromise = input.turn.requestToolApproval(approvalId);
       input.emit({
         type: 'tool-approval-request',
         approvalId,
         toolCallId: approvalId,
       });
-      input.finishApprovalStep(approvalId);
+      input.markWaitingOnHostInput(approvalId);
 
-      const decision = await input.turn.requestToolApproval(approvalId);
+      const decision = await decisionPromise.finally(() =>
+        input.clearWaitingOnHostInput(approvalId),
+      );
       return decision.approved
         ? { behavior: 'allow', updatedInput: toolInput, toolUseID: approvalId }
         : {
@@ -253,6 +282,8 @@ function createQuestionPreToolUseHook(input: {
   turn: BridgeTurn;
   emit: Emit;
   nativeToolCallNames: Map<string, string>;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
     if (
@@ -283,20 +314,23 @@ function createQuestionPreToolUseHook(input: {
     });
 
     const questionKey = claudeCodeQuestionKey(nativeInput);
-    const result = await input.turn.requestToolResult({
-      toolCallId,
-      matches: candidate => {
-        const nativeRequest = candidate.toolResult?.providerOptions?.[
-          'claude-code'
-        ]?.nativeRequest as
-          | Parameters<typeof claudeCodeQuestionKey>[0]
-          | undefined;
-        return (
-          nativeRequest != null &&
-          claudeCodeQuestionKey(nativeRequest) === questionKey
-        );
-      },
-    });
+    input.markWaitingOnHostInput(toolCallId);
+    const result = await input.turn
+      .requestToolResult({
+        toolCallId,
+        matches: candidate => {
+          const nativeRequest = candidate.toolResult?.providerOptions?.[
+            'claude-code'
+          ]?.nativeRequest as
+            | Parameters<typeof claudeCodeQuestionKey>[0]
+            | undefined;
+          return (
+            nativeRequest != null &&
+            claudeCodeQuestionKey(nativeRequest) === questionKey
+          );
+        },
+      })
+      .finally(() => input.clearWaitingOnHostInput(toolCallId));
     const nativeResult = toClaudeCodeQuestionResult({
       nativeInput,
       output: result.output as Parameters<
@@ -349,11 +383,187 @@ function createPermissionSettings(input: {
   };
 }
 
+/**
+ * Claude Code picks a model's output limit, system prompt and default effort
+ * from its own reading of the model id, and misreads AI Gateway ids with a
+ * dotted version such as `anthropic/claude-opus-5.5`. `modelOverrides` maps
+ * the id Claude Code expects (`claude-opus-5-5`) to the gateway id, which
+ * stays the id sent to the gateway.
+ */
+function toGatewayModelOverride(
+  model: string | undefined,
+): Record<string, string> | undefined {
+  if (!model?.startsWith('anthropic/')) return undefined;
+  // Claude Code matches the value against the model id, suffix included, so a
+  // suffix such as `[1m]` stays on the value.
+  const id = model.slice('anthropic/'.length).replace(/\[[^\]]*\]$/, '');
+  return id.includes('.') ? { [id.replace(/\./g, '-')]: model } : undefined;
+}
+
+/**
+ * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
+ * at other ids, which it misreads the same way. `model` comes last so that its
+ * entry wins a key it shares with an alias.
+ */
+function createGatewayModelOverrides(
+  model: string | undefined,
+  env: Record<string, string | undefined>,
+): Record<string, string> | undefined {
+  const overrides = {
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(model),
+  };
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+async function needsHostApproval(input: {
+  toolName: string;
+  toolInput: unknown;
+  cwd: string;
+  readableSkillRoots: readonly string[];
+  blockedPath?: string;
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
+}): Promise<boolean> {
+  if (input.toolName.startsWith('mcp__harness-tools__')) return false;
+  if (
+    input.inactiveNativeTools.has(input.toolName) ||
+    nativeToolRequiresApproval({
+      nativeName: input.toolName,
+      permissionMode: input.permissionMode,
+    })
+  )
+    return true;
+  const args =
+    input.toolInput != null && typeof input.toolInput === 'object'
+      ? (input.toolInput as Record<string, unknown>)
+      : {};
+  let paths: unknown[];
+  let access: 'read' | 'write';
+  if (
+    input.toolName === 'Glob' &&
+    (typeof args.pattern !== 'string' ||
+      /\.\.|[{}()[\]]/.test(args.pattern) ||
+      args.pattern.includes('\\') ||
+      args.pattern.startsWith('/'))
+  )
+    return true;
+  switch (input.toolName) {
+    case 'Read':
+      paths = [args.file_path];
+      access = 'read';
+      break;
+    case 'Write':
+    case 'Edit':
+      paths = [args.file_path];
+      access = 'write';
+      break;
+    case 'NotebookEdit':
+      paths = [args.notebook_path];
+      access = 'write';
+      break;
+    case 'Glob':
+    case 'Grep':
+      paths = [args.path ?? input.cwd];
+      access = 'read';
+      break;
+    default:
+      if (input.blockedPath == null) return false;
+      paths = [];
+      access = 'read';
+  }
+  if (input.blockedPath != null) paths.push(input.blockedPath);
+  if (!paths.every((value): value is string => typeof value === 'string'))
+    return true;
+  return !(await areFileToolPathsTrusted({
+    workDir: workdir!,
+    cwd: input.cwd,
+    paths,
+    access,
+    readableSkillRoots: input.readableSkillRoots,
+  }));
+}
+
+/*
+ * Defers a call that needs host approval, so Claude Code ends the turn and
+ * keeps the call in the transcript instead of holding it in this process.
+ * Resuming the session without a prompt fires the hook again for the same
+ * call, and the host's decision is applied then. This survives a bridge
+ * restart because nothing waits in memory.
+ */
+function createApprovalPreToolUseHook(input: {
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
+  decisions: Map<string, { approved: boolean; reason?: string }>;
+  deferredToolUseIds: Set<string>;
+  nativeToolCallNames: Map<string, string>;
+  readableSkillRoots: readonly string[];
+  toolCwds: Map<string, string>;
+}): HookCallback {
+  return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
+    if (hookInput.hook_event_name !== 'PreToolUse') return {};
+    const toolName = (hookInput as { tool_name?: unknown }).tool_name;
+    if (
+      toolUseID == null ||
+      typeof toolName !== 'string' ||
+      toolName === 'AskUserQuestion'
+    ) {
+      return {};
+    }
+    input.toolCwds.set(toolUseID, hookInput.cwd);
+    const decision = input.decisions.get(toolUseID);
+    if (decision != null) {
+      // A bridge that resumes another bridge's deferred call never saw its
+      // tool_use, so record the name for the tool result that follows.
+      input.nativeToolCallNames.set(toolUseID, toolName);
+      if (!decision.approved) input.decisions.delete(toolUseID);
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          ...(decision.approved
+            ? { permissionDecision: 'allow' }
+            : {
+                permissionDecision: 'deny',
+                permissionDecisionReason: decision.reason ?? 'Denied',
+              }),
+        },
+      };
+    }
+    if (
+      !(await needsHostApproval({
+        toolName,
+        toolInput: hookInput.tool_input,
+        cwd: hookInput.cwd,
+        readableSkillRoots: input.readableSkillRoots,
+        permissionMode: input.permissionMode,
+        inactiveNativeTools: input.inactiveNativeTools,
+      }))
+    ) {
+      return {};
+    }
+    input.deferredToolUseIds.add(toolUseID);
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'defer',
+      },
+    };
+  };
+}
+
 function nativeToolRequiresApproval(input: {
   nativeName: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
 }): boolean {
   if (input.permissionMode === 'allow-all') return false;
+  if (
+    input.nativeName === 'EnterWorktree' ||
+    input.nativeName === 'ExitWorktree'
+  )
+    return true;
+  if (!(input.nativeName in NATIVE_TOOL_KINDS)) return true;
   const kind = NATIVE_TOOL_KINDS[input.nativeName] ?? 'edit';
   if (input.permissionMode === 'allow-edits') return kind === 'bash';
   return kind === 'edit' || kind === 'bash';
@@ -397,11 +607,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       version: '1.0.0',
     });
     for (const tool of start.tools) {
+      const hints = start.toolHints?.[tool.name];
       server.registerTool(
         tool.name,
         {
           description: tool.description ?? '',
           inputSchema: jsonSchemaToZodObject(tool.inputSchema),
+          ...(hints?.readOnly == null
+            ? {}
+            : { annotations: { readOnlyHint: hints.readOnly } }),
+          ...(hints?.alwaysLoad == null
+            ? {}
+            : { _meta: { 'anthropic/alwaysLoad': hints.alwaysLoad } }),
         },
         async (
           ...handlerArgs: [
@@ -412,17 +629,50 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const [input, extra] = handlerArgs;
           const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
           const toolCallId =
-            typeof metadataToolCallId === 'string'
-              ? metadataToolCallId
-              : randomUUID();
-          emit({
-            type: 'tool-call',
-            toolCallId,
+            resolveMcpHandlerToolUseId({
+              state: streamEventState,
+              metadataToolUseId:
+                typeof metadataToolCallId === 'string'
+                  ? metadataToolCallId
+                  : undefined,
+              toolName: tool.name,
+              input,
+            }) ?? randomUUID();
+          streamEventState.mcpHandlerCalls.set(toolCallId, {
             toolName: tool.name,
-            input: JSON.stringify(input),
-            providerExecuted: false,
+            input,
           });
-          const { output, isError } = await turn.requestToolResult(toolCallId);
+          if (!streamEventState.emittedToolCallIds.has(toolCallId)) {
+            streamEventState.emittedToolCallIds.add(toolCallId);
+            emit({
+              type: 'tool-call',
+              toolCallId,
+              toolName: tool.name,
+              input: JSON.stringify(input),
+              providerExecuted: false,
+            });
+            markWaitingOnHostInput({
+              state: streamEventState,
+              emit,
+              toolUseId: toolCallId,
+            });
+          }
+          const { output, isError, toolResult } = await turn
+            .requestToolResult(toolCallId)
+            .finally(() => {
+              clearWaitingOnHostInput({
+                state: streamEventState,
+                toolUseId: toolCallId,
+              });
+              /*
+               * A handler call that could not be matched to a reported
+               * `tool_use` block never receives a native tool result, so it
+               * must not keep the step open once the host has answered.
+               */
+              if (!streamEventState.mcpToolCalls.has(toolCallId)) {
+                streamEventState.pendingStepToolUseIds.delete(toolCallId);
+              }
+            });
           emit({
             type: 'tool-result',
             toolCallId,
@@ -430,6 +680,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             result: output ?? null,
             isError: !!isError,
           });
+          if (toolResult != null) {
+            const converted = convertHarnessToolModelOutput({
+              output: toolResult.output,
+            });
+            return {
+              content: converted.content.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      data: part.data,
+                      mimeType: part.mediaType,
+                    },
+              ),
+              isError: isError === true || converted.isError,
+            };
+          }
           return {
             content: [{ type: 'text', text: JSON.stringify(output ?? null) }],
             isError,
@@ -447,7 +714,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Compaction observation: merge Claude's `compact_boundary` message and
   // `PostCompact` hook (which arrive in either order) into one `compaction`
   // event. See `createCompactionLatch`.
-  const compaction = createCompactionLatch(event => emit(event));
+  const compaction = createCompactionLatch(event => {
+    const hasOpenStep = streamEventState.stepOpen;
+    emit(event);
+    // The harness translates compaction into synthetic step content. When
+    // Claude reports it outside a model step, close that synthetic step here;
+    // otherwise the existing model step will close it with its own usage.
+    if (!hasOpenStep) {
+      emitFinishStep({
+        state: streamEventState,
+        emit,
+        usage: undefined,
+      });
+    }
+  });
 
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
@@ -462,35 +742,82 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const inactiveNativeTools = resolveInactiveNativeTools(
     start.builtinToolFiltering,
   );
+  const permissionMode = start.permissionMode ?? 'allow-all';
+  const approvalDecisions = new Map<
+    string,
+    { approved: boolean; reason?: string }
+  >();
+  const toolCwds = new Map<string, string>();
   const permissionOptions = createPermissionOptions({
+    toolCwds,
+    approvalDecisions,
     start,
     inactiveNativeTools,
     turn,
     emit,
-    finishApprovalStep: approvalId => {
-      finishApprovalStep({ state: streamEventState, emit, approvalId });
-    },
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
+    emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
+  const sdkEnv = { ...procEnv, ...start.env };
+  const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
+  const deferredToolUseIds = new Set<string>();
+  const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    toolCwds,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+    permissionMode,
+    inactiveNativeTools: new Set(inactiveNativeTools),
+    decisions: approvalDecisions,
+    deferredToolUseIds,
+    nativeToolCallNames: streamEventState.nativeToolCallNames,
+  });
+  const settings = {
+    ...(permissionOptions.settings as Record<string, unknown> | undefined),
+    ...(start.skillOverrides !== undefined
+      ? { skillOverrides: start.skillOverrides }
+      : {}),
+    ...(modelOverrides ? { modelOverrides } : {}),
+  };
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
   });
 
-  const q = claudeSdk.query({
+  const queryArgs = {
     prompt: queryInput.input,
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
-      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
+      ...(start.maxBudgetUsd !== undefined
+        ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.strictMcpConfig !== undefined
+        ? { strictMcpConfig: start.strictMcpConfig }
+        : {}),
+      ...(start.agentProgressSummaries !== undefined
+        ? { agentProgressSummaries: start.agentProgressSummaries }
+        : {}),
+      ...(start.forwardSubagentText !== undefined
+        ? { forwardSubagentText: start.forwardSubagentText }
+        : {}),
+      ...(start.env !== undefined ? { env: sdkEnv } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
         ? { disallowedTools: inactiveNativeTools }
         : {}),
-      systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
+      systemPrompt: createClaudeCodeSystemPrompt(start.instructions, {
+        excludeDynamicSections: start.excludeDynamicSections,
+      }),
       thinking: start.thinking,
       ...(start.effort !== undefined ? { effort: start.effort } : {}),
       ...(start.responseFormat?.type === 'json' &&
@@ -508,9 +835,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
+          ...(permissionMode === 'allow-all'
+            ? []
+            : [{ hooks: [approvalPreToolUseHook] }]),
           {
             matcher: 'AskUserQuestion',
             hooks: [questionPreToolUseHook],
+            ...(start.questionTimeoutMs !== undefined
+              ? { timeout: Math.ceil(start.questionTimeoutMs / 1000) }
+              : {}),
           },
         ],
         PostCompact: [
@@ -545,10 +878,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ? { continue: true }
           : {}),
       ...permissionOptions,
+      ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
       cwd: workdir,
       abortSignal: abortCtl.signal,
     },
+  };
+  let deferredToolUseId = start.deferredToolUseId;
+  let resumingDeferredCall = false;
+  let q = deferredToolUseId == null ? claudeSdk.query(queryArgs) : undefined;
+  const hostAborted = new Promise<undefined>(resolve => {
+    if (abortCtl.signal.aborted) resolve(undefined);
+    abortCtl.signal.addEventListener('abort', () => resolve(undefined), {
+      once: true,
+    });
   });
 
   gracefulAbort = () => {
@@ -560,11 +903,68 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hardAbortTimer = setTimeout(() => abortCtl.abort(), 5000);
     hardAbortTimer.unref?.();
     void Promise.resolve()
-      .then(() => q.interrupt())
+      .then(() => q?.interrupt())
       .catch(() => abortCtl.abort());
   };
   let turnUsage: Record<string, unknown> | undefined;
   let totalCostUsd: number | undefined;
+
+  /*
+   * Claude Code ended the turn at a call that needs host approval. Every other
+   * call the hook deferred in the same message was dropped by Claude Code,
+   * which can only resume one deferred call, so report those as not run.
+   */
+  let deferredDecision:
+    | Promise<{ approved: boolean; reason?: string }>
+    | undefined;
+  const requestDeferredApproval = (call: {
+    toolUseId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+  }) => {
+    for (const droppedToolUseId of deferredToolUseIds) {
+      if (droppedToolUseId === call.toolUseId) continue;
+      const nativeName =
+        streamEventState.nativeToolCallNames.get(droppedToolUseId) ?? 'unknown';
+      emit({
+        type: 'tool-result',
+        toolCallId: droppedToolUseId,
+        toolName: toCommonName(nativeName),
+        result:
+          'Claude Code can wait for only one approval at a time, so this call did not run.',
+        isError: true,
+      });
+      streamEventState.pendingStepToolUseIds.delete(droppedToolUseId);
+    }
+    deferredToolUseIds.clear();
+    streamEventState.approvalRequestedToolUseIds.add(call.toolUseId);
+    streamEventState.nativeToolCallNames.set(call.toolUseId, call.toolName);
+    if (!streamEventState.emittedToolCallIds.has(call.toolUseId)) {
+      streamEventState.emittedToolCallIds.add(call.toolUseId);
+      emit({
+        type: 'tool-call',
+        toolCallId: call.toolUseId,
+        toolName: toCommonName(call.toolName),
+        nativeName: call.toolName,
+        input: JSON.stringify(call.toolInput ?? {}),
+        providerExecuted: true,
+        ...(isExternalMcpTool(call.toolName) ? { dynamic: true } : {}),
+      });
+    }
+    // Register before asking, so an answer that arrives while the deferred
+    // query is still being disposed is not missed.
+    deferredDecision = turn.requestToolApproval(call.toolUseId);
+    emit({
+      type: 'tool-approval-request',
+      approvalId: call.toolUseId,
+      toolCallId: call.toolUseId,
+    });
+    markWaitingOnHostInput({
+      state: streamEventState,
+      emit,
+      toolUseId: call.toolUseId,
+    });
+  };
   let emittedTerminalError = false;
   let emittedTerminalFinish = false;
 
@@ -597,8 +997,48 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     toCommonName,
   });
 
+  /*
+   * Yields the messages of every query in this turn. When Claude Code defers a
+   * call for host approval, wait for the decision and resume the session
+   * without a prompt so the same call runs with that decision.
+   */
+  async function* messages(): AsyncGenerator<ClaudeMessage> {
+    for (;;) {
+      if (deferredToolUseId != null) {
+        const toolUseId = deferredToolUseId;
+        const decision = await Promise.race([
+          deferredDecision ?? turn.requestToolApproval(toolUseId),
+          hostAborted,
+        ]).finally(() =>
+          clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
+        );
+        deferredDecision = undefined;
+        if (decision == null || abortCtl.signal.aborted) return;
+        approvalDecisions.set(toolUseId, decision);
+        deferredToolUseId = undefined;
+        resumingDeferredCall = true;
+        q = claudeSdk.query({
+          prompt: withoutInitialMessage(queryInput.input),
+          options: {
+            ...queryArgs.options,
+            ...(lastClaudeSessionId != null
+              ? { continue: undefined, resume: lastClaudeSessionId }
+              : {}),
+          },
+        });
+      }
+      for await (const msg of q as AsyncIterable<ClaudeMessage>) {
+        yield msg;
+        if (deferredToolUseId != null) break;
+      }
+      if (deferredToolUseId == null || abortCtl.signal.aborted) return;
+      queryInput.retire();
+      await disposeQuery(q);
+    }
+  }
+
   try {
-    for await (const msg of q as AsyncIterable<ClaudeMessage>) {
+    for await (const msg of messages()) {
       if (abortCtl.signal.aborted) break;
 
       const type = msg.type;
@@ -616,6 +1056,25 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       }
 
       emitStreamEvent(msg);
+
+      if (
+        type === 'result' &&
+        msg.terminal_reason === 'tool_deferred' &&
+        msg.deferred_tool_use?.id != null
+      ) {
+        const harnessUsage = mapUsage(msg.usage ?? msg.message?.usage);
+        if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
+        if (typeof msg.total_cost_usd === 'number') {
+          totalCostUsd = msg.total_cost_usd;
+        }
+        deferredToolUseId = msg.deferred_tool_use.id;
+        requestDeferredApproval({
+          toolUseId: msg.deferred_tool_use.id,
+          toolName: msg.deferred_tool_use.name,
+          toolInput: msg.deferred_tool_use.input,
+        });
+        continue;
+      }
 
       if (type === 'result') {
         if (msg.subtype === 'success') {
@@ -641,7 +1100,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
-            totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
+            totalCostUsd = msg.total_cost_usd;
           }
           if (
             start.responseFormat?.type === 'json' &&
@@ -663,6 +1122,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               emit,
               usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
+          }
+          if (!resumingDeferredCall && !queryInput.answersSentMessage(msg)) {
+            continue;
           }
           queryInput.observeResult();
           if (!queryInput.hasActiveUserMessages()) {
@@ -711,13 +1173,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     // through an interrupt or error path can otherwise leak that process —
     // observed as orphaned `claude` processes holding the very conversation
     // the next turn continues.
-    try {
-      await (q as { return?: (value?: unknown) => Promise<unknown> }).return?.(
-        undefined,
-      );
-    } catch {
-      // Best effort; the abort controller tears the process down otherwise.
-    }
+    await disposeQuery(q);
   }
 
   if (emittedTerminalError) return;
@@ -750,7 +1206,7 @@ function createQueryInput({
   userMessages,
   abortSignal,
 }: {
-  initialUserMessage: string;
+  initialUserMessage: StartMessage['prompt'];
   userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
@@ -758,12 +1214,25 @@ function createQueryInput({
   close(error?: unknown): void;
   handleLifecycle(message: ClaudeMessage): void;
   hasActiveUserMessages(): boolean;
+  answersSentMessage(result: ClaudeMessage): boolean;
   observeResult(): void;
+  /** Stops the current query's input from taking more user messages. */
+  retire(): void;
   readonly hasObservedResult: boolean;
 } {
   let closed = false;
   let observedResult = false;
   const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
+  const initialMessageId = randomUUID();
+  const sentMessageIds = new Set<string>([initialMessageId]);
+  let cliEchoesMessageIds = false;
+  const noteEcho = (ids: readonly unknown[]): boolean => {
+    const echoed = ids.some(
+      id => typeof id === 'string' && sentMessageIds.has(id),
+    );
+    if (echoed) cliEchoesMessageIds = true;
+    return echoed;
+  };
   const close = (error?: unknown): void => {
     if (closed) return;
     closed = true;
@@ -778,14 +1247,28 @@ function createQueryInput({
   }
 
   const toUserMessage = (options: {
-    text: string;
+    content: StartMessage['prompt'];
     messageId: string;
     priority?: 'next';
   }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text: options.text }],
+      content:
+        typeof options.content === 'string'
+          ? [{ type: 'text', text: options.content }]
+          : options.content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: part.mediaType,
+                      data: part.data,
+                    },
+                  },
+            ),
     },
     parent_tool_use_id: null,
     uuid: options.messageId,
@@ -793,6 +1276,31 @@ function createQueryInput({
   });
 
   const messageIterator = userMessages[Symbol.asyncIterator]();
+  /*
+   * A query that ends at a deferred call can still be waiting for the next
+   * user message. Pull through one shared buffer and only hand a message to
+   * the input of the live query, so the resumed query receives it.
+   */
+  let liveInputId = 0;
+  let bufferedMessage:
+    | IteratorResult<Experimental_BridgeUserMessage>
+    | undefined;
+  let pulling: Promise<void> | undefined;
+  const takeMessage = async (inputId: number) => {
+    for (;;) {
+      if (inputId !== liveInputId) return undefined;
+      if (bufferedMessage != null) {
+        const message = bufferedMessage;
+        bufferedMessage = undefined;
+        return message;
+      }
+      pulling ??= messageIterator.next().then(result => {
+        bufferedMessage = result;
+        pulling = undefined;
+      });
+      await pulling;
+    }
+  };
 
   return {
     close,
@@ -802,6 +1310,13 @@ function createQueryInput({
         state?: 'queued' | 'started' | 'completed' | 'cancelled' | 'discarded';
       };
       if (lifecycle.command_uuid == null || lifecycle.state == null) return;
+      noteEcho([lifecycle.command_uuid]);
+      if (
+        lifecycle.command_uuid === initialMessageId &&
+        (lifecycle.state === 'cancelled' || lifecycle.state === 'discarded')
+      ) {
+        observedResult = true;
+      }
       const submitted = submittedMessages.get(lifecycle.command_uuid);
       if (submitted == null) return;
       if (lifecycle.state === 'queued' || lifecycle.state === 'started') {
@@ -817,14 +1332,32 @@ function createQueryInput({
     },
     hasActiveUserMessages: () =>
       submittedMessages.size > 0 || userMessages.pendingCount > 0,
+    answersSentMessage: result => {
+      const { user_message_uuid, user_message_uuids, origin } = result as {
+        user_message_uuid?: unknown;
+        user_message_uuids?: unknown;
+        origin?: { kind?: string };
+      };
+      const echoed = noteEcho([
+        user_message_uuid,
+        ...(Array.isArray(user_message_uuids) ? user_message_uuids : []),
+      ]);
+      return (
+        echoed || (!cliEchoesMessageIds && origin?.kind !== 'task-notification')
+      );
+    },
     observeResult: () => {
       observedResult = true;
+    },
+    retire: () => {
+      liveInputId++;
     },
     get hasObservedResult() {
       return observedResult;
     },
     input: {
       [Symbol.asyncIterator]() {
+        const inputId = ++liveInputId;
         let sentInitial = false;
         return {
           async next() {
@@ -838,14 +1371,14 @@ function createQueryInput({
               sentInitial = true;
               return {
                 value: toUserMessage({
-                  text: initialUserMessage,
-                  messageId: randomUUID(),
+                  content: initialUserMessage,
+                  messageId: initialMessageId,
                 }),
                 done: false,
               };
             }
-            const nextMessage = await messageIterator.next();
-            if (nextMessage.done) {
+            const nextMessage = await takeMessage(inputId);
+            if (nextMessage == null || nextMessage.done) {
               return {
                 value: undefined,
                 done: true,
@@ -855,9 +1388,10 @@ function createQueryInput({
               nextMessage.value.messageId,
               nextMessage.value,
             );
+            sentMessageIds.add(nextMessage.value.messageId);
             return {
               value: toUserMessage({
-                text: nextMessage.value.text,
+                content: nextMessage.value.text,
                 messageId: nextMessage.value.messageId,
                 priority: 'next',
               }),
@@ -868,6 +1402,40 @@ function createQueryInput({
       },
     },
   };
+}
+
+/*
+ * Resuming a deferred call must not send a prompt: Claude Code would answer
+ * it and drop the call. The stream stays open for steering messages.
+ */
+function withoutInitialMessage(
+  input: AsyncIterable<unknown>,
+): AsyncIterable<unknown> {
+  return {
+    [Symbol.asyncIterator]() {
+      const iterator = input[Symbol.asyncIterator]();
+      let skipped = false;
+      return {
+        async next() {
+          if (!skipped) {
+            skipped = true;
+            await iterator.next();
+          }
+          return iterator.next();
+        },
+      };
+    },
+  };
+}
+
+async function disposeQuery(query: unknown): Promise<void> {
+  try {
+    await (
+      query as { return?: (value?: unknown) => Promise<unknown> } | undefined
+    )?.return?.(undefined);
+  } catch {
+    // Best effort; the abort controller tears the process down otherwise.
+  }
 }
 
 function addUsage(

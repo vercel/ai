@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = anthropic;
-  const model = 'claude-haiku-4-5';
+  const model = 'claude-haiku-5-5';
   const tools = {
     web_search: anthropic.tools.webSearch_20250305({ maxUses: 1 }),
   };

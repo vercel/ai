@@ -10,7 +10,12 @@
  * `~standard.jsonSchema` (Standard Schema v2), extraction can be simplified
  * to use that interface directly.
  */
-import type { JSONObject, JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  JSONSchema7,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   type Experimental_SandboxSession as SandboxSession,
@@ -19,7 +24,8 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool, type ToolSet } from 'ai';
-import Ajv from 'ajv';
+import Ajv, { type ErrorObject } from 'ajv';
+import Ajv2020 from 'ajv/dist/2020.js';
 
 /**
  * Serializable tool definition — plain objects only, safe for workflow steps.
@@ -35,6 +41,8 @@ export type SerializableToolDef = {
   inputExamples?: Array<{ input: unknown }>;
   /** Provider-specific options attached to the tool definition. */
   providerOptions?: Tool['providerOptions'];
+  /** Whether the original input schema has its own runtime validator. */
+  hasOwnValidator?: boolean;
   /** Input lifecycle callbacks that must be invoked outside the step. */
   hasOnInputStart?: boolean;
   hasOnInputDelta?: boolean;
@@ -50,6 +58,49 @@ export type SerializableToolDef = {
   /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
   args?: Record<string, unknown>;
 };
+
+/**
+ * Returns the tool definitions sent to the language model for serialized
+ * tools, matching `prepareTools` in the model step. Map keys are the tool
+ * names.
+ */
+export function toLanguageModelToolDefinitions(
+  tools: Record<string, SerializableToolDef> | undefined,
+):
+  | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
+  | undefined {
+  if (tools == null || Object.keys(tools).length === 0) {
+    return undefined;
+  }
+
+  return Object.entries(tools).map(([name, tool]) =>
+    tool.type === 'provider'
+      ? {
+          type: 'provider' as const,
+          name,
+          id: tool.id!,
+          args: tool.args ?? {},
+        }
+      : {
+          type: 'function' as const,
+          name,
+          inputSchema: tool.inputSchema,
+          ...(tool.description != null
+            ? { description: tool.description }
+            : {}),
+          ...(tool.inputExamples != null
+            ? {
+                inputExamples:
+                  tool.inputExamples as LanguageModelV4FunctionTool['inputExamples'],
+              }
+            : {}),
+          ...(tool.providerOptions != null
+            ? { providerOptions: tool.providerOptions }
+            : {}),
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        },
+  );
+}
 
 /**
  * Converts a ToolSet (with Zod/standard schemas and execute functions) to a
@@ -68,6 +119,7 @@ export function serializeToolSet<TOOLS extends ToolSet>(
 ): Record<string, SerializableToolDef> {
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
+      const inputSchema = asSchema(t.inputSchema);
       const def: SerializableToolDef = {
         title: t.title,
         metadata: t.metadata,
@@ -77,11 +129,15 @@ export function serializeToolSet<TOOLS extends ToolSet>(
           toolsContext,
           experimental_sandbox: sandbox,
         }),
-        inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
+        inputSchema: inputSchema.jsonSchema as JSONSchema7,
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
       };
+
+      if (inputSchema.validate != null) {
+        def.hasOwnValidator = true;
+      }
 
       if (t.type === 'dynamic') {
         def.type = 'dynamic';
@@ -132,17 +188,75 @@ function resolveToolDescription<TOOLS extends ToolSet>({
         });
 }
 
+function formatAjvError(error: ErrorObject): string {
+  const path = `data${error.instancePath}`;
+
+  switch (error.keyword) {
+    case 'enum':
+      return `${path} must be one of ${error.params.allowedValues
+        .map((value: unknown) => JSON.stringify(value))
+        .join(', ')}`;
+    case 'additionalProperties':
+      return `${path} has unexpected property ${JSON.stringify(
+        error.params.additionalProperty,
+      )}`;
+    case 'const':
+      return `${path} must equal ${JSON.stringify(error.params.allowedValue)}`;
+    case 'required':
+      return `${path} is missing required property ${JSON.stringify(
+        error.params.missingProperty,
+      )}`;
+    default:
+      return `${path} ${error.message ?? 'is invalid'}`;
+  }
+}
+
 /**
  * Reconstructs tool objects from serializable tool definitions inside a step.
  *
- * Wraps each tool's JSON Schema with `jsonSchema()` and validates tool call
- * arguments against the schema using Ajv. This provides runtime type safety
- * equivalent to using zod schemas directly with the AI SDK.
+ * Wraps each tool's JSON Schema with `jsonSchema()`. Tools without their own
+ * validator are validated with Ajv. Tools with their own validator are
+ * validated after the workflow step, where the original schema is available.
  */
 export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
 ): ToolSet {
-  const ajv = new Ajv();
+  const ajvOptions = {
+    allErrors: true,
+    strict: false,
+    validateFormats: false,
+  } as const;
+  const ajv = new Ajv(ajvOptions);
+  const ajv2020 = new Ajv2020(ajvOptions);
+
+  const createValidatedInputSchema = (inputSchema: JSONSchema7) => {
+    const schemaDialect =
+      typeof inputSchema.$schema === 'string'
+        ? inputSchema.$schema.replace(/#$/, '')
+        : undefined;
+    const schemaAjv =
+      schemaDialect === 'https://json-schema.org/draft/2020-12/schema'
+        ? ajv2020
+        : ajv;
+    const validateFn = schemaAjv.compile(inputSchema);
+
+    return jsonSchema(inputSchema, {
+      validate: value => {
+        if (validateFn(value)) {
+          return { success: true, value: value as any };
+        }
+        return {
+          success: false,
+          error: new Error(validateFn.errors!.map(formatAjvError).join(', ')),
+        };
+      },
+    });
+  };
+
+  const createInputSchema = (tool: SerializableToolDef) =>
+    tool.hasOwnValidator
+      ? jsonSchema(tool.inputSchema)
+      : createValidatedInputSchema(tool.inputSchema);
 
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
@@ -175,30 +289,17 @@ export function resolveSerializableTools(
       }
 
       if (t.type === 'dynamic') {
-        const validateFn = ajv.compile(t.inputSchema);
-
         return [
           name,
           dynamicTool({
             description: t.description,
             inputExamples: t.inputExamples,
             providerOptions: t.providerOptions,
-            inputSchema: jsonSchema(t.inputSchema, {
-              validate: value => {
-                if (validateFn(value)) {
-                  return { success: true, value };
-                }
-                return {
-                  success: false,
-                  error: new Error(ajv.errorsText(validateFn.errors)),
-                };
-              },
-            }),
+            inputSchema: createInputSchema(t),
           }),
         ];
       }
 
-      const validateFn = ajv.compile(t.inputSchema);
       const functionTool = {
         title: t.title,
         metadata: t.metadata,
@@ -206,17 +307,7 @@ export function resolveSerializableTools(
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
-        inputSchema: jsonSchema(t.inputSchema, {
-          validate: value => {
-            if (validateFn(value)) {
-              return { success: true, value: value as any };
-            }
-            return {
-              success: false,
-              error: new Error(ajv.errorsText(validateFn.errors)),
-            };
-          },
-        }),
+        inputSchema: createInputSchema(t),
       };
 
       return [

@@ -1,4 +1,6 @@
 export type GatewayRealtimeModelId =
+  | 'elevenlabs/eleven-realtime-v1-max'
+  | 'elevenlabs/eleven-realtime-v1-mini'
   | 'google/gemini-3.8-live'
   | 'google/gemini-3.8-live-extended-thinking'
   | 'openai/gpt-live-1'
@@ -6,6 +8,6 @@ export type GatewayRealtimeModelId =
   | 'openai/gpt-realtime-2'
   | 'openai/gpt-realtime-2.1'
   | 'openai/gpt-realtime-mini'
-  | 'spacexai/grok-voice-think-fast-1.0'
+  | 'spacexai/grok-voice-3.0'
   | 'spacexai/grok-voice-think-fast-2.0'
   | (string & {});

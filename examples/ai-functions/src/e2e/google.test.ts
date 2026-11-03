@@ -67,7 +67,10 @@ createFeatureTestSuite({
         provider.embeddingModel('gemini-embedding-2-preview'),
       ),
     ],
-    imageModels: [createImageModel('gemini-2.5-flash-image')],
+    imageModels: [
+      createImageModel('gemini-2.5-flash-image'),
+      createImageModel('gemini-nano-banana-2.1'),
+    ],
   },
   timeout: 20000,
   customAssertions: {

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({

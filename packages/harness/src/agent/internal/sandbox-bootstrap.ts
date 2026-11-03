@@ -60,7 +60,7 @@ export function normalizeSandboxWorkDir(workDir: string): string {
 
   const normalized = posix.normalize(workDir);
   if (
-    normalized === '.' ||
+    ((normalized === '.' || normalized === './') && workDir !== '.') ||
     normalized === '..' ||
     normalized.startsWith('../')
   ) {

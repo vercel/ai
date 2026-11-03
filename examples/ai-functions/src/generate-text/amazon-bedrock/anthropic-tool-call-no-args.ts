@@ -6,7 +6,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     tools: {
       updateIssueList: tool({
         inputSchema: z.object({}),

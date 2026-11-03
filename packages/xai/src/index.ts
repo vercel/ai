@@ -17,7 +17,10 @@ export type {
   XaiVideoModelOptions as XaiVideoProviderOptions,
 } from './xai-video-model-options';
 export type { XaiSpeechModelOptions } from './xai-speech-model-options';
-export type { XaiTranscriptionModelOptions } from './xai-transcription-model-options';
+export type {
+  XaiTranscriptionModelId,
+  XaiTranscriptionModelOptions,
+} from './xai-transcription-model-options';
 export type { XaiFilesOptions } from './files/xai-files-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';

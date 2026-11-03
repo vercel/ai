@@ -2,7 +2,10 @@ import type {
   HarnessDebugConfig,
   HarnessDiagnostic,
 } from './observability/types';
-import type { HarnessV1SandboxProvider } from '../v1';
+import type {
+  HarnessV1NetworkSandboxSession,
+  HarnessV1SandboxProvider,
+} from '../v1';
 import type {
   HarnessAgentAdapter,
   HarnessAgentPermissionMode,
@@ -42,11 +45,32 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
 >;
 
+/**
+ * Creates the sandbox session for `HarnessAgent.createSession()` when it is
+ * needed instead of upfront.
+ *
+ * For a harness without a sandbox bootstrap recipe (such as Pi),
+ * `createSandboxSession` runs on the first file, exec, or spawn operation, so
+ * a session that never touches the sandbox never creates it. For any other
+ * harness, it runs in `createSession()`.
+ */
+export type HarnessAgentSandboxCreator = {
+  /**
+   * Working directory of the sandbox that `createSandboxSession` returns. The
+   * session work directory is derived from it before the sandbox exists.
+   */
+  readonly defaultWorkingDirectory: string;
+  readonly createSandboxSession: (options: {
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<HarnessV1NetworkSandboxSession | SandboxSession>;
+};
+
 export type HarnessAgentSandboxConfig = {
   /**
    * Optional fixed working directory for all sessions, relative to the
-   * sandbox's default working directory. When omitted, sessions keep the
-   * existing `<harnessId>-<sessionId>` work directory.
+   * sandbox's default working directory. Use `'.'` to use the default
+   * working directory itself. When omitted, sessions keep the existing
+   * `<harnessId>-<sessionId>` work directory.
    */
   readonly workDir?: string;
 
@@ -70,8 +94,12 @@ export type HarnessAgentSandboxConfig = {
 
   /**
    * Called after each sandbox session is acquired and the session work
-   * directory exists, before the harness adapter starts. Runs for fresh and
-   * resumed sessions.
+   * directory exists. Runs for fresh and resumed sessions.
+   *
+   * For a harness adapter with a sandbox bootstrap recipe (such as Claude
+   * Code or Codex), it runs before the adapter starts. For any other adapter,
+   * it runs on the first file, exec, or spawn operation on the session's
+   * sandbox, so a session that never touches the sandbox never calls it.
    *
    * Use this to write per-session config, install lightweight tools, activate
    * licenses, or prepare files in `sessionWorkDir`. Keep it idempotent if the
@@ -160,6 +188,12 @@ export type HarnessAgentSettings<
   readonly toolsContext?: InferToolSetContext<TUserTools>;
 
   /**
+   * Runtime context passed to lifecycle callbacks and telemetry.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly runtimeContext?: RUNTIME_CONTEXT;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -233,7 +267,7 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools'
+        'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
       > & {
         toolsContext: InferToolSetContext<TUserTools>;
       },
@@ -246,7 +280,7 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools'
+      'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
     > & {
       toolsContext: InferToolSetContext<TUserTools>;
     } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>

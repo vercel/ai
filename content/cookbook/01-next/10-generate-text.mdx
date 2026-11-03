@@ -27,7 +27,7 @@ export default function Page() {
 
   return (
     <div>
-      <div
+      <button
         onClick={async () => {
           setIsLoading(true);
 
@@ -45,7 +45,7 @@ export default function Page() {
         }}
       >
         Generate
-      </div>
+      </button>
 
       {isLoading ? 'Loading...' : generation}
     </div>

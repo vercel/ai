@@ -26,7 +26,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const { content, responseMessages } = await generateText({
-      model: anthropic('claude-sonnet-5'),
+      model: anthropic('claude-sonnet-5-5'),
       tools: {
         web_search: anthropic.tools.webSearch_20250305({
           onInputAvailable: async ({ input }) => {

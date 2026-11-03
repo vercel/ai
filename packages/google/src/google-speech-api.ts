@@ -32,6 +32,7 @@ export const googleSpeechResponseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
+      usageMetadata: z.record(z.string(), z.json()).nullish(),
     }),
   ),
 );

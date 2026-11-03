@@ -19,6 +19,8 @@ import {
   deleteFromApi,
   getFromApi,
   postFormDataToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
@@ -30,7 +32,7 @@ import {
 interface AnthropicFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
@@ -65,11 +67,11 @@ export class AnthropicFiles implements FilesV4 {
     return fileId;
   }
 
-  private getHeaders(
+  private async getHeaders(
     headers: Record<string, string | undefined> | undefined,
-  ): Record<string, string | undefined> {
+  ): Promise<Record<string, string | undefined>> {
     return combineHeaders(
-      this.config.headers(),
+      await resolve(this.config.headers),
       { 'anthropic-beta': 'files-api-2025-04-14' },
       headers,
     );
@@ -84,7 +86,9 @@ export class AnthropicFiles implements FilesV4 {
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const fileBytes = convertInlineFileDataToUint8Array(data);
 
-    const blob = new Blob([fileBytes], { type: mediaType });
+    const blob = new Blob([fileBytes as Uint8Array<ArrayBuffer>], {
+      type: mediaType,
+    });
 
     const formData = new FormData();
     if (filename != null) {
@@ -95,7 +99,7 @@ export class AnthropicFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -132,7 +136,7 @@ export class AnthropicFiles implements FilesV4 {
     const fileId = this.getFileId(file);
     const { value: response } = await deleteFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: anthropicFailedResponseHandler,
@@ -155,7 +159,7 @@ export class AnthropicFiles implements FilesV4 {
     const fileId = this.getFileId(file);
     const { value: response } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: anthropicFailedResponseHandler,
@@ -186,7 +190,7 @@ export class AnthropicFiles implements FilesV4 {
     const fileId = this.getFileId(file);
     const { value: content, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/files/${encodePathSegment(fileId)}/content`,
-      headers: this.getHeaders(headers),
+      headers: await this.getHeaders(headers),
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: anthropicFailedResponseHandler,

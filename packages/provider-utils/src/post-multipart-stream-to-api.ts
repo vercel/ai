@@ -195,7 +195,7 @@ export const postMultipartStreamToApi = async <T>({
           ...headers,
           'Content-Type': `multipart/form-data; boundary=${boundary}`,
         },
-        `ai-sdk/provider-utils/${VERSION}`,
+        `ai-sdk-provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
       body: body.stream,

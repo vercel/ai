@@ -43,7 +43,7 @@ export type PiAuthenticationMode = HarnessV1Authentication<
 const DEFAULT_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 const DEFAULT_OPENAI_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
-const HARNESS_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+const HARNESS_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
 
 function createIsolatedPiCredentialStore(): {
   credentials: PiCredentialStore;

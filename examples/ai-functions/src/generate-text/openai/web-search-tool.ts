@@ -20,4 +20,13 @@ run(async () => {
   console.log(JSON.stringify(result.toolResults, null, 2));
   console.log(JSON.stringify(result.sources, null, 2));
   console.log(result.text);
+  console.dir(
+    {
+      sources: result.sources,
+      citations: result.content.flatMap(part =>
+        part.type === 'text' ? (part.citations ?? []) : [],
+      ),
+    },
+    { depth: Infinity },
+  );
 });

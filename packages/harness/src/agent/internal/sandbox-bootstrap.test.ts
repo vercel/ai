@@ -65,7 +65,15 @@ describe('validateSandboxBootstrapSettings', () => {
   });
 
   it('rejects invalid workDir values', () => {
-    for (const value of ['', '.', '/repo', '../repo', 'repo/../../x', 'a\\b']) {
+    for (const value of [
+      '',
+      './',
+      'repo/..',
+      '/repo',
+      '../repo',
+      'repo/../../x',
+      'a\\b',
+    ]) {
       expect(() =>
         validateSandboxBootstrapSettings({
           workDir: value,
@@ -77,6 +85,7 @@ describe('validateSandboxBootstrapSettings', () => {
   it('normalizes workDir values that stay inside the default cwd', () => {
     expect(normalizeSandboxWorkDir('repo/../ai-sdk')).toBe('ai-sdk');
     expect(normalizeSandboxWorkDir('./ai-sdk')).toBe('ai-sdk');
+    expect(normalizeSandboxWorkDir('.')).toBe('.');
   });
 });
 
@@ -161,6 +170,17 @@ describe('resolveSessionWorkDir', () => {
       }),
     ).toBe('/work/ai-sdk');
   });
+
+  it('uses the sandbox default working directory for workDir dot', () => {
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: 'mock',
+        sessionId: 's1',
+        workDir: '.',
+      }),
+    ).toBe('/work');
+  });
 });
 
 describe('runSandboxBootstrap', () => {
@@ -214,6 +234,28 @@ describe('runSandboxBootstrap', () => {
       onBootstrap: onSandboxBootstrap,
     });
 
+    expect(onSandboxBootstrap).toHaveBeenCalledWith({
+      session,
+      workDir: '/work',
+      abortSignal: undefined,
+    });
+  });
+
+  it('uses the sandbox default working directory for caller bootstrap when workDir is dot', async () => {
+    const { session, run } = makeSession();
+    const onSandboxBootstrap = vi.fn(async () => {});
+
+    await runSandboxBootstrap({
+      session,
+      workDir: '.',
+      onBootstrap: onSandboxBootstrap,
+    });
+
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work' },
+      abortSignal: undefined,
+    });
     expect(onSandboxBootstrap).toHaveBeenCalledWith({
       session,
       workDir: '/work',

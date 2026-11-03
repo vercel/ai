@@ -10,7 +10,7 @@ import {
 } from './codex-app-server-driver';
 import type { StartMessage } from '../codex-bridge-protocol';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
-import { createCodexStepTracker } from './codex-step-tracker';
+import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createTrustedApplyPatchHook } from './codex-tool-filtering-hook';
 
 const server = vi.hoisted(() => ({
@@ -33,6 +33,7 @@ const server = vi.hoisted(() => ({
   nextTurn: 0,
   autoComplete: true,
   hookResponse: undefined as unknown,
+  threadModel: undefined as string | undefined,
   steerResponse: undefined as
     | ((params: unknown) => Promise<unknown> | unknown)
     | undefined,
@@ -98,6 +99,7 @@ vi.mock('./codex-app-server-client', () => ({
           },
           approvalPolicy: 'never',
           sandbox: { type: 'dangerFullAccess' },
+          ...(server.threadModel == null ? {} : { model: server.threadModel }),
         };
       }
       if (method === 'turn/start') {
@@ -203,12 +205,14 @@ describe('Codex app-server runtime lifecycle', () => {
     server.nextTurn = 0;
     server.autoComplete = true;
     server.hookResponse = undefined;
+    server.threadModel = undefined;
     server.steerResponse = undefined;
   });
 
   function createOptions({
     threadId,
     codexConfig = {},
+    codexModel = 'gpt-5.3-codex',
     start = {},
     abortSignal = new AbortController().signal,
     emit = () => {},
@@ -216,6 +220,7 @@ describe('Codex app-server runtime lifecycle', () => {
   }: {
     threadId?: string;
     codexConfig?: Record<string, unknown>;
+    codexModel?: string;
     start?: Partial<StartMessage>;
     abortSignal?: AbortSignal;
     emit?: (event: Record<string, unknown>) => void;
@@ -240,7 +245,7 @@ describe('Codex app-server runtime lifecycle', () => {
       emit,
       workdir: '/workspace',
       threadId,
-      codexModel: 'gpt-5.3-codex',
+      codexModel,
       codexConfig,
       stepTracker: createCodexStepTracker({ send }),
       emitStreamEvent: vi.fn(),
@@ -278,6 +283,92 @@ describe('Codex app-server runtime lifecycle', () => {
     });
     await runtime.close();
     expect(server.clients[0]?.closed).toBe(1);
+  });
+
+  describe('stream-start model', () => {
+    function streamStarts(emit: ReturnType<typeof vi.fn>) {
+      return emit.mock.calls
+        .map(([event]) => event as Record<string, unknown>)
+        .filter(event => event.type === 'stream-start');
+    }
+
+    it('reports the model from the thread/start response', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reuses the reported model for turns on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'unexpected-model';
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ threadId: 'thread-1', emit }));
+
+      expect(methods(server.clients[0]!)).toEqual([
+        'initialize',
+        'thread/start',
+        'turn/start',
+        'turn/start',
+      ]);
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex-resolved' },
+      ]);
+      await runtime.close();
+    });
+
+    it('falls back to the requested model when the thread response has none', async () => {
+      const runtime = createCodexAppServerRuntime();
+      const emit = vi.fn();
+      await runtime.runTurn(createOptions({ emit }));
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.3-codex' },
+      ]);
+      await runtime.close();
+    });
+
+    it('reports a turn-level model override on the loaded thread', async () => {
+      server.threadModel = 'gpt-5.3-codex-resolved';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({
+          threadId: 'thread-1',
+          codexModel: 'gpt-5.5',
+          emit,
+        }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'gpt-5.5' },
+      ]);
+      await runtime.close();
+    });
+
+    it('re-reads the model after the thread restarts', async () => {
+      server.threadModel = 'first-model';
+      const runtime = createCodexAppServerRuntime();
+      await runtime.runTurn(createOptions());
+      server.threadModel = 'second-model';
+      const emit = vi.fn();
+      await runtime.runTurn(
+        createOptions({ start: { restartThread: true }, emit }),
+      );
+
+      expect(streamStarts(emit)).toEqual([
+        { type: 'stream-start', modelId: 'second-model' },
+      ]);
+      await runtime.close();
+    });
   });
 
   it('restarts a thread inside the same app-server process', async () => {
@@ -868,6 +959,34 @@ describe('Codex app-server sandbox configuration', () => {
     });
   });
 
+  it('maps text and inline images to Codex turn input in order', () => {
+    const startWithImage = {
+      ...start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    } as StartMessage;
+
+    expect(
+      createTurnParams({
+        threadId: 'thread-1',
+        start: startWithImage,
+        codexModel: 'gpt-5.3-codex',
+      }).input,
+    ).toEqual([
+      {
+        type: 'text',
+        text: 'What is in this image?',
+        text_elements: [],
+      },
+      {
+        type: 'image',
+        url: 'data:image/png;base64,iVBORw0KGgo=',
+      },
+    ]);
+  });
+
   it('fails before a turn if Codex did not disable its sandbox', () => {
     expect(() =>
       assertCodexThreadPermissions({
@@ -971,6 +1090,9 @@ describe('Codex app-server dynamic tools', () => {
         dynamicTools,
         emit: event => emitted.push(event),
         requestToolResult,
+        stepTracker: createCodexStepTracker({
+          send: event => emitted.push(event),
+        }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: '{"temperature":21}' }],
@@ -986,6 +1108,12 @@ describe('Codex app-server dynamic tools', () => {
         providerExecuted: false,
       },
       {
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: defaultUsage(),
+        harnessMetadata: { codex: { inferredStep: true } },
+      },
+      {
         type: 'tool-result',
         toolCallId: 'call-1',
         toolName: 'get_weather',
@@ -993,6 +1121,50 @@ describe('Codex app-server dynamic tools', () => {
         isError: false,
       },
     ]);
+  });
+
+  it('returns model-facing text and inline images as native content items', async () => {
+    const dynamicTools = createDynamicTools([
+      { name: 'inspect', inputSchema: { type: 'object' } },
+    ]);
+
+    await expect(
+      handleAppServerRequest({
+        request: {
+          id: 1,
+          method: 'item/tool/call',
+          params: { callId: 'call-1', tool: 'inspect', arguments: {} },
+        },
+        dynamicTools,
+        emit: () => {},
+        stepTracker: createCodexStepTracker({ send: () => {} }),
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'inspect',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'marker' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBORw==' },
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    ).resolves.toEqual({
+      contentItems: [
+        { type: 'inputText', text: 'marker' },
+        { type: 'inputImage', imageUrl: 'data:image/png;base64,iVBORw==' },
+      ],
+      success: true,
+    });
   });
 
   it('reports host tool errors through dynamic tool success', async () => {
@@ -1021,6 +1193,7 @@ describe('Codex app-server dynamic tools', () => {
           output: 'failed',
           isError: true,
         }),
+        stepTracker: createCodexStepTracker({ send: () => {} }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: 'failed' }],

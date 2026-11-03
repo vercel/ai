@@ -38,6 +38,7 @@ function isMessageEvent(event: string | undefined): boolean {
  */
 export class HttpMCPTransport implements MCPTransport {
   readonly supportsProtocolVersionDiscovery = true;
+  readonly waitsForProtocolVersionDiscovery = true;
   readonly supportsMcpToolParameterHeaders = true;
   private url: URL;
   private abortController?: AbortController;
@@ -101,7 +102,7 @@ export class HttpMCPTransport implements MCPTransport {
     this.onSessionIdChange = onSessionIdChange;
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
   setProtocolVersion(version: string): void {

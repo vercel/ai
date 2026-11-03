@@ -151,6 +151,25 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it('should warn for unknown provider-defined tools on anthropic models', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.unknown_tool',
+            name: 'unknown_tool',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        { type: 'unsupported', feature: 'tool anthropic.unknown_tool' },
+      ]);
+    });
+
     it('should warn and filter out web_search_20250305 tool', async () => {
       const result = await prepareTools({
         tools: [
@@ -389,6 +408,160 @@ describe('prepareTools', () => {
       );
     });
 
+    describe('named tool choice', () => {
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object' as const },
+      };
+      const timeTool = {
+        type: 'function' as const,
+        name: 'getTime',
+        description: 'Get time',
+        inputSchema: { type: 'object' as const },
+      };
+      const customProfile =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+
+      it.each([
+        ANTHROPIC_MODEL,
+        'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+        'us.anthropic.claude-opus-5',
+        'anthropic.claude-3-haiku-20240307-v1:0',
+      ])(
+        'should send every function tool and disable parallel tool use on %s',
+        async modelId => {
+          const result = await prepareTools({
+            tools: [weatherTool, timeTool],
+            toolChoice: { type: 'tool', toolName: 'getWeather' },
+            modelId,
+          });
+
+          expect(
+            result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+          ).toEqual(['getWeather', 'getTime']);
+          expect(result.additionalTools).toEqual({
+            tool_choice: {
+              type: 'tool',
+              name: 'getWeather',
+              disable_parallel_tool_use: true,
+            },
+          });
+          expect(result.toolConfig.toolChoice).toBeUndefined();
+          expect(result.toolWarnings).toEqual([]);
+        },
+      );
+
+      it('should send every function tool for a declared Anthropic application inference profile', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: customProfile,
+          modelFamily: 'anthropic',
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather', 'getTime']);
+        expect(result.additionalTools).toEqual({
+          tool_choice: {
+            type: 'tool',
+            name: 'getWeather',
+            disable_parallel_tool_use: true,
+          },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should allow parallel tool calls when disableParallelToolUse is false', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: ANTHROPIC_MODEL,
+          disableParallelToolUse: false,
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather', 'getTime']);
+        expect(result.toolConfig.toolChoice).toEqual({
+          tool: { name: 'getWeather' },
+        });
+        expect(result.additionalTools).toBeUndefined();
+      });
+
+      it('should send every function tool when parallel tool use is disabled', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: ANTHROPIC_MODEL,
+          disableParallelToolUse: true,
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather', 'getTime']);
+        expect(result.additionalTools).toEqual({
+          tool_choice: {
+            type: 'tool',
+            name: 'getWeather',
+            disable_parallel_tool_use: true,
+          },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should send provider tools and every function tool with the named tool choice', async () => {
+        const result = await prepareTools({
+          tools: [
+            weatherTool,
+            timeTool,
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: ANTHROPIC_MODEL,
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['bash', 'getWeather', 'getTime']);
+        expect(prepareAnthropicTools).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            toolChoice: { type: 'tool', toolName: 'getWeather' },
+            disableParallelToolUse: true,
+          }),
+        );
+      });
+
+      it.each([
+        'openai.gpt-oss-20b-1:0',
+        'us.amazon.nova-pro-v1:0',
+        'amazon.nova-2-lite-v1:0',
+        NON_ANTHROPIC_MODEL,
+        customProfile,
+      ])('should only send the named function tool on %s', async modelId => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId,
+        });
+
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.toolConfig.toolChoice).toEqual({
+          tool: { name: 'getWeather' },
+        });
+        expect(result.additionalTools).toBeUndefined();
+      });
+    });
+
     describe('models that reject forced tool use', () => {
       const weatherTool = {
         type: 'function' as const,
@@ -407,6 +580,8 @@ describe('prepareTools', () => {
         'anthropic.claude-opus-5-5',
         'us.anthropic.claude-opus-5-5',
         'global.anthropic.claude-opus-5-5',
+        'anthropic.claude-sonnet-5-5',
+        'us.anthropic.claude-sonnet-5-5',
       ])(
         'should fall back to auto for tool choice "required" on %s',
         async modelId => {
@@ -442,6 +617,7 @@ describe('prepareTools', () => {
         expect(
           result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
         ).toEqual(['getWeather']);
+        expect(result.additionalTools).toBeUndefined();
         expect(result.toolWarnings).toEqual([
           {
             type: 'unsupported',
@@ -819,10 +995,38 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'anthropic.claude-sonnet-5',
+      'us.anthropic.claude-opus-5',
+      'global.anthropic.claude-sonnet-5-5',
+      'global.anthropic.claude-haiku-5-5',
+    ])('should pass strict: true for Claude 5 model %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      const tools = result.toolConfig.tools!;
+      expect((tools[0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it.each([
+      'us.anthropic.claude-opus-6-v1:0',
+      'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
-      'us.anthropic.claude-opus-5',
-      'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
       'anthropic.claude-fable-5-1',
       'us.anthropic.claude-fable-5-1',
@@ -851,6 +1055,26 @@ describe('prepareTools', () => {
             "Tool 'testFunction' has strict: true, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.",
         },
       ]);
+    });
+
+    it('should omit strict without warning when strict is false and strict mode is unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'us.anthropic.claude-opus-4-7',
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([]);
     });
   });
 });

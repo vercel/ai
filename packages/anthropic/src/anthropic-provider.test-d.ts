@@ -7,7 +7,21 @@ import type {
   AnthropicLanguageModelOptions,
   AnthropicModelId,
 } from './anthropic-language-model-options';
-import { anthropic } from './anthropic-provider';
+import type { AnthropicCitation, AnthropicTextProviderMetadata } from './index';
+import { anthropic, createAnthropic } from './anthropic-provider';
+
+it('accepts static, promised, synchronous, and asynchronous auth tokens', () => {
+  expectTypeOf(createAnthropic).toBeCallableWith({ authToken: 'token' });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: Promise.resolve('token'),
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: () => 'token',
+  });
+  expectTypeOf(createAnthropic).toBeCallableWith({
+    authToken: async () => 'token',
+  });
+});
 
 it('types batch support on the provider', () => {
   expectTypeOf(anthropic.experimental_batch()).toEqualTypeOf<
@@ -35,4 +49,10 @@ it('types on-demand compaction provider options', () => {
       }
     | undefined
   >();
+});
+
+it('exports typed text citation metadata', () => {
+  expectTypeOf<
+    AnthropicTextProviderMetadata['anthropic']['citations'][number]
+  >().toEqualTypeOf<AnthropicCitation>();
 });

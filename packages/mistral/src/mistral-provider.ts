@@ -7,12 +7,16 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
+import { MistralConversationLanguageModel } from './mistral-conversation-language-model';
 import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
@@ -21,8 +25,16 @@ import type { MistralSpeechModelId } from './mistral-speech-model-options';
 import { MistralTranscriptionModel } from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
+import { mistralTools } from './tool';
+import {
+  createMistralRealtimeFactory,
+  type MistralRealtimeFactory,
+} from './realtime/mistral-realtime-factory';
 
 export interface MistralProvider extends ProviderV4 {
+  tools: typeof mistralTools;
+  /** Creates managed voice agents and their server-side sessions. */
+  experimental_realtime: MistralRealtimeFactory;
   (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
@@ -34,6 +46,11 @@ export interface MistralProvider extends ProviderV4 {
    * Creates a model for text generation.
    */
   chat(modelId: MistralChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a model using the Conversations API, with support for web search.
+   */
+  conversation(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -89,7 +106,7 @@ export interface MistralProviderSettings {
    * API key that is being send using the `Authorization` header.
    * It defaults to the `MISTRAL_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -101,6 +118,12 @@ export interface MistralProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * WebSocket implementation for realtime transcription. Use a header-capable
+   * implementation such as `ws` to send Mistral's Authorization header.
+   */
+  webSocket?: WebSocketConstructor;
 
   generateId?: () => string;
 }
@@ -115,16 +138,18 @@ export function createMistral(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.mistral.ai/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MISTRAL_API_KEY',
-          description: 'Mistral',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/mistral/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MISTRAL_API_KEY',
+            description: 'Mistral',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-mistral/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MistralChatModelId) =>
@@ -144,6 +169,15 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createConversationModel = (modelId: MistralChatModelId) =>
+    new MistralConversationLanguageModel(modelId, {
+      provider: 'mistral.conversation',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      generateId: options.generateId,
+    });
+
   const createSpeechModel = (modelId: MistralSpeechModelId) =>
     new MistralSpeechModel(modelId, {
       provider: 'mistral.speech',
@@ -158,6 +192,7 @@ export function createMistral(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: MistralChatModelId) {
@@ -173,6 +208,13 @@ export function createMistral(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.conversation = createConversationModel;
+  provider.tools = mistralTools;
+  provider.experimental_realtime = createMistralRealtimeFactory({
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

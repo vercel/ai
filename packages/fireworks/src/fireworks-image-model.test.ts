@@ -147,6 +147,37 @@ describe('FireworksImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'accounts/fireworks/models/flux-kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new FireworksImageModel(modelId, {
+          provider: 'fireworks',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     it('should pass the correct parameters including aspect ratio and seed', async () => {
       const model = createBasicModel();

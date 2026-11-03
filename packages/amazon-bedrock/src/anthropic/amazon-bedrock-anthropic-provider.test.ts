@@ -5,14 +5,13 @@ import {
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
-vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual('@ai-sdk/provider-utils');
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<typeof ProviderUtilsModule>();
   return {
-    WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
-    WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
-    serializeModelOptions: (actual as any).serializeModelOptions,
+    ...actual,
     loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
       // Return undefined for API key to test SigV4 flow
       if (settingValue === undefined) return undefined;
@@ -110,24 +109,20 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'us.anthropic.claude-sonnet-4-6-v1',
     'eu.anthropic.claude-sonnet-4-6-v1',
     'global.anthropic.claude-sonnet-4-6-v1',
+    'us.anthropic.claude-opus-6-v1:0',
+    'global.anthropic.claude-future-v1:0',
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
     'us.anthropic.claude-fable-5-1',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
   ])('should disable native structured output for %s', modelId => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
@@ -145,24 +140,20 @@ describe('amazon-bedrock-anthropic-provider', () => {
   });
 
   it.each([
+    'us.anthropic.claude-opus-6-v1:0',
+    'global.anthropic.claude-future-v1:0',
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
     'us.anthropic.claude-fable-5-1',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {
@@ -177,6 +168,35 @@ describe('amazon-bedrock-anthropic-provider', () => {
         modelId,
         expect.objectContaining({
           supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+    'global.anthropic.claude-sonnet-5-5',
+    'global.anthropic.claude-haiku-5-5',
+  ])(
+    'should enable native structured output and strict tools for %s',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsNativeStructuredOutput: true,
+          supportsStrictTools: true,
         }),
       );
     },
@@ -334,7 +354,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(config.headers).toEqual(expect.any(Function));
     const resolvedHeaders = await (config.headers as Function)();
     expect(resolvedHeaders).toMatchObject(customHeaders);
-    expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
+    expect(resolvedHeaders['user-agent']).toContain('ai-sdk-amazon-bedrock/');
   });
 
   it('should build correct URL for non-streaming requests', () => {

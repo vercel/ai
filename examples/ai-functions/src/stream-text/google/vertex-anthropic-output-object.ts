@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertexAnthropic('claude-sonnet-5'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     maxOutputTokens: 2000,
     output: Output.object({
       schema: z.object({
