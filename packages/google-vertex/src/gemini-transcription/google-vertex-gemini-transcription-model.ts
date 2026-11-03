@@ -168,6 +168,15 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const googleOptions = await this.parseOptions(options.providerOptions);
+    const wantsWord = options.timestampGranularities?.includes('word');
+    if (wantsWord && googleOptions?.wordTimestamp === false) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'providerOptions.googleVertex.wordTimestamp is false and overrides the requested word timings.',
+      });
+    }
     if (options.timestampGranularities?.includes('segment')) {
       warnings.push({
         type: 'unsupported',
@@ -177,8 +186,7 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       });
     }
     const resolvedOptions =
-      googleOptions?.wordTimestamp == null &&
-      options.timestampGranularities?.includes('word')
+      googleOptions?.wordTimestamp == null && wantsWord
         ? { ...googleOptions, wordTimestamp: true }
         : googleOptions;
     const audioTranscriptionConfig =

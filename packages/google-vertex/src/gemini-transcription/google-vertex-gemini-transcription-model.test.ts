@@ -103,6 +103,7 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Hello world.');
+    expect(result.warnings).toEqual([]);
     expect(await server.calls[0].requestBodyJson).toEqual({
       contents: [
         {
@@ -209,6 +210,7 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({
       audio: new Uint8Array([1, 2, 3, 4]),
       mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
       providerOptions: {},
     });
 
@@ -221,6 +223,7 @@ describe('doGenerate', () => {
       { text: 'fox.', startSecond: 0.7, endSecond: 1 },
     ]);
     expect(result.words).toEqual(result.segments);
+    expect(result.warnings).toEqual([]);
   });
 
   it('maps shared word timings and warns that caption segments are unavailable', async () => {
@@ -249,6 +252,36 @@ describe('doGenerate', () => {
       },
     ]);
   });
+
+  it.each(['googleVertex', 'vertex', 'google'])(
+    'warns when %s.wordTimestamp disables requested word timings',
+    async namespace => {
+      const model = createModel('gemini-3.5-transcribe');
+      const result = await model.doGenerate({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+        providerOptions: {
+          [namespace]: { wordTimestamp: false, languageCodes: ['en-US'] },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+        audioTranscriptionConfig: {
+          wordTimestamp: false,
+          languageCodes: ['en-US'],
+        },
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'providerOptions.googleVertex.wordTimestamp is false and overrides the requested word timings.',
+        },
+      ]);
+    },
+  );
 
   it('rejects unary transcription on live model ids', async () => {
     const model = createModel('gemini-3.5-transcribe-live');

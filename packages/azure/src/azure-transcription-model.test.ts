@@ -216,23 +216,69 @@ describe('Speech requests', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('warns when shared timings are requested from a model that cannot return them', async () => {
+  it('maps segment-only shared timings onto Azure timestamps', async () => {
     const { provider, definition } = setup();
-    const result = await provider
-      .transcription('mai-transcribe-1.5')
-      .doGenerate({
-        ...input,
-        timestampGranularities: ['word'],
-      });
-    expect(definition().enhancedMode.modelOptions.timestamps).toBeUndefined();
-    expect(result.warnings).toEqual([
-      {
-        type: 'unsupported',
-        feature: 'timestampGranularities',
-        details: 'MAI-Transcribe-1.5 cannot return word or segment timings.',
-      },
-    ]);
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      timestampGranularities: ['segment'],
+    });
+    expect(definition().enhancedMode.modelOptions.timestamps).toBe('segment');
+    expect(result.warnings).toEqual([]);
   });
+
+  it.each([
+    ['word', 'none'],
+    ['word', 'segment'],
+    ['segment', 'none'],
+  ] as const)(
+    'warns when Azure timestamps override requested %s timings with %s',
+    async (granularity, timestamps) => {
+      const { provider, definition } = setup();
+      const result = await provider
+        .transcription('mai-transcribe-2')
+        .doGenerate({
+          ...input,
+          timestampGranularities: [granularity],
+          providerOptions: { azure: { timestamps } },
+        });
+      expect(definition().enhancedMode.modelOptions.timestamps).toBe(
+        timestamps,
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `providerOptions.azure.timestamps is "${timestamps}" and overrides the requested timestamp granularities.`,
+        },
+      ]);
+    },
+  );
+
+  it.each([undefined, 'word', 'segment', 'none'] as const)(
+    'warns about unsupported shared timings with Azure timestamps=%s',
+    async timestamps => {
+      const { provider, definition } = setup();
+      const result = await provider
+        .transcription('mai-transcribe-1.5')
+        .doGenerate({
+          ...input,
+          timestampGranularities: ['word', 'segment'],
+          providerOptions: {
+            azure: { ...(timestamps != null ? { timestamps } : {}) },
+          },
+        });
+      expect(definition().enhancedMode.modelOptions.timestamps).toBe(
+        timestamps,
+      );
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: 'MAI-Transcribe-1.5 cannot return word or segment timings.',
+        },
+      ]);
+    },
+  );
 
   it.each(['word', 'segment', 'none'] as const)(
     'serializes all options with %s timestamps',
@@ -245,9 +291,10 @@ describe('Speech requests', () => {
         diarization: { enabled: true },
         phraseList: { phrases: ['Vercel'] },
       } satisfies AzureTranscriptionModelOptions;
-      await provider
+      const result = await provider
         .transcription('mai-transcribe-2')
         .doGenerate({ ...input, providerOptions: { azure } });
+      expect(result.warnings).toEqual([]);
       expect(definition()).toEqual({
         enhancedMode: {
           enabled: true,

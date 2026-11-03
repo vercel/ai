@@ -38,7 +38,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
     const maiModel = getMAITranscribeModel(this.modelId);
     const warnings: SharedV4Warning[] = [];
     let timestamps = azureOptions.timestamps;
-    if (timestamps == null && options.timestampGranularities != null) {
+    if (options.timestampGranularities != null) {
       const wantsWord = options.timestampGranularities.includes('word');
       const wantsSegment = options.timestampGranularities.includes('segment');
       if (
@@ -50,10 +50,21 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
           feature: 'timestampGranularities',
           details: `${maiModel.name} cannot return word or segment timings.`,
         });
-      } else if (wantsWord) {
-        timestamps = 'word';
-      } else if (wantsSegment) {
-        timestamps = 'segment';
+      } else if (timestamps == null) {
+        if (wantsWord) {
+          timestamps = 'word';
+        } else if (wantsSegment) {
+          timestamps = 'segment';
+        }
+      } else if (
+        (wantsWord && timestamps !== 'word') ||
+        (wantsSegment && timestamps === 'none')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `providerOptions.azure.timestamps is "${timestamps}" and overrides the requested timestamp granularities.`,
+        });
       }
     }
     const formData = new FormData();
