@@ -33,6 +33,49 @@ describe('system messages', () => {
 });
 
 describe('thought signatures', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'preserves standalone empty text and reasoning signatures from %s',
+    namespace => {
+      const result = convertToGoogleMessages(
+        [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'text-signature' },
+                },
+              },
+              {
+                type: 'reasoning',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'reasoning-signature' },
+                },
+              },
+            ],
+          },
+        ],
+        { providerOptionsNames: ['googleVertex', 'vertex'] },
+      );
+      expect(result.contents).toEqual([
+        {
+          role: 'model',
+          parts: [
+            { text: '', thoughtSignature: 'text-signature' },
+            {
+              text: '',
+              thought: true,
+              thoughtSignature: 'reasoning-signature',
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
   it('should preserve thought signatures in assistant messages', async () => {
     const result = convertToGoogleMessages([
       {
