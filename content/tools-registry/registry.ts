@@ -787,4 +787,34 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'olostep',
+    name: 'Olostep',
+    description:
+      'Web search, scraping, crawling and cited answers for AI SDK agents. Returns structured data and page content for model use.',
+    packageName: '@olostep/ai-sdk',
+    tags: ['search', 'scraping', 'crawl', 'extraction'],
+    apiKeyEnvName: 'OLOSTEP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @olostep/ai-sdk',
+      npm: 'npm install @olostep/ai-sdk',
+      yarn: 'yarn add @olostep/ai-sdk',
+      bun: 'bun add @olostep/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { olostepTools } from '@olostep/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Read the Next.js 15 release notes and list the breaking changes, with sources.',
+  tools: olostepTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.olostep.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://www.olostep.com/dashboard',
+    websiteUrl: 'https://www.olostep.com',
+    npmUrl: 'https://www.npmjs.com/package/@olostep/ai-sdk',
+  },
 ];
