@@ -18,6 +18,7 @@ export type {
 
 export { azure, createAzure } from './azure-openai-provider';
 export type {
+  AzureOpenAILanguageModelSettings,
   AzureOpenAIProvider,
   AzureOpenAIProviderSettings,
 } from './azure-openai-provider';

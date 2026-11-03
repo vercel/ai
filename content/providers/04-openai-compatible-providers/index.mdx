@@ -19,6 +19,7 @@ We provide detailed documentation for the following OpenAI compatible providers:
 - [Clarifai](/providers/openai-compatible-providers/clarifai)
 - [NEAR AI Cloud](/providers/openai-compatible-providers/nearai)
 - [TopxAI](/providers/openai-compatible-providers/topxai)
+- [Synthorai](/providers/openai-compatible-providers/synthorai)
 
 The general setup and provider instance creation is the same for all of these providers.
 
@@ -49,11 +50,14 @@ You can use the following optional settings to customize the provider instance:
 
   Set the URL prefix for API calls.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key for authenticating requests. If specified, adds an `Authorization`
   header to request headers with the value `Bearer <apiKey>`. This will be added
   before any headers potentially specified in the `headers` option.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 

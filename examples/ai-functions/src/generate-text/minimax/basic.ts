@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: minimax('minimax-m3'),
+    model: minimax('minimax-m3.1-flash'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -296,6 +296,8 @@ In the standard `useChat` pattern, the server rebuilds the conversation from the
 
 Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
 
+During re-validation, `toolCall.toolMetadata` and `toolCall.dynamic` come from the current server-side tool definition. The deprecated `toolCall.title` field is also restored from that definition. A server-side policy denial prevents execution even when the client supplies an approved response with a valid signature.
+
 If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
 
 ### Signing approvals with `experimental_toolApprovalSecret`
@@ -352,3 +354,4 @@ Every serverless instance that might handle a request needs the same secret, sin
 - Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
 - Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).
+- Chat SDK's `createChatTools` marks its write tools and `getUser` as needing approval. A `toolApproval` rule overrides those defaults; see [Chat Platforms](/docs/agents/chat-platforms#give-the-agent-chat-tools).

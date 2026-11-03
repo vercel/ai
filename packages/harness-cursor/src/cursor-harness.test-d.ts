@@ -28,6 +28,7 @@ test('preserves Cursor built-in tool types', () => {
     | 'glob'
     | 'grep'
     | 'read'
+    | 'write'
     | 'updateTodos'
     | 'readTodos'
     | 'edit'

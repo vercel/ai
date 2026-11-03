@@ -11,7 +11,7 @@ const symbol = Symbol.for(marker);
 
 type EnforcedToolChoice = Extract<
   LanguageModelV4ToolChoice,
-  { type: 'required' } | { type: 'tool' }
+  { type: 'none' } | { type: 'required' } | { type: 'tool' }
 >;
 
 /**
@@ -54,9 +54,11 @@ export class ToolChoiceViolationError extends AISDKError {
     provider,
     modelId,
     content,
-    message = toolChoice.type === 'required'
-      ? 'Model response did not contain a tool call even though tool choice was required.'
-      : `Model response did not contain a call to the required tool '${toolChoice.toolName}'.`,
+    message = toolChoice.type === 'none'
+      ? 'Model response contained a tool call even though tool choice was none.'
+      : toolChoice.type === 'required'
+        ? 'Model response did not contain a tool call even though tool choice was required.'
+        : `Model response did not contain a call to the required tool '${toolChoice.toolName}'.`,
   }: {
     toolChoice: EnforcedToolChoice;
     finishReason: FinishReason;

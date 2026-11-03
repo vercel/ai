@@ -98,14 +98,16 @@ Use a provider's `decisionModel` factory:
 | Provider    | Example model                                          |
 | ----------- | ------------------------------------------------------ |
 | TypeSafe AI | `typeSafeAi.decisionModel('jev-latest')`               |
+| Perplexity  | `perplexity.decisionModel('pplx-decider-latest')`      |
 | OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
 
-TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) and OpenAI's
-[Decisions API](https://developers.openai.com/api/docs/guides/decisions)
-supply native Choice, Score, and Boolean decisions. Each question is evaluated
-independently. Choice and Score answers include native probability distributions.
+TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions), and
+[Perplexity's decision models](/providers/ai-sdk-providers/perplexity#decision-models)
+supply native Choice, Score, and Boolean decisions. Answers are keyed by question
+ID, and Choice and Score answers include native probability distributions.
 
 Anthropic and Google adapt structured language-model output for all three types,
 evaluating all questions in one prompt. Their Boolean answers contain prompted
@@ -226,19 +228,28 @@ to retain its experimental `decisionModel` method.
 
 ## Question types
 
-| Type      | Criteria                                  | Answer                                                                   |
-| --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| `choice`  | A nonempty map of options to descriptions | `choice`, inferred as a union of option keys; optional `probabilities`   |
-| `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
-| `box`     | None                                      | `box` with normalized `top`, `bottom`, `left`, and `right` image edges   |
-| `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
+| Type      | Criteria                                       | Answer                                                                   |
+| --------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| `choice`  | A nonempty map of options to descriptions      | `choice`, inferred as a union of option keys; optional `probabilities`   |
+| `score`   | A nonempty array of ordered level descriptions | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
+| `box`     | None                                           | `box` with normalized `top`, `bottom`, `left`, and `right` image edges   |
+| `boolean` | Optional `true` and `false` descriptions       | Required `probability`, the model-estimated probability of true          |
 
 `Experimental_DecisionQuestion` is exported from `ai`. Instructions and
 descriptions can be strings, JSON objects, or JSON arrays. Descriptions can also
-be `null`.
+be `null` when the provider supports it.
 
-Functions, class instances, cycles, undefined values, and nonfinite numbers are
-not JSON-compatible.
+For Choice, Score, and Boolean, `instructions` may be omitted or `null`. A Boolean
+question without instructions must describe at least one of its `true` or `false`
+criteria. Box questions always require instructions. Provider APIs can impose
+additional requirements; see the provider's documentation.
+
+Score rubrics require at least one level in Core. Perplexity accepts a single
+level, which returns score `0` with probability `1`; other providers may require
+more levels. See [Perplexity's examples](/providers/ai-sdk-providers/perplexity#single-level-score-rubrics).
+
+Functions, class instances, cycles, undefined values inside JSON content, and
+nonfinite numbers are not JSON-compatible.
 
 Answers retain question IDs and have the same `type` as their question. When a
 Choice distribution is supplied, it includes every option and the selected
@@ -266,6 +277,9 @@ their API probabilities. Provider-specific confidence statistics belong
 in `providerMetadata`. TypeSafe exposes its separate Choice/Score/Box confidence
 statistic at `result.providerMetadata?.typesafe?.confidence`, keyed by question
 ID. It is not the selected option's probability or a portable confidence measure.
+Perplexity exposes Choice/Score confidence at
+`result.providerMetadata?.perplexity?.confidence` and Score legends at
+`result.providerMetadata?.perplexity?.legend`, also keyed by question ID.
 
 Check for optional distributions before using them. For example, an application
 can route only when a provider supplies a sufficiently high selected-option

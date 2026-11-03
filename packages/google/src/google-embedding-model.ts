@@ -3,6 +3,7 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
   type EmbeddingModelProviderOptionsTransformer,
@@ -26,7 +27,7 @@ import {
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
