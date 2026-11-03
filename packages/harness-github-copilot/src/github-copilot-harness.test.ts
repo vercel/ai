@@ -372,7 +372,7 @@ describe('createGitHubCopilot', () => {
     createGitHubCopilot({
       mcpServers: { docs: { command: 'docs-mcp' } },
     });
-    const isMcpToolCall = lastSettings().isMcpToolCall!;
+    const isMcpToolCall = lastSettings().isMcpToolCall;
 
     expect(
       isMcpToolCall({
@@ -423,4 +423,73 @@ function lastSettings(): ACPHarnessSettings<Record<string, any>> {
   return mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings<
     Record<string, any>
   >;
+}
+
+describe('resolveHostToolCall', () => {
+  const serverName = 'ai-sdk-harness-tools';
+  const toolNames = ['get_weather'];
+
+  it('resolves the captured host tool call update', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'ai-sdk-harness-tools-get_weather',
+          kind: 'read',
+          status: 'pending',
+          rawInput: { city: 'Austin' },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Austin",
+        },
+        "toolName": "get_weather",
+      }
+    `);
+  });
+
+  it('does not resolve the shortened permission request title', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'get_weather',
+          rawInput: { city: 'Austin' },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      title: 'github-mcp-server-get_weather',
+      rawInput: { city: 'Austin' },
+    },
+    {
+      title: 'ai-sdk-harness-tools-get_weather',
+      name: 'get_weather',
+      rawInput: { city: 'Austin' },
+    },
+    { title: 'ai-sdk-harness-tools-get_weather', rawInput: null },
+  ])('does not resolve a mismatched tool call: %j', toolCall => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', ...toolCall },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+function resolveHostToolCall(): ACPHarnessSettings['resolveHostToolCall'] {
+  createGitHubCopilot();
+  return (mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings)
+    .resolveHostToolCall;
 }

@@ -17,6 +17,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -36,14 +37,12 @@ import {
   type OpenAIConfig,
 } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
-  getOpenAILanguageModelCapabilities,
-  resolveOpenAIReasoningEffort,
-} from '../openai-language-model-capabilities';
+import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
 } from '../openai-stream-error';
+import { resolveOpenAIReasoningEffort } from '../resolve-openai-reasoning-effort';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -226,10 +225,10 @@ function getConfigurationUpdateUnsupportedReason({
   modelCapabilities,
   options,
 }: {
-  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  modelCapabilities: { configurationUpdates: boolean };
   options: OpenAILanguageModelResponsesOptions | undefined;
 }): string | undefined {
-  if (!modelCapabilities.supportsConfigurationUpdate) {
+  if (!modelCapabilities.configurationUpdates) {
     return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
   }
 
@@ -304,7 +303,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions;
   }) {
     const warnings: SharedV4Warning[] = [];
-    const modelCapabilities = getOpenAILanguageModelCapabilities(modelId);
+    const {
+      capabilities: { language: modelCapabilities },
+      requestConfig: { language: modelRequestConfig },
+    } = getOpenAILanguageModelEntry(modelId);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -346,7 +348,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
       providerReasoningEffort: openaiOptions?.reasoningEffort,
       reasoning,
-      supportedReasoningEfforts: modelCapabilities.supportedReasoningEfforts,
+      supportedReasoningEfforts: modelCapabilities.reasoning.efforts,
       warnings,
     });
 
@@ -358,7 +360,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           : undefined;
 
     const isReasoningModel =
-      openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+      openaiOptions?.forceReasoning ??
+      modelCapabilities.reasoning.support === true;
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
@@ -402,7 +405,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       customProviderToolNames,
       outputSchemaToolNames,
-      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
+      supportsAsyncToolCalling: modelCapabilities.tools.async,
       providerOptionsName,
     });
 
@@ -420,7 +423,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           openaiOptions?.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelCapabilities.systemMessageMode),
+            : modelRequestConfig.systemMessageMode),
         providerOptionsName,
         configurationUpdateUnsupportedReason,
         explicitMessageItemType: config.explicitMessageItemType,
@@ -448,10 +451,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // The schema accepts update efforts supported by any supported model. Check
     // whether this specific model supports the requested effort.
-    const supportedReasoningEfforts =
-      modelCapabilities.supportedReasoningEfforts as
-        | readonly string[]
-        | undefined;
+    const supportedReasoningEfforts = modelCapabilities.reasoning.efforts;
     const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
       effort != null && supportedReasoningEfforts?.includes(effort) === false
         ? `${modelId} only supports the following reasoning efforts: ${supportedReasoningEfforts.join(', ')}`
@@ -668,7 +668,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportsConfigurationUpdate &&
+      !modelCapabilities.promptCache.retention &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
@@ -696,7 +696,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       if (
         !(
           effectiveReasoningEffort === 'none' &&
-          modelCapabilities.supportsNonReasoningParameters
+          modelCapabilities.reasoning.sampling === 'reasoning-effort-none'
         )
       ) {
         if (baseArgs.temperature != null) {
@@ -718,7 +718,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         }
 
         if (
-          modelCapabilities.supportsConfigurationUpdate &&
+          modelCapabilities.endpoints.responses.logprobsRequireNonReasoning &&
           (baseArgs.top_logprobs != null ||
             baseArgs.include?.includes('message.output_text.logprobs'))
         ) {
@@ -774,7 +774,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !modelCapabilities.supportsFlexProcessing
+      !modelCapabilities.serviceTiers.flex
     ) {
       warnings.push({
         type: 'unsupported',
@@ -790,7 +790,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     if (
       (openaiOptions?.serviceTier === 'priority' ||
         openaiOptions?.serviceTier === 'fast') &&
-      !modelCapabilities.supportsPriorityProcessing
+      !modelCapabilities.serviceTiers.priority
     ) {
       warnings.push({
         type: 'unsupported',
@@ -860,7 +860,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -1563,7 +1566,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         stream: true,

@@ -751,4 +751,40 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'agentsvc',
+    name: 'agentsvc',
+    description:
+      'More than 120 pay-per-call tools for agents in one package: web scraping to Markdown, token safety checks before a swap, smart-money and whale tracking, agent memory and inboxes, PDF and OCR, company and sanctions checks. Paid per call with a prepaid credit token or USDC via x402, no subscription.',
+    packageName: 'agentsvc',
+    tags: ['web-scraping', 'crypto', 'memory', 'x402', 'payments'],
+    apiKeyEnvName: 'AGENTSVC_CREDIT_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add agentsvc',
+      npm: 'npm install agentsvc',
+      yarn: 'yarn add agentsvc',
+      bun: 'bun add agentsvc',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAgentsvc } from 'agentsvc';
+import { agentsvcTools } from 'agentsvc/ai-sdk';
+
+const svc = createAgentsvc({
+  creditToken: process.env.AGENTSVC_CREDIT_TOKEN,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: await agentsvcTools(svc, ['web-scrape', 'token-precheck', 'token-smart-money']),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Is BRETT (0x532f27101965dd16442E59d40670FaF5eBB142E4) on Base safe to buy, and who is buying it right now?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentsvc.io/docs/ai-sdk',
+    apiKeyUrl: 'https://agentsvc.io/credits',
+    websiteUrl: 'https://agentsvc.io',
+    npmUrl: 'https://www.npmjs.com/package/agentsvc',
+  },
 ];

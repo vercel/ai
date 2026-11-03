@@ -123,6 +123,13 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
+   */
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
+  /**
    * Maximum estimated spend in USD for each Claude query. When it is exceeded,
    * the query stops and the turn ends with an error. Unset means no limit.
    */
@@ -1101,6 +1108,7 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
@@ -1278,6 +1286,7 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
@@ -1332,6 +1341,7 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  skillOverrides,
   maxBudgetUsd,
   strictMcpConfig,
   questionTimeoutMs,
@@ -1367,6 +1377,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
@@ -1737,6 +1748,7 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
@@ -1751,7 +1763,12 @@ function createSession({
         thinking,
         ...(effort !== undefined ? { effort } : {}),
         ...(promptOpts.skills.length > 0
-          ? { skills: promptOpts.skills.map(skill => skill.name) }
+          ? {
+              skills: promptOpts.skills.map(skill => skill.name),
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+              ),
+            }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(toolHints == null ? {} : { toolHints }),
@@ -1815,6 +1832,7 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
@@ -1829,7 +1847,12 @@ function createSession({
           thinking,
           ...(effort !== undefined ? { effort } : {}),
           ...(continueOpts.skills.length > 0
-            ? { skills: continueOpts.skills.map(skill => skill.name) }
+            ? {
+                skills: continueOpts.skills.map(skill => skill.name),
+                readableSkillRoots: continueOpts.skills.map(
+                  skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+                ),
+              }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
           ...(toolHints == null ? {} : { toolHints }),

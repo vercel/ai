@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -814,6 +817,254 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('passes skill overrides into the Agent SDK settings', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      init: 'off',
+    };
+    state.start = {
+      ...state.start,
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toMatchObject({
+      skillOverrides,
+    });
+  });
+
+  test('merges model overrides with skill overrides', async () => {
+    const skillOverrides = { init: 'off' };
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      skillOverrides,
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+      },
+    });
+  });
+
+  test('omits settings when no contributions are configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+  });
+
+  test.each([
+    {
+      permissionMode: 'allow-reads' as const,
+      allowedTool: 'Read',
+      gatedTool: 'Edit',
+    },
+    {
+      permissionMode: 'allow-edits' as const,
+      allowedTool: 'Edit',
+      gatedTool: 'Bash',
+    },
+  ])(
+    'preserves $permissionMode approval boundaries with skill overrides',
+    async ({ permissionMode, allowedTool, gatedTool }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-workspace-permissions-'),
+      );
+      process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+      const skillOverrides = { init: 'off' };
+      state.start = {
+        ...state.start,
+        permissionMode,
+        skillOverrides,
+      };
+
+      await import('./index');
+
+      const options = state.queryArgs[0]?.options;
+      expect(options?.settings).toMatchObject({
+        skillOverrides,
+        permissions: {
+          ask: expect.arrayContaining([`${gatedTool}(*)`]),
+        },
+      });
+      expect(options?.canUseTool).toBeTypeOf('function');
+
+      const hooks = options?.hooks as {
+        PreToolUse: Array<{
+          hooks: Array<
+            (
+              input: Record<string, unknown>,
+              toolUseID: string,
+            ) => Promise<unknown>
+          >;
+        }>;
+      };
+      const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: allowedTool,
+            cwd: directory,
+            tool_input: { file_path: path.join(directory, 'file.txt') },
+            tool_use_id: 'allowed-tool',
+          },
+          'allowed-tool',
+        ),
+      ).resolves.toEqual({});
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: gatedTool,
+            tool_input: {},
+            tool_use_id: 'gated-tool',
+          },
+          'gated-tool',
+        ),
+      ).resolves.toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'defer',
+        },
+      });
+      await rm(directory, { recursive: true, force: true });
+    },
+  );
+
+  test.each([
+    { toolName: 'Read', toolInput: { file_path: 'file.txt' }, approved: true },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'new/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../skill/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '../skill/new.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../other/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: 'escape/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '../other/file.ipynb' },
+      approved: false,
+    },
+    { toolName: 'Glob', toolInput: { pattern: '**/*.ts' }, approved: true },
+    { toolName: 'Glob', toolInput: { pattern: '../*.ts' }, approved: false },
+    {
+      toolName: 'Glob',
+      toolInput: { pattern: '\\.\\./*.ts' },
+      approved: false,
+    },
+    {
+      toolName: 'Grep',
+      toolInput: { pattern: 'text', path: '../other' },
+      approved: false,
+    },
+    { toolName: 'Read', toolInput: {}, approved: false },
+    { toolName: 'EnterWorktree', toolInput: {}, approved: false },
+    { toolName: 'UnknownTool', toolInput: {}, approved: false },
+  ])(
+    'checks $toolName targets in both approval entry points',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-file-approvals-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const skill = path.join(directory, 'skill');
+        await mkdir(workDir);
+        await mkdir(skill);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(workDir, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          readableSkillRoots: [skill],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+        if (approved) {
+          expect(
+            (
+              await callback(toolName, toolInput, {
+                toolUseID: 'file-call',
+                blockedPath: path.join(directory, 'other', 'blocked.txt'),
+              })
+            ).behavior,
+          ).toBe('deny');
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
   test('omits canUseTool when bypassing permissions', async () => {
     await import('./index');
 
@@ -845,6 +1096,60 @@ describe('Claude Code bridge configuration', () => {
     });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
+
+  test('maps a dotted AI Gateway model id to the id Claude Code expects', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      model: 'anthropic/claude-opus-5.5',
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test('keeps a context window suffix on the gateway model id', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5[1m]' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+      },
+    });
+  });
+
+  test('merges model overrides into the permission settings', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test.each(['claude-opus-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for %s',
+    async model => {
+      state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
 
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
@@ -971,7 +1276,12 @@ describe('Claude Code bridge configuration', () => {
           PreToolUse: Array<{ matcher?: string; hooks: Hook[] }>;
         }
       ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
-    const bash = { tool_name: 'Bash', tool_input: { command: 'pwd' } };
+    const bash = {
+      hook_event_name: 'PreToolUse',
+      cwd: '/workspace',
+      tool_name: 'Bash',
+      tool_input: { command: 'pwd' },
+    };
     const deferredResult = (id: string) => ({
       type: 'result',
       subtype: 'success',

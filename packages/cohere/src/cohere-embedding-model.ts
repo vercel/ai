@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -23,7 +25,7 @@ import { cohereFailedResponseHandler } from './cohere-error';
 type CohereEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -90,7 +92,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         embedding_types: [embeddingType],

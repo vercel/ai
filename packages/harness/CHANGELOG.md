@@ -1,5 +1,76 @@
 # @ai-sdk/harness
 
+## 1.0.173
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 1.0.172
+
+### Patch Changes
+
+- 8a20b57: feat(harness): defer sandbox setup, and optionally sandbox creation, to first use for harnesses without a bootstrap recipe
+
+  For a harness adapter that declares no sandbox bootstrap recipe (such as Pi), `HarnessAgent.createSession()` no longer runs the session's sandbox setup (`onBootstrap` when its marker is missing, the session work directory, and `onSession`) before the adapter starts. The setup runs on the first file, exec or spawn operation on the sandbox, and a failed setup is retried on the next one. Adapters with a recipe, such as Claude Code and Codex, keep setting up the sandbox in `createSession()`.
+
+  `sandboxSession` also accepts a `HarnessAgentSandboxCreator`, `{ defaultWorkingDirectory, createSandboxSession }`, to defer creating the sandbox itself. For an adapter without a recipe, `createSandboxSession` runs on the first file, exec or spawn operation, so a session whose turns never touch the sandbox never creates it. For any other adapter, `createSession()` calls it right away.
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
+## 1.0.171
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.170
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 1.0.168
+
+### Patch Changes
+
+- 033f8d9: fix(harness): preserve execution-denied outputs for denied host tool calls without invoking the tool's `toModelOutput` converter
+- e7a8988: fix(harness): preserve differing runtime-native tool names in `providerMetadata[harnessId].nativeToolName` on tool calls and their approval requests
+- 2c12e25: fix(harness): fix completed host tool results being silently lost when a WebSocket enters CLOSING before the channel detects the disconnect
+- 6eab0f7: Fix turns hanging when a built-in tool approval and a host tool call share an assistant message. Pause for the approval without waiting for runtime echoes of completed host tools, preserving their results and original call metadata across consecutive approval pauses and session resumes until the runtime echo arrives, without executing them again or emitting duplicate results.
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
 ## 1.0.167
 
 ### Patch Changes
