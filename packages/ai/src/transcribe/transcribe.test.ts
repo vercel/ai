@@ -461,6 +461,7 @@ describe('transcribe', () => {
         transcribe({
           model: new MockTranscriptionModelV4(),
           audio: new URL('https://example.com/audio'),
+          timestampGranularities: ['word'],
           download: async () => {
             throw error;
           },
@@ -473,6 +474,8 @@ describe('transcribe', () => {
                     type: 'start',
                     callId: transcriptionEvent.callId,
                     audio: transcriptionEvent.audio,
+                    timestampGranularities:
+                      transcriptionEvent.timestampGranularities,
                   });
                 }
               },
@@ -494,6 +497,7 @@ describe('transcribe', () => {
           type: 'start',
           callId: 'call-download-error',
           audio: { byteLength: undefined, mediaType: undefined },
+          timestampGranularities: ['word'],
         },
         {
           type: 'error',
@@ -702,6 +706,76 @@ describe('transcribe', () => {
       },
     ]);
   });
+
+  it.each([
+    { timestampGranularities: undefined },
+    { timestampGranularities: [] },
+    { timestampGranularities: ['word', 'segment'] },
+  ] as const)(
+    'should include timestampGranularities $timestampGranularities in start telemetry',
+    async ({ timestampGranularities }) => {
+      const events: TranscriptionStartEvent[] = [];
+
+      await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => createMockResponse(sampleTranscript),
+        }),
+        audio: audioData,
+        timestampGranularities:
+          timestampGranularities == null
+            ? undefined
+            : [...timestampGranularities],
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              const transcriptionEvent = event as TranscriptionStartEvent;
+              if (transcriptionEvent.operationId === 'ai.transcribe') {
+                events.push(transcriptionEvent);
+              }
+            },
+          },
+        },
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0].timestampGranularities).toEqual(timestampGranularities);
+    },
+  );
+
+  it.each([
+    { words: undefined },
+    { words: [] },
+    { words: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }] },
+  ])(
+    'should include provider words $words in end telemetry',
+    async ({ words }) => {
+      const events: TranscriptionEndEvent[] = [];
+
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => ({
+            ...createMockResponse(sampleTranscript),
+            ...(words === undefined ? {} : { words }),
+          }),
+        }),
+        audio: audioData,
+        telemetry: {
+          integrations: {
+            onEnd: event => {
+              const transcriptionEvent = event as TranscriptionEndEvent;
+              if (transcriptionEvent.operationId === 'ai.transcribe') {
+                events.push(transcriptionEvent);
+              }
+            },
+          },
+        },
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0].words).toEqual(words);
+      expect(result.words).toEqual(words);
+    },
+  );
 
   it('should emit a telemetry error event when transcription fails', async () => {
     const error = new Error('transcription failed');

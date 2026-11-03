@@ -178,6 +178,7 @@ export async function transcribe({
     maxRetries,
     headers,
     providerOptions,
+    timestampGranularities,
   });
 
   const executeWithStartEvent = async <T>({
@@ -290,6 +291,7 @@ export async function transcribe({
           },
           text: result.text,
           segments: result.segments,
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           usage: result.usage,

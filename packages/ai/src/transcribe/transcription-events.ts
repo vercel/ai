@@ -1,4 +1,8 @@
-import type { JSONObject, SharedV4AudioFormat } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  SharedV4AudioFormat,
+  TranscriptionModelV4TimestampGranularity,
+} from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
@@ -44,6 +48,9 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions;
+
+  /** Requested shared timing granularities, when specified. */
+  readonly timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 };
 
 export type TranscriptionStartEvent =
@@ -79,8 +86,15 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
   /** The complete transcript. */
   readonly text: string;
 
-  /** Transcript segments with timing information. */
+  /** Transcript segments with timing information, retaining provider behavior. */
   readonly segments: Array<{
+    readonly text: string;
+    readonly startSecond: number;
+    readonly endSecond: number;
+  }>;
+
+  /** Word timings returned by the provider, whether requested or returned by default. */
+  readonly words?: Array<{
     readonly text: string;
     readonly startSecond: number;
     readonly endSecond: number;
