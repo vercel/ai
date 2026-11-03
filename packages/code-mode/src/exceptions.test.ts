@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import {
+  CodeModeDetachedBridgeRequestError,
   CodeModeToolApprovalRequiredError,
   experimental_runCodeMode as runCodeMode,
 } from '../dist/index.js';
@@ -241,6 +242,89 @@ describe('exceptions and serialization', () => {
         { name: 'first', recommendedNextAction: 'open' },
         { name: 'second' },
       ],
+    });
+  });
+
+  it('names the tool in CodeModeDetachedBridgeRequestError when a tool call is unawaited', async () => {
+    let thrownError: unknown;
+    try {
+      await runCodeMode({
+        js: 'tools.updateSlide({}); return 1;',
+        tools: {
+          createSlide: tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ ok: true }),
+          }),
+          searchDocs: tool({
+            inputSchema: z.object({}),
+            execute: async () => ({ ok: true }),
+          }),
+          updateSlide: tool({
+            inputSchema: z.object({}),
+            execute: () =>
+              new Promise(resolve =>
+                setTimeout(() => resolve({ ok: true }), 200),
+              ),
+          }),
+        },
+      });
+    } catch (error) {
+      thrownError = error;
+    }
+
+    expect(thrownError).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
+    const err = thrownError as CodeModeDetachedBridgeRequestError;
+    expect(err.message).toBe(
+      'JavaScript runtime created an unawaited hostFunction bridge request: tools.updateSlide.',
+    );
+    expect(err.details).toMatchObject({
+      name: 'tools.updateSlide',
+      toolName: 'updateSlide',
+    });
+  });
+
+  it('names the tool in CodeModeDetachedBridgeRequestError when a tool call is still pending', async () => {
+    let thrownError: unknown;
+    try {
+      await runCodeMode({
+        js: `
+          try {
+            await Promise.all([
+              tools.fastFail({}),
+              tools.slow({}),
+            ]);
+          } catch (e) {
+            return 'caught';
+          }
+        `,
+        tools: {
+          fastFail: tool({
+            inputSchema: z.object({}),
+            execute: async (): Promise<unknown> => {
+              throw new Error('fast failure');
+            },
+          }),
+          slow: tool({
+            inputSchema: z.object({}),
+            execute: () =>
+              new Promise(resolve =>
+                setTimeout(() => resolve({ ok: true }), 300),
+              ),
+          }),
+        },
+      });
+    } catch (error) {
+      thrownError = error;
+    }
+
+    expect(thrownError).toBeInstanceOf(CodeModeDetachedBridgeRequestError);
+    const err = thrownError as CodeModeDetachedBridgeRequestError;
+    expect(err.message).toBe(
+      'JavaScript runtime returned while a hostFunction bridge request was still pending: tools.slow.',
+    );
+    expect(err.details).toMatchObject({
+      name: 'tools.slow',
+      toolName: 'slow',
     });
   });
 });

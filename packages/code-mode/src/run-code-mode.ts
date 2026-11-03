@@ -156,7 +156,7 @@ export async function runCodeMode(input: RunCodeModeInput): Promise<unknown> {
     if (preserved !== undefined) {
       throw translateSourceStack(preserved);
     }
-    throw translateSourceStack(toCodeModeRuntimeError(error));
+    throw translateSourceStack(toCodeModeRuntimeError(error, toolNames));
   }
 }
 
@@ -625,7 +625,7 @@ function findPreservedCodeModeError(
   return errors.find(candidate => candidate.code === error.code);
 }
 
-function toCodeModeRuntimeError(error: unknown): unknown {
+function toCodeModeRuntimeError(error: unknown, toolNames?: string[]): unknown {
   if (error instanceof TypeError) {
     error.message = translateLimitPath(error.message);
   }
@@ -636,10 +636,22 @@ function toCodeModeRuntimeError(error: unknown): unknown {
   ) {
     error.message = `Syntax error: ${error.message}`;
   }
+  if (error instanceof Error && toolNames !== undefined) {
+    error.message = translateCodeModeBridgeMessage(error.message, toolNames);
+  }
   if (!RunError.isInstance(error)) {
     return error;
   }
   const details = error.details as Record<string, unknown> | undefined;
+  const message =
+    toolNames !== undefined
+      ? translateCodeModeBridgeMessage(error.message, toolNames)
+      : error.message;
+  const translatedDetails =
+    toolNames !== undefined
+      ? translateCodeModeBridgeDetails(error.details, toolNames)
+      : error.details;
+
   switch (error.code) {
     case 'RUN_ABORTED':
       return copyStack(new CodeModeAbortedError(), error);
@@ -668,22 +680,63 @@ function toCodeModeRuntimeError(error: unknown): unknown {
       );
     case 'RUN_BRIDGE_LIMIT':
       return copyStack(
-        new CodeModeBridgeLimitError(error.message, error.details),
+        new CodeModeBridgeLimitError(message, translatedDetails),
         error,
       );
     case 'RUN_DETACHED_BRIDGE_REQUEST':
       return copyStack(
-        new CodeModeDetachedBridgeRequestError(error.message, error.details),
+        new CodeModeDetachedBridgeRequestError(message, translatedDetails),
         error,
       );
     case 'RUN_PROTOCOL_ERROR':
       return copyStack(
-        new CodeModeProtocolError(error.message, error.details),
+        new CodeModeProtocolError(message, translatedDetails),
         error,
       );
     default:
       return error;
   }
+}
+
+function translateCodeModeBridgeMessage(
+  message: string,
+  toolNames: string[],
+): string {
+  let translated = translateLimitPath(message);
+  translated = translated.replace(/__codeMode\.tool(\d+)\b/g, (_, indexStr) => {
+    const index = Number(indexStr);
+    const toolName = toolNames[index];
+    return toolName !== undefined ? `tools.${toolName}` : `tools[${index}]`;
+  });
+  translated = translated.replace(
+    /__codeMode\.missing\b/g,
+    'tools (unknown tool)',
+  );
+  return translated;
+}
+
+function translateCodeModeBridgeDetails(
+  details: unknown,
+  toolNames: string[],
+): unknown {
+  if (typeof details !== 'object' || details === null) {
+    return details;
+  }
+  const result: Record<string, unknown> = {
+    ...(details as Record<string, unknown>),
+  };
+  if (typeof result.name === 'string') {
+    const rawName = result.name;
+    const match = /^__codeMode\.tool(\d+)$/u.exec(rawName);
+    if (match !== null) {
+      const toolName = toolNames[Number(match[1])];
+      if (toolName !== undefined) {
+        result.toolName = toolName;
+      }
+    }
+    result.name = translateCodeModeBridgeMessage(rawName, toolNames);
+  }
+  return result;
 }
 
 function translateLimitPath(message: string): string {
