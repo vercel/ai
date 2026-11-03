@@ -4,6 +4,28 @@ import { describe, it, expect } from 'vitest';
 
 describe('foreign provider history', () => {
   it.each(['google', 'vertex', 'googleVertex'])(
+    'trims prefill before empty %s signature text',
+    async namespace => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Answer  ' },
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { [namespace]: { thoughtSignature: 'opaque' } },
+            },
+          ],
+        },
+      ]);
+      expect(messages).toEqual([
+        { role: 'assistant', content: [{ text: 'Answer' }] },
+      ]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
     'omits empty %s signature text when reasoning is present',
     async namespace => {
       const { messages } = await convertToAmazonBedrockChatMessages([

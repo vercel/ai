@@ -17,6 +17,49 @@ const defaultToolNameMapping = createToolNameMapping({
 
 describe('foreign provider history', () => {
   it.each(['google', 'vertex', 'googleVertex'])(
+    'preserves message cache control and trims prefill before empty %s text',
+    async namespace => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+            content: [
+              { type: 'text', text: 'Answer  ' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Answer',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
     'omits empty %s signature text from assistant content',
     async namespace => {
       const result = await convertToAnthropicPrompt({

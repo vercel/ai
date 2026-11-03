@@ -115,144 +115,140 @@ function summarize(part: ObservedPart) {
     : { type: part.type, text: part.text, signature: sig };
 }
 
-for (const provider of ['google'] as const) {
-  describe(`public ${provider} signed-empty stream round trip`, () => {
-    it.each(cases)('$name', async ({ groups, expected, wire }) => {
-      const requests: Array<{
-        contents: Array<{ role: string; parts: unknown[] }>;
-      }> = [];
-      const sse = groups
-        .map(
-          (parts, index) =>
-            `data: ${JSON.stringify({ candidates: [{ content: { role: 'model', parts }, index: 0, ...(index === groups.length - 1 ? { finishReason: 'STOP' } : {}) }] })}\n\n`,
-        )
-        .join('');
-      const localFetch: typeof fetch = async (_url, init) => {
-        requests.push(JSON.parse(init?.body as string));
-        return requests.length === 1
-          ? new Response(sse, {
-              headers: { 'content-type': 'text/event-stream' },
-            })
-          : Response.json({
-              candidates: [
-                {
-                  content: { role: 'model', parts: [{ text: 'Done' }] },
-                  finishReason: 'STOP',
-                  index: 0,
-                },
-              ],
-            });
-      };
-      const settings = { apiKey: 'dummy-key', fetch: localFetch };
-      const model = createGoogle(settings)('gemini-2.5-flash');
-      const tools = {
-        lookup: {
-          inputSchema: jsonSchema<typeof args>({
-            type: 'object',
-            properties: {
-              query: { type: 'string' },
-              options: {
-                type: 'object',
-                properties: {
-                  limit: { type: 'number' },
-                  enabled: { type: 'boolean' },
-                },
-                required: ['limit', 'enabled'],
+describe('public Google signed-empty stream round trip', () => {
+  it.each(cases)('$name', async ({ groups, expected, wire }) => {
+    const requests: Array<{
+      contents: Array<{ role: string; parts: unknown[] }>;
+    }> = [];
+    const sse = groups
+      .map(
+        (parts, index) =>
+          `data: ${JSON.stringify({ candidates: [{ content: { role: 'model', parts }, index: 0, ...(index === groups.length - 1 ? { finishReason: 'STOP' } : {}) }] })}\n\n`,
+      )
+      .join('');
+    const localFetch: typeof fetch = async (_url, init) => {
+      requests.push(JSON.parse(init?.body as string));
+      return requests.length === 1
+        ? new Response(sse, {
+            headers: { 'content-type': 'text/event-stream' },
+          })
+        : Response.json({
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: 'Done' }] },
+                finishReason: 'STOP',
+                index: 0,
               },
+            ],
+          });
+    };
+    const settings = { apiKey: 'dummy-key', fetch: localFetch };
+    const model = createGoogle(settings)('gemini-2.5-flash');
+    const tools = {
+      lookup: {
+        inputSchema: jsonSchema<typeof args>({
+          type: 'object',
+          properties: {
+            query: { type: 'string' },
+            options: {
+              type: 'object',
+              properties: {
+                limit: { type: 'number' },
+                enabled: { type: 'boolean' },
+              },
+              required: ['limit', 'enabled'],
             },
-            required: ['query', 'options'],
-          }),
-        },
-        read_theme: {
-          inputSchema: jsonSchema<Record<string, never>>({
-            type: 'object',
-            properties: {},
-          }),
+          },
+          required: ['query', 'options'],
+        }),
+      },
+      read_theme: {
+        inputSchema: jsonSchema<Record<string, never>>({
+          type: 'object',
+          properties: {},
+        }),
+      },
+    };
+    const result = streamText({
+      model,
+      prompt: 'Synthetic preservation check',
+      tools,
+    });
+    const events = [];
+    for await (const event of result.stream) {
+      events.push(event);
+      expect(event.type).not.toBe('error');
+    }
+    const step = await result.finalStep;
+    expect(step.content.map(summarize)).toEqual(expected);
+    const assistant = step.response.messages.find(
+      message => message.role === 'assistant',
+    );
+    expect(assistant).toBeDefined();
+    if (assistant == null || typeof assistant.content === 'string') {
+      throw new Error('Expected structured assistant content');
+    }
+    expect(assistant.content.map(summarize)).toEqual(expected);
+    const signedEvents = events.filter(
+      event =>
+        'providerMetadata' in event &&
+        (
+          event.providerMetadata?.google ??
+          event.providerMetadata?.vertex ??
+          event.providerMetadata?.googleVertex
+        )?.thoughtSignature === signature,
+    );
+    if (expected.some(part => part.signature === signature)) {
+      expect(signedEvents.length).toBeGreaterThan(0);
+      const expectedType = expected.find(
+        part => part.signature === signature,
+      )?.type;
+      expect(
+        signedEvents.every(event => event.type.startsWith(`${expectedType}-`)),
+      ).toBe(true);
+    }
+
+    await generateText({
+      model,
+      tools,
+      messages: [
+        { role: 'user', content: 'Synthetic preservation check' },
+        ...step.response.messages,
+        ...(step.toolCalls.length === 0
+          ? []
+          : [
+              {
+                role: 'tool' as const,
+                content: step.toolCalls.map(toolCall => ({
+                  type: 'tool-result' as const,
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  output: { type: 'json' as const, value: { done: true } },
+                })),
+              },
+            ]),
+        { role: 'user', content: 'Continue' },
+      ],
+    });
+    expect(requests).toHaveLength(2);
+    const expectedWire = wire.map(part => {
+      if (!('functionCall' in part) || part.functionCall == null) return part;
+      const { id, ...functionCall } = part.functionCall;
+      return {
+        ...part,
+        functionCall: {
+          id,
+          ...functionCall,
+          args: 'args' in part.functionCall ? part.functionCall.args : {},
         },
       };
-      const result = streamText({
-        model,
-        prompt: 'Synthetic preservation check',
-        tools,
-      });
-      const events = [];
-      for await (const event of result.stream) {
-        events.push(event);
-        expect(event.type).not.toBe('error');
-      }
-      const step = await result.finalStep;
-      expect(step.content.map(summarize)).toEqual(expected);
-      const assistant = step.response.messages.find(
-        message => message.role === 'assistant',
-      );
-      expect(assistant).toBeDefined();
-      if (assistant == null || typeof assistant.content === 'string') {
-        throw new Error('Expected structured assistant content');
-      }
-      expect(assistant.content.map(summarize)).toEqual(expected);
-      const signedEvents = events.filter(
-        event =>
-          'providerMetadata' in event &&
-          (
-            event.providerMetadata?.google ??
-            event.providerMetadata?.vertex ??
-            event.providerMetadata?.googleVertex
-          )?.thoughtSignature === signature,
-      );
-      if (expected.some(part => part.signature === signature)) {
-        expect(signedEvents.length).toBeGreaterThan(0);
-        const expectedType = expected.find(
-          part => part.signature === signature,
-        )?.type;
-        expect(
-          signedEvents.every(event =>
-            event.type.startsWith(`${expectedType}-`),
-          ),
-        ).toBe(true);
-      }
-
-      await generateText({
-        model,
-        tools,
-        messages: [
-          { role: 'user', content: 'Synthetic preservation check' },
-          ...step.response.messages,
-          ...(step.toolCalls.length === 0
-            ? []
-            : [
-                {
-                  role: 'tool' as const,
-                  content: step.toolCalls.map(toolCall => ({
-                    type: 'tool-result' as const,
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    output: { type: 'json' as const, value: { done: true } },
-                  })),
-                },
-              ]),
-          { role: 'user', content: 'Continue' },
-        ],
-      });
-      expect(requests).toHaveLength(2);
-      const expectedWire = wire.map(part => {
-        if (!('functionCall' in part) || part.functionCall == null) return part;
-        const { id, ...functionCall } = part.functionCall;
-        return {
-          ...part,
-          functionCall: {
-            ...(provider === 'google' ? { id } : {}),
-            ...functionCall,
-            args: 'args' in part.functionCall ? part.functionCall.args : {},
-          },
-        };
-      });
-      expect(
-        requests[1].contents.find(content => content.role === 'model')?.parts,
-      ).toEqual(expectedWire);
-      expect(requests[1].contents.at(-1)).toEqual({
-        role: 'user',
-        parts: [{ text: 'Continue' }],
-      });
+    });
+    expect(
+      requests[1].contents.find(content => content.role === 'model')?.parts,
+    ).toEqual(expectedWire);
+    expect(requests[1].contents.at(-1)).toEqual({
+      role: 'user',
+      parts: [{ text: 'Continue' }],
     });
   });
-}
+});

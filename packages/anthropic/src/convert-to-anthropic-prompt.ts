@@ -750,7 +750,11 @@ export async function convertToAnthropicPrompt({
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
-          const { content } = message;
+          // Filter before calculating the last part so message cache control
+          // and assistant prefill trimming apply to content actually sent.
+          const content = message.content.filter(
+            part => part.type !== 'text' || part.text.length > 0,
+          );
 
           for (let k = 0; k < content.length; k++) {
             const part = content[k];
@@ -773,10 +777,6 @@ export async function convertToAnthropicPrompt({
 
             switch (part.type) {
               case 'text': {
-                // Other providers can retain empty text for opaque metadata.
-                // Anthropic does not accept empty text content blocks.
-                if (part.text.length === 0) break;
-
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
                   | {
