@@ -787,4 +787,38 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'agentforge',
+    name: 'AgentForge',
+    description:
+      'DeFi safety tools for agents, paid per call in USDC via x402 with no API key or account: simulate an EVM transaction before signing (reverts, assets leaving the wallet, approvals, counterparty screening), screen addresses against sanctions and scam lists, rug-check tokens, a risk-scored new-launch feed, and Aave liquidation risk.',
+    packageName: 'agentforge-tools',
+    tags: ['crypto', 'defi', 'security', 'x402', 'payments'],
+    apiKeyEnvName: 'AGENTFORGE_PRIVATE_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agentforge-tools',
+      npm: 'npm install agentforge-tools',
+      yarn: 'yarn add agentforge-tools',
+      bun: 'bun add agentforge-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentForgeAiSdkTools } from 'agentforge-tools/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: agentForgeAiSdkTools({
+    privateKey: process.env.AGENTFORGE_PRIVATE_KEY as \`0x\${string}\`,
+    maxPaymentUsd: 0.1,
+  }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Is 0x71927529167fde40ebd4d2acdabfc88afd340f35 close to liquidation on Aave?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentforge-taupe.vercel.app/docs/ai-sdk',
+    apiKeyUrl: 'https://agentforge-taupe.vercel.app/docs/ai-sdk',
+    websiteUrl: 'https://agentforge-taupe.vercel.app',
+    npmUrl: 'https://www.npmjs.com/package/agentforge-tools',
+  },
 ];
