@@ -54,6 +54,32 @@ describe('doGenerate', () => {
     };
   }
 
+  it('warns about realtime-only options without sending them in file uploads', async () => {
+    prepareJsonResponse();
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        mistral: {
+          targetStreamingDelayMs: 480,
+          turnDetection: {},
+          speakerReferences: { Jane: 'AQI=' },
+        },
+      },
+    });
+    expect(result.warnings).toEqual(
+      ['targetStreamingDelayMs', 'speakerReferences', 'turnDetection'].map(
+        option => ({
+          type: 'unsupported',
+          feature: `providerOptions.mistral.${option}`,
+          details: 'This option is only supported for realtime transcription.',
+        }),
+      ),
+    );
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(Object.keys(multipart!).sort()).toEqual(['file', 'model']);
+  });
+
   it('should send Uint8Array audio as a multipart file', async () => {
     prepareJsonResponse();
 
