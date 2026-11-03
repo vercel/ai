@@ -402,8 +402,9 @@ function toGatewayModelOverride(
 
 /**
  * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
- * at other ids, which it misreads the same way. `model` comes last so that its
- * entry wins a key it shares with an alias.
+ * at other ids and `CLAUDE_CODE_SUBAGENT_MODEL` sets the model of subagents,
+ * which it misreads the same way. `model` comes last so that its entry wins a
+ * key it shares with one of them.
  */
 function createGatewayModelOverrides(
   model: string | undefined,
@@ -413,6 +414,7 @@ function createGatewayModelOverrides(
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(env.CLAUDE_CODE_SUBAGENT_MODEL),
     ...toGatewayModelOverride(model),
   };
   return Object.keys(overrides).length > 0 ? overrides : undefined;

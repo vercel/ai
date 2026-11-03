@@ -26,6 +26,7 @@ const TEST_ENV_KEYS = [
   'ANTHROPIC_DEFAULT_OPUS_MODEL',
   'ANTHROPIC_DEFAULT_SONNET_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'CLAUDE_CODE_SUBAGENT_MODEL',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -1233,6 +1234,59 @@ describe('Claude Code bridge configuration', () => {
       modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
     });
   });
+
+  test('maps the dotted id of the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('maps a subagent model inherited from the bridge environment', async () => {
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL = 'anthropic/claude-haiku-5.5[1m]';
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-haiku-5-5': 'anthropic/claude-haiku-5.5[1m]' },
+    });
+  });
+
+  test('lets the session model win a key it shares with the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-sonnet-5.5[1m]',
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test.each(['sonnet', 'claude-sonnet-5-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a subagent model set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { CLAUDE_CODE_SUBAGENT_MODEL: modelId },
+      };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
 
   test.each(['claude-sonnet-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
     'sets no model overrides for a model alias set to %s',
