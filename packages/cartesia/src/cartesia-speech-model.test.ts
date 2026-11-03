@@ -399,6 +399,19 @@ describe('CartesiaSpeechModel', () => {
       expect(server.calls).toHaveLength(0);
     });
 
+    it('preserves provider language precedence over generic language', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: { cartesia: { language: 'es' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).language).toBe('es');
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
       prepareAudioResponse();
 
