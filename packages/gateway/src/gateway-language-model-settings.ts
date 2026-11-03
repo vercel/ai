@@ -297,8 +297,6 @@ export type GatewayModelId =
   | 'tencent/hy4-preview'
   | 'thinkingmachines/inkling'
   | 'thinkingmachines/inkling-small'
-  | 'xiaomi/mimo-v2.5'
-  | 'xiaomi/mimo-v2.5-pro'
   | 'xiaomi/mimo-v2.6-flash'
   | 'xiaomi/mimo-v2.6-pro'
   | 'xiaomi/mimo-v2.6-pro-ultraspeed'
