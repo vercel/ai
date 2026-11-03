@@ -224,22 +224,19 @@ describe('CartesiaSpeechModel', () => {
       });
     });
 
-    it('should not send pronunciation_dict_id when it is null', async () => {
+    it('should reject a null pronunciationDictionaryId before sending a request', async () => {
       prepareAudioResponse();
 
-      await model.doGenerate({
-        text: 'Hello, world!',
-        voice: 'test-voice-id',
-        providerOptions: {
-          cartesia: {
-            pronunciationDictionaryId: null,
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: {
+            cartesia: { pronunciationDictionaryId: null },
           },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
-        'pronunciation_dict_id',
-      );
+        }),
+      ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should not send pronunciation_dict_id by default', async () => {

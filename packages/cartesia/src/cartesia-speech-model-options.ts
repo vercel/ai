@@ -41,7 +41,7 @@ export const cartesiaSpeechModelOptionsSchema = lazySchema(() =>
       /** The language to generate speech in (ISO 639-1 code). */
       language: z.string().nullish(),
       /** ID of a pronunciation dictionary created with the Cartesia API. Sonic 3 and newer. */
-      pronunciationDictionaryId: z.string().nullish(),
+      pronunciationDictionaryId: z.string().optional(),
     }),
   ),
 );
