@@ -86,6 +86,7 @@ export async function streamDeepgramTranscription(
     if (value == null || key === 'streaming') continue;
     const parameter = mappings[key as keyof typeof mappings];
     if (parameter == null) {
+      if (value === false) continue;
       warnings.push({
         type: 'unsupported',
         feature: `providerOptions.deepgram.${key}`,

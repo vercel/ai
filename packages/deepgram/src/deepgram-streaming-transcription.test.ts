@@ -424,6 +424,27 @@ describe('Deepgram streaming transcription', () => {
     expect(new URL(socket.url).searchParams.has('summarize')).toBe(false);
   });
 
+  it('does not warn about explicitly disabled batch-only options', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      providerOptions: {
+        deepgram: {
+          detectLanguage: false,
+          summarize: false,
+          utterances: false,
+        },
+      },
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await flush();
+    socket.serverClose();
+    expect((await parts)[0]).toEqual({ type: 'stream-start', warnings: [] });
+    expect(new URL(socket.url).searchParams.has('detect_language')).toBe(false);
+  });
+
   it('cancels the audio source when the output is cancelled before opening', async () => {
     const cancel = vi.fn();
     const result = await model().doStream!({
