@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.74
+
+### Patch Changes
+
+- fa15312: Raise the minimum Undici version to 7.29.1 to include the fix for CVE-2026-84961.
+
 ## 5.0.73
 
 ### Patch Changes
