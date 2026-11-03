@@ -67,12 +67,17 @@ export async function validateApprovedToolApprovals<
     // History can omit or alter these fields. Rebuild them from the current
     // server-side definition before input refinement and approval policy checks,
     // just as parsing a new model tool call does.
+    const {
+      toolMetadata: _toolMetadata,
+      dynamic: _dynamic,
+      ...toolCallFromHistory
+    } = collectedApproval.toolCall;
     const approval: CollectedToolApprovals<TOOLS> = {
       ...collectedApproval,
       toolCall: {
-        ...collectedApproval.toolCall,
-        toolMetadata: tool?.metadata,
-        dynamic: tool?.type === 'dynamic' ? true : undefined,
+        ...toolCallFromHistory,
+        ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
+        ...(tool?.type === 'dynamic' ? { dynamic: true } : {}),
         title: tool?.title,
       } as typeof collectedApproval.toolCall,
     };

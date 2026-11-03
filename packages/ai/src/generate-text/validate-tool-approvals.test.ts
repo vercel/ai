@@ -368,21 +368,63 @@ describe('validateApprovedToolApprovals', () => {
       });
 
       const expectedToolCall = {
-        ...approval.toolCall,
-        toolMetadata: tools.tool1.metadata,
-        dynamic: kind === 'dynamic' ? true : undefined,
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'tool1',
+        input: { value: 'test' },
+        ...(tools.tool1.metadata != null
+          ? { toolMetadata: tools.tool1.metadata }
+          : {}),
+        ...(kind === 'dynamic' ? { dynamic: true } : {}),
         title: tools.tool1.title,
       };
       expect(refineInput).toHaveBeenCalledWith({ value: 'test' });
       expect(toolApproval).toHaveBeenCalledWith(
         expect.objectContaining({ toolCall: expectedToolCall }),
       );
-      expect(result.approvedToolApprovals[0].toolCall).toEqual(
+      expect(result.approvedToolApprovals[0].toolCall).toStrictEqual(
         expectedToolCall,
       );
       expect(approval).toEqual(originalApproval);
     },
   );
+
+  it('should clear history metadata when the tool definition is no longer available', async () => {
+    const approval = createApproval({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'removedTool',
+      input: {},
+      toolMetadata: { untrusted: true },
+      dynamic: true,
+      title: 'Untrusted title',
+    });
+    const toolApproval = vi.fn(() => 'denied' as const);
+
+    const result = await validateApprovedToolApprovals({
+      approvedToolApprovals: [approval],
+      tools: {},
+      toolApproval,
+      messages: [],
+      toolsContext: {},
+      runtimeContext: {},
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.deniedToolApprovals[0].toolCall).toStrictEqual({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'removedTool',
+      input: {},
+      title: undefined,
+    });
+    expect(toolApproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolCall: result.deniedToolApprovals[0].toolCall,
+      }),
+    );
+    expect(approval.toolCall.toolMetadata).toEqual({ untrusted: true });
+  });
 
   it.each([undefined, 'test-secret'])(
     'should enforce metadata-based policy denials with approval secret %s',
