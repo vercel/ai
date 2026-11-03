@@ -4,7 +4,10 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import { convertGoogleInteractionsUsage } from './convert-google-interactions-usage';
+import {
+  convertGoogleInteractionsUsage,
+  getGoogleInteractionsOutputTokensByModality,
+} from './convert-google-interactions-usage';
 import { type GoogleInteractionsResponse } from './google-interactions-api';
 import { mapGoogleInteractionsFinishReason } from './map-google-interactions-finish-reason';
 import { parseGoogleInteractionsOutputs } from './parse-google-interactions-outputs';
@@ -156,6 +159,8 @@ export function synthesizeGoogleInteractionsAgentStream({
       }
 
       const serviceTier = response.service_tier ?? headerServiceTier;
+      const outputTokensByModality =
+        getGoogleInteractionsOutputTokensByModality(response.usage);
 
       const finishReason: LanguageModelV4FinishReason = {
         unified: mapGoogleInteractionsFinishReason({
@@ -169,6 +174,12 @@ export function synthesizeGoogleInteractionsAgentStream({
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
+          ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
+          ...(response.continuation_token != null &&
+          (response.status === 'incomplete' ||
+            response.status === 'requires_continuation')
+            ? { continuationToken: response.continuation_token }
+            : {}),
         },
       };
 

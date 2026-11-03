@@ -41,6 +41,7 @@ export type {
   GoogleInteractionsVideoOptions,
 } from './interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
+export { GoogleInteractionsContinuationError } from './interactions/google-interactions-continuation-error';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 export {
   createGoogle,

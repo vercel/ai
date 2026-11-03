@@ -12,6 +12,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId as defaultGenerateId,
+  isAbortError,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -23,7 +24,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
+import { continueGoogleInteractionsStream } from './continue-google-interactions-stream';
+import { GoogleInteractionsContinuationError } from './google-interactions-continuation-error';
 import {
+  addGoogleInteractionsUsage,
   convertGoogleInteractionsUsage,
   getGoogleInteractionsOutputTokensByModality,
 } from './convert-google-interactions-usage';
@@ -444,9 +448,20 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * POST returns a non-terminal status and the SDK polls
      * `GET /interactions/{id}` until the work completes.
      */
+    /*
+     * Gemini 4 long decode resume: the continuation picks up from the
+     * referenced interaction, so the input is not resent. Stateless requests
+     * (`store: false`) have nothing stored server-side and resend the input.
+     */
+    const continuationToken = googleOptions?.continuationToken ?? undefined;
+    const omitInput =
+      continuationToken != null &&
+      googleOptions?.previousInteractionId != null &&
+      googleOptions?.store !== false;
+
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
-      input,
+      input: omitInput ? undefined : input,
       system_instruction: systemInstruction,
       tools: toolsForBody,
       response_format:
@@ -459,6 +474,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
           : undefined,
       previous_interaction_id:
         googleOptions?.previousInteractionId ?? undefined,
+      continuation_token: continuationToken,
       service_tier: googleOptions?.serviceTier ?? undefined,
       store: googleOptions?.store ?? undefined,
       generation_config:
@@ -476,37 +492,48 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       isAgent,
       isBackground: googleOptions?.background === true,
       pollingTimeoutMs: googleOptions?.pollingTimeoutMs ?? undefined,
+      automaticContinuation:
+        !isAgent &&
+        googleOptions?.background !== true &&
+        googleOptions?.automaticContinuation !== false,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, isAgent, isBackground, pollingTimeoutMs } =
-      await this.getArgs(options);
+    const {
+      args,
+      warnings,
+      isAgent,
+      isBackground,
+      pollingTimeoutMs,
+      automaticContinuation,
+    } = await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
 
     const mergedHeaders = async () =>
       combineHeaders(await resolve(this.config.headers), options.headers);
 
-    const postResult = await postJsonToApi({
-      url,
-      headers: await resolve(mergedHeaders),
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleInteractionsResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const createInteraction = async (body: GoogleInteractionsRequestBody) =>
+      postJsonToApi({
+        url,
+        headers: await resolve(mergedHeaders),
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleInteractionsResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
 
     let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = postResult;
+    } = await createInteraction(args);
 
     /*
      * Agent calls and `background: true` calls (e.g. Gemini 4 long decode,
@@ -529,6 +556,66 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     /*
+     * Gemini 4 long decode (client-side continuation): a foreground request
+     * that reaches its per-request cap while `max_output_tokens` budget
+     * remains returns `requires_continuation`. Send the next hop with the
+     * continuation token and merge the steps of all hops into one result.
+     *
+     * Each hop is its own interaction, so the final hop's id is surfaced
+     * (chaining with it as `previous_interaction_id` keeps the full history).
+     * Usage is summed across hops (matching billing). Each hop re-sends the
+     * prompt plus all output so far as input, so the first hop's input token
+     * count is kept separately for context window checks.
+     */
+    const firstResponse = response;
+    const continuedSteps: NonNullable<typeof response.steps> = [];
+    let usage = response.usage ?? undefined;
+    let isContinued = false;
+    let interruption: { cause: unknown } | undefined;
+    const continuationTokens = new Set<string>();
+
+    while (
+      response.status === 'requires_continuation' &&
+      response.continuation_token != null
+    ) {
+      if (!automaticContinuation) break;
+      if (continuationTokens.has(response.continuation_token)) {
+        interruption = {
+          cause: new Error(
+            'Continuation returned the same token without progress.',
+          ),
+        };
+        break;
+      }
+      continuationTokens.add(response.continuation_token);
+      const completedResponse = response;
+      try {
+        ({
+          responseHeaders,
+          value: response,
+          rawValue: rawResponse,
+        } = await createInteraction(
+          createGoogleInteractionsContinuationBody(args, {
+            continuationToken: response.continuation_token,
+            interactionId: response.id ?? undefined,
+          }),
+        ));
+      } catch (cause) {
+        if (isAbortError(cause) || options.abortSignal?.aborted) throw cause;
+        interruption = { cause };
+        break;
+      }
+      continuedSteps.push(...(completedResponse.steps ?? []));
+      isContinued = true;
+
+      usage = addGoogleInteractionsUsage(usage, response.usage ?? undefined);
+    }
+
+    const initialInputTokens = isContinued
+      ? (firstResponse.usage?.total_input_tokens ?? undefined)
+      : undefined;
+
+    /*
      * `response.id` is omitted when `store: false` (fully stateless mode), and
      * the stream surface returns `id: ""` (empty string) for the same case.
      * Normalize both to `undefined` so downstream stamping does not pollute
@@ -540,7 +627,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
         : undefined;
 
     const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
-      steps: response.steps ?? null,
+      steps: isContinued
+        ? [...continuedSteps, ...(response.steps ?? [])]
+        : (response.steps ?? null),
       generateId: this.config.generateId ?? defaultGenerateId,
       interactionId,
     });
@@ -573,30 +662,33 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
-    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
-      response.usage,
-    );
+    const outputTokensByModality =
+      getGoogleInteractionsOutputTokensByModality(usage);
+
+    const continuationToken = getResumableContinuationToken(response);
 
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
         ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
+        ...(continuationToken != null ? { continuationToken } : {}),
+        ...(initialInputTokens != null ? { initialInputTokens } : {}),
       },
     };
 
     let timestamp: Date | undefined;
-    if (typeof response.created === 'string') {
-      const parsed = new Date(response.created);
+    if (typeof firstResponse.created === 'string') {
+      const parsed = new Date(firstResponse.created);
       if (!Number.isNaN(parsed.getTime())) {
         timestamp = parsed;
       }
     }
 
-    return {
+    const result: LanguageModelV4GenerateResult = {
       content,
       finishReason,
-      usage: convertGoogleInteractionsUsage(response.usage),
+      usage: convertGoogleInteractionsUsage(usage),
       warnings,
       providerMetadata,
       request: { body: args },
@@ -608,13 +700,28 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
         modelId: response.model ?? undefined,
       },
     };
+
+    if (interruption != null && continuationToken != null) {
+      throw new GoogleInteractionsContinuationError({
+        cause: interruption.cause,
+        continuationToken,
+        interactionId,
+        partialResult: result,
+      });
+    }
+    return result;
   }
 
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, isBackground, pollingTimeoutMs } =
-      await this.getArgs(options);
+    const {
+      args,
+      warnings,
+      isBackground,
+      pollingTimeoutMs,
+      automaticContinuation,
+    } = await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
 
@@ -641,17 +748,49 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const body = { ...args, stream: true };
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url,
-      headers: await resolve(mergedHeaders),
-      body,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        googleInteractionsEventSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const streamInteraction = async (requestBody: typeof body) =>
+      postJsonToApi({
+        url,
+        headers: await resolve(mergedHeaders),
+        body: requestBody,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          googleInteractionsEventSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstStream } =
+      await streamInteraction(body);
+
+    /*
+     * Gemini 4 long decode (client-side continuation): when a hop reaches its
+     * per-request cap while `max_output_tokens` budget remains, its
+     * `interaction.completed` event has status `requires_continuation` and a
+     * continuation token. Send the next hop once the current stream ends and
+     * append its events, so the caller sees one stream. Each hop is its own
+     * interaction (with its own `interaction.created` / `interaction.completed`
+     * events); the stream transform sums the per-hop usage.
+     */
+    const response = automaticContinuation
+      ? continueGoogleInteractionsStream({
+          stream: firstStream,
+          initialContinuationToken: args.continuation_token,
+          initialInteractionId: args.previous_interaction_id,
+          abortSignal: options.abortSignal,
+          store: args.store,
+          continueStream: async (continuationToken, interactionId) => {
+            const { value } = await streamInteraction(
+              createGoogleInteractionsContinuationBody(body, {
+                continuationToken,
+                interactionId,
+              }),
+            );
+            return value;
+          },
+        })
+      : firstStream;
 
     /*
      * Google's API surfaces the applied service tier in the
@@ -783,6 +922,50 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       response: { headers: postHeaders },
     };
   }
+}
+
+/**
+ * Builds the request body for the next hop of a Gemini 4 long decode response.
+ * The model, tools, system instruction, and generation config stay the same.
+ * The hop continues from the interaction referenced by
+ * `previous_interaction_id`, so the input is not resent. Stateless requests
+ * (`store: false`, no interaction id) resend the original input instead.
+ */
+function createGoogleInteractionsContinuationBody<
+  BODY extends GoogleInteractionsRequestBody,
+>(
+  body: BODY,
+  {
+    continuationToken,
+    interactionId,
+  }: { continuationToken: string; interactionId: string | undefined },
+): BODY {
+  if (body.store === false || interactionId == null || interactionId === '') {
+    return { ...body, continuation_token: continuationToken };
+  }
+
+  const { input: _input, ...rest } = body;
+  return {
+    ...rest,
+    previous_interaction_id: interactionId,
+    continuation_token: continuationToken,
+  } as BODY;
+}
+
+/**
+ * Returns the continuation token when the response stopped before finishing
+ * and can be resumed: `incomplete` (budget used up; resume with a higher
+ * `maxOutputTokens`) or `requires_continuation` (continuing failed).
+ */
+function getResumableContinuationToken(response: {
+  status?: string | null;
+  continuation_token?: string | null;
+}): string | undefined {
+  return response.continuation_token != null &&
+    (response.status === 'incomplete' ||
+      response.status === 'requires_continuation')
+    ? response.continuation_token
+    : undefined;
 }
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {

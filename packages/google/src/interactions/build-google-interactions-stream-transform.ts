@@ -6,15 +6,14 @@ import type {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
-  createProviderStreamError,
-  type ParseResult,
-} from '@ai-sdk/provider-utils';
+import { createProviderStreamError } from '@ai-sdk/provider-utils';
+import type { GoogleStreamPart } from '../continue-google-stream';
 import type {
   GoogleInteractionsEvent,
   GoogleInteractionsUsage,
 } from './google-interactions-api';
 import {
+  addGoogleInteractionsUsage,
   convertGoogleInteractionsUsage,
   getGoogleInteractionsOutputTokensByModality,
 } from './convert-google-interactions-usage';
@@ -120,11 +119,16 @@ type OpenBlockState =
   | { kind: 'unknown'; id: string };
 
 /**
- * Builds a `TransformStream<ParseResult<GoogleInteractionsEvent>, LanguageModelV4StreamPart>`
+ * Builds a `TransformStream<GoogleStreamPart<GoogleInteractionsEvent>, LanguageModelV4StreamPart>`
  * over the Interactions API SSE event stream.
  *
  * Surfaces text + thought (reasoning), function_call, image, built-in tool
  * call/result steps, and `text_annotation` -> `source` parts.
+ *
+ * Gemini 4 long decode: a stream continued client-side across several
+ * requests (hops) carries a `continuation-start` marker before the events of
+ * each new hop. Each hop is its own interaction that reports its own usage,
+ * so the usage of all hops is summed for the single `finish` part.
  */
 export function buildGoogleInteractionsStreamTransform({
   warnings,
@@ -144,7 +148,7 @@ export function buildGoogleInteractionsStreamTransform({
    */
   serviceTier?: string;
 }): TransformStream<
-  ParseResult<GoogleInteractionsEvent>,
+  GoogleStreamPart<GoogleInteractionsEvent>,
   LanguageModelV4StreamPart
 > {
   let interactionId: string | undefined;
@@ -153,6 +157,17 @@ export function buildGoogleInteractionsStreamTransform({
   let finishStatus: GoogleInteractionsStatus | string | undefined;
   let hasFunctionCall = false;
   let hasCompletionEvent = false;
+
+  /*
+   * Long decode state. `continuedUsage` banks the usage of completed hops;
+   * `initialInputTokens` keeps the first hop's input token count (later hops
+   * re-send the prompt plus all output so far as input). `hopIndex` keeps
+   * block ids unique across hops when the interaction id is unavailable.
+   */
+  let continuedUsage: GoogleInteractionsUsage | undefined;
+  let initialInputTokens: number | undefined;
+  let continuationToken: string | undefined;
+  let hopIndex = 0;
 
   /*
    * Per-index open step slots. The Interactions API frames concurrent steps
@@ -176,7 +191,7 @@ export function buildGoogleInteractionsStreamTransform({
   }
 
   return new TransformStream<
-    ParseResult<GoogleInteractionsEvent>,
+    GoogleStreamPart<GoogleInteractionsEvent>,
     LanguageModelV4StreamPart
   >({
     start(controller) {
@@ -184,12 +199,30 @@ export function buildGoogleInteractionsStreamTransform({
     },
 
     transform(chunk, controller) {
+      if ('type' in chunk) {
+        // `continuation-start`: the events of the next long decode hop follow.
+        if (continuedUsage == null) {
+          initialInputTokens = usage?.total_input_tokens ?? undefined;
+        }
+        continuedUsage = addGoogleInteractionsUsage(continuedUsage, usage);
+        usage = undefined;
+        continuationToken = undefined;
+        finishStatus = undefined;
+        hasCompletionEvent = false;
+        hopIndex++;
+        return;
+      }
+
       if (includeRawChunks) {
         controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
       }
 
       if (!chunk.success) {
-        finishStatus = 'failed';
+        // A failed continuation request keeps `requires_continuation` so the
+        // finish part carries the continuation token to resume with.
+        if (finishStatus !== 'requires_continuation') {
+          finishStatus = 'failed';
+        }
         controller.enqueue({ type: 'error', error: chunk.error });
         return;
       }
@@ -261,7 +294,9 @@ export function buildGoogleInteractionsStreamTransform({
               }
             | undefined;
           const index = event.index;
-          const blockId = `${interactionId ?? 'interaction'}:${index}`;
+          const blockId = `${interactionId ?? 'interaction'}:${
+            hopIndex > 0 ? `${hopIndex}:` : ''
+          }${index}`;
           const stepType = step?.type;
 
           if (stepType === 'model_output') {
@@ -849,6 +884,7 @@ export function buildGoogleInteractionsStreamTransform({
             status?: GoogleInteractionsStatus;
             usage?: GoogleInteractionsUsage;
             service_tier?: string;
+            continuation_token?: string;
           };
           if (interaction?.id != null && interaction.id.length > 0) {
             interactionId = interaction.id;
@@ -858,6 +894,9 @@ export function buildGoogleInteractionsStreamTransform({
           }
           if (interaction?.usage != null) {
             usage = interaction.usage;
+          }
+          if (interaction?.continuation_token != null) {
+            continuationToken = interaction.continuation_token;
           }
           /*
            * The Interactions API surfaces the applied service tier on
@@ -908,21 +947,35 @@ export function buildGoogleInteractionsStreamTransform({
         raw: isInterrupted ? undefined : finishStatus,
       };
 
+      const totalUsage = addGoogleInteractionsUsage(continuedUsage, usage);
       const outputTokensByModality =
-        getGoogleInteractionsOutputTokensByModality(usage);
+        getGoogleInteractionsOutputTokensByModality(totalUsage);
+
+      // Only surface the token when the response stopped before finishing
+      // (budget used up, or continuing failed) and can be resumed.
+      const resumableContinuationToken =
+        continuationToken != null &&
+        (finishStatus === 'incomplete' ||
+          finishStatus === 'requires_continuation')
+          ? continuationToken
+          : undefined;
 
       const providerMetadata: SharedV4ProviderMetadata = {
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
           ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
+          ...(resumableContinuationToken != null
+            ? { continuationToken: resumableContinuationToken }
+            : {}),
+          ...(initialInputTokens != null ? { initialInputTokens } : {}),
         },
       };
 
       controller.enqueue({
         type: 'finish',
         finishReason,
-        usage: convertGoogleInteractionsUsage(usage),
+        usage: convertGoogleInteractionsUsage(totalUsage),
         providerMetadata,
       });
     },

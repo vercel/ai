@@ -9,6 +9,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createGoogle } from '../google-provider';
+import { GoogleInteractionsContinuationError } from './google-interactions-continuation-error';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -1140,6 +1141,301 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('long decode client-side continuation', () => {
+    function hopResponse({
+      id,
+      status,
+      text,
+      continuationToken,
+      created,
+    }: {
+      id?: string;
+      status: string;
+      text: string;
+      continuationToken?: string;
+      created?: string;
+    }) {
+      return {
+        type: 'json-value' as const,
+        body: {
+          ...(id != null ? { id } : {}),
+          status,
+          model: 'gemini-2.5-flash',
+          ...(created != null ? { created } : {}),
+          ...(continuationToken != null
+            ? { continuation_token: continuationToken }
+            : {}),
+          steps: [{ type: 'model_output', content: [{ type: 'text', text }] }],
+          usage: {
+            total_input_tokens: id === 'hop-2' ? 30 : 10,
+            total_output_tokens: 5,
+            total_thought_tokens: 15,
+            total_cached_tokens: id === 'hop-2' ? 20 : 0,
+            total_tokens: id === 'hop-2' ? 50 : 30,
+            output_tokens_by_modality: [{ modality: 'text', tokens: 5 }],
+          },
+        },
+      };
+    }
+
+    it('sends the next hop with the continuation token and merges all hops', async () => {
+      server.urls[TEST_URL].response = [
+        hopResponse({
+          id: 'hop-1',
+          status: 'requires_continuation',
+          text: 'Hello',
+          continuationToken: 'token-1',
+          created: '2026-05-15T18:51:55Z',
+        }),
+        hopResponse({ id: 'hop-2', status: 'completed', text: ', world' }),
+      ];
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 262_144,
+        providerOptions: { google: { thinkingLevel: 'high' } },
+      });
+
+      expect(server.calls).toHaveLength(2);
+      const firstBody = await server.calls[0].requestBodyJson;
+      const secondBody = await server.calls[1].requestBodyJson;
+      expect(firstBody).not.toHaveProperty('continuation_token');
+      expect(secondBody).toEqual({
+        model: 'gemini-2.5-flash',
+        previous_interaction_id: 'hop-1',
+        continuation_token: 'token-1',
+        generation_config: {
+          max_output_tokens: 262_144,
+          thinking_level: 'high',
+        },
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Hello',
+          providerMetadata: { google: { interactionId: 'hop-2' } },
+        },
+        {
+          type: 'text',
+          text: ', world',
+          providerMetadata: { google: { interactionId: 'hop-2' } },
+        },
+      ]);
+      expect(result.finishReason).toEqual({
+        unified: 'stop',
+        raw: 'completed',
+      });
+      expect(result.usage.inputTokens).toEqual({
+        total: 40,
+        noCache: 20,
+        cacheRead: 20,
+        cacheWrite: undefined,
+      });
+      expect(result.usage.outputTokens).toEqual({
+        total: 40,
+        text: 10,
+        reasoning: 30,
+      });
+      expect(result.providerMetadata).toEqual({
+        google: {
+          interactionId: 'hop-2',
+          outputTokensByModality: { text: 10 },
+          initialInputTokens: 10,
+        },
+      });
+      expect(result.response?.id).toBe('hop-2');
+      expect(result.response?.timestamp).toEqual(
+        new Date('2026-05-15T18:51:55Z'),
+      );
+    });
+
+    it('resends the input instead of the interaction id when store is false', async () => {
+      server.urls[TEST_URL].response = [
+        hopResponse({
+          status: 'requires_continuation',
+          text: 'Hello',
+          continuationToken: 'token-1',
+        }),
+        hopResponse({ status: 'completed', text: ', world' }),
+      ];
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { store: false } },
+      });
+
+      const firstBody = await server.calls[0].requestBodyJson;
+      const secondBody = await server.calls[1].requestBodyJson;
+      expect(secondBody).toEqual({
+        ...firstBody,
+        continuation_token: 'token-1',
+      });
+      expect(secondBody).not.toHaveProperty('previous_interaction_id');
+      expect(
+        result.content.map(part => part.type === 'text' && part.text),
+      ).toEqual(['Hello', ', world']);
+    });
+
+    it('surfaces the continuation token when the budget is used up (incomplete)', async () => {
+      server.urls[TEST_URL].response = hopResponse({
+        id: 'hop-1',
+        status: 'incomplete',
+        text: 'Hello',
+        continuationToken: 'token-1',
+      });
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(server.calls).toHaveLength(1);
+      expect(result.finishReason).toEqual({
+        unified: 'length',
+        raw: 'incomplete',
+      });
+      expect(result.providerMetadata?.google).toMatchObject({
+        interactionId: 'hop-1',
+        continuationToken: 'token-1',
+      });
+      expect(result.providerMetadata?.google).not.toHaveProperty(
+        'initialInputTokens',
+      );
+    });
+
+    it('stops non-streaming continuation when the server repeats a token', async () => {
+      server.urls[TEST_URL].response = [
+        hopResponse({
+          id: 'hop-1',
+          status: 'requires_continuation',
+          text: 'Hello',
+          continuationToken: 'token-1',
+        }),
+        hopResponse({
+          id: 'hop-2',
+          status: 'requires_continuation',
+          text: ', world',
+          continuationToken: 'token-1',
+        }),
+      ];
+
+      await expect(
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toMatchObject({
+        name: 'AI_GoogleInteractionsContinuationError',
+        continuationToken: 'token-1',
+        partialResult: {
+          content: [
+            expect.objectContaining({ type: 'text', text: 'Hello' }),
+            expect.objectContaining({ type: 'text', text: ', world' }),
+          ],
+        },
+      });
+      expect(server.calls).toHaveLength(2);
+    });
+
+    it('preserves merged completed hops when a follow-up request fails', async () => {
+      server.urls[TEST_URL].response = [
+        hopResponse({
+          id: 'hop-1',
+          status: 'requires_continuation',
+          text: 'Hello',
+          continuationToken: 'token-1',
+        }),
+        hopResponse({
+          id: 'hop-2',
+          status: 'requires_continuation',
+          text: ', world',
+          continuationToken: 'token-2',
+        }),
+        {
+          type: 'error',
+          status: 503,
+          body: JSON.stringify({
+            error: { code: 503, message: 'Unavailable' },
+          }),
+        },
+      ];
+      const error: unknown = await Promise.resolve(
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).catch((error: unknown) => error);
+      expect(GoogleInteractionsContinuationError.isInstance(error)).toBe(true);
+      if (!GoogleInteractionsContinuationError.isInstance(error)) {
+        throw new Error('Expected a continuation error');
+      }
+      expect(
+        GoogleInteractionsContinuationError.isInstance(
+          new Error('Unrelated error'),
+        ),
+      ).toBe(false);
+      expect(error).toMatchObject({
+        continuationToken: 'token-2',
+        interactionId: 'hop-2',
+        cause: expect.objectContaining({ statusCode: 503 }),
+        partialResult: {
+          finishReason: { unified: 'length', raw: 'requires_continuation' },
+          usage: { inputTokens: { total: 40 }, outputTokens: { total: 40 } },
+          providerMetadata: { google: { initialInputTokens: 10 } },
+        },
+      });
+      expect(
+        error.partialResult?.content
+          .filter(part => part.type === 'text')
+          .map(part => part.text),
+      ).toEqual(['Hello', ', world']);
+      expect(server.calls).toHaveLength(3);
+    });
+
+    it('allows callers to disable automatic continuation', async () => {
+      server.urls[TEST_URL].response = hopResponse({
+        id: 'hop-1',
+        status: 'requires_continuation',
+        text: 'Hello',
+        continuationToken: 'token-1',
+      });
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { automaticContinuation: false } },
+      });
+      expect(server.calls).toHaveLength(1);
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'automatic_continuation',
+      );
+      expect(result.finishReason).toEqual({
+        unified: 'length',
+        raw: 'requires_continuation',
+      });
+      expect(result.providerMetadata?.google).toMatchObject({
+        interactionId: 'hop-1',
+        continuationToken: 'token-1',
+      });
+    });
+
+    it('resumes with providerOptions.google.continuationToken without resending the input', async () => {
+      server.urls[TEST_URL].response = hopResponse({
+        id: 'hop-2',
+        status: 'completed',
+        text: ', world',
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 524_288,
+        providerOptions: {
+          google: {
+            previousInteractionId: 'hop-1',
+            continuationToken: 'token-1',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        model: 'gemini-2.5-flash',
+        previous_interaction_id: 'hop-1',
+        continuation_token: 'token-1',
+        generation_config: { max_output_tokens: 524_288 },
+      });
+    });
+  });
+
   describe('abort signal', () => {
     it('rejects when the abort signal is aborted before the request is dispatched', async () => {
       const abortController = new AbortController();
@@ -1962,6 +2258,31 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
   const pollServer = createTestServer({
     [POST_URL]: {},
     [POLL_URL]: {},
+  });
+
+  it('polls a queued background response until completion', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: { id: 'v1_poll-test', status: 'queued' },
+    };
+    pollServer.urls[POLL_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          { type: 'model_output', content: [{ type: 'text', text: 'Done' }] },
+        ],
+      },
+    };
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { google: { background: true } },
+    });
+    expect(result.content).toContainEqual(
+      expect.objectContaining({ type: 'text', text: 'Done' }),
+    );
+    expect(pollServer.calls).toHaveLength(2);
   });
 
   it('returns the polled terminal response from doGenerate when POST returns in_progress', async () => {
@@ -3398,6 +3719,367 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         (finishPart as { finishReason?: { unified?: string } }).finishReason
           ?.unified,
       ).toBe('stop');
+    });
+  });
+
+  describe('long decode client-side continuation', () => {
+    function hopEvents({
+      id,
+      status,
+      text,
+      continuationToken,
+      usage,
+    }: {
+      id: string;
+      status: string;
+      text: string;
+      continuationToken?: string;
+      usage: Record<string, number>;
+    }) {
+      return [
+        {
+          event_type: 'interaction.created',
+          interaction: { id, status: 'in_progress', model: 'gemini-2.5-flash' },
+        },
+        { event_type: 'step.start', index: 0, step: { type: 'model_output' } },
+        {
+          event_type: 'step.delta',
+          index: 0,
+          delta: { type: 'text', text },
+        },
+        { event_type: 'step.stop', index: 0 },
+        {
+          event_type: 'interaction.completed',
+          interaction: {
+            id,
+            status,
+            usage,
+            ...(continuationToken != null
+              ? { continuation_token: continuationToken }
+              : {}),
+          },
+        },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`);
+    }
+
+    const firstHop = hopEvents({
+      id: 'hop-1',
+      status: 'requires_continuation',
+      text: 'Hello',
+      continuationToken: 'token-1',
+      usage: {
+        total_input_tokens: 10,
+        total_output_tokens: 5,
+        total_thought_tokens: 15,
+      },
+    });
+
+    it('chains the continuation hops into a single stream', async () => {
+      server.urls[TEST_URL].response = [
+        { type: 'stream-chunks', chunks: firstHop },
+        {
+          type: 'stream-chunks',
+          chunks: hopEvents({
+            id: 'hop-2',
+            status: 'completed',
+            text: ', world',
+            usage: {
+              total_input_tokens: 30,
+              total_output_tokens: 5,
+              total_thought_tokens: 15,
+            },
+          }),
+        },
+      ];
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 262_144,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(server.calls).toHaveLength(2);
+      expect(await server.calls[1].requestBodyJson).toEqual({
+        model: 'gemini-2.5-flash',
+        previous_interaction_id: 'hop-1',
+        continuation_token: 'token-1',
+        generation_config: { max_output_tokens: 262_144 },
+        stream: true,
+      });
+
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta),
+      ).toEqual(['Hello', ', world']);
+      expect(
+        new Set(
+          parts.filter(part => part.type === 'text-start').map(part => part.id),
+        ).size,
+      ).toBe(2);
+
+      const finishParts = parts.filter(part => part.type === 'finish');
+      expect(finishParts).toHaveLength(1);
+      expect(finishParts[0]).toMatchObject({
+        finishReason: { unified: 'stop', raw: 'completed' },
+        usage: {
+          inputTokens: { total: 40 },
+          outputTokens: { total: 40, text: 10, reasoning: 30 },
+        },
+        providerMetadata: {
+          google: { interactionId: 'hop-2', initialInputTokens: 10 },
+        },
+      });
+      expect(finishParts[0].providerMetadata?.google).not.toHaveProperty(
+        'continuationToken',
+      );
+    });
+
+    it('allows manual continuation of streaming requests', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'stream-chunks',
+        chunks: firstHop,
+      };
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { automaticContinuation: false } },
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(server.calls).toHaveLength(1);
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'automatic_continuation',
+      );
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'length', raw: 'requires_continuation' },
+        providerMetadata: {
+          google: { continuationToken: 'token-1', interactionId: 'hop-1' },
+        },
+      });
+    });
+
+    it('retains a checkpoint from interaction.created in manual mode', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            event_type: 'interaction.created',
+            interaction: {
+              id: 'hop-1',
+              status: 'in_progress',
+              continuation_token: 'checkpoint-1',
+            },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { automaticContinuation: false } },
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(server.calls).toHaveLength(1);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'interrupted' },
+        providerMetadata: {
+          google: { interactionId: 'hop-1', continuationToken: 'checkpoint-1' },
+        },
+      });
+    });
+
+    it('retains the latest usage snapshot from status updates without adding snapshots', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            event_type: 'interaction.created',
+            interaction: { id: 'hop-1', status: 'queued' },
+          },
+          {
+            event_type: 'interaction.status_update',
+            status: 'in_progress',
+            usage: { total_input_tokens: 10, total_output_tokens: 1 },
+          },
+          {
+            event_type: 'interaction.status_update',
+            status: 'in_progress',
+            usage: { total_input_tokens: 20, total_output_tokens: 5 },
+          },
+          {
+            event_type: 'interaction.completed',
+            interaction: { id: 'hop-1', status: 'completed' },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: { inputTokens: { total: 20 }, outputTokens: { total: 5 } },
+      });
+    });
+
+    it('resumes a checkpoint and closes open text blocks before the next hop', async () => {
+      server.urls[TEST_URL].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              event_type: 'interaction.created',
+              interaction: { id: 'hop-1', status: 'in_progress' },
+            },
+            {
+              event_type: 'step.start',
+              index: 0,
+              step: { type: 'model_output' },
+            },
+            {
+              event_type: 'step.delta',
+              index: 0,
+              delta: { type: 'text', text: 'Hello' },
+            },
+            {
+              event_type: 'interaction.status_update',
+              status: 'in_progress',
+              continuation_token: 'checkpoint-1',
+              usage: { total_input_tokens: 10, total_output_tokens: 5 },
+            },
+          ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+        },
+        {
+          type: 'stream-chunks',
+          chunks: hopEvents({
+            id: 'hop-2',
+            status: 'completed',
+            text: ', world',
+            usage: { total_input_tokens: 20, total_output_tokens: 5 },
+          }),
+        },
+      ];
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        continuation_token: 'checkpoint-1',
+        previous_interaction_id: 'hop-1',
+      });
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta),
+      ).toEqual(['Hello', ', world']);
+      expect(
+        parts.filter(part => part.type === 'text-end').map(part => part.id),
+      ).toEqual(['hop-1:0', 'hop-2:1:0']);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'completed' },
+        usage: { inputTokens: { total: 30 }, outputTokens: { total: 10 } },
+        providerMetadata: {
+          google: { initialInputTokens: 10, interactionId: 'hop-2' },
+        },
+      });
+      expect(
+        parts.at(-1)?.type === 'finish' && parts.at(-1),
+      ).not.toHaveProperty('providerMetadata.google.continuationToken');
+    });
+
+    it('surfaces a resumable interruption instead of replaying output after a checkpoint', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            event_type: 'interaction.created',
+            interaction: { id: 'hop-1', status: 'in_progress' },
+          },
+          {
+            event_type: 'interaction.status_update',
+            status: 'in_progress',
+            continuation_token: 'checkpoint-1',
+            usage: { total_input_tokens: 10, total_thought_tokens: 20 },
+          },
+          {
+            event_type: 'step.start',
+            index: 0,
+            step: { type: 'model_output' },
+          },
+          {
+            event_type: 'step.delta',
+            index: 0,
+            delta: { type: 'text', text: 'Already delivered' },
+          },
+          { event_type: 'step.stop', index: 0 },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(server.calls).toHaveLength(1);
+      expect(parts.filter(part => part.type === 'error')).toEqual([
+        {
+          type: 'error',
+          error: expect.any(GoogleInteractionsContinuationError),
+        },
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'interrupted' },
+        usage: { inputTokens: { total: 10 } },
+        providerMetadata: {
+          google: { continuationToken: 'checkpoint-1', interactionId: 'hop-1' },
+        },
+      });
+    });
+
+    it('keeps the resume token when a background POST immediately returns incomplete', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'background-1',
+          status: 'incomplete',
+          continuation_token: 'token-1',
+          usage: { total_input_tokens: 10 },
+        },
+      };
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { background: true } },
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'length', raw: 'incomplete' },
+        providerMetadata: {
+          google: {
+            continuationToken: 'token-1',
+            interactionId: 'background-1',
+          },
+        },
+      });
+    });
+
+    it('emits an error and a resumable finish when the continuation request fails', async () => {
+      server.urls[TEST_URL].response = [
+        { type: 'stream-chunks', chunks: firstHop },
+        {
+          type: 'error',
+          status: 400,
+          body: JSON.stringify({
+            error: { code: 400, message: 'Invalid continuation token' },
+          }),
+        },
+      ];
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(1);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'length', raw: 'requires_continuation' },
+        usage: { inputTokens: { total: 10 } },
+        providerMetadata: {
+          google: { interactionId: 'hop-1', continuationToken: 'token-1' },
+        },
+      });
     });
   });
 });

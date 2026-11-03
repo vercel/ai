@@ -24,6 +24,27 @@ export type GoogleInteractionsProviderMetadata = {
   outputTokensByModality?: Record<string, number>;
 
   /**
+   * Gemini 4 long decode: opaque token returned when the response stopped
+   * before finishing — status `incomplete` (the `maxOutputTokens` budget was
+   * used up), `requires_continuation` (manual mode or continuing failed), or
+   * `interrupted` (a stream stopped after a resumable checkpoint).
+   * Pass it back as `providerOptions.google.continuationToken` together with
+   * `previousInteractionId: interactionId` (and a higher `maxOutputTokens`
+   * for `incomplete`) to resume generation.
+   */
+  continuationToken?: string;
+
+  /**
+   * Gemini 4 long decode: `total_input_tokens` of the first request of a
+   * response that was continued automatically across several requests. Usage
+   * is summed across requests to match billing, and each continued request
+   * re-sends the prompt plus all output so far as input. Use this value
+   * instead of the summed input tokens for context window checks and
+   * compaction. Only present when the response spanned more than one request.
+   */
+  initialInputTokens?: number;
+
+  /**
    * Per-block signature hash for backend validation. Set by the SDK on output
    * reasoning / tool-call parts and round-tripped on input parts.
    */

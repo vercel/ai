@@ -486,12 +486,115 @@ Things to keep in mind:
 
 #### Long decode with the Interactions API
 
-With the [Interactions API](#interactions-api), the AI SDK currently requires
-`background: true` for long decode. The server runs every request itself, so no
-client-side continuation is needed, and `usage` covers all requests. Set an
-explicit `maxOutputTokens` above 65,536 and keep `store` enabled (the default).
-The provider polls the interaction (or streams it, reconnecting when the
-connection drops) until it finishes.
+With the [Interactions API](#interactions-api), set an explicit
+`maxOutputTokens` above 65,536. You can run long decode in the foreground
+(the default) or in the background.
+
+In the foreground, a single request generates at most 65,536 tokens when
+streaming and 32,768 tokens otherwise. When a request reaches that cap while
+budget remains, the interaction returns `requires_continuation` and the
+provider continues it automatically with follow-up requests (hops), returning
+or streaming one combined response:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: google.interactions('gemini-4-argon'),
+  prompt: 'Prove that sqrt(2) is irrational, in detail.',
+  maxOutputTokens: 500_000,
+});
+```
+
+- Each hop is its own interaction. `providerMetadata.google.interactionId` and
+  `response.id` are the final hop's id; pass it as `previousInteractionId` to
+  continue the conversation with the full history. Save the merged result:
+  retrieving the final interaction from Google returns only that hop's output.
+- `usage` is summed across hops (matching billing). Each hop re-sends the
+  prompt plus all output so far as input, so use
+  `providerMetadata.google.initialInputTokens` (the first hop's input tokens)
+  for context window checks.
+- Continuation also works with `store: false`; the provider resends the input
+  on each hop.
+- If a follow-up request fails while streaming, the stream emits an `error`
+  part containing `GoogleInteractionsContinuationError`. A failure between
+  completed hops finishes with `length` (raw `requires_continuation`).
+- When the response stops early because it used up its budget (`incomplete`)
+  or continuing failed, `providerMetadata.google.continuationToken` is set.
+  Resume by passing it as `providerOptions.google.continuationToken` together
+  with `previousInteractionId` (and a higher `maxOutputTokens` for
+  `incomplete`).
+
+**Interrupted calls.** Non-streaming continuation failures throw
+`GoogleInteractionsContinuationError` from `@ai-sdk/google`. Its `partialResult`
+contains the completed hops' content, usage, and metadata. Its
+`continuationToken` and `interactionId` identify where to resume; `cause`
+contains the original error. Stream errors use the same class without
+`partialResult`, because their output was already delivered.
+
+Foreground streams resume automatically from a checkpoint token only when no
+output events have been delivered after that checkpoint. Otherwise they emit
+a resumable error and finish with `interrupted`, avoiding duplicate output.
+If you resume manually, output delivered after the checkpoint will be generated
+again. Repeated reconnects without progress are bounded. Completed and
+incomplete interactions supersede earlier checkpoint tokens.
+
+Usage on `interaction.status_update` is a cumulative snapshot for the current
+hop: the provider retains the latest snapshot and sums final snapshots across
+hops. After the first 32K tokens, output may arrive in roughly 5K-token chunks;
+pauses between checkpoints are expected. Allow HTTP read timeouts of 15 to 20
+minutes per streaming request. The AI SDK's `timeout` limits the whole call,
+including its continuation requests.
+
+**Manual continuation.** Set `providerOptions.google.automaticContinuation` to
+`false` to receive one foreground hop at a time. The option is handled by the
+provider and is not sent to Google's API. Keep the model, tools, system
+instruction, and generation settings unchanged when requesting the next hop:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const prompt = 'Prove that sqrt(2) is irrational, in detail.';
+const model = google.interactions('gemini-4-argon');
+const result = await generateText({
+  model,
+  prompt,
+  maxOutputTokens: 262_144,
+  providerOptions: { google: { automaticContinuation: false } },
+});
+
+const metadata = result.finalStep.providerMetadata?.google;
+if (
+  result.finalStep.rawFinishReason === 'requires_continuation' &&
+  typeof metadata?.continuationToken === 'string' &&
+  typeof metadata?.interactionId === 'string'
+) {
+  const next = await generateText({
+    model,
+    prompt,
+    maxOutputTokens: 262_144,
+    providerOptions: {
+      google: {
+        automaticContinuation: false,
+        continuationToken: metadata.continuationToken,
+        previousInteractionId: metadata.interactionId,
+      },
+    },
+  });
+  console.log(result.text + next.text);
+}
+```
+
+Repeat while the raw finish reason is `requires_continuation`. For
+`incomplete`, increase `maxOutputTokens` before resuming. With `store: false`,
+omit `previousInteractionId` and resend the original prompt and settings.
+
+With `background: true`, the server runs every request itself and `usage`
+covers all requests. Keep `store` enabled (the default). The provider polls
+the interaction (or streams it, reconnecting when the connection drops) until
+it finishes:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -510,14 +613,14 @@ const result = await generateText({
 });
 ```
 
-Foreground client-side continuation is not yet supported by the AI SDK.
-If you do not set `maxOutputTokens`, non-streaming calls (`generateText`)
-default to 32,768 tokens and streaming calls (`streamText`) to 65,536 tokens.
+If you do not set `maxOutputTokens`, the Interactions API defaults to a total
+budget of 65,536 tokens for both streaming and non-streaming calls. A
+non-streaming foreground hop is capped at 32,768 tokens, so the provider may
+continue it automatically even when no explicit budget was supplied.
 An interaction that reaches its limit finishes with `length`. Long decode is
 not available with the Vertex AI Interactions API.
 
-The token budget includes both thinking and output tokens. To retain the previous
-64K budget for a non-streaming call, set `maxOutputTokens: 65_536` explicitly.
+The token budget includes both thinking and output tokens.
 
 ### File Inputs
 
@@ -1605,6 +1708,20 @@ The following optional provider options are available:
   Set to `false` for stateless multi-turn conversations where the full
   message history is re-sent on every turn.
 
+- **continuationToken** _string_
+
+  Resumes a Gemini 4 long decode response that stopped before finishing.
+  Pass `providerMetadata.google.continuationToken` from the previous response
+  together with `previousInteractionId` (or the original prompt with
+  `store: false`), and a higher `maxOutputTokens` if the response was
+  `incomplete`. See [Long decode with the Interactions API](#long-decode-with-the-interactions-api).
+
+- **automaticContinuation** _boolean_
+
+  Defaults to `true` for foreground model calls. Set to `false` to receive one
+  hop at a time and handle continuation tokens and retries yourself. This
+  option does not change background execution, where Google runs all hops.
+
 - **agent** _string_
 
   Name of a Gemini agent preset (e.g. `'deep-research-pro-preview-12-2025'`).
@@ -1725,6 +1842,20 @@ exposes:
 - **serviceTier** _string_
 
   Service tier the request actually ran on.
+
+- **continuationToken** _string_
+
+  Gemini 4 long decode: set when the response stopped before finishing
+  (`incomplete`, `requires_continuation` in manual mode or when continuing
+  failed, or an interrupted stream with a checkpoint). Pass it back as
+  `continuationToken` to resume. A completed interaction does not expose a
+  stale checkpoint token.
+
+- **initialInputTokens** _number_
+
+  Gemini 4 long decode: input tokens of the first request of a response that
+  was continued across several requests. Use it instead of the summed
+  `usage.inputTokens` for context window checks.
 
 - **signature** _string_
 

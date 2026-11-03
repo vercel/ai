@@ -16,7 +16,15 @@ import {
 import type { GoogleInteractionsStatus } from './google-interactions-prompt';
 
 const TERMINAL_STATUSES: ReadonlySet<GoogleInteractionsStatus | string> =
-  new Set(['completed', 'failed', 'cancelled', 'incomplete']);
+  new Set([
+    'completed',
+    'failed',
+    'cancelled',
+    'incomplete',
+    // A foreground long decode hop stopped at its per-request cap. Nothing
+    // more happens server-side until the client sends the next hop.
+    'requires_continuation',
+  ]);
 
 export function isTerminalStatus(
   status: GoogleInteractionsStatus | string | null | undefined,

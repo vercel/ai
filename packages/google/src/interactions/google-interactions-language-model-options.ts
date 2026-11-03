@@ -79,6 +79,27 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
       previousInteractionId: z.string().nullish(),
       store: z.boolean().nullish(),
 
+      /**
+       * Gemini 4 long decode: resumes a response that stopped before
+       * finishing. Pass the `continuationToken` from the previous response's
+       * provider metadata together with
+       * `previousInteractionId: providerMetadata.google.interactionId` (or the
+       * original prompt when `store: false`). For an `incomplete` response
+       * (budget used up), also raise `maxOutputTokens`; the budget is
+       * cumulative across requests.
+       *
+       * Foreground requests that reach the per-request cap while budget
+       * remains (`requires_continuation`) are continued automatically.
+       */
+      continuationToken: z.string().nullish(),
+
+      /**
+       * Continue foreground long decode hops automatically. Defaults to true.
+       * Set to false to handle continuation tokens and retries yourself.
+       * Background interactions are always continued by Google's servers.
+       */
+      automaticContinuation: z.boolean().optional(),
+
       agent: z.string().nullish(),
       agentConfig: z
         .union([

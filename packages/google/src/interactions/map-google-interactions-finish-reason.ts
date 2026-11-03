@@ -21,6 +21,9 @@ export function mapGoogleInteractionsFinishReason({
     case 'failed':
       return 'error';
     case 'incomplete':
+    // Gemini 4 long decode: a hop reached its per-request cap while budget
+    // remains. Continued automatically; only surfaced if continuing fails.
+    case 'requires_continuation':
       return 'length';
     case 'cancelled':
       return 'other';

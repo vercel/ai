@@ -53,8 +53,15 @@ export type GoogleInteractionsUsage = z.infer<ReturnType<typeof usageSchema>>;
 
 const interactionStatusSchema = () =>
   z.enum([
+    'queued',
     'in_progress',
     'requires_action',
+    /*
+     * Gemini 4 long decode: a foreground hop reached its per-request cap
+     * (64K streaming, 32K non-streaming) while `max_output_tokens` budget
+     * remains. Continue with `continuation_token`.
+     */
+    'requires_continuation',
     'completed',
     'failed',
     'cancelled',
@@ -297,6 +304,11 @@ export const googleInteractionsResponseSchema = lazySchema(() =>
         service_tier: z.string().nullish(),
         previous_interaction_id: z.string().nullish(),
         response_modalities: z.array(z.string()).nullish(),
+        /*
+         * Long decode: returned with `requires_continuation` (and on
+         * `incomplete`) to resume generation in the next request.
+         */
+        continuation_token: z.string().nullish(),
       })
       .loose(),
   ),
@@ -328,6 +340,7 @@ export const googleInteractionsEventSchema = lazySchema(() =>
               model: z.string().nullish(),
               agent: z.string().nullish(),
               status: status.nullish(),
+              continuation_token: z.string().nullish(),
             })
             .loose(),
         })
@@ -499,6 +512,8 @@ export const googleInteractionsEventSchema = lazySchema(() =>
           event_id: z.string().nullish(),
           interaction_id: z.string().nullish(),
           status: status.nullish(),
+          usage: usageSchema().nullish(),
+          continuation_token: z.string().nullish(),
         })
         .loose();
 
@@ -530,6 +545,7 @@ export const googleInteractionsEventSchema = lazySchema(() =>
               status: status.nullish(),
               usage: usageSchema().nullish(),
               service_tier: z.string().nullish(),
+              continuation_token: z.string().nullish(),
             })
             .loose(),
         })

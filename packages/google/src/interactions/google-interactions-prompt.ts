@@ -576,7 +576,11 @@ export type GoogleInteractionsEnvironment =
 export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
-  input: GoogleInteractionsInput;
+  /**
+   * Omitted on long decode continuation requests that reference the previous
+   * hop via `previous_interaction_id`.
+   */
+  input?: GoogleInteractionsInput;
   system_instruction?: string;
   tools?: Array<GoogleInteractionsTool>;
   response_format?: Array<GoogleInteractionsResponseFormatEntry>;
@@ -584,6 +588,12 @@ export type GoogleInteractionsRequestBody = {
   generation_config?: GoogleInteractionsGenerationConfig;
   agent_config?: GoogleInteractionsAgentConfig;
   previous_interaction_id?: string;
+  /**
+   * Gemini 4 long decode: resumes generation from the interaction referenced
+   * by `previous_interaction_id` (or from the resent `input` when
+   * `store: false`).
+   */
+  continuation_token?: string;
   service_tier?: GoogleInteractionsServiceTier;
   store?: boolean;
   stream?: boolean;
@@ -601,8 +611,10 @@ export type GoogleInteractionsRequestBody = {
 };
 
 export type GoogleInteractionsStatus =
+  | 'queued'
   | 'in_progress'
   | 'requires_action'
+  | 'requires_continuation'
   | 'completed'
   | 'failed'
   | 'cancelled'
