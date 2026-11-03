@@ -11,6 +11,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
 import type { Warning } from '../types/warning';
+import { VERSION } from '../version';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
@@ -551,6 +552,7 @@ describe('generateSpeech', () => {
     ).rejects.toBe(error);
 
     expect(onError).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: VERSION,
       callId: 'call-1',
       error,
     });

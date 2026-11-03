@@ -91,7 +91,12 @@ You can use the following optional settings to customize the AI Gateway provider
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   API key or Vercel access token that is being sent using the `Authorization`
   header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
@@ -221,6 +226,40 @@ started, AI SDK Core exposes it as a
 [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error).
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
+
+## Image Models
+
+AI Gateway supports image generation through `generateImage`. To reduce peak
+memory when receiving large images, opt in to streaming base64 decoding:
+
+```ts
+import { generateImage } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { image } = await generateImage({
+  model: 'bfl/flux-kontext-pro',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(image.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving base64 strings in provider results.
+When enabled, canonical base64 images of at least 64 KiB are decoded while the
+response arrives. The model returns these images as `Uint8Array`; if a response
+mixes extracted bytes with smaller images, all images in that result become
+bytes. Images that cannot be extracted retain the regular decoding path.
+
+This experimental option changes what image-model middleware sees in
+`result.images`. `GeneratedFile` still provides both `uint8Array` and `base64`,
+but reading `base64` can require re-encoding. Validation errors contain short
+placeholders for extracted data. The option is handled by the client and is
+not sent to the Gateway service.
 
 ## Batch
 
@@ -463,6 +502,69 @@ console.log(ranking);
 ```
 
 Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
+
+## Streaming Speech Models
+
+<Note type="warning">
+  Streaming speech is experimental and the API may change in patch releases.
+</Note>
+
+Speech models that support streaming can be used with
+`experimental_streamSpeech`. The gateway provider connects to AI Gateway over a
+WebSocket, forwards text deltas as they arrive, and streams audio chunks back.
+Gateway WebSocket auth is carried in the subprotocols, so no header-capable
+WebSocket implementation is needed.
+
+Streaming speech works only with models that the
+[AI Gateway model catalog](https://vercel.com/ai-gateway/models) lists with
+streaming speech support. The model ID below is illustrative; check the catalog
+for current availability.
+
+```ts
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  text: textStream, // a string, or an array or stream of strings and/or text parts
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
+});
+
+for await (const chunk of result.audioStream) {
+  // Uint8Array audio bytes
+}
+
+console.log(await result.usage); // { inputCharacters: ... }
+```
+
+### Streaming Speech in the Browser
+
+To stream speech from browser code without exposing your Gateway credential,
+mint a short-lived client secret on your server with
+`gateway.experimental_speech.getToken()` and pass the token to the browser.
+The token is bound to the streaming speech surface and the requested model.
+
+```ts
+// Server
+import { gateway } from '@ai-sdk/gateway';
+
+const { token } = await gateway.experimental_speech.getToken({
+  model: 'elevenlabs/eleven-flash-v2.5',
+  expiresAfterSeconds: 60,
+});
+```
+
+```ts
+// Browser
+import { createGateway } from '@ai-sdk/gateway';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const gateway = createGateway({ apiKey: token });
+
+const result = streamSpeech({
+  model: gateway.experimental_speech('elevenlabs/eleven-flash-v2.5'),
+  text: textStream,
+});
+```
 
 ## Realtime Models
 
@@ -1232,7 +1334,7 @@ for await (const part of result.stream) {
 
 #### Parallel Search
 
-The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search-beta/search). This tool is optimized for LLM consumption, returning relevant excerpts from web pages that can replace multiple keyword searches with a single call.
+The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search/search). The model provides a research objective and a few keyword queries, and the tool returns relevant excerpts from web pages, optimized for LLM consumption.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1260,7 +1362,8 @@ const result = await generateText({
   prompt: 'Find detailed information about TypeScript 5.0 features.',
   tools: {
     parallel_search: gateway.tools.parallelSearch({
-      mode: 'agentic',
+      mode: 'advanced',
+      location: 'us',
       maxResults: 5,
       sourcePolicy: {
         includeDomains: ['typescriptlang.org', 'github.com'],
@@ -1279,11 +1382,15 @@ console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 
 The Parallel Search tool supports the following optional configuration options:
 
-- **mode** _'one-shot' | 'agentic'_
+- **mode** _'turbo' | 'fast' | 'basic' | 'advanced'_
 
-  Mode preset for different use cases:
-  - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
-  - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
+  Search mode. Defaults to `'basic'`. See the [AI Gateway web search docs](https://vercel.com/docs/ai-gateway/models-and-providers/web-search#using-parallel-search) for pricing.
+  - `'turbo'` - Lowest latency, shorter excerpts. Supports English and Japanese only.
+  - `'fast'` - Low latency, shorter excerpts.
+  - `'basic'` - Balanced latency and excerpt depth (default).
+  - `'advanced'` - Most thorough retrieval, higher latency.
+
+  `'one-shot'` and `'agentic'` are deprecated but still accepted: `'one-shot'` runs as `'basic'` and `'agentic'` runs as `'advanced'`.
 
 - **maxResults** _number_
 
@@ -1292,20 +1399,34 @@ The Parallel Search tool supports the following optional configuration options:
 - **sourcePolicy** _object_
 
   Source policy for controlling which domains to include/exclude:
-  - `includeDomains` - List of domains to include in search results
-  - `excludeDomains` - List of domains to exclude from search results
-  - `afterDate` - Only include results published after this date (ISO 8601 format)
+  - `includeDomains` - Domains or domain/path prefixes to include, such as `'wikipedia.org'` or `'docs.python.org/3'`. When set, `excludeDomains` is ignored.
+  - `excludeDomains` - Domains or domain/path prefixes to exclude
+  - `afterDate` - Only include results published on or after this date (`YYYY-MM-DD`)
+
+  The include and exclude lists can hold up to 200 entries combined.
+
+- **maxCharsTotal** _number_
+
+  Maximum total characters across all result excerpts.
 
 - **excerpts** _object_
 
   Excerpt configuration for controlling result length:
   - `maxCharsPerResult` - Maximum characters per result
-  - `maxCharsTotal` - Maximum total characters across all results
+  - `maxCharsTotal` - Deprecated; use the top-level `maxCharsTotal`
 
 - **fetchPolicy** _object_
 
   Fetch policy for controlling content freshness:
-  - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
+  - `maxAgeSeconds` - Maximum age of cached content, in seconds, before a live fetch is attempted. Minimum 600; lower values are raised to 600.
+  - `timeoutSeconds` - Timeout for a live fetch, in seconds. The gateway caps it to stay within its own tool timeout.
+  - `disableCacheFallback` - Return an error instead of older cached content when a live fetch fails. Defaults to `false`.
+
+- **location** _string_
+
+  ISO 3166-1 alpha-2 country code to localize results, such as `'us'`. Invalid codes are ignored with a warning.
+
+Each tool result contains a `search_id` and `results`, ordered by decreasing relevance, and may include a `session_id`. Each result has a `url`, a `title`, a `publish_date` (both may be `null`), and `excerpts` (an array of markdown strings). The result can also include `warnings`, for example when an invalid `location` is ignored.
 
 The tool works with both `generateText` and `streamText`:
 
@@ -1334,6 +1455,100 @@ for await (const part of result.stream) {
   }
 }
 ```
+
+#### DeepSeek Search and Fetch
+
+Use `gateway.tools.deepseekSearch()` to search the web and
+`gateway.tools.deepseekFetch()` to retrieve a page as Markdown. Both tools call
+DeepSeek's standalone Search/Fetch APIs from AI Gateway and work with supported
+tool-calling models from any provider. They are separate from a model's built-in
+web search. No additional model provider package is required.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch({
+      count: 5,
+      needContent: true,
+    }),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+console.log(result.text);
+console.log(result.toolResults);
+for (const part of result.content) {
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+The Search tool supports the following optional configuration options:
+
+- **query** _string_
+
+  Pin the search query; otherwise the model chooses it. Queries contain 1–128 Unicode characters and cannot be all whitespace.
+
+- **count** _number_
+
+  Number of results, 1–50 (default: 10).
+
+- **needContent** _boolean_
+
+  Include available page content (default: false).
+
+- **oriQuestion** _string | null_
+
+  Original question, 1–128 Unicode characters. `null` means not provided.
+
+- **localization** _string_
+
+  IP address used to localize results; developer configuration only.
+
+The model-facing input uses `query`, `count`, `need_content`, and `ori_question`.
+Queries support search operators including `site:`, `-site:`, `lang:`, `after:`,
+`before:`, and quoted phrases. Search returns `{ results }`, containing ranked
+URLs, titles, snippets, summaries, optional page content, and nullable site/date
+metadata. An empty `results` array is a successful search with no matches.
+
+Fetch accepts an HTTP(S) `url` up to 8,192 characters, without a username or
+password, and returns `{ content, title? }`. The content is Markdown. You can
+pin the URL with `gateway.tools.deepseekFetch({ url: 'https://example.com' })`.
+The Fetch tool supports the following optional configuration option:
+
+- **url** _string_
+
+  Pin the HTTP(S) URL; otherwise the model chooses it.
+
+Tool failures appear as `tool-error` parts in `result.content` (for
+`generateText`) or `result.stream` (for `streamText`). Inspect `part.error`
+there; failures are not included in `result.toolResults`.
+
+The tools also work with `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-6-luna',
+  prompt: 'Search for DeepSeek API documentation and fetch a relevant page.',
+  tools: {
+    deepseek_search: gateway.tools.deepseekSearch(),
+    deepseek_fetch: gateway.tools.deepseekFetch(),
+  },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'text-delta') process.stdout.write(part.text);
+  if (part.type === 'tool-error') console.error('Tool error:', part.error);
+}
+```
+
+See the [DeepSeek API guide](https://api-docs.deepseek.com/guides/search/) for the
+underlying APIs.
 
 ### Custom Reporting
 
@@ -1440,7 +1655,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1451,8 +1666,7 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
-      only: ['vertex', 'anthropic'], // Only use these providers
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1469,6 +1683,8 @@ The following gateway provider options are available:
 - **only** _string[]_
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
@@ -1582,7 +1798,7 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking:
+You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1594,7 +1810,7 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
-      only: ['anthropic', 'vertex'], // Only allow these providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
     } satisfies GatewayProviderOptions,
   },
 });

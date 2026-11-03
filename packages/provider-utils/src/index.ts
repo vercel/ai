@@ -40,6 +40,7 @@ export {
   fetchWithValidatedEndpoint,
   fetchWithValidatedRedirects,
 } from './fetch-with-validated-redirects';
+export { encodePathSegment } from './encode-path-segment';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
@@ -113,6 +114,17 @@ export { serializeModelOptions } from './serialize-model-options';
 export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
+  SPEECH_STREAM_START_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_START_FRAME_TYPE,
+  SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
+  SPEECH_STREAM_TEXT_DONE_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_TEXT_DONE_FRAME_TYPE,
+  parseSpeechStreamClientFrame as experimental_parseSpeechStreamClientFrame,
+  parseSpeechStreamPart as experimental_parseSpeechStreamPart,
+  serializeSpeechStreamPart as experimental_serializeSpeechStreamPart,
+  type SpeechStreamClientFrame as Experimental_SpeechStreamClientFrame,
+  type SpeechStreamStartFrame as Experimental_SpeechStreamStartFrame,
+  type SpeechStreamTextDeltaFrame as Experimental_SpeechStreamTextDeltaFrame,
+} from './speech-stream-envelope';
+export {
   StreamingToolCallTracker,
   type StreamingToolCallDelta,
   type StreamingToolCallTrackerOptions,
@@ -153,3 +165,5 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+
+export { stringifyWithBigIntAndCycles } from './stringify-with-bigint-and-cycles';

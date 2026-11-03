@@ -16,7 +16,12 @@ export type DecisionAnswer<QUESTION extends DecisionQuestion> =
       }
     : QUESTION extends { type: 'score' }
       ? { type: 'score'; score: number; probabilities?: Record<string, number> }
-      : { type: 'boolean'; probability: number };
+      : QUESTION extends { type: 'box' }
+        ? {
+            type: 'box';
+            box: { top: number; bottom: number; left: number; right: number };
+          }
+        : { type: 'boolean'; probability: number };
 
 export type DecisionResult<QUESTIONS extends Record<string, DecisionQuestion>> =
   {

@@ -85,7 +85,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+    connect: (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -115,7 +118,10 @@ const harnessUtilsMocks = vi.hoisted(() => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -129,11 +135,15 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     readonly connect: (options: {
       abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
 
     async open() {
       if (harnessUtilsMocks.connectOnOpen) {
-        await this.connect({ abortSignal: new AbortController().signal });
+        await this.connect({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
 
@@ -204,7 +214,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
+      if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
     }),
@@ -333,7 +343,7 @@ describe('createOpenCode adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/opencode-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it.each([
@@ -617,6 +627,107 @@ describe('createOpenCode adapter', () => {
     );
     expect(JSON.stringify(spawnEnvs[2])).not.toContain('older-state-secret');
     await olderSession.doDetach();
+  });
+
+  it('restricts direct GitLab credentials to the chat exchange on startup and resume', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvironments: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvironments.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'gitlab',
+      auth: {
+        GITLAB_TOKEN: 'gitlab-secret',
+        GITLAB_INSTANCE_URL: 'https://gitlab.example',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const placeholder = spawnEnvironments[0]?.GITLAB_TOKEN;
+    expect(placeholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify(spawnEnvironments)).not.toContain('gitlab-secret');
+    const expectedTransformations = [
+      {
+        match: {
+          host: 'gitlab.example',
+          path: { exact: '/api/v4/ai/third_party_agents/direct_access' },
+          method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${placeholder}` },
+            },
+          ],
+        },
+        transform: { headers: { Authorization: 'Bearer gitlab-secret' } },
+      },
+    ];
+    expect(addRequestTransformations).toHaveBeenCalledExactlyOnceWith(
+      expectedTransformations,
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(
+      (
+        resumeFrom.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITLAB_TOKEN: placeholder });
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    expect(addRequestTransformations).toHaveBeenCalledTimes(2);
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(
+      2,
+      expectedTransformations,
+    );
+    expect(spawnEnvironments).toHaveLength(1);
+    await resumedSession.doDetach();
   });
 
   it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
@@ -966,6 +1077,39 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
     );
+    await session.doDestroy();
+  });
+
+  it('forwards inline image prompt content to the bridge', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const turn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([0, 1, 2]),
+          },
+        ],
+      },
+      emit: () => {},
+    });
+
+    expect(channel.sent.at(-1)).toMatchObject({
+      type: 'start',
+      operation: 'prompt',
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'AAEC' },
+      ],
+    });
+
+    channel.emit('finish', { type: 'finish' });
+    await turn.done;
     await session.doDestroy();
   });
 

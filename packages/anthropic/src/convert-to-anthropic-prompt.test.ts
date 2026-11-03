@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  JSONValue,
+  LanguageModelV4FilePart,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -8,6 +13,95 @@ import { CacheControlValidator } from './get-cache-control';
 const defaultToolNameMapping = createToolNameMapping({
   tools: [],
   providerToolNames: {},
+});
+
+describe('custom media conversion', () => {
+  it.each(['part', 'message'] as const)(
+    'converts the original file part and preserves %s cache control',
+    async cacheControlLocation => {
+      const cacheOptions = {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      };
+      const file: LanguageModelV4FilePart = {
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: { type: 'reference', reference: { custom: 'video-id' } },
+        providerOptions: {
+          custom: { fps: 2 },
+          ...(cacheControlLocation === 'part' ? cacheOptions : {}),
+        },
+      };
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Describe.' }, file],
+            providerOptions:
+              cacheControlLocation === 'message' ? cacheOptions : undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+        convertMediaPart: async part => {
+          expect(part).toBe(file);
+          return {
+            type: 'video',
+            source: { type: 'url', url: 'https://example.com/video.mp4' },
+          };
+        },
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe.', cache_control: undefined },
+            {
+              type: 'video',
+              source: { type: 'url', url: 'https://example.com/video.mp4' },
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(result.betas.size).toBe(0);
+    },
+  );
+
+  it('uses default file conversion when the hook returns undefined', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/doc.pdf'),
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+      convertMediaPart: async () => undefined,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'document',
+        source: { type: 'url', url: 'https://example.com/doc.pdf' },
+        title: undefined,
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.betas).toContain('pdfs-2024-09-25');
+  });
 });
 
 describe('orphaned programmatic callers', () => {
@@ -5027,6 +5121,131 @@ describe('cache control', () => {
         },
         betas: new Set(),
       });
+    });
+
+    it('should parse valid JSON string tool call input into an object', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: '{"city":"Paris","count":5}',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { city: 'Paris', count: 5 },
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should safely serialize tool results with BigInt and circular structures', async () => {
+      const circularValue: Record<string, unknown> = {
+        id: 9007199254740993n,
+      };
+      circularValue.self = circularValue;
+
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: circularValue as JSONValue,
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"id":"9007199254740993","self":"[Circular]"}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should serialize tool results that reuse non-circular objects', async () => {
+      const shared = { city: 'Paris' };
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"first":{"city":"Paris"},"second":{"city":"Paris"}}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
     });
 
     it('should set cache_control on last assistant message part with message cache control', async () => {

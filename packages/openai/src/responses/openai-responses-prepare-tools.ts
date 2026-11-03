@@ -40,6 +40,12 @@ export type OpenAIToolOptions = {
    */
   async?: boolean;
   deferLoading?: boolean;
+  /**
+   * Omit this function from the Responses request's top-level tools array.
+   * Use for tools supplied in history through additionalTools. Keep the tool
+   * active in the SDK so its calls can still be validated and executed.
+   */
+  omitFromRequestTools?: boolean;
   outputSchema?: JSONObject;
   namespace?: {
     name: string;
@@ -55,6 +61,7 @@ export async function prepareResponsesTools({
   customProviderToolNames,
   outputSchemaToolNames,
   supportsAsyncToolCalling = true,
+  providerOptionsName = 'openai',
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -66,6 +73,7 @@ export async function prepareResponsesTools({
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
   supportsAsyncToolCalling?: boolean;
+  providerOptionsName?: string;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -139,11 +147,31 @@ export async function prepareResponsesTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
-        const openaiOptions = tool.providerOptions?.openai as
-          | OpenAIToolOptions
-          | undefined;
+        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
+          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
         if (openaiOptions?.outputSchema != null) {
           outputSchemaToolNames?.add(tool.name);
+        }
+        if (openaiOptions?.omitFromRequestTools === true) {
+          recordAllowedTool(
+            tool.name,
+            {
+              supported: false,
+              reason:
+                'tools omitted from the request tools array cannot be allow-listed',
+            },
+            undefined,
+          );
+          if (
+            allowedTools == null &&
+            toolChoice?.type === 'tool' &&
+            toolChoice.toolName === tool.name
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `forcing tool "${tool.name}" omitted from the request tools array; use automatic tool choice for history-loaded tools`,
+            });
+          }
+          break;
         }
         const openaiFunctionTool = prepareFunctionTool({
           tool,

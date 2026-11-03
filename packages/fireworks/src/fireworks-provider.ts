@@ -11,7 +11,10 @@ import type {
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
+  mapReasoningToProviderEffort,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -49,8 +52,9 @@ export interface FireworksProviderSettings {
   /**
    * Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -115,22 +119,24 @@ export function createFireworks(
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'FIREWORKS_API_KEY',
-          description: 'Fireworks API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-fireworks/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'FIREWORKS_API_KEY',
+            description: 'Fireworks API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fireworks/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -147,7 +153,13 @@ export function createFireworks(
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
       supportsStructuredOutputs: true,
-      transformRequestBody: (args, warnings) => {
+      mapReasoning: ({ reasoning, warnings }) =>
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: getFireworksReasoningEffortMap(modelId),
+          warnings,
+        }),
+      transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
@@ -160,31 +172,11 @@ export function createFireworks(
           reasoningHistory: __,
           promptCacheKey: ___,
           serviceTier: ____,
-          reasoning_effort,
           ...rest
         } = args;
 
-        // Fireworks supports low, medium, and high reasoning levels.
-        const mappedReasoningEffort =
-          reasoning_effort === 'minimal'
-            ? 'low'
-            : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
-              ? 'high'
-              : reasoning_effort;
-
-        if (mappedReasoningEffort !== reasoning_effort) {
-          warnings?.push({
-            type: 'compatibility',
-            feature: 'reasoning',
-            details: `reasoning "${reasoning_effort}" is not directly supported by this model. mapped to effort "${mappedReasoningEffort}".`,
-          });
-        }
-
         return {
           ...rest,
-          ...(reasoning_effort != null && {
-            reasoning_effort: mappedReasoningEffort,
-          }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,
           }),
@@ -240,3 +232,31 @@ export function createFireworks(
 }
 
 export const fireworks = createFireworks();
+
+// Model families that always reason and reject reasoning effort 'none'.
+const modelsWithoutNoneReasoningEffort = /^(?:gpt-oss|glm-5p3|muse-spark)/;
+
+// Model families that reject reasoning effort 'minimal'.
+const modelsWithoutMinimalReasoningEffort = /^(?:nemotron|inkling)/;
+
+/**
+ * Fireworks accepts every reasoning effort for most models, so reasoning
+ * values are sent directly, except to model families known to reject them.
+ */
+function getFireworksReasoningEffortMap(modelId: string) {
+  const modelName = modelId.slice(modelId.lastIndexOf('/') + 1);
+
+  return {
+    ...(!modelsWithoutNoneReasoningEffort.test(modelName) && {
+      none: 'none' as const,
+    }),
+    ...(!modelsWithoutMinimalReasoningEffort.test(modelName) && {
+      minimal: 'minimal' as const,
+    }),
+    low: 'low' as const,
+    medium: 'medium' as const,
+    high: 'high' as const,
+    xhigh: 'xhigh' as const,
+    max: 'max' as const,
+  };
+}

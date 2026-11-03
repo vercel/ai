@@ -14,6 +14,7 @@ import {
 } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -462,6 +463,62 @@ describe('processUIMessageStream', () => {
           [Error: test error],
         ]
       `);
+    });
+  });
+
+  describe('data part schemas', () => {
+    const dataPartSchemas = { weather: z.object({ city: z.string() }) };
+
+    beforeEach(() => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+    });
+
+    it('should reject a data part that does not match its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 42 } },
+      ]);
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            dataPartSchemas,
+            runUpdateMessageJob,
+            onError: () => {},
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Type validation failed for message.parts[0].data (data-weather, id: "w1")',
+      );
+
+      expect(state!.message.parts).toEqual([]);
+    });
+
+    it('should accept a data part that matches its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          dataPartSchemas,
+          runUpdateMessageJob,
+          onError: () => {},
+        }),
+      });
+
+      expect(state!.message.parts).toEqual([
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
     });
   });
 
@@ -3539,6 +3596,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 

@@ -46,7 +46,12 @@ type TypeSafeAiDecisionModelConfig = {
 
 export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+  readonly supportedQuestionTypes = [
+    'choice',
+    'score',
+    'boolean',
+    'box',
+  ] as const;
 
   constructor(
     readonly modelId: TypeSafeAiDecisionModelId,
@@ -79,6 +84,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -116,6 +123,12 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         type: 'unsupported',
         feature: `providerOptions.typesafe.${option}`,
       }));
+    if (maxOutputTokens != null) {
+      warnings.push({ type: 'unsupported', feature: 'maxOutputTokens' });
+    }
+    if (reasoning != null) {
+      warnings.push({ type: 'unsupported', feature: 'reasoning' });
+    }
     const assets: Record<string, { type: 'image'; part: string }> =
       Object.create(null); // don't inherit from Object.prototype
     const imageParts: { name: string; blob: Blob; filename: string }[] = [];
@@ -219,7 +232,9 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           id,
           question.type === 'boolean'
             ? { ...question, type: 'noul' }
-            : question,
+            : question.type === 'box'
+              ? { type: 'box', instructions: question.instructions }
+              : question,
         ]),
       ),
     };
@@ -227,7 +242,10 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       url: `${this.config.baseURL}/systemone`,
       headers: combineHeaders(
         modelHeaders,
-        hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        hasImages ||
+          Object.values(questions).some(question => question.type === 'box')
+          ? { 'TypeSafe-Danger-Zone-Images': 'true' }
+          : undefined,
         typesafeOptions?.longContext
           ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
           : undefined,
@@ -273,6 +291,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         Object.entries(response.answers).map(
           ([id, answer]): [string, DecisionModelV4Answer] => {
             switch (answer.type) {
+              case 'box':
+                return [id, { type: 'box', box: answer.box }];
               case 'noul':
                 return [id, { type: 'boolean', probability: answer.noul }];
               case 'choice':

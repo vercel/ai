@@ -5,6 +5,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -12,6 +14,8 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -36,7 +40,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: (path: string) => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
       _internal?: { currentDate?: () => Date };
     },
@@ -97,7 +101,7 @@ export class AzureMaiImageModel implements ImageModelV4 {
       web_grounding: webGrounding,
     };
     const requestOptions = {
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       failedResponseHandler: maiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         maiImageResponseSchema,
@@ -234,12 +238,16 @@ async function fileToBlob(
   return new Blob([data as BlobPart], { type: file.mediaType });
 }
 
-const maiErrorSchema = z.object({
-  error: z.object({
-    code: z.union([z.string(), z.number()]).nullish(),
-    message: z.string(),
-  }),
-});
+const maiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        code: z.union([z.string(), z.number()]).nullish(),
+        message: z.string(),
+      }),
+    }),
+  ),
+);
 
 const maiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: maiErrorSchema,
@@ -247,15 +255,19 @@ const maiFailedResponseHandler = createJsonErrorResponseHandler({
 });
 
 // Only the fields used here, to tolerate API additions.
-const maiImageResponseSchema = z.object({
-  created: z.number().nullish(),
-  size: z.string().nullish(),
-  usage: z
-    .object({
-      num_input_text_tokens: z.number().nullish(),
-      num_input_image_tokens: z.number().nullish(),
-      num_output_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const maiImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      created: z.number().nullish(),
+      size: z.string().nullish(),
+      usage: z
+        .object({
+          num_input_text_tokens: z.number().nullish(),
+          num_input_image_tokens: z.number().nullish(),
+          num_output_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      data: z.array(z.object({ b64_json: z.string() })),
+    }),
+  ),
+);

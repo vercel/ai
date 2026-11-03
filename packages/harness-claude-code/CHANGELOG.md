@@ -1,5 +1,189 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.177
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.176
+
+### Patch Changes
+
+- e3f24b6: fix(harness-claude-code): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.175
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.174
+
+### Patch Changes
+
+- 31d83e2: feat(harness-claude-code): support `skillOverrides` adapter setting for selective skill overrides
+  - @ai-sdk/harness@1.0.170
+
+## 1.0.173
+
+### Patch Changes
+
+- edd4d4f: fix(harness-claude-code): correctly map dotted AI Gateway model IDs to the ID shapes Claude Code expects
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.172
+
+### Patch Changes
+
+- 4ab93bb: feat(harness-claude-code): add `toolHints` to mark host tools read-only or always-loaded
+- ede06e3: carry out an approval answered after a resume instead of asking again
+- 0808bf4: fix(harness-claude-code): preserve host tool numeric bounds, string lengths, array item counts, and defaults in Zod schemas
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.171
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.170
+
+### Patch Changes
+
+- 09b3e1d: feat(harness-claude-code): add maxBudgetUsd and strictMcpConfig settings
+- 6e3e999: add questionTimeoutMs and excludeDynamicSections settings
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.169
+
+### Patch Changes
+
+- 39aae54: fix(harness): ensure harness adapters always resolve the model used
+- a15b2a9: add onDebug setting to observe bridge connection events
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.168
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.167
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+
+## 1.0.166
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+
+## 1.0.164
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.163
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.162
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.158
+
+## 1.0.161
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.159
+
+### Patch Changes
+
+- dc1d7a6: support inline images in user messages
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
 ## 1.0.157
 
 ### Patch Changes

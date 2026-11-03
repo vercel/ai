@@ -268,4 +268,39 @@ describe('doGenerateStep', () => {
       });
     },
   );
+
+  it('rejects tool calls with tool choice none without repairing them', async () => {
+    const repairToolCall = vi.fn();
+
+    await expect(
+      doGenerateStep(
+        prompt,
+        new MockLanguageModelV4({
+          doGenerate: {
+            ...success,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'lookup',
+                input: 'invalid json',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
+        }),
+        serializeToolSet({
+          lookup: tool({ inputSchema: z.object({ query: z.string() }) }),
+        }),
+        { toolChoice: 'none', repairToolCall },
+      ),
+    ).resolves.toMatchObject({
+      toolCalls: [],
+      terminalError: expect.objectContaining({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      }),
+    });
+    expect(repairToolCall).not.toHaveBeenCalled();
+  });
 });

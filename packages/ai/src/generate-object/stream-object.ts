@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type {
   JSONValue,
   LanguageModelV4FinishReason,
@@ -664,10 +665,13 @@ class DefaultStreamObjectResult<
       };
 
       const startTimestampMs = now();
-      const { stream, response, request } = await retry(() =>
-        model.doStream(callOptions),
-      );
+      const {
+        stream,
+        response,
+        request: rawRequest,
+      } = await retry(() => model.doStream(callOptions));
 
+      const request = sanitizeRequestMetadata(rawRequest);
       self._request.resolve(request ?? {});
 
       let warnings: SharedV4Warning[] | undefined;

@@ -13,6 +13,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
@@ -400,98 +402,115 @@ function maybeEncodeVideoFile(file: VideoModelV4File) {
   return file;
 }
 
-const providerMetadataEntrySchema = z
-  .object({
-    videos: z.array(z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+const providerMetadataEntrySchema = () =>
+  z
+    .object({
+      videos: z.array(z.unknown()).optional(),
+    })
+    .catchall(z.unknown());
 
-const gatewayVideoDataSchema = z.union([
-  z.object({
-    type: z.literal('url'),
-    url: z.string(),
-    mediaType: z.string(),
-  }),
-  z.object({
-    type: z.literal('base64'),
-    data: z.string(),
-    mediaType: z.string(),
-  }),
-]);
+const gatewayVideoDataSchema = () =>
+  z.union([
+    z.object({
+      type: z.literal('url'),
+      url: z.string(),
+      mediaType: z.string(),
+    }),
+    z.object({
+      type: z.literal('base64'),
+      data: z.string(),
+      mediaType: z.string(),
+    }),
+  ]);
 
-const gatewayVideoWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayVideoWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewayVideoEventSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('result'),
-    videos: z.array(gatewayVideoDataSchema),
-    warnings: z.array(gatewayVideoWarningSchema).optional(),
-    providerMetadata: z
-      .record(z.string(), providerMetadataEntrySchema)
-      .optional(),
-  }),
-  z.object({
-    type: z.literal('error'),
-    message: z.string(),
-    errorType: z.string(),
-    statusCode: z.number(),
-    param: z.unknown().nullable(),
-  }),
-]);
+const gatewayVideoEventSchema = lazySchema(() =>
+  zodSchema(
+    z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('result'),
+        videos: z.array(gatewayVideoDataSchema()),
+        warnings: z.array(gatewayVideoWarningSchema()).optional(),
+        providerMetadata: z
+          .record(z.string(), providerMetadataEntrySchema())
+          .optional(),
+      }),
+      z.object({
+        type: z.literal('error'),
+        message: z.string(),
+        errorType: z.string(),
+        statusCode: z.number(),
+        param: z.unknown().nullable(),
+      }),
+    ]),
+  ),
+);
 
-const gatewayVideoStartResponseSchema = z.object({
-  operation: z.unknown(),
-  warnings: z.array(gatewayVideoWarningSchema).nullish(),
-  providerMetadata: z.record(z.string(), providerMetadataEntrySchema).nullish(),
-});
+const gatewayVideoStartResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      operation: z.unknown(),
+      warnings: z.array(gatewayVideoWarningSchema()).nullish(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .nullish(),
+    }),
+  ),
+);
 
-const gatewayVideoStatusResponseSchema = z.discriminatedUnion('status', [
-  z.object({
-    status: z.literal('pending'),
-    warnings: z.array(gatewayVideoWarningSchema).nullish(),
-    providerMetadata: z
-      .record(z.string(), providerMetadataEntrySchema)
-      .nullish(),
-  }),
-  z.object({
-    status: z.literal('completed'),
-    videos: z.array(gatewayVideoDataSchema),
-    warnings: z.array(gatewayVideoWarningSchema).nullish(),
-    providerMetadata: z
-      .record(z.string(), providerMetadataEntrySchema)
-      .nullish(),
-  }),
-  z.object({
-    status: z.literal('error'),
-    error: z.string(),
-    providerMetadata: z
-      .record(z.string(), providerMetadataEntrySchema)
-      .nullish(),
-  }),
-  z.object({
-    status: z.literal('cancelled'),
-    providerMetadata: z
-      .record(z.string(), providerMetadataEntrySchema)
-      .nullish(),
-  }),
-]);
+const gatewayVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.discriminatedUnion('status', [
+      z.object({
+        status: z.literal('pending'),
+        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
+        providerMetadata: z
+          .record(z.string(), providerMetadataEntrySchema())
+          .nullish(),
+      }),
+      z.object({
+        status: z.literal('completed'),
+        videos: z.array(gatewayVideoDataSchema()),
+        warnings: z.array(gatewayVideoWarningSchema()).nullish(),
+        providerMetadata: z
+          .record(z.string(), providerMetadataEntrySchema())
+          .nullish(),
+      }),
+      z.object({
+        status: z.literal('error'),
+        error: z.string(),
+        providerMetadata: z
+          .record(z.string(), providerMetadataEntrySchema())
+          .nullish(),
+      }),
+      z.object({
+        status: z.literal('cancelled'),
+        providerMetadata: z
+          .record(z.string(), providerMetadataEntrySchema())
+          .nullish(),
+      }),
+    ]),
+  ),
+);

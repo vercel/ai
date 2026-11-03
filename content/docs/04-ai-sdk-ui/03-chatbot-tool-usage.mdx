@@ -16,12 +16,12 @@ The flow is as follows:
 
 1. The user enters a message in the chat UI.
 1. The message is sent to the API route.
-1. In your server side route, the language model generates tool calls during the `streamText` call.
+1. In your server-side route, the language model generates tool calls during the `streamText` call.
 1. All tool calls are forwarded to the client.
 1. Server-side tools are executed using their `execute` method and their results are forwarded to the client.
 1. Client-side tools that should be automatically executed are handled with the `onToolCall` callback.
    You must call `addToolOutput` to provide the tool result.
-1. Client-side tool that require user interactions can be displayed in the UI.
+1. Client-side tools that require user interactions can be displayed in the UI.
    The tool calls and results are available as tool invocation parts in the `parts` property of the last assistant message.
 1. When the user interaction is done, `addToolOutput` can be used to add the tool result to the chat.
 1. The chat can be configured to automatically submit when all tool results are available using `sendAutomaticallyWhen`.

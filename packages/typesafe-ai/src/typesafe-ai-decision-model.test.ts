@@ -373,6 +373,7 @@ it('serializes and restores a model for workflow boundaries', async () => {
     'choice',
     'score',
     'boolean',
+    'box',
   ]);
 });
 
@@ -786,5 +787,74 @@ it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       state: value,
     });
+  },
+);
+
+it.each([true, false])(
+  'sends box questions and enables the images header (image: %s)',
+  async withImage => {
+    const box = { top: 0.25, bottom: 0.82, left: 0.44, right: 0.84 };
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        ...nativeResponse,
+        answers: {
+          ...nativeResponse.answers,
+          target: { type: 'box', box, confidence: 0.92 },
+        },
+      },
+    };
+    const result = await model.doDecide({
+      ...options,
+      ...(withImage && {
+        state: [
+          {
+            type: 'file' as const,
+            mediaType: 'image/png',
+            data: { type: 'data' as const, data: new Uint8Array([1, 2, 3]) },
+          },
+        ],
+      }),
+      questions: {
+        ...questions,
+        target: { type: 'box', instructions: 'The mug' },
+      },
+    });
+    expect(model.supportedQuestionTypes).toContain('box');
+    expect(result.answers.target).toEqual({ type: 'box', box });
+    expect(result.providerMetadata?.typesafe?.confidence).toMatchObject({
+      target: 0.92,
+    });
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+    const body = withImage
+      ? JSON.parse(
+          await (await server.calls[0].requestBodyMultipart)!.request.text(),
+        )
+      : await server.calls[0].requestBodyJson;
+    expect(body.questions.target).toEqual({
+      type: 'box',
+      instructions: 'The mug',
+    });
+  },
+);
+
+it('warns about unsupported maxOutputTokens without sending it', async () => {
+  const result = await model.doDecide({ ...options, maxOutputTokens: 512 });
+  expect(result.warnings).toEqual([
+    { type: 'unsupported', feature: 'maxOutputTokens' },
+  ]);
+  expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
+});
+
+it.each([undefined, 'none', 'provider-default', 'high'] as const)(
+  'warns about unsupported reasoning without sending it: %s',
+  async reasoning => {
+    const result = await model.doDecide({ ...options, reasoning });
+    expect(result.warnings).toEqual(
+      reasoning == null ? [] : [{ type: 'unsupported', feature: 'reasoning' }],
+    );
+    expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
   },
 );
