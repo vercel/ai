@@ -350,6 +350,16 @@ The following provider options are available:
   String to replace redacted content with.
   Optional.
 
+### Model Capabilities
+
+| Model                                                                                              | Transcription | Duration  | Segments  | Language  |
+| -------------------------------------------------------------------------------------------------- | ------------- | --------- | --------- | --------- |
+| `nova-3` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-3))     | <Check />     | <Check /> | <Check /> | <Cross /> |
+| `nova-2` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-2))     | <Check />     | <Check /> | <Check /> | <Cross /> |
+| `nova` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova))         | <Check />     | <Check /> | <Check /> | <Cross /> |
+| `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check />     | <Check /> | <Check /> | <Cross /> |
+| `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check />     | <Check /> | <Check /> | <Cross /> |
+
 ## Streaming Transcription
 
 Use `experimental_streamTranscribe` with Nova models to transcribe live audio
@@ -394,6 +404,15 @@ key, so native WebSockets work without custom headers. Keep long-lived API keys
 on the server. Flux models use a separate `/v2/listen` protocol and are not
 supported by this implementation.
 
+To authenticate with a short-lived token, use the Bearer scheme:
+
+```ts
+const deepgram = createDeepgram({
+  apiKey: temporaryToken,
+  headers: { authorization: `Bearer ${temporaryToken}` },
+});
+```
+
 Live transcription supports `language`, `smartFormat`, `punctuate`, `diarize`,
 `fillerWords`, `redact`, `replace`, `search`, and `keyterm`. Batch-only settings
 produce warnings. The optional `providerOptions.deepgram.streaming` object
@@ -408,22 +427,11 @@ accepts:
 - **utteranceEndMs** _number_: silence duration in milliseconds before an
   utterance-end event; at least `1000`, used with `interimResults`.
 
-Final transcript parts contain channel indices and segment timing. Word timings
-from all channels are combined in chronological order in the aggregate text and
-segments; consume `fullStream` when you need each segment's channel index. Word timings
-appear in `result.segments`, and Deepgram's reported duration appears in
+Final transcript parts contain channel indices and timing. Aggregate text and
+segments combine all channels in chronological order; consume `fullStream` when
+you need each segment's channel index. Word timings appear in `result.segments`, and Deepgram's reported duration appears in
 `result.durationInSeconds`. Native usage (`{ seconds: duration }`) is forwarded
 to the `experimental_onStreamTranscriptionEnd` telemetry callback. The
 `providerMetadata.deepgram.speechFinal` flag indicates an utterance boundary.
 Enable `includeRawChunks` for complete provider events, including request IDs,
 speaker labels, and utterance-end events.
-
-### Model Capabilities
-
-| Model                                                                                              | Transcription | Duration  | Segments  | Language  |
-| -------------------------------------------------------------------------------------------------- | ------------- | --------- | --------- | --------- |
-| `nova-3` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-3))     | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `nova-2` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-2))     | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `nova` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova))         | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check />     | <Check /> | <Check /> | <Cross /> |
