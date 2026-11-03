@@ -282,7 +282,7 @@ describe('doGenerate', () => {
           type: 'unsupported',
           feature: 'timestampGranularities',
           details:
-            'providerOptions.googleVertex.wordTimestamp is false and overrides the requested word timings.',
+            'The provider wordTimestamp option is false and overrides the requested word timings.',
         },
       ]);
     },
