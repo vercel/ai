@@ -222,7 +222,6 @@ describe('Codex bridge config', () => {
       model_verbosity: 'low',
       features: { multi_agent: false },
       developer_instructions: 'Caller instructions.',
-      model_reasoning_summary: 'none',
     };
     state.startCodexConfig = codexConfig;
 
@@ -245,10 +244,21 @@ describe('Codex bridge config', () => {
         "features": {
           "multi_agent": false,
         },
-        "model_reasoning_summary": "none",
         "model_verbosity": "low",
       }
     `);
+  });
+
+  test('allows caller codexConfig to override model_reasoning_summary', async () => {
+    state.startCodexConfig = {
+      model_reasoning_summary: 'none',
+    };
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.codexConfig.model_reasoning_summary).toBe(
+      'none',
+    );
   });
 
   test.each(['xhigh', 'max'] as const)(
