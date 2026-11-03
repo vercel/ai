@@ -3298,4 +3298,116 @@ describe('top-level-only mediaType resolution', () => {
       ]),
     ).rejects.toThrowError(/media type "image".*could not be auto-detected/);
   });
+
+  describe('tool input and output serialization resilience', () => {
+    it('parses valid JSON string tool input into structured object', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"bedrock converse","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'search',
+              input: { query: 'bedrock converse', limit: 5 },
+            },
+          },
+        ],
+      });
+    });
+
+    it('falls back to rawInvalidInput for malformed JSON string tool input', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'search',
+              input: 'not-valid-json',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'search',
+              input: { rawInvalidInput: 'not-valid-json' },
+            },
+          },
+        ],
+      });
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', async () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"count":"999999999999999999"');
+      expect(text).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool responses', async () => {
+      const shared = { city: 'Paris' };
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"first":{"city":"Paris"}');
+      expect(text).toContain('"second":{"city":"Paris"}');
+      expect(text).not.toContain('[Circular]');
+    });
+  });
 });

@@ -1,5 +1,31 @@
 # @ai-sdk/harness-codex
 
+## 1.0.175
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.174
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.173
+
+### Patch Changes
+
+- 3c6698b: fix(harness-codex): update bundled Codex CLI to 0.165.0 so `gpt-6.1-terra` gets its model settings (including `apply_patch`)
+  - @ai-sdk/harness@1.0.171
+
 ## 1.0.172
 
 ### Patch Changes

@@ -1,5 +1,33 @@
 # @ai-sdk/gateway
 
+## 4.0.135
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.134
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.133
+
+### Patch Changes
+
+- 2099d45: feat(provider/gateway): add DeepSeek Search and Fetch tools
+
+  Share lazy tool-error validation across DeepSeek, Parallel, and Tako while preserving additional error fields.
+
+  Tako tool errors also accept `gateway_rate_limit` and `unknown`; exhaustive error switches may need to handle these cases. Parallel and Tako errors gain optional `retryAfter` and `statusText` fields.
+
+- d05ff62: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.132
 
 ### Patch Changes

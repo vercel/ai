@@ -127,6 +127,7 @@ describe('host weather approval stream', () => {
           emitWarning: vi.fn(),
         } as unknown as BridgeTurn,
         sessionId: permission.value.sessionId,
+        workDir: '/workspace',
         permissionMode: 'allow-edits',
         hasPermissionModeMapping: true,
         emitToolCall: emitter.permissionToolCall,
