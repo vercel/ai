@@ -15,6 +15,7 @@ export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfi
 export type {
   OpenAILanguageModelResponsesOptions,
   OpenAIResponsesSystemMessageOptions,
+  OpenAIResponsesToolResultOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-language-model-options';

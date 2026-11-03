@@ -827,7 +827,7 @@ Final result: 570",
 exports[`OpenAIResponsesLanguageModel > doGenerate > shell tool > should include shell tool call and result in content 1`] = `
 [
   {
-    "input": "{"action":{"commands":["cd ~ && pwd","cd ~/Desktop && pwd","cd ~/Desktop && echo 'THIS WORKS!' > dec1.txt && ls -l dec1.txt && cat dec1.txt"]}}",
+    "input": "{"action":{"commands":["cd ~ && pwd","cd ~/Desktop && pwd","cd ~/Desktop && echo 'THIS WORKS!' > dec1.txt && ls -l dec1.txt && cat dec1.txt"],"maxOutputLength":9907}}",
     "providerMetadata": {
       "openai": {
         "itemId": "sh_0f0d479976b1e9a600692f61bec0e08197a0864dc5ddf1d38c",
@@ -9068,7 +9068,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
     "type": "response-metadata",
   },
   {
-    "input": "{"action":{"commands":["ls -a ~/Desktop"]}}",
+    "input": "{"action":{"commands":["ls -a ~/Desktop"],"maxOutputLength":8912}}",
     "providerMetadata": {
       "openai": {
         "itemId": "sh_0434d6d64b12b08900692f639c9f0481959c30e03ca0bb2ef8",

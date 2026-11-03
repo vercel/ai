@@ -6,6 +6,7 @@ export type {
 } from './google-language-model-options';
 export type {
   GoogleProviderMetadata,
+  GoogleVideoMetadata,
   /** @deprecated Use `GoogleProviderMetadata` instead. */
   GoogleProviderMetadata as GoogleGenerativeAIProviderMetadata,
 } from './google-prompt';

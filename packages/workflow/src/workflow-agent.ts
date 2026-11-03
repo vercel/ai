@@ -21,7 +21,7 @@ import {
   isStepCount,
   NoOutputGeneratedError,
   type GenerateTextResult,
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
@@ -69,6 +69,12 @@ import type {
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { modelCallIterator } from './model-call-iterator.js';
+import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
+import {
+  createWorkflowAgentTelemetryRecorder,
+  prepareWorkflowAgentTelemetry,
+  reportWorkflowAgentTelemetry,
+} from './workflow-agent-telemetry.js';
 import {
   resolveWorkflowStreamResult,
   type WorkflowExecutionData,
@@ -1846,12 +1852,25 @@ export class WorkflowAgent<
       options.toolCallConcurrency ?? effectiveToolCallConcurrency,
     );
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
+    // In a durable run, globally registered integrations are only visible in
+    // steps. Record the run's telemetry and report it when the run ends so the
+    // whole run is reported by one process (see workflow-agent-telemetry.ts).
+    const telemetryRecorder =
+      isInWorkflow() &&
+      shouldDispatchModelCallTelemetryInStep(effectiveTelemetry)
+        ? createWorkflowAgentTelemetryRecorder()
+        : undefined;
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       any,
       any,
       any
     >({
-      telemetry: effectiveTelemetry as any,
+      telemetry: (telemetryRecorder == null
+        ? effectiveTelemetry
+        : {
+            ...effectiveTelemetry,
+            integrations: telemetryRecorder.integration,
+          }) as any,
       includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
       includeToolsContext: effectiveTelemetry?.includeToolsContext,
     }) as any;
@@ -1902,6 +1921,7 @@ export class WorkflowAgent<
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
+      telemetryRecorder,
       prompt,
       download: effectiveDownloadFromPrepare,
       workflowDownload,
@@ -1926,6 +1946,32 @@ export class WorkflowAgent<
     > & { include?: WorkflowAgentGenerateOptions['include'] },
     mode: 'generate' | 'stream' = 'stream',
   ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
+    const telemetryReport: WorkflowAgentTelemetryReport = {};
+    try {
+      return await this.executeInvocation<TTools, TOutput, TPartialOutput>(
+        options,
+        mode,
+        telemetryReport,
+      );
+    } finally {
+      await reportRecordedTelemetry(telemetryReport);
+    }
+  }
+
+  private async executeInvocation<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentStreamOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    > & { include?: WorkflowAgentGenerateOptions['include'] },
+    mode: 'generate' | 'stream',
+    telemetryReport: WorkflowAgentTelemetryReport,
+  ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
     const {
       onEnd,
       effectiveModel,
@@ -1940,6 +1986,7 @@ export class WorkflowAgent<
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
+      telemetryRecorder,
       prompt,
       download,
       workflowDownload,
@@ -1949,6 +1996,8 @@ export class WorkflowAgent<
       mergedOnToolExecutionStart,
       mergedOnToolExecutionEnd,
     } = await this.prepareInvocation(options, mode);
+    telemetryReport.recorder = telemetryRecorder;
+    telemetryReport.telemetry = effectiveTelemetry;
     const initialResponseMessages: WorkflowAgentGenerateResult<TTools>['responseMessages'] =
       [];
     const abortReason = () =>
@@ -2362,6 +2411,13 @@ export class WorkflowAgent<
       toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
     });
 
+    if (telemetryRecorder != null) {
+      telemetryRecorder.contexts = await prepareWorkflowAgentTelemetry({
+        callId: telemetryRecorder.callId,
+        event: telemetryRecorder.events[0],
+      });
+    }
+
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
@@ -2588,6 +2644,9 @@ export class WorkflowAgent<
       runtimeContext,
       toolsContext,
       telemetry: effectiveTelemetry,
+      telemetryRecorder: telemetryRecorder?.integration,
+      telemetryCallId: telemetryRecorder?.callId,
+      telemetryContexts: telemetryRecorder?.contexts,
       includeRawChunks: options.includeRawChunks ?? false,
       timeoutAt,
       repairToolCall: (options.repairToolCall ??
@@ -3271,6 +3330,41 @@ function getModelInfo(model: LanguageModel): {
   return typeof model === 'string'
     ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
     : { provider: model.provider, modelId: model.modelId };
+}
+
+/**
+ * Telemetry recorded during a durable run, reported when the run ends.
+ */
+interface WorkflowAgentTelemetryReport {
+  recorder?: ReturnType<typeof createWorkflowAgentTelemetryRecorder>;
+  telemetry?: TelemetryOptions<any, any>;
+}
+
+async function reportRecordedTelemetry({
+  recorder,
+  telemetry,
+}: WorkflowAgentTelemetryReport): Promise<void> {
+  if (
+    recorder == null ||
+    recorder.events.length === 0 ||
+    recorder.contexts?.length === 0
+  )
+    return;
+
+  try {
+    await reportWorkflowAgentTelemetry({
+      telemetry: {
+        functionId: telemetry?.functionId,
+        recordInputs: telemetry?.recordInputs,
+        recordOutputs: telemetry?.recordOutputs,
+      },
+      events: recorder.events,
+      callId: recorder.callId,
+      contexts: recorder.contexts,
+    });
+  } catch {
+    // Telemetry must never change the outcome of the run.
+  }
 }
 
 function normalizeStepForTelemetry<

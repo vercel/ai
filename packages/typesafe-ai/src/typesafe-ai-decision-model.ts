@@ -84,6 +84,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -121,6 +123,12 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         type: 'unsupported',
         feature: `providerOptions.typesafe.${option}`,
       }));
+    if (maxOutputTokens != null) {
+      warnings.push({ type: 'unsupported', feature: 'maxOutputTokens' });
+    }
+    if (reasoning != null) {
+      warnings.push({ type: 'unsupported', feature: 'reasoning' });
+    }
     const assets: Record<string, { type: 'image'; part: string }> =
       Object.create(null); // don't inherit from Object.prototype
     const imageParts: { name: string; blob: Blob; filename: string }[] = [];

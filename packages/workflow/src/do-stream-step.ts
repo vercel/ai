@@ -61,10 +61,7 @@ export async function doStreamStep(
 
   return runModelCallWithTelemetry({
     telemetry: options?.telemetry,
-    modelInit,
-    prompt: conversationPrompt,
     serializedTools,
-    options,
     execute: languageModelCallTelemetry =>
       streamModelStep(
         conversationPrompt,
@@ -354,6 +351,7 @@ async function streamModelStep(
           });
           break;
         case 'source':
+        case 'custom':
           content.push(part);
           break;
         case 'tool-approval-request':

@@ -8,36 +8,73 @@ export type ReasoningLevel = Exclude<
   'none' | 'provider-default' | undefined
 >;
 
+/**
+ * Reasoning levels in ascending order.
+ */
+const REASONING_LEVELS: readonly ReasoningLevel[] = [
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+];
+
 export function isCustomReasoning(
   reasoning: LanguageModelV4CallOptions['reasoning'],
-): reasoning is Exclude<
-  LanguageModelV4CallOptions['reasoning'],
-  'provider-default' | undefined
-> {
+): reasoning is ReasoningLevel | 'none' {
   return reasoning !== undefined && reasoning !== 'provider-default';
 }
 
 /**
- * Maps a top-level reasoning level to a provider-specific effort string using
- * the given effort map. Pushes a compatibility warning if the reasoning level
- * maps to a different string, or an unsupported warning if the level is not
- * present in the map.
+ * Maps a top-level reasoning value to a provider-specific effort string.
  *
- * @returns The mapped effort string, or `undefined` if the level is not
- *   supported.
+ * A `providerOptionsEffort` (the reasoning effort set in provider options) is
+ * returned unchanged. Otherwise, `undefined` and `'provider-default'` return
+ * `undefined`, and other reasoning values are mapped with the effort map.
+ *
+ * The effort map should only contain the values that the model supports. An
+ * unsupported value maps to the next lower supported level, or the next higher
+ * one if there is no lower level. `'none'` is never used as a fallback, so an
+ * unsupported `'none'` maps to the lowest supported level.
+ *
+ * Pushes a compatibility warning if the effort that is sent differs from the
+ * requested value, or an unsupported warning if the effort map is empty.
+ *
+ * @returns The provider options effort, the mapped effort string, or
+ *   `undefined` if no effort should be sent.
  */
-export function mapReasoningToProviderEffort<T extends string>({
+export function mapReasoningToProviderEffort<
+  T extends string,
+  P extends string = never,
+>({
   reasoning,
   effortMap,
+  providerOptionsEffort,
   warnings,
 }: {
-  reasoning: ReasoningLevel;
-  effortMap: Partial<Record<ReasoningLevel, T>>;
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  effortMap: Partial<Record<ReasoningLevel | 'none', T>>;
+  providerOptionsEffort?: P | null;
   warnings: SharedV4Warning[];
-}): T | undefined {
-  const mapped = effortMap[reasoning];
+}): T | P | undefined {
+  if (providerOptionsEffort != null) {
+    return providerOptionsEffort;
+  }
 
-  if (mapped == null) {
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
+  // indexOf is -1 for 'none', so every level is a higher fallback.
+  const index = REASONING_LEVELS.indexOf(reasoning as ReasoningLevel);
+  const level = [
+    reasoning,
+    ...REASONING_LEVELS.slice(0, Math.max(index, 0)).reverse(),
+    ...REASONING_LEVELS.slice(index + 1),
+  ].find(candidate => effortMap[candidate] != null);
+
+  if (level == null) {
     warnings.push({
       type: 'unsupported',
       feature: 'reasoning',
@@ -45,6 +82,8 @@ export function mapReasoningToProviderEffort<T extends string>({
     });
     return undefined;
   }
+
+  const mapped = effortMap[level]!;
 
   if (mapped !== reasoning) {
     warnings.push({
@@ -67,43 +106,47 @@ const DEFAULT_REASONING_BUDGET_PERCENTAGES: Record<ReasoningLevel, number> = {
 };
 
 /**
- * Maps a top-level reasoning level to an absolute token budget by multiplying
- * the model's max output tokens by a percentage from the budget percentages
- * map. The result is clamped between `minReasoningBudget` (default 1024) and
- * `maxReasoningBudget`. Pushes an unsupported warning if the level is not
- * present in the budget percentages map.
+ * Maps a top-level reasoning value to an absolute token budget by multiplying
+ * the model's max output tokens by a percentage for the level. Levels missing
+ * from `budgetPercentages` use the default percentages. The result is clamped
+ * between `minReasoningBudget` (default 1024) and `maxReasoningBudget`.
  *
- * @returns The computed token budget, or `undefined` if the level is not
- *   supported.
+ * Handle `'none'` before calling this function when the model can disable
+ * reasoning. Otherwise, `'none'` maps to `minReasoningBudget` with a
+ * compatibility warning.
+ *
+ * @returns The computed token budget.
  */
 export function mapReasoningToProviderBudget({
   reasoning,
   maxOutputTokens,
   maxReasoningBudget,
   minReasoningBudget = 1024,
-  budgetPercentages = DEFAULT_REASONING_BUDGET_PERCENTAGES,
+  budgetPercentages,
   warnings,
 }: {
-  reasoning: ReasoningLevel;
+  reasoning: ReasoningLevel | 'none';
   maxOutputTokens: number;
   maxReasoningBudget: number;
   minReasoningBudget?: number;
   budgetPercentages?: Partial<Record<ReasoningLevel, number>>;
   warnings: SharedV4Warning[];
-}): number | undefined {
-  const pct = budgetPercentages[reasoning];
-
-  if (pct == null) {
+}): number {
+  if (reasoning === 'none') {
     warnings.push({
-      type: 'unsupported',
+      type: 'compatibility',
       feature: 'reasoning',
-      details: `reasoning "${reasoning}" is not supported by this model.`,
+      details: `reasoning "none" is not supported by this model. mapped to the minimum reasoning budget of ${minReasoningBudget} tokens.`,
     });
-    return undefined;
+    return minReasoningBudget;
   }
+
+  const percentage =
+    budgetPercentages?.[reasoning] ??
+    DEFAULT_REASONING_BUDGET_PERCENTAGES[reasoning];
 
   return Math.min(
     maxReasoningBudget,
-    Math.max(minReasoningBudget, Math.round(maxOutputTokens * pct)),
+    Math.max(minReasoningBudget, Math.round(maxOutputTokens * percentage)),
   );
 }

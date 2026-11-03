@@ -4,17 +4,6 @@ exports[`doGenerate > reasoning > should extract reasoning content 1`] = `
 {
   "content": [
     {
-      "text": "The word "strawberry" contains **3** instances of the letter **R**. 
-
-Here's the breakdown:
-- **S** T **R** A W B E **R** **R** Y
-
-The letter "R" appears at the 3rd, 8th, and 9th positions. 
-
-**Answer:** 3.",
-      "type": "text",
-    },
-    {
       "text": "Okay, so the user is asking how many times the letter "r" appears in the word "strawberry." Let me start by breaking down the word into its individual letters. Let me spell it out: S-T-R-A-W-B-E-R-R-Y. Wait, is that right? Let me double-check. Strawberry is spelled S-T-R-A-W-B-E-R-R-Y. So let's write each letter with its position to make sure.
 
 1. S
@@ -70,6 +59,17 @@ Position 1: S
 Yes, positions 3, 8, and 9. So three R's total. I think that's correct. Sometimes when letters are next to each other, like the two R's at the end, people might count them as one, but they're separate letters. So the answer should be 3.
 ",
       "type": "reasoning",
+    },
+    {
+      "text": "The word "strawberry" contains **3** instances of the letter **R**. 
+
+Here's the breakdown:
+- **S** T **R** A W B E **R** **R** Y
+
+The letter "R" appears at the 3rd, 8th, and 9th positions. 
+
+**Answer:** 3.",
+      "type": "text",
     },
   ],
   "finishReason": {

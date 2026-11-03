@@ -16,7 +16,7 @@
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:bundlers": "node tools/bundler-tests/run.mjs",
-    "test:ci": "turbo test --concurrency=100% --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod --only",
+    "test:ci": "turbo test --concurrency=100% --filter=!@example/* --filter=!ai --filter=!@ai-sdk/codemod",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && npm run build:packages && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
@@ -24,6 +24,10 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "validate:docs": "node tools/validate-properties-tables.mjs",
+    "generate:model-capabilities-docs": "node tools/generate-model-capabilities-docs.mjs",
+    "verify:model-capabilities-docs": "node tools/generate-model-capabilities-docs.mjs --check",
+    "verify:readmes": "node tools/verify-package-readme-files.mjs",
+    "verify:harness-bridge-package-json": "node tools/verify-harness-bridge-package-json.mjs",
     "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",
@@ -39,10 +43,10 @@
     "@playwright/test": "^1.61.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
-    "konsistent": "1.0.0-beta.11",
+    "konsistent": "1.0.0-beta.12",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
-    "next": "16.3.6",
+    "next": "16.4.1",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",
@@ -71,5 +75,5 @@
   "keywords": [
     "ai"
   ],
-  "packageManager": "pnpm@11.23.0"
+  "packageManager": "pnpm@12.14.0"
 }

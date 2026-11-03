@@ -18,6 +18,7 @@ import {
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   lazySchema,
@@ -32,11 +33,13 @@ import {
   zodSchema,
   type FetchFunction,
   type InferSchema,
-  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { continueGoogleStream } from './continue-google-stream';
+import {
+  continueGoogleStream,
+  type GoogleStreamPart,
+} from './continue-google-stream';
 import {
   addGoogleUsageMetadata,
   convertGoogleUsage,
@@ -45,14 +48,18 @@ import {
 import { convertToGoogleMessages } from './convert-to-google-messages';
 import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
+} from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -67,8 +74,6 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_HARASSMENT',
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
-
-const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
 
 const googleCloudStorageFunctionResponseUrls = {
   'image/png': [/^gs:\/\/.*$/],
@@ -290,9 +295,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
+    const entry = getGoogleLanguageModelEntry(modelId);
+    const isGemmaModel =
+      entry.requestConfig.language.systemInstruction === 'user';
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(modelId);
+      !isVertexProvider &&
+      entry.capabilities.language.sampling.penalties !== true;
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -307,7 +315,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const usesGemini3Features =
+      entry.capabilities.language.tools.functionResponseParts;
     const supportedFunctionResponseUrls =
       usesGemini3Features &&
       config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
@@ -460,6 +469,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
     const { responseFormat, tools, toolChoice } = options;
+    const entry = getGoogleLanguageModelEntry(this.modelId);
+    const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
     // Gemini models before Gemini 3 reject JSON response formatting together
     // with function tools. Gemini 3 supports the combination only with automatic
@@ -468,8 +479,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools?.some(tool => tool.type === 'function') &&
-      /(^|\/)gemini-/i.test(this.modelId) &&
-      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
+      entry.requestConfig.language.jsonResponseTool &&
+      (!structuredOutput.withFunctionTools ||
         toolChoice?.type === 'required' ||
         toolChoice?.type === 'tool')
     ) {
@@ -516,6 +527,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping,
     jsonResponseToolName,
     initialPromptTokenCount,
+    groundingMetadataPerRequest,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
@@ -524,6 +536,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
     jsonResponseToolName?: string;
     initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -714,6 +727,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
         groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
         urlContextMetadata: candidate?.urlContextMetadata ?? null,
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
@@ -743,18 +759,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       jsonResponseToolName,
     } = await this.getArgs(options);
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const generateContent = (body: typeof args) =>
+    const generateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:generateContent`,
-        headers: mergedHeaders,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -777,12 +791,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // the prompt plus all output so far as input, so the first request's
     // prompt token count is kept separately for context window checks.
     const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
     let usageMetadata: GoogleUsageMetadata | undefined;
     const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
     let isContinued = false;
 
     while (true) {
       const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
       const continuationToken =
         candidate?.finishReason === 'CONTINUATION'
           ? candidate.continuationToken
@@ -824,6 +841,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       jsonResponseToolName,
       initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
     });
 
     const result = {
@@ -858,18 +878,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const streamGenerateContent = (body: typeof args) =>
+    const streamGenerateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:streamGenerateContent?alt=sse`,
-        headers,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler:
@@ -881,6 +899,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const { responseHeaders, value: firstResponse } =
       await streamGenerateContent(args);
 
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
     // Gemini 4 long decode: when a stream reaches the per-request cap while
     // `maxOutputTokens` budget remains, its last chunk finishes with
     // `CONTINUATION`. Resend the same request with the continuation token and
@@ -889,16 +911,27 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       stream: firstResponse,
       getContinuationToken: chunk => {
         const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
         return candidate?.finishReason === 'CONTINUATION'
           ? (candidate.continuationToken ?? undefined)
           : undefined;
       },
-      continueStream: async continuationToken =>
-        (await streamGenerateContent({ ...args, continuationToken })).value,
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
@@ -976,7 +1009,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<ChunkSchema>,
+          GoogleStreamPart<ChunkSchema>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -984,16 +1017,51 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           transform(chunk, controller) {
+            if ('type' in chunk) {
+              // Reset in stream order, after the prior response's buffered
+              // CONTINUATION chunk, rather than when the request starts.
+              finishReason = { unified: 'interrupted', raw: undefined };
+              return;
+            }
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode,
+                  isRetryable:
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -1463,6 +1531,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               providerMetadata: wrapProviderMetadata({
                 promptFeedback,
                 groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
                 urlContextMetadata: lastUrlContextMetadata,
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
@@ -1499,18 +1575,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
-}
-
 type GoogleThinkingConfig = NonNullable<
   InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
 >;
@@ -1529,8 +1593,8 @@ function resolveThinkingConfig({
   }
 
   if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
+    getGoogleLanguageModelEntry(modelId).requestConfig.language
+      .thinkingFormat === 'level'
   ) {
     return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
@@ -1550,22 +1614,21 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const minimumThinkingLevel =
+    getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
+      .efforts?.[0];
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: minimumThinkingLevel,
+      ...(minimumThinkingLevel === 'minimal' && {
+        minimal: 'minimal' as const,
+      }),
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'high',
-      max: 'high',
     },
     warnings,
   });
@@ -1575,41 +1638,6 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
-}
-
-function getMinimumThinkingLevelForGemini3Model(
-  modelId: string,
-): 'minimal' | 'low' {
-  const modelName = /(?:^|[/.])(gemini-[^/]*)$/i
-    .exec(modelId)?.[1]
-    .toLowerCase();
-
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
-  }
-
-  const proVersionMatch = /^gemini-(\d+)(?:\.\d+)?-pro(?:$|-)/.exec(
-    modelName ?? '',
-  );
-
-  if (Number(proVersionMatch?.[1]) >= 3) {
-    return 'low';
-  }
-
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
-    modelName ?? '',
-  );
-
-  if (versionMatch == null) {
-    return 'minimal';
-  }
-
-  const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
-
-  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
-    ? 'low'
-    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1623,21 +1651,21 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const entry = getGoogleLanguageModelEntry(modelId);
+  const minThinkingBudget = entry.capabilities.language.reasoning.minBudget;
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
   const thinkingBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    maxOutputTokens: entry.requestConfig.language.reasoningMaxOutputTokens,
+    maxReasoningBudget: entry.capabilities.language.reasoning.maxBudget,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 
@@ -1830,14 +1858,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
-const partialArgSchema = z.object({
-  jsonPath: z.string(),
-  stringValue: z.string().nullish(),
-  numberValue: z.number().nullish(),
-  boolValue: z.boolean().nullish(),
-  nullValue: z.unknown().nullish(),
-  willContinue: z.boolean().nullish(),
-});
+const partialArgSchema = () =>
+  z.object({
+    jsonPath: z.string(),
+    stringValue: z.string().nullish(),
+    numberValue: z.number().nullish(),
+    boolValue: z.boolean().nullish(),
+    nullValue: z.unknown().nullish(),
+    willContinue: z.boolean().nullish(),
+  });
 
 const getContentSchema = () =>
   z.object({
@@ -1850,7 +1879,7 @@ const getContentSchema = () =>
               id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
+              partialArgs: z.array(partialArgSchema()).nullish(),
               willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
@@ -1912,35 +1941,37 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z
-      .object({
-        modality: z.string(),
-        tokenCount: z.number(),
-      })
-      .loose(),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z
+        .object({
+          modality: z.string(),
+          tokenCount: z.number(),
+        })
+        .loose(),
+    )
+    .nullish();
 
-const usageSchema = z
-  .object({
-    cachedContentTokenCount: z.number().nullish(),
-    thoughtsTokenCount: z.number().nullish(),
-    promptTokenCount: z.number().nullish(),
-    candidatesTokenCount: z.number().nullish(),
-    toolUsePromptTokenCount: z.number().nullish(),
-    totalTokenCount: z.number().nullish(),
-    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-    trafficType: z.string().nullish(),
-    serviceTier: z.string().nullish(),
-    // https://ai.google.dev/api/generate-content#Modality
-    promptTokensDetails: tokenDetailsSchema,
-    cacheTokensDetails: tokenDetailsSchema,
-    candidatesTokensDetails: tokenDetailsSchema,
-    toolUsePromptTokensDetails: tokenDetailsSchema,
-  })
-  .loose();
+const usageSchema = () =>
+  z
+    .object({
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokenCount: z.number().nullish(),
+      candidatesTokenCount: z.number().nullish(),
+      toolUsePromptTokenCount: z.number().nullish(),
+      totalTokenCount: z.number().nullish(),
+      // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+      trafficType: z.string().nullish(),
+      serviceTier: z.string().nullish(),
+      // https://ai.google.dev/api/generate-content#Modality
+      promptTokensDetails: tokenDetailsSchema(),
+      cacheTokensDetails: tokenDetailsSchema(),
+      candidatesTokensDetails: tokenDetailsSchema(),
+      toolUsePromptTokensDetails: tokenDetailsSchema(),
+    })
+    .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1972,7 +2003,7 @@ export const responseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -2012,6 +2043,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(
@@ -2026,7 +2058,7 @@ const chunkSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
