@@ -659,6 +659,27 @@ describe('AnthropicFiles', () => {
   });
 
   describe('downloadFile', () => {
+    it.each([undefined, '', '; charset=utf-8'])(
+      'omits unknown download media types (%s)',
+      async contentType => {
+        const files = new AnthropicFiles({
+          provider: 'anthropic.files',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: () => ({}),
+          fetch: async () =>
+            new Response(new TextEncoder().encode('file content'), {
+              headers:
+                contentType == null ? {} : { 'content-type': contentType },
+            }),
+        });
+        const result = await files.downloadFile({
+          file: { anthropic: 'file-abc123' },
+        });
+        expect(result).not.toHaveProperty('mediaType');
+        expect(await new Response(result.content).text()).toBe('file content');
+      },
+    );
+
     it('should download file content as a stream', async () => {
       server.urls[
         'https://api.anthropic.com/v1/files/file-abc123/content'
@@ -696,7 +717,7 @@ describe('AnthropicFiles', () => {
       expect(result.mediaType).toBe('application/pdf');
     });
 
-    it('should handle missing content-type header', async () => {
+    it('uses the test server default content-type header', async () => {
       server.urls[
         'https://api.anthropic.com/v1/files/file-abc123/content'
       ].response = {

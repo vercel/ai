@@ -221,7 +221,7 @@ export class AnthropicFiles implements FilesV4 {
     return {
       warnings: [],
       content,
-      mediaType,
+      ...(mediaType ? { mediaType } : {}),
     };
   }
 }
