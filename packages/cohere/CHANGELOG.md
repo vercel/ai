@@ -1,5 +1,15 @@
 # @ai-sdk/cohere
 
+## 2.0.48
+
+### Patch Changes
+
+- 0a069bd: fix(cohere): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+- Updated dependencies [0a069bd]
+  - @ai-sdk/provider-utils@3.0.44
+
 ## 2.0.47
 
 ### Patch Changes
