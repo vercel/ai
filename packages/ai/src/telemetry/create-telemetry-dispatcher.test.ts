@@ -723,3 +723,112 @@ describe('createTelemetryDispatcher', () => {
     });
   });
 });
+
+describe('recordInputs / recordOutputs filtering', () => {
+  const promptEvent = {
+    callId: 'call-1',
+    operationId: 'ai.generateText',
+    instructions: 'secret instructions',
+    messages: [{ role: 'user', content: 'secret prompt' }],
+    modelId: 'model-1',
+  } as any;
+
+  it('strips input content from events sent to integrations when recordInputs is false', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordInputs: false },
+    });
+
+    await telemetry.onStart!(promptEvent);
+
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    expect(delivered.instructions).toBeUndefined();
+    expect(delivered.messages).toBeUndefined();
+    expect(delivered.modelId).toBe('model-1');
+    expect(delivered.recordInputs).toBe(false);
+  });
+
+  it('strips output content when recordOutputs is false', async () => {
+    const integration: Telemetry = { onEnd: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordOutputs: false },
+    });
+
+    await telemetry.onEnd!({
+      callId: 'call-1',
+      operationId: 'ai.generateText',
+      content: [{ type: 'text', text: 'secret reply' }],
+      text: 'secret reply',
+      responseMessages: [{ role: 'assistant', content: 'secret reply' }],
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as any);
+
+    const delivered = vi.mocked(integration.onEnd!).mock.calls[0][0];
+    expect(delivered.content).toBeUndefined();
+    expect(delivered.text).toBeUndefined();
+    expect(delivered.responseMessages).toBeUndefined();
+    expect(delivered.usage).toEqual({ inputTokens: 1, outputTokens: 1 });
+  });
+
+  it('keeps content when the flags are not set', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration },
+    });
+
+    await telemetry.onStart!(promptEvent);
+
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    expect(delivered.instructions).toBe('secret instructions');
+    expect(delivered.messages).toEqual([
+      { role: 'user', content: 'secret prompt' },
+    ]);
+  });
+
+  it('does not mutate the original event object', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordInputs: false },
+    });
+    const original = {
+      ...promptEvent,
+      toolCall: { toolName: 'search', input: { q: 'secret' } },
+    } as any;
+
+    await telemetry.onStart!(original);
+
+    expect(original.instructions).toBe('secret instructions');
+    expect(original.toolCall.input).toEqual({ q: 'secret' });
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    expect(delivered.toolCall.input).toBeUndefined();
+    expect(delivered.toolCall.toolName).toBe('search');
+  });
+
+  it('treats text as input for speech and as output elsewhere', async () => {
+    const speechIntegration: Telemetry = { onStart: vi.fn() };
+    const speechTelemetry = createTelemetryDispatcher({
+      telemetry: { integrations: speechIntegration, recordInputs: false },
+    });
+    await speechTelemetry.onStart!({
+      callId: 'call-1',
+      operationId: 'ai.generateSpeech',
+      text: 'secret narration',
+    } as any);
+    expect(
+      vi.mocked(speechIntegration.onStart!).mock.calls[0][0].text,
+    ).toBeUndefined();
+
+    const textIntegration: Telemetry = { onEnd: vi.fn() };
+    const textTelemetry = createTelemetryDispatcher({
+      telemetry: { integrations: textIntegration, recordInputs: false },
+    });
+    await textTelemetry.onEnd!({
+      callId: 'call-1',
+      operationId: 'ai.generateText',
+      text: 'generated reply',
+    } as any);
+    expect(vi.mocked(textIntegration.onEnd!).mock.calls[0][0].text).toBe(
+      'generated reply',
+    );
+  });
+});
