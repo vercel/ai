@@ -12,3 +12,5 @@ replacement `file` part with `{ type: 'url' }` data was downloaded and inlined.
 
 Downloaded legacy URL parts now use the same media type normalization as file
 parts, resolving generic types from the response header or image bytes.
+Legacy base64 data URLs also normalize to inline data with the media type from
+their data URL, matching replacement file parts.

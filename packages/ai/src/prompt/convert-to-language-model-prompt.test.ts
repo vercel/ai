@@ -3594,6 +3594,43 @@ describe.each(['tool', 'assistant'] as const)(
   },
 );
 
+it('normalizes a legacy image data URL like a replacement file part', async () => {
+  const url = 'data:image/png;base64,iVBORw0KGgo=';
+  const output = {
+    type: 'content' as const,
+    value: [{ type: 'image-url' as const, url }],
+  };
+  const download = vi.fn(async () => []);
+  const downloadedAssets = await downloadAssets(
+    [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call',
+            toolName: 'asset',
+            output,
+          },
+        ],
+      },
+    ],
+    download,
+    {},
+  );
+  expect(download).toHaveBeenCalledWith([]);
+  expect(mapToolResultOutput({ output, downloadedAssets })).toMatchObject({
+    type: 'content',
+    value: [
+      {
+        type: 'file',
+        data: { type: 'data', data: 'iVBORw0KGgo=' },
+        mediaType: 'image/png',
+      },
+    ],
+  });
+});
+
 it.each([
   [
     'image-url',
