@@ -99,7 +99,7 @@ npx @ai-sdk/codemod v7/rename-system-to-instructions src/
 | `rename-experimental-on-tool-call-start-to-on-tool-execution-start` | Renames `experimental_onToolCallStart` to `onToolExecutionStart`                                    |
 | `rename-experimental-on-tool-call-finish-to-on-tool-execution-end`  | Renames `experimental_onToolCallFinish` to `onToolExecutionEnd`                                     |
 | `rename-experimental-context-to-context`                            | Renames tool callback `experimental_context` access to `context`                                    |
-| `rename-google-generative-ai-to-google`                             | Renames Google provider types, classes, and functions that include `GoogleGenerativeAI` to `Google` |
+| `rename-google-generative-ai-to-google`                             | Migrates named Google imports and re-exports to the new API names while preserving local and exported names as aliases |
 | `replace-image-message-part-with-file`                              | Replaces image message parts with file parts using `mediaType: 'image'`                             |
 
 ## All Packages
@@ -1880,6 +1880,8 @@ If you need the raw Anthropic-shaped usage payload (including `cache_creation_in
 Every type, class, and function in `@ai-sdk/google` that contained `GoogleGenerativeAI` has been renamed to use simply `Google` — for example, `createGoogleGenerativeAI` → `createGoogle` and `GoogleGenerativeAIProvider` → `GoogleProvider`.
 
 The old names still work as deprecated aliases, but you should migrate to the new names, if you currently reference them.
+
+The `rename-google-generative-ai-to-google` codemod updates named imports and direct re-exports to the new API names. It preserves local binding names and application export names as aliases, so wrappers, property names, and shadowed variables keep working. Namespace member access remains unchanged.
 
 The main entry point the `google` constant, remains unchanged, so if that's all you use from the provider, no changes are required.
 

@@ -1,6 +1,8 @@
 // @ts-nocheck provider packages are not codemod dependencies.
 import {
+  // Keep this binding name.
   createGoogle as createGoogleGenerativeAI,
+  createGoogle,
   createGoogle as makeGoogleGenerativeAI,
   createGoogle as makeGoogle,
   type GoogleProvider as GoogleGenerativeAIProvider,
