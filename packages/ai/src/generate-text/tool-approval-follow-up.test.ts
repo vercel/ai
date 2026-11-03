@@ -1,5 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { type ModelMessage, tool } from '@ai-sdk/provider-utils';
+import { dynamicTool, type ModelMessage, tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -9,6 +9,7 @@ import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { UIMessage } from '../ui/ui-messages';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
+import { signToolApproval } from './tool-approval-signature';
 
 const usage: LanguageModelV4Usage = {
   inputTokens: {
@@ -23,6 +24,121 @@ const usage: LanguageModelV4Usage = {
 describe.each(['generateText', 'streamText'] as const)(
   '%s approved tool continuation',
   api => {
+    it.each(
+      (['toolMetadata', 'dynamic', 'title'] as const).flatMap(field =>
+        [undefined, 'test-secret'].map(secret => ({ field, secret })),
+      ),
+    )(
+      'should enforce the current $field policy on continuation (secret: $secret)',
+      async ({ field, secret }) => {
+        const execute = vi.fn(async () => 'dark');
+        const definition = {
+          inputSchema: z.object({}),
+          metadata: { restricted: true },
+          title: 'Read theme',
+          execute,
+        };
+        const tools = {
+          readTheme:
+            field === 'dynamic' ? dynamicTool(definition) : tool(definition),
+        };
+        const signature =
+          secret == null
+            ? undefined
+            : await signToolApproval({
+                secret,
+                approvalId: 'approval',
+                toolCallId: 'call',
+                toolName: 'readTheme',
+                input: {},
+              });
+        const messages = await convertToModelMessages(
+          [
+            {
+              id: 'assistant',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-readTheme',
+                  toolCallId: 'call',
+                  state: 'approval-responded',
+                  input: {},
+                  approval: { id: 'approval', approved: true, signature },
+                },
+              ],
+            },
+          ],
+          { tools },
+        );
+        const originalMessages = structuredClone(messages);
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            content: [{ type: 'text', text: 'OK' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage,
+            warnings: [],
+          },
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage,
+              },
+            ]),
+          },
+        });
+        const options = {
+          model,
+          tools,
+          messages,
+          experimental_toolApprovalSecret: secret,
+          toolApproval: vi.fn(({ toolCall }) => {
+            const denied =
+              field === 'toolMetadata'
+                ? toolCall.toolMetadata?.restricted === true
+                : field === 'dynamic'
+                  ? toolCall.dynamic === true
+                  : toolCall.title === 'Read theme';
+            return denied
+              ? ({
+                  type: 'denied',
+                  reason: 'Current policy denies this tool',
+                } as const)
+              : ('user-approval' as const);
+          }),
+        };
+        let responseMessages: ModelMessage[];
+        if (api === 'generateText') {
+          responseMessages = (await generateText(options)).responseMessages;
+        } else {
+          const onError = vi.fn();
+          const result = streamText({ ...options, onError });
+          await result.consumeStream();
+          expect(onError).not.toHaveBeenCalled();
+          responseMessages = await result.responseMessages;
+        }
+
+        expect(execute).not.toHaveBeenCalled();
+        expect(options.toolApproval).toHaveBeenCalledOnce();
+        expect(messages).toEqual(originalMessages);
+        const results = responseMessages
+          .filter(message => message.role === 'tool')
+          .flatMap(message => message.content)
+          .filter(part => part.type === 'tool-result');
+        expect(results).toMatchObject([
+          {
+            toolCallId: 'call',
+            output: {
+              type: 'execution-denied',
+              reason: 'Current policy denies this tool',
+            },
+          },
+        ]);
+      },
+    );
+
     it.each([
       { approved: true, replayApproved: true },
       { approved: false, replayApproved: false },

@@ -57,13 +57,26 @@ export async function validateApprovedToolApprovals<
     CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
   > = [];
 
-  for (const approval of approvedToolApprovals) {
-    const { approvalRequest, toolCall } = approval;
+  for (const collectedApproval of approvedToolApprovals) {
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
     // than a prototype value that would silently skip input validation below.
-    const tool = getOwn(tools, toolCall.toolName);
+    const tool = getOwn(tools, collectedApproval.toolCall.toolName);
+
+    // History can omit or alter these fields. Rebuild them from the current
+    // server-side definition before input refinement and approval policy checks,
+    // just as parsing a new model tool call does.
+    const approval: CollectedToolApprovals<TOOLS> = {
+      ...collectedApproval,
+      toolCall: {
+        ...collectedApproval.toolCall,
+        toolMetadata: tool?.metadata,
+        dynamic: tool?.type === 'dynamic' ? true : undefined,
+        title: tool?.title,
+      } as typeof collectedApproval.toolCall,
+    };
+    const { approvalRequest, toolCall } = approval;
 
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
