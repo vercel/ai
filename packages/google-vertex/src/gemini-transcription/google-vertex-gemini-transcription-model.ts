@@ -264,6 +264,19 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       }
     }
 
+    if (
+      wantsWord &&
+      googleOptions?.wordTimestamp !== false &&
+      words.length === 0 &&
+      text.trim() !== ''
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          'The Vertex Gemini transcription response omitted the requested word timings.',
+      });
+    }
+
     return {
       text,
       segments,

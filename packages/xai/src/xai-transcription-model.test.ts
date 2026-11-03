@@ -487,6 +487,49 @@ describe('doGenerate', () => {
       warnings: [],
     });
   });
+
+  it.each([undefined, null, []].map(words => ({ words })))(
+    'should warn when a nonempty response omits requested word timings ($words)',
+    async ({ words }) => {
+      server.urls[url].response = {
+        type: 'json-value',
+        body: { text: 'Hello', words },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        timestampGranularities: ['word'],
+      });
+
+      expect(result.words).toBeUndefined();
+      expect(result.segments).toEqual([]);
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'The xAI transcription response omitted the requested word timings.',
+        },
+      ]);
+    },
+  );
+
+  it('should not warn about omitted word timings for an empty transcript', async () => {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: { text: '', words: [] },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+    });
+
+    expect(result.text).toBe('');
+    expect(result.words).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 describe('doStream', () => {
