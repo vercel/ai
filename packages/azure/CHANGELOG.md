@@ -1,5 +1,44 @@
 # @ai-sdk/azure
 
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/deepseek@3.0.79
+  - @ai-sdk/openai@4.0.108
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [226b7da]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/deepseek@3.0.78
+  - @ai-sdk/openai@4.0.107
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.114
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/deepseek@3.0.77
+  - @ai-sdk/openai@4.0.106
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.113
 
 ### Patch Changes

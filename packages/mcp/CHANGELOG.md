@@ -1,5 +1,36 @@
 # @ai-sdk/mcp
 
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 2.0.88
+
+### Patch Changes
+
+- c3af430: Handle MCP 2026-07-28 input-required results through the registered elicitation handler and retry the original tool, prompt, or resource request with its answers and request state.
+
+  Preserve the browser fetch receiver in MCP HTTP and SSE transports to prevent illegal-invocation errors.
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 2.0.87
 
 ### Patch Changes

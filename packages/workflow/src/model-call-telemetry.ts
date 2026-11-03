@@ -1,19 +1,15 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import type { LanguageModel, ModelMessage } from 'ai';
 import { createTelemetryDispatcher } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
-import type {
-  ModelCallOptions,
-  ModelCallResult,
-  ModelCallTelemetry,
-} from './model-call.js';
+import type { ModelCallResult, ModelCallTelemetry } from './model-call.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
 
 const generateCallId = createIdGenerator({ prefix: 'call', size: 24 });
+
+const OPERATION_ID = 'ai.workflowAgent.stream';
 
 /**
  * Telemetry hooks for the language model call inside a durable model step.
@@ -30,11 +26,11 @@ export type LanguageModelCallTelemetry = {
 };
 
 /**
- * Global telemetry integrations are not visible in the workflow VM, so the
- * workflow body sends a serializable descriptor and the model step, which
- * runs in Node, dispatches the model call lifecycle itself.
- *
- * Each model call is reported as its own operation with a unique `callId`.
+ * Global telemetry integrations are not visible in the workflow VM. When the
+ * workflow body cannot reach any integration, it records the run's telemetry
+ * events and reports them from a step when the run ends (see
+ * `workflow-agent-telemetry.ts`). Model steps run the provider call in the
+ * integrations' context and return its timing.
  */
 export function shouldDispatchModelCallTelemetryInStep(telemetry?: {
   isEnabled?: boolean;
@@ -47,131 +43,147 @@ export function shouldDispatchModelCallTelemetryInStep(telemetry?: {
   );
 }
 
-export async function runModelCallWithTelemetry({
+/**
+ * Report model calls live. A bound durable integration receives the run's
+ * serialized tracing context; an integration without a bridge retains its
+ * existing per-model operation. Other integrations receive the recorded run.
+ */
+export async function runModelCallWithTelemetry<
+  RESULT extends ModelCallResult,
+>({
   telemetry,
-  modelInit,
-  prompt,
   serializedTools,
-  options,
   execute,
 }: {
   telemetry: ModelCallTelemetry | undefined;
-  modelInit: LanguageModel;
-  prompt: LanguageModelV4Prompt;
-  serializedTools: Record<string, SerializableToolDef> | undefined;
-  options: ModelCallOptions | undefined;
-  execute: (
-    languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
-  ) => Promise<ModelCallResult>;
-}): Promise<ModelCallResult> {
-  if (telemetry == null) {
-    return execute(undefined);
-  }
-
+  serializedTools?: Record<string, SerializableToolDef>;
+  execute: (hooks: LanguageModelCallTelemetry | undefined) => Promise<RESULT>;
+}): Promise<RESULT> {
+  if (telemetry == null) return execute(undefined);
+  const callId = telemetry.callId ?? generateCallId();
   const dispatcher = createTelemetryDispatcher({ telemetry });
-  const callId = generateCallId();
-  const { provider, modelId } =
-    typeof modelInit === 'string'
-      ? { provider: 'gateway', modelId: modelInit }
-      : modelInit;
-  const tools =
-    serializedTools == null
-      ? undefined
-      : resolveSerializableTools(serializedTools);
-  const messages = prompt as unknown as ModelMessage[];
-
-  await dispatcher.onStart?.({
-    callId,
-    operationId: 'ai.workflowAgent.stream',
-    provider,
-    modelId,
-    system: undefined,
-    messages,
-    tools,
-    toolChoice: options?.toolChoice,
-    activeTools: undefined,
-    maxOutputTokens: options?.maxOutputTokens,
-    temperature: options?.temperature,
-    topP: options?.topP,
-    topK: options?.topK,
-    presencePenalty: options?.presencePenalty,
-    frequencyPenalty: options?.frequencyPenalty,
-    stopSequences: options?.stopSequences,
-    seed: options?.seed,
-    maxRetries: options?.maxRetries ?? 2,
-    timeout: undefined,
-    headers: options?.headers,
-    reasoning: options?.reasoning,
-    providerOptions: options?.providerOptions,
-    output: undefined,
-    runtimeContext: telemetry.runtimeContext ?? {},
-    toolsContext: {},
-  } as never);
-  await dispatcher.onStepStart?.({
-    callId,
-    provider,
-    modelId,
-    stepNumber: telemetry.stepNumber,
-    system: undefined,
-    messages,
-    tools,
-    toolChoice: options?.toolChoice,
-    activeTools: undefined,
-    steps: [],
-    providerOptions: options?.providerOptions,
-    output: undefined,
-    runtimeContext: telemetry.runtimeContext ?? {},
-    toolsContext: {},
-  } as never);
-
-  let result: ModelCallResult;
+  const bindings = (globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []).flatMap(
+    (integration, index) => {
+      if (integration.experimental_durable == null) return [];
+      return [
+        {
+          run: telemetry.contexts?.[index],
+          dispatcher: createTelemetryDispatcher({
+            telemetry: { ...telemetry, integrations: integration },
+          }),
+          started: false,
+        },
+      ];
+    },
+  );
+  const runtimeContext = telemetry.runtimeContext ?? {};
+  const fallbackTools = bindings.some(binding => binding.run == null)
+    ? resolveSerializableTools(serializedTools ?? {})
+    : undefined;
+  const startedAt = Date.now();
+  let result: RESULT;
   try {
     result = await execute({
       callId,
-      onLanguageModelCallStart: dispatcher.onLanguageModelCallStart,
-      onLanguageModelCallEnd: dispatcher.onLanguageModelCallEnd,
+      onLanguageModelCallStart:
+        bindings.length === 0
+          ? undefined
+          : async event => {
+              for (const binding of bindings) {
+                const { dispatcher: live, run } = binding;
+                if (run == null && !binding.started) {
+                  await live.onStart?.({
+                    ...event,
+                    callId,
+                    operationId: OPERATION_ID,
+                    runtimeContext,
+                    toolsContext: {},
+                    tools: fallbackTools,
+                  } as never);
+                  await live.onStepStart?.({
+                    ...event,
+                    callId,
+                    stepNumber: telemetry.stepNumber,
+                    steps: [],
+                    runtimeContext,
+                    toolsContext: {},
+                    tools: fallbackTools,
+                  } as never);
+                  binding.started = true;
+                }
+                await live.onLanguageModelCallStart?.({
+                  ...event,
+                  callId,
+                  ...(run == null
+                    ? {}
+                    : {
+                        durableContext: {
+                          run,
+                          stepNumber: telemetry.stepNumber,
+                          phase: 'live',
+                          runtimeContext,
+                          headers: event.headers,
+                        },
+                      }),
+                });
+              }
+            },
+      onLanguageModelCallEnd:
+        bindings.length === 0
+          ? undefined
+          : async event => {
+              for (const binding of bindings)
+                await binding.dispatcher.onLanguageModelCallEnd?.({
+                  ...event,
+                  callId,
+                });
+            },
       executeLanguageModelCallInTelemetryContext:
         dispatcher.executeLanguageModelCall,
     });
   } catch (error) {
-    await dispatcher.onError?.({ callId, error });
+    for (const binding of bindings)
+      await binding.dispatcher.onError?.({
+        callId,
+        error,
+        timestamp: Date.now(),
+      });
     throw error;
   }
-
-  if (result.aborted) {
-    await dispatcher.onAbort?.({ callId, steps: [] } as never);
-    return result;
+  const endedAt = Date.now();
+  for (const binding of bindings) {
+    const live = binding.dispatcher;
+    if (result.aborted) {
+      await live.onAbort?.({ callId, steps: [], timestamp: endedAt } as never);
+    } else if ('terminalError' in result) {
+      await live.onError?.({
+        callId,
+        error: result.terminalError,
+        timestamp: endedAt,
+      });
+    } else if (binding.run == null && binding.started) {
+      const step = await buildModelStepResult(
+        result.raw,
+        result.toolCalls,
+        result.finish,
+        result.providerExecutedToolResults,
+        {
+          callId,
+          tools: fallbackTools,
+          stepNumber: telemetry.stepNumber,
+          runtimeContext,
+          toolsContext: {},
+        },
+      );
+      await live.onStepEnd?.(step as never);
+      await live.onEnd?.(
+        Object.assign(Object.create(Object.getPrototypeOf(step)), step, {
+          finalStep: step,
+          steps: [step],
+          totalUsage: step.usage,
+        }),
+      );
+    }
   }
-
-  if ('terminalError' in result) {
-    await dispatcher.onError?.({ callId, error: result.terminalError });
-    return result;
-  }
-
-  const step = await buildModelStepResult(
-    result.raw,
-    result.toolCalls,
-    result.finish,
-    result.providerExecutedToolResults,
-    {
-      callId,
-      tools,
-      stepNumber: telemetry.stepNumber,
-      runtimeContext: telemetry.runtimeContext ?? {},
-      toolsContext: {},
-    },
-  );
-
-  await dispatcher.onStepEnd?.(step as never);
-  // Keep the step's prototype so getters such as `text` stay available.
-  await dispatcher.onEnd?.(
-    Object.assign(Object.create(Object.getPrototypeOf(step)), step, {
-      finalStep: step,
-      steps: [step],
-      usage: step.usage,
-      totalUsage: step.usage,
-    }),
-  );
-
-  return result;
+  return { ...result, timing: { startedAt, endedAt } };
 }

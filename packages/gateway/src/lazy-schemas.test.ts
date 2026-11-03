@@ -47,6 +47,7 @@ describe('lazy schema initialization', () => {
   it('defers schema construction until first use', async () => {
     constructed.mockClear();
     await import('./gateway-batch');
+    await import('./gateway-tools');
     expect(constructed).not.toHaveBeenCalled();
   });
 });

@@ -2543,6 +2543,73 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass propertyOrdering in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            zebra: { type: 'string', const: 'striped' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              propertyOrdering: ['banana', 'yellow'],
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  tango: { type: 'string' },
+                  alpha: { type: 'number' },
+                },
+                propertyOrdering: ['alpha', 'tango'],
+              },
+            },
+          },
+          propertyOrdering: ['apple', 'items', 'zebra'],
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        zebra: { type: 'string', enum: ['striped'] },
+        apple: {
+          type: 'object',
+          properties: {
+            yellow: { type: 'string' },
+            banana: { type: 'string' },
+          },
+          propertyOrdering: ['banana', 'yellow'],
+        },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              tango: { type: 'string' },
+              alpha: { type: 'number' },
+            },
+            propertyOrdering: ['alpha', 'tango'],
+          },
+        },
+      },
+      propertyOrdering: ['apple', 'items', 'zebra'],
+    });
+  });
+
   it('should preserve local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -6059,10 +6126,70 @@ describe('doStream', () => {
         status: 'INVALID_ARGUMENT',
         isRetryable: false,
       },
-      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+      {
+        partialText: false,
+        code: null,
+        status: 'CANCELLED',
+        statusCode: 499,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'ABORTED',
+        statusCode: 409,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNAVAILABLE',
+        statusCode: 503,
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: null,
+        status: 'RESOURCE_EXHAUSTED',
+        statusCode: 429,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'DEADLINE_EXCEEDED',
+        statusCode: 504,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'PERMISSION_DENIED',
+        statusCode: 403,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNKNOWN',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'FUTURE_STATUS',
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'UNAVAILABLE',
+        isRetryable: false,
+      },
     ])(
-      'should surface $status and finish with error (partial text: $partialText)',
-      async ({ partialText, code, status, isRetryable }) => {
+      'should surface $status with code $code and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, statusCode, isRetryable }) => {
         const error = {
           code,
           message: 'Provider error',
@@ -6107,7 +6234,7 @@ describe('doStream', () => {
             message: error.message,
             type: status,
             code: code ?? undefined,
-            statusCode: code ?? undefined,
+            statusCode: code ?? statusCode,
             isRetryable,
             data: error,
           },

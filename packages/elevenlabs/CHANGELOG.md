@@ -1,5 +1,41 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.77
+
+### Patch Changes
+
+- 8b2fa5b: feat(elevenlabs): transcribe a hosted file with `providerOptions.elevenlabs.sourceUrl`
+
+## 3.0.76
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 3.0.75
 
 ### Patch Changes

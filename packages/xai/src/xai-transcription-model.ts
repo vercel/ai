@@ -29,6 +29,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
+import { getXaiTranscriptionModelEntry } from './xai-model-catalog';
 import {
   xaiTranscriptionModelOptionsSchema,
   type XaiTranscriptionModelId,
@@ -497,7 +498,8 @@ function getXaiSttParams(
   options: XaiTranscriptionModelOptions | undefined,
 ) {
   return {
-    model: modelId || undefined,
+    model:
+      getXaiTranscriptionModelEntry(modelId).requestConfig.transcription.model,
     sample_rate: options?.sampleRate,
     language: options?.language,
     multichannel: options?.multichannel,

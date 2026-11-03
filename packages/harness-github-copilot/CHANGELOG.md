@@ -1,5 +1,62 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.70
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+  - @ai-sdk/harness-acp@1.0.113
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+  - @ai-sdk/harness-acp@1.0.112
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [5d20d90]
+- Updated dependencies [5622bf1]
+  - @ai-sdk/harness-acp@1.0.111
+  - @ai-sdk/harness@1.0.171
+
+## 1.0.67
+
+### Patch Changes
+
+- 03dac28: feat(harness-acp): require new `resolveHostToolCall()` callback and `isMcpToolCall()` callback for harness-owned control of these non-ACP details
+- Updated dependencies [03dac28]
+  - @ai-sdk/harness-acp@1.0.110
+
+## 1.0.66
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+- @ai-sdk/harness-acp@1.0.109
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+  - @ai-sdk/harness-acp@1.0.108
+
 ## 1.0.64
 
 ### Patch Changes

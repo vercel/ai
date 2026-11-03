@@ -1,5 +1,49 @@
 # @ai-sdk/otel
 
+## 1.0.162
+
+### Patch Changes
+
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - ai@7.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+  - ai@7.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- 5946558: Record the `gen_ai.client.inference.duration` OpenTelemetry histogram in seconds for `generateText` and `streamText` model calls, including errors, cancellation, and failed stream retry attempts, so configured metric exporters can report inference latency.
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.159
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
 ## 1.0.157
 
 ### Patch Changes

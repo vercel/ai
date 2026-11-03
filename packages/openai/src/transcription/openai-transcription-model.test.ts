@@ -200,6 +200,51 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'gpt-transcribe',
+    'openai/gpt-transcribe',
+    'custom-transcription-model',
+  ])('should send language and vocabulary hints for %s', async modelId => {
+    let body: FormData | undefined;
+    const hintProvider = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: async (_url, init) => {
+        body = init?.body as FormData;
+        return Response.json({ text: 'Hello world' });
+      },
+    });
+    const result = await hintProvider.transcription(modelId).doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          languages: ['en', 'fr'],
+          keywords: ['premium plan', 'AC-42'],
+          prompt: 'A customer support call.',
+        },
+      },
+    });
+    expect(body!.getAll('languages[]')).toEqual(['en', 'fr']);
+    expect(body!.getAll('keywords[]')).toEqual(['premium plan', 'AC-42']);
+    expect(body!.get('prompt')).toBe('A customer support call.');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should omit empty hint arrays while preserving the singular language option', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: { language: 'en', languages: [], keywords: [] },
+      },
+    });
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.language).toBe('en');
+    expect(body!['languages[]']).toBeUndefined();
+    expect(body!['keywords[]']).toBeUndefined();
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -1368,6 +1413,8 @@ describe('doStream', () => {
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       providerOptions: {
         openai: {
+          languages: ['en', 'fr'],
+          keywords: ['AC-42'],
           prompt: 'context prompt',
           temperature: 0.5,
         },
@@ -1388,6 +1435,16 @@ describe('doStream', () => {
     expect(parts[0]).toEqual({
       type: 'stream-start',
       warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.openai.languages',
+          details: 'OpenAI streaming transcription does not support languages.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.openai.keywords',
+          details: 'OpenAI streaming transcription does not support keywords.',
+        },
         {
           type: 'unsupported',
           feature: 'providerOptions.openai.prompt',

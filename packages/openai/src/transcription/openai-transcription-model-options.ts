@@ -33,6 +33,18 @@ export const openAITranscriptionModelOptions = lazySchema(() =>
       language: z.string().optional(),
 
       /**
+       * Expected languages for REST transcription, e.g. with gpt-transcribe.
+       * Use this instead of language. The API validates model support.
+       */
+      languages: z.array(z.string()).optional(),
+
+      /**
+       * Vocabulary hints for REST transcription, e.g. names or technical terms.
+       * The API validates model support.
+       */
+      keywords: z.array(z.string()).optional(),
+
+      /**
        * An optional text to guide the model's style or continue a previous audio segment.
        */
       prompt: z.string().optional(),

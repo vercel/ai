@@ -1,5 +1,42 @@
 # @ai-sdk/anthropic
 
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.95
+
+### Patch Changes
+
+- 2cd0a97: Enable native structured output and strict tools for supported Claude 5 models on Bedrock. In automatic mode, Bedrock and Anthropic now fall back for schemas that native structured output cannot represent: recursive references, open objects, or more than ten optional properties. Anthropic uses the JSON response tool; Bedrock Converse uses the JSON tool or JSON instructions for models that reject forced tool use. The JSON-tool fallback excludes disabled and unselected application tools. Explicit `outputFormat` selection remains unchanged.
+- 4ae6986: fix(anthropic): parse valid JSON string tool input and safely serialize BigInt and cycles in tool results
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.94
+
+### Patch Changes
+
+- f4c5f1e: fix(anthropic): use native structured outputs for Claude models that reject forced tool use (Sonnet 5.5, Opus 5.5, Fable 5.1) even when the provider disables them by default, as Amazon Bedrock and Google Vertex do. Self-referencing schemas keep the JSON response tool. Also keep `definitions` and `$defs` next to a top-level `$ref` when sanitizing structured output schemas, so the reference still resolves.
+- e10aebb: fix(anthropic): when the JSON response tool is in use but the model answers in text without calling it (for example with manual thinking, where the forced tool choice is downgraded to `auto`), return the final answer text instead of dropping it. Text before a tool call, result, or message continuation is still dropped.
+- b0d51fe: fix(anthropic): keep the JSON response tool for schemas that native structured outputs cannot represent when upgrading models that reject forced tool use. Schemas with open objects (maps, free-form objects) would otherwise come back as `{}`, and schemas with more than 10 optional properties can be rejected as too complex.
+
+## 4.0.93
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.92
 
 ### Patch Changes

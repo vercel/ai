@@ -1,5 +1,50 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.177
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.176
+
+### Patch Changes
+
+- e3f24b6: fix(harness-claude-code): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.175
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.174
+
+### Patch Changes
+
+- 31d83e2: feat(harness-claude-code): support `skillOverrides` adapter setting for selective skill overrides
+  - @ai-sdk/harness@1.0.170
+
+## 1.0.173
+
+### Patch Changes
+
+- edd4d4f: fix(harness-claude-code): correctly map dotted AI Gateway model IDs to the ID shapes Claude Code expects
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
 ## 1.0.172
 
 ### Patch Changes

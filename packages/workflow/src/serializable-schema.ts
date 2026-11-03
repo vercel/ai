@@ -10,7 +10,12 @@
  * `~standard.jsonSchema` (Standard Schema v2), extraction can be simplified
  * to use that interface directly.
  */
-import type { JSONObject, JSONSchema7 } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  JSONSchema7,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   type Experimental_SandboxSession as SandboxSession,
@@ -53,6 +58,49 @@ export type SerializableToolDef = {
   /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
   args?: Record<string, unknown>;
 };
+
+/**
+ * Returns the tool definitions sent to the language model for serialized
+ * tools, matching `prepareTools` in the model step. Map keys are the tool
+ * names.
+ */
+export function toLanguageModelToolDefinitions(
+  tools: Record<string, SerializableToolDef> | undefined,
+):
+  | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
+  | undefined {
+  if (tools == null || Object.keys(tools).length === 0) {
+    return undefined;
+  }
+
+  return Object.entries(tools).map(([name, tool]) =>
+    tool.type === 'provider'
+      ? {
+          type: 'provider' as const,
+          name,
+          id: tool.id!,
+          args: tool.args ?? {},
+        }
+      : {
+          type: 'function' as const,
+          name,
+          inputSchema: tool.inputSchema,
+          ...(tool.description != null
+            ? { description: tool.description }
+            : {}),
+          ...(tool.inputExamples != null
+            ? {
+                inputExamples:
+                  tool.inputExamples as LanguageModelV4FunctionTool['inputExamples'],
+              }
+            : {}),
+          ...(tool.providerOptions != null
+            ? { providerOptions: tool.providerOptions }
+            : {}),
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        },
+  );
+}
 
 /**
  * Converts a ToolSet (with Zod/standard schemas and execute functions) to a

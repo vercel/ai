@@ -1,5 +1,34 @@
 # @ai-sdk/provider-utils
 
+## 5.0.74
+
+### Patch Changes
+
+- fa15312: Raise the minimum Undici version to 7.29.1 to include the fix for CVE-2026-84961.
+
+## 5.0.73
+
+### Patch Changes
+
+- 51ca5b7: fix(provider-utils): support cross-realm Uint8Array and ArrayBuffer in uint8-utils and inline file data conversion
+- dc6f1c3: fix(provider-utils): decode base64 into a preallocated Uint8Array to avoid ~25x transient memory and long event-loop blocking on large files
+- 4ae6986: Add `stringifyWithBigIntAndCycles` for provider tool serialization that converts BigInt values to decimal strings and replaces ancestor cycles while preserving shared references and `toJSON` behavior.
+
+## 5.0.72
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider@4.0.35
+
 ## 5.0.71
 
 ### Patch Changes

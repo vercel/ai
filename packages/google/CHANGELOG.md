@@ -1,5 +1,39 @@
 # @ai-sdk/google
 
+## 4.0.111
+
+### Patch Changes
+
+- a32df11: Omit all Google Interactions tools when `toolChoice` is `none`, including provider-defined tools.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.110
+
+### Patch Changes
+
+- 4ae6986: fix(google): handle cycles and BigInt in functionResponse and parse string functionCall arguments
+- 8ad7873: Map Google RPC status names to HTTP status codes when streamed errors omit a numeric code, so transient failures such as `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are marked retryable.
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.109
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- dfed8e8: Consolidate Google language model capabilities and request policies into a model catalog shared by runtime resolution and generated documentation, preserving existing Google and Vertex request behavior.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.108
 
 ### Patch Changes

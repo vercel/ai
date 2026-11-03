@@ -21,6 +21,7 @@ import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiImageModelOptions } from './xai-image-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
+import { getXaiImageModelEntry } from './xai-model-catalog';
 
 interface XaiImageModelConfig {
   provider: string;
@@ -32,22 +33,20 @@ interface XaiImageModelConfig {
   };
 }
 
-const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
-  'grok-imagine-image',
-  'grok-imagine-image-2.0',
-  'grok-imagine-image-pro',
-]);
-
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 3;
+  readonly maxImagesPerCall: number;
 
   get supportsFileInputs(): boolean | undefined {
-    return fileInputModelIds.has(this.modelId) ? true : undefined;
+    const support = getXaiImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return typeof support === 'boolean' ? support : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getXaiImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return typeof support === 'boolean' ? support : undefined;
   }
 
   get provider(): string {
@@ -71,7 +70,10 @@ export class XaiImageModel implements ImageModelV4 {
   constructor(
     readonly modelId: XaiImageModelId,
     private config: XaiImageModelConfig,
-  ) {}
+  ) {
+    this.maxImagesPerCall =
+      getXaiImageModelEntry(modelId).capabilities.image.maxImagesPerCall;
+  }
 
   async doGenerate({
     prompt,

@@ -3,6 +3,7 @@ export { createHarnessSandboxTemplate } from './create-harness-sandbox-template'
 export type { HarnessAllTools } from './harness-agent-tool-types';
 export type {
   HarnessAgentSandboxConfig,
+  HarnessAgentSandboxCreator,
   HarnessAgentSettings,
   HarnessAgentToolApprovalConfiguration,
 } from './harness-agent-settings';
