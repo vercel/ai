@@ -143,6 +143,25 @@ describe('GatewayImageModel', () => {
       });
     });
 
+    it('should include seed when seed is 0', async () => {
+      prepareJsonResponse();
+
+      const prompt = 'A simple prompt';
+      await createTestModel().doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 0,
+        providerOptions: undefined,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('seed', 0);
+    });
+
     it('should omit optional parameters when not provided', async () => {
       prepareJsonResponse();
 

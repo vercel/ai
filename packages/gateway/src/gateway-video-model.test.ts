@@ -165,6 +165,29 @@ describe('GatewayVideoModel', () => {
       });
     });
 
+    it('should include seed when seed is 0', async () => {
+      prepareJsonResponse();
+
+      const prompt = 'A cat playing piano';
+      await createTestModel().doGenerate({
+        prompt,
+        image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: 0,
+        generateAudio: undefined,
+        providerOptions: undefined,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('seed', 0);
+    });
+
     it('should omit optional parameters when not provided', async () => {
       prepareJsonResponse();
 
