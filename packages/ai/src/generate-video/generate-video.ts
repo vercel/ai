@@ -473,23 +473,31 @@ export async function experimental_generateVideo({
     });
   }
 
-  return {
-    get video() {
-      if (videos.length === 0) {
-        throw new NoVideoGeneratedError({
-          message:
-            'Videos were delivered to the upload destination. Use uploadedVideos instead of video.',
-          responses,
-        });
-      }
-      return videos[0];
-    },
+  const result = {
+    video: videos[0],
     videos,
     uploadedVideos,
     warnings,
     responses,
     providerMetadata,
   };
+
+  if (videos.length === 0) {
+    // Keep upload-only results safe to serialize or spread. Normal results
+    // retain their existing enumerable video data property.
+    Object.defineProperty(result, 'video', {
+      enumerable: false,
+      get() {
+        throw new NoVideoGeneratedError({
+          message:
+            'Videos were delivered to the upload destination. Use uploadedVideos instead of video.',
+          responses,
+        });
+      },
+    });
+  }
+
+  return result;
 }
 
 async function executeStartStatusFlow({

@@ -104,6 +104,16 @@ describe('experimental_generateVideo', () => {
     });
     expect(result.responses).toHaveLength(1);
     expect(() => result.video).toThrow('Use uploadedVideos instead of video.');
+    expect(JSON.parse(JSON.stringify(result))).toMatchObject({
+      uploadedVideos: 1,
+      videos: [],
+    });
+    expect({ ...result }).toMatchObject({ uploadedVideos: 1, videos: [] });
+    expect(Object.assign({}, result)).not.toHaveProperty('video');
+    expect(structuredClone(result)).toMatchObject({
+      uploadedVideos: 1,
+      videos: [],
+    });
   });
 
   it('counts uploads alongside downloadable videos across calls', async () => {
@@ -125,6 +135,12 @@ describe('experimental_generateVideo', () => {
     expect(result.uploadedVideos).toBe(1);
     expect(result.videos).toHaveLength(1);
     expect(result.video.base64).toBe(mp4Base64);
+    expect(Object.getOwnPropertyDescriptor(result, 'video')).toMatchObject({
+      enumerable: true,
+      value: result.video,
+    });
+    expect(JSON.parse(JSON.stringify(result))).toHaveProperty('video');
+
     expect(result.responses).toHaveLength(2);
   });
 
