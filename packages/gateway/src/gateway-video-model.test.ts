@@ -260,7 +260,15 @@ describe('GatewayVideoModel', () => {
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
         image: undefined,
+        frameImages: undefined,
+        inputReferences: undefined,
+        generateAudio: undefined,
         n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
         providerOptions: {},
       });
       expect(result.videos).toEqual(videos);
