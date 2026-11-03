@@ -495,6 +495,8 @@ describe('doStream', () => {
           streaming: {
             turnDetection: false,
             turnStartThreshold: 0.5,
+            turnEagerEndThreshold: 0.4,
+            turnEndThreshold: 0.3,
             turnEndTimeoutMs: 800,
           },
         },
@@ -504,6 +506,8 @@ describe('doStream', () => {
     const ws = MockWebSocket.instances[0];
     const params = new URL(ws.url).searchParams;
     expect(params.has('turn_start_threshold')).toBe(false);
+    expect(params.has('turn_eager_end_threshold')).toBe(false);
+    expect(params.has('turn_end_threshold')).toBe(false);
     expect(params.has('turn_end_timeout_ms')).toBe(false);
 
     const reader = result.stream.getReader();
@@ -516,6 +520,16 @@ describe('doStream', () => {
         {
           type: 'unsupported',
           feature: 'providerOptions.cartesia.streaming.turnStartThreshold',
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.cartesia.streaming.turnEagerEndThreshold',
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.cartesia.streaming.turnEndThreshold',
           details: 'Turn thresholds require turnDetection to be enabled.',
         },
         {
