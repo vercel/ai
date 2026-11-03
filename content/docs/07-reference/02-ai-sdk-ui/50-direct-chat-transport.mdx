@@ -78,6 +78,19 @@ export default function Chat() {
         'Extracts message metadata that will be sent to the client. Called on `start` and `finish` events.',
     },
     {
+      name: 'onStepEnd',
+      type: 'UIMessageStreamOnStepEndCallback',
+      isOptional: true,
+      description:
+        'Called after each step is converted to UI message parts. Receives messages, isContinuation, and the accumulated responseMessage, including step metadata, for inspection or persistence.',
+    },
+    {
+      name: 'onStepFinish',
+      type: 'UIMessageStreamOnStepFinishCallback',
+      isOptional: true,
+      description: 'Deprecated alias for onStepEnd.',
+    },
+    {
       name: 'sendReasoning',
       type: 'boolean',
       isOptional: true,

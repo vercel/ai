@@ -1,6 +1,23 @@
 import { z } from 'zod/v4';
 
 /**
+ * Pi's `input` excludes cached tokens; `reasoning` is a subset of `output`,
+ * set only by providers that report it.
+ */
+const piUsageSchema = z
+  .looseObject({
+    input: z.number(),
+    output: z.number(),
+    cacheRead: z.number(),
+    cacheWrite: z.number(),
+    reasoning: z.number().optional(),
+  })
+  .optional()
+  .catch(undefined);
+
+export type PiUsage = NonNullable<z.infer<typeof piUsageSchema>>;
+
+/**
  * Pi `session.subscribe` emits a discriminated union of events. The exact
  * shape evolves with Pi versions; we accept loose objects and extract only
  * the fields we recognise. The `type` field is required and stringly-typed
@@ -49,6 +66,7 @@ export const piSessionEventSchema = z.looseObject({
       content: z.unknown().optional(),
       stopReason: z.string().optional(),
       errorMessage: z.string().optional(),
+      usage: piUsageSchema,
     })
     .optional(),
 });

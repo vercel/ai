@@ -20,8 +20,7 @@ export function isUrlSupported({
   url: string;
   supportedUrls: Record<string, RegExp[]>;
 }): boolean {
-  // standardize media type and url to lower case
-  url = url.toLowerCase();
+  // standardize media type to lower case
   mediaType = mediaType.toLowerCase();
 
   const isTopLevelOnly = !mediaType.includes('/');

@@ -28,6 +28,15 @@ import {
 } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
 import {
+  isScopedProviderModel,
+  providerCodeConfigs,
+  providerImport,
+  providerModelExpression,
+  resolveGatewayOptions,
+} from '@/lib/provider-code-config';
+import {
+  getCodeTemplateDefaults,
+  getCodeTemplateModelKind,
   DEFAULT_MODEL_IDS,
   MODEL_KIND_PLACEHOLDERS,
   type ModelKind,
@@ -56,12 +65,20 @@ const MODEL_KIND_GATEWAY_TYPES: Record<ModelKind, string> = {
   text: 'language',
   image: 'image',
   video: 'video',
+  speech: 'speech',
+  transcription: 'transcription',
+  embedding: 'embedding',
+  decision: 'evaluation',
 };
 
 const MODEL_KIND_FACTORY_SUFFIX: Record<ModelKind, string> = {
   text: '',
   image: '.image',
   video: '.video',
+  speech: '.speech',
+  transcription: '.transcription',
+  embedding: '.embedding',
+  decision: '.decisionModel',
 };
 
 const MODEL_KINDS = Object.keys(MODEL_KIND_PLACEHOLDERS) as ModelKind[];
@@ -71,13 +88,6 @@ const EXCLUDED_MODEL_IDS = [
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
 ];
-
-const getDefaultModelIds = (
-  defaultTextModelId: string,
-): Record<ModelKind, string> => ({
-  ...DEFAULT_MODEL_IDS,
-  text: defaultTextModelId,
-});
 
 type ModelOption = {
   id: string;
@@ -244,33 +254,14 @@ const MODEL_KIND_PROVIDER_ALLOWLISTS: Record<ModelKind, string[]> = {
   text: FIRST_PARTY_PROVIDERS,
   image: ['openai', 'google', 'xai', 'bfl'],
   video: ['google', 'xai', 'bfl'],
+  speech: ['fish-audio'],
+  transcription: ['openai'],
+  embedding: ['voyage', 'openai', 'cohere', 'google', 'mistral'],
+  decision: ['typesafe-ai'],
 };
 
-// Mapping for providers where SDK package/export differs from gateway
-// provider ID: { gatewayId: { pkg: 'package-name', export: 'exportName' } }
-const providerSdkMap: Record<string, { pkg: string; export: string }> = {
-  amazon: { pkg: 'amazon-bedrock', export: 'bedrock' },
-  bfl: { pkg: 'black-forest-labs', export: 'blackForestLabs' },
-};
-
-// Mapping for models where the provider SDK model code differs from the
-// gateway model code
-const providerModelCodeOverrides: Record<string, string> = {
-  'google/gemini-3-pro-image': 'gemini-3-pro-image-preview',
-};
-
-const getModelKindForGatewayType = (type: string): ModelKind | null => {
-  switch (type) {
-    case MODEL_KIND_GATEWAY_TYPES.text:
-      return 'text';
-    case MODEL_KIND_GATEWAY_TYPES.image:
-      return 'image';
-    case MODEL_KIND_GATEWAY_TYPES.video:
-      return 'video';
-    default:
-      return null;
-  }
-};
+const getModelKindForGatewayType = (type: string): ModelKind | null =>
+  MODEL_KINDS.find(kind => MODEL_KIND_GATEWAY_TYPES[kind] === type) ?? null;
 
 const getPlaceholderKinds = (code: string): ModelKind[] => {
   const kinds = MODEL_KINDS.filter(kind =>
@@ -282,21 +273,30 @@ const getPlaceholderKinds = (code: string): ModelKind[] => {
   return kinds.length > 0 ? kinds : ['text'];
 };
 
-const getDefaultModelOption = (kind: ModelKind): ModelOption => {
-  const provider =
-    kind === 'image' ? 'openai' : kind === 'video' ? 'google' : 'anthropic';
+const DEFAULT_MODEL_NAMES: Record<string, string> = {
+  [DEFAULT_MODEL_IDS.text]: 'Claude Sonnet 5.5',
+  [DEFAULT_MODEL_IDS.image]: 'GPT Image 2.5 Sunburst',
+  [DEFAULT_MODEL_IDS.video]: 'Veo 3.1',
+  [DEFAULT_MODEL_IDS.speech]: 'Fish Audio S2.1 Pro',
+  [DEFAULT_MODEL_IDS.transcription]: 'Whisper',
+  [DEFAULT_MODEL_IDS.embedding]: 'Voyage 4',
+  [DEFAULT_MODEL_IDS.decision]: 'TypeSafe JEV',
+  'google/gemini-4-argon': 'Gemini 4 Argon',
+};
+
+const getDefaultModelOption = (
+  kind: ModelKind,
+  modelId = DEFAULT_MODEL_IDS[kind],
+): ModelOption => {
+  const creator = modelId.split('/')[0];
+  const provider = creator === 'spacexai' ? 'xai' : creator;
   return {
-    id: DEFAULT_MODEL_IDS[kind],
+    id: modelId,
     kind,
-    name:
-      kind === 'image'
-        ? 'GPT Image 2.5 Sunburst'
-        : kind === 'video'
-          ? 'Veo 3.1'
-          : 'Claude Sonnet 5.5',
+    name: DEFAULT_MODEL_NAMES[modelId] ?? modelId,
     provider,
     providerTitle: providerTitles[provider] ?? provider,
-    code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],
+    code: modelId.split('/')[1] || modelId,
     icon: <ProviderLogo provider={provider} />,
     created: 0,
   };
@@ -404,6 +404,7 @@ function ModelDropdown({
   providers,
   onProviderSelect,
   showProviderOnly,
+  showProviders,
 }: {
   options: ModelOption[];
   selected: ModelOption;
@@ -411,6 +412,7 @@ function ModelDropdown({
   providers: { name: string; title: string; icon: ReactNode }[];
   onProviderSelect: (providerName: string) => void;
   showProviderOnly: string | null;
+  showProviders: boolean;
 }) {
   const grouped = useMemo(() => {
     const groups: Record<string, ModelOption[]> = {};
@@ -471,31 +473,35 @@ function ModelDropdown({
         align="end"
         className="max-h-[min(300px,var(--radix-dropdown-menu-content-available-height))] w-[280px]"
       >
-        <DropdownMenuLabel className="text-gray-900 text-xs">
-          Model Creators
-        </DropdownMenuLabel>
-        {topProviders.map(provider => (
-          <DropdownMenuItem
-            className="cursor-pointer"
-            key={`provider-${provider.name}`}
-            onSelect={() => onProviderSelect(provider.name)}
-          >
-            <span className="flex items-center gap-2">
-              <span className="shrink-0">{provider.icon}</span>
-              <span>{provider.title}</span>
-            </span>
-          </DropdownMenuItem>
-        ))}
-        {otherProviders.map(provider => (
-          <DropdownMenuItem
-            className="inline-flex w-auto cursor-pointer px-1.5"
-            key={`provider-${provider.name}`}
-            onSelect={() => onProviderSelect(provider.name)}
-            title={provider.title}
-          >
-            <span className="shrink-0">{provider.icon}</span>
-          </DropdownMenuItem>
-        ))}
+        {showProviders ? (
+          <>
+            <DropdownMenuLabel className="text-gray-900 text-xs">
+              Model Creators
+            </DropdownMenuLabel>
+            {topProviders.map(provider => (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                key={`provider-${provider.name}`}
+                onSelect={() => onProviderSelect(provider.name)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="shrink-0">{provider.icon}</span>
+                  <span>{provider.title}</span>
+                </span>
+              </DropdownMenuItem>
+            ))}
+            {otherProviders.map(provider => (
+              <DropdownMenuItem
+                className="inline-flex w-auto cursor-pointer px-1.5"
+                key={`provider-${provider.name}`}
+                onSelect={() => onProviderSelect(provider.name)}
+                title={provider.title}
+              >
+                <span className="shrink-0">{provider.icon}</span>
+              </DropdownMenuItem>
+            ))}
+          </>
+        ) : null}
         {providerOrder.map(provider => (
           <div key={provider}>
             <DropdownMenuLabel className="text-gray-900 text-xs">
@@ -557,8 +563,10 @@ type InteractiveCodePreviewProps = {
   /** Lines to highlight for Provider/Custom tabs (with import line). Falls back to highlightedLines if not specified. */
   highlightedLinesWithImport?: number[];
   className?: string;
-  /** Default text model ID for backwards-compatible text snippets. */
+  /** Default model ID for the example's active model kind. */
   defaultModelId?: string;
+  /** Scope both tabs to a documented provider and its known model mappings. */
+  provider?: string;
   /** Provider IDs to show in the Provider tab. Intersected with the supported providers for the detected model kind. */
   allowedProviders?: string[];
   /** Model IDs to exclude from the Provider tab. */
@@ -578,7 +586,8 @@ export const InteractiveCodePreview = ({
   highlightedLines,
   highlightedLinesWithImport,
   className,
-  defaultModelId = DEFAULT_MODEL_IDS.text,
+  defaultModelId,
+  provider,
   allowedProviders,
   excludedModelIds = EXCLUDED_MODEL_IDS,
   onModelChange,
@@ -590,21 +599,35 @@ export const InteractiveCodePreview = ({
     {},
   );
 
+  const tabs = useMemo(
+    () =>
+      provider
+        ? TABS.filter(tab => tab.id !== 'custom').map(tab =>
+            tab.id === 'provider'
+              ? {
+                  ...tab,
+                  title:
+                    providerCodeConfigs[provider]?.title ??
+                    providerTitles[provider] ??
+                    provider,
+                  icon: <ProviderLogo provider={provider} />,
+                }
+              : tab,
+          )
+        : TABS,
+    [provider],
+  );
   const placeholderKinds = useMemo(() => getPlaceholderKinds(code), [code]);
-  const activeModelKind = useMemo<ModelKind>(() => {
-    if (placeholderKinds.includes('video')) {
-      return 'video';
-    }
-    if (placeholderKinds.includes('image')) {
-      return 'image';
-    }
-    return 'text';
-  }, [placeholderKinds]);
+  const activeModelKind = getCodeTemplateModelKind(code);
+  const defaultModelIds = useMemo(
+    () => getCodeTemplateDefaults(code, defaultModelId),
+    [code, defaultModelId],
+  );
 
   const [activeTab, setActiveTab] = useState<TabType>('gateway');
   const [selectedModelIds, setSelectedModelIds] = useState<
     Record<ModelKind, string>
-  >(() => getDefaultModelIds(defaultModelId));
+  >(() => getCodeTemplateDefaults(code, defaultModelId));
   const [showProviderOnly, setShowProviderOnly] = useState<string | null>(null);
 
   // Fetch the gateway model list client-side; fall back to the default
@@ -628,7 +651,7 @@ export const InteractiveCodePreview = ({
           setGatewayData(json);
         }
       } catch {
-        // Network failure or aborted: keep the DEFAULT_MODEL_IDS fallback.
+        // Network failure or aborted: keep the configured default models.
       }
     };
 
@@ -641,10 +664,17 @@ export const InteractiveCodePreview = ({
   }, []);
 
   const allModels = useMemo(() => parseModels(gatewayData), [gatewayData]);
-  const models =
-    allModels.length > 0
-      ? allModels
-      : MODEL_KINDS.map(kind => getDefaultModelOption(kind));
+  const models = useMemo(() => {
+    const candidates =
+      allModels.length > 0
+        ? allModels
+        : MODEL_KINDS.map(kind =>
+            getDefaultModelOption(kind, defaultModelIds[kind]),
+          );
+    return provider
+      ? candidates.filter(model => isScopedProviderModel(provider, model))
+      : candidates;
+  }, [allModels, defaultModelIds, provider]);
 
   const gatewayTabModelsByKind = useMemo(
     () =>
@@ -662,19 +692,20 @@ export const InteractiveCodePreview = ({
     () =>
       MODEL_KINDS.reduce(
         (acc, kind) => {
-          acc[kind] = gatewayTabModelsByKind[kind].filter(
-            model =>
-              MODEL_KIND_PROVIDER_ALLOWLISTS[kind].includes(model.provider) &&
-              (!allowedProviders?.length ||
-                allowedProviders.includes(model.provider)) &&
-              (!excludedModelIds?.length ||
-                !excludedModelIds.includes(model.id)),
+          acc[kind] = gatewayTabModelsByKind[kind].filter(model =>
+            provider
+              ? isScopedProviderModel(provider, model)
+              : MODEL_KIND_PROVIDER_ALLOWLISTS[kind].includes(model.provider) &&
+                (!allowedProviders?.length ||
+                  allowedProviders.includes(model.provider)) &&
+                (!excludedModelIds?.length ||
+                  !excludedModelIds.includes(model.id)),
           );
           return acc;
         },
         {} as Record<ModelKind, ModelOption[]>,
       ),
-    [allowedProviders, excludedModelIds, gatewayTabModelsByKind],
+    [allowedProviders, excludedModelIds, gatewayTabModelsByKind, provider],
   );
 
   const displayedModels =
@@ -702,7 +733,10 @@ export const InteractiveCodePreview = ({
     () =>
       MODEL_KINDS.reduce(
         (acc, kind) => {
-          const defaultModel = getDefaultModelOption(kind);
+          const defaultModel = getDefaultModelOption(
+            kind,
+            defaultModelIds[kind],
+          );
           const currentModels =
             activeTab === 'provider'
               ? providerTabModelsByKind[kind]
@@ -711,6 +745,8 @@ export const InteractiveCodePreview = ({
 
           acc[kind] =
             currentModels.find(model => model.id === selectedModelId) ??
+            currentModels.find(model => model.id === defaultModel.id) ??
+            currentModels[0] ??
             defaultModel;
 
           return acc;
@@ -719,6 +755,7 @@ export const InteractiveCodePreview = ({
       ),
     [
       activeTab,
+      defaultModelIds,
       gatewayTabModelsByKind,
       providerTabModelsByKind,
       selectedModelIds,
@@ -769,22 +806,22 @@ export const InteractiveCodePreview = ({
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const currentIndex = TABS.findIndex(tab => tab.id === activeTab);
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
     let nextIndex: number | null = null;
     if (event.key === 'ArrowRight') {
-      nextIndex = (currentIndex + 1) % TABS.length;
+      nextIndex = (currentIndex + 1) % tabs.length;
     } else if (event.key === 'ArrowLeft') {
-      nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
     } else if (event.key === 'Home') {
       nextIndex = 0;
     } else if (event.key === 'End') {
-      nextIndex = TABS.length - 1;
+      nextIndex = tabs.length - 1;
     }
     if (nextIndex === null) {
       return;
     }
     event.preventDefault();
-    const nextTab = TABS[nextIndex].id;
+    const nextTab = tabs[nextIndex].id;
     handleTabChange(nextTab);
     tabRefs.current[nextTab]?.focus();
   };
@@ -801,7 +838,10 @@ export const InteractiveCodePreview = ({
 
   // Replace placeholders in code
   const processedCode = useMemo(() => {
-    let result = code;
+    let result = resolveGatewayOptions(
+      code,
+      activeTab === 'gateway' ? provider : undefined,
+    );
 
     const getModelExpression = (model: ModelOption, kind: ModelKind) => {
       if (activeTab === 'gateway') {
@@ -809,15 +849,11 @@ export const InteractiveCodePreview = ({
       }
 
       if (activeTab === 'provider') {
-        const sdkInfo = providerSdkMap[model.provider];
-        const exportName = sdkInfo?.export ?? model.provider;
-        const modelCode =
-          providerModelCodeOverrides[model.id] ??
-          (model.provider === 'anthropic'
-            ? model.code.replace(/\./g, '-')
-            : model.code);
-
-        return `${exportName}${MODEL_KIND_FACTORY_SUFFIX[kind]}("${modelCode}")`;
+        return providerModelExpression(
+          provider ?? model.provider,
+          model.id,
+          MODEL_KIND_FACTORY_SUFFIX[kind],
+        );
       }
 
       return `yourProvider${MODEL_KIND_FACTORY_SUFFIX[kind]}("your-model-id")`;
@@ -835,12 +871,9 @@ export const InteractiveCodePreview = ({
       // Remove the entire line containing __PROVIDER_IMPORT__
       result = result.replace(/.*__PROVIDER_IMPORT__.*\n?/g, '');
     } else if (activeTab === 'provider') {
-      const sdkInfo = providerSdkMap[selectedModel.provider];
-      const pkgName = sdkInfo?.pkg ?? selectedModel.provider;
-      const exportName = sdkInfo?.export ?? selectedModel.provider;
       result = result.replace(
         /__PROVIDER_IMPORT__/g,
-        `import { ${exportName} } from "@ai-sdk/${pkgName}"`,
+        providerImport(provider ?? selectedModel.provider),
       );
     } else {
       // custom
@@ -851,7 +884,14 @@ export const InteractiveCodePreview = ({
     }
 
     return result.trim();
-  }, [activeTab, code, placeholderKinds, selectedModel, selectedModelsByKind]);
+  }, [
+    activeTab,
+    code,
+    placeholderKinds,
+    provider,
+    selectedModel,
+    selectedModelsByKind,
+  ]);
 
   const activeHighlightedLines = useMemo(
     () =>
@@ -910,7 +950,7 @@ export const InteractiveCodePreview = ({
           className="-mb-px flex items-center gap-1"
           role="tablist"
         >
-          {TABS.map(tab => (
+          {tabs.map(tab => (
             <button
               aria-controls={`${id}-panel`}
               aria-selected={activeTab === tab.id}
@@ -956,6 +996,7 @@ export const InteractiveCodePreview = ({
               providers={providers}
               selected={selectedModel}
               showProviderOnly={showProviderOnly}
+              showProviders={!provider}
             />
           )}
         </div>

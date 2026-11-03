@@ -20,7 +20,6 @@ run(async () => {
   });
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     template: await agent.getSandboxTemplate(),
   });
   let session: HarnessAgentSession | undefined;

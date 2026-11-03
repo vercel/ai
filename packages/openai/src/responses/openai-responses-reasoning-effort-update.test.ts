@@ -1,4 +1,5 @@
 import {
+  type LanguageModelV4CallOptions,
   type LanguageModelV4Prompt,
   type SharedV4ProviderOptions,
   type SharedV4Warning,
@@ -46,6 +47,7 @@ describe.each(['generate', 'stream'] as const)(
       options: OpenAILanguageModelResponsesOptions = {},
       modelId = 'gpt-6-astra',
       provider = 'openai.responses',
+      settings: Pick<LanguageModelV4CallOptions, 'temperature' | 'topP'> = {},
     ) {
       const model = new OpenAIResponsesLanguageModel(modelId, {
         provider,
@@ -68,7 +70,11 @@ describe.each(['generate', 'stream'] as const)(
                 'data: [DONE]\n\n',
               ],
             };
-      const args = { prompt, providerOptions: { openai: options } };
+      const args = {
+        ...settings,
+        prompt,
+        providerOptions: { openai: options },
+      };
       let warnings: SharedV4Warning[];
       if (method === 'generate') {
         warnings = (await model.doGenerate(args)).warnings;
@@ -117,6 +123,89 @@ describe.each(['generate', 'stream'] as const)(
     describe.each(['gpt-6-sol', 'gpt-6-luna'])(
       'non-reasoning updates for %s',
       modelId => {
+        it.each([
+          {
+            name: 'request update enables reasoning',
+            prompt: [user],
+            options: { reasoningEffort: 'none', reasoningEffortUpdate: 'low' },
+            samplingSupported: false,
+          },
+          {
+            name: 'request update disables reasoning',
+            prompt: [user],
+            options: { reasoningEffort: 'low', reasoningEffortUpdate: 'none' },
+            samplingSupported: true,
+          },
+          {
+            name: 'positioned update enables reasoning',
+            prompt: [user, update('low'), user],
+            options: { reasoningEffort: 'none' },
+            samplingSupported: false,
+          },
+          {
+            name: 'last positioned update disables reasoning',
+            prompt: [user, update('low'), user, update('none'), user],
+            options: { reasoningEffort: 'none' },
+            samplingSupported: true,
+          },
+          {
+            name: 'positioned update overrides prepended request update',
+            prompt: [user, update('low'), user],
+            options: { reasoningEffort: 'low', reasoningEffortUpdate: 'none' },
+            samplingSupported: false,
+          },
+          {
+            name: 'positioned update disables default reasoning',
+            prompt: [update('none'), user],
+            options: {},
+            samplingSupported: true,
+          },
+        ] as const)(
+          'handles sampling and logprobs when $name',
+          async ({ prompt, options, samplingSupported }) => {
+            const { body, warnings } = await request(
+              [...prompt],
+              {
+                ...options,
+                reasoningSummary: null,
+                logprobs: 2,
+                include: [
+                  'message.output_text.logprobs',
+                  'reasoning.encrypted_content',
+                ],
+              },
+              modelId,
+              'openai.responses',
+              { temperature: 0, topP: 0.9 },
+            );
+            expect(body.reasoning?.effort).toBe(
+              'reasoningEffort' in options
+                ? options.reasoningEffort
+                : undefined,
+            );
+            expect(body.temperature).toBe(samplingSupported ? 0 : undefined);
+            expect(body.top_p).toBe(samplingSupported ? 0.9 : undefined);
+            expect(body.top_logprobs).toBe(samplingSupported ? 2 : undefined);
+            expect(body.include).toEqual(
+              samplingSupported
+                ? [
+                    'message.output_text.logprobs',
+                    'reasoning.encrypted_content',
+                  ]
+                : ['reasoning.encrypted_content'],
+            );
+            expect(warnings).toEqual(
+              samplingSupported
+                ? []
+                : ['temperature', 'topP', 'logprobs'].map(feature => ({
+                    type: 'unsupported',
+                    feature,
+                    details: `${feature} is not supported for reasoning models`,
+                  })),
+            );
+          },
+        );
+
         it('preserves positioned none updates and the initial reasoning effort', async () => {
           const prompt = [user, update('none'), user, update('low'), user];
           const original = structuredClone(prompt);

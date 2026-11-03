@@ -23,6 +23,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
@@ -50,7 +51,10 @@ import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { sanitizeAttributeValue } from './sanitize-attribute-value';
-import { stringifyForTelemetry } from './stringify-for-telemetry';
+import {
+  stringifyForTelemetry,
+  stringifyDecisionStateForTelemetry,
+} from './stringify-for-telemetry';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
@@ -882,6 +886,16 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.onStepEnd(event);
   }
 
+  onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    recordSpanError(state.stepSpan, event.error);
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
+  }
+
   onEnd(
     event:
       | GenerateTextEndEvent<ToolSet>
@@ -1302,7 +1316,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       ...assembleOperationName({ operationId: event.operationId, telemetry }),
       ...baseTelemetryAttributes,
       'ai.decision.state': {
-        input: () => JSON.stringify(event.state),
+        input: () => stringifyDecisionStateForTelemetry(event.state),
       },
       'ai.decision.questions': {
         input: () => JSON.stringify(event.questions),
@@ -1389,7 +1403,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       }),
       ...state.baseTelemetryAttributes,
       'ai.decision.state': {
-        input: () => JSON.stringify(event.state),
+        input: () => stringifyDecisionStateForTelemetry(event.state),
       },
       'ai.decision.questions': {
         input: () => JSON.stringify(event.questions),

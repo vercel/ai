@@ -217,6 +217,76 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('passes URL-backed image and file parts to model steps without downloading them', async () => {
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+      const download = vi.fn(async requests => requests.map(() => null));
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+        throw new Error('fetch is unavailable in workflow functions');
+      });
+      const imageUrl = new URL('https://example.com/image.png');
+      const fileUrl = new URL('https://example.com/file.pdf');
+
+      try {
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          experimental_download: download,
+        });
+        await agent.stream({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageUrl,
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'file',
+                  data: fileUrl,
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        const prompt = vi
+          .mocked(modelCallIterator)
+          .mock.calls.at(-1)?.[0].prompt;
+        expect(prompt).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'url', url: imageUrl },
+                mediaType: 'image/png',
+                providerOptions: undefined,
+              },
+              {
+                type: 'file',
+                data: { type: 'url', url: fileUrl },
+                mediaType: 'application/pdf',
+                filename: undefined,
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(download).not.toHaveBeenCalled();
+        expect(modelCallIterator).toHaveBeenLastCalledWith(
+          expect.objectContaining({ download }),
+        );
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
   });
 
   describe('tool execution error handling', () => {

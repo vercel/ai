@@ -4,6 +4,7 @@ import type {
   ACPHostToolMCPTransport,
   ACPProfileValue,
   ACPSerializableValue,
+  ACPV1Settings,
 } from '../acp-v1-settings';
 
 export const ACP_BRIDGE_CONFIGURATION_ENV = 'AI_SDK_ACP_BRIDGE_CONFIGURATION';
@@ -60,7 +61,25 @@ export type ACPResolvedProviderAuthentication = z.infer<
   typeof providerAuthenticationSchema
 >;
 
+/**
+ * Launch command of the ACP agent inside the sandbox. `home` is set for
+ * agents acquired with an install command, which run with a private `HOME`
+ * below the harness bootstrap directory.
+ */
+export type ACPAgentLaunch = {
+  readonly command: string;
+  readonly args: ReadonlyArray<string>;
+  readonly home?: string;
+};
+
+const agentLaunchSchema: z.ZodType<ACPAgentLaunch> = z.object({
+  command: z.string(),
+  args: z.array(z.string()),
+  home: z.string().optional(),
+});
+
 export type ACPBridgeConfiguration = {
+  readonly agent: ACPAgentLaunch;
   readonly authentication?: ACPAuthentication;
   readonly providerAuthentication?: ACPResolvedProviderAuthentication;
   readonly providerEnvironment?: Readonly<Record<string, string>>;
@@ -68,9 +87,11 @@ export type ACPBridgeConfiguration = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
   readonly askUserQuestionsRequestMethod?: string;
   readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
+  readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
+  agent: agentLaunchSchema,
   authentication: authenticationSchema.optional(),
   providerAuthentication: providerAuthenticationSchema.optional(),
   providerEnvironment: z.record(z.string(), z.string()).optional(),
@@ -78,9 +99,11 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   clientCapabilities: serializableRecordSchema.optional(),
   askUserQuestionsRequestMethod: z.string().optional(),
   hostToolMcpTransport: hostToolMcpTransportSchema.optional(),
+  nonTextContentTypes: z.array(z.literal('image')).optional(),
 });
 
 export function createACPBridgeEnvironment({
+  agent,
   authentication,
   providerAuthentication,
   providerEnvironment,
@@ -88,9 +111,11 @@ export function createACPBridgeEnvironment({
   clientCapabilities,
   askUserQuestionsRequestMethod,
   hostToolMcpTransport,
+  nonTextContentTypes,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+      agent,
       ...(authentication == null ? {} : { authentication }),
       ...(providerAuthentication == null ? {} : { providerAuthentication }),
       ...(providerEnvironment == null ? {} : { providerEnvironment }),
@@ -100,6 +125,7 @@ export function createACPBridgeEnvironment({
         ? {}
         : { askUserQuestionsRequestMethod }),
       ...(hostToolMcpTransport == null ? {} : { hostToolMcpTransport }),
+      ...(nonTextContentTypes == null ? {} : { nonTextContentTypes }),
     }),
   };
 }
@@ -109,10 +135,10 @@ export async function readACPBridgeEnvironment({
 }: {
   env: Readonly<Record<string, string | undefined>>;
 }): Promise<ACPBridgeConfiguration> {
-  const serialized = env[ACP_BRIDGE_CONFIGURATION_ENV];
-  if (serialized == null) return {};
   try {
-    const result = bridgeConfigurationSchema.safeParse(JSON.parse(serialized));
+    const result = bridgeConfigurationSchema.safeParse(
+      JSON.parse(env[ACP_BRIDGE_CONFIGURATION_ENV] ?? ''),
+    );
     if (result.success) return result.data;
   } catch {}
   throw new Error('ACP bridge configuration environment is invalid.');

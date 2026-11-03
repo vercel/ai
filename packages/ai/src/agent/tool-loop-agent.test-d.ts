@@ -17,7 +17,10 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
-import { ToolLoopAgent } from './tool-loop-agent';
+import {
+  ToolLoopAgent,
+  type ToolLoopAgentCallExtensions,
+} from './tool-loop-agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
@@ -49,6 +52,17 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('generate', () => {
+    it('should accept toolCallConcurrency in settings and prepareCall', () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        toolCallConcurrency: 1,
+        prepareCall: options => ({
+          ...options,
+          toolCallConcurrency: 2,
+        }),
+      });
+    });
+
     it('should accept include', async () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
@@ -74,7 +88,8 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<{ callOption: string }>
+        AgentCallParameters<{ callOption: string }> &
+          ToolLoopAgentCallExtensions
       >();
     });
 
@@ -84,7 +99,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<never>
+        AgentCallParameters<never> & ToolLoopAgentCallExtensions
       >();
     });
 
@@ -312,7 +327,8 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<{ callOption: string }, {}>
+        AgentStreamParameters<{ callOption: string }, {}> &
+          ToolLoopAgentCallExtensions
       >();
     });
 
@@ -322,7 +338,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<never, {}>
+        AgentStreamParameters<never, {}> & ToolLoopAgentCallExtensions
       >();
     });
 

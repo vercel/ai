@@ -8,3 +8,5 @@ expectTypeOf(
     },
   }),
 ).not.toBeNever();
+
+expectTypeOf(azure.tools.toolSearch()).not.toBeNever();

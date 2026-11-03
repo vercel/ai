@@ -4,6 +4,9 @@ import type { ModelMessage } from '@ai-sdk/provider-utils';
  * Metadata for a language model request.
  */
 export type LanguageModelRequestMetadata = {
+  /** HTTP origin used for this request, without URL credentials, paths, queries or fragments. */
+  readonly url?: string;
+
   /**
    * The input messages that were sent to the model for this step.
    */

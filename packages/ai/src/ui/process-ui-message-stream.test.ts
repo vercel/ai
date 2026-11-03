@@ -14,6 +14,7 @@ import {
 } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -62,6 +63,76 @@ describe('processUIMessageStream', () => {
       },
     });
   };
+
+  describe('replay start', () => {
+    it.each(['msg-123', undefined])(
+      'resets existing state only on the first start with message ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+          },
+        });
+        state.activeTextParts.old = { type: 'text', text: 'old text' };
+        state.activeReasoningParts.old = {
+          type: 'reasoning',
+          text: 'old reasoning',
+        };
+        state.partialToolCalls.old = { text: '{', index: 0, toolName: 'old' };
+        state.finishReason = 'length';
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+              // Merged streams can emit another start for the same message.
+              { type: 'start', messageId, messageMetadata: { fresh: true } },
+              { type: 'text-delta', id: 'text-1', delta: ' world!' },
+              { type: 'text-end', id: 'text-1' },
+            ]),
+            resetStateOnFirstMessageStart: true,
+            resetStateOnMessageIdChange: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [],
+        });
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { fresh: true },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
 
   describe('finish-step', () => {
     it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
@@ -392,6 +463,62 @@ describe('processUIMessageStream', () => {
           [Error: test error],
         ]
       `);
+    });
+  });
+
+  describe('data part schemas', () => {
+    const dataPartSchemas = { weather: z.object({ city: z.string() }) };
+
+    beforeEach(() => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+    });
+
+    it('should reject a data part that does not match its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 42 } },
+      ]);
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            dataPartSchemas,
+            runUpdateMessageJob,
+            onError: () => {},
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Type validation failed for message.parts[0].data (data-weather, id: "w1")',
+      );
+
+      expect(state!.message.parts).toEqual([]);
+    });
+
+    it('should accept a data part that matches its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          dataPartSchemas,
+          runUpdateMessageJob,
+          onError: () => {},
+        }),
+      });
+
+      expect(state!.message.parts).toEqual([
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
     });
   });
 
@@ -3469,6 +3596,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 

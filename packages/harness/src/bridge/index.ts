@@ -15,6 +15,10 @@ import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from '../utils/convert-harness-tool-model-output';
 
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 
@@ -425,6 +429,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
    * between turns. A new `start` fences on this so turns never overlap.
    */
   let activeTurn: Promise<void> | undefined;
+  let lastStartId: string | undefined;
 
   // Diagnostics. Resolved per turn from `start.debug` with a sandbox-side
   // env fallback; gates console capture + structured `debug-event`s.
@@ -718,6 +723,11 @@ export async function runBridge<TStart extends { type: 'start' }>(
   ): Promise<void> => {
     switch (msg.type) {
       case 'start': {
+        const startId = (msg as { startId?: string }).startId;
+        if (startId != null) {
+          if (startId === lastStartId) return;
+          lastStartId = startId;
+        }
         /*
          * A new turn replaces the active one — but only after the active one
          * has fully wound down. Inbound frames are dispatched concurrently,
@@ -1001,7 +1011,10 @@ export async function runBridge<TStart extends { type: 'start' }>(
       type: 'bridge-hello',
       state: currentTurnState,
       lastSeq: seqCounter,
-      capabilities: { experimental_userMessageResponses: true },
+      capabilities: {
+        idempotentStart: true,
+        experimental_userMessageResponses: true,
+      },
     });
 
     ws.on('message', (raw: ArrayBufferLike | string) => {

@@ -1,0 +1,33 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"1c8bc012-b4ee-9bfe-b8be-2e62ec722407","modelId":"grok-4.7","timestamp":"2026-10-15T00:41:54.000Z"}
+
+data: {"type":"reasoning-start","id":"reasoning-rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407","providerMetadata":{"xai":{"itemId":"rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407"}}}
+
+data: {"type":"reasoning-delta","id":"reasoning-rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407","delta":"I will run two separate","providerMetadata":{"xai":{"itemId":"rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407"}}}
+
+data: {"type":"reasoning-delta","id":"reasoning-rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407","delta":" bash tool calls in parallel within the same response.","providerMetadata":{"xai":{"itemId":"rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407"}}}
+
+data: {"type":"reasoning-end","id":"reasoning-rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407","providerMetadata":{"xai":{"reasoningEncryptedContent":"J23GzPw4S8f3j0zh8pwXoJqyOl6kSXHBJghmst/N+On3+GPJmio6IDmNfbxxjoJEpbAMLL6Ikt8DIFKiQNWrf9fJthAAgNqQ9vFOHmzDZ1czFuwnJUufIggqy9cTsuCCgV6f8N8QhDvbYpVoCefA63YlWcJOQsEIY4lZwm2epOgkmphyrYeftiPeU5DZGH5vn4aoxN6ElHDv14zNGted2LhLCV4v2i7vFl+CypTwkqB6RV58hwZdJl0dzqed9m3VcpHrI8M2USi2XnmvLAQdHlbVNtf4tYB19PjK7MgrcXE0MlH2Hq24xlTfUQJJqt0RdcCjzqeyVMa9eS7OuTTVe0QuIa5yMy9CJmUfokYZu5jS57Uu7DTI72SsoQBQrLMTeBilRUcirTZQhLhPTVr60Zb10DKt97wcAaSHeomXJd7/1EVcUdI3GKtSHK86M8x1GHOzmu+ccOF33Dua9ODT8hecG9wh0ZaCrZbJST0Hksx9grGi0Q/sCN/s76tEMlCd0pgD0NJF8Uk","itemId":"rs_1c8bc012-b4ee-9bfe-b8be-2e62ec722407"}}}
+
+data: {"type":"tool-input-start","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-0","toolName":"bash"}
+
+data: {"type":"tool-input-delta","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-0","delta":"{\"command\":\"printf PARIS > paris.txt\"}"}
+
+data: {"type":"tool-input-end","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-0"}
+
+data: {"type":"tool-call","toolCallId":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-0","toolName":"bash","input":"{\"command\":\"printf PARIS > paris.txt\"}"}
+
+data: {"type":"tool-input-start","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-1","toolName":"bash"}
+
+data: {"type":"tool-input-delta","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-1","delta":"{\"command\":\"printf TOKYO > tokyo.txt\"}"}
+
+data: {"type":"tool-input-end","id":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-1"}
+
+data: {"type":"tool-call","toolCallId":"call-ed402eea-105f-44f1-a2e1-33b8cd4b7fd8-1","toolName":"bash","input":"{\"command\":\"printf TOKYO > tokyo.txt\"}"}
+
+data: {"type":"finish","finishReason":{"unified":"tool-calls","raw":"completed"},"usage":{"inputTokens":{"total":2157,"noCache":1005,"cacheRead":1152},"outputTokens":{"total":105,"text":27,"reasoning":78},"raw":{"input_tokens":2157,"output_tokens":105,"total_tokens":2262,"input_tokens_details":{"cached_tokens":1152},"output_tokens_details":{"reasoning_tokens":78},"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":32160000,"context_details":{"input_tokens":2157,"output_tokens":108}}},"providerMetadata":{"xai":{"costInUsdTicks":32160000,"serviceTier":"default"},"gateway":{"routing":{"originalModelId":"spacexai/grok-4.7","resolvedProvider":"xai","fallbacksAvailable":[],"planningReasoning":"System credentials planned for: xai. Total execution order: xai(system)","canonicalSlug":"xai/grok-4.7","finalProvider":"xai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"xai/grok-4.7","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"xai","credentialType":"system","success":true,"startTime":1792024914329,"endTime":1792024915507,"providerRequestId":"1c8bc012-b4ee-9bfe-b8be-2e62ec722407","statusCode":200,"providerResponseId":"1c8bc012-b4ee-9bfe-b8be-2e62ec722407"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"no_pin"},"clientSessionId":"vr6K8tCQedwb","clientSessionIdSource":"explicit"},"cost":"0.003216","marketCost":"0.003216","surchargeCost":"0.0001","gatewayCost":"0.003316","inferenceCost":"0.003216","inputInferenceCost":"0.002586","outputInferenceCost":"0.00063","providerAllowlistCost":"0.0001","generationId":"gen_01M4YG4ABRJDVAVZFYGEMDHGPQ"}}}
+
+DONE
+
+

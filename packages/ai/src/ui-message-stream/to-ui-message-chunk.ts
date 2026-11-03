@@ -89,6 +89,7 @@ export function toUIMessageChunk<
       return {
         type: 'text-end',
         id: part.id,
+        ...(part.citations != null ? { citations: part.citations } : {}),
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -191,6 +192,9 @@ export function toUIMessageChunk<
         type: 'tool-input-start',
         toolCallId: part.id,
         toolName: part.toolName,
+        ...(part.inputEncoding != null
+          ? { inputEncoding: part.inputEncoding }
+          : {}),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),

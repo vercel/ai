@@ -1,3 +1,4 @@
+import { citationSchema } from '../types/citation';
 import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -95,6 +96,7 @@ const uiMessagesSchema = lazySchema(() => {
                 z.object({
                   type: z.literal('text'),
                   text: z.string(),
+                  citations: z.array(citationSchema).optional(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
@@ -157,6 +159,7 @@ const uiMessagesSchema = lazySchema(() => {
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
                   rawInput: z.string().optional(),
+                  inputEncoding: z.enum(['json', 'text']).optional(),
                   providerExecuted: z.boolean().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   output: z.never().optional(),
@@ -267,6 +270,7 @@ const uiMessagesSchema = lazySchema(() => {
                   callProviderMetadata: providerMetadataSchema.optional(),
                   input: z.unknown().optional(),
                   rawInput: z.string().optional(),
+                  inputEncoding: z.enum(['json', 'text']).optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),

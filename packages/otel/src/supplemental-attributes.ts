@@ -1,3 +1,4 @@
+import type { OpenTelemetryIdGenerator } from './durable-span-ids';
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
 import {
@@ -43,6 +44,27 @@ export type OpenTelemetryOptions = {
    * The tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /** The same bridge registered as the tracer provider's idGenerator and sampler. */
+  durable?: OpenTelemetryIdGenerator;
+
+  /**
+   * Controls root agent span names for text and object generation.
+   *
+   * With `modelId` (the default), names are `invoke_agent {modelId}`.
+   * With `functionId`, names are `invoke_agent {functionId}`, falling back to
+   * the model ID when no function ID is provided.
+   *
+   * A callback returns the complete span name. If it returns `undefined` or
+   * throws, the default model-based name is used.
+   */
+  agentSpanName?:
+    | 'modelId'
+    | 'functionId'
+    | ((options: {
+        modelId: string;
+        functionId: string | undefined;
+      }) => string | undefined);
 
   /**
    * Adds custom attributes to spans when they are created. These attributes are

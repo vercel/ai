@@ -1,5 +1,6 @@
 import type { Context } from '@ai-sdk/provider-utils';
 import { decide } from './decide';
+import type { Experimental_DecisionModelV4Question as DecisionQuestion } from '@ai-sdk/provider';
 import type {
   DecideStartEvent,
   DecideEndEvent,
@@ -8,7 +9,6 @@ import type {
 } from './decide-events';
 import type {
   DecisionModel,
-  DecisionQuestion,
   DecisionAnswer,
   DecisionResult,
 } from './decision-result';
@@ -22,7 +22,6 @@ export type {
 } from './decide-events';
 export type {
   DecisionModel as Experimental_DecisionModel,
-  DecisionQuestion as Experimental_DecisionQuestion,
   DecisionAnswer as Experimental_DecisionAnswer,
   DecisionResult as Experimental_DecisionResult,
 } from './decision-result';
@@ -62,3 +61,10 @@ export type Experimental_EvaluationAnswer<QUESTION extends DecisionQuestion> =
 export type Experimental_EvaluationResult<
   QUESTIONS extends Record<string, DecisionQuestion>,
 > = DecisionResult<QUESTIONS>;
+
+export type {
+  DecisionState as Experimental_DecisionState,
+  DecisionStatePart as Experimental_DecisionStatePart,
+} from './decision-state';
+
+export type { Experimental_DecisionModelV4Question as Experimental_DecisionQuestion } from '@ai-sdk/provider';

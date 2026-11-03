@@ -1,5 +1,361 @@
 # @ai-sdk/harness
 
+## 1.0.173
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 1.0.172
+
+### Patch Changes
+
+- 8a20b57: feat(harness): defer sandbox setup, and optionally sandbox creation, to first use for harnesses without a bootstrap recipe
+
+  For a harness adapter that declares no sandbox bootstrap recipe (such as Pi), `HarnessAgent.createSession()` no longer runs the session's sandbox setup (`onBootstrap` when its marker is missing, the session work directory, and `onSession`) before the adapter starts. The setup runs on the first file, exec or spawn operation on the sandbox, and a failed setup is retried on the next one. Adapters with a recipe, such as Claude Code and Codex, keep setting up the sandbox in `createSession()`.
+
+  `sandboxSession` also accepts a `HarnessAgentSandboxCreator`, `{ defaultWorkingDirectory, createSandboxSession }`, to defer creating the sandbox itself. For an adapter without a recipe, `createSandboxSession` runs on the first file, exec or spawn operation, so a session whose turns never touch the sandbox never creates it. For any other adapter, `createSession()` calls it right away.
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
+## 1.0.171
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.170
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 1.0.168
+
+### Patch Changes
+
+- 033f8d9: fix(harness): preserve execution-denied outputs for denied host tool calls without invoking the tool's `toModelOutput` converter
+- e7a8988: fix(harness): preserve differing runtime-native tool names in `providerMetadata[harnessId].nativeToolName` on tool calls and their approval requests
+- 2c12e25: fix(harness): fix completed host tool results being silently lost when a WebSocket enters CLOSING before the channel detects the disconnect
+- 6eab0f7: Fix turns hanging when a built-in tool approval and a host tool call share an assistant message. Pause for the approval without waiting for runtime echoes of completed host tools, preserving their results and original call metadata across consecutive approval pauses and session resumes until the runtime echo arrives, without executing them again or emitting duplicate results.
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.167
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.166
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
+## 1.0.164
+
+### Patch Changes
+
+- a9837eb: feat(harness): provide shared utils for bridge-backed adapters to manage web socket connection and bridge handshake
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.163
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.162
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.160
+
+### Patch Changes
+
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - ai@7.0.148
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.157
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 1.0.156
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.154
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 1.0.153
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+  - @ai-sdk/provider-utils@5.0.61
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+
+## 1.0.151
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.150
+
+### Patch Changes
+
+- 6617f11: fix(harness): preserve interleaved text and reasoning blocks by stream ID
+- aae69cb: fix(harness): invoke UI stream step callbacks for HarnessAgent results
+- a7a66f5: fix(harness): expose final-step reasoning through stream result accessors
+- 52e3f53: fix(harness): preserve response message order across steps
+- 6c0295c: fix(harness): preserve native tool result input and execution origin
+  - ai@7.0.139
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [9667bf2]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [81663cc]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.147
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 1.0.143
+
+### Patch Changes
+
+- c4a5c8d: fix(harness): fix calculation for total turn token usage so that it is not just the last step usage
+- 50ac48b: fix(harness): fix `raw` chunk emission to not start a step
+- e8af189: fix(harness): ensure a dynamic tool with the same name as a currently inactive built-in tool can pass validation
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.142
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.140
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 4c6979c: fix(harness): preserve adapter warnings in agent stream results and declare
+  their compatibility warning shapes
+- Updated dependencies [fc1e19e]
+- Updated dependencies [e37d213]
+- Updated dependencies [5094ebd]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
 ## 1.0.139
 
 ### Patch Changes

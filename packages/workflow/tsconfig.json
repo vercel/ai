@@ -11,6 +11,9 @@
       "path": "../ai"
     },
     {
+      "path": "../otel"
+    },
+    {
       "path": "../provider"
     },
     {

@@ -34,8 +34,15 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       return () => {};
     }
     onClose(): void {}
-    send(msg: Record<string, unknown>): void {
+    onReconnect(): () => void {
+      return () => {};
+    }
+    send(
+      msg: Record<string, unknown>,
+      { onSent }: { onSent?: () => void } = {},
+    ): void {
       sentMessages.push(msg);
+      if (onSent) queueMicrotask(onSent);
     }
     beginClose(): void {}
     isClosed(): boolean {
@@ -195,6 +202,65 @@ describe('claude-code adapter — instructions transport', () => {
     expect(lastStart().prompt).toBe('Continue.');
     expect(lastStart().instructions).toBe(INSTRUCTIONS);
     expect(lastStart().continue).toBe(true);
+  });
+
+  it('reruns a recovered suspended turn only once', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Continue.',
+        continue: true,
+      }),
+    ]);
+  });
+
+  it('does not rerun a recovered session after its first prompt starts', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Recovered prompt',
+      emit: () => {},
+    });
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Recovered prompt',
+        continue: true,
+      }),
+    ]);
   });
 
   it('distinguishes parked session resume from suspended turn continuation', async () => {

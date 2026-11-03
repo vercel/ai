@@ -1,3 +1,4 @@
+import type { LanguageModelV4ToolResultOutput } from '@ai-sdk/provider';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -873,6 +874,79 @@ describe('tool calls', () => {
     ]);
   });
 
+  it('should preserve pre-serialized string tool arguments', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: '{"city":"Tokyo"}',
+              toolCallId: 'call-1',
+              toolName: 'getWeather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: {
+              name: 'getWeather',
+              arguments: '{"city":"Tokyo"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
+    const circularArgs: Record<string, unknown> = { count: 9007199254740993n };
+    circularArgs.self = circularArgs;
+
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: circularArgs,
+              toolCallId: 'call-2',
+              toolName: 'computeStats',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-2',
+            function: {
+              name: 'computeStats',
+              arguments: '{"count":"9007199254740993","self":"[Circular]"}',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should send empty string content for assistant messages with no tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
@@ -931,7 +1005,7 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should normalize malformed tool call input and preserve the tool error', () => {
+  it('should normalize malformed tool call input and preserve the tool error semantics', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
@@ -979,12 +1053,46 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "Invalid input: JSON parsing failed",
+          "content": "{"error":"Invalid input: JSON parsing failed"}",
           "role": "tool",
           "tool_call_id": "quux",
         },
       ]
     `);
+  });
+
+  it.each([
+    {
+      output: { type: 'error-text', value: 'E42' },
+      expected: '{"error":"E42"}',
+    },
+    {
+      output: { type: 'error-json', value: { code: 'E42' } },
+      expected: '{"error":{"code":"E42"}}',
+    },
+  ] satisfies Array<{
+    output: LanguageModelV4ToolResultOutput;
+    expected: string;
+  }>)('should wrap tool errors $output', ({ output, expected }) => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'deploy',
+              output,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      { role: 'tool', tool_call_id: 'error-tool', content: expected },
+    ]);
   });
 
   it('should handle different tool output types', () => {
@@ -1018,11 +1126,58 @@ describe('tool calls', () => {
           "tool_call_id": "text-tool",
         },
         {
-          "content": "Something went wrong",
+          "content": "{"error":"Something went wrong"}",
           "role": "tool",
           "tool_call_id": "error-tool",
         },
       ]
     `);
   });
+});
+
+it('preserves shared tool argument objects while replacing real cycles', async () => {
+  const shared = { value: 42 };
+  const input: Record<string, unknown> = { a: shared, b: shared };
+  input.self = input;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'assistant' as const,
+        content: [
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call_shared',
+            toolName: 'inspect',
+            input,
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).tool_calls[0].function.arguments).toBe(
+    '{"a":{"value":42},"b":{"value":42},"self":"[Circular]"}',
+  );
+});
+
+it('serializes tool results with BigInt and real cycles', async () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const result = convertToOpenAIChatMessages({
+    prompt: [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            output: { type: 'json', value },
+          },
+        ],
+      },
+    ],
+  });
+  expect((result.messages[0] as any).content).toBe(
+    '{"count":"42","self":"[Circular]"}',
+  );
 });

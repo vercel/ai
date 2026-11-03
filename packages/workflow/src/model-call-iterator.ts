@@ -1,18 +1,28 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import type { Context } from '@ai-sdk/provider-utils';
 import {
-  experimental_filterActiveTools as filterActiveTools,
+  asSchema,
+  getErrorMessage,
+  safeParseJSON,
+  type Context,
+} from '@ai-sdk/provider-utils';
+import {
+  filterActiveTools,
+  InvalidToolInputError,
+  isDeepEqualData,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
   type LanguageModel,
   type ModelMessage,
   type StepResult,
+  type Telemetry,
+  type DurableTelemetryContext,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -20,10 +30,13 @@ import {
 import {
   createRestrictedTelemetryDispatcher,
   createToolSearchState,
+  filterIncludedContext,
+  parseToolCall,
 } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
 import { doGenerateStep } from './do-generate-step.js';
 import { doStreamStep } from './do-stream-step.js';
+import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import type {
   ModelCallStreamPart,
   ModelCallOptions,
@@ -38,7 +51,12 @@ import {
 } from './add-tool-results-to-conversation.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { resolveToolContext } from './resolve-tool-context.js';
-import { serializeToolSet } from './serializable-schema.js';
+import {
+  resolveSerializableTools,
+  serializeToolSet,
+  toLanguageModelToolDefinitions,
+  type SerializableToolDef,
+} from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -139,9 +157,13 @@ export async function* modelCallIterator({
   runtimeContext,
   toolsContext,
   telemetry,
+  telemetryRecorder,
+  telemetryCallId,
+  telemetryContexts,
   includeRawChunks = false,
   timeoutAt,
   repairToolCall,
+  download,
   responseFormat,
   experimental_transform,
   experimental_sandbox: sandbox,
@@ -166,9 +188,19 @@ export async function* modelCallIterator({
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
+  /**
+   * Records telemetry events instead of dispatching them, so a durable run
+   * can report them when it ends. Model-call events then use the timing
+   * measured inside the model step.
+   */
+  telemetryRecorder?: Telemetry;
+  /** Telemetry call ID of the recorded run, passed to model steps. */
+  telemetryCallId?: string;
+  telemetryContexts?: Array<DurableTelemetryContext | undefined>;
   includeRawChunks?: boolean;
   timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_transform?:
     | StreamTextTransform<ToolSet>
@@ -214,10 +246,14 @@ export async function* modelCallIterator({
     any,
     any
   >({
-    telemetry: telemetry as any,
+    telemetry: (telemetryRecorder == null
+      ? telemetry
+      : { ...telemetry, integrations: telemetryRecorder }) as any,
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   }) as any;
+  const dispatchTelemetryInStep =
+    shouldDispatchModelCallTelemetryInStep(telemetry);
 
   while (!done) {
     // Check for abort signal
@@ -345,16 +381,13 @@ export async function* modelCallIterator({
       });
       const modelCallInfo = getModelInfo(currentModel);
 
-      await telemetryDispatcher.onLanguageModelCallStart?.({
+      const languageModelCallStartEvent = {
         callId: 'workflow-agent',
         provider: modelCallInfo.provider,
         modelId: modelCallInfo.modelId,
         system: undefined,
         messages: conversationPrompt as unknown as ModelMessage[],
-        tools:
-          serializedTools == null
-            ? undefined
-            : Object.values(serializedTools).map(tool => ({ ...tool })),
+        tools: toLanguageModelToolDefinitions(serializedTools),
         maxOutputTokens: currentGenerationSettings.maxOutputTokens,
         temperature: currentGenerationSettings.temperature,
         topP: currentGenerationSettings.topP,
@@ -366,7 +399,14 @@ export async function* modelCallIterator({
         reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
-      } as never);
+      };
+      // A recorded call is reported after the model step returns, with the
+      // time the provider call started inside the step.
+      if (telemetryRecorder == null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.(
+          languageModelCallStartEvent,
+        );
+      }
 
       const stepInputMessages = (mode === 'generate'
         ? [...conversationPrompt]
@@ -377,25 +417,70 @@ export async function* modelCallIterator({
         includeRawChunks,
         timeoutAt,
         repairToolCall,
+        download,
         responseFormat,
         include,
         experimental_transform,
+        telemetry: dispatchTelemetryInStep
+          ? {
+              ...(telemetryCallId != null
+                ? { callId: telemetryCallId, contexts: telemetryContexts }
+                : {}),
+              functionId: telemetry?.functionId,
+              recordInputs: telemetry?.recordInputs,
+              recordOutputs: telemetry?.recordOutputs,
+              stepNumber,
+              includeRuntimeContext: telemetry?.includeRuntimeContext,
+              // Exclude unselected fields before serializing the step input.
+              runtimeContext: filterIncludedContext({
+                context: currentRuntimeContext,
+                includeContext: telemetry?.includeRuntimeContext,
+              }),
+            }
+          : undefined,
       };
-      const modelCallResult =
+      const runModelStep = () =>
         mode === 'generate'
-          ? await doGenerateStep(
+          ? doGenerateStep(
               conversationPrompt,
               currentModel,
               serializedTools,
               callOptions,
             )
-          : await doStreamStep(
+          : doStreamStep(
               conversationPrompt,
               currentModel,
               writable,
               serializedTools,
               callOptions,
             );
+      // Fallback start time for a model step that fails without returning its
+      // timing. In a workflow, this is the time of the last delivered event.
+      const modelStepStartedAt = Date.now();
+      let modelCallResult: Awaited<ReturnType<typeof runModelStep>>;
+      try {
+        modelCallResult = await runModelStep();
+      } catch (error) {
+        // The provider call failed inside the step, for example when the
+        // stream could not be started after all retries. Report the call so
+        // the failed request has a model-call span; the run's error event,
+        // recorded when the failure is delivered, ends it.
+        if (telemetryRecorder != null) {
+          await telemetryDispatcher.onLanguageModelCallStart?.({
+            ...languageModelCallStartEvent,
+            timestamp: modelStepStartedAt,
+          });
+        }
+        throw error;
+      }
+      const modelCallTiming = modelCallResult.timing;
+
+      if (telemetryRecorder != null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.({
+          ...languageModelCallStartEvent,
+          timestamp: modelCallTiming?.startedAt ?? modelStepStartedAt,
+        });
+      }
 
       if (modelCallResult.aborted) {
         wasAborted = true;
@@ -409,12 +494,41 @@ export async function* modelCallIterator({
       }
 
       const {
-        toolCalls,
+        toolCalls: serializedToolCalls,
         finish,
         raw,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
+        repairedToolCallIds,
       } = modelCallResult;
+      const toolCalls = await validateToolCallInputs({
+        toolCalls: serializedToolCalls,
+        tools: effectiveTools,
+        serializedTools,
+        repairToolCall,
+        repairedToolCallIds: new Set(repairedToolCallIds),
+        instructions:
+          conversationPrompt
+            .filter(message => message.role === 'system')
+            .map(message => message.content)
+            .join('\n') || initialInstructions,
+        messages: stepInputMessages.filter(
+          message => message.role !== 'system',
+        ),
+        abortSignal: currentGenerationSettings.abortSignal,
+      });
+      if (mode === 'stream' && writable != null) {
+        // Replace the tool-call chunk deferred inside the model step with the
+        // original schema's validated, normalized, or repaired result.
+        await writeDeferredToolCalls(
+          writable,
+          toolCalls.filter(
+            (_, index) =>
+              serializedTools[serializedToolCalls[index].toolName]
+                ?.hasOwnValidator,
+          ),
+        );
+      }
       await invokeToolInputLifecycleCallbacks({
         events: toolInputLifecycleEvents ?? [],
         toolCalls,
@@ -452,8 +566,12 @@ export async function* modelCallIterator({
         usage: step.usage,
         content: step.content,
         responseId: step.response.id,
+        performance: step.performance,
         ...(finish?.providerMetadata != null
           ? { providerMetadata: finish.providerMetadata }
+          : {}),
+        ...(modelCallTiming != null
+          ? { timestamp: modelCallTiming.endedAt }
           : {}),
       });
 
@@ -481,16 +599,22 @@ export async function* modelCallIterator({
       }
 
       const shouldProcessTools =
-        isToolExecutionAllowed &&
-        (toolCalls.length > 0 || providerExecutedToolResults.size > 0);
+        (isToolExecutionAllowed &&
+          (toolCalls.length > 0 || providerExecutedToolResults.size > 0)) ||
+        (finishReason === 'length' && providerExecutedToolResults.size > 0);
 
-      if (hasTerminalError) {
-        // The error crossed the durable step boundary as data. End the loop
-        // without throwing so WorkflowAgent can preserve the existing
-        // resolved-result contract and expose the original value.
-        done = true;
-      } else if (shouldProcessTools) {
+      if (!hasTerminalError && shouldProcessTools) {
         lastStepWasYielded = true;
+        // Invalid local calls still need validation error results when execution
+        // is disallowed. WorkflowAgent handles them without executing the tools.
+        const processableToolCalls = isToolExecutionAllowed
+          ? toolCalls
+          : toolCalls.filter(
+              toolCall =>
+                (!toolCall.providerExecuted && toolCall.invalid) ||
+                (toolCall.providerExecuted &&
+                  providerExecutedToolResults.has(toolCall.toolCallId)),
+            );
 
         const {
           content: assistantContent,
@@ -523,7 +647,7 @@ export async function* modelCallIterator({
         // This allows executeTool to pass the conversation context to tool execute functions
         // Also include provider-executed tool results so they can be used instead of local execution
         const toolResults = yield {
-          toolCalls,
+          toolCalls: processableToolCalls,
           tools: effectiveTools,
           messages: conversationPrompt,
           step,
@@ -538,7 +662,7 @@ export async function* modelCallIterator({
           messages: conversationPrompt,
           toolResults,
           providerExecutedToolCallIds: new Set([
-            ...toolCalls.flatMap(toolCall =>
+            ...processableToolCalls.flatMap(toolCall =>
               toolCall.providerExecuted ? [toolCall.toolCallId] : [],
             ),
             ...providerExecutedToolResults.keys(),
@@ -565,13 +689,21 @@ export async function* modelCallIterator({
         );
 
         done =
+          !isToolExecutionAllowed ||
           stopConditionMet ||
           (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
       } else if (
+        hasTerminalError ||
         mode === 'generate' ||
         finishReason === 'stop' ||
         finishReason === 'tool-calls' ||
-        finishReason === 'length'
+        finishReason === 'length' ||
+        finishReason === 'content-filter' ||
+        finishReason === 'error' ||
+        finishReason === 'interrupted' ||
+        finishReason === 'other' ||
+        finishReason === 'unknown' ||
+        !finishReason
       ) {
         // Add assistant response content to the conversation
         const { content: assistantContent } = getAssistantMessageContent(
@@ -594,21 +726,6 @@ export async function* modelCallIterator({
           );
         }
 
-        done = true;
-      } else if (finishReason === 'content-filter') {
-        // Content filter triggered - stop but don't throw
-        done = true;
-      } else if (finishReason === 'error') {
-        // Model error - stop but don't throw
-        done = true;
-      } else if (finishReason === 'other') {
-        // Other reason - stop but don't throw
-        done = true;
-      } else if (finishReason === 'unknown') {
-        // Unknown reason - stop but don't throw
-        done = true;
-      } else if (!finishReason) {
-        // No finish reason - this might happen on incomplete streams
         done = true;
       } else {
         throw new Error(
@@ -650,6 +767,172 @@ export async function* modelCallIterator({
   }
 
   return conversationPrompt;
+}
+
+async function validateToolCallInputs({
+  toolCalls,
+  tools,
+  serializedTools,
+  repairToolCall,
+  repairedToolCallIds,
+  instructions,
+  messages,
+  abortSignal,
+}: {
+  toolCalls: ParsedToolCall[];
+  tools: ToolSet;
+  serializedTools: Record<string, SerializableToolDef>;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  repairedToolCallIds: Set<string>;
+  instructions?: Instructions;
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+}): Promise<ParsedToolCall[]> {
+  return Promise.all(
+    toolCalls.map(async toolCall => {
+      if (toolCall.invalid || toolCall.providerExecuted) {
+        return toolCall;
+      }
+
+      const tool = tools[toolCall.toolName];
+      if (tool == null) {
+        return toolCall;
+      }
+
+      const inputSchema = asSchema(tool.inputSchema);
+      if (inputSchema.validate == null) {
+        return toolCall;
+      }
+
+      let repairedInput: { value: unknown } | undefined;
+      const parsedToolCall = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input:
+            JSON.stringify(toolCall.input) ??
+            (toolCall.input == null ? '' : String(toolCall.input)),
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+        } satisfies LanguageModelV4ToolCall,
+        tools,
+        // A call that was already repaired inside the model step is not
+        // repaired again, matching parseToolCall's single repair attempt.
+        repairToolCall:
+          repairToolCall == null || repairedToolCallIds.has(toolCall.toolCallId)
+            ? undefined
+            : async options => {
+                const repairedToolCall = await repairToolCallInStep({
+                  repairToolCall,
+                  serializedTools,
+                  toolCall: options.toolCall,
+                  error: {
+                    toolName: options.toolCall.toolName,
+                    toolInput: options.toolCall.input,
+                    message: getErrorMessage(options.error),
+                  },
+                  instructions,
+                  messages: options.messages,
+                });
+                if (repairedToolCall != null) {
+                  const parsedRepairedInput =
+                    repairedToolCall.input.trim() === ''
+                      ? { success: true as const, value: {} }
+                      : await safeParseJSON({
+                          text: repairedToolCall.input,
+                        });
+                  if (parsedRepairedInput.success) {
+                    repairedInput = { value: parsedRepairedInput.value };
+                  }
+                }
+                return repairedToolCall;
+              },
+        instructions,
+        messages,
+        abortSignal,
+      });
+
+      const inputSchemaInput = repairedInput ?? { value: toolCall.input };
+
+      return {
+        ...toolCall,
+        ...parsedToolCall,
+        ...(!parsedToolCall.invalid &&
+        !isDeepEqualData(inputSchemaInput.value, parsedToolCall.input)
+          ? { inputSchemaInput: inputSchemaInput.value }
+          : {}),
+      };
+    }),
+  );
+}
+
+/**
+ * Runs `repairToolCall` inside a step. The callback may be a `'use step'`
+ * function, so its arguments must be serializable: the tools and the
+ * `inputSchema` accessor are rebuilt here instead of crossing the boundary
+ * from the workflow body.
+ */
+async function repairToolCallInStep({
+  repairToolCall,
+  serializedTools,
+  toolCall,
+  error,
+  instructions,
+  messages,
+}: {
+  repairToolCall: ToolCallRepairFunction<ToolSet>;
+  serializedTools: Record<string, SerializableToolDef>;
+  toolCall: LanguageModelV4ToolCall;
+  error: { toolName: string; toolInput: string; message: string };
+  instructions?: Instructions;
+  messages: ModelMessage[];
+}): Promise<LanguageModelV4ToolCall | null> {
+  'use step';
+  const tools = resolveSerializableTools(serializedTools);
+  return repairToolCall({
+    toolCall,
+    tools,
+    inputSchema: async ({ toolName }) =>
+      asSchema(tools[toolName]?.inputSchema).jsonSchema,
+    instructions,
+    system: instructions,
+    messages,
+    // Errors are passed as plain data and rebuilt so that
+    // `InvalidToolInputError.isInstance` keeps working in the callback.
+    error: new InvalidToolInputError({
+      toolName: error.toolName,
+      toolInput: error.toolInput,
+      cause: new Error(error.message),
+      message: error.message,
+    }),
+  });
+}
+
+async function writeDeferredToolCalls(
+  writable: WritableStream<ModelCallStreamPart<ToolSet>>,
+  toolCalls: ParsedToolCall[],
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const toolCall of toolCalls) {
+      await writer.write(toolCall as ModelCallStreamPart<ToolSet>);
+      // Match streamModelCall, which follows an invalid call with a tool-error.
+      if (toolCall.invalid && !toolCall.providerExecuted) {
+        await writer.write({
+          type: 'tool-error',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          error: getErrorMessage(toolCall.error),
+          dynamic: true,
+        } as ModelCallStreamPart<ToolSet>);
+      }
+    }
+  } finally {
+    writer.releaseLock();
+  }
 }
 
 async function invokeToolInputLifecycleCallbacks({
@@ -722,7 +1005,7 @@ async function invokeToolInputLifecycleCallbacks({
         break;
       case 'available': {
         const toolCall = toolCallsById.get(toolCallId);
-        if (toolCall == null) {
+        if (toolCall == null || toolCall.invalid) {
           break;
         }
         await tool.onInputAvailable?.({
@@ -795,13 +1078,12 @@ function getAssistantMessageContent(
         contentIndex++;
         break;
       }
-      case 'custom':
-        if (mode === 'generate') {
-          const { providerMetadata, ...messagePart } = part;
-          content.push({ ...messagePart, providerOptions: providerMetadata });
-          contentIndex++;
-        }
+      case 'custom': {
+        const { providerMetadata, ...messagePart } = part;
+        content.push({ ...messagePart, providerOptions: providerMetadata });
+        contentIndex++;
         break;
+      }
       case 'reasoning-file':
         if (mode !== 'generate') break;
       case 'file':

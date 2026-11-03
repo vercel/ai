@@ -3,6 +3,7 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
   type EmbeddingModelProviderOptionsTransformer,
@@ -26,7 +27,7 @@ import {
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -84,6 +85,7 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -136,7 +138,8 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
           content: {
             parts,
           },
-          outputDimensionality: googleOptions?.outputDimensionality,
+          outputDimensionality:
+            googleOptions?.outputDimensionality ?? dimensions,
           taskType: googleOptions?.taskType,
         },
         failedResponseHandler: googleFailedResponseHandler,
@@ -176,7 +179,8 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
                   ? [...textPart, ...valueParts]
                   : [{ text: value }],
             },
-            outputDimensionality: googleOptions?.outputDimensionality,
+            outputDimensionality:
+              googleOptions?.outputDimensionality ?? dimensions,
             taskType: googleOptions?.taskType,
           };
         }),

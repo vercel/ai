@@ -3,7 +3,6 @@ name: Slack Workflow Failure Notification
 on:
   workflow_run:
     workflows:
-      - 'Auto-merge Release PRs'
       - 'Backport'
       - 'CI'
       - 'Release'

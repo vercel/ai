@@ -24,6 +24,9 @@ export const DEFAULT_MAX_DOWNLOAD_SIZE = 2 * 1024 * 1024 * 1024;
  * @param response - The fetch Response to read.
  * @param url - The URL being downloaded (used in error messages).
  * @param maxBytes - Maximum allowed bytes. Defaults to DEFAULT_MAX_DOWNLOAD_SIZE.
+ * @param onChunk - Optional. Receives each chunk instead of the chunks being
+ * collected, so the body is not held in memory, and the returned array is empty.
+ * The chunk may be a view on a larger buffer, copy what you keep.
  * @returns A Uint8Array containing the response body.
  * @throws DownloadError if the response exceeds maxBytes.
  */
@@ -31,10 +34,12 @@ export async function readResponseWithSizeLimit({
   response,
   url,
   maxBytes = DEFAULT_MAX_DOWNLOAD_SIZE,
+  onChunk,
 }: {
   response: Response;
   url: string;
   maxBytes?: number;
+  onChunk?: (chunk: Uint8Array) => void;
 }): Promise<Uint8Array> {
   // Early rejection based on Content-Length header
   const contentLength = response.headers.get('content-length');
@@ -79,7 +84,19 @@ export async function readResponseWithSizeLimit({
         });
       }
 
-      chunks.push(value);
+      if (onChunk != null) {
+        onChunk(value);
+        continue;
+      }
+
+      // A small chunk can keep a much larger backing buffer alive. Copy such
+      // views before retaining them. Unlike Uint8Array, Node Buffer's slice()
+      // returns another view, so use the Uint8Array constructor to copy.
+      chunks.push(
+        value.byteLength < value.buffer.byteLength
+          ? new Uint8Array(value)
+          : value,
+      );
     }
   } finally {
     try {
@@ -92,7 +109,7 @@ export async function readResponseWithSizeLimit({
   }
 
   // Concatenate chunks into a single Uint8Array
-  const result = new Uint8Array(totalBytes);
+  const result = new Uint8Array(onChunk != null ? 0 : totalBytes);
   let offset = 0;
   for (const chunk of chunks) {
     result.set(chunk, offset);

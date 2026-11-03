@@ -288,6 +288,80 @@ describe('resolveOpenCodeAuthenticationMode', () => {
 });
 
 describe('createOpenCodeRequestTransformations', () => {
+  it.each([
+    {
+      instanceUrl: undefined,
+      host: 'gitlab.com',
+      path: '/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example',
+      host: 'gitlab.example',
+      path: '/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/gitlab',
+      host: 'gitlab.example',
+      path: '/gitlab/api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/',
+      host: 'gitlab.example',
+      path: '//api/v4/ai/third_party_agents/direct_access',
+    },
+    {
+      instanceUrl: 'https://gitlab.example/gitlab/',
+      host: 'gitlab.example',
+      path: '/gitlab//api/v4/ai/third_party_agents/direct_access',
+    },
+  ])(
+    'restricts GitLab credentials to the POST chat exchange for $instanceUrl',
+    ({ instanceUrl, host, path }) => {
+      expect(
+        createOpenCodeRequestTransformations({
+          env: {
+            GITLAB_TOKEN: 'gitlab-secret',
+            ...(instanceUrl == null
+              ? {}
+              : { GITLAB_INSTANCE_URL: instanceUrl }),
+          },
+          sandboxEnv: { GITLAB_TOKEN: 'sandbox-gitlab-placeholder' },
+          auth: 'gitlab',
+        }),
+      ).toEqual([
+        {
+          match: {
+            host,
+            path: { exact: path },
+            method: ['POST'],
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: { exact: 'Bearer sandbox-gitlab-placeholder' },
+              },
+            ],
+          },
+          transform: { headers: { Authorization: 'Bearer gitlab-secret' } },
+        },
+      ]);
+    },
+  );
+
+  it.each<{
+    env: Record<string, string>;
+    sandboxEnv: Record<string, string>;
+  }>([
+    { env: {}, sandboxEnv: { GITLAB_TOKEN: 'sandbox-gitlab-placeholder' } },
+    { env: { GITLAB_TOKEN: 'gitlab-secret' }, sandboxEnv: {} },
+  ])(
+    'omits GitLab transformations when a credential is missing: %j',
+    sources => {
+      expect(
+        createOpenCodeRequestTransformations({ ...sources, auth: 'gitlab' }),
+      ).toEqual([]);
+    },
+  );
+
   it('uses the resolved OpenAI route', () => {
     expect(
       createOpenCodeRequestTransformations({
