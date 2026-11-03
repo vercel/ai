@@ -70,6 +70,33 @@ describe('ToolLoopAgent experimental_steering', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
   });
 
+  it('should deliver queued messages one task at a time in generate()', async () => {
+    const steering = createSteering();
+    const first = steering.queue('Then tell me about Tokyo.');
+    const second = steering.queue('Then tell me about Lagos.');
+    const answers = [
+      'It is sunny in Paris.',
+      'Tokyo is rainy.',
+      'Lagos is hot.',
+    ];
+    let call = 0;
+
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => textResponse(answers[call++]),
+    });
+
+    const agent = new ToolLoopAgent({ model });
+
+    const result = await agent.generate({
+      prompt: 'What is the weather in Paris?',
+      experimental_steering: steering,
+    });
+
+    expect(result.text).toBe('Lagos is hot.');
+    expect(await first).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(await second).toMatchObject({ type: 'delivered', stepNumber: 2 });
+  });
+
   it('should deliver messages in stream()', async () => {
     const steering = createSteering();
     let outcome: Promise<SteeringOutcome> | undefined;

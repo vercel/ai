@@ -15014,3 +15014,38 @@ describe('generateText', () => {
     });
   });
 });
+
+it('sanitizes provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = await generateText({
+    model: new MockLanguageModelV4({
+      doGenerate: async () => ({
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: 'hello' }],
+        request,
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  expect(result.finalStep.request.url).toBe('https://model.example.test:8443');
+  expect(result.steps[0].request.url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
+});

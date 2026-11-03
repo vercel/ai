@@ -15,36 +15,62 @@ permissions:
 
 jobs:
   notify:
-    # The release workflow itself only runs for this repository. Keep the same
-    # guard here so a successful no-op run in a fork does not try to download a
-    # manifest that was never created.
+    # Only consume the release producer on explicitly trusted branches. A
+    # successful PR run (including one from a fork) must never get write access.
     if: >-
-      github.repository_owner == 'vercel' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.repository == 'vercel/ai' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.path == '.github/workflows/release.yml' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      contains(fromJSON('["push", "workflow_dispatch"]'), github.event.workflow_run.event) &&
+      contains(fromJSON('["main", "release-v5.0", "release-v6.0"]'), github.event.workflow_run.head_branch)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout release revision
+      - name: Checkout trusted notification revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
       - name: Download notification manifest
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-notification
-          path: .release-notification
+          path: ${{ runner.temp }}/release-notification
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Read notification manifest
+      - name: Validate and read notification manifest
         id: notification
         run: |
-          manifest=.release-notification/notification.json
+          manifest="$MANIFEST_PATH"
+          jq -se '
+            length == 1 and (.[0] |
+              type == "object" and
+              (if .type == "snapshot" then
+                keys == ["type"]
+              else
+                .type == "release" and
+                (.publishedPackages | type == "array") and
+                all(.publishedPackages[];
+                  type == "object" and
+                  (.name | type == "string") and
+                  (.name | test("^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*\\z")) and
+                  (.version | type == "string") and
+                  (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?\\z"))
+                ) and
+                (.pullRequestNumber | type == "string") and
+                (.pullRequestNumber | test("^([1-9][0-9]*)?\\z")) and
+                ((.publishedPackages | length) == 0 or .pullRequestNumber != "")
+              end)
+            )
+          ' "$manifest" > /dev/null
           echo "type=$(jq -r '.type' "$manifest")" >> "$GITHUB_OUTPUT"
           echo "published-packages=$(jq -c '.publishedPackages // []' "$manifest")" >> "$GITHUB_OUTPUT"
           echo "pull-request-number=$(jq -r '.pullRequestNumber // empty' "$manifest")" >> "$GITHUB_OUTPUT"
           echo "has-published-packages=$(jq '(.publishedPackages | length) > 0' "$manifest")" >> "$GITHUB_OUTPUT"
+        env:
+          MANIFEST_PATH: ${{ runner.temp }}/release-notification/notification.json
 
       - name: Attach SLSA provenance to GitHub Releases
         if: >-
@@ -78,4 +104,4 @@ jobs:
           GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
           GITHUB_REF_NAME: ${{ github.event.workflow_run.head_branch }}
           GITHUB_RUN_ID: ${{ github.event.workflow_run.id }}
-          SNAPSHOT_PACKAGES_DIRECTORY: ${{ github.workspace }}/.release-notification/packages
+          SNAPSHOT_PACKAGES_DIRECTORY: ${{ runner.temp }}/release-notification/packages

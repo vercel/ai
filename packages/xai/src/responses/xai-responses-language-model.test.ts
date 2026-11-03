@@ -5161,6 +5161,59 @@ describe('XaiResponsesLanguageModel', () => {
     });
   });
 
+  describe('incomplete response handling (doGenerate)', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [
+          {
+            type: 'message',
+            id: 'msg_456',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [
+              { type: 'output_text', text: 'partial output', annotations: [] },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 4096 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'length',
+        raw: 'max_output_tokens',
+      });
+    });
+
+    it('should set finish reason to other when incomplete_details is missing', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        output: [],
+        usage: { input_tokens: 50, output_tokens: 200 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'other',
+        raw: 'incomplete',
+      });
+    });
+  });
+
   describe('response.incomplete handling', () => {
     it('should set finish reason to length for max_output_tokens', async () => {
       prepareStreamChunks([

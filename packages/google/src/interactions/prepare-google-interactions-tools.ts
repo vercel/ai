@@ -39,7 +39,7 @@ export type PrepareGoogleInteractionsToolsResult = {
  * `toolChoice` shapes:
  * - `'auto'`     -> `'auto'`
  * - `'required'` -> `'any'`
- * - `'none'`     -> `'none'`
+ * - `'none'`     -> omit all tools and `tool_choice`
  * - `{ type: 'tool', toolName }` -> `{ allowed_tools: { mode: 'validated', tools: [name] } }`
  *   (Interactions `AllowedTools.tools` is an `Array<string>` of function
  *   names, not tool descriptors -- see `src/interactions/resources/interactions.ts`
@@ -53,6 +53,12 @@ export function prepareGoogleInteractionsTools({
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): PrepareGoogleInteractionsToolsResult {
   const toolWarnings: Array<SharedV4Warning> = [];
+
+  // The API's tool_choice only controls function tools. Omit all tools to
+  // disable provider-executed tools as well.
+  if (toolChoice?.type === 'none') {
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
+  }
 
   const normalized = tools?.length ? tools : undefined;
 
@@ -222,9 +228,6 @@ export function prepareGoogleInteractionsTools({
         break;
       case 'required':
         mappedToolChoice = 'any';
-        break;
-      case 'none':
-        mappedToolChoice = 'none';
         break;
       case 'tool':
         mappedToolChoice = {

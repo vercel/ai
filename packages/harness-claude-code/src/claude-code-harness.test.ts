@@ -20,6 +20,7 @@ const channelListeners = new Map<
   Set<(event: Record<string, unknown>) => void>
 >();
 let connectOnOpen = false;
+let channelSendError: Error | undefined;
 
 function dispatchChannelEvent(event: Record<string, unknown>): void {
   for (const listener of channelListeners.get(String(event.type)) ?? []) {
@@ -136,8 +137,13 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       return () => {};
     }
     onClose(): void {}
-    send(msg: Record<string, unknown>): void {
+    send(
+      msg: Record<string, unknown>,
+      { onSent }: { onSent?: () => void } = {},
+    ): void {
+      if (channelSendError != null) throw channelSendError;
       sentMessages.push(msg);
+      if (onSent) queueMicrotask(onSent);
     }
     beginClose(): void {}
     isClosed(): boolean {
@@ -298,9 +304,11 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
-async function startWithFakeBridgeSocket() {
+async function startWithFakeBridgeSocket(
+  settings?: Parameters<typeof createClaudeCode>[0],
+) {
   connectOnOpen = true;
-  const harness = createClaudeCode();
+  const harness = createClaudeCode(settings);
   return harness.doStart({
     sessionId: 's1',
     sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -321,10 +329,12 @@ describe('createClaudeCode adapter', () => {
     subscribedEventTypes.length = 0;
     channelListeners.clear();
     connectOnOpen = false;
+    channelSendError = undefined;
     wsMock.reset();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -1732,6 +1742,10 @@ describe('createClaudeCode adapter', () => {
 
     expect(lastStart()).toMatchObject({
       skills: ['weather-forecast', 'weather-codes'],
+      readableSkillRoots: [
+        '/home/vercel-sandbox/.claude/skills/weather-forecast',
+        '/home/vercel-sandbox/.claude/skills/weather-codes',
+      ],
     });
 
     const skillWrites = writes.filter(write =>
@@ -1987,6 +2001,115 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('bridge WebSocket startup', () => {
+    it('cleans up a turn whose initial start cannot be sent', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      channelSendError = new Error('channel is closed');
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Hello',
+          emit: () => {},
+        }),
+      ).rejects.toThrow('channel is closed');
+      expect(vi.getTimerCount()).toBe(0);
+      expect(
+        [...channelListeners.values()].every(listeners => listeners.size === 0),
+      ).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      channelSendError = undefined;
+      await session.doDestroy();
+    });
+
+    it('clears the startup deadline when the caller aborts', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const abort = new AbortController();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+        abortSignal: abort.signal,
+      });
+      const done = expect(control.done).rejects.toThrow('cancelled');
+      abort.abort(new Error('cancelled'));
+      await done;
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
+
+    it('fails a silent turn after the startup deadline', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      const done = expect(control.done).rejects.toThrow(
+        'did not emit a turn event within 100ms',
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      await done;
+      expect(sentMessages).toContainEqual({ type: 'abort' });
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
+
+    it('clears the startup deadline on the first bridge event', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      dispatchChannelEvent({ type: 'text-delta', id: 'm', delta: 'Hello' });
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(sentMessages).not.toContainEqual({ type: 'abort' });
+      dispatchChannelEvent({ type: 'finish' });
+      await control.done;
+      await session.doDestroy();
+    });
+
     it('exposes steering when the bridge advertises acknowledged user messages', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
