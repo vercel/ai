@@ -152,6 +152,7 @@ export async function streamDeepgramTranscription(
         let keepAlive: ReturnType<typeof setInterval> | undefined;
         let inputEnded = false;
         let duration: number | undefined;
+        let reportedDuration: number | undefined;
         let language = providerOptions?.language ?? undefined;
         const finalTexts: string[] = [];
         const segments: {
@@ -181,8 +182,9 @@ export async function streamDeepgramTranscription(
             text: finalTexts.join(' '),
             segments,
             language,
-            ...(duration != null
-              ? { durationInSeconds: duration, usage: { seconds: duration } }
+            ...(duration != null ? { durationInSeconds: duration } : {}),
+            ...(reportedDuration != null
+              ? { usage: { seconds: reportedDuration } }
               : {}),
           });
           controller.close();
@@ -269,6 +271,7 @@ export async function streamDeepgramTranscription(
                 value: parsed.rawValue,
                 schema: streamingMetadataSchema,
               });
+              reportedDuration = event.duration ?? reportedDuration;
               duration = event.duration ?? duration;
               controller.enqueue({
                 type: 'response-metadata',

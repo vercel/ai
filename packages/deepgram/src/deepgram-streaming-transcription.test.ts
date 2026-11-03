@@ -267,6 +267,22 @@ describe('Deepgram streaming transcription', () => {
     });
   });
 
+  it('omits native usage when only transcript timing is available', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await flush();
+    socket.message(results('Hello!'));
+    socket.serverClose();
+    const finish = (await parts).at(-1);
+    expect(finish).toMatchObject({ type: 'finish', durationInSeconds: 1.5 });
+    expect(finish).not.toHaveProperty('usage');
+  });
+
   it.each([false, true])(
     'accepts speech and utterance events with raw chunks enabled: %s',
     async includeRawChunks => {
