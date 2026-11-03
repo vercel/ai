@@ -837,7 +837,7 @@ import { cleaveTools } from '@cleave-protocol/ai-sdk';
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
   prompt:
-    'Plan a swap of 25 USDC to WETH on Base for wallet 0x00000000000000000000000000000000000A11cE.',
+    'Plan a swap of 25 USDC to WETH on Base for wallet 0x00000000000000000000000000000000000a11ce.',
   tools: cleaveTools(),
   stopWhen: isStepCount(5),
 });
