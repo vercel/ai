@@ -714,7 +714,7 @@ describe('runBridge', () => {
     // exactly one MiB, so the 16 MiB cap fills after exactly sixteen entries.
     const MIB = 1024 * 1024;
     const oneMibOutputFor = (toolCallId: string): string =>
-      x.repeat(MIB - 13 - String(toolCallId).length);
+      'x'.repeat(MIB - 13 - String(toolCallId).length);
 
     const byToolCallId = (a: string, b: string): number =>
       Number(a.slice(3)) - Number(b.slice(3));
@@ -851,7 +851,7 @@ describe('runBridge', () => {
       client.send({
         type: 'tool-result',
         toolCallId: 'tc-16',
-        output: oneMibOutputFor(id),
+        output: oneMibOutputFor('tc-16'),
       });
       client.send({
         type: 'tool-result',
@@ -862,7 +862,7 @@ describe('runBridge', () => {
       await checked;
       endTurn();
 
-      expect(collected).toBe(oneMibOutputFor(id));
+      expect(collected).toBe(oneMibOutputFor('tc-16'));
       expect(nextStillBuffered).toBe(true);
     });
   });
