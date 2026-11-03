@@ -1,0 +1,359 @@
+import {
+  InvalidArgumentError,
+  UnsupportedFunctionalityError,
+  type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  connectToWebSocket,
+  convertBase64ToUint8Array,
+  lazySchema,
+  parseJSON,
+  parseProviderOptions,
+  resolve,
+  toWebSocketUrl,
+  waitForWebSocketBufferDrain,
+  zodSchema,
+  type WebSocketConnection,
+  type WebSocketLike,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import type { DeepgramConfig } from './deepgram-config';
+import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
+
+type StreamOptions = Parameters<
+  NonNullable<TranscriptionModelV4['doStream']>
+>[0];
+
+export async function streamDeepgramTranscription(
+  modelId: string,
+  config: DeepgramConfig & { _internal?: { currentDate?: () => Date } },
+  options: StreamOptions,
+): Promise<Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>> {
+  if (modelId.startsWith('flux')) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'Deepgram Flux streaming transcription (/v2/listen)',
+    });
+  }
+
+  const encodings = new Map([
+    ['audio/pcm', 'linear16'],
+    ['audio/pcmu', 'mulaw'],
+    ['audio/pcma', 'alaw'],
+  ]);
+  const encoding = encodings.get(options.inputAudioFormat.type);
+  const rate = options.inputAudioFormat.rate;
+  if (
+    encoding == null ||
+    rate == null ||
+    !Number.isInteger(rate) ||
+    rate <= 0
+  ) {
+    throw new InvalidArgumentError({
+      argument: 'inputAudioFormat',
+      message:
+        'Deepgram streaming requires audio/pcm (16-bit little-endian), audio/pcmu, or audio/pcma and a positive integer sample rate.',
+    });
+  }
+
+  const providerOptions = await parseProviderOptions({
+    provider: 'deepgram',
+    providerOptions: options.providerOptions,
+    schema: deepgramTranscriptionModelOptionsSchema,
+  });
+  const warnings: SharedV4Warning[] = [];
+  const url = toWebSocketUrl(config.url({ path: '/v1/listen', modelId }));
+  url.searchParams.set('model', modelId);
+  url.searchParams.set('encoding', encoding);
+  url.searchParams.set('sample_rate', String(rate));
+
+  const mappings = {
+    language: 'language',
+    smartFormat: 'smart_format',
+    punctuate: 'punctuate',
+    diarize: 'diarize',
+    fillerWords: 'filler_words',
+    redact: 'redact',
+    replace: 'replace',
+    search: 'search',
+    keyterm: 'keyterm',
+  } as const;
+  for (const [key, value] of Object.entries(providerOptions ?? {})) {
+    if (value == null || key === 'streaming') continue;
+    const parameter = mappings[key as keyof typeof mappings];
+    if (parameter == null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: `providerOptions.deepgram.${key}`,
+        details:
+          'This option is not supported for Deepgram streaming transcription.',
+      });
+      continue;
+    }
+    for (const entry of Array.isArray(value) ? value : [value]) {
+      url.searchParams.append(parameter, String(entry));
+    }
+  }
+  const streaming = providerOptions?.streaming;
+  const streamingMappings = {
+    interimResults: 'interim_results',
+    endpointing: 'endpointing',
+    channels: 'channels',
+    multichannel: 'multichannel',
+    vadEvents: 'vad_events',
+    utteranceEndMs: 'utterance_end_ms',
+  } as const;
+  for (const [key, value] of Object.entries(streaming ?? {})) {
+    if (value != null)
+      url.searchParams.set(
+        streamingMappings[key as keyof typeof streamingMappings],
+        String(value),
+      );
+  }
+
+  const headers = combineHeaders(
+    await resolve(config.headers),
+    options.headers,
+  );
+  const authorization = new Headers(headers as Record<string, string>).get(
+    'authorization',
+  );
+  // The subprotocol authentication channel also works with native WebSockets,
+  // which cannot send custom HTTP headers. Never put credentials in the URL.
+  const protocols = authorization?.startsWith('Token ')
+    ? ['token', authorization.slice('Token '.length)]
+    : undefined;
+  const timestamp = config._internal?.currentDate?.() ?? new Date();
+  let finished = false;
+  let cleanup: () => void = () => {};
+
+  return {
+    request: { body: url.toString() },
+    response: { timestamp, modelId },
+    stream: new ReadableStream<TranscriptionModelV4StreamPart>({
+      start(controller) {
+        let connection: WebSocketConnection | undefined;
+        let reader:
+          | ReadableStreamDefaultReader<Uint8Array | string>
+          | undefined;
+        let keepAlive: ReturnType<typeof setInterval> | undefined;
+        let inputEnded = false;
+        let duration: number | undefined;
+        let language = providerOptions?.language ?? undefined;
+        const finalTexts: string[] = [];
+        const segments: {
+          text: string;
+          startSecond: number;
+          endSecond: number;
+        }[] = [];
+
+        cleanup = () => {
+          clearInterval(keepAlive);
+          void (
+            reader != null ? reader.cancel() : options.audio.cancel()
+          ).catch(() => {});
+          connection?.close(1000);
+        };
+        const fail = (error: unknown) => {
+          if (finished) return;
+          finished = true;
+          controller.error(error);
+          cleanup();
+        };
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          controller.enqueue({
+            type: 'finish',
+            text: finalTexts.join(' '),
+            segments,
+            language,
+            ...(duration != null
+              ? { durationInSeconds: duration, usage: { seconds: duration } }
+              : {}),
+          });
+          controller.close();
+          cleanup();
+        };
+        const sendAudio = async (socket: WebSocketLike) => {
+          reader = options.audio.getReader();
+          try {
+            while (true) {
+              if (finished) break;
+              const { done, value } = await reader.read();
+              if (done || finished) break;
+              const bytes =
+                typeof value === 'string'
+                  ? convertBase64ToUint8Array(value)
+                  : value;
+              if (bytes.byteLength === 0) continue;
+              socket.send(bytes);
+              await waitForWebSocketBufferDrain(socket, {
+                abortSignal: options.abortSignal,
+              });
+            }
+          } finally {
+            reader.releaseLock();
+            reader = undefined;
+          }
+          if (!finished) {
+            inputEnded = true;
+            clearInterval(keepAlive);
+            socket.send(JSON.stringify({ type: 'CloseStream' }));
+          }
+        };
+
+        connection = connectToWebSocket({
+          url,
+          headers,
+          protocols,
+          webSocket: config.webSocket,
+          abortSignal: options.abortSignal,
+          onAbort: fail,
+          onProcessingError: fail,
+          onOpen(socket) {
+            controller.enqueue({ type: 'stream-start', warnings });
+            // Deepgram closes idle connections after ten seconds. Keep an open
+            // microphone alive even while its producer has no audio to send.
+            keepAlive = setInterval(() => {
+              if (finished || socket.readyState !== 1) return;
+              try {
+                socket.send(JSON.stringify({ type: 'KeepAlive' }));
+              } catch (error) {
+                fail(error);
+              }
+            }, 4000);
+            void sendAudio(socket).catch(fail);
+          },
+          async onMessageText(text) {
+            if (finished) return;
+            const event = await parseJSON({
+              text,
+              schema: streamingEventSchema,
+            });
+            if (finished) return;
+            if (options.includeRawChunks) {
+              controller.enqueue({
+                type: 'raw',
+                rawValue: await parseJSON({ text }),
+              });
+            }
+            if (event.type === 'Error') {
+              fail(
+                new Error(
+                  event.description ??
+                    event.message ??
+                    'Deepgram streaming transcription failed.',
+                ),
+              );
+            } else if (event.type === 'Metadata') {
+              duration = event.duration ?? duration;
+              controller.enqueue({
+                type: 'response-metadata',
+                timestamp,
+                modelId,
+                body: event,
+              });
+              if (inputEnded) finish();
+            } else if (event.type === 'Results') {
+              const alternative = event.channel?.alternatives[0];
+              if (alternative == null)
+                throw new Error(
+                  'Deepgram Results event is missing a transcript alternative.',
+                );
+              const text = alternative.transcript;
+              language = alternative.languages?.[0] ?? language;
+              const start = event.start ?? 0;
+              const end = start + (event.duration ?? 0);
+              duration = Math.max(duration ?? 0, end);
+              const providerMetadata = {
+                deepgram: { speechFinal: event.speech_final ?? false },
+              };
+              if (event.is_final === true) {
+                if (text.length > 0) finalTexts.push(text);
+                segments.push(
+                  ...(alternative.words?.map(word => ({
+                    text: word.punctuated_word ?? word.word,
+                    startSecond: word.start,
+                    endSecond: word.end,
+                  })) ?? []),
+                );
+                controller.enqueue({
+                  type: 'transcript-final',
+                  text,
+                  startSecond: start,
+                  endSecond: end,
+                  channelIndex: event.channel_index?.[0],
+                  providerMetadata,
+                });
+              } else {
+                controller.enqueue({
+                  type: 'transcript-partial',
+                  text,
+                  startSecond: start,
+                  durationInSeconds: event.duration ?? undefined,
+                  channelIndex: event.channel_index?.[0],
+                  providerMetadata,
+                });
+              }
+            }
+          },
+          onSocketError: () =>
+            fail(new Error('Deepgram streaming WebSocket error.')),
+          onClose({ code, reason }) {
+            if (finished) return;
+            if (!inputEnded || (code != null && code !== 1000)) {
+              fail(
+                new Error(
+                  `Deepgram streaming connection closed unexpectedly${code != null ? ` (${code})` : ''}${reason ? `: ${reason}` : '.'}`,
+                ),
+              );
+            } else finish();
+          },
+        });
+      },
+      cancel() {
+        if (finished) return;
+        finished = true;
+        cleanup();
+      },
+    }),
+  };
+}
+
+const streamingEventSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      type: z.string(),
+      is_final: z.boolean().nullish(),
+      speech_final: z.boolean().nullish(),
+      start: z.number().nullish(),
+      duration: z.number().nullish(),
+      channel_index: z.array(z.number()).nullish(),
+      channel: z
+        .object({
+          alternatives: z.array(
+            z.object({
+              transcript: z.string(),
+              languages: z.array(z.string()).nullish(),
+              words: z
+                .array(
+                  z.object({
+                    word: z.string(),
+                    punctuated_word: z.string().nullish(),
+                    start: z.number(),
+                    end: z.number(),
+                  }),
+                )
+                .nullish(),
+            }),
+          ),
+        })
+        .nullish(),
+      description: z.string().nullish(),
+      message: z.string().nullish(),
+    }),
+  ),
+);
