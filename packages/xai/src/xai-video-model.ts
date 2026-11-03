@@ -1,6 +1,7 @@
 import {
   AISDKError,
   APICallError,
+  InvalidArgumentError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
@@ -212,11 +213,24 @@ export class XaiVideoModel implements VideoModelV4 {
   }> {
     const warnings: SharedV4Warning[] = [];
 
-    const xaiOptions = (await parseProviderOptions({
-      provider: 'xai',
-      providerOptions: options.providerOptions,
-      schema: xaiVideoModelOptionsSchema,
-    })) as XaiParsedVideoModelOptions | undefined;
+    let xaiOptions: XaiParsedVideoModelOptions | undefined;
+    try {
+      xaiOptions = await parseProviderOptions({
+        provider: 'xai',
+        providerOptions: options.providerOptions,
+        schema: xaiVideoModelOptionsSchema,
+      });
+    } catch (error) {
+      // Validation errors include the original options in their cause. Signed
+      // upload URLs must not appear in diagnostics, including other option errors.
+      if (options.providerOptions?.xai?.output !== undefined) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions.xai',
+          message: 'Invalid xAI video provider options for upload delivery.',
+        });
+      }
+      throw error;
+    }
 
     const effectiveMode = resolveVideoMode(options, xaiOptions);
 
@@ -605,6 +619,22 @@ export class XaiVideoModel implements VideoModelV4 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    }).catch(error => {
+      if (xaiOptions?.output != null && APICallError.isInstance(error)) {
+        // The API error contains the full request and may echo it in its
+        // response. Keep retry semantics, but discard credential-bearing details.
+        throw new APICallError({
+          message: 'xAI video upload request failed.',
+          url: endpoint,
+          requestBodyValues: {
+            ...body,
+            output: { upload_url: '[REDACTED]' },
+          },
+          statusCode: error.statusCode,
+          isRetryable: error.isRetryable,
+        });
+      }
+      throw error;
     });
 
     const requestId = createResponse.request_id;
@@ -652,6 +682,17 @@ export class XaiVideoModel implements VideoModelV4 {
       failedResponseHandler: xaiFailedResponseHandler,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    }).catch(error => {
+      if (hasUploadUrl && APICallError.isInstance(error)) {
+        throw new APICallError({
+          message: 'xAI video upload status request failed.',
+          url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
+          requestBodyValues: undefined,
+          statusCode: error.statusCode,
+          isRetryable: error.isRetryable,
+        });
+      }
+      throw error;
     });
 
     if (statusResponse.status === 'expired') {
@@ -673,7 +714,7 @@ export class XaiVideoModel implements VideoModelV4 {
       return {
         status: 'error' as const,
         error:
-          errorDetails != null
+          !hasUploadUrl && errorDetails != null
             ? `Video generation failed: ${errorDetails}`
             : 'Video generation failed.',
         response: {

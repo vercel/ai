@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
@@ -306,8 +306,108 @@ describe('XaiVideoModel', () => {
           ...defaultOptions,
           providerOptions: { xai: { output } },
         }),
-      ).rejects.toThrow('invalid xai provider options');
+      ).rejects.toThrow(
+        'Invalid xAI video provider options for upload delivery.',
+      );
       expect(server.calls).toHaveLength(0);
+    });
+
+    it('omits signed URLs from validation error causes', async () => {
+      let caught: unknown;
+      try {
+        await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              output: {
+                uploadUrl:
+                  'https://storage.example.com/video.mp4?signature=secret',
+              },
+              resolution: 'invalid',
+            },
+          },
+        });
+      } catch (error) {
+        caught = error;
+      }
+      expect(InvalidArgumentError.isInstance(caught)).toBe(true);
+      expect(caught).toMatchObject({ cause: undefined });
+      expect(String(caught)).not.toContain('signature=secret');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('redacts signed URLs from start API errors while preserving retryability', async () => {
+      const uploadUrl =
+        'https://storage.example.com/video.mp4?signature=secret';
+      server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
+        type: 'error',
+        status: 429,
+        body: JSON.stringify({
+          error: { message: `Failed to upload to ${uploadUrl}` },
+        }),
+      };
+      let caught: unknown;
+      try {
+        await createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { output: { uploadUrl } } },
+        });
+      } catch (error) {
+        caught = error;
+      }
+      expect(APICallError.isInstance(caught)).toBe(true);
+      expect(caught).toMatchObject({
+        statusCode: 429,
+        isRetryable: true,
+        requestBodyValues: { output: { upload_url: '[REDACTED]' } },
+        responseBody: undefined,
+        cause: undefined,
+        data: undefined,
+      });
+      expect(JSON.stringify(caught)).not.toContain('signature=secret');
+      expect(String(caught)).not.toContain('signature=secret');
+    });
+
+    it('omits provider error bodies from upload status request failures', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({
+          error: {
+            message: 'https://storage.example.com/video.mp4?signature=secret',
+          },
+        }),
+      };
+      await expect(
+        createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).rejects.toMatchObject({
+        message: 'xAI video upload status request failed.',
+        statusCode: 500,
+        isRetryable: true,
+        requestBodyValues: undefined,
+        responseBody: undefined,
+        data: undefined,
+        cause: undefined,
+      });
+    });
+
+    it('does not echo signed destinations from terminal upload failures', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          error: {
+            message: 'https://storage.example.com/video.mp4?signature=secret',
+          },
+        },
+      };
+      expect(
+        await createModel().doStatus({
+          operation: { requestId: 'req-123', hasUploadUrl: true },
+        }),
+      ).toMatchObject({ status: 'error', error: 'Video generation failed.' });
     });
 
     it('preserves the missing URL error otherwise', async () => {
