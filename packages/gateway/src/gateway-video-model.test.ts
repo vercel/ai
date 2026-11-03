@@ -68,6 +68,7 @@ describe('GatewayVideoModel', () => {
 
   describe('doGenerate', () => {
     type VideoData =
+      | { type: 'uploaded'; mediaType: string }
       | { type: 'url'; url: string; mediaType: string }
       | { type: 'base64'; data: string; mediaType: string };
 
@@ -249,6 +250,20 @@ describe('GatewayVideoModel', () => {
       });
 
       expect(result.videos).toEqual(mockVideos);
+    });
+
+    it('accepts uploaded video outcomes', async () => {
+      const videos: VideoData[] = [
+        { type: 'uploaded', mediaType: 'video/mp4' },
+      ];
+      prepareJsonResponse({ videos });
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        providerOptions: {},
+      });
+      expect(result.videos).toEqual(videos);
     });
 
     it('should return provider metadata correctly', async () => {
@@ -1359,6 +1374,24 @@ describe('GatewayVideoModel', () => {
       expect(result.response.modelId).toBe(TEST_MODEL_ID);
       await expect(server.calls[0].requestBodyJson).resolves.toEqual({
         operation: { gatewayJobId: 'job_123' },
+      });
+    });
+
+    it('accepts uploaded outcomes in completed status responses', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'completed',
+          videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+          warnings: [],
+        },
+      };
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
       });
     });
 
