@@ -887,6 +887,7 @@ export class OpenTelemetry implements Telemetry {
 
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
+        ...getServerAttributes(event.request.url),
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
         'gen_ai.response.model': event.response.modelId,

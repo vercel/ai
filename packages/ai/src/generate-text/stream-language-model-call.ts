@@ -1,4 +1,7 @@
-import { getRequestOrigin } from '../telemetry/get-request-origin';
+import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
 import {
   getErrorMessage,
   type LanguageModelV4Content,
@@ -356,7 +359,7 @@ export async function streamLanguageModelCall<
   const {
     stream: languageModelStream,
     response,
-    request,
+    request: rawRequest,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
     execute: async () =>
@@ -372,6 +375,8 @@ export async function streamLanguageModelCall<
         includeRawChunks,
       }),
   });
+
+  const request = sanitizeRequestMetadata(rawRequest);
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
@@ -397,10 +402,7 @@ export async function streamLanguageModelCall<
   return {
     stream: createAsyncIterableStream(standardizedStream),
     response,
-    request:
-      request?.url != null
-        ? { ...request, url: getRequestOrigin(request.url) }
-        : request,
+    request,
   };
 }
 

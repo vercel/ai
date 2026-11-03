@@ -525,7 +525,7 @@ describe('OpenTelemetry', () => {
   }
 
   describe('provider endpoint attributes', () => {
-    it.each(['generate', 'stream'] as const)(
+    it.each(['generate', 'stream', 'generateObject', 'streamObject'] as const)(
       'records the endpoint reported by a %s call without URL secrets',
       async mode => {
         const request = {
@@ -538,7 +538,7 @@ describe('OpenTelemetry', () => {
         const finishReason = { unified: 'stop' as const, raw: 'stop' };
         const model = new MockLanguageModelV4({
           doGenerate: async () => ({
-            content: [{ type: 'text', text: 'hello' }],
+            content: [{ type: 'text', text: '{"value":"hello"}' }],
             finishReason,
             usage,
             warnings: [],
@@ -548,6 +548,9 @@ describe('OpenTelemetry', () => {
             request,
             stream: convertArrayToReadableStream([
               { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: 'text' },
+              { type: 'text-delta', id: 'text', delta: '{"value":"hello"}' },
+              { type: 'text-end', id: 'text' },
               { type: 'finish', finishReason, usage },
             ]),
           }),
@@ -564,7 +567,19 @@ describe('OpenTelemetry', () => {
           },
         };
         if (mode === 'generate') await generateText(options);
-        else await streamText(options).consumeStream();
+        else if (mode === 'stream') await streamText(options).consumeStream();
+        else if (mode === 'generateObject')
+          await generateObject({
+            ...options,
+            schema: z.object({ value: z.string() }),
+          });
+        else
+          await convertAsyncIterableToArray(
+            streamObject({
+              ...options,
+              schema: z.object({ value: z.string() }),
+            }).partialObjectStream,
+          );
 
         const span = tracer.spans.find(
           span => span.name === 'chat mock-model-id',
@@ -576,11 +591,13 @@ describe('OpenTelemetry', () => {
         expect(JSON.stringify(span?.attributes)).not.toMatch(
           /password|private|secret|fragment/,
         );
-        expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
-          expect.objectContaining({
-            request: { url: 'https://model.example.test:8443' },
-          }),
-        );
+        if (mode === 'generate' || mode === 'stream') {
+          expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+            expect.objectContaining({
+              request: { url: 'https://model.example.test:8443' },
+            }),
+          );
+        }
       },
     );
 

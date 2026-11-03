@@ -1,4 +1,7 @@
-import { getRequestOrigin } from '../telemetry/get-request-origin';
+import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
 import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
@@ -1233,13 +1236,8 @@ async function generateTextInternal<
 
                 return {
                   ...result,
-                  ...(result.request?.url != null
-                    ? {
-                        request: {
-                          ...result.request,
-                          url: getRequestOrigin(result.request.url),
-                        },
-                      }
+                  ...(result.request != null
+                    ? { request: sanitizeRequestMetadata(result.request) }
                     : {}),
                   response: responseData,
                 };

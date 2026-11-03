@@ -3018,6 +3018,12 @@ retain the content their contracts require.
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
+              name: 'url',
+              type: 'string',
+              isOptional: true,
+              description: 'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               isOptional: true,
@@ -3694,6 +3700,12 @@ retain the content their contracts require.
                 {
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
+                    {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
