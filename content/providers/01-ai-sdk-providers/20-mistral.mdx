@@ -5,10 +5,14 @@ description: Learn how to use Mistral AI with AI Gateway and the direct provider
 
 # Mistral AI Provider
 
-The [Mistral AI](https://mistral.ai/) provider contains language model,
-embedding model, speech model, and transcription model support for Mistral
-APIs.
-You can use Mistral AI models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
+The [Mistral AI](https://mistral.ai/) provider supports language models,
+embeddings, speech, transcription, and realtime voice agents.
+You can use Mistral AI language models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
+
+<Note>
+  Realtime voice agents require the direct `@ai-sdk/mistral` provider and are
+  not available through AI Gateway.
+</Note>
 
 ```ts provider="mistral" model="mistral/mistral-medium-3.5"
 import { generateText } from 'ai';
@@ -104,6 +108,11 @@ You can use the following optional settings to customize the Mistral provider in
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for realtime transcription. Use a header-capable
+  implementation such as `ws` to send the required Authorization header.
 
 ## Language Models
 
@@ -574,7 +583,7 @@ The following optional provider options are available:
 - **diarize** _boolean_
 
   Whether to identify speakers in the transcription. Voxtral 3 requires
-  `timestampGranularities: ['segment']` when this option is `true`.
+  `timestampGranularities: ['segment']` for offline transcription when this option is `true`.
 
 - **contextBias** _string[]_
 
@@ -590,13 +599,118 @@ available under `result.providerMetadata.mistral.usage`. Segment scores and
 speaker IDs from diarization are available under
 `result.providerMetadata.mistral.segments`.
 
+### Realtime Transcription
+
+Use [`experimental_streamTranscribe`](/docs/reference/ai-sdk-core/stream-transcribe)
+with `voxtral-mini-transcribe-realtime-3` or `voxtral-mini-transcribe-realtime-3-0`.
+The realtime model uses a WebSocket connection instead of the file upload endpoint.
+
+```ts
+import {
+  createMistral,
+  type MistralProviderSettings,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const mistral = createMistral({
+  webSocket: WebSocket as unknown as MistralProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: mistral.transcription('voxtral-mini-transcribe-realtime-3'),
+  audio, // ReadableStream<Uint8Array | string> from your audio source
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    mistral: {
+      language: 'en',
+      contextBias: ['Vercel', 'AI SDK'],
+      targetStreamingDelayMs: 480,
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') process.stdout.write(part.delta);
+  if (part.type === 'error') throw part.error;
+}
+
+console.log(await result.text);
+```
+
+Audio chunks must contain raw mono, signed 16-bit little-endian PCM samples,
+either as bytes or base64 strings. Do not send WAV headers or compressed audio.
+Set `inputAudioFormat.rate` to the source sample rate; it defaults to 16000 Hz.
+The provider splits large chunks, waits for session configuration before sending
+audio, and waits for the final transcript after the input stream closes. Use
+`abortSignal` to cancel a session.
+
 <Note>
-  Audio is uploaded to Mistral for processing. This integration supports batch
-  transcription only; Mistral realtime transcription is not exposed by this
-  model.
+  Mistral requires an Authorization header on the WebSocket connection. Native
+  WebSocket implementations cannot send this header. On the server, pass a
+  header-capable implementation such as `ws` to `createMistral({webSocket})`.
+  Custom `fetch` does not intercept WebSocket connections. Keep the API key on
+  your server when relaying microphone audio from a browser.
 </Note>
 
+Realtime transcription accepts `language`, `contextBias`, and `diarize`, plus:
+
+- **targetStreamingDelayMs** _number_
+
+  An integer from 80 to 1200, or 2400. Lower values reduce transcription delay;
+  higher values give the model more context. Omit it to use Mistral's default.
+
+- **speakerReferences** _Record&lt;string, string&gt;_
+
+  Named, base64-encoded WAV, MP3, FLAC, or Opus reference clips. Requires
+  `diarize: true`. Mistral supports up to eight clips of 3–15 seconds each.
+  The names become speaker IDs. This provider option is supported in realtime
+  calls only.
+
+  All reference clips are sent together in one `session.update` message; the SDK
+  does not split them into chunks. When using AI Gateway, the entire serialized
+  start frame, including all provider options and base64-encoded references, must
+  fit within 256 KiB (262,144 bytes). Base64 increases file sizes by about one
+  third, leaving less than 192 KiB for the combined original reference files
+  after accounting for JSON and other options. Exceeding the frame limit can
+  close the connection. Use short, compressed reference clips and account for
+  the complete frame size; the clip count and duration limits alone do not
+  guarantee that the references fit.
+
+- **turnDetection** _object_
+
+  An empty object enables default turn detection. Optional fields are
+  `startThreshold`, `eagerEndThreshold`, and `endThreshold` (numbers from 0 to 1),
+  plus `minSilenceMs` and `endTimeoutMs` (nonnegative integer milliseconds).
+  Mistral validates threshold ordering and rejects combining turn detection
+  with diarization.
+
+`temperature`, `returnLanguage`, and `timestampGranularities` are not sent in
+realtime calls and produce unsupported-option warnings. Realtime-only options
+produce warnings when passed to `transcribe`.
+
+With `diarize: true`, incoming segments become `transcript-final` parts with
+`part.providerMetadata.mistral.speakerId`. Realtime timestamps may be absent:
+only timed segments appear in `result.segments`, while all returned segments,
+including speaker IDs, appear in `result.providerMetadata.mistral.segments`.
+Usage is available in `result.providerMetadata.mistral.usage` when returned.
+
+Set `includeRawChunks: true` to receive Mistral's `turn.start`, `turn.eager_end`,
+`turn.resume`, and `turn.end` events in `raw` parts. These are not normalized
+transcription events. **A `turn.end` event can precede trailing text deltas**;
+continue reading until the stream completes for the final transcript.
+
+See Mistral's [realtime protocol](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-in-realtime),
+[diarization](https://docs.mistral.ai/studio/audio/speech-to-text/diarize-speakers),
+and [turn detection](https://docs.mistral.ai/studio/audio/speech-to-text/turn-detection)
+documentation for the server-side constraints and event semantics.
+
 ### Model Capabilities
+
+The following table covers offline models. The realtime models listed above
+support streaming transcription, diarization, context bias, and turn detection;
+realtime timestamps can be absent.
 
 {/* model-capabilities:mistral-transcription:start */}
 
@@ -712,6 +826,132 @@ is redacted from request metadata and API call errors returned by the provider.
 | `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
 
 {/* model-capabilities:mistral-speech:end */}
+
+## Realtime Voice Agents
+
+Realtime voice agents require the direct `@ai-sdk/mistral` provider. AI Gateway
+does not currently support Mistral voice agents.
+
+`mistral.experimental_realtime()` connects to Mistral's
+[managed voice agents](https://docs.mistral.ai/studio/audio/voice-agents/overview):
+Mistral handles transcription, response generation, speech, and interruptions.
+The provider handles the LiveKit connection internally. Your application uses the
+existing realtime hook to send microphone audio and play the response.
+
+<Note type="warning">Realtime voice agents are experimental.</Note>
+
+Install the provider, React hook, and optional `livekit-client` peer dependency
+required for browser voice connections:
+
+<InstallPackages packages="ai @ai-sdk/mistral @ai-sdk/react livekit-client" />
+
+Server-side consumers that only create and close sessions or use other Mistral
+models do not need `livekit-client`.
+
+Keep `MISTRAL_API_KEY` on your server. Create a route that starts and closes
+sessions with server-owned configuration:
+
+```ts filename="app/api/mistral-realtime/route.ts"
+import { mistral } from '@ai-sdk/mistral';
+
+export async function POST() {
+  const session = await mistral.experimental_realtime.createSession({
+    model: 'mistral-small-latest',
+    sessionConfig: {
+      instructions: 'You are a helpful voice assistant. Respond briefly.',
+      voice: 'voice_447',
+      providerOptions: {
+        mistral: {
+          stt: { model: 'voxtral-mini-transcribe-realtime-3' },
+          tts: { model: 'voxtral-mini-tts-3' },
+        },
+      },
+    },
+  });
+  return Response.json(session, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
+export async function DELETE(request: Request) {
+  const sessionId = new URL(request.url).searchParams.get('sessionId');
+  if (sessionId == null || sessionId.trim() === '') {
+    return Response.json({ error: 'sessionId is required' }, { status: 400 });
+  }
+  await mistral.experimental_realtime.closeSession({ sessionId });
+  return new Response(null, { status: 204 });
+}
+```
+
+Authenticate both routes and verify session ownership before closing a session
+in production. The browser receives session credentials, never the API key.
+
+Use `api.provider` with the same route in the browser:
+
+```tsx filename="app/mistral-realtime/page.tsx"
+'use client';
+
+import { mistral } from '@ai-sdk/mistral';
+import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
+import { useState } from 'react';
+
+const model = mistral.experimental_realtime('mistral-small-latest');
+
+export default function VoiceChat() {
+  const [error, setError] = useState('');
+  const realtime = useRealtime({
+    model,
+    api: { provider: '/api/mistral-realtime' },
+    onError: error => setError(error.message),
+  });
+
+  return (
+    <>
+      <button onClick={() => realtime.connect()}>Start conversation</button>
+      <button onClick={() => realtime.close()}>Stop</button>
+      <button onClick={() => realtime.resumePlayback()}>Enable audio</button>
+      <p>{realtime.status}</p>
+      {error && <p role="alert">{error}</p>}
+      {realtime.messages.map(message => (
+        <p key={message.id}>
+          <strong>{message.role}: </strong>
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
+        </p>
+      ))}
+    </>
+  );
+}
+```
+
+`connect()` requests microphone permission and starts playback. Use HTTPS or
+localhost. If the browser blocks playback, call `resumePlayback()` from a user
+gesture. Await `close()` to stop the microphone, leave the room, and close the
+server-side session. Transcripts appear in `messages`; `isCapturing`, `isPlaying`,
+and `onError` expose media state and failures.
+
+Configure the session on the server with `instructions`, `voice`, and
+`providerOptions.mistral`. The latter supports `stt`, `tts`, `turn`,
+`welcomeMessage`, `agentId`, and `agentVersion`, and is typed by
+`Experimental_MistralRealtimeModelOptions`. The factory's model ID selects the
+language model; STT and TTS models are separate settings. `voice` takes precedence
+over `tts.voiceId`.
+
+This integration supports microphone conversations, transcripts, capture and
+playback controls, client tools, and session cleanup. Pass tool definitions in
+the server's `sessionConfig.tools` and handle calls with `onToolCall` or
+`addToolOutput`, as described in [Realtime tool calling](/docs/ai-sdk-core/realtime#tool-calling).
+Session updates support instructions, tools, and `providerOptions.mistral.turn`.
+
+Text messages and manual audio-buffer or response commands are unsupported.
+Audio formats are negotiated by LiveKit; omit `inputAudioFormat`,
+`outputAudioFormat`, and normalized `turnDetection`. Configure turn behavior
+through `providerOptions.mistral` instead. `getToken()` and the hook's `api.token`,
+`api.websocket`, and `api.session` paths do not connect to these managed sessions.
+
+The complete microphone-to-speaker example is at
+[`examples/ai-e2e-next/app/mistral-realtime`](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/mistral-realtime).
 
 ## Embedding Models
 
