@@ -1943,12 +1943,15 @@ describe('OpenResponsesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(result.stream);
 
-        expect(parts).toContainEqual({
-          type: 'response-metadata',
-          id: 'resp_123',
-          timestamp: new Date(1750000000 * 1000),
-          modelId: 'server-reported-model-id',
-        });
+        expect(parts.slice(0, 2)).toStrictEqual([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'response-metadata',
+            id: 'resp_123',
+            timestamp: new Date(1750000000 * 1000),
+            modelId: 'server-reported-model-id',
+          },
+        ]);
       });
     });
 
