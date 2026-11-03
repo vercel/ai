@@ -3316,6 +3316,13 @@ retain the content their contracts require.
                   type: 'RequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The HTTP origin reported by the provider, without URL credentials, paths, queries or fragments.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
