@@ -5,6 +5,22 @@ import { formatSupport } from './render-tables.mjs';
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
   {
+    catalogPath: 'packages/cerebras/src/cerebras-model-catalog.ts',
+    catalogExport: 'cerebrasModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/40-cerebras.mdx',
+    tables: [{
+      id: 'cerebras-language',
+      capability: 'language',
+      columns: [
+        ['Image Input', 'inputs.image'],
+        ['Object Generation', 'objectGeneration'],
+        ['Tool Usage', 'tools.usage'],
+        ['Tool Streaming', 'tools.streaming'],
+        ['Reasoning', 'reasoning.support'],
+      ],
+    }],
+  },
+  {
     catalogPath: 'packages/deepseek/src/deepseek-model-catalog.ts',
     catalogExport: 'deepseekModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/30-deepseek.mdx',
