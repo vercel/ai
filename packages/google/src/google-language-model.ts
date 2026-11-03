@@ -51,6 +51,7 @@ import { getModelPath } from './get-model-path';
 import {
   getGoogleErrorSchema,
   googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
 } from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
@@ -1040,19 +1041,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             if (value.error != null) {
               finishReason = { unified: 'error', raw: undefined };
               const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
               controller.enqueue({
                 type: 'error',
                 error: createProviderStreamError({
                   message: error.message,
                   type: error.status,
                   code: error.code ?? undefined,
-                  statusCode: error.code ?? undefined,
+                  statusCode,
                   isRetryable:
-                    error.code != null &&
-                    (error.code === 408 ||
-                      error.code === 409 ||
-                      error.code === 429 ||
-                      error.code >= 500),
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
                   data: error,
                 }),
               });

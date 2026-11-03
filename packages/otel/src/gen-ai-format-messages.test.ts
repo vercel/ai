@@ -90,10 +90,12 @@ describe('mapOperationName', () => {
     expect({
       generateText: mapOperationName('ai.generateText'),
       streamText: mapOperationName('ai.streamText'),
+      workflowAgent: mapOperationName('ai.workflowAgent.stream'),
     }).toMatchInlineSnapshot(`
       {
         "generateText": "invoke_agent",
         "streamText": "invoke_agent",
+        "workflowAgent": "invoke_agent",
       }
     `);
   });

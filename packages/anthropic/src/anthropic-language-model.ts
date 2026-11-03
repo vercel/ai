@@ -524,6 +524,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       (config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
 
+    const supportsResponseSchema =
+      responseFormat?.type !== 'json' ||
+      responseFormat.schema == null ||
+      supportsNativeStructuredOutputSchema(responseFormat.schema);
+
     const supportsStrictTools =
       (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
 
@@ -531,7 +536,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions?.structuredOutputMode ?? 'auto';
     let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
-      (structureOutputMode === 'auto' && supportsStructuredOutput);
+      (structureOutputMode === 'auto' &&
+        supportsStructuredOutput &&
+        supportsResponseSchema);
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
@@ -1134,7 +1141,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [...(tools ?? []), jsonResponseTool],
+            tools: [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ],
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,

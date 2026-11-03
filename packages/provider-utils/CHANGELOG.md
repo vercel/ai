@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 5.0.74
+
+### Patch Changes
+
+- fa15312: Raise the minimum Undici version to 7.29.1 to include the fix for CVE-2026-84961.
+
+## 5.0.73
+
+### Patch Changes
+
+- 51ca5b7: fix(provider-utils): support cross-realm Uint8Array and ArrayBuffer in uint8-utils and inline file data conversion
+- dc6f1c3: fix(provider-utils): decode base64 into a preallocated Uint8Array to avoid ~25x transient memory and long event-loop blocking on large files
+- 4ae6986: Add `stringifyWithBigIntAndCycles` for provider tool serialization that converts BigInt values to decimal strings and replaces ancestor cycles while preserving shared references and `toJSON` behavior.
+
 ## 5.0.72
 
 ### Patch Changes
