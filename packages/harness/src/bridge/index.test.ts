@@ -709,11 +709,12 @@ describe('runBridge', () => {
   });
 
   describe('buffered tool results', () => {
-    // Buffered entries are measured with `JSON.stringify(result).length`, and
-    // an output of MIB - 13 characters serialises to `{"output":"…"}` of
+    // A buffered entry is measured as `JSON.stringify(result).length` plus the
+    // length of its `toolCallId`. Sizing the output per id keeps each entry at
     // exactly one MiB, so the 16 MiB cap fills after exactly sixteen entries.
     const MIB = 1024 * 1024;
-    const ONE_MIB_OUTPUT = 'x'.repeat(MIB - 13);
+    const oneMibOutputFor = (toolCallId: string): string =>
+      x.repeat(MIB - 13 - String(toolCallId).length);
 
     const byToolCallId = (a: string, b: string): number =>
       Number(a.slice(3)) - Number(b.slice(3));
@@ -779,7 +780,7 @@ describe('runBridge', () => {
         client.send({
           type: 'tool-result',
           toolCallId: id,
-          output: ONE_MIB_OUTPUT,
+          output: oneMibOutputFor(id),
         });
       }
       client.send({ type: 'start' });
@@ -841,7 +842,7 @@ describe('runBridge', () => {
         client.send({
           type: 'tool-result',
           toolCallId: id,
-          output: ONE_MIB_OUTPUT,
+          output: oneMibOutputFor(id),
         });
       }
       client.send({ type: 'start' });
@@ -850,7 +851,7 @@ describe('runBridge', () => {
       client.send({
         type: 'tool-result',
         toolCallId: 'tc-16',
-        output: ONE_MIB_OUTPUT,
+        output: oneMibOutputFor(id),
       });
       client.send({
         type: 'tool-result',
@@ -861,7 +862,7 @@ describe('runBridge', () => {
       await checked;
       endTurn();
 
-      expect(collected).toBe(ONE_MIB_OUTPUT);
+      expect(collected).toBe(oneMibOutputFor(id));
       expect(nextStillBuffered).toBe(true);
     });
   });
