@@ -302,6 +302,22 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('does not allow null upload options', () => {
+    const options: XaiVideoModelOptions = {
+      // @ts-expect-error output is optional, not nullable
+      output: null,
+    };
+    options;
+  });
+
+  it('requires a URL in output options', () => {
+    const options: XaiVideoModelOptions = {
+      // @ts-expect-error output requires uploadUrl
+      output: {},
+    };
+    options;
+  });
+
   it('should require output.uploadUrl to be a string', () => {
     const options: XaiVideoModelOptions = {
       output: {

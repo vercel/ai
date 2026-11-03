@@ -35,7 +35,8 @@ export type XaiVideoStorageOptions = z.infer<
 >;
 
 interface XaiVideoSharedOptions {
-  output?: { uploadUrl: string } | null;
+  /** Deliver directly to caller-managed storage using an HTTPS signed PUT URL. */
+  output?: { uploadUrl: string };
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   resolution?: XaiVideoResolution | null;
@@ -140,7 +141,14 @@ export type XaiVideoModelOptions =
 
 // ── Runtime schemas ───────────────────────────────────────────────────
 const baseFields = () => ({
-  output: z.object({ uploadUrl: z.string().min(1) }).nullish(),
+  output: z
+    .object({
+      uploadUrl: z.url({ protocol: /^https$/ }).refine(value => {
+        const url = new URL(value);
+        return url.username === '' && url.password === '' && url.hash === '';
+      }),
+    })
+    .optional(),
   pollIntervalMs: z.number().positive().nullish(),
   pollTimeoutMs: z.number().positive().nullish(),
   resolution: resolutionSchema().nullish(),

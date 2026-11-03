@@ -290,6 +290,26 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it.each([
+      { uploadUrl: '' },
+      { uploadUrl: 'not-a-url' },
+      { uploadUrl: 'http://example.com/video.mp4?signature=secret' },
+      { uploadUrl: 'https://user:password@example.com/video.mp4' },
+      { uploadUrl: 'https://example.com/video.mp4#fragment' },
+      { upload_url: 'https://example.com/video.mp4' },
+      { uploadUrl: 42 },
+      {},
+      null,
+    ])('rejects invalid upload configuration before HTTP: %j', async output => {
+      await expect(
+        createModel().doStart({
+          ...defaultOptions,
+          providerOptions: { xai: { output } },
+        }),
+      ).rejects.toThrow('invalid xai provider options');
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('preserves the missing URL error otherwise', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
