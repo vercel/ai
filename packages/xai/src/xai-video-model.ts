@@ -618,7 +618,9 @@ export class XaiVideoModel implements VideoModelV4 {
     return {
       operation: {
         requestId,
-        hasUploadUrl: xaiOptions?.output?.uploadUrl != null,
+        ...(xaiOptions?.output?.uploadUrl != null
+          ? { hasUploadUrl: true }
+          : {}),
       },
       warnings,
       response: {
@@ -719,9 +721,11 @@ export class XaiVideoModel implements VideoModelV4 {
 
       return {
         status: 'completed',
-        videos: videoUrl
-          ? [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }]
-          : [],
+        videos: hasUploadUrl
+          ? [{ type: 'uploaded', mediaType: 'video/mp4' }]
+          : videoUrl
+            ? [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }]
+            : [],
         warnings: [],
         response: {
           timestamp: currentDate,
@@ -731,7 +735,7 @@ export class XaiVideoModel implements VideoModelV4 {
         providerMetadata: {
           xai: {
             requestId,
-            ...(videoUrl ? { videoUrl } : {}),
+            ...(!hasUploadUrl && videoUrl ? { videoUrl } : {}),
             ...(video?.duration != null ? { duration: video.duration } : {}),
             ...(statusResponse.usage?.cost_in_usd_ticks != null
               ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }

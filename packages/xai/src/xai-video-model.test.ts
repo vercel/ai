@@ -143,8 +143,25 @@ describe('XaiVideoModel', () => {
       const result = await createModel().doStatus({
         operation: { requestId: 'req-123', hasUploadUrl: true },
       });
-      expect(result).toMatchObject({ status: 'completed', videos: [] });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+      });
     });
+    it('does not expose or download a video URL returned in upload mode', async () => {
+      const result = await createModel().doStatus({
+        operation: { requestId: 'req-123', hasUploadUrl: true },
+      });
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [{ type: 'uploaded', mediaType: 'video/mp4' }],
+      });
+      if (result.status === 'completed') {
+        expect(result.providerMetadata?.xai).not.toHaveProperty('videoUrl');
+      }
+      expect(server.calls).toHaveLength(1);
+    });
+
     it('preserves the missing URL error otherwise', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
