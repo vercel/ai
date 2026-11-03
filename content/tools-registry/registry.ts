@@ -787,4 +787,33 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'cleave',
+    name: 'Cleave',
+    description:
+      "Swap tools for agents on Ethereum, Arbitrum, Base, BNB Chain, Polygon and Optimism. Cleave is a DEX aggregator with split routing and one-step cross-chain swaps; Cleave's fees are included in the quoted price. Plan a swap, track it, find a token or get gas. Returns unsigned calls and takes no private keys; submitting a wallet-signed gas order uses needsApproval by default. No API key needed.",
+    packageName: '@cleave-protocol/ai-sdk',
+    tags: ['defi', 'web3'],
+    installCommand: {
+      pnpm: 'pnpm add @cleave-protocol/ai-sdk',
+      npm: 'npm install @cleave-protocol/ai-sdk',
+      yarn: 'yarn add @cleave-protocol/ai-sdk',
+      bun: 'bun add @cleave-protocol/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { cleaveTools } from '@cleave-protocol/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Plan a swap of 25 USDC to WETH on Base for wallet 0x00000000000000000000000000000000000A11cE.',
+  tools: cleaveTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://cleave.fi/docs/agents/ai-sdk',
+    websiteUrl: 'https://cleave.fi',
+    npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
+  },
 ];
