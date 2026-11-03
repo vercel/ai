@@ -85,17 +85,62 @@ describe('doGenerate', () => {
       temperature: '0',
       'timestamp_granularities[]': 'segment',
     });
-    expect(result.text).toBe('Hello world!');
-    expect(result.language).toBe('English');
-    expect(result.durationInSeconds).toBe(2.5);
+    expect(result?.text).toBe('Hello world!');
+    expect(result?.language).toBe('English');
+    expect(result?.durationInSeconds).toBe(2.5);
     expect(server.calls).toHaveLength(1);
+  });
+
+  it.each([301, 302, 303, 307, 308])(
+    'declines native URLs when Groq cannot follow a %s redirect',
+    async status => {
+      server.urls[
+        'https://api.groq.com/openai/v1/audio/transcriptions'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: `failed to retrieve media: received status code: ${status}`,
+            type: 'invalid_request_error',
+          },
+        }),
+      };
+      expect(
+        await model.doGenerateFromUrl!({
+          audio: new URL('https://example.com/redirect'),
+        }),
+      ).toBeUndefined();
+    },
+  );
+
+  it.each([
+    [400, 'failed to retrieve media: received status code: 404'],
+    [400, 'invalid audio format'],
+    [401, 'invalid API key'],
+    [429, 'rate limit exceeded'],
+  ])('preserves other native URL errors (%s)', async (status, message) => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'error',
+      status,
+      body: JSON.stringify({
+        error: { message, type: 'invalid_request_error' },
+      }),
+    };
+    await expect(
+      model.doGenerateFromUrl!({
+        audio: new URL('https://example.com/audio.mp3'),
+      }),
+    ).rejects.toMatchObject({ message, statusCode: status });
   });
 
   it('strips media fragments without mutating the input URL', async () => {
     prepareJsonResponse();
     const audio = new URL('https://example.com/audio.mp3#t=0');
     const result = await model.doGenerateFromUrl!({ audio });
-    expect(result.text).toBe('Hello world!');
+    expect(result?.text).toBe('Hello world!');
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       url: 'https://example.com/audio.mp3',
     });
@@ -166,7 +211,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Hello world!');
+    expect(result?.text).toBe('Hello world!');
   });
 
   it.each(['file', 'url'])(
@@ -196,8 +241,8 @@ describe('doGenerate', () => {
       expect(await server.calls[0].requestBodyMultipart).toMatchObject({
         response_format: 'text',
       });
-      expect(result.text).toBe(textResponse.body);
-      expect(result.response.body).toBe(textResponse.body);
+      expect(result?.text).toBe(textResponse.body);
+      expect(result?.response.body).toBe(textResponse.body);
     },
   );
 

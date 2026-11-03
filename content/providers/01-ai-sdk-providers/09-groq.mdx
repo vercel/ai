@@ -505,7 +505,7 @@ const result = await transcribe({
 
 The SDK sends Groq's `url` parameter without downloading or uploading the audio locally.
 This avoids the attachment size limit; Groq's overall audio size and duration limits still apply.
-The URL must be accessible to Groq. Request headers configure the Groq API request and are not sent to the audio host.
+The URL must be accessible to Groq. If Groq rejects a redirect, the SDK falls back to its secure local download and file upload; the attachment limit then applies. Request headers configure the Groq API request and are not sent to the audio host.
 If you supply a custom `download` function, the SDK downloads the audio with that function and uploads the resulting bytes instead.
 
 The following provider options are available:

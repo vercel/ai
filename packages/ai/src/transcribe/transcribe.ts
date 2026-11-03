@@ -1,7 +1,4 @@
-import {
-  UnsupportedFunctionalityError,
-  type JSONObject,
-} from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
@@ -237,7 +234,7 @@ export async function transcribe({
     }
   }
 
-  const mediaType =
+  let mediaType =
     audioData instanceof URL
       ? undefined
       : (downloadedMediaType ??
@@ -246,8 +243,7 @@ export async function transcribe({
           topLevelType: 'audio',
         }) ??
         'audio/wav');
-  const byteLength =
-    audioData instanceof URL ? undefined : audioData.byteLength;
+  let byteLength = audioData instanceof URL ? undefined : audioData.byteLength;
   const startEvent = createStartEvent({
     byteLength,
     mediaType,
@@ -257,22 +253,31 @@ export async function transcribe({
     return await executeWithStartEvent({
       startEvent,
       execute: async () => {
-        const result = await retry(() => {
+        const result = await retry(async () => {
           const callOptions = {
             abortSignal,
             headers: headersWithUserAgent,
             providerOptions,
           };
           if (audioData instanceof URL) {
-            if (resolvedModel.doGenerateFromUrl == null) {
-              throw new UnsupportedFunctionalityError({
-                functionality: 'native URL transcription',
-              });
-            }
-            return resolvedModel.doGenerateFromUrl({
+            const nativeResult = await resolvedModel.doGenerateFromUrl?.({
               ...callOptions,
               audio: audioData,
             });
+            if (nativeResult != null) return nativeResult;
+
+            // A capable provider can decline an unsupported URL (for example,
+            // a redirect). Keep the existing secure download and file path.
+            const downloaded = await downloadFn({
+              url: audioData,
+              abortSignal,
+            });
+            audioData = downloaded.data;
+            mediaType =
+              downloaded.mediaType ??
+              detectMediaType({ data: audioData, topLevelType: 'audio' }) ??
+              'audio/wav';
+            byteLength = audioData.byteLength;
           }
           return resolvedModel.doGenerate({
             ...callOptions,

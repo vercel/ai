@@ -163,6 +163,55 @@ describe('transcribe', () => {
     expect(doGenerate).not.toHaveBeenCalled();
   });
 
+  it('downloads locally when native URL transcription is declined and retries only the file call', async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(audioData, { headers: { 'content-type': 'audio/mpeg' } }),
+      );
+    globalThis.fetch = fetchMock;
+    const doGenerateFromUrl = vi.fn(async () => undefined);
+    const doGenerate = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new APICallError({
+          message: 'Retry file',
+          url: 'https://example.com/transcriptions',
+          requestBodyValues: {},
+          statusCode: 429,
+          responseHeaders: { 'retry-after-ms': '0' },
+        }),
+      )
+      .mockResolvedValue(createMockResponse(sampleTranscript));
+    const onEnd = vi.fn();
+    const controller = new AbortController();
+    try {
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+        audio: new URL('https://example.com/redirect'),
+        maxRetries: 1,
+        abortSignal: controller.signal,
+        telemetry: { integrations: { onEnd } },
+      });
+      expect(result.text).toBe(sampleTranscript.text);
+      expect(doGenerateFromUrl).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
+      expect(doGenerate).toHaveBeenCalledTimes(2);
+      expect(doGenerate).toHaveBeenLastCalledWith(
+        expect.objectContaining({ audio: audioData, mediaType: 'audio/mpeg' }),
+      );
+      expect(onEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          audio: { byteLength: audioData.byteLength, mediaType: 'audio/mpeg' },
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('emits a correlated error when native URL transcription fails', async () => {
     const error = new Error('Provider could not fetch audio');
     const onStart = vi.fn();

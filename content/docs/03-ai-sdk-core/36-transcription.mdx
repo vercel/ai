@@ -192,7 +192,7 @@ const transcript = await transcribe({
 
 ### Download Size Limits
 
-When `audio` is an HTTP(S) URL and the model supports native URL transcription (such as Groq), the provider fetches it directly. Provider size limits apply; the SDK does not download or inspect the audio. The URL must be accessible to the provider.
+When `audio` is an HTTP(S) URL and the model supports native URL transcription (such as Groq), the provider fetches it directly. Provider size limits apply; the SDK does not download or inspect the audio. The URL must be accessible to the provider. Providers can decline unsupported URLs and fall back to local downloading.
 
 Otherwise, the SDK downloads the file with a default **2 GiB** size limit.
 You can customize this using `createDownload`. Supplying `download` always uses local downloading, including for models with native URL support:

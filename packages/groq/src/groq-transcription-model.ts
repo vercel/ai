@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidArgumentError,
   type TranscriptionModelV4,
   type SharedV4Warning,
@@ -160,8 +161,24 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<
       NonNullable<TranscriptionModelV4['doGenerateFromUrl']>
     >[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
-    return this.generate(options);
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doGenerateFromUrl']>>>
+  > {
+    try {
+      return await this.generate(options);
+    } catch (error) {
+      // Groq does not follow redirects for its URL parameter. Let core use
+      // the existing secure local downloader for that specific limitation.
+      if (
+        APICallError.isInstance(error) &&
+        error.statusCode === 400 &&
+        /^failed to retrieve media: received status code: (301|302|303|307|308)\b/.test(
+          error.message,
+        )
+      )
+        return undefined;
+      throw error;
+    }
   }
 
   private async generate(options: GroqTranscriptionCallOptions) {
