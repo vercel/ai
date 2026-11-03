@@ -154,7 +154,11 @@ export async function streamDeepgramTranscription(
         let duration: number | undefined;
         let reportedDuration: number | undefined;
         let language = providerOptions?.language ?? undefined;
-        const finalTexts: string[] = [];
+        const finalTexts: {
+          text: string;
+          startSecond: number;
+          channelIndex: number;
+        }[] = [];
         const segments: {
           text: string;
           startSecond: number;
@@ -179,8 +183,15 @@ export async function streamDeepgramTranscription(
           finished = true;
           controller.enqueue({
             type: 'finish',
-            text: finalTexts.join(' '),
-            segments,
+            text: finalTexts
+              .sort(
+                (a, b) =>
+                  a.startSecond - b.startSecond ||
+                  a.channelIndex - b.channelIndex,
+              )
+              .map(segment => segment.text)
+              .join(' '),
+            segments: segments.sort((a, b) => a.startSecond - b.startSecond),
             language,
             ...(duration != null ? { durationInSeconds: duration } : {}),
             ...(reportedDuration != null
@@ -299,7 +310,12 @@ export async function streamDeepgramTranscription(
                 deepgram: { speechFinal: event.speech_final ?? false },
               };
               if (event.is_final === true) {
-                if (text.length > 0) finalTexts.push(text);
+                if (text.length > 0)
+                  finalTexts.push({
+                    text,
+                    startSecond: start,
+                    channelIndex: event.channel_index?.[0] ?? 0,
+                  });
                 segments.push(
                   ...(alternative.words?.map(word => ({
                     text: word.punctuated_word ?? word.word,

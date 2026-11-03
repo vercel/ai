@@ -409,6 +409,8 @@ accepts:
   utterance-end event; at least `1000`, used with `interimResults`.
 
 Final transcript parts contain channel indices and segment timing. Word timings
+from all channels are combined in chronological order in the aggregate text and
+segments; consume `fullStream` when you need each segment's channel index. Word timings
 appear in `result.segments`, and Deepgram's reported duration appears in
 `result.durationInSeconds`. Native usage (`{ seconds: duration }`) is forwarded
 to the `experimental_onStreamTranscriptionEnd` telemetry callback. The

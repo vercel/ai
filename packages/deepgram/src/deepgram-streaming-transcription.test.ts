@@ -283,6 +283,44 @@ describe('Deepgram streaming transcription', () => {
     expect(finish).not.toHaveProperty('usage');
   });
 
+  it('orders aggregate multichannel transcripts and word timings chronologically', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      providerOptions: {
+        deepgram: { streaming: { channels: 2, multichannel: true } },
+      },
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+    await flush();
+    const later = results('Second', true, 1);
+    later.start = 5;
+    later.channel.alternatives[0].words = [
+      { word: 'second', punctuated_word: 'Second', start: 5.2, end: 5.8 },
+    ];
+    const earlier = results('First', true, 0);
+    earlier.channel.alternatives[0].words = [
+      { word: 'first', punctuated_word: 'First', start: 0.2, end: 0.8 },
+    ];
+    socket.message(later);
+    socket.message(earlier);
+    socket.message({ type: 'Metadata', duration: 7 });
+    const values = await parts;
+    expect(values.filter(part => part.type === 'transcript-final')).toEqual([
+      expect.objectContaining({ text: 'Second', channelIndex: 1 }),
+      expect.objectContaining({ text: 'First', channelIndex: 0 }),
+    ]);
+    expect(values.at(-1)).toMatchObject({
+      text: 'First Second',
+      segments: [
+        { text: 'First', startSecond: 0.2, endSecond: 0.8 },
+        { text: 'Second', startSecond: 5.2, endSecond: 5.8 },
+      ],
+    });
+  });
+
   it.each([false, true])(
     'accepts speech and utterance events with raw chunks enabled: %s',
     async includeRawChunks => {
