@@ -773,6 +773,10 @@ export async function convertToAnthropicPrompt({
 
             switch (part.type) {
               case 'text': {
+                // Other providers can retain empty text for opaque metadata.
+                // Anthropic does not accept empty text content blocks.
+                if (part.text.length === 0) break;
+
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
                   | {

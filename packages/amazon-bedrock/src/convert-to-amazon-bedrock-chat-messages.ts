@@ -470,6 +470,17 @@ export async function convertToAmazonBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
+                // Foreign provider metadata cannot justify an empty Bedrock
+                // text block, even when foreign reasoning is also present.
+                if (
+                  part.text.length === 0 &&
+                  part.providerOptions != null &&
+                  part.providerOptions.amazonBedrock == null &&
+                  part.providerOptions.bedrock == null
+                ) {
+                  break;
+                }
+
                 // Skip empty text blocks unless reasoning blocks are present
                 if (!part.text.trim() && !hasReasoningBlocks) {
                   break;

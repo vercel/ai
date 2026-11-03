@@ -15,6 +15,44 @@ const defaultToolNameMapping = createToolNameMapping({
   providerToolNames: {},
 });
 
+describe('foreign provider history', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'omits empty %s signature text from assistant content',
+    async namespace => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'A' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+              { type: 'text', text: 'B' },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'A', cache_control: undefined },
+            { type: 'text', text: 'B', cache_control: undefined },
+          ],
+        },
+      ]);
+    },
+  );
+});
+
 describe('custom media conversion', () => {
   it.each(['part', 'message'] as const)(
     'converts the original file part and preserves %s cache control',

@@ -978,6 +978,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         return;
       }
 
+      // Finalized partial-argument calls also separate surrounding blocks.
+      if (currentTextBlockId !== null) {
+        controller.enqueue({ type: 'text-end', id: currentTextBlockId });
+        currentTextBlockId = null;
+      }
+      if (currentReasoningBlockId !== null) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id: currentReasoningBlockId,
+        });
+        currentReasoningBlockId = null;
+      }
+
       const { finalJSON, closingDelta } = active.accumulator.finalize();
 
       if (closingDelta.length > 0) {

@@ -282,6 +282,23 @@ describe('completed function call and text stream order', () => {
           ? 'vertex'
           : 'google';
         expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const callIndex = events.findIndex(event => event.type === 'tool-call');
+        const signatureBlock = events.slice(callIndex + 1, callIndex + 4);
+        expect(signatureBlock.map(event => event.type)).toEqual([
+          'text-start',
+          'text-delta',
+          'text-end',
+        ]);
+        expect(signatureBlock[0]).toMatchObject({
+          id: '1',
+          providerMetadata: { [metadataKey]: { thoughtSignature: signature } },
+        });
+        expect(signatureBlock[1]).toMatchObject({ id: '1', delta: '' });
+        expect(signatureBlock[2]).toMatchObject({ id: '1' });
+        expect(events[callIndex]).toMatchObject({
+          toolCallId: 'call-2',
+          input: '{}',
+        });
         expect(
           events.some(
             event =>
@@ -343,6 +360,17 @@ describe('completed function call and text stream order', () => {
           ]).doStream({ prompt: TEST_PROMPT });
           const events = await convertReadableStreamToArray(stream);
           expect(events.filter(event => event.type === 'error')).toEqual([]);
+          const callIndex = events.findIndex(
+            event => event.type === 'tool-call',
+          );
+          expect(
+            events.slice(0, callIndex).some(event => event.type === 'text-end'),
+          ).toBe(true);
+          expect(
+            events
+              .filter(event => event.type === 'text-start')
+              .map(event => event.id),
+          ).toEqual(['0', '1']);
           expect(projectContent(events)).toEqual([
             'text:A',
             'call:partial-complete:lookup:{"query":"example"}',
