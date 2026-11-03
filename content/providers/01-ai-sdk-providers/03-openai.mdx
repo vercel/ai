@@ -3427,6 +3427,7 @@ const { images } = await generateImage({
 GPT Image models accept a `moderation` level on edits as well as on generations. The default, `auto`, is the standard filtering; `low` applies less restrictive filtering:
 
 ```ts
+import { readFileSync } from 'node:fs';
 import { openai, type OpenAIImageModelEditOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 
