@@ -228,6 +228,26 @@ falsy values such as `temperature: 0`, `seed: 0`, and an empty
 
 ### Context Management
 
+To compact model history and preserve it across UI chat requests, return a `compactMessages` result as `compaction`:
+
+```ts
+prepareStep: async ({ messages, compactionCheckpoint }) => {
+  if (messages.length <= 20) return;
+
+  return {
+    compaction: await compactMessages({
+      messages,
+      checkpoint: compactionCheckpoint,
+      strategy: compactHistory,
+    }),
+  };
+};
+```
+
+The SDK carries the replacement history and checkpoint into later steps. `compactHistory` is an application-defined strategy; the built-in `summarize` strategy is also available with an explicit summary executor. The agent UI helpers automatically store compaction records in the visible conversation and restore the model context and checkpoint on the next request. See [Compact Agent Context](/cookbook/guides/agent-context-compaction) for the full agent and route.
+
+#### Direct Message Overrides
+
 Long-running agents can accumulate large tool results, reasoning parts, and assistant messages. Use `prepareStep` to mutate the message state that will be used by later steps. This is useful for compaction, and you decide when compaction should happen.
 
 The `messages` value contains the messages that will be sent for the current step. When you return a `messages` override from `prepareStep`, that changed list becomes the base for later steps. New assistant and tool response messages are appended to it as the loop continues. If you need to rebuild a step from the discrete pieces instead of the persisted message state, use `initialMessages` for the original input and `responseMessages` for the model/tool response messages accumulated so far.
@@ -269,6 +289,8 @@ const result = await agent.generate({
 ```
 
 The token estimator above is intentionally simple and only demonstrates one way to decide when to compact. The main point is that `prepareStep` can return a new `messages` array, and that array becomes the message state for following steps. The same pattern also works with `generateText` and `streamText`.
+
+A direct `messages` override clears the current compaction checkpoint and does not emit a UI compaction record. Return `compaction` when the replacement should persist across chat requests; the two result fields cannot be combined.
 
 ### Tool Selection
 

@@ -1,0 +1,79 @@
+---
+title: createUIMessageCompaction
+description: Create a built-in UI message record for compacted model context.
+---
+
+# `createUIMessageCompaction()`
+
+Creates a built-in [`CompactionUIPart`](/docs/reference/ai-sdk-core/ui-message#compactionuipart) that associates replacement model messages with the UI history they replace. The helper does not run a compaction strategy or change the visible conversation.
+
+For agent chats, return a `compactMessages` result as `prepareStep.compaction` and use [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response). The SDK creates records, captures boundaries, and restores checkpoints automatically. Use `createUIMessageCompaction` for advanced integrations that compact before a core call or build custom UI streams.
+
+```ts
+import {
+  compactMessages,
+  convertToModelMessages,
+  createUIMessageCompaction,
+} from 'ai';
+
+const result = await compactMessages({
+  messages: await convertToModelMessages(messages),
+  strategy: compactHistory,
+});
+
+const compaction = await createUIMessageCompaction({
+  messages,
+  replacementMessages: result.messages,
+  checkpoint: result.checkpoint,
+});
+```
+
+Pass the record as the `compaction` option to `toUIMessageStream` or `result.toUIMessageStreamResponse`, or write it with `writer.write(compaction)` in `createUIMessageStream`.
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'messages',
+      type: 'readonly UIMessage[]',
+      description:
+        'The nonempty UI history prefix represented by the replacement. Message IDs must be nonempty and unique. The boundary is the end of the last supplied message’s parts.',
+    },
+    {
+      name: 'replacementMessages',
+      type: 'readonly ModelMessage[]',
+      description:
+        'The complete replacement model context for the supplied UI history prefix. This can be the messages returned by compactMessages or another server-side compaction strategy.',
+    },
+    {
+      name: 'checkpoint',
+      type: 'CompactionCheckpoint',
+      isOptional: true,
+      description:
+        'The checkpoint returned by compactMessages, associated with replacementMessages. Preserved in the record so subsequent compaction calls can recognize and update the existing summary.',
+    },
+  ]}
+/>
+
+## Returns
+
+`Promise<CompactionUIPart>` containing the encoded replacement messages, the optional checkpoint, and a fingerprint of the UI history prefix. The helper prepares media data for JSON persistence, including URLs and binary content. Treat the record's `messages` field as SDK-managed serialized context; use `convertToModelMessages` to reconstruct model messages.
+
+Invalid boundaries, invalid replacement messages or checkpoints, and unsupported content reject the promise. Handle these failures through your route or stream's error handling.
+
+## Boundaries and Persistence
+
+Supply the exact UI prefix that the replacement represents. For a boundary inside an assistant message, pass a snapshot whose last message contains only the parts already included in the replacement. Subsequent parts of that same message remain part of the next model request.
+
+The helper can snapshot history containing incomplete UI parts. If a covered text or tool part later changes, the record becomes stale. Prefer completed step boundaries when possible to avoid these fallbacks.
+
+Persist the entire UI message array, including the compaction record. On later requests, [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages#compaction-records) selects the latest record whose boundary and fingerprint still match and appends the converted suffix. Edits or removed messages can invalidate a record without removing the visible conversation.
+
+For a custom integration, use the converter's `onCompactionApplied` callback to retrieve the checkpoint from the selected record. The callback runs only after a record is selected and validated, and is awaited before conversion completes. Pass that checkpoint into the next core or agent call as `compactionCheckpoint`, or into a direct `compactMessages` call as `checkpoint`. It does not need separate persistence. The agent UI helpers restore it internally.
+
+The fingerprint detects stale history; it does not authenticate client data. Applications that require authoritative context should use their persisted server history or verify submitted records against it.
+
+Manual record creation does not apply UI reasoning filtering or error masking. Every field in the replacement history is sent to the client when the record is written. Only create manual records from context that the client may receive, including any sensitive information copied into summary text. Automatic `prepareStep.compaction` records instead reject incompatible UI disclosure settings and context involving masked application tool errors.
+
+See [Preserve Compaction Across Chat Requests](/cookbook/guides/agent-context-compaction#preserve-compaction-across-chat-requests) for the complete flow.

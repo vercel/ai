@@ -1,5 +1,6 @@
 import type { Citation } from '../types/citation';
-import type { JSONObject } from '@ai-sdk/provider';
+import type { CompactionCheckpoint } from '../compact-messages/types';
+import type { JSONObject, JSONValue } from '@ai-sdk/provider';
 import type {
   InferToolInput,
   InferToolOutput,
@@ -89,7 +90,32 @@ export type UIMessagePart<
   | FileUIPart
   | ReasoningFileUIPart
   | DataUIPart<DATA_TYPES>
+  | CompactionUIPart
   | StepStartUIPart;
+
+/**
+ * Replacement model context for a prefix of the visible conversation.
+ * Create these records with `createUIMessageCompaction`; keep them in the
+ * stored UI history so `convertToModelMessages` can restore compacted context.
+ */
+export type CompactionUIPart = {
+  type: 'compaction';
+  version: 1;
+  replaces: {
+    /** ID of the last message covered by the replacement. */
+    messageId: string;
+    /** Number of messages in the covered prefix, including the last message. */
+    messageCount: number;
+    /** Number of covered parts in the last message. */
+    partCount: number;
+    /** Fingerprint of the covered history, used to detect edits. */
+    digest: string;
+  };
+  /** Serialized model context. Treat this as opaque SDK-managed data. */
+  messages: JSONValue[];
+  /** Summary checkpoint for subsequent compactMessages calls. */
+  checkpoint?: CompactionCheckpoint;
+};
 
 /**
  * A text part of a message.

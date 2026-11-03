@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type {
+  CompactionUIPart,
   CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
@@ -39,6 +40,7 @@ describe('InferAgentUIMessage', () => {
       | FileUIPart
       | ReasoningFileUIPart
       | DataUIPart<never>
+      | CompactionUIPart
       | StepStartUIPart
     >();
   });

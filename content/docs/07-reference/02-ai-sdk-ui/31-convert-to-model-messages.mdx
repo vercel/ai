@@ -48,9 +48,9 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: ToolSet, ignoreIncompleteToolCalls?: boolean, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | undefined }',
+      type: '{ tools?: ToolSet, ignoreIncompleteToolCalls?: boolean, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | undefined, onCompactionApplied?: (compaction: CompactionUIPart) => void | PromiseLike<void> }',
       description:
-        'Optional configuration object. Provide tools to enable multi-modal tool responses. Set ignoreIncompleteToolCalls to true to skip tool calls without results (default: false). Use convertDataPart to transform custom data parts into model-compatible content.',
+        'Optional configuration object. Provide tools to enable multi-modal tool responses. Set ignoreIncompleteToolCalls to true to skip tool calls without results (default: false). Use convertDataPart to transform custom data parts into model-compatible content. onCompactionApplied receives the selected, validated compaction record and is awaited.',
     },
   ]}
 />
@@ -69,6 +69,37 @@ A Promise that resolves to an array of [`ModelMessage`](/docs/reference/ai-sdk-c
     },
   ]}
 />
+
+## Compaction Records
+
+When messages contain a built-in `compaction` part, `convertToModelMessages` reconstructs the model history automatically:
+
+```text
+replacement model context + converted UI content after the recorded boundary
+```
+
+The converter searches records from newest to oldest. A record applies only when its boundary and fingerprint match the supplied history, and the boundary precedes the record. This includes boundaries within an assistant message: later parts of that same message are converted along with later messages.
+
+Edits, removed messages, or changed tool results can invalidate a record. The converter then tries an earlier applicable record or converts the full visible history if none applies. Compaction parts themselves are never sent as model content. Message IDs are required to apply a compaction record; existing histories without compaction records can still be converted without IDs.
+
+The function does not mutate the UI messages. Continue storing and sending the full UI message array, including compaction parts. `tools`, `ignoreIncompleteToolCalls`, and `convertDataPart` apply to the UI content being converted; replacement model messages are already converted context. If a replacement retains incomplete tool calls that must be filtered or superseded by a later user message, conversion falls back to visible history so those rules can still be applied.
+
+The agent UI helpers, including `createAgentUIStreamResponse`, perform this conversion and restore the selected checkpoint automatically. For a custom server integration, use `onCompactionApplied` to restore the selected record's optional checkpoint:
+
+```ts
+import { convertToModelMessages, type CompactionCheckpoint } from 'ai';
+
+let checkpoint: CompactionCheckpoint | undefined;
+const modelMessages = await convertToModelMessages(messages, {
+  onCompactionApplied: compaction => {
+    checkpoint = compaction.checkpoint;
+  },
+});
+```
+
+The callback runs only for the record actually applied, after validation, and is awaited before conversion completes. It does not run when no record applies. Its errors reject conversion. Pass the checkpoint to a core or agent call as `compactionCheckpoint`, or directly to `compactMessages` as `checkpoint`. It stays in the persisted UI record, so it does not require a separate conversation store.
+
+Create records with [`createUIMessageCompaction`](/docs/reference/ai-sdk-ui/create-ui-message-compaction). The history fingerprint detects stale records, not client forgery. Use server-persisted history or verify submitted records against it when the server must control the replacement context.
 
 ## Deprecated `rawInput` field
 

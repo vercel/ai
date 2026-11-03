@@ -1,17 +1,11 @@
-import type { Context, Tool, ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import type { Agent } from '../agent/agent';
+import { createAgentUIStream } from '../agent/create-agent-ui-stream';
 import type { Output } from '../generate-text/output';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
-import { convertToModelMessages } from './convert-to-model-messages';
-import type {
-  InferUIMessageTools,
-  InferUITools,
-  UIMessage,
-} from './ui-messages';
-import { validateUIMessagesForAgent } from './validate-ui-messages';
+import type { InferUITools, UIMessage } from './ui-messages';
 
 /**
  * Options for the `DirectChatTransport` class.
@@ -92,42 +86,23 @@ export class DirectChatTransport<
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]): Promise<
     ReadableStream<UIMessageChunk>
   > {
-    // Validate the incoming UI messages
-    const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
-      messages,
-      // tools are compatible; the casting is required because the context param is
-      // not available in ui messages
-      tools: this.agent.tools as unknown as {
-        [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
-          InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-          InferUIMessageTools<UI_MESSAGE>[NAME]['output']
-        >;
-      },
-    });
+    const { onStepEnd, onStepFinish, ...uiMessageStreamOptions } =
+      this.uiMessageStreamOptions;
 
-    // Convert UI messages to model messages
-    const modelMessages = await convertToModelMessages(validatedMessages, {
-      tools: this.agent.tools,
-    });
-
-    // Stream from the agent
-    const result = await this.agent.stream({
-      prompt: modelMessages,
+    return createAgentUIStream<
+      CALL_OPTIONS,
+      TOOLS,
+      RUNTIME_CONTEXT,
+      OUTPUT,
+      UI_MESSAGE['metadata'],
+      UI_MESSAGE
+    >({
+      ...uiMessageStreamOptions,
+      agent: this.agent,
+      uiMessages: messages,
+      options: this.agentOptions,
       abortSignal,
-      ...(this.agentOptions !== undefined
-        ? { options: this.agentOptions }
-        : {}),
-    } as Parameters<
-      Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>['stream']
-    >[0]);
-
-    // Return the UI message stream
-    return toUIMessageStream({
-      ...this.uiMessageStreamOptions,
-      originalMessages:
-        this.uiMessageStreamOptions.originalMessages ?? validatedMessages,
-      stream: result.stream,
-      tools: this.agent.tools,
+      onUIMessageStepEnd: onStepEnd ?? onStepFinish,
     });
   }
 

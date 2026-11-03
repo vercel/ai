@@ -607,6 +607,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
+      name: 'compactionCheckpoint',
+      type: 'CompactionCheckpoint',
+      isOptional: true,
+      description:
+        'Checkpoint embedded in the input model history. Passed to prepareStep and updated when a compaction result is applied. Agent UI helpers restore this automatically from the latest applicable UI compaction record.',
+    },
+    {
       name: 'prepareStep',
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
@@ -657,6 +664,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Array<ModelMessage>',
                       description:
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
+                    },
+                    {
+                      name: 'compactionCheckpoint',
+                      type: 'CompactionCheckpoint | undefined',
+                      isOptional: true,
+                      description:
+                        'The checkpoint embedded in the current message history. Pass it to compactMessages to recognize and update an existing summary.',
                     },
                     {
                       name: 'experimental_steeringMessages',
@@ -799,7 +813,14 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'Array<ModelMessage>',
               isOptional: true,
               description:
-                'Optionally override the full set of messages sent to the model for this step.',
+                'Optionally override the full set of messages sent to the model for this and later steps. Clears the current compaction checkpoint and does not emit a compaction record. Cannot be combined with compaction.',
+            },
+            {
+              name: 'compaction',
+              type: 'CompactionResult',
+              isOptional: true,
+              description:
+                'A result returned by compactMessages. Applies its messages and checkpoint to this and later steps. Streaming calls emit an ordered compaction event when history changes, allowing UI streams to retain a built-in record. Cannot be combined with messages.',
             },
             {
               name: 'runtimeContext',

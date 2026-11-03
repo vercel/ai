@@ -25,6 +25,7 @@ import type {
 } from './ui-messages';
 import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+import { compactionUIPartSchema } from './ui-message-compaction';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
@@ -93,6 +94,7 @@ const uiMessagesSchema = lazySchema(() => {
             metadata: z.unknown().optional(),
             parts: z.array(
               z.union([
+                compactionUIPartSchema,
                 z.object({
                   type: z.literal('text'),
                   text: z.string(),

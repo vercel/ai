@@ -18,6 +18,7 @@ export {
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export { convertToModelMessages } from './convert-to-model-messages';
+export { createUIMessageCompaction } from './create-ui-message-compaction';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
   DirectChatTransport,
@@ -60,6 +61,7 @@ export {
   isToolOutputErrorUIPart,
   isToolUIPart,
   type CustomContentUIPart,
+  type CompactionUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
   type FileUIPart,

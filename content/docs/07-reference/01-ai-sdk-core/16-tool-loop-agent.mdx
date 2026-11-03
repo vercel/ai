@@ -137,7 +137,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'PrepareStepFunction',
       isOptional: true,
       description:
-        'Optional function to mutate step settings or inject state for each agent step, including per-step model call settings such as temperature, maxOutputTokens, sampling controls, penalties, stop sequences, seed, and reasoning. Model call setting overrides apply only to the current step.',
+        'Optional function to change settings for each agent step. Receives messages and compactionCheckpoint; return { compaction: await compactMessages(...) } to replace model history and persist it through agent UI streams. May also override per-step model call settings such as temperature, maxOutputTokens, sampling controls, penalties, stop sequences, seed, and reasoning. Model call setting overrides apply only to the current step.',
     },
     {
       name: 'include',
@@ -718,6 +718,30 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
   ]}
 />
 
+## Context Compaction
+
+`prepareStep` receives the current `messages` and an optional `compactionCheckpoint`. Return the result of `compactMessages` under `compaction` to replace the current history and carry its checkpoint into later steps:
+
+```ts
+prepareStep: async ({ messages, compactionCheckpoint }) => {
+  if (messages.length <= 20) return;
+
+  return {
+    compaction: await compactMessages({
+      messages,
+      checkpoint: compactionCheckpoint,
+      strategy: compactHistory,
+    }),
+  };
+};
+```
+
+`compactHistory` is an application-defined compaction strategy. You can also use the built-in `summarize` strategy with an explicit summary executor.
+
+[`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) and [`createAgentUIStream`](/docs/reference/ai-sdk-core/create-agent-ui-stream) automatically preserve compaction results as built-in UI records and restore their context and checkpoint on the next request. Continue sending and storing the complete UI history. See [Compact Agent Context](/cookbook/guides/agent-context-compaction) for the complete flow.
+
+A plain `messages` override changes the loop's model history and clears its current checkpoint without creating a UI compaction record. Returning both `messages` and `compaction` is invalid.
+
 ## Methods
 
 ### `generate()`
@@ -741,6 +765,13 @@ const result = await agent.generate({
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
+    },
+    {
+      name: 'compactionCheckpoint',
+      type: 'CompactionCheckpoint',
+      isOptional: true,
+      description:
+        'Checkpoint embedded in the input model history, passed to prepareStep. The agent UI helpers restore it automatically from the latest applicable UI compaction record.',
     },
     {
       name: 'abortSignal',
@@ -864,6 +895,13 @@ for await (const chunk of stream.textStream) {
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
+    },
+    {
+      name: 'compactionCheckpoint',
+      type: 'CompactionCheckpoint',
+      isOptional: true,
+      description:
+        'Checkpoint embedded in the input model history, passed to prepareStep. The agent UI helpers restore it automatically from the latest applicable UI compaction record.',
     },
     {
       name: 'abortSignal',

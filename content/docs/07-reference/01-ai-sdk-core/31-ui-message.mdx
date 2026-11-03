@@ -320,6 +320,29 @@ type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
 }>;
 ```
 
+### `CompactionUIPart`
+
+A built-in record that preserves replacement model context alongside the visible conversation. `useChat` retains this part automatically; no custom data type or separate context reference is required.
+
+```typescript
+type CompactionUIPart = {
+  type: 'compaction';
+  version: 1;
+  replaces: {
+    messageId: string;
+    messageCount: number;
+    partCount: number;
+    digest: string;
+  };
+  messages: JSONValue[];
+  checkpoint?: CompactionCheckpoint;
+};
+```
+
+Agent UI helpers create records automatically when `prepareStep` returns a `compaction` result. For custom streams, use [`createUIMessageCompaction`](/docs/reference/ai-sdk-ui/create-ui-message-compaction). `replaces` identifies the end of the covered UI history prefix and its fingerprint. `messages` is SDK-managed serialized model context and is safe to persist as JSON. The optional `checkpoint` preserves the summary descriptor returned by `compactMessages` for subsequent compaction calls.
+
+Keep these records in the persisted and transported UI message array. They need not be rendered. [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages#compaction-records) uses the latest applicable record and converts only the later UI content. It leaves the complete visible conversation intact.
+
 ### `StepStartUIPart`
 
 A step boundary part of a message.

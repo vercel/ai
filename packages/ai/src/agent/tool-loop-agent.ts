@@ -17,6 +17,7 @@ import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Steering } from '../generate-text/steering';
 import type { Prompt } from '../prompt';
+import type { CompactionCheckpoint } from '../compact-messages/types';
 import { isCausedByAbort } from '../util/is-caused-by-abort';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import { notify } from '../util/notify';
@@ -95,6 +96,7 @@ export class ToolLoopAgent<
     prompt?: string | Array<ModelMessage>;
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
+    compactionCheckpoint?: CompactionCheckpoint;
     experimental_sandbox?: SandboxSession;
   }): Promise<
     Omit<
@@ -115,7 +117,7 @@ export class ToolLoopAgent<
       | 'onEnd'
       | 'onFinish'
     > &
-      Prompt
+      Prompt & { compactionCheckpoint?: CompactionCheckpoint }
   > {
     if (
       this.settings.callOptionsSchema != null &&
