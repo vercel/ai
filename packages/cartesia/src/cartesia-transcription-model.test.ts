@@ -460,7 +460,7 @@ describe('doStream', () => {
       apiKey: 'test-api-key',
       webSocket: MockWebSocket,
     });
-    await provider.transcription('ink-2').doStream!({
+    const result = await provider.transcription('ink-2').doStream!({
       audio: convertArrayToReadableStream([]),
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       providerOptions: {
@@ -480,6 +480,15 @@ describe('doStream', () => {
     expect(params.get('turn_eager_end_threshold')).toBe('0.4');
     expect(params.get('turn_end_threshold')).toBe('0.3');
     expect(params.get('turn_end_timeout_ms')).toBe('800');
+
+    const reader = result.stream.getReader();
+    MockWebSocket.instances[0].open();
+    await flush();
+    expect((await reader.read()).value).toEqual({
+      type: 'stream-start',
+      warnings: [],
+    });
+    await reader.cancel();
   });
 
   it('omits turn thresholds and warns when turn detection is disabled', async () => {
