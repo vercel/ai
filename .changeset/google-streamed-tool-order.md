@@ -1,5 +1,6 @@
 ---
 '@ai-sdk/google': patch
+'@ai-sdk/google-vertex': patch
 'ai': patch
 ---
 
