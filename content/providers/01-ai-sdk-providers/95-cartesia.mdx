@@ -298,8 +298,8 @@ const result = streamTranscribe({
 });
 ```
 
-To bias recognition toward product names or jargon, pass up to 100
-`providerOptions.cartesia.streaming.keyterms`
+To bias recognition toward product names or jargon, pass up to 100 terms
+(up to 1,200 characters in total) in `providerOptions.cartesia.streaming.keyterms`
 ([keyterm prompting](https://docs.cartesia.ai/use-the-api/stt/keyterms)). Turn detection can be tuned with
 `turnStartThreshold`, `turnEagerEndThreshold`, `turnEndThreshold` and
 `turnEndTimeoutMs`; these are ignored, with a warning, when `turnDetection` is
