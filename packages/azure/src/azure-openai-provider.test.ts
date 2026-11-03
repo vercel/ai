@@ -1,6 +1,7 @@
 import type {
   EmbeddingModelV4Embedding,
   LanguageModelV4,
+  LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -1823,7 +1824,7 @@ describe('responses', () => {
             expect.objectContaining({
               type: 'source',
               sourceType: 'url',
-              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+              url: 'https://www.nbcnews.com/',
             }),
           ]),
         );
@@ -1868,6 +1869,117 @@ describe('responses', () => {
       });
       it('should generate with reasoning encrypted content', async () => {
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search tool', () => {
+      it('should expose toolSearch as an Azure tool', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.toolSearch(),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.tool_search',
+        });
+      });
+
+      const toolSearchTools = (
+        providerOptionsName: 'azure' | 'openai',
+      ): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.tool_search',
+          name: 'toolSearch',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+          providerOptions: {
+            [providerOptionsName]: { deferLoading: true },
+          },
+        },
+      ];
+
+      it.each(['azure', 'openai'] as const)(
+        'should defer function tools marked with providerOptions.%s',
+        async providerOptionsName => {
+          prepareJsonFixtureResponse('azure-text.1');
+
+          await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: toolSearchTools(providerOptionsName),
+          });
+
+          expect((await server.calls[0].requestBodyJson).tools)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "function",
+              },
+            ]
+          `);
+        },
+      );
+
+      it('should defer function tools marked with providerOptions.azure when streaming', async () => {
+        prepareChunksFixtureResponse('azure-text.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: toolSearchTools('azure'),
+        });
+        await convertReadableStreamToArray(stream);
+
+        expect((await server.calls[0].requestBodyJson).tools)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ]
+        `);
       });
     });
 
@@ -2262,7 +2374,7 @@ describe('responses', () => {
             expect.objectContaining({
               type: 'source',
               sourceType: 'url',
-              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+              url: 'https://www.nbcnews.com/',
             }),
           ]),
         );

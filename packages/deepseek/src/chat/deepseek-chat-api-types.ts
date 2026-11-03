@@ -1,4 +1,8 @@
-import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import {
+  type InferSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type DeepSeekChatPrompt = Array<DeepSeekMessage>;
@@ -92,95 +96,135 @@ export type DeepSeekToolChoice =
   | undefined;
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
-const tokenUsageSchema = z
-  .looseObject({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    prompt_cache_hit_tokens: z.number().nullish(),
-    prompt_cache_miss_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .looseObject({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .looseObject({
-        reasoning_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
+function createTokenUsageSchema() {
+  return z
+    .looseObject({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+      prompt_cache_hit_tokens: z.number().nullish(),
+      prompt_cache_miss_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .looseObject({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      completion_tokens_details: z
+        .looseObject({
+          reasoning_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish();
+}
 
-export type DeepSeekChatTokenUsage = z.infer<typeof tokenUsageSchema>;
+let tokenUsageSchema: ReturnType<typeof createTokenUsageSchema> | undefined;
 
-export const deepSeekErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-    param: z.any().nullish(),
-    code: z.union([z.string(), z.number()]).nullish(),
-  }),
-});
+function getTokenUsageSchema() {
+  return (tokenUsageSchema ??= createTokenUsageSchema());
+}
 
-export type DeepSeekErrorData = z.infer<typeof deepSeekErrorSchema>;
+export type DeepSeekChatTokenUsage = z.infer<
+  ReturnType<typeof getTokenUsageSchema>
+>;
 
-const deepseekChatLogprobSchema = z.object({
-  token: z.string(),
-  logprob: z.number(),
-  bytes: z.array(z.number()).nullable(),
-  top_logprobs: z.array(
-    z.object({
-      token: z.string(),
-      logprob: z.number(),
-      bytes: z.array(z.number()).nullable(),
+function createDeepSeekErrorSchema() {
+  return z.object({
+    error: z.object({
+      message: z.string(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
     }),
-  ),
-});
+  });
+}
 
-const deepseekChatLogprobsSchema = z
-  .object({
-    content: z.array(deepseekChatLogprobSchema).nullish(),
-    reasoning_content: z.array(deepseekChatLogprobSchema).nullish(),
-  })
-  .nullish();
+let errorSchema: ReturnType<typeof createDeepSeekErrorSchema> | undefined;
 
-export type DeepSeekChatLogprob = z.infer<typeof deepseekChatLogprobSchema>;
+function getDeepSeekErrorSchema() {
+  return (errorSchema ??= createDeepSeekErrorSchema());
+}
+
+export const deepSeekErrorSchema = lazySchema(() =>
+  zodSchema(getDeepSeekErrorSchema()),
+);
+
+export type DeepSeekErrorData = InferSchema<typeof deepSeekErrorSchema>;
+
+function createDeepseekChatLogprobsSchema() {
+  const deepseekChatLogprobSchema = z.object({
+    token: z.string(),
+    logprob: z.number(),
+    bytes: z.array(z.number()).nullable(),
+    top_logprobs: z.array(
+      z.object({
+        token: z.string(),
+        logprob: z.number(),
+        bytes: z.array(z.number()).nullable(),
+      }),
+    ),
+  });
+
+  return z
+    .object({
+      content: z.array(deepseekChatLogprobSchema).nullish(),
+      reasoning_content: z.array(deepseekChatLogprobSchema).nullish(),
+    })
+    .nullish();
+}
+
+let logprobsSchema:
+  | ReturnType<typeof createDeepseekChatLogprobsSchema>
+  | undefined;
+
+function getDeepseekChatLogprobsSchema() {
+  return (logprobsSchema ??= createDeepseekChatLogprobsSchema());
+}
+
+export type DeepSeekChatLogprob = NonNullable<
+  NonNullable<
+    z.infer<ReturnType<typeof getDeepseekChatLogprobsSchema>>
+  >['content']
+>[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const deepseekChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  object: z.literal('chat.completion').nullish(),
-  system_fingerprint: z.string().nullish(),
-  choices: z.array(
+export const deepseekChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      index: z.number().nullish(),
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function').nullish(),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      logprobs: deepseekChatLogprobsSchema,
-      finish_reason: z.string().nullish(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      object: z.literal('chat.completion').nullish(),
+      system_fingerprint: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          index: z.number().nullish(),
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string().nullish(),
+                  type: z.literal('function').nullish(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          logprobs: getDeepseekChatLogprobsSchema(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: getTokenUsageSchema(),
     }),
   ),
-  usage: tokenUsageSchema,
-});
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -216,13 +260,13 @@ export const deepseekChatChunkSchema = lazySchema(() =>
                   .nullish(),
               })
               .nullish(),
-            logprobs: deepseekChatLogprobsSchema,
+            logprobs: getDeepseekChatLogprobsSchema(),
             finish_reason: z.string().nullish(),
           }),
         ),
-        usage: tokenUsageSchema,
+        usage: getTokenUsageSchema(),
       }),
-      deepSeekErrorSchema,
+      getDeepSeekErrorSchema(),
     ]),
   ),
 );

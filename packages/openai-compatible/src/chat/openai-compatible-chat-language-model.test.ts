@@ -448,12 +448,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+        {
+          "text": "Hello, World!",
+          "type": "text",
         },
       ]
     `);
@@ -1554,6 +1554,137 @@ describe('doGenerate', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
+      );
+    });
+
+    it('should map top-level reasoning with mapReasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning: ({ reasoning, warnings }) => {
+          warnings.push({ type: 'compatibility', feature: 'reasoning' });
+          return `mapped-${reasoning}`;
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'mapped-xhigh',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+      });
+    });
+
+    it('should not apply mapReasoning to providerOptions reasoningEffort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const mapReasoning = vi.fn(() => 'mapped');
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning,
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'max' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+      expect(mapReasoning).not.toHaveBeenCalled();
+    });
+
+    it('should send reasoningEffort null as reasoning_effort null', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body).toHaveProperty('reasoning_effort', null);
+      expect(body.reasoningEffort).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort null over top-level reasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
+      );
+    });
+
+    it('should omit reasoning_effort when no reasoning effort is set', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'reasoning_effort',
+      );
+    });
+
+    it('should not overwrite a raw reasoning_effort provider option', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoning_effort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
       );
     });
 
@@ -4054,7 +4185,6 @@ describe('doStream', () => {
           ],
           "model": "grok-3",
           "presence_penalty": undefined,
-          "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
           "stop": undefined,

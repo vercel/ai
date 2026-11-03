@@ -13,7 +13,6 @@ import { createFx } from './_create';
 run(async () => {
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
-    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await new HarnessAgent({
       harness: createFx(),
@@ -51,6 +50,8 @@ run(async () => {
 
       const agent = new HarnessAgent({
         harness: createFx(),
+        // libfx incorrectly withholds images from the default Grok model because its catalog entry lacks the file-input tag.
+        model: 'anthropic/claude-haiku-4.5',
         tools: { inspectImage },
       });
 

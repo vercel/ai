@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
@@ -108,22 +113,26 @@ export type AmazonBedrockChatModelSettings = {
  * Bedrock file part provider options for document-specific features.
  * These options apply to individual file parts (documents).
  */
-export const amazonBedrockFilePartProviderOptions = z.object({
-  /**
-   * Citation configuration for this document.
-   * When enabled, this document will generate citations in the response.
-   */
-  citations: z
-    .object({
+export const amazonBedrockFilePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * Enable citations for this document
+       * Citation configuration for this document.
+       * When enabled, this document will generate citations in the response.
        */
-      enabled: z.boolean(),
-    })
-    .optional(),
-});
+      citations: z
+        .object({
+          /**
+           * Enable citations for this document
+           */
+          enabled: z.boolean(),
+        })
+        .optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockFilePartProviderOptions = z.infer<
+export type AmazonBedrockFilePartProviderOptions = InferSchema<
   typeof amazonBedrockFilePartProviderOptions
 >;
 
@@ -131,14 +140,18 @@ export type AmazonBedrockFilePartProviderOptions = z.infer<
  * Amazon Bedrock text part provider options for guardrail content.
  * These options apply to individual text parts.
  */
-export const amazonBedrockTextPartProviderOptions = z.object({
-  guardContent: z.boolean().optional(),
-  guardContentQualifiers: z
-    .array(z.enum(['grounding_source', 'query', 'guard_content']))
-    .optional(),
-});
+export const amazonBedrockTextPartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      guardContent: z.boolean().optional(),
+      guardContentQualifiers: z
+        .array(z.enum(['grounding_source', 'query', 'guard_content']))
+        .optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockTextPartProviderOptions = z.infer<
+export type AmazonBedrockTextPartProviderOptions = InferSchema<
   typeof amazonBedrockTextPartProviderOptions
 >;
 
@@ -146,11 +159,15 @@ export type AmazonBedrockTextPartProviderOptions = z.infer<
  * Amazon Bedrock image part provider options for guardrail content.
  * These options apply to individual image parts.
  */
-export const amazonBedrockImagePartProviderOptions = z.object({
-  guardContent: z.boolean().optional(),
-});
+export const amazonBedrockImagePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      guardContent: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type AmazonBedrockImagePartProviderOptions = z.infer<
+export type AmazonBedrockImagePartProviderOptions = InferSchema<
   typeof amazonBedrockImagePartProviderOptions
 >;
 

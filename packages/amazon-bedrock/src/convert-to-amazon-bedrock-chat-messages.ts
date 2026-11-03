@@ -9,11 +9,13 @@ import {
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
   parseProviderOptions,
   resolveFullMediaType,
+  secureJsonParse,
   stripFileExtension,
 } from '@ai-sdk/provider-utils';
 import {
@@ -173,8 +175,21 @@ export async function convertToAmazonBedrockChatMessages(
 
   let documentCounter = 0;
   const generateDocumentName = () => `document-${++documentCounter}`;
-  const getDocumentName = (filename: string | undefined) =>
-    (filename && sanitizeDocumentName(filename)) || generateDocumentName();
+  // Bedrock rejects requests that contain duplicate document names:
+  const usedDocumentNames = new Set<string>();
+  const getDocumentName = (filename: string | undefined) => {
+    const baseName =
+      (filename && sanitizeDocumentName(filename)) || generateDocumentName();
+
+    let name = baseName;
+    for (let suffix = 2; usedDocumentNames.has(name); suffix++) {
+      const suffixText = ` (${suffix})`;
+      name = `${baseName.slice(0, 200 - suffixText.length).trim()}${suffixText}`;
+    }
+
+    usedDocumentNames.add(name);
+    return name;
+  };
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -687,12 +702,27 @@ async function convertToolResultOutput({
     case 'json':
     case 'error-json':
     default:
-      return [{ text: JSON.stringify(output.value) }];
+      return [{ text: stringifyWithBigIntAndCycles(output.value) }];
   }
 }
 
 // wrap invalid tool call input because Bedrock requires it to be an object
 function toBedrockToolInput(input: unknown): JSONObject {
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed as JSONObject;
+      }
+    } catch {
+      // malformed JSON falls through to rawInvalidInput wrapper
+    }
+  }
+
   return typeof input === 'object' && input !== null && !Array.isArray(input)
     ? (input as JSONObject)
     : { rawInvalidInput: input as JSONValue };

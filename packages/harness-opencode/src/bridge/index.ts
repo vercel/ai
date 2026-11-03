@@ -5,10 +5,14 @@ import {
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
-import type { StartMessage } from '../opencode-bridge-protocol';
+import type {
+  OpenCodeBuiltinToolName,
+  StartMessage,
+} from '../opencode-bridge-protocol';
 
 import {
   createOpencodeClient,
@@ -33,7 +37,8 @@ import {
 } from './opencode-context-fallback';
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
-import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodePath } from './opencode-path';
+import { resolveOpenCodeInstructions } from './opencode-project-isolation';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
@@ -56,8 +61,13 @@ import {
   toOpenCodeQuestionResponse,
   type OpenCodeQuestionRequest,
 } from './question-tool';
+import { toOpenCodePromptParts } from './opencode-prompt';
 
 type Emit = (msg: Record<string, unknown>) => void;
+/* Resolves once the approval request has been sent to the host. */
+type EmitApprovalRequest = (
+  msg: Record<string, unknown>,
+) => void | Promise<void>;
 
 type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 type OpenCodeServer = Awaited<ReturnType<typeof createOpencodeServer>>;
@@ -68,6 +78,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   openCodeConfig?: Record<string, unknown>;
+  inactiveBuiltinToolNames?: StartMessage['inactiveBuiltinToolNames'];
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -102,9 +113,23 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   subtask: 'agent',
 };
 
-const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
-  read: 'view',
-  write: 'write',
+type OpenCodePermissionName =
+  | 'question'
+  | 'read'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'list'
+  | 'webfetch'
+  | 'skill'
+  | 'todowrite'
+  | 'task';
+
+const BUILTIN_TOOL_PERMISSION = {
+  askUserQuestions: 'question',
+  read: 'read',
+  write: 'edit',
   edit: 'edit',
   bash: 'bash',
   glob: 'glob',
@@ -113,8 +138,8 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   webfetch: 'webfetch',
   skill: 'skill',
   todowrite: 'todowrite',
-  agent: 'agent',
-};
+  agent: 'task',
+} as const satisfies Record<OpenCodeBuiltinToolName, OpenCodePermissionName>;
 
 const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   read: 'readonly',
@@ -129,6 +154,13 @@ const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   skill: 'edit',
   todowrite: 'edit',
 };
+/*
+ * How long an approval request waits for its tool call to reach the host.
+ * OpenCode reports the call right after asking, so this only bounds a missing
+ * report; after it the request is sent as before.
+ */
+const APPROVAL_TOOL_CALL_WAIT_MS = 5_000;
+
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const args = parseArgs(argv.slice(2));
@@ -147,7 +179,15 @@ const runtime: RuntimeState = {
  */
 let currentHostInputTracker: OpenCodeHostInputTracker | undefined;
 let currentTurn: BridgeTurn | undefined;
-prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
+configureOpenCodePath({ bootstrapDir, env: procEnv });
+/*
+ * OpenCode loads `opencode.json[c]` and `.opencode/` configuration from the
+ * session working directory and its parents. That configuration can define
+ * agent-local permissions, plugins, and MCP servers, so repository content
+ * could override harness permissions and built-in tool filtering. Disabling
+ * project configuration keeps the bridge-provided configuration authoritative.
+ */
+procEnv.OPENCODE_DISABLE_PROJECT_CONFIG = '1';
 
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
@@ -215,7 +255,11 @@ async function ensureRuntime({
 }): Promise<void> {
   if (
     runtime.client &&
-    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig) &&
+    isDeepStrictEqual(
+      runtime.inactiveBuiltinToolNames,
+      start.inactiveBuiltinToolNames,
+    )
   ) {
     return;
   }
@@ -223,6 +267,27 @@ async function ensureRuntime({
   closeRuntime();
 
   try {
+    /*
+     * OpenCode always loads configuration, instructions, and skills from the
+     * home directory and its global config directory, even with project
+     * configuration disabled. A working directory that is or contains either
+     * location would let repository content act as trusted global
+     * configuration.
+     */
+    const homeDirectory = homedir();
+    for (const protectedPath of [
+      homeDirectory,
+      path.join(
+        procEnv.XDG_CONFIG_HOME || path.join(homeDirectory, '.config'),
+        'opencode',
+      ),
+    ]) {
+      if (isPathInsideOrEqual(protectedPath, workdir)) {
+        throw new Error(
+          `OpenCode session working directory "${workdir}" must not be or contain the sandbox home directory or OpenCode's global config directory, because OpenCode always loads configuration from those locations.`,
+        );
+      }
+    }
     if (start.tools && start.tools.length > 0) {
       runtime.toolNames = new Set(start.tools.map(tool => tool.name));
       runtime.relay = await startToolRelay({
@@ -263,6 +328,9 @@ async function ensureRuntime({
         .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
     );
     runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+    runtime.inactiveBuiltinToolNames = structuredClone(
+      start.inactiveBuiltinToolNames,
+    );
   } catch (error) {
     closeRuntime();
     throw error;
@@ -276,6 +344,7 @@ function closeRuntime(): void {
   runtime.client = undefined;
   runtime.relay = undefined;
   runtime.openCodeConfig = undefined;
+  runtime.inactiveBuiltinToolNames = undefined;
   runtime.toolNames = new Set();
   runtime.mcpToolPrefixes = new Set();
 }
@@ -307,19 +376,16 @@ function buildOpenCodeConfig({
       question: 'allow',
     },
   };
+  const instructions = resolveOpenCodeInstructions({
+    workdir,
+    hostInstructions: start.openCodeConfig?.instructions,
+  });
+  if (instructions) config.instructions = instructions;
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
-  const inactiveToolNames = resolveInactiveBuiltinToolNames(start);
   const permission = config.permission as Record<string, unknown>;
-  for (const toolName of inactiveToolNames) {
-    const permissionName = toPermissionToolName(
-      PUBLIC_TO_NATIVE[toolName] ?? toolName,
-    );
-    if (permissionName === 'ls') {
-      permission.list = 'ask';
-    } else {
-      permission[permissionName] = 'ask';
-    }
+  for (const toolName of start.inactiveBuiltinToolNames ?? []) {
+    permission[BUILTIN_TOOL_PERMISSION[toolName]] = 'deny';
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
@@ -533,12 +599,12 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
-  prompt: promptText,
+  prompt,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
-  prompt?: string;
+  prompt: StartMessage['prompt'];
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
   const submitPrompt = session.promptAsync ?? session.prompt;
@@ -555,7 +621,7 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts: [{ type: 'text', text: promptText ?? start.prompt }],
+    parts: toOpenCodePromptParts(prompt),
   });
 }
 
@@ -736,7 +802,7 @@ async function runPrompt({
     client,
     sessionId,
     permissionMode: start.permissionMode,
-    builtinToolFiltering: start.builtinToolFiltering,
+    inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
     state,
     hostInputTracker,
@@ -867,6 +933,7 @@ async function runPrompt({
         client,
         sessionId,
         start,
+        prompt: start.prompt,
       });
     } catch (error) {
       promptRequestSettled.resolve(undefined);
@@ -966,7 +1033,7 @@ async function runCompaction({
     client,
     sessionId,
     permissionMode: start.permissionMode,
-    builtinToolFiltering: start.builtinToolFiltering,
+    inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
     state: createTranslationState(),
     emit: msg => {
@@ -1030,7 +1097,7 @@ async function consumeEvents({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   state,
   hostInputTracker,
@@ -1042,7 +1109,7 @@ async function consumeEvents({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   state: TranslationState;
   hostInputTracker?: OpenCodeHostInputTracker;
@@ -1070,9 +1137,39 @@ async function consumeEvents({
         taskSessionIds.add(subagentSessionId);
       }
     };
+  /*
+   * OpenCode asks for permission while a tool call is still pending and
+   * reports the call as running only afterwards, but the host must receive
+   * the call before its approval request. An approval request for a call that
+   * has not been sent yet waits for it, at most APPROVAL_TOOL_CALL_WAIT_MS.
+   * The bridge only starts waiting for the host's answer once the request is
+   * sent, so the host is not told the step is paused before it has the call.
+   */
+  const sentToolCallIds = new Set<string>();
+  const approvalsAwaitingToolCall = new Map<string, () => void>();
+  const emitToHost: Emit = message => {
+    emit(message);
+    if (message.type !== 'tool-call') return;
+    const toolCallId = String(message.toolCallId);
+    sentToolCallIds.add(toolCallId);
+    approvalsAwaitingToolCall.get(toolCallId)?.();
+  };
+  const emitApprovalRequest: EmitApprovalRequest = async message => {
+    const toolCallId = String(message.toolCallId);
+    if (!sentToolCallIds.has(toolCallId)) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      await new Promise<void>(resolve => {
+        timeout = setTimeout(resolve, APPROVAL_TOOL_CALL_WAIT_MS);
+        approvalsAwaitingToolCall.set(toolCallId, resolve);
+      });
+      clearTimeout(timeout);
+      approvalsAwaitingToolCall.delete(toolCallId);
+    }
+    emit(message);
+  };
   const emitStreamEvent = createEmitStreamEvent({
     state,
-    emit,
+    emit: emitToHost,
     emitWarning: turn.emitWarning,
     emitError: turn.emitError,
     toWireToolName,
@@ -1202,6 +1299,7 @@ async function consumeEvents({
       if (consumeEvent(next.value)) break;
     }
   } finally {
+    for (const release of approvalsAwaitingToolCall.values()) release();
     void iterator.return?.();
   }
 
@@ -1248,9 +1346,9 @@ async function consumeEvents({
           client,
           sessionId: scopedSessionId,
           permissionMode,
-          builtinToolFiltering,
+          inactiveBuiltinToolNames,
           turn,
-          emit,
+          emit: isDescendant ? emit : emitApprovalRequest,
           event,
           waitFor,
         }),
@@ -1261,9 +1359,9 @@ async function consumeEvents({
           client,
           sessionId: scopedSessionId,
           permissionMode,
-          builtinToolFiltering,
+          inactiveBuiltinToolNames,
           turn,
-          emit,
+          emit: isDescendant ? emit : emitApprovalRequest,
           event,
           waitFor,
         }),
@@ -1385,7 +1483,7 @@ async function handlePermissionV2({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
   event,
@@ -1394,9 +1492,9 @@ async function handlePermissionV2({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   event: OpenCodeEvent;
   waitFor?: WaitForHostInput;
 }): Promise<void> {
@@ -1411,7 +1509,7 @@ async function handlePermissionV2({
     requestID,
     toolCallId: String(props.source?.callID ?? requestID),
     permissionMode,
-    builtinToolFiltering,
+    inactiveBuiltinToolNames,
     turn,
     emit,
     waitFor,
@@ -1428,7 +1526,7 @@ async function handlePermission({
   client,
   sessionId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
   event,
@@ -1437,9 +1535,9 @@ async function handlePermission({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   event: OpenCodeEvent;
   waitFor?: WaitForHostInput;
 }): Promise<void> {
@@ -1453,7 +1551,7 @@ async function handlePermission({
     requestID,
     toolCallId: String(tool?.callID ?? requestID),
     permissionMode,
-    builtinToolFiltering,
+    inactiveBuiltinToolNames,
     turn,
     emit,
     waitFor,
@@ -1473,7 +1571,7 @@ async function selectPermissionReply({
   requestID,
   toolCallId,
   permissionMode,
-  builtinToolFiltering,
+  inactiveBuiltinToolNames,
   turn,
   emit,
   waitFor,
@@ -1483,9 +1581,9 @@ async function selectPermissionReply({
   requestID: string;
   toolCallId: string;
   permissionMode: StartMessage['permissionMode'];
-  builtinToolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
-  emit: Emit;
+  emit: EmitApprovalRequest;
   waitFor?: WaitForHostInput;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const requestApproval = async () => {
@@ -1496,10 +1594,8 @@ async function selectPermissionReply({
       .finally(() => wait?.clearWaiting());
   };
   const toolName = toPermissionToolName(action);
-  if (
-    isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
-  ) {
-    emit({
+  if (isBuiltinToolInactive({ toolName, inactiveBuiltinToolNames })) {
+    await emit({
       type: 'tool-approval-request',
       approvalId: requestID,
       toolCallId,
@@ -1525,7 +1621,7 @@ async function selectPermissionReply({
       : kind === 'readonly';
   if (allowed) return { reply: 'always' };
 
-  emit({
+  await emit({
     type: 'tool-approval-request',
     approvalId: requestID,
     toolCallId,
@@ -1555,26 +1651,15 @@ function toPermissionToolName(action: string): string {
   return toWireToolName(normalized);
 }
 
-function resolveInactiveBuiltinToolNames(
-  start: StartMessage,
-): ReadonlyArray<string> {
-  const toolFiltering = start.builtinToolFiltering;
-  if (toolFiltering == null) return [];
-  return toolFiltering.mode === 'allow'
-    ? Object.keys(PUBLIC_TO_NATIVE).filter(
-        name => !toolFiltering.toolNames.includes(name),
-      )
-    : toolFiltering.toolNames;
-}
-
 function isBuiltinToolInactive(input: {
   toolName: string;
-  toolFiltering: StartMessage['builtinToolFiltering'];
+  inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
 }): boolean {
-  if (input.toolFiltering == null) return false;
-  return input.toolFiltering.mode === 'allow'
-    ? !input.toolFiltering.toolNames.includes(input.toolName)
-    : input.toolFiltering.toolNames.includes(input.toolName);
+  return (
+    input.inactiveBuiltinToolNames?.some(
+      toolName => toolName === input.toolName,
+    ) ?? false
+  );
 }
 
 function isExternalPath(resource: string): boolean {

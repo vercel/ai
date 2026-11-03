@@ -1,7 +1,9 @@
 // In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsdown) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
+import { rgPath } from '@vscode/ripgrep';
 import {
   runBridge,
   convertHarnessToolModelOutput,
@@ -34,16 +36,24 @@ import {
   type DeepAgentsStreamEventState,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
-import { createLocalShellBackend } from './local-shell-backend';
+import {
+  createLocalShellBackend,
+  SANDBOX_PATH_FALLBACK,
+} from './local-shell-backend';
 import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
+  pruneMemorySaver,
   removeMemorySaverSnapshot,
   saveMemorySaver,
 } from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
+procEnv.PATH = [
+  procEnv.PATH ?? SANDBOX_PATH_FALLBACK,
+  path.dirname(rgPath),
+].join(path.delimiter);
 
 function parseArgs(rawArgs: string[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -386,7 +396,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
 
   let resumeInput: unknown = {
-    messages: [{ role: 'user', content: start.prompt }],
+    messages: [
+      {
+        role: 'user',
+        content:
+          typeof start.prompt === 'string'
+            ? start.prompt
+            : start.prompt.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      mimeType: part.mediaType,
+                      data: part.data,
+                    },
+              ),
+      },
+    ],
   };
   let emittedStructuredOutput = false;
 
@@ -508,7 +534,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
-  onStart: runTurn,
+  onStart: async (start, turn) => {
+    try {
+      await runTurn(start, turn);
+    } finally {
+      pruneMemorySaver({ saver: checkpointer });
+    }
+  },
   onStop: async () => {
     await closeMcpClient();
     await saveMemorySaver({

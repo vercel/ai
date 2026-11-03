@@ -20,7 +20,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { jsonSchema } from '@ai-sdk/provider-utils';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   DoStreamStepRawResult,
@@ -35,6 +35,8 @@ vi.mock('./do-stream-step.js', () => ({
 
 // Import after mocking
 const { modelCallIterator } = await import('./model-call-iterator.js');
+const { createWorkflowAgentTelemetryRecorder } =
+  await import('./workflow-agent-telemetry.js');
 const { doStreamStep } = await import('./do-stream-step.js');
 
 /**
@@ -697,6 +699,64 @@ describe('modelCallIterator', () => {
   });
 
   describe('telemetry', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it.each([undefined, false, true])(
+      'filters runtime context before passing it to the model step (include=%s)',
+      async includeRequestId => {
+        vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+        vi.mocked(doStreamStep).mockResolvedValue(
+          createMockDoStreamStepResult(),
+        );
+        const runtimeContext = { requestId: 'request-1', secret: 'private' };
+        const iterator = modelCallIterator({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+          tools: {},
+          model: vi.fn() as any,
+          runtimeContext,
+          telemetry: {
+            includeRuntimeContext:
+              includeRequestId == null
+                ? undefined
+                : { requestId: includeRequestId, secret: false },
+          },
+        });
+
+        await iterator.next();
+
+        expect(
+          vi.mocked(doStreamStep).mock.calls[0][4]?.telemetry?.runtimeContext,
+        ).toEqual(includeRequestId ? { requestId: 'request-1' } : {});
+        expect(runtimeContext).toEqual({
+          requestId: 'request-1',
+          secret: 'private',
+        });
+      },
+    );
+
+    it('uses runtime context updated by prepareStep for model-step telemetry', async () => {
+      vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+      vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
+      const iterator = modelCallIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        runtimeContext: { requestId: 'initial' },
+        prepareStep: () => ({
+          runtimeContext: { requestId: 'updated', secret: 'private' },
+        }),
+        telemetry: { includeRuntimeContext: { requestId: true } },
+      });
+
+      await iterator.next();
+
+      expect(
+        vi.mocked(doStreamStep).mock.calls[0][4]?.telemetry?.runtimeContext,
+      ).toEqual({ requestId: 'updated' });
+    });
+
     it('should expose provider metadata on model-call end', async () => {
       vi.mocked(doStreamStep).mockResolvedValue(
         createMockDoStreamStepResult({
@@ -727,6 +787,29 @@ describe('modelCallIterator', () => {
           },
         }),
       );
+    });
+
+    it('records the model-call start when the model step fails', async () => {
+      vi.useFakeTimers({ now: 5_000 });
+      vi.stubGlobal('AI_SDK_TELEMETRY_INTEGRATIONS', undefined);
+      vi.mocked(doStreamStep).mockRejectedValue(new Error('rejected'));
+      const recorder = createWorkflowAgentTelemetryRecorder();
+      const iterator = modelCallIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+        telemetryRecorder: recorder.integration,
+      });
+
+      await expect(iterator.next()).rejects.toThrow('rejected');
+
+      expect(
+        recorder.events.map(({ type, timestamp }) => [type, timestamp]),
+      ).toEqual([
+        ['onStepStart', 5_000],
+        ['onLanguageModelCallStart', 5_000],
+      ]);
+      vi.useRealTimers();
     });
   });
 

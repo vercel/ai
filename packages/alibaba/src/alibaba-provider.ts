@@ -6,6 +6,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -80,8 +82,9 @@ export interface AlibabaProviderSettings {
   /**
    * API key that is being sent using the `Authorization` header.
    * It defaults to the `ALIBABA_API_KEY` environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -122,16 +125,18 @@ export function createAlibaba(
     'https://dashscope-intl.aliyuncs.com/api/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ALIBABA_API_KEY',
-          description: 'Alibaba Cloud (DashScope)',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-alibaba/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'ALIBABA_API_KEY',
+            description: 'Alibaba Cloud (DashScope)',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-alibaba/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: AlibabaChatModelId) =>

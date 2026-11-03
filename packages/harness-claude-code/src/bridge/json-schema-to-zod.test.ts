@@ -1,10 +1,154 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod/v4';
 import {
   jsonSchemaToZodObject,
   type JsonSchemaObject,
 } from './json-schema-to-zod';
 
 describe('jsonSchemaToZodObject', () => {
+  describe.each([true, false])('metadata with required=%s', required => {
+    it.each([
+      { type: 'number', minimum: 0, maximum: 1, values: [-1, 2] },
+      { type: 'integer', minimum: 0, maximum: 1, values: [-1, 2] },
+      {
+        type: 'number',
+        exclusiveMinimum: 0,
+        exclusiveMaximum: 1,
+        values: [0, 1],
+      },
+      { type: 'string', minLength: 0, maxLength: 1, values: ['long'] },
+      {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 0,
+        maxItems: 1,
+        values: [['first', 'second']],
+      },
+    ])(
+      'advertises $type limits without enforcing them',
+      ({ values, ...property }) => {
+        const schema = jsonSchemaToZodObject({
+          type: 'object',
+          properties: { value: property },
+          required: required ? ['value'] : [],
+        });
+
+        expect(z.toJSONSchema(schema).properties?.value).toMatchObject(
+          property,
+        );
+        for (const value of values) {
+          expect(schema.parse({ value })).toEqual({ value });
+        }
+      },
+    );
+
+    it.each(
+      [0, false, '', null, [], { enabled: true }].map(defaultValue => ({
+        defaultValue,
+      })),
+    )(
+      'advertises default $defaultValue without filling it',
+      ({ defaultValue }) => {
+        const schema = jsonSchemaToZodObject({
+          type: 'object',
+          properties: { value: { default: defaultValue } },
+          required: required ? ['value'] : [],
+        });
+
+        expect(z.toJSONSchema(schema).properties?.value).toHaveProperty(
+          'default',
+          defaultValue,
+        );
+        expect(schema.parse({}).value).toBeUndefined();
+      },
+    );
+  });
+
+  it('keeps required fields required when they have default metadata', () => {
+    const schema = jsonSchemaToZodObject({
+      type: 'object',
+      properties: { value: { type: 'string', default: 'host-default' } },
+      required: ['value'],
+    });
+
+    expect(z.toJSONSchema(schema).required).toEqual(['value']);
+    expect(schema.safeParse({}).success).toBe(false);
+  });
+
+  it('preserves metadata at the root and inside recursive schemas', () => {
+    const input = {
+      type: 'object',
+      default: {},
+      properties: {
+        nested: {
+          type: 'object',
+          properties: {
+            text: {
+              type: 'string',
+              description: 'A constrained string.',
+              minLength: 3,
+              maxLength: 5,
+              default: 'host',
+            },
+          },
+        },
+        values: {
+          type: 'array',
+          minItems: 1,
+          items: { type: 'number', minimum: 1 },
+        },
+        choice: {
+          anyOf: [
+            { type: 'number', maximum: 5 },
+            { type: 'string', maxLength: 5 },
+          ],
+          default: 1,
+        },
+        nullable: { type: ['number', 'null'], minimum: 1, default: null },
+      },
+      additionalProperties: { type: 'number', minimum: 1, default: 1 },
+    };
+    const schema = jsonSchemaToZodObject(input);
+
+    expect(z.toJSONSchema(schema)).toMatchObject({
+      ...input,
+      properties: {
+        ...input.properties,
+        nullable: {
+          anyOf: [{ type: 'number' }, { type: 'null' }],
+          minimum: 1,
+          default: null,
+        },
+      },
+    });
+    const value = {
+      nested: { text: '' },
+      values: [0],
+      choice: 10,
+      nullable: 0,
+      extra: 0,
+    };
+    expect(schema.parse(value)).toEqual(value);
+    expect(schema.parse({ nested: {} })).toEqual({ nested: {} });
+  });
+
+  it('does not copy pattern, format, or unrelated metadata', () => {
+    const schema = jsonSchemaToZodObject({
+      type: 'object',
+      properties: {
+        text: {
+          type: 'string',
+          pattern: '^x$',
+          format: 'email',
+          title: 'Not copied',
+        },
+      },
+    });
+
+    expect(z.toJSONSchema(schema).properties?.text).toEqual({ type: 'string' });
+    expect(schema.parse({ text: 'anything' })).toEqual({ text: 'anything' });
+  });
+
   it.each([
     undefined,
     true,

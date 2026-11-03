@@ -7,10 +7,8 @@ contains speech generation plus batch and realtime transcription support for the
 
 ## Setup
 
-The ElevenLabs provider is available in the `@ai-sdk/elevenlabs` module. You can install it with
-
 ```bash
-npm i @ai-sdk/elevenlabs
+npm i ai @ai-sdk/elevenlabs
 ```
 
 ## Skill for Coding Agents
@@ -21,15 +19,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `elevenlabs` from `@ai-sdk/elevenlabs`:
-
-```ts
-import { elevenlabs } from '@ai-sdk/elevenlabs';
-```
-
-## Example
+## Usage
 
 ```ts
 import { elevenlabs } from '@ai-sdk/elevenlabs';
@@ -43,6 +33,4 @@ const { text } = await transcribe({
 });
 ```
 
-## Documentation
-
-Please check out the **[ElevenLabs provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs)** for more information.
+See the [ElevenLabs Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs) for more information.

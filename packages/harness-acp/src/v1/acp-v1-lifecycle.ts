@@ -1,8 +1,15 @@
-import type { ACPAuthenticationProfileIdentity } from '../acp-auth';
+import { createHash } from 'node:crypto';
+import type {
+  ACPAuthenticationProfileIdentity,
+  ACPClientApp,
+  ACPProviderAuthenticationCompatibility,
+} from '../acp-auth';
 import type {
   ACPColdSessionState,
   ACPTurnStartConfig,
 } from './acp-v1-bridge-protocol';
+import type { ACPV1Settings } from './acp-v1-settings';
+import { canonicalFingerprint } from './bridge/canonical-json-fingerprint';
 
 export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
@@ -19,7 +26,7 @@ export type ACPBridgeCoordinates = {
 };
 
 export type ACPLifecycleData = ACPPromptGuidanceLifecycleState & {
-  readonly implementationIdentity: string;
+  readonly agentIdentity: string;
   readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
   readonly sandboxCredentialEnvironment?: Readonly<Record<string, string>>;
   readonly acpSessionId?: string;
@@ -46,17 +53,55 @@ export function resolveACPInitialGuidanceApplied({
   return lifecycleState?.initialGuidanceApplied ?? true;
 }
 
+/*
+ * Digest of every non-secret input that determines how the ACP agent is
+ * installed, launched, and configured. Lifecycle state produced under one
+ * identity cannot be resumed under another because the agent's persisted
+ * session may depend on any of these inputs.
+ */
+export function createACPAgentIdentity({
+  settings,
+  clientApp,
+  providerAuthentication,
+}: {
+  settings: ACPV1Settings;
+  clientApp: ACPClientApp;
+  providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
+}): string {
+  const payload = {
+    harnessId: settings.harnessId,
+    acpVersion: 'v1',
+    source: settings.source,
+    executable: settings.executable,
+    args: settings.args ?? [],
+    clientApp,
+    clientCapabilities: settings.clientCapabilities ?? null,
+    modelMapping: settings.modelMapping,
+    environment: {
+      forwarded: [...new Set(settings.forwardEnv)].sort(),
+      credential: [...new Set(settings.credentialEnv)].sort(),
+      literal: settings.env ?? {},
+    },
+    providerAuthentication: providerAuthentication ?? null,
+    permissionModeMapping: settings.permissionModeMapping ?? null,
+    nonTextContentTypes: [...new Set(settings.nonTextContentTypes)].sort(),
+  };
+  return createHash('sha256')
+    .update(canonicalFingerprint({ value: payload }))
+    .digest('hex');
+}
+
 export function validateACPLifecycleCompatibility({
   harnessId,
   lifecycleHarnessId,
-  implementationIdentity,
+  agentIdentity,
   authenticationProfile,
   lifecycleData,
   sandboxId,
 }: {
   harnessId: string;
   lifecycleHarnessId: string;
-  implementationIdentity: string;
+  agentIdentity: string;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   lifecycleData: ACPLifecycleData;
   sandboxId: string | undefined;
@@ -68,9 +113,9 @@ export function validateACPLifecycleCompatibility({
       )}, but this harness is ${JSON.stringify(harnessId)}.`,
     );
   }
-  if (lifecycleData.implementationIdentity !== implementationIdentity) {
+  if (lifecycleData.agentIdentity !== agentIdentity) {
     throw new Error(
-      'ACP lifecycle state is incompatible with the configured implementation.',
+      'ACP lifecycle state is incompatible with the configured agent.',
     );
   }
   if (

@@ -4,7 +4,7 @@ import {
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
-import { generateText, streamText } from '../generate-text';
+import { generateText, Output, streamText } from '../generate-text';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -203,6 +203,65 @@ describe('extractReasoningMiddleware', () => {
   });
 
   describe('wrapGenerate', () => {
+    it.each([
+      {
+        name: 'reasoning tags',
+        options: { tagName: 'think' },
+        input: '<think>Checking</think>{"value":"final"}',
+        text: '{"value":"final"}',
+        reasoning: 'Checking',
+      },
+      {
+        name: 'an omitted custom opening delimiter',
+        options: {
+          tagName: { opening: '<|channel>thought\n', closing: '<channel|>' },
+          startWithReasoning: true,
+        },
+        input: 'Checking<channel|>{"value":"final"}',
+        text: '{"value":"final"}',
+        reasoning: 'Checking',
+      },
+      {
+        name: 'multiple reasoning blocks with a custom separator',
+        options: { tagName: 'think', separator: ' ' },
+        input: '{<think>First</think>"value":"final"<think>Second</think>}',
+        text: '{ "value":"final" }',
+        reasoning: 'First Second',
+      },
+    ])(
+      'should extract $name from structured output text without losing other content',
+      async ({ options, input, text, reasoning }) => {
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                content: [
+                  { type: 'text', text: '{"value":"draft"}' },
+                  { type: 'text', text: input },
+                ],
+                structuredOutputText: input,
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                warnings: [],
+              },
+            }),
+            middleware: extractReasoningMiddleware(options),
+          }),
+          output: Output.json(),
+          prompt: 'Generate JSON',
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe('{"value":"draft"}' + text);
+        expect(result.reasoningText).toBe(reasoning);
+        expect(result.content).toEqual([
+          { type: 'text', text: '{"value":"draft"}' },
+          { type: 'reasoning', text: reasoning },
+          { type: 'text', text },
+        ]);
+      },
+    );
+
     it('should extract reasoning from <think> tags', async () => {
       const mockModel = new MockLanguageModelV4({
         async doGenerate() {

@@ -12,7 +12,7 @@ import {
   type Context,
 } from '@ai-sdk/provider-utils';
 import {
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   InvalidToolInputError,
   isDeepEqualData,
   type ActiveTools,
@@ -21,6 +21,8 @@ import {
   type LanguageModel,
   type ModelMessage,
   type StepResult,
+  type Telemetry,
+  type DurableTelemetryContext,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -28,6 +30,7 @@ import {
 import {
   createRestrictedTelemetryDispatcher,
   createToolSearchState,
+  filterIncludedContext,
   parseToolCall,
 } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
@@ -51,6 +54,7 @@ import { resolveToolContext } from './resolve-tool-context.js';
 import {
   resolveSerializableTools,
   serializeToolSet,
+  toLanguageModelToolDefinitions,
   type SerializableToolDef,
 } from './serializable-schema.js';
 import type {
@@ -153,6 +157,9 @@ export async function* modelCallIterator({
   runtimeContext,
   toolsContext,
   telemetry,
+  telemetryRecorder,
+  telemetryCallId,
+  telemetryContexts,
   includeRawChunks = false,
   timeoutAt,
   repairToolCall,
@@ -181,6 +188,15 @@ export async function* modelCallIterator({
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
+  /**
+   * Records telemetry events instead of dispatching them, so a durable run
+   * can report them when it ends. Model-call events then use the timing
+   * measured inside the model step.
+   */
+  telemetryRecorder?: Telemetry;
+  /** Telemetry call ID of the recorded run, passed to model steps. */
+  telemetryCallId?: string;
+  telemetryContexts?: Array<DurableTelemetryContext | undefined>;
   includeRawChunks?: boolean;
   timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
@@ -230,7 +246,9 @@ export async function* modelCallIterator({
     any,
     any
   >({
-    telemetry: telemetry as any,
+    telemetry: (telemetryRecorder == null
+      ? telemetry
+      : { ...telemetry, integrations: telemetryRecorder }) as any,
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   }) as any;
@@ -363,16 +381,13 @@ export async function* modelCallIterator({
       });
       const modelCallInfo = getModelInfo(currentModel);
 
-      await telemetryDispatcher.onLanguageModelCallStart?.({
+      const languageModelCallStartEvent = {
         callId: 'workflow-agent',
         provider: modelCallInfo.provider,
         modelId: modelCallInfo.modelId,
         system: undefined,
         messages: conversationPrompt as unknown as ModelMessage[],
-        tools:
-          serializedTools == null
-            ? undefined
-            : Object.values(serializedTools).map(tool => ({ ...tool })),
+        tools: toLanguageModelToolDefinitions(serializedTools),
         maxOutputTokens: currentGenerationSettings.maxOutputTokens,
         temperature: currentGenerationSettings.temperature,
         topP: currentGenerationSettings.topP,
@@ -384,7 +399,14 @@ export async function* modelCallIterator({
         reasoning: currentGenerationSettings.reasoning,
         providerOptions: currentGenerationSettings.providerOptions,
         headers: currentGenerationSettings.headers,
-      } as never);
+      };
+      // A recorded call is reported after the model step returns, with the
+      // time the provider call started inside the step.
+      if (telemetryRecorder == null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.(
+          languageModelCallStartEvent,
+        );
+      }
 
       const stepInputMessages = (mode === 'generate'
         ? [...conversationPrompt]
@@ -401,28 +423,64 @@ export async function* modelCallIterator({
         experimental_transform,
         telemetry: dispatchTelemetryInStep
           ? {
+              ...(telemetryCallId != null
+                ? { callId: telemetryCallId, contexts: telemetryContexts }
+                : {}),
               functionId: telemetry?.functionId,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
               stepNumber,
+              includeRuntimeContext: telemetry?.includeRuntimeContext,
+              // Exclude unselected fields before serializing the step input.
+              runtimeContext: filterIncludedContext({
+                context: currentRuntimeContext,
+                includeContext: telemetry?.includeRuntimeContext,
+              }),
             }
           : undefined,
       };
-      const modelCallResult =
+      const runModelStep = () =>
         mode === 'generate'
-          ? await doGenerateStep(
+          ? doGenerateStep(
               conversationPrompt,
               currentModel,
               serializedTools,
               callOptions,
             )
-          : await doStreamStep(
+          : doStreamStep(
               conversationPrompt,
               currentModel,
               writable,
               serializedTools,
               callOptions,
             );
+      // Fallback start time for a model step that fails without returning its
+      // timing. In a workflow, this is the time of the last delivered event.
+      const modelStepStartedAt = Date.now();
+      let modelCallResult: Awaited<ReturnType<typeof runModelStep>>;
+      try {
+        modelCallResult = await runModelStep();
+      } catch (error) {
+        // The provider call failed inside the step, for example when the
+        // stream could not be started after all retries. Report the call so
+        // the failed request has a model-call span; the run's error event,
+        // recorded when the failure is delivered, ends it.
+        if (telemetryRecorder != null) {
+          await telemetryDispatcher.onLanguageModelCallStart?.({
+            ...languageModelCallStartEvent,
+            timestamp: modelStepStartedAt,
+          });
+        }
+        throw error;
+      }
+      const modelCallTiming = modelCallResult.timing;
+
+      if (telemetryRecorder != null) {
+        await telemetryDispatcher.onLanguageModelCallStart?.({
+          ...languageModelCallStartEvent,
+          timestamp: modelCallTiming?.startedAt ?? modelStepStartedAt,
+        });
+      }
 
       if (modelCallResult.aborted) {
         wasAborted = true;
@@ -508,8 +566,12 @@ export async function* modelCallIterator({
         usage: step.usage,
         content: step.content,
         responseId: step.response.id,
+        performance: step.performance,
         ...(finish?.providerMetadata != null
           ? { providerMetadata: finish.providerMetadata }
+          : {}),
+        ...(modelCallTiming != null
+          ? { timestamp: modelCallTiming.endedAt }
           : {}),
       });
 
@@ -638,6 +700,7 @@ export async function* modelCallIterator({
         finishReason === 'length' ||
         finishReason === 'content-filter' ||
         finishReason === 'error' ||
+        finishReason === 'interrupted' ||
         finishReason === 'other' ||
         finishReason === 'unknown' ||
         !finishReason
@@ -1015,13 +1078,12 @@ function getAssistantMessageContent(
         contentIndex++;
         break;
       }
-      case 'custom':
-        if (mode === 'generate') {
-          const { providerMetadata, ...messagePart } = part;
-          content.push({ ...messagePart, providerOptions: providerMetadata });
-          contentIndex++;
-        }
+      case 'custom': {
+        const { providerMetadata, ...messagePart } = part;
+        content.push({ ...messagePart, providerOptions: providerMetadata });
+        contentIndex++;
         break;
+      }
       case 'reasoning-file':
         if (mode !== 'generate') break;
       case 'file':

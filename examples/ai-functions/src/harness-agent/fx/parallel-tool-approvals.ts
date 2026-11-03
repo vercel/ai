@@ -37,7 +37,6 @@ run(async () => {
     runtime: 'node24',
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
-    ports: [4000],
   });
   let session: HarnessAgentSession | undefined;
   try {
@@ -46,42 +45,18 @@ run(async () => {
     let approvalResponseCount = 0;
     let toolResultCount = 0;
 
-    let streamResult = await agent.stream({
+    const first = await agent.stream({
       session,
       prompt:
         'What is the weather in Paris and in Tokyo? Call the `weather` tool for both cities in parallel, in the same response, then summarize in one sentence.',
     });
 
-    while (true) {
-      const pendingApprovals: ToolApprovalRequestOutput<any>[] = [];
-      await printFullStream({
-        result: streamResult,
-        onToolApproval: toolApproval => {
-          pendingApprovals.push(toolApproval);
-          approvalRequests.push(toolApproval);
-        },
-        onToolApprovalResponse: () => {
-          approvalResponseCount += 1;
-        },
-        onToolResult: chunk => {
-          if (chunk.toolName === 'weather' && !chunk.preliminary) {
-            toolResultCount += 1;
-          }
-        },
-      });
-
-      if (pendingApprovals.length === 0) {
-        break;
-      }
-
-      streamResult = await agent.stream({
-        session,
-        messages: createToolApprovalResponsesMessages({
-          approvals: pendingApprovals,
-          approved: true,
-        }),
-      });
-    }
+    await printFullStream({
+      result: first,
+      onToolApproval: toolApproval => {
+        approvalRequests.push(toolApproval);
+      },
+    });
 
     if (
       approvalRequests.length !== 2 ||
@@ -90,9 +65,34 @@ run(async () => {
       )
     ) {
       throw new Error(
-        `Expected two weather approval requests, received ${approvalRequests.length}.`,
+        `Expected two weather approval requests in the first response, received ${approvalRequests.length}.`,
       );
     }
+    if (executionCount() !== 0) {
+      throw new Error('Weather tools executed before approval.');
+    }
+
+    const second = await agent.stream({
+      session,
+      messages: createToolApprovalResponsesMessages({
+        approvals: approvalRequests,
+        approved: true,
+      }),
+    });
+    await printFullStream({
+      result: second,
+      onToolApproval: () => {
+        throw new Error('Unexpected additional weather approval request.');
+      },
+      onToolApprovalResponse: () => {
+        approvalResponseCount += 1;
+      },
+      onToolResult: chunk => {
+        if (chunk.toolName === 'weather' && !chunk.preliminary) {
+          toolResultCount += 1;
+        }
+      },
+    });
     if (approvalResponseCount !== 2) {
       throw new Error(
         `Expected two weather approval responses, received ${approvalResponseCount}.`,

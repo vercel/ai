@@ -5,8 +5,10 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  convertUint8ArrayToBase64,
   isValidHostnamePart,
   loadOptionalSetting,
+  parseProviderOptions,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -15,7 +17,10 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
+import {
+  googleVertexAnthropicProviderOptions,
+  type GoogleVertexAnthropicModelId,
+} from './google-vertex-anthropic-options';
 
 type GoogleVertexAnthropicTools = Pick<
   typeof anthropicTools,
@@ -230,6 +235,32 @@ export function createGoogleVertexAnthropic(
         return {
           ...rest,
           anthropic_version: 'vertex-2023-10-16',
+        };
+      },
+      transformRequestHeaders: async (headers, providerOptions) => {
+        const vertexOptions = await parseProviderOptions({
+          provider: 'vertex',
+          providerOptions,
+          schema: googleVertexAnthropicProviderOptions,
+        });
+
+        // Explicit headers take precedence, regardless of their casing.
+        if (
+          vertexOptions?.labels == null ||
+          Object.keys(headers).some(
+            name =>
+              name.toLowerCase() === 'x-vertex-ai-labels' &&
+              headers[name] != null,
+          )
+        ) {
+          return headers;
+        }
+
+        return {
+          ...headers,
+          'x-vertex-ai-labels': convertUint8ArrayToBase64(
+            new TextEncoder().encode(JSON.stringify(vertexOptions.labels)),
+          ),
         };
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion

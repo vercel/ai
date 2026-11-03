@@ -42,10 +42,40 @@ export function extractReasoningMiddleware({
   const escapedOpeningTag = openingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedClosingTag = closingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+  function extractReasoning(input: string) {
+    const text = startWithReasoning ? openingTag + input : input;
+    const regexp = new RegExp(
+      `${escapedOpeningTag}(.*?)${escapedClosingTag}`,
+      'gs',
+    );
+    const matches = Array.from(text.matchAll(regexp));
+
+    if (!matches.length) {
+      return { text: input, reasoning: undefined };
+    }
+
+    const reasoning = matches.map(match => match[1]).join(separator);
+    let textWithoutReasoning = text;
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const match = matches[i];
+      const beforeMatch = textWithoutReasoning.slice(0, match.index);
+      const afterMatch = textWithoutReasoning.slice(
+        match.index! + match[0].length,
+      );
+
+      textWithoutReasoning =
+        beforeMatch +
+        (beforeMatch.length > 0 && afterMatch.length > 0 ? separator : '') +
+        afterMatch;
+    }
+
+    return { text: textWithoutReasoning, reasoning };
+  }
+
   return {
     specificationVersion: 'v4',
     wrapGenerate: async ({ doGenerate }) => {
-      const { content, ...rest } = await doGenerate();
+      const { content, structuredOutputText, ...rest } = await doGenerate();
 
       const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
@@ -54,48 +84,30 @@ export function extractReasoningMiddleware({
           continue;
         }
 
-        const text = startWithReasoning ? openingTag + part.text : part.text;
-
-        const regexp = new RegExp(
-          `${escapedOpeningTag}(.*?)${escapedClosingTag}`,
-          'gs',
-        );
-        const matches = Array.from(text.matchAll(regexp));
-
-        if (!matches.length) {
+        const { text, reasoning } = extractReasoning(part.text);
+        if (reasoning === undefined) {
           transformedContent.push(part);
           continue;
         }
 
-        const reasoningText = matches.map(match => match[1]).join(separator);
-
-        let textWithoutReasoning = text;
-        for (let i = matches.length - 1; i >= 0; i--) {
-          const match = matches[i];
-
-          const beforeMatch = textWithoutReasoning.slice(0, match.index);
-          const afterMatch = textWithoutReasoning.slice(
-            match.index! + match[0].length,
-          );
-
-          textWithoutReasoning =
-            beforeMatch +
-            (beforeMatch.length > 0 && afterMatch.length > 0 ? separator : '') +
-            afterMatch;
-        }
-
         transformedContent.push({
           type: 'reasoning',
-          text: reasoningText,
+          text: reasoning,
         });
 
         transformedContent.push({
           type: 'text',
-          text: textWithoutReasoning,
+          text,
         });
       }
 
-      return { content: transformedContent, ...rest };
+      return {
+        content: transformedContent,
+        ...rest,
+        ...(structuredOutputText != null && {
+          structuredOutputText: extractReasoning(structuredOutputText).text,
+        }),
+      };
     },
 
     wrapStream: async ({ doStream }) => {

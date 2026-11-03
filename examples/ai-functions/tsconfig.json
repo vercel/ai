@@ -181,6 +181,9 @@
       "path": "../../packages/otel"
     },
     {
+      "path": "../../packages/parallel"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {
@@ -209,6 +212,12 @@
     },
     {
       "path": "../../packages/togetherai"
+    },
+    {
+      "path": "../../packages/tool-bash"
+    },
+    {
+      "path": "../../packages/tool-web-fetch"
     },
     {
       "path": "../../packages/topaz"

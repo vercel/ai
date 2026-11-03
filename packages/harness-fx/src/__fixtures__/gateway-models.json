@@ -1,0 +1,90 @@
+{
+  "data": [
+    {
+      "id": "anthropic/claude-haiku-4.5",
+      "object": "model",
+      "created": 1755815280,
+      "released": 1760486400,
+      "owned_by": "anthropic",
+      "name": "Claude Haiku 4.5",
+      "description": "Claude Haiku 4.5 matches Sonnet 4's performance on coding, computer use, and agent tasks at substantially lower cost and faster speeds. It delivers near-frontier performance and Claude’s unique character at a price point that works for scaled sub-agent deployments, free tier products, and intelligence-sensitive applications with budget constraints.",
+      "context_window": 200000,
+      "max_tokens": 64000,
+      "type": "language",
+      "zdr": "all",
+      "no_training": "all",
+      "tags": [
+        "explicit-caching",
+        "file-input",
+        "reasoning",
+        "tool-use",
+        "vision",
+        "web-search",
+        "structured-output"
+      ],
+      "regions": [
+        "eu",
+        "us"
+      ],
+      "supported_specifications": [
+        "v2",
+        "v3",
+        "v4"
+      ],
+      "modalities": {
+        "input": [
+          "text",
+          "image",
+          "pdf"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "supported_parameters": [
+        "max_tokens",
+        "temperature",
+        "stop",
+        "tools",
+        "tool_choice",
+        "reasoning",
+        "include_reasoning",
+        "response_format",
+        "structured_outputs"
+      ],
+      "temperature": true,
+      "reasoning_options": [
+        {
+          "type": "toggle"
+        },
+        {
+          "type": "budget_tokens",
+          "min": 1024
+        }
+      ],
+      "knowledge": "2025-02-28",
+      "interleaved": true,
+      "pricing": {
+        "input": "0.000001",
+        "output": "0.000005",
+        "input_cache_read": "0.0000001",
+        "input_cache_write": "0.00000125",
+        "web_search": "10",
+        "regional": {
+          "eu": {
+            "input": "0.0000011",
+            "output": "0.0000055",
+            "input_cache_read": "0.00000011",
+            "input_cache_write": "0.000001375"
+          },
+          "us": {
+            "input": "0.0000011",
+            "output": "0.0000055",
+            "input_cache_read": "0.00000011",
+            "input_cache_write": "0.000001375"
+          }
+        }
+      }
+    }
+  ]
+}

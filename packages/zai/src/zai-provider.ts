@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -16,8 +18,9 @@ import type { ZaiChatModelId } from './zai-chat-options';
 export interface ZaiProviderSettings {
   /**
    * Z.AI API key. Defaults to the `ZAI_API_KEY` environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for API calls. Defaults to
@@ -63,16 +66,18 @@ export function createZai(options: ZaiProviderSettings = {}): ZaiProvider {
     withoutTrailingSlash(options.baseURL) ?? 'https://api.z.ai/api/paas/v4';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ZAI_API_KEY',
-          description: 'Z.AI API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-zai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'ZAI_API_KEY',
+            description: 'Z.AI API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-zai/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: ZaiChatModelId) =>

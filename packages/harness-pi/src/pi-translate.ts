@@ -65,6 +65,12 @@ export interface PiTranslatorState {
   /** Pi's session stats do not track reasoning. */
   turnReasoningTokens: number | undefined;
   /**
+   * Pi retries a failed request itself (rate limits, overloads, a context
+   * overflow after compaction), and the failed attempt still reports
+   * `stopReason: 'error'`.
+   */
+  lastAssistantError: string | undefined;
+  /**
    * Tool-call id → the exact output value the host submitted for a
    * user-registered (host-executed) tool. Pi only echoes the tool result back
    * as serialized text (the tool handler stringifies the output before handing
@@ -123,6 +129,7 @@ export function createPiTranslatorState(
     stepOpen: false,
     stepUsage: undefined,
     turnReasoningTokens: undefined,
+    lastAssistantError: undefined,
     hostToolResults: new Map(),
     dynamicToolCalls: new Map(),
     builtinToolNames: new Set(options.builtinToolNames),
@@ -211,13 +218,33 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   return (event.result ?? event.content ?? null) as never;
 }
 
-function parseMcpToolResult(content: unknown): unknown {
-  if (typeof content !== 'string') return content;
+function parseMcpToolResult(result: unknown): unknown {
+  const text = typeof result === 'string' ? result : mcpResultText(result);
+  if (text === undefined) return result;
   try {
-    return secureJsonParse(content);
+    return secureJsonParse(text);
   } catch {
-    return content;
+    return text;
   }
+}
+
+function mcpResultText(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const content = (result as { content?: unknown }).content;
+  if (!Array.isArray(content) || content.length === 0) return undefined;
+  const texts: string[] = [];
+  for (const part of content) {
+    if (
+      !part ||
+      typeof part !== 'object' ||
+      (part as { type?: unknown }).type !== 'text' ||
+      typeof (part as { text?: unknown }).text !== 'string'
+    ) {
+      return undefined;
+    }
+    texts.push((part as { text: string }).text);
+  }
+  return texts.join('');
 }
 
 function resolveToolName(
@@ -231,7 +258,8 @@ function resolveToolName(
 /**
  * How a tool call is dispatched, from the native tool name. Pi runs its
  * builtin, MCP and extension tools itself; only host tools are handed back to
- * the harness host. `tool-input-start` reports the same flags as the
+ * the harness host. Pi's native MCP names every server tool
+ * `mcp__<server>__<tool>`. `tool-input-start` reports the same flags as the
  * `tool-call` that follows it so a consumer does not have to wait for the call
  * to know who will execute it.
  */
@@ -241,9 +269,7 @@ function resolveToolKind(
 ): ToolKind {
   if (state.hostToolNames.has(nativeName)) return 'host';
   if (state.builtinToolNames.has(nativeName)) return 'builtin';
-  return nativeName === 'mcp' || nativeName.startsWith('mcp__')
-    ? 'mcp'
-    : 'extension';
+  return nativeName.startsWith('mcp__') ? 'mcp' : 'extension';
 }
 
 function isDynamicToolKind(kind: ToolKind): kind is DynamicToolKind {
@@ -548,6 +574,9 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
+        if (event.message?.role === 'assistant') {
+          state.lastAssistantError = getPiTerminalError(event);
+        }
         const usage =
           event.message?.role === 'assistant' ? event.message.usage : undefined;
         if (usage) {

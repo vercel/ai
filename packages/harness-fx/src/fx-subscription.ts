@@ -1,369 +1,499 @@
-import { chmod, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import type {
-  ACPAuthenticationFile,
-  ACPAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+import { spawn } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
 import {
-  isAccessTokenExpiringSoon,
+  chmod,
+  readFile,
+  realpath,
+  rename,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import {
+  getJwtExpiresAt,
   isHarnessAuthenticationEnvironment,
-  parseJwtPayload,
-  refreshOAuthAccessToken,
+  isLinux,
+  isMacOS,
+  isWindows,
+  readLinuxSecretServicePassword,
+  readMacOSKeychainPassword,
+  readWindowsCredentialManagerPassword,
   shouldResolveNativeSubscription,
 } from '@ai-sdk/harness/utils';
 import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
+import { resolveFxEnv, type FxAuthenticationMode } from './fx-auth';
 
-const CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE =
-  'AI_SDK_FX_CHATGPT_ACCESS_TOKEN';
-const CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_CHATGPT_ACCOUNT_ID';
-const GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_GROK_ACCESS_TOKEN';
-const GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE = 'AI_SDK_FX_GROK_ACCOUNT_ID';
-const OPENAI_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
-const XAI_CLIENT_ID = 'b1a00492-073a-47ea-816f-4c329264a828';
-const SANDBOX_REFRESH_TOKEN = 'ai-sdk-harness-brokered';
-
-type FxSubscriptionProvider = 'chatgpt' | 'grok';
-
-type FxSubscriptionCredential = {
+export type FxProvider = 'gateway' | 'codex' | 'grok';
+export type FxProviderCredentials = {
   accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
-  accountId: string;
+  refreshToken?: string;
+  accountId?: string;
+  expiresAt?: number;
 };
+export type FxSubscription = {
+  provider: 'codex' | 'grok';
+  read(): Promise<FxProviderCredentials>;
+  write(options: { credentials: FxProviderCredentials }): Promise<void>;
+};
+export type FxResolvedAuthentication =
+  | { provider: 'gateway'; apiKey: string; baseUrl: string }
+  | { provider: 'codex' | 'grok'; subscription: FxSubscription };
 
-export const FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES = [
-  CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
-  CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE,
-  GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
-  GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE,
-] as const;
+type CredentialStore = {
+  read(): Promise<Record<string, unknown> | undefined>;
+  write(options: { value: Record<string, unknown> }): Promise<void>;
+};
+type CodexKeyring = {
+  read(options: {
+    service: string;
+    account: string;
+  }): Promise<string | undefined>;
+  write(options: {
+    service: string;
+    account: string;
+    value: string;
+  }): Promise<void>;
+};
+type CredentialFormat = 'fx' | 'codex' | 'grok';
+const grokScope = 'https://auth.x.ai::b1a00492-073a-47ea-816f-4c329264a828';
 
-export async function resolveFxSubscriptionEnvironment({
+export async function resolveFxAuthentication({
   auth,
-  env,
-  homeDirectory,
-  fetch,
+  env = process.env,
+  homeDirectory = homedir(),
+  platform = process.platform,
+  requiredProvider,
+  keyring,
 }: {
-  auth: ACPAuthenticationMode | undefined;
-  env: Readonly<Record<string, string | undefined>>;
+  auth?: FxAuthenticationMode;
+  env?: Readonly<Record<string, string | undefined>>;
   homeDirectory?: string;
-  fetch?: typeof globalThis.fetch;
-}): Promise<Readonly<Record<string, string | undefined>>> {
-  if (isHarnessAuthenticationEnvironment(auth)) return auth;
+  platform?: NodeJS.Platform;
+  requiredProvider?: FxProvider;
+  keyring?: CodexKeyring;
+} = {}): Promise<FxResolvedAuthentication> {
+  const environment = resolveFxEnv({ auth, env });
+  const isolated = isHarnessAuthenticationEnvironment(auth);
+  const nativeRequired =
+    requiredProvider != null && requiredProvider !== 'gateway';
+  if (nativeRequired && (isolated || auth === 'ai-gateway')) {
+    throw new Error(
+      'Cannot resume fx: authentication does not allow the saved subscription provider.',
+    );
+  }
   if (
-    !shouldResolveNativeSubscription({
-      auth,
-      env,
+    !isolated &&
+    requiredProvider !== 'gateway' &&
+    shouldResolveNativeSubscription({
+      auth: nativeRequired ? 'direct' : auth,
+      env: environment,
       hasDirectCredential: false,
     })
   ) {
-    return env;
-  }
-
-  const subscriptions = await readFxSubscriptions({
-    ...(homeDirectory == null ? {} : { homeDirectory }),
-    ...(fetch == null ? {} : { fetch }),
-  });
-  return subscriptions == null ? env : { ...env, ...subscriptions };
-}
-
-export async function readFxSubscriptions({
-  homeDirectory = homedir(),
-  fetch,
-}: {
-  homeDirectory?: string;
-  fetch?: typeof globalThis.fetch;
-} = {}): Promise<Record<string, string> | undefined> {
-  const fxDirectory = join(homeDirectory, '.fx');
-  const environment: Record<string, string> = {};
-
-  for (const provider of ['chatgpt', 'grok'] as const) {
-    const credential = await readFxSubscription({
-      provider,
-      fxDirectory,
-      ...(fetch == null ? {} : { fetch }),
-    });
-    if (credential == null) continue;
-    environment[getAccessTokenEnvironmentVariable({ provider })] =
-      credential.accessToken;
-    environment[getAccountIdEnvironmentVariable({ provider })] =
-      credential.accountId;
-  }
-
-  return Object.keys(environment).length === 0 ? undefined : environment;
-}
-
-export function createFxSubscriptionAuthenticationFiles({
-  env,
-  sandboxEnv,
-  credentialBrokeringAvailable,
-}: {
-  env: Readonly<Record<string, string>>;
-  sandboxEnv: Readonly<Record<string, string>>;
-  credentialBrokeringAvailable: boolean;
-}): ReadonlyArray<ACPAuthenticationFile> {
-  const files: ACPAuthenticationFile[] = [];
-
-  for (const provider of ['chatgpt', 'grok'] as const) {
-    const environmentVariable = getAccessTokenEnvironmentVariable({ provider });
-    const hostAccessToken = env[environmentVariable];
-    const sandboxAccessToken = sandboxEnv[environmentVariable];
-    const accountId = env[getAccountIdEnvironmentVariable({ provider })];
-    if (
-      hostAccessToken == null ||
-      sandboxAccessToken == null ||
-      accountId == null
-    ) {
-      continue;
+    for (const provider of ['codex', 'grok'] as const) {
+      if (requiredProvider != null && provider !== requiredProvider) continue;
+      const subscription = await bindSubscription({
+        provider,
+        format: 'fx',
+        store: fileStore({
+          filePath: join(
+            homeDirectory,
+            '.fx',
+            provider === 'codex' ? 'chatgpt-auth.json' : 'grok-auth.json',
+          ),
+        }),
+      });
+      if (subscription) return { provider, subscription };
     }
-    const accessToken =
-      provider === 'chatgpt' && credentialBrokeringAvailable
-        ? createChatGptSandboxAccessToken({
-            credential: sandboxAccessToken,
-            accountId,
-          })
-        : sandboxAccessToken;
-    files.push({
-      path:
-        provider === 'chatgpt' ? '.fx/chatgpt-auth.json' : '.fx/grok-auth.json',
-      content: `${JSON.stringify({
-        version: 1,
-        access_token: accessToken,
-        refresh_token: SANDBOX_REFRESH_TOKEN,
-        expires_at_ms: Number.MAX_SAFE_INTEGER,
-        account_id: accountId,
-      })}\n`,
-    });
-  }
-
-  return files;
-}
-
-export function getFxSubscriptionRequestCredentials({
-  env,
-  sandboxEnv,
-}: {
-  env: Readonly<Record<string, string>>;
-  sandboxEnv: Readonly<Record<string, string>>;
-}): ReadonlyArray<{
-  provider: FxSubscriptionProvider;
-  accessToken: string;
-  sandboxAccessToken: string;
-}> {
-  const credentials: Array<{
-    provider: FxSubscriptionProvider;
-    accessToken: string;
-    sandboxAccessToken: string;
-  }> = [];
-
-  for (const provider of ['chatgpt', 'grok'] as const) {
-    const environmentVariable = getAccessTokenEnvironmentVariable({ provider });
-    const accessToken = env[environmentVariable];
-    const sandboxCredential = sandboxEnv[environmentVariable];
-    const accountId = env[getAccountIdEnvironmentVariable({ provider })];
-    if (accessToken == null || sandboxCredential == null || accountId == null) {
-      continue;
-    }
-    credentials.push({
-      provider,
-      accessToken,
-      sandboxAccessToken:
-        provider === 'chatgpt'
-          ? createChatGptSandboxAccessToken({
-              credential: sandboxCredential,
-              accountId,
-            })
-          : sandboxCredential,
-    });
-  }
-
-  return credentials;
-}
-
-async function readFxSubscription({
-  provider,
-  fxDirectory,
-  fetch: fetchImplementation = globalThis.fetch,
-}: {
-  provider: FxSubscriptionProvider;
-  fxDirectory: string;
-  fetch?: typeof globalThis.fetch;
-}): Promise<FxSubscriptionCredential | undefined> {
-  const path = join(
-    fxDirectory,
-    provider === 'chatgpt' ? 'chatgpt-auth.json' : 'grok-auth.json',
-  );
-  const fileStat = await stat(path).catch(() => undefined);
-  if (fileStat == null || !fileStat.isFile() || (fileStat.mode & 0o077) !== 0) {
-    return undefined;
-  }
-  const text = await readFile(path, 'utf8').catch(() => undefined);
-  if (text == null) return undefined;
-  const parsed = await safeParseJSON({ text });
-  if (!parsed.success || !isRecord(parsed.value)) return undefined;
-  const credential = readCredential({ value: parsed.value });
-  if (credential == null) return undefined;
-  if (
-    provider === 'chatgpt' &&
-    (await extractChatGptAccountId({ accessToken: credential.accessToken })) !==
-      credential.accountId
-  ) {
-    return undefined;
-  }
-  if (!isAccessTokenExpiringSoon({ expiresAt: credential.expiresAt })) {
-    return credential;
-  }
-
-  const refreshed = await refreshOAuthAccessToken({
-    tokenUrl:
-      provider === 'chatgpt'
-        ? 'https://auth.openai.com/oauth/token'
-        : 'https://auth.x.ai/oauth2/token',
-    clientId: provider === 'chatgpt' ? OPENAI_CLIENT_ID : XAI_CLIENT_ID,
-    refreshToken: credential.refreshToken,
-    requestFormat: provider === 'chatgpt' ? 'json' : 'form',
-    fetch: fetchImplementation,
-  });
-  const refreshedAccountId =
-    provider === 'chatgpt'
-      ? await extractChatGptAccountId({ accessToken: refreshed.accessToken })
-      : await fetchGrokAccountId({
-          accessToken: refreshed.accessToken,
-          fetch: fetchImplementation,
+    if (requiredProvider == null || requiredProvider === 'codex') {
+      const codexHome = resolve(
+        env.CODEX_HOME ?? join(homeDirectory, '.codex'),
+      );
+      const config = await readFile(
+        join(codexHome, 'config.toml'),
+        'utf8',
+      ).catch(() => '');
+      let mode = 'file';
+      for (const line of config.split(/\r?\n/)) {
+        if (line.trimStart().startsWith('[')) break;
+        const match =
+          /^\s*cli_auth_credentials_store\s*=\s*["'](file|keyring|auto|ephemeral)["']\s*(?:#.*)?$/.exec(
+            line,
+          );
+        if (match) {
+          mode = match[1];
+          break;
+        }
+      }
+      if (mode === 'keyring' || mode === 'auto') {
+        const selectedKeyring = keyring ?? createCodexKeyring({ platform });
+        if (selectedKeyring) {
+          const canonicalHome = await realpath(codexHome).catch(
+            () => codexHome,
+          );
+          const account = `cli|${createHash('sha256').update(canonicalHome).digest('hex').slice(0, 16)}`;
+          const subscription = await bindSubscription({
+            provider: 'codex',
+            format: 'codex',
+            store: {
+              async read() {
+                const text = await selectedKeyring.read({
+                  service: 'Codex Auth',
+                  account,
+                });
+                return text == null ? undefined : parseCredentialDocument(text);
+              },
+              write: ({ value }) =>
+                selectedKeyring.write({
+                  service: 'Codex Auth',
+                  account,
+                  value: JSON.stringify(value),
+                }),
+            },
+          });
+          if (subscription) return { provider: 'codex', subscription };
+        }
+      }
+      if (mode === 'file' || mode === 'auto') {
+        const subscription = await bindSubscription({
+          provider: 'codex',
+          format: 'codex',
+          store: fileStore({ filePath: join(codexHome, 'auth.json') }),
         });
-  if (refreshedAccountId !== credential.accountId) {
-    throw new Error(`fx ${provider} OAuth refresh changed accounts.`);
+        if (subscription) return { provider: 'codex', subscription };
+      }
+    }
+    if (requiredProvider == null || requiredProvider === 'grok') {
+      const subscription = await bindSubscription({
+        provider: 'grok',
+        format: 'grok',
+        store: fileStore({
+          filePath: join(
+            resolve(env.GROK_HOME ?? join(homeDirectory, '.grok')),
+            'auth.json',
+          ),
+        }),
+      });
+      if (subscription) return { provider: 'grok', subscription };
+    }
   }
-
-  const nextCredential = {
-    accessToken: refreshed.accessToken,
-    refreshToken: refreshed.refreshToken ?? credential.refreshToken,
-    expiresAt: refreshed.expiresAt,
-    accountId: refreshedAccountId,
-  };
-  const temporaryPath = `${path}.${process.pid}.tmp`;
-  await writeFile(
-    temporaryPath,
-    `${JSON.stringify({
-      version: 1,
-      access_token: nextCredential.accessToken,
-      refresh_token: nextCredential.refreshToken,
-      expires_at_ms: nextCredential.expiresAt,
-      account_id: nextCredential.accountId,
-    })}\n`,
-    { mode: 0o600 },
-  );
-  await chmod(temporaryPath, 0o600);
-  await rename(temporaryPath, path);
-  return nextCredential;
-}
-
-function readCredential({
-  value,
-}: {
-  value: Record<string, unknown>;
-}): FxSubscriptionCredential | undefined {
-  if (
-    value.version !== 1 ||
-    typeof value.access_token !== 'string' ||
-    value.access_token.length === 0 ||
-    typeof value.refresh_token !== 'string' ||
-    value.refresh_token.length === 0 ||
-    typeof value.expires_at_ms !== 'number' ||
-    !Number.isSafeInteger(value.expires_at_ms) ||
-    typeof value.account_id !== 'string' ||
-    value.account_id.length === 0
-  ) {
-    return undefined;
-  }
-  return {
-    accessToken: value.access_token,
-    refreshToken: value.refresh_token,
-    expiresAt: value.expires_at_ms,
-    accountId: value.account_id,
-  };
-}
-
-async function fetchGrokAccountId({
-  accessToken,
-  fetch: fetchImplementation,
-}: {
-  accessToken: string;
-  fetch: typeof globalThis.fetch;
-}): Promise<string> {
-  const response = await fetchImplementation(
-    'https://auth.x.ai/oauth2/userinfo',
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-  if (!response.ok) {
+  if (nativeRequired)
     throw new Error(
-      `fx Grok user info request failed with status ${response.status}.`,
+      `Cannot resume fx: no ${requiredProvider} subscription credentials are available.`,
+    );
+  if (!environment.AI_GATEWAY_API_KEY) {
+    throw new Error(
+      'fx requires AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN in the host environment or an explicit authentication environment. No subscription credentials were available.',
     );
   }
-  const parsed = await safeParseJSON({ text: await response.text() });
-  if (
-    !parsed.success ||
-    !isRecord(parsed.value) ||
-    typeof parsed.value.sub !== 'string' ||
-    parsed.value.sub.length === 0
-  ) {
-    throw new Error('fx Grok user info request returned an invalid account.');
-  }
-  return parsed.value.sub;
+  return {
+    provider: 'gateway',
+    apiKey: environment.AI_GATEWAY_API_KEY,
+    baseUrl: environment.AI_GATEWAY_BASE_URL,
+  };
 }
 
-async function extractChatGptAccountId({
-  accessToken,
-}: {
-  accessToken: string;
-}): Promise<string> {
-  const payload = await parseJwtPayload({ token: accessToken });
-  const auth = payload?.['https://api.openai.com/auth'];
-  if (
-    isRecord(auth) &&
-    typeof auth.chatgpt_account_id === 'string' &&
-    auth.chatgpt_account_id.length > 0
-  ) {
-    return auth.chatgpt_account_id;
-  }
-  throw new Error('fx ChatGPT access token does not contain an account ID.');
-}
-
-function createChatGptSandboxAccessToken({
-  credential,
-  accountId,
-}: {
-  credential: string;
-  accountId: string;
-}): string {
-  const header = Buffer.from(
-    JSON.stringify({ alg: 'none', typ: 'JWT' }),
-  ).toString('base64url');
-  const payload = Buffer.from(
-    JSON.stringify({
-      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
-    }),
-  ).toString('base64url');
-  return `${header}.${payload}.${credential}`;
-}
-
-function getAccessTokenEnvironmentVariable({
+async function bindSubscription({
   provider,
+  format,
+  store,
 }: {
-  provider: FxSubscriptionProvider;
-}): string {
-  return provider === 'chatgpt'
-    ? CHATGPT_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
-    : GROK_ACCESS_TOKEN_ENVIRONMENT_VARIABLE;
+  provider: 'codex' | 'grok';
+  format: CredentialFormat;
+  store: CredentialStore;
+}): Promise<FxSubscription | undefined> {
+  const value = await store.read();
+  if (
+    value == null ||
+    (await credentialsFromDocument({ value, format })) == null
+  )
+    return undefined;
+  return {
+    provider,
+    async read() {
+      const value = await store.read();
+      const credentials =
+        value == null
+          ? undefined
+          : await credentialsFromDocument({ value, format });
+      if (credentials == null)
+        throw new Error(
+          `The selected fx ${provider} subscription credentials are no longer available.`,
+        );
+      return credentials;
+    },
+    async write({ credentials }) {
+      const value = await store.read();
+      if (
+        value == null ||
+        (await credentialsFromDocument({ value, format })) == null
+      )
+        throw new Error(
+          'Cannot update the selected fx subscription credential store.',
+        );
+      const record = credentialRecord({ value, format })!;
+      const next = {
+        ...record,
+        [format === 'grok' ? 'key' : 'access_token']: credentials.accessToken,
+        ...(credentials.refreshToken == null
+          ? {}
+          : { refresh_token: credentials.refreshToken }),
+        ...(credentials.accountId == null
+          ? {}
+          : {
+              [format === 'grok' ? 'user_id' : 'account_id']:
+                credentials.accountId,
+            }),
+        ...(format === 'fx' && credentials.expiresAt != null
+          ? { expires_at_ms: credentials.expiresAt }
+          : {}),
+        ...(format === 'grok' && credentials.expiresAt != null
+          ? { expires_at: new Date(credentials.expiresAt).toISOString() }
+          : {}),
+      };
+      await store.write({
+        value:
+          format === 'fx'
+            ? next
+            : format === 'codex'
+              ? {
+                  ...value,
+                  tokens: next,
+                  last_refresh: new Date().toISOString(),
+                }
+              : { ...value, [grokScope]: next },
+      });
+    },
+  };
 }
 
-function getAccountIdEnvironmentVariable({
-  provider,
+function credentialRecord({
+  value,
+  format,
 }: {
-  provider: FxSubscriptionProvider;
-}): string {
-  return provider === 'chatgpt'
-    ? CHATGPT_ACCOUNT_ID_ENVIRONMENT_VARIABLE
-    : GROK_ACCOUNT_ID_ENVIRONMENT_VARIABLE;
+  value: Record<string, unknown>;
+  format: CredentialFormat;
+}): Record<string, unknown> | undefined {
+  if (format === 'fx') return value.version === 1 ? value : undefined;
+  const record =
+    format === 'codex'
+      ? value.auth_mode === 'chatgpt'
+        ? value.tokens
+        : undefined
+      : value[grokScope];
+  return isRecord(record) ? record : undefined;
+}
+
+async function credentialsFromDocument({
+  value,
+  format,
+}: {
+  value: Record<string, unknown>;
+  format: CredentialFormat;
+}): Promise<FxProviderCredentials | undefined> {
+  const record = credentialRecord({ value, format });
+  if (!record) return undefined;
+  const accessToken = format === 'grok' ? record.key : record.access_token;
+  if (typeof accessToken !== 'string' || accessToken.length === 0)
+    return undefined;
+  const refreshToken = record.refresh_token;
+  const accountId = format === 'grok' ? record.user_id : record.account_id;
+  let expiresAt: number | undefined;
+  if (format === 'fx') {
+    if (
+      typeof refreshToken !== 'string' ||
+      refreshToken.length === 0 ||
+      typeof accountId !== 'string' ||
+      accountId.length === 0 ||
+      typeof record.expires_at_ms !== 'number' ||
+      !Number.isFinite(record.expires_at_ms)
+    )
+      return undefined;
+    expiresAt = record.expires_at_ms;
+  } else if (format === 'codex') {
+    expiresAt = await getJwtExpiresAt({ token: accessToken });
+  } else if (typeof record.expires_at === 'string') {
+    const parsed = Date.parse(record.expires_at);
+    if (Number.isFinite(parsed)) expiresAt = parsed;
+  } else if (
+    typeof record.expires_at === 'number' &&
+    Number.isFinite(record.expires_at)
+  ) {
+    expiresAt =
+      record.expires_at < 10_000_000_000
+        ? record.expires_at * 1000
+        : record.expires_at;
+  }
+  return {
+    accessToken,
+    ...(typeof refreshToken === 'string' && refreshToken.length > 0
+      ? { refreshToken }
+      : {}),
+    ...(typeof accountId === 'string' && accountId.length > 0
+      ? { accountId }
+      : {}),
+    ...(expiresAt == null ? {} : { expiresAt }),
+  };
+}
+
+async function parseCredentialDocument(
+  text: string,
+): Promise<Record<string, unknown> | undefined> {
+  const parsed = await safeParseJSON({ text });
+  return parsed.success && isRecord(parsed.value) ? parsed.value : undefined;
+}
+
+function fileStore({ filePath }: { filePath: string }): CredentialStore {
+  return {
+    async read() {
+      const text = await readFile(filePath, 'utf8').catch(() => undefined);
+      return text == null ? undefined : parseCredentialDocument(text);
+    },
+    async write({ value }) {
+      const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
+      try {
+        await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
+          mode: 0o600,
+          flag: 'wx',
+        });
+        await chmod(temporaryPath, 0o600);
+        await rename(temporaryPath, filePath);
+      } finally {
+        await unlink(temporaryPath).catch(() => {});
+      }
+    },
+  };
+}
+
+function createCodexKeyring({
+  platform,
+}: {
+  platform: NodeJS.Platform;
+}): CodexKeyring | undefined {
+  if (isMacOS(platform))
+    return {
+      read: options => readMacOSKeychainPassword(options),
+      write: ({ service, account, value }) =>
+        runCommandWithInput({
+          command: '/usr/bin/security',
+          args: ['-i'],
+          input: `add-generic-password -U -s ${securityQuote(service)} -a ${securityQuote(account)} -X ${Buffer.from(value, 'utf8').toString('hex')}\n`,
+        }),
+    };
+  if (isLinux(platform))
+    return {
+      read: ({ service, account }) =>
+        readLinuxSecretServicePassword({
+          attributes: { service, username: account, target: 'default' },
+        }),
+      write: ({ service, account, value }) =>
+        runCommandWithInput({
+          command: 'secret-tool',
+          args: [
+            'store',
+            '--label',
+            `${account}@${service}:default`,
+            'service',
+            service,
+            'username',
+            account,
+            'target',
+            'default',
+            'application',
+            'rust-keyring',
+          ],
+          input: value,
+        }),
+    };
+  if (isWindows(platform))
+    return {
+      read: ({ service, account }) =>
+        readWindowsCredentialManagerPassword({
+          targetName: `${account}.${service}`,
+        }),
+      async write({ service, account, value }) {
+        const source = `
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class FxCodexCredentialManager {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct Credential {
+    public UInt32 Flags; public UInt32 Type; public string TargetName;
+    public string Comment; public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+    public UInt32 CredentialBlobSize; public IntPtr CredentialBlob;
+    public UInt32 Persist; public UInt32 AttributeCount; public IntPtr Attributes;
+    public string TargetAlias; public string UserName;
+  }
+  [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+  static extern bool CredWrite(ref Credential credential, UInt32 flags);
+  public static void Write(string target, string userName, string value) {
+    byte[] bytes = Encoding.Unicode.GetBytes(value);
+    IntPtr blob = Marshal.AllocHGlobal(bytes.Length);
+    try {
+      Marshal.Copy(bytes, 0, blob, bytes.Length);
+      Credential credential = new Credential {
+        Type = 1, TargetName = target, CredentialBlobSize = (UInt32)bytes.Length,
+        CredentialBlob = blob, Persist = 3, UserName = userName
+      };
+      if (!CredWrite(ref credential, 0)) throw new System.ComponentModel.Win32Exception();
+    } finally { Marshal.FreeHGlobal(blob); }
+  }
+}`;
+        await runCommandWithInput({
+          command: 'powershell.exe',
+          args: [
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            'Add-Type -TypeDefinition $env:AI_SDK_FX_CREDENTIAL_SOURCE; $value = [Console]::In.ReadToEnd(); [FxCodexCredentialManager]::Write($env:AI_SDK_FX_CREDENTIAL_TARGET, $env:AI_SDK_FX_CREDENTIAL_USER, $value)',
+          ],
+          input: value,
+          env: {
+            ...process.env,
+            AI_SDK_FX_CREDENTIAL_SOURCE: source,
+            AI_SDK_FX_CREDENTIAL_TARGET: `${account}.${service}`,
+            AI_SDK_FX_CREDENTIAL_USER: account,
+          },
+        });
+      },
+    };
+}
+
+function securityQuote(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+async function runCommandWithInput({
+  command,
+  args,
+  input,
+  env,
+}: {
+  command: string;
+  args: string[];
+  input: string;
+  env?: NodeJS.ProcessEnv;
+}): Promise<void> {
+  await new Promise<void>((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['pipe', 'ignore', 'ignore'],
+      ...(env == null ? {} : { env }),
+    });
+    child.once('error', () =>
+      reject(new Error('Unable to access the Codex credential store.')),
+    );
+    child.once('close', code => {
+      if (code !== 0) {
+        reject(new Error('Unable to update the Codex credential store.'));
+        return;
+      }
+      resolvePromise();
+    });
+    child.stdin.on('error', () =>
+      reject(new Error('Unable to update the Codex credential store.')),
+    );
+    child.stdin.end(input);
+  });
 }

@@ -34,6 +34,7 @@ export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
+export { filterIncludedContext } from '../src/telemetry/filter-included-context';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
 export { DefaultStepResult } from '../src/generate-text/step-result';
 export { parseToolCall } from '../src/generate-text/parse-tool-call';

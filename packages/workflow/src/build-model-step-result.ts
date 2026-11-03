@@ -197,6 +197,9 @@ export async function buildModelStepResult(
         sources.push(part);
         content.push(part);
         break;
+      case 'custom':
+        content.push(part);
+        break;
       case 'tool-approval-request': {
         const toolCall = validToolCalls.find(
           call => call.toolCallId === part.toolCallId,

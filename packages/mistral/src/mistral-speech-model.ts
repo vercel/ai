@@ -1,5 +1,9 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -11,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralSpeechModelEntry } from './mistral-model-catalog';
 import {
   mistralSpeechModelOptions,
   type MistralSpeechModelId,
@@ -19,7 +24,7 @@ import {
 interface MistralSpeechModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -70,8 +75,9 @@ export class MistralSpeechModel implements SpeechModelV4 {
       schema: mistralSpeechModelOptions,
     });
 
+    const { speech } = getMistralSpeechModelEntry(this.modelId).capabilities;
     let responseFormat: MistralSpeechOutputFormat = 'mp3';
-    if (['pcm', 'wav', 'mp3', 'flac', 'opus'].includes(outputFormat)) {
+    if (speech.outputFormats.includes(outputFormat)) {
       responseFormat = outputFormat as MistralSpeechOutputFormat;
     } else {
       warnings.push({
@@ -81,7 +87,7 @@ export class MistralSpeechModel implements SpeechModelV4 {
       });
     }
 
-    if (instructions != null) {
+    if (speech.instructions === false && instructions != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'instructions',
@@ -116,6 +122,8 @@ export class MistralSpeechModel implements SpeechModelV4 {
       input: text,
       voice_id: refAudio == null ? voice : undefined,
       ref_audio: refAudio,
+      expressiveness: mistralOptions?.expressiveness,
+      phoneme_hints: mistralOptions?.phonemeHints,
       response_format: responseFormat,
       stream: false,
     };
@@ -143,7 +151,7 @@ export class MistralSpeechModel implements SpeechModelV4 {
       url: `${this.config.baseURL}/audio/speech`,
       headers: combineHeaders(
         { 'Content-Type': 'application/json' },
-        this.config.headers?.(),
+        await resolve(this.config.headers),
         options.headers,
       ),
       body: {
@@ -174,6 +182,10 @@ export class MistralSpeechModel implements SpeechModelV4 {
   }
 }
 
-const mistralSpeechResponseSchema = z.object({
-  audio_data: z.string(),
-});
+const mistralSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_data: z.string(),
+    }),
+  ),
+);

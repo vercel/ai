@@ -83,6 +83,18 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a start message with text and image prompt content', () => {
+    expect(() =>
+      startMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   it('accepts a tool-result message', () => {
     expect(() =>
       inboundMessageSchema.parse({

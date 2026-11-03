@@ -1,5 +1,6 @@
 import { asArray, type Context } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
+import { VERSION } from '../version';
 import {
   filterIncludedContext,
   filterToolContext,
@@ -61,6 +62,7 @@ function augmentEvent<EVENT>(
       recordInputs: telemetry.recordInputs,
       recordOutputs: telemetry.recordOutputs,
       functionId: telemetry.functionId,
+      aiVersion: VERSION,
     },
   );
 
@@ -224,6 +226,7 @@ export function createTelemetryDispatcher({
       onStepEnd == null && onStepFinish == null
         ? undefined
         : mergeCallbacks(onStepEnd, onStepFinish),
+    onStepError: mergeTelemetryCallback('onStepError'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),

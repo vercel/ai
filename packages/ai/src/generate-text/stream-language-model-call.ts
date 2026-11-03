@@ -225,6 +225,7 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
+    collectContent = true,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -258,6 +259,8 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
+    /** Internal: content is only needed by collectors and full-content callbacks. */
+    collectContent?: boolean;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -383,6 +386,7 @@ export async function streamLanguageModelCall<
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
+      collectContent,
     }),
   );
 
@@ -411,6 +415,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
+  collectContent,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -426,6 +431,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  collectContent: boolean;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -441,6 +447,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
+
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair or refine them.
+  const withholdToolParts = toolChoice.type === 'none';
 
   return new TransformStream<
     LanguageModelV4StreamPart,
@@ -461,6 +473,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         previousOutputChunkTimestampMs = outputChunkTimestampMs;
       }
 
+      if (
+        withholdToolParts &&
+        (chunk.type === 'tool-input-start' ||
+          chunk.type === 'tool-input-delta' ||
+          chunk.type === 'tool-input-end')
+      ) {
+        return;
+      }
+
       switch (chunk.type) {
         case 'error':
           controller.enqueue({
@@ -471,6 +492,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-start':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
@@ -484,6 +506,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-delta':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
@@ -503,6 +526,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-end':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
@@ -518,6 +542,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'reasoning-start':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
@@ -531,6 +556,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'reasoning-delta':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
@@ -550,6 +576,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'reasoning-end':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
             rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
@@ -573,14 +600,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             mediaType: chunk.mediaType,
           });
 
-          modelCallContent.push({
-            type: chunk.type,
-            file,
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
-          });
-          rawModelCallContent.push(chunk);
+          if (collectContent)
+            modelCallContent.push({
+              type: chunk.type,
+              file,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
+            });
+          if (collectContent) rawModelCallContent.push(chunk);
 
           controller.enqueue({
             type: chunk.type,
@@ -642,17 +670,18 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           });
 
           const enforcedToolChoice =
-            toolChoice.type === 'required' || toolChoice.type === 'tool'
-              ? toolChoice
-              : undefined;
+            toolChoice.type === 'auto' ? undefined : toolChoice;
 
           const toolChoiceViolationError =
             enforcedToolChoice != null &&
-            ![...toolCallsByToolCallId.values()].some(
-              toolCall =>
-                enforcedToolChoice.type === 'required' ||
-                toolCall.toolName === enforcedToolChoice.toolName,
-            )
+            (enforcedToolChoice.type === 'none'
+              ? toolCallsByToolCallId.size > 0
+              : chunk.finishReason.unified !== 'interrupted' &&
+                ![...toolCallsByToolCallId.values()].some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                ))
               ? new ToolChoiceViolationError({
                   toolChoice: enforcedToolChoice,
                   finishReason: chunk.finishReason.unified,
@@ -689,22 +718,27 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-call': {
-          rawModelCallContent.push(chunk);
+          if (collectContent) rawModelCallContent.push(chunk);
 
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
-              repairToolCall,
-              refineToolInput,
+              repairToolCall: withholdToolParts ? undefined : repairToolCall,
+              refineToolInput: withholdToolParts ? undefined : refineToolInput,
               instructions,
               messages,
               abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
+            if (collectContent) modelCallContent.push(toolCall);
+
+            if (withholdToolParts) {
+              break;
+            }
+
             controller.enqueue(toolCall);
-            modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
               if (!toolCall.providerExecuted) {
@@ -731,7 +765,11 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-approval-request': {
-          rawModelCallContent.push(chunk);
+          if (collectContent) rawModelCallContent.push(chunk);
+
+          if (withholdToolParts) {
+            break;
+          }
 
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
@@ -753,12 +791,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           } as const;
 
           controller.enqueue(toolApprovalRequest);
-          modelCallContent.push(toolApprovalRequest);
+          if (collectContent) modelCallContent.push(toolApprovalRequest);
           break;
         }
 
         case 'tool-result': {
-          rawModelCallContent.push(chunk);
+          if (collectContent) rawModelCallContent.push(chunk);
 
           const toolName = chunk.toolName as keyof TOOLS & string;
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
@@ -795,8 +833,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                   : {}),
               } as TypedToolResult<TOOLS>);
 
-          controller.enqueue(toolResultPart);
-          modelCallContent.push(toolResultPart);
+          if (!withholdToolParts) controller.enqueue(toolResultPart);
+          if (collectContent) modelCallContent.push(toolResultPart);
 
           break;
         }
@@ -836,8 +874,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         default:
           if (chunk.type === 'custom' || chunk.type === 'source') {
-            modelCallContent.push(chunk);
-            rawModelCallContent.push(chunk);
+            if (collectContent) modelCallContent.push(chunk);
+            if (collectContent) rawModelCallContent.push(chunk);
           }
 
           controller.enqueue(chunk);
@@ -890,6 +928,7 @@ function calculateNearestRankPercentile(
  * Appends a text or reasoning content part into the content array and updates the part indexes.
  */
 function upsertTextContentPart<TOOLS extends ToolSet>({
+  enabled,
   content,
   rawContent,
   partIndexes,
@@ -899,6 +938,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   textDelta,
   providerMetadata,
 }: {
+  enabled: boolean;
   content: Array<ContentPart<TOOLS>>;
   rawContent: Array<LanguageModelV4Content>;
   partIndexes: Map<string, number>;
@@ -908,6 +948,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   textDelta?: string;
   providerMetadata?: ProviderMetadata;
 }) {
+  if (!enabled) return;
   let partIndex = partIndexes.get(id);
 
   if (partIndex == null) {

@@ -1,5 +1,10 @@
 import {
   createAgentSession,
+  CURRENT_SESSION_VERSION,
+  createMcpExtension,
+  createReadToolDefinition,
+  createSyntheticSourceInfo,
+  createToolSearchExtension,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
@@ -7,24 +12,29 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type ExtensionAPI,
   type ExtensionFactory,
+  type McpExposure,
+  type McpServerConfig,
   type ProviderConfig,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, rm } from 'node:fs/promises';
+import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import {
   HarnessCapabilityUnsupportedError,
+  HarnessError,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnOptions,
   type HarnessV1ContinueTurnState,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1LifecycleState,
   type HarnessV1PermissionMode,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
@@ -38,7 +48,10 @@ import {
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import {
+  secureJsonParse,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
 import {
   createPiModelRuntime,
   registerPiProviders,
@@ -47,33 +60,36 @@ import {
   type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
-import {
-  getPiTerminalError,
-  parseNativeEvent,
-  type PiSessionEvent,
-} from './pi-events';
+import { parseNativeEvent, type PiSessionEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
-import { createPiPathMapper } from './pi-paths';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 import {
   createPiRemoteOps,
   resolvePiSandboxPathOrParent,
   type PiRemoteOps,
 } from './pi-remote-ops';
+import { executePiSandboxRead } from './pi-read-operations';
+import { expandPiSkillCommand } from './pi-skill-command';
 import {
-  formatPiReadToolOutput,
   truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
-
 import {
-  persistSessionFileToSandbox,
-  pullSessionFileFromSandbox,
-  resolvePiPrivateSessionDirectory,
-  safePiSessionFileName,
+  piAssistantMessageSchema,
+  getSessionEntries,
+  withSessionId,
+  type PiAssistantMessage,
   type PiCompletedToolResult,
+  type PiResumeStateData,
   type PiPendingToolBatch,
+  type PiSessionEntries,
 } from './pi-resume-state';
+import {
+  appendSessionEntries,
+  readSessionEntries,
+  type PiSessionStorage,
+} from './pi-session-storage';
 import { runToolBatchReplay, takeToolBatchForReplay } from './pi-tool-batch';
 import {
   createPiTranslatorState,
@@ -84,43 +100,23 @@ import {
 } from './pi-translate';
 import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import {
-  extractUserText,
+  extractPiPromptContent,
   safePiMetadataSegment,
   serializeToolOutput,
+  type PiPromptContent,
 } from './pi-utils';
-import { PiWorkspaceVfs } from './pi-workspace-vfs';
-import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
 
-/*
- * pi-mcp-adapter publishes TypeScript source as its package entry point. A
- * non-literal specifier keeps the repository type-check focused on this
- * package's compatibility boundary instead of compiling dependency internals.
- */
-const PI_MCP_ADAPTER_PACKAGE: string = 'pi-mcp-adapter';
-
-type PiMcpAdapterModule = {
-  createMcpAdapter(options: {
-    config: {
-      mcpServers: Record<string, unknown>;
-      settings: {
-        directTools: boolean;
-        toolPrefix: string;
-        disableProxyTool: boolean;
-        outputGuard?: boolean;
-      };
-    };
-  }): ExtensionFactory;
-};
+const PI_SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
  * During a tool approval pause the Pi turn is still alive and blocked on the
  * custom tool promise, so in-process reattachment parks that live session for
  * the next same-process resume instead of stopping it and resolving the
- * promise as an error. Cross-process resume still falls back to the persisted
- * session file.
+ * promise as an error. Cross-process resume still falls back to the session
+ * entries in the lifecycle state.
  */
 const parkedPiSessions = new Map<
   string,
@@ -131,30 +127,6 @@ const parkedPiSessions = new Map<
   }
 >();
 
-/**
- * Whether a discovered resource path belongs to a specific directory.
- */
-function isWithinDirectory(parent: string, child: string): boolean {
-  const rel = path.relative(parent, child);
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-}
-
-/**
- * Whether a discovered resource path belongs to the session workspace — either
- * the sandbox-side working directory the model sees (`sessionWorkDir`) or its
- * host-side mirror (`hostWorkDir`).
- */
-function isWithinWorkspace(
-  candidate: string,
-  sessionWorkDir: string,
-  hostWorkDir: string,
-): boolean {
-  return (
-    isWithinDirectory(sessionWorkDir, candidate) ||
-    isWithinDirectory(hostWorkDir, candidate)
-  );
-}
-
 function createHarnessPiSkills({
   skills,
   sandboxSkillRootDir,
@@ -162,25 +134,17 @@ function createHarnessPiSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   sandboxSkillRootDir: string;
 }): Skill[] {
-  return skills.map(skill => {
-    const name = safePiMetadataSegment(skill.name, 'skill');
-    const baseDir = path.posix.join(sandboxSkillRootDir, name);
-    const filePath = path.posix.join(baseDir, 'SKILL.md');
-    return {
+  return createConfiguredPiSkills(
+    skills.map(skill => ({
       name: skill.name,
       description: skill.description,
-      filePath,
-      baseDir,
-      sourceInfo: {
-        path: filePath,
-        source: 'harness',
-        scope: 'temporary',
-        origin: 'top-level',
-        baseDir,
-      },
-      disableModelInvocation: false,
-    };
-  });
+      filePath: path.posix.join(
+        sandboxSkillRootDir,
+        safePiMetadataSegment(skill.name, 'skill'),
+        'SKILL.md',
+      ),
+    })),
+  );
 }
 
 const PI_NATIVE_BUILTIN_NAMES = [
@@ -248,35 +212,121 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
-export interface PiFileToolPathPolicy {
-  readonly readableRoots?: ReadonlyArray<string>;
-  readonly deniedRoots?: ReadonlyArray<string>;
-}
+/**
+ * MCP exposure modes the harness serves. Pi's `codemode` exposure needs Pi's
+ * codemode extension, which the harness does not load.
+ */
+export type PiMcpExposure = Exclude<McpExposure, 'codemode'>;
 
+/**
+ * Pi's native MCP server configuration (stdio or streamable HTTP), limited to
+ * the exposure modes the harness serves.
+ */
+export type PiMcpServerConfig = McpServerConfig extends infer Config
+  ? Config extends McpServerConfig
+    ? Omit<Config, 'exposure' | 'toolExposure'> & {
+        /**
+         * How the server's tools reach the model.
+         *
+         * @default 'direct'
+         */
+        readonly exposure?: PiMcpExposure;
+        /**
+         * Exposure of single tools, keyed by the tool name the server offers or
+         * a `*` pattern, overriding `exposure`.
+         */
+        readonly toolExposure?: Readonly<Record<string, PiMcpExposure>>;
+      }
+    : never
+  : never;
+
+/**
+ * @deprecated Pi's native MCP serves `mcpServers` and has no adapter settings.
+ * It always names tools `mcp__<server>__<tool>` and always truncates results
+ * over 20 KB, writing the full text to a file in the host temp directory.
+ * Values it cannot honor fail session start.
+ */
 export interface PiMcpSettings {
   /**
-   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
-   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
-   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
-   * as provider-executed dynamic tools with parsed JSON results.
-   *
-   * @default 'mcp'
+   * @deprecated Native MCP always names tools `mcp__<server>__<tool>`, so only
+   * `'mcp'` is accepted; any other value fails session start.
    */
   readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
   /**
-   * Whether the MCP adapter truncates large tool results and writes the full
-   * text to a file in the host temp directory.
-   *
-   * @default true
+   * @deprecated Native MCP always truncates results over 20 KB and writes the
+   * full text to a file in the host temp directory, so `false` fails session
+   * start.
    */
   readonly outputGuard?: boolean;
 }
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
 
-export interface PiFileToolPathPolicy {
-  readonly readableRoots?: ReadonlyArray<string>;
-  readonly deniedRoots?: ReadonlyArray<string>;
+/**
+ * The harness session a Pi extension factory runs in.
+ */
+export interface PiHarnessExtensionSession {
+  /**
+   * The session's sandbox, restricted to the operations harness tools may use.
+   */
+  readonly sandboxSession: SandboxSession;
+  /**
+   * The sandbox directory the session works in.
+   */
+  readonly sessionWorkDir: string;
+  /**
+   * The instructions of the session's current turn. Instructions arrive with
+   * each turn, so read them when a turn runs, not when the factory runs.
+   */
+  readonly instructions: () => string | undefined;
+}
+
+/**
+ * A Pi extension factory that also receives the harness session it runs in.
+ * Plain Pi `ExtensionFactory` functions are accepted unchanged.
+ */
+export type PiHarnessExtensionFactory = (
+  pi: ExtensionAPI,
+  session: PiHarnessExtensionSession,
+) => ReturnType<ExtensionFactory>;
+
+/**
+ * A skill listed to the model. Its file must already exist in the sandbox at
+ * `filePath`, because the model reads it with the `read` tool.
+ */
+export interface PiSandboxSkill {
+  readonly name: string;
+  readonly description: string;
+  /**
+   * Absolute sandbox path of the skill's `SKILL.md`.
+   */
+  readonly filePath: string;
+}
+
+/**
+ * Project resources Pi reads instead of discovering them on a filesystem.
+ */
+export interface PiResources {
+  readonly skills?: ReadonlyArray<PiSandboxSkill>;
+}
+
+function createConfiguredPiSkills(
+  skills: ReadonlyArray<PiSandboxSkill>,
+): Skill[] {
+  return skills.map(skill => {
+    const baseDir = path.posix.dirname(skill.filePath);
+    return {
+      name: skill.name,
+      description: skill.description,
+      filePath: skill.filePath,
+      baseDir,
+      sourceInfo: createSyntheticSourceInfo(skill.filePath, {
+        source: 'harness',
+        baseDir,
+      }),
+      disableModelInvocation: false,
+    };
+  });
 }
 
 export interface PiSessionSettings {
@@ -286,11 +336,13 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly cacheRetention?: PiCacheRetention;
-  readonly mcpServers?: Record<string, unknown>;
+  readonly mcpServers?: Readonly<Record<string, PiMcpServerConfig>>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  readonly resources?: PiResources;
+  readonly sessionStorage?: PiSessionStorage;
 }
 
 export interface CreatePiSessionInput {
@@ -305,7 +357,8 @@ export interface CreatePiSessionInput {
     | HarnessV1ResumeSessionState['type'];
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
-  readonly resumeSessionFileName?: string;
+  readonly resumeEntries?: PiSessionEntries;
+  readonly resumeLeafId?: string;
   /**
    * Tool batch that was waiting on host input when the resumed state was
    * persisted. The first continuation replays it once its host input arrives.
@@ -343,13 +396,22 @@ function hasCompatibleReattachSettings(
     parked.settings.providers === current.settings.providers &&
     parked.settings.extensionFactories ===
       current.settings.extensionFactories &&
-    parked.settings.fileToolPathPolicy === current.settings.fileToolPathPolicy
+    parked.settings.fileToolPathPolicy ===
+      current.settings.fileToolPathPolicy &&
+    parked.settings.resources === current.settings.resources &&
+    parked.settings.sessionStorage === current.settings.sessionStorage
   );
 }
 
 type HostToolSubmission = Parameters<
   HarnessV1PromptControl['submitToolResult']
 >[0];
+
+interface PiSandboxPaths {
+  readonly homeDir: string;
+  readonly skillRootDir: string;
+  readonly remoteOps: PiRemoteOps;
+}
 
 interface PendingToolResult {
   resolve: (value: HostToolSubmission) => void;
@@ -381,39 +443,10 @@ interface ToolBatchReplayBarrier {
 }
 
 interface PiToolBatchReplay {
+  readonly assistantMessage: PiAssistantMessage;
   readonly toolResults: Map<string, PiCompletedToolResult>;
   readonly suppressedToolCallIds: Set<string>;
   readonly hostToolResults: Map<string, HostToolSubmission>;
-}
-
-async function isWorkspaceAvailableOnHost({
-  sandbox,
-  sessionWorkDir,
-}: {
-  sandbox: SandboxSession;
-  sessionWorkDir: string;
-}): Promise<boolean> {
-  // A host path existing at the same location is not enough to prove that it
-  // belongs to the sandbox. Round-trip a unique marker through the sandbox
-  // filesystem API before using the workspace directly.
-  const probePath = path.join(
-    sessionWorkDir,
-    `.ai-sdk-harness-pi-${randomUUID()}`,
-  );
-  const probeContent = randomUUID();
-
-  try {
-    await writeFile(probePath, probeContent, { flag: 'wx' });
-    const sandboxContent = await sandbox.readBinaryFile({ path: probePath });
-    return (
-      sandboxContent != null &&
-      Buffer.from(sandboxContent).equals(Buffer.from(probeContent))
-    );
-  } catch {
-    return false;
-  } finally {
-    await rm(probePath, { force: true }).catch(() => {});
-  }
 }
 
 export async function createPiSession(
@@ -444,59 +477,20 @@ export async function createPiSession(
     }
   }
 
-  // Host-side mirror layout under tmpdir. Replace path-separator characters
-  // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
-  // sub-directory tree on disk.
+  assertPiMcpSettingsSupported(input.settings.mcpSettings);
+  const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
+
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
   const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
   const hostAgentDir = path.join(hostRoot, 'agent');
-  const hostSessionDir = path.join(hostRoot, 'sessions');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
   );
   const fileToolPathPolicy = input.settings.fileToolPathPolicy;
-  const canonicalDeniedRoots: string[] = [];
-  for (const deniedRoot of fileToolPathPolicy?.deniedRoots ?? []) {
-    canonicalDeniedRoots.push(
-      await resolvePiSandboxPathOrParent({
-        sandbox: toolSafeSandboxSession,
-        remotePath: path.posix.normalize(deniedRoot),
-        inputPath: deniedRoot,
-      }),
-    );
-  }
 
-  // Pi runs in this host process but must behave as though it lives in the
-  // sandbox workspace: its working directory is the real `sessionWorkDir`
-  // (where `setup()` clones and where the sandbox-backed tools operate), so the
-  // paths Pi advertises to the model — most notably the "Current working
-  // directory" line in its system prompt — resolve inside the sandbox. When
-  // the sandbox filesystem is remote, the workspace VFS maps that sandbox path
-  // to a scoped host mirror for Pi's own `fs`-based resource loading. When the
-  // sandbox and harness share a filesystem, Pi uses the workspace directly so
-  // extensions can inspect project files beyond the scoped resource paths.
   const sessionWorkDir = input.sessionWorkDir;
-  const workspaceAvailableOnHost = await isWorkspaceAvailableOnHost({
-    sandbox: toolSafeSandboxSession,
-    sessionWorkDir,
-  });
-  const hostWorkDir = workspaceAvailableOnHost
-    ? path.resolve(sessionWorkDir)
-    : path.join(hostRoot, 'workspace');
-
-  await mkdir(hostWorkDir, { recursive: true });
   await mkdir(hostAgentDir, { recursive: true });
-  await mkdir(hostSessionDir, { recursive: true });
 
-  const sandboxHomeDir = await resolveSandboxHomeDir({
-    sandbox: toolSafeSandboxSession,
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  });
-  const privateSessionDir = resolvePiPrivateSessionDirectory({
-    sandboxHomeDir,
-    sessionWorkDir: input.sessionWorkDir,
-    sessionId: input.sessionId,
-  });
   const permissionMode = input.permissionMode ?? 'allow-all';
   const activeBuiltinNames = resolveActivePiBuiltinNames(
     input.builtinToolFiltering,
@@ -506,68 +500,175 @@ export async function createPiSession(
       activeBuiltinNames.some(name => name === native),
     ),
   );
-  const sandboxSkillRootDir = path.posix.join(
-    sandboxHomeDir,
-    '.agents',
-    'skills',
-  );
   let harnessSkills: Skill[] = [];
+  const resources = input.settings.resources ?? {};
+  const configuredSkills = createConfiguredPiSkills(resources.skills ?? []);
 
-  // On resume: pull the Pi session file out of the sandbox into the fresh
-  // host mirror so SessionManager.open can read it.
-  let resumeSessionFilePath: string | undefined;
-  if (input.isResume && input.resumeSessionFileName) {
-    const resumeSessionFileName = safePiSessionFileName(
-      input.resumeSessionFileName,
-    );
-    resumeSessionFilePath = await pullSessionFileFromSandbox({
-      sandbox: toolSafeSandboxSession,
-      privateSessionDir,
-      hostSessionDir,
-      sessionFileName: resumeSessionFileName,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+  let sandboxPaths: Promise<PiSandboxPaths> | undefined;
+  const resolveSandboxPaths = (): Promise<PiSandboxPaths> => {
+    sandboxPaths ??= (async () => {
+      const [canonicalDeniedRoots, homeDir] = await Promise.all([
+        Promise.all(
+          (fileToolPathPolicy?.deniedRoots ?? []).map(deniedRoot =>
+            resolvePiSandboxPathOrParent({
+              sandbox: toolSafeSandboxSession,
+              remotePath: path.posix.normalize(deniedRoot),
+              inputPath: deniedRoot,
+            }),
+          ),
+        ),
+        resolveSandboxHomeDir({
+          sandbox: toolSafeSandboxSession,
+          ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+        }),
+      ]);
+      const skillRootDir = path.posix.join(homeDir, '.agents', 'skills');
+      const paths = createPiPathMapper({
+        sandboxWorkDir: sessionWorkDir,
+        readableRoots: [
+          { sandboxDir: skillRootDir },
+          ...configuredSkills.map(skill => ({ sandboxDir: skill.baseDir })),
+          ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
+            sandboxDir,
+          })),
+        ],
+        writableRoots: fileToolPathPolicy?.writableRoots,
+        deniedRoots: fileToolPathPolicy?.deniedRoots
+          ? [
+              ...new Set([
+                ...fileToolPathPolicy.deniedRoots,
+                ...canonicalDeniedRoots,
+              ]),
+            ]
+          : undefined,
+        ...(fileToolPathPolicy ? { homeDir } : {}),
+      });
+      const remoteOps = createPiRemoteOps({
+        sandbox: toolSafeSandboxSession,
+        paths,
+        onFileChange: (event, relPath) => {
+          currentEmit?.({ type: 'file-change', event, path: relPath });
+        },
+      });
+      return { homeDir, skillRootDir, remoteOps };
+    })().catch(error => {
+      sandboxPaths = undefined;
+      throw error;
     });
-  }
+    return sandboxPaths;
+  };
 
-  // Snapshot sandbox state into the host mirror BEFORE the VFS goes live so
-  // Pi sees the workspace as soon as it boots.
-  if (!workspaceAvailableOnHost) {
-    await syncHostWorkspaceFromSandbox({
+  let skillsSynchronized: Promise<unknown> | undefined;
+  const synchronizeSkills = async ({
+    skills,
+    abortSignal,
+  }: {
+    skills: ReadonlyArray<HarnessV1Skill>;
+    abortSignal?: AbortSignal;
+  }) => {
+    const { homeDir, skillRootDir } = await resolveSandboxPaths();
+    const result = await writeSkills({
       sandbox: toolSafeSandboxSession,
-      sandboxWorkDir: input.sessionWorkDir,
-      hostWorkDir,
+      homePath: homeDir,
+      skillsDir: '.agents/skills',
+      skills,
+      abortSignal,
+      invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid Pi skill file path for ${skillName}: ${filePath}`,
     });
-  }
+    harnessSkills = createHarnessPiSkills({
+      skills,
+      sandboxSkillRootDir: skillRootDir,
+    });
+    skillsSynchronized = Promise.resolve();
+    return result;
+  };
 
-  // Mount only the workspace: the model's view of the workspace lives at
-  // `sessionWorkDir` and is backed by `hostWorkDir`. The agent and session
-  // directories stay on the real host filesystem (below) — they are host-only
-  // Pi state (auth, model registry, session journal) that must never surface
-  // in the sandbox or the workspace mirror.
-  const workspaceVfs = new PiWorkspaceVfs();
-  if (!workspaceAvailableOnHost) {
-    workspaceVfs.mount(hostWorkDir, sessionWorkDir);
-  }
+  const ensureSkillsSynchronized = () =>
+    (skillsSynchronized ??= synchronizeSkills({ skills: [] }).catch(error => {
+      skillsSynchronized = undefined;
+      throw error;
+    }));
 
-  const paths = createPiPathMapper({
-    hostWorkDir,
-    sandboxWorkDir: sessionWorkDir,
-    readableRoots: [
-      { sandboxDir: sandboxSkillRootDir },
-      ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
-        sandboxDir,
-      })),
-    ],
-    deniedRoots: fileToolPathPolicy?.deniedRoots
-      ? [
-          ...new Set([
-            ...fileToolPathPolicy.deniedRoots,
-            ...canonicalDeniedRoots,
-          ]),
-        ]
-      : undefined,
-    ...(fileToolPathPolicy ? { homeDir: sandboxHomeDir } : {}),
-  });
+  const piSessionId = PI_SESSION_ID_PATTERN.test(input.sessionId)
+    ? input.sessionId
+    : undefined;
+  const storage = input.settings.sessionStorage;
+  let seededEntries =
+    input.resumeEntries && piSessionId != null
+      ? withSessionId(input.resumeEntries, piSessionId)
+      : input.resumeEntries;
+  let savedEntryCount = 0;
+  if (input.resumeLeafId != null) {
+    if (storage == null) {
+      throw new HarnessError({
+        message:
+          'The Pi lifecycle state was saved through a session storage, but createPi has no sessionStorage to load it from.',
+      });
+    }
+    const storedEntries = await readSessionEntries({
+      storage,
+      sessionId: input.sessionId,
+      leafId: input.resumeLeafId,
+      abortSignal: input.abortSignal,
+    });
+    seededEntries = [
+      {
+        type: 'session',
+        version: CURRENT_SESSION_VERSION,
+        id: piSessionId ?? randomUUID(),
+        timestamp: new Date().toISOString(),
+        cwd: sessionWorkDir,
+      },
+      ...storedEntries,
+    ];
+    savedEntryCount = storedEntries.length;
+  }
+  let sessionManager: SessionManager | undefined;
+  const getSessionManager = (): SessionManager => {
+    if (sessionManager == null) {
+      sessionManager = SessionManager.inMemory(
+        sessionWorkDir,
+        piSessionId == null ? {} : { id: piSessionId },
+        seededEntries == null ? undefined : structuredClone([...seededEntries]),
+      );
+      if (input.resumeLeafId != null) {
+        sessionManager.branch(input.resumeLeafId);
+      }
+    }
+    return sessionManager;
+  };
+  if (input.resumeLeafId != null) {
+    try {
+      getSessionManager();
+    } catch (error) {
+      throw new HarnessError({
+        message: `The session storage has no entry "${input.resumeLeafId}" for the Pi session "${input.sessionId}".`,
+        cause: error,
+      });
+    }
+  }
+  const snapshotUnsavedEntries = ():
+    | { entries: PiSessionEntries; count: number; leafId?: string }
+    | undefined => {
+    const entries =
+      sessionManager == null
+        ? seededEntries
+        : getSessionEntries(sessionManager);
+    if (entries == null) return undefined;
+    const [header, ...rest] = entries;
+    const unsaved = rest.slice(savedEntryCount);
+    return {
+      entries: secureJsonParse(
+        JSON.stringify([header, ...unsaved]),
+      ) as unknown as PiSessionEntries,
+      count: unsaved.length,
+      ...(storage != null
+        ? { leafId: getSessionManager().getLeafId() ?? undefined }
+        : {}),
+    };
+  };
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem, never in the sandbox/workspace.
@@ -591,10 +692,14 @@ export async function createPiSession(
     modelsPath: path.join(agentDir, 'models.json'),
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
+  // An untrusted project keeps Pi from reading project `.pi/` settings and
+  // resources under its working directory, which is `sessionWorkDir`.
   const settingsManager =
     input.agentDir != null
-      ? SettingsManager.create(hostWorkDir, agentDir)
-      : SettingsManager.inMemory();
+      ? SettingsManager.create(path.join(hostRoot, 'project'), agentDir, {
+          projectTrusted: false,
+        })
+      : SettingsManager.inMemory({}, { projectTrusted: false });
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
   const resolverEnv = resolvePiEnv({
@@ -624,38 +729,42 @@ export async function createPiSession(
     env: resolverEnv,
   });
   let activeResolvedModel = resolveModel();
-  const mcpServers = resolvePiMcpServers({
-    mcpServers: input.settings.mcpServers,
-  });
-  const hasMcpServers = Object.keys(mcpServers).length > 0;
+  const hasMcpServers = mcpServers.length > 0;
+  let mcpRegistrationError: unknown;
 
   let sessionInstructions: string | undefined;
 
-  /*
-   * Configured MCP servers are served by an inline Pi extension, so they share
-   * the extension runtime with the caller-supplied factories: both are loaded
-   * by the resource loader below and both are subject to the reload handling
-   * that keeps the active runtime alive across resource-only reloads.
-   */
+  const extensionSession: PiHarnessExtensionSession = {
+    sandboxSession: toolSafeSandboxSession,
+    sessionWorkDir,
+    instructions: () => sessionInstructions,
+  };
   const extensionFactories: ExtensionFactory[] = [
-    ...(input.settings.extensionFactories ?? []),
+    ...(input.settings.extensionFactories ?? []).map(
+      (factory): ExtensionFactory =>
+        pi =>
+          factory(pi, extensionSession),
+    ),
   ];
   if (hasMcpServers) {
-    const { createMcpAdapter } = (await import(
-      PI_MCP_ADAPTER_PACKAGE
-    )) as PiMcpAdapterModule;
     extensionFactories.push(
-      createMcpAdapter({
-        config: {
-          mcpServers,
-          settings: {
-            directTools: true,
-            toolPrefix: 'mcp',
-            disableProxyTool: true,
-            ...input.settings.mcpSettings,
-          },
-        },
+      createToolSearchExtension(),
+      createMcpExtension({
+        loadConfig: () => ({ servers: [], errors: [] }),
+        logPath: devNull,
+        credentials: createInMemoryMcpCredentialStore(),
       }),
+      // Pi records an error thrown by an extension factory and loads the
+      // session without that extension.
+      pi => {
+        try {
+          for (const [name, config] of mcpServers) {
+            pi.registerMcpServer(name, config);
+          }
+        } catch (error) {
+          mcpRegistrationError = error;
+        }
+      },
     );
   }
   const hasExtensionFactories = extensionFactories.length > 0;
@@ -685,28 +794,20 @@ export async function createPiSession(
           },
         }
       : {}),
-    // Pi runs in the host process, so its default resource discovery reaches
-    // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
-    // The harness exposes only explicitly supplied inline extension factories;
-    // disable filesystem extension discovery entirely to avoid loading and
-    // executing a host developer's personal or project Pi extensions inside
-    // the server process. Themes and prompt templates stay disabled. Skills
-    // are kept but filtered to workspace project skills plus harness-provided
-    // skills whose files live in sandbox HOME.
+    // Pi runs in the host process, where its filesystem discovery would read
+    // the host developer's config and execute their extensions.
     noExtensions: true,
     noThemes: true,
     noPromptTemplates: true,
+    noSkills: true,
+    noContextFiles: true,
     skillsOverride: base => ({
       ...base,
-      skills: [
-        ...base.skills.filter(skill =>
-          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
-        ),
-        ...harnessSkills,
-      ],
+      skills: [...configuredSkills, ...harnessSkills],
     }),
   });
   await resourceLoader.reload();
+  if (mcpRegistrationError != null) throw mcpRegistrationError;
 
   async function reloadResourcesOnly(): Promise<void> {
     if (!hasExtensionFactories) {
@@ -728,10 +829,6 @@ export async function createPiSession(
   let piSession: AgentSession | undefined;
   let unsubscribe: (() => void) | undefined;
   let lastToolsSignature: string | undefined;
-  let sessionFileName: string | undefined =
-    resumeSessionFilePath == null
-      ? undefined
-      : safePiSessionFileName(path.basename(resumeSessionFilePath));
   let stopped = false;
   /*
    * Set by `doSuspendTurn` before it aborts the in-flight host turn at a slice
@@ -742,9 +839,6 @@ export async function createPiSession(
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
-  let restoredSessionManager:
-    | ReturnType<typeof SessionManager.open>
-    | undefined;
   let pendingToolBatchToReplay = input.resumePendingToolBatch;
   let replayBarrier: ToolBatchReplayBarrier | undefined;
   /*
@@ -757,14 +851,14 @@ export async function createPiSession(
     { approved: boolean; reason?: string }
   >();
   /*
-   * The current assistant message's tool batch. Parallel batches only write
-   * their tool results to the journal after every call finished, so results
-   * of calls that already finished are kept here for checkpoints.
+   * The current assistant message's tool batch. A cold continuation cannot
+   * trust the persisted journal, so checkpoints carry both the host-observed
+   * tool calls and every result that finished before the batch parked.
    */
   let currentToolBatch:
     | {
+        readonly assistantMessage: PiAssistantMessage;
         readonly completed: Map<string, PiCompletedToolResult>;
-        readonly journaled: Set<string>;
       }
     | undefined;
   let currentToolBatchSequential = false;
@@ -794,14 +888,6 @@ export async function createPiSession(
     piSession?.setActiveToolsByName(piSession.getActiveToolNames());
   }
 
-  const remoteOps = createPiRemoteOps({
-    sandbox: toolSafeSandboxSession,
-    paths,
-    onFileChange: (event, relPath) => {
-      currentEmit?.({ type: 'file-change', event, path: relPath });
-    },
-  });
-
   function settlePendingToolResults(reason: string): void {
     for (const [toolCallId, pending] of pendingToolResults) {
       pending.resolve({ toolCallId, output: { error: reason }, isError: true });
@@ -814,28 +900,6 @@ export async function createPiSession(
       pending.resolve({ approved: false, reason });
     }
     pendingToolApprovals.clear();
-  }
-
-  async function persistSessionFile(): Promise<void> {
-    if (!sessionFileName) return;
-    await persistSessionFileToSandbox({
-      sandbox: toolSafeSandboxSession,
-      privateSessionDir,
-      hostSessionDir,
-      sessionFileName,
-    });
-  }
-
-  function getRestoredSessionManager():
-    | ReturnType<typeof SessionManager.open>
-    | undefined {
-    if (resumeSessionFilePath == null) return undefined;
-    restoredSessionManager ??= SessionManager.open(
-      resumeSessionFilePath,
-      hostSessionDir,
-      sessionWorkDir,
-    );
-    return restoredSessionManager;
   }
 
   function getWaitingToolCallIds(): Set<string> {
@@ -868,9 +932,12 @@ export async function createPiSession(
               : [],
           )
         : [];
+      const assistantMessage = piAssistantMessageSchema.safeParse(
+        structuredClone(message),
+      );
       currentToolBatch =
-        toolNames.length > 0
-          ? { completed: new Map(), journaled: new Set() }
+        toolNames.length > 0 && assistantMessage.success
+          ? { assistantMessage: assistantMessage.data, completed: new Map() }
           : undefined;
       const agent = piSession?.agent;
       currentToolBatchSequential =
@@ -881,12 +948,6 @@ export async function createPiSession(
               agent.state.tools.find(tool => tool.name === name)
                 ?.executionMode === 'sequential',
           ));
-      return;
-    }
-    if (event.type === 'message_end' && message?.role === 'toolResult') {
-      if (typeof message.toolCallId === 'string') {
-        currentToolBatch?.journaled.add(message.toolCallId);
-      }
       return;
     }
     if (
@@ -934,23 +995,36 @@ export async function createPiSession(
     const awaitingToolCallIds = [...getWaitingToolCallIds()];
     if (batch == null || awaitingToolCallIds.length === 0) return undefined;
     return {
+      assistantMessage: batch.assistantMessage,
       awaitingToolCallIds,
       completedToolResults: [...batch.completed.values()].filter(
-        result =>
-          !batch.journaled.has(result.toolCallId) &&
-          !awaitingToolCallIds.includes(result.toolCallId),
+        result => !awaitingToolCallIds.includes(result.toolCallId),
       ),
       nativeApprovalDecisions: [],
     };
   }
 
-  function createLifecycleData(
+  async function createLifecycleData(
     pendingToolBatch: PiPendingToolBatch | undefined,
-  ): HarnessV1ResumeSessionState['data'] {
-    return {
-      ...(sessionFileName ? { sessionFileName } : {}),
-      ...(pendingToolBatch ? { pendingToolBatch } : {}),
-    } as HarnessV1ResumeSessionState['data'];
+    snapshot = snapshotUnsavedEntries(),
+  ): Promise<HarnessV1LifecycleState['data']> {
+    if (storage != null && snapshot != null && snapshot.count > 0) {
+      const [header, ...entries] = snapshot.entries;
+      await appendSessionEntries({
+        storage,
+        sessionId: input.sessionId,
+        version: header.version ?? CURRENT_SESSION_VERSION,
+        entries,
+      });
+      savedEntryCount += snapshot.count;
+    }
+    const data: PiResumeStateData = {
+      ...(storage == null
+        ? snapshot && { entries: snapshot.entries }
+        : snapshot?.leafId && { leafId: snapshot.leafId }),
+      ...(pendingToolBatch && { pendingToolBatch }),
+    };
+    return data as HarnessV1LifecycleState['data'];
   }
 
   function acceptReplayToolResult(args: HostToolSubmission): void {
@@ -1033,6 +1107,7 @@ export async function createPiSession(
         try {
           const control = await runTurn({
             text: '',
+            images: [],
             ...(continueOpts.model ? { model: continueOpts.model } : {}),
             skills: continueOpts.skills,
             tools: continueOpts.tools ?? [],
@@ -1040,6 +1115,7 @@ export async function createPiSession(
             emit: continueOpts.emit,
             abortSignal: continueOpts.abortSignal,
             replay: {
+              assistantMessage: batch.assistantMessage,
               toolResults,
               suppressedToolCallIds: new Set(completed.keys()),
               hostToolResults: deliveredHostResults,
@@ -1068,6 +1144,7 @@ export async function createPiSession(
       awaiting,
       deliveredHostResults,
       toCheckpoint: () => ({
+        assistantMessage: batch.assistantMessage,
         awaitingToolCallIds: [...awaiting],
         completedToolResults: [
           ...completed.values(),
@@ -1162,10 +1239,17 @@ export async function createPiSession(
         });
       },
       async submitUserMessage(text) {
-        if (piSession == null) {
+        const session = piSession;
+        if (session == null) {
           throw new Error('Pi has no active runtime session to steer.');
         }
-        await piSession.steer(text);
+        await session.steer(
+          await expandPiSkillCommand({
+            text,
+            skills: resourceLoader.getSkills().skills,
+            sandbox: toolSafeSandboxSession,
+          }),
+        );
       },
       done: input.done,
     };
@@ -1208,7 +1292,11 @@ export async function createPiSession(
       ...builtinNames.map(native =>
         buildBuiltinToolDefinition({
           native,
-          remoteOps,
+          sessionWorkDir,
+          remoteOps: async () => {
+            await ensureSkillsSynchronized();
+            return (await resolveSandboxPaths()).remoteOps;
+          },
           requestApproval: requestBuiltinToolApproval,
         }),
       ),
@@ -1248,7 +1336,6 @@ export async function createPiSession(
 
   async function rebuildPiSession(
     userTools: ReadonlyArray<HarnessV1ToolSpec>,
-    isFirstBuild: boolean,
   ): Promise<boolean> {
     let resourcesReloaded = false;
     if (piSession) {
@@ -1269,18 +1356,11 @@ export async function createPiSession(
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
     const toolNames = customTools.map(t => t.name);
 
-    // SessionManager: open the resumed file on the first build of a resumed
-    // session; create fresh otherwise.
-    const sessionManager =
-      isFirstBuild && resumeSessionFilePath
-        ? getRestoredSessionManager()!
-        : SessionManager.create(sessionWorkDir, hostSessionDir);
-
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
       modelRuntime,
-      sessionManager,
+      sessionManager: getSessionManager(),
       settingsManager,
       resourceLoader,
       customTools,
@@ -1304,15 +1384,6 @@ export async function createPiSession(
     }
     if (hasMcpServers) {
       await piSession.bindExtensions({ mode: 'print' });
-    }
-
-    // Pick up the actual session file path so doStop can persist it. Pi
-    // 0.77 emits `.jsonl` files; older builds used `.json`. Persist the
-    // basename verbatim — including the extension — so the resume path can
-    // round-trip it without guessing the extension.
-    const candidatePath = sessionManager.getSessionFile();
-    if (candidatePath) {
-      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({
@@ -1358,6 +1429,7 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
+    images: PiPromptContent['images'];
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -1378,23 +1450,26 @@ export async function createPiSession(
         harnessId: HARNESS_ID,
       });
     }
+    const turnModel = nextModel ?? activeResolvedModel;
+    if (
+      turnOpts.images.length > 0 &&
+      turnModel != null &&
+      !turnModel.input.includes('image')
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' model '${turnModel.id}' does not support image input.`,
+        harnessId: HARNESS_ID,
+      });
+    }
 
-    const skillWriteResult = await writeSkills({
-      sandbox: toolSafeSandboxSession,
-      homePath: sandboxHomeDir,
-      skillsDir: '.agents/skills',
-      skills: turnOpts.skills,
-      abortSignal: turnOpts.abortSignal,
-      invalidSkillNameMessage: ({ name }) => `Invalid Pi skill name: ${name}`,
-      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-        `Invalid Pi skill file path for ${skillName}: ${filePath}`,
-    });
-    harnessSkills = createHarnessPiSkills({
-      skills: turnOpts.skills,
-      sandboxSkillRootDir,
-    });
-    if (piSession != null && skillWriteResult.changed) {
-      await reloadResourcesOnly();
+    if (turnOpts.skills.length > 0 || harnessSkills.length > 0) {
+      const skillWriteResult = await synchronizeSkills({
+        skills: turnOpts.skills,
+        abortSignal: turnOpts.abortSignal,
+      });
+      if (piSession != null && skillWriteResult.changed) {
+        await reloadResourcesOnly();
+      }
     }
 
     const userTools = turnOpts.tools;
@@ -1411,6 +1486,7 @@ export async function createPiSession(
     };
 
     const turnPromise = (async () => {
+      let stage: 'preparing' | 'prompting' = 'preparing';
       try {
         await applySessionInstructions(turnOpts.instructions);
         turnAbortController.signal.throwIfAborted();
@@ -1419,24 +1495,22 @@ export async function createPiSession(
          * The restored journal must be moved back to before the tool batch
          * before the Pi session builds its transcript from it.
          */
-        const restoredJournal =
-          turnOpts.replay != null && piSession == null
-            ? getRestoredSessionManager()
-            : undefined;
-        const replayBatch =
-          restoredJournal == null
-            ? undefined
-            : takeToolBatchForReplay({ journal: restoredJournal });
+        const replayBatch = (() => {
+          if (turnOpts.replay == null || piSession != null) return undefined;
+          if (seededEntries == null) {
+            throw new Error(
+              'Pi session journal is missing for the parked tool batch.',
+            );
+          }
+          return takeToolBatchForReplay({
+            journal: getSessionManager(),
+            expectedAssistantMessage: turnOpts.replay.assistantMessage,
+          });
+        })();
         const replayToolResults = new Map(turnOpts.replay?.toolResults);
         const replaySuppressed = new Set(
           turnOpts.replay?.suppressedToolCallIds,
         );
-        for (const result of replayBatch?.journaledToolResults ?? []) {
-          if (!replayToolResults.has(result.toolCallId)) {
-            replayToolResults.set(result.toolCallId, result);
-            replaySuppressed.add(result.toolCallId);
-          }
-        }
 
         if (nextModel != null) activeResolvedModel = nextModel;
 
@@ -1445,10 +1519,7 @@ export async function createPiSession(
           piSession == null || signature !== lastToolsSignature;
         let resourcesReloaded = false;
         if (needsRebuild) {
-          resourcesReloaded = await rebuildPiSession(
-            userTools,
-            piSession == null,
-          );
+          resourcesReloaded = await rebuildPiSession(userTools);
           turnAbortController.signal.throwIfAborted();
           lastToolsSignature = signature;
         } else if (
@@ -1465,22 +1536,15 @@ export async function createPiSession(
           await reloadResourcesOnly();
           turnAbortController.signal.throwIfAborted();
         }
-        if (!workspaceAvailableOnHost) {
-          await syncHostWorkspaceFromSandbox({
-            sandbox: toolSafeSandboxSession,
-            sandboxWorkDir: input.sessionWorkDir,
-            hostWorkDir,
-          });
-        }
-        turnAbortController.signal.throwIfAborted();
 
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
-        translatorState = createPiTranslatorState({
+        const turnState = createPiTranslatorState({
           builtinToolNames: activeBuiltinNames,
           hostToolNames: userTools.map(tool => tool.name),
           nativeToCommon: activeNativeToCommon,
         });
+        translatorState = turnState;
 
         currentEmit?.({
           type: 'stream-start',
@@ -1492,87 +1556,58 @@ export async function createPiSession(
           translatorState.hostToolResults.set(toolCallId, delivered.output);
         }
 
-        let terminalError: string | undefined;
         const session = piSession!;
-
-        // We subscribed in rebuild, but the translator may need to detect
-        // terminal errors too — wrap a second listener that records them.
-        const unsubErr = session.subscribe(raw => {
-          const ev = parseNativeEvent(raw);
-          if (!ev) return;
-          const err = getPiTerminalError(ev);
-          if (err && !terminalError) {
-            terminalError = err;
-          }
-        });
-
         const tokensBefore = session.getSessionStats().tokens;
-        try {
-          if (replayBatch != null) {
-            replaySuppressedToolCallIds = replaySuppressed;
-            try {
-              await runToolBatchReplay({
-                agent: session.agent,
-                assistantMessage: replayBatch.assistantMessage,
-                toolResults: replayToolResults,
-                onReplayedMessage: () => {
-                  replayingAssistantMessage = true;
-                },
-              });
-            } finally {
-              replaySuppressedToolCallIds = new Set();
-              replayingAssistantMessage = false;
-            }
-          } else {
-            await session.prompt(turnOpts.text);
+        stage = 'prompting';
+        if (replayBatch != null) {
+          replaySuppressedToolCallIds = replaySuppressed;
+          try {
+            await runToolBatchReplay({
+              agent: session.agent,
+              assistantMessage: replayBatch.assistantMessage,
+              toolResults: replayToolResults,
+              onReplayedMessage: () => {
+                replayingAssistantMessage = true;
+              },
+            });
+          } finally {
+            replaySuppressedToolCallIds = new Set();
+            replayingAssistantMessage = false;
           }
-
-          if (terminalError) {
-            /*
-             * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
-             * that abort as a *resolved* prompt with a recorded terminal error
-             * ("This operation was aborted") rather than a thrown exception, so the
-             * `catch` guard below never sees it. Swallow it here too — but only if
-             * it's actually the abort: the stream then closes cleanly (no spurious
-             * `error` chunk) and the next slice rerun-continues from the journal.
-             * Any other terminal error mid-suspend is unanticipated and must
-             * surface.
-             */
-            if (suspending && isAbortError(terminalError)) return;
-            currentEmit?.({ type: 'error', error: new Error(terminalError) });
-            return;
-          }
-
-          const tokensAfter = session.getSessionStats().tokens;
-          const finishReason = {
-            unified: 'stop' as const,
-            raw: undefined,
-          };
-          currentEmit?.({
-            type: 'finish',
-            finishReason,
-            totalUsage: toHarnessUsage({
-              input: tokensAfter.input - tokensBefore.input,
-              output: tokensAfter.output - tokensBefore.output,
-              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
-              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
-              reasoning: translatorState?.turnReasoningTokens,
-            }),
+        } else {
+          const text = await expandPiSkillCommand({
+            text: turnOpts.text,
+            skills: resourceLoader.getSkills().skills,
+            sandbox: toolSafeSandboxSession,
+            abortSignal: turnAbortController.signal,
           });
-        } catch (err) {
-          // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
-          // so the stream closes cleanly without a spurious `error` chunk; the
-          // next slice rerun-continues from the persisted journal.
-          // Same rule as the resolved-with-terminalError path: only swallow the
-          // abort our own suspend caused; surface anything unanticipated.
-          if (suspending && isAbortError(err)) return;
-          currentEmit?.({ type: 'error', error: err });
-        } finally {
-          unsubErr();
+          turnAbortController.signal.throwIfAborted();
+          await session.prompt(text, { images: turnOpts.images });
         }
+
+        const terminalError = turnState.lastAssistantError;
+        if (terminalError) throw new Error(terminalError);
+
+        const tokensAfter = session.getSessionStats().tokens;
+        const finishReason = {
+          unified: 'stop' as const,
+          raw: undefined,
+        };
+        currentEmit?.({
+          type: 'finish',
+          finishReason,
+          totalUsage: toHarnessUsage({
+            input: tokensAfter.input - tokensBefore.input,
+            output: tokensAfter.output - tokensBefore.output,
+            cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+            cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+            reasoning: turnState.turnReasoningTokens,
+          }),
+        });
       } catch (err) {
-        if (suspending && isAbortError(err)) return;
-        throw err;
+        if (suspending) return;
+        if (stage === 'preparing') throw err;
+        currentEmit?.({ type: 'error', error: err });
       }
     })();
 
@@ -1609,13 +1644,7 @@ export async function createPiSession(
      */
     const pendingToolBatch = createPendingToolBatchCheckpoint();
     replayBarrier?.cancel();
-    if (pendingToolBatch != null && sessionFileName) {
-      try {
-        await persistSessionFile();
-      } catch {
-        // Best-effort, like the regular persistence below.
-      }
-    }
+    const snapshotBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
@@ -1623,35 +1652,25 @@ export async function createPiSession(
     await abortingTurn;
     await turnToStop?.done.catch(() => {});
 
-    // Persist the Pi session file into the sandbox so a future process
-    // can pick it up after `provider.resumeSession({ sessionId })` reattaches.
-    if (sessionFileName && pendingToolBatch == null) {
-      try {
-        await persistSessionFile();
-      } catch {
-        // Best-effort: a missing session file means resume returns to a
-        // fresh conversation rather than failing stop.
-      }
+    let data: HarnessV1LifecycleState['data'];
+    try {
+      data = await createLifecycleData(pendingToolBatch, snapshotBeforeAbort);
+    } finally {
+      await disposePiSession({ reason: 'quit' });
+      await rm(hostRoot, { recursive: true, force: true });
     }
-
-    await disposePiSession({ reason: 'quit' });
-    workspaceVfs.unmount();
-    await rm(hostRoot, { recursive: true, force: true });
 
     return {
       type: 'resume-session',
       harnessId: HARNESS_ID,
       specificationVersion: 'harness-v1',
-      data: createLifecycleData(pendingToolBatch),
+      data,
     };
   };
 
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // Pi has no bridge to attach to and no on-disk event log to replay; its
-    // only resume path is restoring the session file on a fresh/snapshotted
-    // sandbox, i.e. `rerun`.
 
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
@@ -1664,8 +1683,12 @@ export async function createPiSession(
       }
       pendingToolBatchToReplay = undefined;
       replayBarrier?.cancel();
+      const { text, images } = extractPiPromptContent({
+        prompt: promptOpts.prompt,
+      });
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        text,
+        images,
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
@@ -1714,6 +1737,7 @@ export async function createPiSession(
        */
       return runTurn({
         text: '',
+        images: [],
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
@@ -1728,7 +1752,7 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
       if (piSession == null) {
-        await rebuildPiSession([], true);
+        await rebuildPiSession([]);
         lastToolsSignature = JSON.stringify([]);
       }
       const session = piSession;
@@ -1756,7 +1780,6 @@ export async function createPiSession(
       await abortingTurn;
       await turnToDestroy?.done.catch(() => {});
       await disposePiSession({ reason: 'quit' });
-      workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
 
@@ -1773,22 +1796,11 @@ export async function createPiSession(
           stateType: 'resume-session',
         });
         const pendingToolBatch = createPendingToolBatchCheckpoint();
-        if (sessionFileName) {
-          try {
-            await persistSessionFile();
-          } catch {
-            /*
-             * The parked in-process session is the authoritative continuation
-             * path while the live turn is waiting on host input. Persistence is
-             * only a fallback for later non-live resumes.
-             */
-          }
-        }
         return {
           type: 'resume-session',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: createLifecycleData(pendingToolBatch),
+          data: await createLifecycleData(pendingToolBatch),
         };
       }
       return doStop();
@@ -1809,33 +1821,21 @@ export async function createPiSession(
           stateType: 'continue-turn',
         });
         const pendingToolBatch = createPendingToolBatchCheckpoint();
-        if (sessionFileName) {
-          try {
-            await persistSessionFile();
-          } catch {
-            /*
-             * While waiting on host input, the live parked session is the
-             * authoritative same-process continuation path. The sandbox copy
-             * remains a best-effort fallback for a later cold resume.
-             */
-          }
-        }
         return {
           type: 'continue-turn',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: createLifecycleData(pendingToolBatch),
+          data: await createLifecycleData(pendingToolBatch),
         };
       }
       /*
        * Pi's model runs in this host process, which is about to be suspended at
        * the slice boundary — the in-flight turn cannot survive it. Abort it (the
        * turn settles silently via the `suspending` guard so the stream closes
-       * cleanly), persist the journal into the sandbox, and tear down host-side
-       * resources. The sandbox itself is left running; the next slice pulls the
-       * journal after `provider.resumeSession({ sessionId })` and rerun-continues. The
-       * tail in flight at the boundary is recomputed — Pi cannot freeze a live
-       * turn the way a bridge adapter can.
+       * cleanly), return the journal in the lifecycle state, and tear down
+       * host-side resources. The next slice seeds a new Pi session from it and
+       * rerun-continues. The tail in flight at the boundary is recomputed — Pi
+       * cannot freeze a live turn the way a bridge adapter can.
        */
       /*
        * Same as `doStop`: checkpoint a tool batch waiting on host input
@@ -1843,13 +1843,7 @@ export async function createPiSession(
        */
       const pendingToolBatch = createPendingToolBatchCheckpoint();
       replayBarrier?.cancel();
-      if (pendingToolBatch != null && sessionFileName) {
-        try {
-          await persistSessionFile();
-        } catch {
-          // Best-effort, like the regular persistence below.
-        }
-      }
+      const snapshotBeforeAbort = pendingToolBatch && snapshotUnsavedEntries();
       suspending = true;
       const turnToSuspend = activeTurn;
       const abortingTurn = turnToSuspend?.abort();
@@ -1858,27 +1852,21 @@ export async function createPiSession(
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      if (sessionFileName && pendingToolBatch == null) {
-        try {
-          await persistSessionFile();
-        } catch {
-          // Best-effort: a missing/failed copy leaves the previously persisted
-          // journal in place, so the next slice resumes from a slightly older
-          // (still valid) state.
-        }
+      let data: HarnessV1LifecycleState['data'];
+      try {
+        data = await createLifecycleData(pendingToolBatch, snapshotBeforeAbort);
+      } finally {
+        stopped = true;
+        parkedPiSessions.delete(input.sessionId);
+        await disposePiSession({ reason: 'quit' });
+        await rm(hostRoot, { recursive: true, force: true });
       }
-
-      stopped = true;
-      parkedPiSessions.delete(input.sessionId);
-      await disposePiSession({ reason: 'quit' });
-      workspaceVfs.unmount();
-      await rm(hostRoot, { recursive: true, force: true });
 
       return {
         type: 'continue-turn',
         harnessId: HARNESS_ID,
         specificationVersion: 'harness-v1',
-        data: createLifecycleData(pendingToolBatch),
+        data,
       };
     },
   };
@@ -1886,43 +1874,74 @@ export async function createPiSession(
   return sessionImpl;
 }
 
-function resolvePiMcpServers({
-  mcpServers,
-}: {
-  mcpServers: Record<string, unknown> | undefined;
-}): Record<string, unknown> {
-  if (mcpServers == null) return {};
-  for (const [name, value] of Object.entries(mcpServers)) {
-    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+const PI_CODEMODE_EXPOSURES: ReadonlyArray<unknown> = [
+  'codemode',
+  'codemode-deferred',
+];
+
+function resolvePiMcpServers(
+  mcpServers: PiSessionSettings['mcpServers'],
+): Array<[name: string, config: PiMcpServerConfig]> {
+  return Object.entries(mcpServers ?? {}).map(([name, config]) => {
+    const exposures: unknown[] = [
+      config.exposure,
+      ...Object.values(config.toolExposure ?? {}),
+    ];
+    if (exposures.some(exposure => PI_CODEMODE_EXPOSURES.includes(exposure))) {
       throw new Error(
-        `Pi MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+        `Pi MCP server ${JSON.stringify(name)} uses the codemode exposure, which is not supported: the harness does not load Pi's codemode extension. Use 'direct', 'deferred' or 'hidden'.`,
       );
     }
-  }
-  return mcpServers;
+    return [
+      name,
+      {
+        ...config,
+        exposure: config.exposure === undefined ? 'direct' : config.exposure,
+      },
+    ];
+  });
 }
 
-/**
- * Whether a terminal error (string from Pi's event stream, or a thrown error)
- * is an abort — the expected result of `doSuspendTurn` aborting the in-flight
- * turn. Only these are safe to swallow while `suspending`; any other error is
- * unanticipated and must surface as an `error` chunk.
- */
-function isAbortError(value: unknown): boolean {
-  if (value == null) return false;
-  if (
-    typeof value === 'object' &&
-    (value as { name?: unknown }).name === 'AbortError'
-  ) {
-    return true;
+type PiMcpCredentialStore = NonNullable<
+  NonNullable<Parameters<typeof createMcpExtension>[0]>['credentials']
+>;
+type PiMcpServerCredentialStore = ReturnType<PiMcpCredentialStore['forServer']>;
+type PiMcpOAuthState = Parameters<PiMcpServerCredentialStore['save']>[0];
+
+// Pi's default store is `mcp-auth.json` in the host agent directory, so a
+// server without an Authorization header would be sent the tokens of whoever
+// signed in to it with the Pi CLI on this machine.
+function createInMemoryMcpCredentialStore(): PiMcpCredentialStore {
+  const states = new Map<string, PiMcpOAuthState>();
+  const keyOf = (name: string, serverUrl: string) => `${name}|${serverUrl}`;
+  const store: Pick<PiMcpCredentialStore, 'forServer' | 'tokens' | 'remove'> = {
+    forServer: (name, serverUrl) => ({
+      load: () => states.get(keyOf(name, serverUrl)),
+      save: state => {
+        states.set(keyOf(name, serverUrl), state);
+      },
+      withRefreshLock: fn => fn(),
+    }),
+    tokens: (name, serverUrl) => states.get(keyOf(name, serverUrl))?.tokens,
+    remove: (name, serverUrl) => states.delete(keyOf(name, serverUrl)),
+  };
+  // Pi types the option as its store class, which has private members.
+  return store as PiMcpCredentialStore;
+}
+
+function assertPiMcpSettingsSupported(
+  mcpSettings: PiMcpSettings | undefined,
+): void {
+  if (mcpSettings?.toolPrefix != null && mcpSettings.toolPrefix !== 'mcp') {
+    throw new Error(
+      `Pi MCP setting toolPrefix ${JSON.stringify(mcpSettings.toolPrefix)} is not supported: Pi's native MCP always names tools mcp__<server>__<tool>.`,
+    );
   }
-  const text =
-    typeof value === 'string'
-      ? value
-      : value instanceof Error
-        ? value.message
-        : String(value);
-  return /\baborted\b|AbortError|operation was aborted/i.test(text);
+  if (mcpSettings?.outputGuard === false) {
+    throw new Error(
+      "Pi MCP setting outputGuard false is not supported: Pi's native MCP always truncates results over 20 KB and writes the full text to a file in the host temp directory.",
+    );
+  }
 }
 
 function asPiToolResult(text: string): AgentToolResult<unknown> {
@@ -1964,7 +1983,8 @@ function piBuiltinToolRequiresApproval(input: {
 
 function buildBuiltinToolDefinition(input: {
   native: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
-  remoteOps: PiRemoteOps;
+  sessionWorkDir: string;
+  remoteOps: () => Promise<PiRemoteOps>;
   requestApproval: (args: {
     toolCallId: string;
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
@@ -1975,8 +1995,7 @@ function buildBuiltinToolDefinition(input: {
       return defineTool({
         name: 'read',
         label: 'read',
-        description:
-          'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+        description: createReadToolDefinition(input.sessionWorkDir).description,
         parameters: Type.Object({
           file_path: Type.String(),
           offset: Type.Optional(
@@ -1992,21 +2011,24 @@ function buildBuiltinToolDefinition(input: {
             }),
           ),
         }),
-        async execute(toolCallId, params) {
+        async execute(toolCallId, params, signal, onUpdate, ctx) {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'read',
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const buf = await input.remoteOps.readBuffer(params.file_path);
-          return asPiToolResult(
-            formatPiReadToolOutput({
-              text: buf.toString('utf8'),
-              filePath: params.file_path,
-              offset: params.offset,
-              limit: params.limit,
-            }),
+          const ops = await input.remoteOps();
+          // Pi expands `~` against the host home, so map the path first.
+          const sandboxPath = ops.paths.toReadableSandboxPath(params.file_path);
+          return executePiSandboxRead(
+            ops,
+            input.sessionWorkDir,
+            toolCallId,
+            { path: sandboxPath, offset: params.offset, limit: params.limit },
+            signal,
+            onUpdate,
+            ctx,
           );
         },
       });
@@ -2026,7 +2048,8 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          await input.remoteOps.writeFile(params.file_path, params.content);
+          const ops = await input.remoteOps();
+          await ops.writeFile(params.file_path, params.content);
           return asPiToolResult(`Wrote ${params.file_path}`);
         },
       });
@@ -2047,7 +2070,8 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          await input.remoteOps.editFile(
+          const ops = await input.remoteOps();
+          await ops.editFile(
             params.file_path,
             params.old_string,
             params.new_string,
@@ -2073,8 +2097,9 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
+          const ops = await input.remoteOps();
           const chunks: Buffer[] = [];
-          const result = await input.remoteOps.exec(params.command, '.', {
+          const result = await ops.exec(params.command, '.', {
             onData(data) {
               chunks.push(data);
             },
@@ -2116,7 +2141,8 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const out = await input.remoteOps.grepFiles(params.pattern, params);
+          const ops = await input.remoteOps();
+          const out = await ops.grepFiles(params.pattern, params);
           return asPiToolResult(
             truncatePiToolOutputHead(
               out,
@@ -2142,7 +2168,8 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const matches = await input.remoteOps.findFiles(
+          const ops = await input.remoteOps();
+          const matches = await ops.findFiles(
             params.pattern,
             params.path ?? '.',
             params.limit ?? 1_000,
@@ -2171,7 +2198,8 @@ function buildBuiltinToolDefinition(input: {
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const entries = await input.remoteOps.listDirectory(
+          const ops = await input.remoteOps();
+          const entries = await ops.listDirectory(
             params.path ?? '.',
             params.limit ?? 500,
           );

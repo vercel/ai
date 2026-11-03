@@ -13,6 +13,11 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -42,6 +47,7 @@ import {
   type MistralConversationModelId,
 } from './mistral-conversation-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
+import { getMistralLanguageModelEntry } from './mistral-model-catalog';
 import {
   mistralProviderToolNames,
   prepareConversationTools,
@@ -50,33 +56,10 @@ import {
 type MistralConversationConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
-
-// https://api.mistral.ai/v1/models (2026-10-06)
-const reasoningEffortModelIds = new Set<MistralConversationModelId>([
-  'glm-5-2',
-  'labs-leanstral-1-5',
-  'labs-leanstral-1-5-1',
-  'magistral-medium-latest',
-  'magistral-small-latest',
-  'mistral-large-4',
-  'mistral-large-4-0',
-  'mistral-medium',
-  'mistral-medium-2604',
-  'mistral-medium-3',
-  'mistral-medium-3-5',
-  'mistral-medium-3.5',
-  'mistral-medium-latest',
-  'mistral-small-2603',
-  'mistral-small-latest',
-  'mistral-vibe-cli-fast',
-  'mistral-vibe-cli-latest',
-  'mistral-vibe-cli-with-tools',
-  'zai-glm-5-2',
-]);
 
 export class MistralConversationLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -149,28 +132,20 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort = reasoningEffortModelIds.has(this.modelId);
+    const { reasoning: reasoningCapabilities } = getMistralLanguageModelEntry(
+      this.modelId,
+    ).capabilities.language.endpoints.conversation;
 
     let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                  max: 'high',
-                },
-                warnings,
-              })
-          : undefined);
+    if (reasoningCapabilities.support) {
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: Object.fromEntries(
+          reasoningCapabilities.efforts.map(effort => [effort, effort]),
+        ),
+        warnings,
+      });
     } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
@@ -275,7 +250,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -347,7 +325,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/conversations`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -389,7 +370,7 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof mistralConversationChunkSchema>>,
+          ParseResult<InferSchema<typeof mistralConversationChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -573,7 +554,7 @@ function createContentConverter({
   return {
     toolNameMapping,
     convertChunk(
-      chunk: z.infer<typeof mistralConversationContentSchema>,
+      chunk: z.infer<ReturnType<typeof mistralConversationContentSchema>>,
     ): Array<
       LanguageModelV4Text | LanguageModelV4Reasoning | LanguageModelV4Source
     > {
@@ -604,7 +585,9 @@ function createContentConverter({
       }
     },
     convertTool(
-      output: z.infer<typeof mistralConversationToolExecutionSchema>,
+      output: z.infer<
+        ReturnType<typeof mistralConversationToolExecutionSchema>
+      >,
     ): [LanguageModelV4ToolCall, LanguageModelV4ToolResult] {
       const toolName = toolNameMapping.toCustomToolName(output.name);
       return [
@@ -633,98 +616,110 @@ function createContentConverter({
   };
 }
 
-const mistralConversationContentSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('text'), text: z.string() }),
+const mistralConversationContentSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({
+      type: z.literal('thinking'),
+      thinking: z.array(
+        z.object({ type: z.literal('text'), text: z.string() }),
+      ),
+    }),
+    z.object({
+      type: z.literal('tool_reference'),
+      tool: z.string().nullish(),
+      title: z.string().nullish(),
+      url: z.string().nullish(),
+    }),
+  ]);
+const mistralConversationMessageContentSchema = () =>
+  z.union([z.string(), z.array(mistralConversationContentSchema())]);
+const mistralConversationToolExecutionSchema = () =>
   z.object({
-    type: z.literal('thinking'),
-    thinking: z.array(z.object({ type: z.literal('text'), text: z.string() })),
-  }),
+    type: z.literal('tool.execution'),
+    id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    function: z.string().nullish(),
+    info: z.record(z.string(), z.json()).nullish(),
+  });
+const mistralConversationFunctionCallSchema = () =>
   z.object({
-    type: z.literal('tool_reference'),
-    tool: z.string().nullish(),
-    title: z.string().nullish(),
-    url: z.string().nullish(),
-  }),
-]);
-const mistralConversationMessageContentSchema = z.union([
-  z.string(),
-  z.array(mistralConversationContentSchema),
-]);
-const mistralConversationToolExecutionSchema = z.object({
-  type: z.literal('tool.execution'),
-  id: z.string(),
-  name: z.string(),
-  arguments: z.string(),
-  function: z.string().nullish(),
-  info: z.record(z.string(), z.json()).nullish(),
-});
-const mistralConversationFunctionCallSchema = z.object({
-  type: z.literal('function.call'),
-  tool_call_id: z.string(),
-  name: z.string(),
-  arguments: z.union([z.string(), z.record(z.string(), z.json())]),
-});
-const mistralConversationUsageSchema = mistralUsageSchema.extend({
-  prompt_tokens: z.number().default(0),
-  completion_tokens: z.number().default(0),
-  total_tokens: z.number().default(0),
-});
-const mistralConversationResponseSchema = z.object({
-  conversation_id: z.string(),
-  outputs: z.array(
+    type: z.literal('function.call'),
+    tool_call_id: z.string(),
+    name: z.string(),
+    arguments: z.union([z.string(), z.record(z.string(), z.json())]),
+  });
+const mistralConversationUsageSchema = () =>
+  mistralUsageSchema.extend({
+    prompt_tokens: z.number().default(0),
+    completion_tokens: z.number().default(0),
+    total_tokens: z.number().default(0),
+  });
+const mistralConversationResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      conversation_id: z.string(),
+      outputs: z.array(
+        z.discriminatedUnion('type', [
+          mistralConversationToolExecutionSchema(),
+          mistralConversationFunctionCallSchema(),
+          z.object({
+            type: z.literal('message.output'),
+            content: mistralConversationMessageContentSchema(),
+            model: z.string().nullish(),
+          }),
+        ]),
+      ),
+      usage: mistralConversationUsageSchema().nullish(),
+    }),
+  ),
+);
+const mistralConversationChunkSchema = lazySchema(() =>
+  zodSchema(
     z.discriminatedUnion('type', [
-      mistralConversationToolExecutionSchema,
-      mistralConversationFunctionCallSchema,
       z.object({
-        type: z.literal('message.output'),
-        content: mistralConversationMessageContentSchema,
+        type: z.literal('conversation.response.started'),
+        conversation_id: z.string(),
+        created_at: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('conversation.response.done'),
+        usage: mistralConversationUsageSchema().nullish(),
+      }),
+      z.object({
+        type: z.literal('conversation.response.error'),
+        message: z.string(),
+        code: z.number(),
+      }),
+      z.object({
+        type: z.literal('message.output.delta'),
+        id: z.string(),
+        content_index: z.number().nullish(),
+        content: z.union([z.string(), mistralConversationContentSchema()]),
         model: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('function.call.delta'),
+        tool_call_id: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        output_index: z.number().nullish(),
+      }),
+      z.object({
+        type: z.enum(['tool.execution.started', 'tool.execution.delta']),
+        id: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        function: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('tool.execution.done'),
+        id: z.string(),
+        name: z.string(),
+        function: z.string().nullish(),
+        info: z.record(z.string(), z.json()).nullish(),
       }),
     ]),
   ),
-  usage: mistralConversationUsageSchema.nullish(),
-});
-const mistralConversationChunkSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('conversation.response.started'),
-    conversation_id: z.string(),
-    created_at: z.string().nullish(),
-  }),
-  z.object({
-    type: z.literal('conversation.response.done'),
-    usage: mistralConversationUsageSchema.nullish(),
-  }),
-  z.object({
-    type: z.literal('conversation.response.error'),
-    message: z.string(),
-    code: z.number(),
-  }),
-  z.object({
-    type: z.literal('message.output.delta'),
-    id: z.string(),
-    content_index: z.number().nullish(),
-    content: z.union([z.string(), mistralConversationContentSchema]),
-    model: z.string().nullish(),
-  }),
-  z.object({
-    type: z.literal('function.call.delta'),
-    tool_call_id: z.string(),
-    name: z.string(),
-    arguments: z.string(),
-    output_index: z.number().nullish(),
-  }),
-  z.object({
-    type: z.enum(['tool.execution.started', 'tool.execution.delta']),
-    id: z.string(),
-    name: z.string(),
-    arguments: z.string(),
-    function: z.string().nullish(),
-  }),
-  z.object({
-    type: z.literal('tool.execution.done'),
-    id: z.string(),
-    name: z.string(),
-    function: z.string().nullish(),
-    info: z.record(z.string(), z.json()).nullish(),
-  }),
-]);
+);
