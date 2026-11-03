@@ -281,6 +281,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -395,7 +397,10 @@ export async function streamLanguageModelCall<
   return {
     stream: createAsyncIterableStream(standardizedStream),
     response,
-    request,
+    request:
+      request?.url != null
+        ? { ...request, url: getRequestOrigin(request.url) }
+        : request,
   };
 }
 

@@ -110,7 +110,8 @@ endpoint. `OpenTelemetry` records its host as `server.address` and its port as
 80 for HTTP) and works when input and output recording are disabled.
 
 OpenAI Chat reports this information for both `generateText` and `streamText`,
-including custom `baseURL` settings. Other providers leave these attributes
+including custom `baseURL` settings. Azure Chat and Bedrock Mantle Chat reuse
+this adapter and also report their configured endpoint. Other providers leave these attributes
 unset until they report their endpoint; no destination is inferred from the
 provider or model name, including an unknown backend behind an intermediary.
 

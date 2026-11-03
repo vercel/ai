@@ -1231,7 +1231,18 @@ async function generateTextInternal<
                   body: result.response?.body,
                 };
 
-                return { ...result, response: responseData };
+                return {
+                  ...result,
+                  ...(result.request?.url != null
+                    ? {
+                        request: {
+                          ...result.request,
+                          url: getRequestOrigin(result.request.url),
+                        },
+                      }
+                    : {}),
+                  response: responseData,
+                };
               });
               const responseTimeMs = now() - stepStartTimestampMs;
               const stepUsage = asLanguageModelUsage(
