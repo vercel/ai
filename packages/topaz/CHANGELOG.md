@@ -1,5 +1,15 @@
 # @ai-sdk/topaz
 
+## 2.0.7
+
+### Patch Changes
+
+- 75d664b: Reject redirects when uploading input videos to Topaz and use the DNS-pinned fetch for untrusted upload URLs, preventing redirects and DNS rebinding from bypassing URL validation.
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.6
 
 ### Patch Changes

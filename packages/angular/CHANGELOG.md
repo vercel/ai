@@ -1,5 +1,17 @@
 # @ai-sdk/angular
 
+## 2.0.323
+
+### Patch Changes
+
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - ai@6.0.322
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.322
 
 ### Patch Changes

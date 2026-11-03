@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 3.0.141
+
+### Patch Changes
+
+- d900e58: fix(google): handle cycles and BigInt in functionResponse and parse string functionCall arguments
+- d900e58: Omit all Google Interactions tools when `toolChoice` is `none`, including provider-defined tools.
+- d900e58: Map Google RPC status names to HTTP status codes when streamed errors omit a numeric code, so transient failures such as `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are marked retryable.
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 3.0.140
 
 ### Patch Changes

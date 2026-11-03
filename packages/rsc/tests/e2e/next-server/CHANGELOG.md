@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - ai@6.0.322
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.321
 
 ## 0.0.1

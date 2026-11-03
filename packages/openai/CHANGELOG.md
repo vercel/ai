@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 3.0.136
+
+### Patch Changes
+
+- d900e58: fix(openai): preserve valid JSON string tool arguments and serialize BigInt and cycles in tool calls and results, retaining malformed argument replay fallbacks
+- d900e58: Forward `languages` and `keywords` transcription hints as repeated multipart fields instead of silently dropping them.
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 3.0.135
 
 ### Patch Changes

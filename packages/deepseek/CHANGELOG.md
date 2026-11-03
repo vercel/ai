@@ -1,5 +1,15 @@
 # @ai-sdk/deepseek
 
+## 2.0.79
+
+### Patch Changes
+
+- d900e58: fix(deepseek): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 2.0.78
 
 ### Patch Changes

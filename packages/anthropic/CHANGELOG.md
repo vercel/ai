@@ -1,5 +1,16 @@
 # @ai-sdk/anthropic
 
+## 3.0.138
+
+### Patch Changes
+
+- d900e58: Enable native structured output and strict tools for supported Claude 5 models on Bedrock. In automatic mode, Bedrock and Anthropic now fall back for schemas that native structured output cannot represent: recursive references, open objects, or more than ten optional properties. Anthropic uses the JSON response tool; Bedrock Converse uses the JSON tool or JSON instructions for models that reject forced tool use. The JSON-tool fallback excludes disabled and unselected application tools. Explicit `outputFormat` selection remains unchanged.
+- d900e58: fix(anthropic): parse valid JSON string tool input and safely serialize BigInt and cycles in tool results
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+- Updated dependencies [d900e58]
+  - @ai-sdk/provider-utils@4.0.64
+
 ## 3.0.137
 
 ### Patch Changes
