@@ -741,7 +741,7 @@ describe('recordInputs / recordOutputs filtering', () => {
 
     await telemetry.onStart!(promptEvent);
 
-    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
     expect(delivered.instructions).toBeUndefined();
     expect(delivered.messages).toBeUndefined();
     expect(delivered.modelId).toBe('model-1');
@@ -763,7 +763,7 @@ describe('recordInputs / recordOutputs filtering', () => {
       usage: { inputTokens: 1, outputTokens: 1 },
     } as any);
 
-    const delivered = vi.mocked(integration.onEnd!).mock.calls[0][0];
+    const delivered = vi.mocked(integration.onEnd!).mock.calls[0][0] as any;
     expect(delivered.content).toBeUndefined();
     expect(delivered.text).toBeUndefined();
     expect(delivered.responseMessages).toBeUndefined();
@@ -778,7 +778,7 @@ describe('recordInputs / recordOutputs filtering', () => {
 
     await telemetry.onStart!(promptEvent);
 
-    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
     expect(delivered.instructions).toBe('secret instructions');
     expect(delivered.messages).toEqual([
       { role: 'user', content: 'secret prompt' },
@@ -799,7 +799,7 @@ describe('recordInputs / recordOutputs filtering', () => {
 
     expect(original.instructions).toBe('secret instructions');
     expect(original.toolCall.input).toEqual({ q: 'secret' });
-    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0];
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
     expect(delivered.toolCall.input).toBeUndefined();
     expect(delivered.toolCall.toolName).toBe('search');
   });
@@ -815,7 +815,7 @@ describe('recordInputs / recordOutputs filtering', () => {
       text: 'secret narration',
     } as any);
     expect(
-      vi.mocked(speechIntegration.onStart!).mock.calls[0][0].text,
+      (vi.mocked(speechIntegration.onStart!).mock.calls[0][0] as any).text,
     ).toBeUndefined();
 
     const textIntegration: Telemetry = { onEnd: vi.fn() };
@@ -827,7 +827,7 @@ describe('recordInputs / recordOutputs filtering', () => {
       operationId: 'ai.generateText',
       text: 'generated reply',
     } as any);
-    expect(vi.mocked(textIntegration.onEnd!).mock.calls[0][0].text).toBe(
+    expect((vi.mocked(textIntegration.onEnd!).mock.calls[0][0] as any).text).toBe(
       'generated reply',
     );
   });
