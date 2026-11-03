@@ -88,11 +88,11 @@ for await (const textPart of result.textStream) {
 
 ### Reasoning
 
-Reasoning models take an effort level through `providerOptions`. Each model accepts the levels its lab documents; the [models page](https://zurelay.com/docs/models) lists them.
+Reasoning models take an effort level through `providerOptions`. Each model accepts the levels its lab documents; the [reasoning docs](https://zurelay.com/docs/chat#reasoning) list them.
 
 ```ts
 const { text, reasoningText } = await generateText({
-  model: zurelay('claude-opus-5-5'),
+  model: zurelay('deepseek-v4.1-flash'),
   prompt: 'How many weekdays are there in March 2027?',
   providerOptions: {
     zurelay: { reasoningEffort: 'high' },
