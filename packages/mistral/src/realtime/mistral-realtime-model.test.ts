@@ -202,6 +202,32 @@ describe('Mistral realtime factory', () => {
     expect(server.calls[0].requestMethod).toBe('DELETE');
   });
 
+  it('resolves async credentials for each create and close request', async () => {
+    prepareSessionResponse();
+    server.urls[`${url}/${sessionId}`].response = {
+      type: 'empty',
+      status: 204,
+    };
+    const apiKey = vi
+      .fn()
+      .mockResolvedValueOnce('create-key')
+      .mockResolvedValueOnce('close-key');
+    const custom = createMistral({ apiKey });
+
+    await custom.experimental_realtime.createSession({
+      model: 'mistral-small-latest',
+    });
+    await custom.experimental_realtime.closeSession({ sessionId });
+
+    expect(server.calls[0].requestHeaders.authorization).toBe(
+      'Bearer create-key',
+    );
+    expect(server.calls[1].requestHeaders.authorization).toBe(
+      'Bearer close-key',
+    );
+    expect(apiKey).toHaveBeenCalledTimes(2);
+  });
+
   it.each(['create', 'close'])('reports %s HTTP errors', async operation => {
     const endpoint = operation === 'create' ? url : `${url}/${sessionId}`;
     server.urls[endpoint].response = {

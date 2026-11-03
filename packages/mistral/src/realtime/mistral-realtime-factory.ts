@@ -3,6 +3,8 @@ import {
   type Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   createJsonResponseHandler,
   deleteFromApi,
   lazySchema,
@@ -42,7 +44,7 @@ export interface MistralRealtimeFactory {
 
 export function createMistralRealtimeFactory(config: {
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }): MistralRealtimeFactory {
   return Object.assign(
@@ -64,7 +66,7 @@ export function createMistralRealtimeFactory(config: {
         });
         const { value } = await postJsonToApi({
           url: `${config.baseURL}/audio/sessions`,
-          headers: config.headers(),
+          headers: await resolve(config.headers),
           body,
           failedResponseHandler: mistralFailedResponseHandler,
           successfulResponseHandler: createJsonResponseHandler(sessionSchema),
@@ -94,7 +96,7 @@ export function createMistralRealtimeFactory(config: {
         }
         await deleteFromApi({
           url: `${config.baseURL}/audio/sessions/${encodeURIComponent(sessionId)}`,
-          headers: config.headers(),
+          headers: await resolve(config.headers),
           failedResponseHandler: mistralFailedResponseHandler,
           successfulResponseHandler: async ({ response }) => {
             await response.body?.cancel();
