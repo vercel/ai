@@ -1,3 +1,4 @@
+import { getRequestOrigin } from '../telemetry/get-request-origin';
 import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
@@ -1298,6 +1299,15 @@ async function generateTextInternal<
                   usage: stepUsage,
                   content: modelCallContent,
                   responseId: currentModelResponse.response.id,
+                  ...(currentModelResponse.request?.url != null
+                    ? {
+                        request: {
+                          url: getRequestOrigin(
+                            currentModelResponse.request.url,
+                          ),
+                        },
+                      }
+                    : {}),
                   ...(currentModelResponse.providerMetadata != null
                     ? {
                         providerMetadata: currentModelResponse.providerMetadata,

@@ -524,6 +524,77 @@ describe('OpenTelemetry', () => {
     return metric;
   }
 
+  describe('provider endpoint attributes', () => {
+    it.each(['generate', 'stream'] as const)(
+      'records the endpoint reported by a %s call without URL secrets',
+      async mode => {
+        const request = {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        };
+        const usage = {
+          inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const finishReason = { unified: 'stop' as const, raw: 'stop' };
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'hello' }],
+            finishReason,
+            usage,
+            warnings: [],
+            request,
+          }),
+          doStream: async () => ({
+            request,
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'finish', finishReason, usage },
+            ]),
+          }),
+        });
+        const onLanguageModelCallEnd = vi.fn();
+        const options = {
+          model,
+          prompt: 'hello',
+          onLanguageModelCallEnd,
+          telemetry: {
+            integrations: integration,
+            recordInputs: false,
+            recordOutputs: false,
+          },
+        };
+        if (mode === 'generate') await generateText(options);
+        else await streamText(options).consumeStream();
+
+        const span = tracer.spans.find(
+          span => span.name === 'chat mock-model-id',
+        );
+        expect(span?.attributes).toMatchObject({
+          'server.address': 'model.example.test',
+          'server.port': 8443,
+        });
+        expect(JSON.stringify(span?.attributes)).not.toMatch(
+          /password|private|secret|fragment/,
+        );
+        expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            request: { url: 'https://model.example.test:8443' },
+          }),
+        );
+      },
+    );
+
+    it('does not guess an endpoint from a provider name', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      const span = tracer.spans.find(span => span.name === 'chat gpt-4');
+      expect(span?.attributes).not.toHaveProperty('server.address');
+      expect(span?.attributes).not.toHaveProperty('server.port');
+    });
+  });
+
   describe('inference duration metrics', () => {
     it('exports seconds and model attributes with a meter registered after initialization', async () => {
       metrics.disable();

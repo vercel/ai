@@ -360,6 +360,7 @@ describe('doGenerate', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -4005,6 +4006,7 @@ describe('doStream', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
