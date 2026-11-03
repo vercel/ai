@@ -301,7 +301,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      supportsStrictToolCalls: capabilities.tools.strict,
+      supportsStrictToolCalls:
+        capabilities.tools.strict === 'unknown'
+          ? undefined
+          : capabilities.tools.strict,
     });
 
     const thinkingType = deepseekOptions.thinking?.type;

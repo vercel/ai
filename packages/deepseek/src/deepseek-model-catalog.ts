@@ -36,7 +36,7 @@ export type DeepSeekEndpointOptions = {
 type LanguageCapabilities = NonNullable<ModelCapabilities['language']> & {
   textGeneration: ModelCapability;
   tools: NonNullable<ModelCapabilities['language']>['tools'] & {
-    strict: boolean;
+    strict: boolean | 'unknown';
   };
   reasoning: NonNullable<ModelCapabilities['language']>['reasoning'] & {
     configurable: boolean;
@@ -82,7 +82,7 @@ function createLanguageModelEntry(
     textGeneration: support,
     inputs: { image: image ?? 'unknown', audio: false },
     objectGeneration: support,
-    tools: { usage: support, streaming: support, strict: false },
+    tools: { usage: support, streaming: support, strict: 'unknown' },
     reasoning: {
       support,
       ...(image != null ? { efforts: ['low', 'high', 'max'] } : {}),
@@ -146,7 +146,7 @@ export function getDeepSeekLanguageModelEntry(
         ...language,
         tools: {
           ...language.tools,
-          strict: endpoint.supportsStrictToolCalls === true,
+          strict: endpoint.supportsStrictToolCalls ?? 'unknown',
         },
         reasoning: {
           ...language.reasoning,

@@ -559,6 +559,57 @@ describe('chat', () => {
 });
 
 describe('deepseek', () => {
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s strict tools',
+    method => {
+      it.each([true, false, undefined])(
+        'should forward strict tools with companion strict=%s when endpoint support is unspecified',
+        async companionStrict => {
+          if (method === 'doGenerate') {
+            prepareJsonFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          } else {
+            prepareChunksFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          }
+
+          const result = await provider.deepseek('deepseek-v4-pro')[method]({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'ready',
+                inputSchema: { type: 'object' },
+                strict: true,
+              },
+              {
+                type: 'function',
+                name: 'other',
+                inputSchema: { type: 'object' },
+                strict: companionStrict,
+              },
+            ],
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools[0].function.strict).toBe(true);
+          expect(body.tools[1].function.strict).toBe(companionStrict);
+
+          if ('stream' in result) {
+            const parts = await convertReadableStreamToArray(result.stream);
+            expect(parts.find(part => part.type === 'error')).toBeUndefined();
+          }
+        },
+      );
+    },
+  );
+
   it('should map top-level reasoning to Azure DeepSeek reasoning effort', async () => {
     prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
 
