@@ -5,6 +5,22 @@ import { formatSupport } from './render-tables.mjs';
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
   {
+    catalogPath: 'packages/deepseek/src/deepseek-model-catalog.ts',
+    catalogExport: 'deepseekModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/30-deepseek.mdx',
+    tables: [{
+      id: 'deepseek-language',
+      capability: 'language',
+      columns: [
+        ['Text Generation', 'textGeneration'],
+        ['Object Generation', 'objectGeneration'],
+        ['Image Input', 'inputs.image'],
+        ['Tool Usage', 'tools.usage'],
+        ['Tool Streaming', 'tools.streaming'],
+      ],
+    }],
+  },
+  {
     catalogPath: 'packages/cohere/src/cohere-model-catalog.ts',
     catalogExport: 'cohereModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/25-cohere.mdx',
