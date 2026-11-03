@@ -787,4 +787,35 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'octocrawl',
+    name: 'Octocrawl',
+    description:
+      'Octocrawl scrape and map tools for the AI SDK. scrape reads a web page as Markdown (or links, cleaned HTML, tables) with an Evidence Record: final URL, fetch time, HTTP status, robots.txt decision and content hashes. map lists the URLs of a site. A blocked, empty or wrong page comes back with its status and reason instead of as content. No API key is needed to start (20 pages a day per address).',
+    packageName: '@octocrawl/ai-sdk',
+    tags: ['scraping', 'web', 'markdown'],
+    apiKeyEnvName: 'OCTOCRAWL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @octocrawl/ai-sdk',
+      npm: 'npm install @octocrawl/ai-sdk',
+      yarn: 'yarn add @octocrawl/ai-sdk',
+      bun: 'bun add @octocrawl/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { octocrawlTools } from '@octocrawl/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: octocrawlTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find the blog posts on https://octocrawl.dev that are about logins, read one, and cite the final URL you read.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://octocrawl.dev/docs/integrations/ai-sdk/',
+    apiKeyUrl: 'https://octocrawl.dev/dashboard/keys/',
+    websiteUrl: 'https://octocrawl.dev',
+    npmUrl: 'https://www.npmjs.com/package/@octocrawl/ai-sdk',
+  },
 ];
