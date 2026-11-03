@@ -346,6 +346,20 @@ describe('CartesiaSpeechModel', () => {
       });
     });
 
+    it.each(['locale', 'normalization'])(
+      'rejects a null %s before sending a request',
+      async option => {
+        await expect(
+          model.doGenerate({
+            text: 'Hello, world!',
+            voice: 'test-voice-id',
+            providerOptions: { cartesia: { [option]: null } },
+          }),
+        ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
     it('should support locale and normalization in providerOptions', async () => {
       prepareAudioResponse();
 

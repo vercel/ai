@@ -41,9 +41,9 @@ export const cartesiaSpeechModelOptionsSchema = lazySchema(() =>
       /** The language to generate speech in (ISO 639-1 code). */
       language: z.string().nullish(),
       /** The regional locale code to generate speech in (e.g. 'en-GB', 'es-MX'). Supported for Sonic 3.6 and later. */
-      locale: z.string().nullish(),
+      locale: z.string().optional(),
       /** Controls text normalization ('auto', 'off', or a language or locale code). */
-      normalization: z.string().nullish(),
+      normalization: z.string().optional(),
     }),
   ),
 );
