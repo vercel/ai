@@ -862,7 +862,7 @@ describe('runBridge', () => {
       await checked;
       endTurn();
 
-      expect(collected).toBe(oneMibOutputFor('tc-16'));
+      expect(collected).toBe(oneMibOutputFor('tc-0'));
       expect(nextStillBuffered).toBe(true);
     });
   });
