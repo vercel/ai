@@ -103,6 +103,20 @@ function asError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+async function loadLiveKit() {
+  try {
+    // Catch the import directly so bundlers treat the peer as optional.
+    return await import('livekit-client');
+  } catch (cause) {
+    throw Object.assign(
+      new Error(
+        'Cannot load "livekit-client". Install it to use Mistral realtime voice connections.',
+      ),
+      { cause },
+    );
+  }
+}
+
 /** LiveKit stays inside the Mistral provider and is loaded only on connection. */
 export class MistralRealtimeTransport implements RealtimeTransport {
   private room?: Room;
@@ -190,7 +204,7 @@ export class MistralRealtimeTransport implements RealtimeTransport {
     Parameters<RealtimeTransport['connect']>[0],
     'sessionConfig' | 'stream' | 'capture'
   >): Promise<void> {
-    const livekit = await import('livekit-client');
+    const livekit = await loadLiveKit();
     this.assertOpen();
     // Let an in-flight create request finish on cancellation, so its returned
     // session can still be deleted. A bounded timeout covers an unresponsive app.
@@ -433,7 +447,7 @@ export class MistralRealtimeTransport implements RealtimeTransport {
     const source = this.sourceStream;
     let owned: LocalAudioTrack | undefined;
     if (source == null) {
-      const { createLocalAudioTrack } = await import('livekit-client');
+      const { createLocalAudioTrack } = await loadLiveKit();
       if (this.closed || version !== this.captureVersion) return;
       owned = await createLocalAudioTrack({
         echoCancellation: true,
@@ -461,7 +475,7 @@ export class MistralRealtimeTransport implements RealtimeTransport {
     const operation = this.captureOperations.then(async () => {
       try {
         await this.releaseMicrophone();
-        const { Track } = await import('livekit-client');
+        const { Track } = await loadLiveKit();
         if (this.closed || version !== this.captureVersion) {
           this.stopOwnedTrack(owned);
           return;
