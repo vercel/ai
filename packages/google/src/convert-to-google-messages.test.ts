@@ -1985,6 +1985,119 @@ describe('parallel tool calls', () => {
       thoughtSignature: undefined,
     });
   });
+
+  it('should parse JSON string input into args object for functionCall', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: '{"city":"berlin","units":"metric"}',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        id: 'call1',
+        args: { city: 'berlin', units: 'metric' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should handle circular references in tool-result without recursion error', async () => {
+    const cyclicObj: any = { status: 'ok' };
+    cyclicObj.self = cyclicObj;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'inspectData',
+            toolCallId: 'call_cycle',
+            output: { type: 'json', value: cyclicObj },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call_cycle',
+        name: 'inspectData',
+        response: {
+          name: 'inspectData',
+          content: { status: 'ok', self: '[Circular]' },
+        },
+      },
+    });
+  });
+
+  it('should handle circular references and BigInt with $ref in tool-result safely', async () => {
+    const cyclicSchema: any = {
+      $ref: '#/components/schemas/Item',
+      count: 100n,
+    };
+    cyclicSchema.self = cyclicSchema;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: cyclicSchema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"count":"100"');
+    expect(content).toContain('"self":"[Circular]"');
+  });
+
+  it('should preserve reused non-circular objects with $ref in tool-result', async () => {
+    const shared: any = { id: 1 };
+    const schema: any = {
+      $ref: '#/components/schemas/Item',
+      first: shared,
+      second: shared,
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: schema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"first":{"id":1}');
+    expect(content).toContain('"second":{"id":1}');
+    expect(content).not.toContain('[Circular]');
+  });
 });
 
 describe('tool results with thought signatures', () => {
@@ -2846,4 +2959,70 @@ describe('top-level-only media type resolution', () => {
       inlineData: { mimeType: 'image/png', data: pngBase64 },
     });
   });
+});
+
+it.each(['{"city":', 'null'])(
+  'retains malformed input or parsed null without throwing: %s',
+  input => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'weather',
+            input,
+          },
+        ],
+      },
+    ]);
+    expect((result.contents[0].parts[0] as any).functionCall.args).toBe(
+      input === 'null' ? null : input,
+    );
+  },
+);
+
+it('keeps non-ref tool results JSON serializable with BigInt and cycles', () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const result = convertToGoogleMessages([
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call1',
+          toolName: 'inspect',
+          output: { type: 'json', value },
+        },
+      ],
+    },
+  ]);
+  expect(
+    (result.contents[0].parts[0] as any).functionResponse.response.content,
+  ).toEqual({ count: '42', self: '[Circular]' });
+  expect(() => JSON.stringify(result)).not.toThrow();
+});
+
+it('serializes BigInt returned by toJSON in structured tool results', () => {
+  const result = convertToGoogleMessages([
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call1',
+          toolName: 'inspect',
+          output: {
+            type: 'json',
+            value: { count: { toJSON: () => 42n } } as any,
+          },
+        },
+      ],
+    },
+  ]);
+  expect(
+    (result.contents[0].parts[0] as any).functionResponse.response.content,
+  ).toEqual({ count: '42' });
 });

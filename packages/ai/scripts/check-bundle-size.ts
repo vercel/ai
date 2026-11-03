@@ -4,8 +4,9 @@ import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
+// Streaming image decoding also ships through the bundled Gateway image client.
 // steering message parts add ~2 KiB.
-const LIMIT = 586 * 1024;
+const LIMIT = 590 * 1024;
 
 interface BundleResult {
   size: number;

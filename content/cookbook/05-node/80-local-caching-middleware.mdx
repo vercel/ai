@@ -66,13 +66,13 @@ const ensureCacheFile = () => {
   }
 };
 
-const getCachedResult = (key: string | object) => {
+const getCachedResult = async (key: string | object) => {
   ensureCacheFile();
   const cacheKey = typeof key === 'object' ? JSON.stringify(key) : key;
   try {
     const cacheContent = fs.readFileSync(CACHE_FILE, 'utf-8');
 
-    const parseResult = safeParseJSON({ text: cacheContent });
+    const parseResult = await safeParseJSON({ text: cacheContent });
     if (!parseResult.success) {
       console.error('Failed to parse cache:', parseResult.error);
       return null;
@@ -88,10 +88,10 @@ const getCachedResult = (key: string | object) => {
   }
 };
 
-const updateCache = (key: string, value: any) => {
+const updateCache = async (key: string, value: any) => {
   ensureCacheFile();
   try {
-    const parseResult = safeParseJSON({
+    const parseResult = await safeParseJSON({
       text: fs.readFileSync(CACHE_FILE, 'utf-8'),
     });
     const cache = parseResult.success
@@ -139,7 +139,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
       model: model.modelId,
     });
 
-    const cached = getCachedResult(cacheKey);
+    const cached = await getCachedResult(cacheKey);
 
     if (cached && cached !== null) {
       return {
@@ -155,7 +155,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
 
     const result = await doGenerate();
 
-    updateCache(cacheKey, result);
+    await updateCache(cacheKey, result);
 
     return result;
   },
@@ -168,7 +168,7 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
       model: model.modelId,
     });
 
-    const cached = getCachedResult(cacheKey);
+    const cached = await getCachedResult(cacheKey);
 
     if (cached && cached !== null) {
       const { chunks, ...rest } = cached;
@@ -202,8 +202,8 @@ export const cacheMiddleware: LanguageModelV4Middleware = {
         controller.enqueue(chunk);
       },
 
-      flush() {
-        updateCache(cacheKey, { chunks: fullResponse, ...rest });
+      async flush() {
+        await updateCache(cacheKey, { chunks: fullResponse, ...rest });
       },
     });
 
