@@ -5,11 +5,11 @@ export const anthropicUploadFileResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
-      type: z.literal('file'),
-      filename: z.string(),
-      mime_type: z.string(),
-      size_bytes: z.number(),
-      created_at: z.string(),
+      type: z.literal('file').nullish(),
+      filename: z.string().nullish(),
+      mime_type: z.string().nullish(),
+      size_bytes: z.number().nullish(),
+      created_at: z.string().nullish(),
       downloadable: z.boolean().nullish(),
     }),
   ),

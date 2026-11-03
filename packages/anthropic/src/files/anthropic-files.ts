@@ -172,8 +172,8 @@ export class AnthropicFiles implements FilesV4 {
     return {
       warnings: [],
       providerReference: { anthropic: response.id },
-      filename: response.filename,
-      byteSize: response.size_bytes,
+      filename: response.filename ?? undefined,
+      byteSize: response.size_bytes ?? undefined,
       createdAt:
         response.created_at != null ? new Date(response.created_at) : undefined,
       providerMetadata: {

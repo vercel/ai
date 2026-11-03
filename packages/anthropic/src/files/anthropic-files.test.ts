@@ -491,24 +491,31 @@ describe('AnthropicFiles', () => {
       );
     });
 
-    it('should handle metadata without created_at field', async () => {
+    it.each([
+      { id: 'file-abc123' },
+      {
+        id: 'file-abc123',
+        type: null,
+        filename: null,
+        mime_type: null,
+        size_bytes: null,
+        created_at: null,
+        downloadable: null,
+      },
+    ])('handles omitted or null metadata fields: %j', async body => {
       server.urls['https://api.anthropic.com/v1/files/file-abc123'].response = {
         type: 'json-value',
-        body: {
-          id: 'file-abc123',
-          type: 'file',
-          filename: 'test.pdf',
-          mime_type: 'application/pdf',
-          size_bytes: 12345,
-        },
+        body,
       };
-
-      const files = createFiles();
-      await expect(
-        files.getFileMetadata({
-          file: { anthropic: 'file-abc123' },
-        }),
-      ).rejects.toThrow();
+      const result = await createFiles().getFileMetadata({
+        file: { anthropic: 'file-abc123' },
+      });
+      expect(result).toMatchObject({
+        providerReference: { anthropic: 'file-abc123' },
+        filename: undefined,
+        byteSize: undefined,
+        createdAt: undefined,
+      });
     });
 
     it('should reject a blank anthropic file id', async () => {
