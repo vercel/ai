@@ -41,8 +41,8 @@ ai ─────────────────┬──▶ @ai-sdk/provi
 
 ### Requirements
 
-- **Node.js**: v22, v24, or v26 (v22 recommended for development)
-- **pnpm**: v10+ (`npm install -g pnpm@10`)
+- **Node.js**: v22.13+, v24, or v26 (v22.13 recommended for development)
+- **pnpm**: v12+ (`npm install -g pnpm@12`)
 
 ### Initial Setup
 
@@ -62,6 +62,8 @@ pnpm build          # Build all packages
 | `pnpm test`              | Run all tests (excludes examples)                                 |
 | `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
 | `pnpm fix`               | Fix linting and formatting issues                                 |
+| `pnpm konsistent`        | Run code consistency validation and checks                        |
+| `pnpm run-verifiers`     | Run agent verifier checks                                         |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
@@ -78,6 +80,12 @@ Run these from within a package directory (e.g., `packages/ai`):
 | `pnpm test:node`   | Run Node.js tests only      |
 | `pnpm test:edge`   | Run Edge runtime tests only |
 | `pnpm test:watch`  | Run tests in watch mode     |
+
+### Guidelines And Verifiers
+
+Individual domain-scoped guideline Markdown files are found in `.agents/guidelines`. As you make code changes, you can run `pnpm discover-guidelines --modified` to get a list of all matching guidelines for the current set of added/modified files in the git diff.
+
+Many guideline files are accompanied by matching verifier scripts in `.agents/verifiers`. You can run `pnpm run-verifiers --modified` to deterministically check whether the given files satisfy the guidelines. Verifiers aren't necessarily comprehensive; but when they flag something, it is a clear guideline violation.
 
 ### Running Examples
 
@@ -277,12 +285,47 @@ These guidelines outline typical artifacts for different task types. Use judgmen
 
 ### Bug Fixes
 
+Reproduce the reported bug end-to-end before changing production code, then rerun
+the same reproduction against the fix to confirm the expected behavior. Exercise
+the affected public API and the real provider or application flow where applicable.
+Unit tests and mocked requests do not replace end-to-end verification. If either
+run is blocked (for example, by missing credentials or an unavailable service),
+record what could not be verified and why in the PR description.
+
+Keep the reproduction as a single runnable script outside the checkout (for
+example, in a temporary directory), using the issue's own snippet where possible.
+Do not commit reproduction-only files anywhere in the repository, including
+`examples/`. Do not add assertions or a test runner to the reproduction unless
+requested. Regression tests and reusable examples (including for fixed behavior)
+still belong in the repository.
+
+Build the affected workspace packages for each run and ensure the reproduction
+imports that checkout's local packages, rather than published registry versions.
+For example, a temporary JavaScript script using `ai` and `@ai-sdk/openai` can run
+via stdin from `examples/ai-functions` to resolve the workspace package links:
+
+```bash
+# From the workspace root, before each reproduction run:
+pnpm exec turbo build --filter=ai... --filter=@ai-sdk/openai...
+cd examples/ai-functions
+node --input-type=module < /tmp/ai-sdk-bug.mjs
+```
+
+Adapt the build filters and execution method to the affected packages and runtime.
+
+Follow `.github/pull_request_template.md`. Include the complete runnable
+reproduction, setup and execution commands, prerequisites (without secrets), and
+observed before/after results in the PR description's **End-to-End Verification**
+section. Show how both runs use the relevant checkout's code. State which provider
+or application flow was exercised and any verification limits. Report
+unit/integration tests and linting elsewhere in the PR description.
+
 A complete bug fix typically includes:
 
-1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
+1. **End-to-end reproduction**: Run a temporary reproduction that demonstrates the bug before fixing
 2. **Unit tests**: Add tests that would fail without the fix (regression tests)
 3. **Implementation**: Fix the bug
-4. **Manual verification**: Run the reproduction example to confirm the fix
+4. **End-to-end verification**: Rerun the same reproduction to confirm the fix and include the complete script, commands, and before/after results in the PR description
 5. **Changeset**: Describe what was broken and how it's fixed
 
 ### New Features

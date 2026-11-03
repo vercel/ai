@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
+import { GatewayResponseError } from './errors';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<
@@ -66,10 +68,12 @@ describe('GatewayImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       images = ['base64-image-1'],
+      isRetryable,
       warnings,
       providerMetadata,
     }: {
       images?: string[];
+      isRetryable?: boolean;
       warnings?: Array<
         | { type: 'unsupported'; feature: string; details?: string }
         | { type: 'compatibility'; feature: string; details?: string }
@@ -82,6 +86,7 @@ describe('GatewayImageModel', () => {
         type: 'json-value',
         body: {
           images,
+          ...(isRetryable != null && { isRetryable }),
           ...(warnings && { warnings }),
           ...(providerMetadata && { providerMetadata }),
         },
@@ -180,6 +185,23 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.images).toEqual(mockImages);
+    });
+
+    it('should preserve response retryability', async () => {
+      prepareJsonResponse({ images: [], isRetryable: false });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return provider metadata correctly', async () => {
@@ -1022,6 +1044,214 @@ describe('GatewayImageModel', () => {
           data: 'SGVsbG8=',
           providerOptions: { openai: { quality: 'hd' } },
         });
+      });
+    });
+
+    describe('large images with experimental streaming decoding', () => {
+      const callOptions = {
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          gateway: { experimental_streamingImageDecoding: true },
+        },
+      };
+
+      function bytesOf(length: number, seed = 1) {
+        const bytes = new Uint8Array(length);
+        let state = seed;
+        for (let index = 0; index < length; index++) {
+          state = (state * 1103515245 + 12345) >>> 0;
+          bytes[index] = state >>> 24;
+        }
+        return bytes;
+      }
+
+      const large = bytesOf(70_000, 1);
+      const largeBase64 = convertUint8ArrayToBase64(large);
+      const small = bytesOf(1_000, 2);
+      const smallBase64 = convertUint8ArrayToBase64(small);
+
+      function respondWith(body: unknown) {
+        server.urls['https://api.test.com/image-model'].response = {
+          type: 'json-value',
+          body: body as Record<string, unknown>,
+        };
+      }
+
+      it.each([undefined, false])(
+        'should preserve base64 results when the option is %s',
+        async enabled => {
+          respondWith({ images: [largeBase64, smallBase64] });
+          const result = await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions:
+              enabled === undefined
+                ? {}
+                : { gateway: { experimental_streamingImageDecoding: enabled } },
+          });
+          expect(result.images).toEqual([largeBase64, smallBase64]);
+        },
+      );
+
+      it.each([true, false])(
+        'should remove the client option set to %s while preserving service options',
+        async enabled => {
+          respondWith({ images: [largeBase64] });
+          const providerOptions = {
+            gateway: {
+              experimental_streamingImageDecoding: enabled,
+              tags: ['images'],
+            },
+            openai: { quality: 'hd' },
+          };
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions,
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.providerOptions).toEqual({
+            gateway: { tags: ['images'] },
+            openai: { quality: 'hd' },
+          });
+          expect(
+            providerOptions.gateway.experimental_streamingImageDecoding,
+          ).toBe(enabled);
+        },
+      );
+
+      it.each([true, false])(
+        'should omit providerOptions when the client option set to %s is its only entry',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toBeUndefined();
+        },
+      );
+
+      it.each([true, false])(
+        'should omit an empty gateway object when the client option is %s',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+              openai: { quality: 'hd' },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toEqual({
+            openai: { quality: 'hd' },
+          });
+        },
+      );
+
+      it('should return images of 64 KiB and more as Uint8Array', async () => {
+        respondWith({ images: [largeBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large]);
+        expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      });
+
+      it('should keep images below 64 KiB as base64 strings', async () => {
+        respondWith({ images: [smallBase64, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([smallBase64, smallBase64]);
+      });
+
+      it('should return bytes for every image when large and small images are mixed', async () => {
+        respondWith({ images: [smallBase64, largeBase64, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([small, large, small]);
+      });
+
+      it('should keep strings that cannot be decoded unambiguously and return all images as strings', async () => {
+        const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+        respondWith({ images: [base64Url, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([base64Url, smallBase64]);
+      });
+
+      it('should decode large strings that are not canonical base64 like the regular path when mixed with bytes', async () => {
+        const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+        respondWith({ images: [base64Url, largeBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large, large]);
+      });
+
+      it('should not change the other fields of the response', async () => {
+        respondWith({
+          images: [largeBase64],
+          warnings: [{ type: 'other', message: 'careful' }],
+          providerMetadata: { gateway: { images: [{}], cost: '0.04' } },
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large]);
+        expect(result.warnings).toEqual([
+          { type: 'other', message: 'careful' },
+        ]);
+        expect(result.providerMetadata).toEqual({
+          gateway: { images: [{}], cost: '0.04' },
+        });
+        expect(result.usage).toEqual({
+          inputTokens: 1,
+          outputTokens: 2,
+          totalTokens: 3,
+        });
+      });
+
+      it('should read a body that arrives in small chunks', async () => {
+        const body = JSON.stringify({ images: [largeBase64, smallBase64] });
+        server.urls['https://api.test.com/image-model'].response = {
+          type: 'stream-chunks',
+          headers: { 'Content-Type': 'application/json' },
+          chunks: body.match(/[\s\S]{1,1999}/g) ?? [],
+        };
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large, small]);
+      });
+
+      it('should reject a response whose images are not strings', async () => {
+        respondWith({ images: [largeBase64, 5] });
+
+        const error = await createTestModel()
+          .doGenerate(callOptions)
+          .then(
+            () => undefined,
+            (caught: unknown) => caught,
+          );
+
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        // The error does not carry the image.
+        expect(String((error as Error).message).length).toBeLessThan(2000);
       });
     });
   });

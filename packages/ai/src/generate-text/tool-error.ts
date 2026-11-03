@@ -4,7 +4,7 @@ import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../util/value-of';
 
 export type StaticToolError<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: {
+  [NAME in keyof TOOLS]-?: {
     type: 'tool-error';
     toolCallId: string;
     toolName: NAME & string;

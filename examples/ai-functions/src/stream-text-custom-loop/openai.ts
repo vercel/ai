@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   experimental_streamLanguageModelCall as streamLanguageModelCall,
-  type Experimental_LanguageModelStreamPart as LanguageModelStreamPart,
+  type LanguageModelStreamPart,
   type AsyncIterableStream,
 } from 'ai';
 import { run } from '../lib/run';
@@ -9,7 +9,7 @@ import { run } from '../lib/run';
 run(async () => {
   const { stream }: { stream: AsyncIterableStream<LanguageModelStreamPart> } =
     await streamLanguageModelCall({
-      model: openai('gpt-5.6'),
+      model: openai('gpt-6-astra'),
       prompt: 'How many people live in the capital of France?',
     });
 

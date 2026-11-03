@@ -16,11 +16,12 @@ export type VideoModelV4CallOptions = {
 
   /**
    * Aspect ratio of the videos to generate.
-   * Must have the format `{width}:{height}`.
+   * Must have the format `{width}:{height}`, or `'adaptive'` to inherit the
+   * ratio from the input media.
    * `undefined` will use the provider's default aspect ratio.
    * Common values: '16:9', '9:16', '1:1', '21:9', '4:3'
    */
-  aspectRatio: `${number}:${number}` | undefined;
+  aspectRatio: `${number}:${number}` | 'adaptive' | undefined;
 
   /**
    * Resolution of the video to generate.

@@ -2,10 +2,12 @@
 
 `HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox.
 
+-> **Note**: This package is experimental.
+
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel zod
 ```
 
 ## Usage
@@ -13,14 +15,13 @@ npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createPi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
 const agent = new HarnessAgent({
   harness: createPi({ thinkingLevel: 'medium' }),
   id: 'demo',
-  sandbox: createVercelSandbox({ runtime: 'node24' }),
   skills: [
     {
       name: 'careful-refactors',
@@ -37,7 +38,10 @@ const agent = new HarnessAgent({
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -46,7 +50,8 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider`. Pi has no in-sandbox bridge, so the sandbox doesn't need to expose any ports — `@ai-sdk/sandbox-vercel` or `@ai-sdk/sandbox-just-bash` both work.
+See the [Pi Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/pi) for more information.

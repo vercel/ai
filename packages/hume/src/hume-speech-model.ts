@@ -1,5 +1,6 @@
 import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -156,7 +157,10 @@ export class HumeSpeechModel implements SpeechModelV4 {
         path: '/v0/tts/file',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: humeFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

@@ -43,7 +43,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     prompt:
       'Please read the pdf document using the tool provided and return the summary of that pdf',
     tools: {

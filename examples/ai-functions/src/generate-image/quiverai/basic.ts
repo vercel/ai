@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { images } = await generateImage({
-    model: quiverai.image('arrow-1.1'),
+    model: quiverai.image('arrow-2'),
     prompt: 'A geometric logo for an AI design startup',
   });
 

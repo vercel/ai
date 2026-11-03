@@ -86,7 +86,7 @@ export const postToApi = async <T>({
   url: string;
   headers?: Record<string, string | undefined>;
   body: {
-    content: string | FormData | Uint8Array;
+    content: string | FormData | Uint8Array | Blob;
     values: unknown;
   };
   failedResponseHandler: ResponseHandler<Error>;
@@ -99,10 +99,10 @@ export const postToApi = async <T>({
       method: 'POST',
       headers: withUserAgentSuffix(
         headers,
-        `ai-sdk/provider-utils/${VERSION}`,
+        `ai-sdk-provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
-      body: body.content,
+      body: body.content as string | FormData | Uint8Array<ArrayBuffer> | Blob,
       signal: abortSignal,
     });
 

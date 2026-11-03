@@ -1,5 +1,6 @@
 import {
   createProviderExecutedToolFactory,
+  experimental_toolCaller,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -54,4 +55,25 @@ const programmaticToolCallingFactory = createProviderExecutedToolFactory<
   supportsDeferredResults: true,
 });
 
-export const programmaticToolCalling = () => programmaticToolCallingFactory({});
+export const programmaticToolCalling = () =>
+  experimental_toolCaller(programmaticToolCallingFactory({}), {
+    type: 'provider',
+    prepareProviderOptions: providerOptions => {
+      const openaiOptions = providerOptions?.openai as
+        | { allowedCallers?: Array<'direct' | 'programmatic'> }
+        | undefined;
+
+      return {
+        ...providerOptions,
+        openai: {
+          ...openaiOptions,
+          allowedCallers: [
+            ...new Set([
+              ...(openaiOptions?.allowedCallers ?? []),
+              'programmatic' as const,
+            ]),
+          ],
+        },
+      };
+    },
+  });

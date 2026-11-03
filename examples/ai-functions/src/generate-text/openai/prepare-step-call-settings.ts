@@ -6,6 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
+    // This example needs temperature control and small output token budgets.
     model: openai('gpt-4.1-mini'),
     prompt: 'What should I wear for the weather in San Francisco?',
     temperature: 0.7,

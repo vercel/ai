@@ -1,8 +1,10 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createPi } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const pi = createPi();
 
 /*
  * Context compaction (Pi).
@@ -34,15 +36,16 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
  * manual compaction is useful across the large range in between.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({ harness: pi });
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({ harness: pi, sandbox });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1: build up some context ---');
     const first = await agent.stream({
       session,
@@ -62,11 +65,8 @@ run(async () => {
       prompt: 'Now write a short haiku about that explanation.',
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

@@ -20,7 +20,6 @@ run(async () => {
           bytedance: {
             generateAudio: true,
             watermark: false,
-            pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoModelOptions,
         },
       }),

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('mistral-small-latest'),
     maxOutputTokens: 2000,
     output: Output.object({
       schema: z.object({

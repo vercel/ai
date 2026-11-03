@@ -36,7 +36,8 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
@@ -44,45 +45,14 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
   provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
-
-  const approvalIdToToolCallId = new Map<string, string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          part.type === 'tool-approval-request' &&
-          'approvalId' in part &&
-          'toolCallId' in part
-        ) {
-          approvalIdToToolCallId.set(
-            part.approvalId as string,
-            part.toolCallId as string,
-          );
-        }
-      }
-    }
-  }
-
-  const approvedToolCallIds = new Set<string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'tool') {
-      for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
-          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
-          if (toolCallId) {
-            approvedToolCallIds.add(toolCallId);
-          }
-        }
-      }
-    }
-  }
 
   const messages = [
     ...(prompt.instructions != null
@@ -121,7 +91,13 @@ export async function convertToLanguageModelPrompt({
       }
 
       lastCombinedMessage.content.push(...message.content);
-      lastCombinedMessage.providerOptions = message.providerOptions;
+      lastCombinedMessage.providerOptions =
+        lastContentPart == null
+          ? mergeObjects(
+              lastCombinedMessage.providerOptions,
+              message.providerOptions,
+            )
+          : message.providerOptions;
     } else {
       combinedMessages.push(message);
     }
@@ -149,11 +125,6 @@ export async function convertToLanguageModelPrompt({
       }
       case 'user':
       case 'system':
-        // remove approved tool calls from the set before checking:
-        for (const id of approvedToolCallIds) {
-          toolCallIds.delete(id);
-        }
-
         if (toolCallIds.size > 0) {
           throw new MissingToolResultsError({
             toolCallIds: Array.from(toolCallIds),
@@ -161,11 +132,6 @@ export async function convertToLanguageModelPrompt({
         }
         break;
     }
-  }
-
-  // remove approved tool calls from the set before checking:
-  for (const id of approvedToolCallIds) {
-    toolCallIds.delete(id);
   }
 
   if (toolCallIds.size > 0) {
@@ -659,6 +625,7 @@ export function mapToolResultOutput({
         }
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          const url = new URL(item.url);
           let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
           if (!item.mediaType) {
             const inferenceSuffix =
@@ -674,7 +641,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType,
             providerOptions: item.providerOptions,
           };
@@ -730,6 +701,7 @@ export function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          const url = new URL(item.url);
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
@@ -737,7 +709,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType: 'image',
             providerOptions: item.providerOptions,
           };

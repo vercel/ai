@@ -30,7 +30,7 @@ Check the [FriendliAI documentation](https://friendli.ai/docs/guides/personal_ac
 
 ## Provider Instance
 
-You can import the default provider instance `friendliai` from `@friendliai/ai-provider`:
+You can import the default provider instance `friendli` from `@friendliai/ai-provider`:
 
 ```ts
 import { friendli } from '@friendliai/ai-provider';
@@ -180,9 +180,9 @@ import { friendli } from '@friendliai/ai-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: friendli("YOUR_ENDPOINT_ID", {
-    endpoint: "dedicated",
-  });
+  model: friendli('YOUR_ENDPOINT_ID', {
+    endpoint: 'dedicated',
+  }),
   prompt: 'What is the meaning of life?',
 });
 

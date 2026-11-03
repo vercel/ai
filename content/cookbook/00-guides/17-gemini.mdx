@@ -35,7 +35,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-3-pro-preview'),
+  model: google('gemini-3.1-pro-preview'),
   prompt: 'Explain the concept of the Hilbert space.',
 });
 console.log(text);
@@ -50,7 +50,7 @@ import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-3-pro-preview'),
+  model: google('gemini-3.1-pro-preview'),
   prompt: 'What is the sum of the first 10 prime numbers?',
   providerOptions: {
     google: {
@@ -80,7 +80,7 @@ import { generateText, tool, isStepCount } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateText({
-  model: google('gemini-3-pro-preview'),
+  model: google('gemini-3.1-pro-preview'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     weather: tool({
@@ -112,7 +112,7 @@ import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3-pro-preview'),
+  model: google('gemini-3.1-pro-preview'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: google('gemini-3-pro-preview'),
+    model: google('gemini-3.1-pro-preview'),
     messages: await convertToModelMessages(messages),
   });
 

@@ -28,6 +28,8 @@ updates:
       day: friday
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'
@@ -50,6 +52,8 @@ updates:
       interval: monthly
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'
@@ -84,6 +88,8 @@ updates:
       day: friday
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'
@@ -106,6 +112,8 @@ updates:
       interval: monthly
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'
@@ -141,6 +149,8 @@ updates:
       day: friday
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'
@@ -163,6 +173,8 @@ updates:
       interval: monthly
       time: '05:00'
       timezone: America/Los_Angeles
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     commit-message:
       prefix: 'chore(deps)'

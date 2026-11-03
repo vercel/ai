@@ -1,30 +1,41 @@
 import {
   NoSuchModelError,
+  type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
-import type { MiniMaxChatModelId } from './minimax-chat-options';
+import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
+import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
+import { MiniMaxVideoModel } from './minimax-video-model';
+import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
 
 export interface MiniMaxProviderSettings {
   /**
    * MiniMax API key. Default value is taken from the `MINIMAX_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls. Defaults to MiniMax's Anthropic-compatible
    * endpoint (`https://api.minimax.io/anthropic/v1`).
    */
   baseURL?: string;
+  /**
+   * Use a different URL prefix for video generation API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  videoBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -53,12 +64,23 @@ export interface MiniMaxProvider extends ProviderV4 {
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
 
   /**
+   * Creates a MiniMax video model for video generation.
+   */
+  video(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a MiniMax video model for video generation.
+   */
+  videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
+const defaultVideoBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
@@ -66,22 +88,28 @@ export function createMiniMax(
   const baseURL =
     withoutTrailingSlash(options.baseURL ?? defaultBaseURL) ?? defaultBaseURL;
 
+  const videoBaseURL =
+    withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
+    defaultVideoBaseURL;
+
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'anthropic-version': '2023-06-01',
-        'x-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MINIMAX_API_KEY',
-          description: 'MiniMax API key',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/minimax/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'anthropic-version': '2023-06-01',
+          'x-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'MINIMAX_API_KEY',
+            description: 'MiniMax API key',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-minimax/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MiniMaxChatModelId) =>
-    new AnthropicLanguageModel(modelId, {
+    new MiniMaxChatLanguageModel(modelId, {
       provider: 'minimax.messages',
       baseURL,
       headers: getHeaders,
@@ -90,11 +118,36 @@ export function createMiniMax(
       supportedUrls: () => ({}),
     });
 
+  const getVideoHeaders = () =>
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MINIMAX_API_KEY',
+            description: 'MiniMax API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-minimax/${VERSION}`,
+      ),
+    );
+
+  const createVideoModel = (modelId: MiniMaxVideoModelId) =>
+    new MiniMaxVideoModel(modelId, {
+      provider: 'minimax.video',
+      baseURL: videoBaseURL,
+      headers: getVideoHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

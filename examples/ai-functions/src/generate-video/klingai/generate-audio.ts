@@ -6,10 +6,10 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { videos } = await withSpinner(
-    'Generating KlingAI text-to-video with audio (kling-v2.6-t2v)...',
+    'Generating KlingAI text-to-video with audio (kling-v3.0-t2v)...',
     () =>
       generateVideo({
-        model: klingai.video('kling-v2.6-t2v'),
+        model: klingai.video('kling-v3.0-t2v'),
         prompt:
           'A street musician plays saxophone on a rainy city corner. Background: rain on pavement, distant traffic, saxophone melody.',
         duration: 5,

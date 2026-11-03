@@ -2,6 +2,7 @@
 .cache
 .env
 .envrc
+.memory-benchmark-context-*
 .next
 .pnpm-store
 .turbo

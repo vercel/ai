@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: voyage.embedding('voyage-3.5'),
+    model: voyage.embedding('voyage-4'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

@@ -7,6 +7,9 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertBase64ToUint8Array,
@@ -28,6 +31,7 @@ import { z } from 'zod/v4';
 import type { CartesiaConfig } from './cartesia-config';
 import { cartesiaFailedResponseHandler } from './cartesia-error';
 import {
+  cartesiaStreamingEncodingSchema,
   cartesiaTranscriptionModelOptionsSchema,
   type CartesiaTranscriptionModelOptions,
 } from './cartesia-transcription-model-options';
@@ -103,7 +107,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);
@@ -153,7 +157,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/stt',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -221,6 +228,29 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       });
     }
 
+    // Always validate the declared media type — an explicit
+    // `streaming.encoding` override must not bypass the allowlist.
+    const inferredEncoding = cartesiaEncodingFromInputAudioFormat(
+      options.inputAudioFormat.type,
+    );
+    const encoding = cartesiaOptions?.streaming?.encoding ?? inferredEncoding;
+    // `audio/pcm` is generic linear PCM, so widening its default 16-bit
+    // interpretation is the intended use of the option. Overriding a G.711
+    // media type (or turning generic PCM into G.711) contradicts the declared
+    // format; surface that instead of sending it silently.
+    if (
+      encoding !== inferredEncoding &&
+      !(
+        inferredEncoding === 'pcm_s16le' &&
+        LINEAR_PCM_STREAMING_ENCODINGS.has(encoding)
+      )
+    ) {
+      warnings.push({
+        type: 'other',
+        message: `providerOptions.cartesia.streaming.encoding '${encoding}' contradicts inputAudioFormat.type '${options.inputAudioFormat.type}' (inferred '${inferredEncoding}'); sending '${encoding}'.`,
+      });
+    }
+
     const token = await this.createStreamingAccessToken(options);
     const useTurnDetection =
       cartesiaOptions?.streaming?.turnDetection !== false;
@@ -228,6 +258,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       baseURL: this.config.url({ path: '/', modelId: this.modelId }),
       version: this.config.version ?? '2026-03-01',
       modelId: this.modelId,
+      encoding,
       inputAudioFormat: options.inputAudioFormat,
       providerOptions: cartesiaOptions,
       token,
@@ -260,7 +291,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<string> {
     const { value } = await postJsonToApi({
       url: this.config.url({ path: '/access-token', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { grants: { stt: true } },
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -465,10 +499,29 @@ function createCartesiaStreamingTranscriptionStream({
   });
 }
 
+/** G.711 companding laws — the only non-linear members of the encoding enum. */
+const G711_STREAMING_ENCODINGS: ReadonlySet<string> = new Set([
+  'pcm_mulaw',
+  'pcm_alaw',
+]);
+
+/**
+ * Linear PCM encodings that legitimately widen generic `audio/pcm` input.
+ * Derived from the option enum so a future linear encoding added there is
+ * treated as widening-compatible by default; G.711 is a closed set (the
+ * standard defines exactly two companding laws), so it is the hardcoded half.
+ */
+const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set(
+  cartesiaStreamingEncodingSchema.options.filter(
+    encoding => !G711_STREAMING_ENCODINGS.has(encoding),
+  ),
+);
+
 function buildCartesiaStreamingTranscriptionUrl({
   baseURL,
   version,
   modelId,
+  encoding,
   inputAudioFormat,
   providerOptions,
   token,
@@ -477,6 +530,7 @@ function buildCartesiaStreamingTranscriptionUrl({
   baseURL: string;
   version: string;
   modelId: string;
+  encoding: string;
   inputAudioFormat: TranscriptionModelV4StreamOptions['inputAudioFormat'];
   providerOptions: CartesiaTranscriptionModelOptions | undefined;
   token: string;
@@ -489,10 +543,7 @@ function buildCartesiaStreamingTranscriptionUrl({
     ),
   );
   url.searchParams.set('model', modelId);
-  url.searchParams.set(
-    'encoding',
-    cartesiaEncodingFromInputAudioFormat(inputAudioFormat.type),
-  );
+  url.searchParams.set('encoding', encoding);
   url.searchParams.set('sample_rate', String(inputAudioFormat.rate ?? 24000));
   url.searchParams.set('cartesia_version', version);
   url.searchParams.set('access_token', token);
@@ -519,24 +570,35 @@ function cartesiaEncodingFromInputAudioFormat(type: string): string {
 }
 
 function isStreamingTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'ink-2' || modelId.startsWith('ink-2-');
+  // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
+  // is the known batch-only model family. Future IDs inherit the current
+  // streaming protocol regardless of their name.
+  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
 }
 
-const cartesiaTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const cartesiaTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            word: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-const cartesiaAccessTokenResponseSchema = z.object({
-  token: z.string().min(1),
-});
+const cartesiaAccessTokenResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string().min(1),
+    }),
+  ),
+);

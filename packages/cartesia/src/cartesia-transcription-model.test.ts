@@ -90,6 +90,17 @@ describe('doGenerate', () => {
       });
     });
 
+    it('routes dated Ink Whisper snapshots to the batch endpoint', async () => {
+      await provider.transcription('ink-whisper-2025-06-04').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: 'ink-whisper-2025-06-04',
+      });
+    });
+
     it('should pass headers', async () => {
       const provider = createCartesia({
         apiKey: 'test-api-key',
@@ -116,7 +127,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/cartesia/0.0.0-test`,
+        `ai-sdk-cartesia/0.0.0-test`,
       );
     });
 
@@ -198,6 +209,39 @@ describe('doStream', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
   });
+
+  it.each(['ink-3', 'new-streaming-model'])(
+    'routes %s through streaming transcription instead of the batch endpoint',
+    async modelId => {
+      const model = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription(modelId);
+      await expect(
+        model.doGenerate({
+          audio: new Uint8Array(),
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+      expect(server.calls).toHaveLength(0);
+
+      const result = await model.doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.cartesia.ai/access-token',
+      );
+      const ws = MockWebSocket.instances[0];
+      const url = new URL(ws.url);
+      expect(url.pathname).toBe('/stt/turns/websocket');
+      expect(url.searchParams.get('model')).toBe(modelId);
+      ws.open();
+      const reader = result.stream.getReader();
+      await reader.cancel();
+      expect(ws.close).toHaveBeenCalled();
+    },
+  );
 
   it('streams Ink 2 turn-detected transcription over WebSocket', async () => {
     const testDate = new Date(0);
@@ -347,6 +391,133 @@ describe('doStream', () => {
       language: 'en',
       durationInSeconds: 0.9,
     });
+  });
+
+  it.each(['pcm_f16le', 'pcm_f32le', 'pcm_s32le'] as const)(
+    'supports the %s streaming PCM encoding without a warning',
+    async encoding => {
+      const provider = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      });
+      const result = await provider.transcription('ink-2').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 48000 },
+        providerOptions: {
+          cartesia: {
+            streaming: { encoding },
+          },
+        },
+      });
+
+      const ws = MockWebSocket.instances[0];
+      expect(new URL(ws.url).searchParams.get('encoding')).toBe(encoding);
+
+      // Widening generic `audio/pcm` is the intended use — no warning.
+      const reader = result.stream.getReader();
+      ws.open();
+      await flush();
+      const first = await reader.read();
+      expect(first.value).toEqual({ type: 'stream-start', warnings: [] });
+      await reader.cancel();
+    },
+  );
+
+  it('still validates inputAudioFormat.type when streaming.encoding is set', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+
+    // The explicit encoding must not bypass the media-type allowlist.
+    await expect(
+      provider.transcription('ink-2').doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/mpeg', rate: 44100 },
+        providerOptions: {
+          cartesia: {
+            streaming: { encoding: 'pcm_s16le' },
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      message: expect.stringContaining(
+        'Unsupported Cartesia streaming audio format: audio/mpeg',
+      ),
+    });
+  });
+
+  it('warns when streaming.encoding contradicts the declared audio format', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    const result = await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcmu', rate: 8000 },
+      providerOptions: {
+        cartesia: {
+          streaming: { encoding: 'pcm_f32le' },
+        },
+      },
+    });
+
+    // The override wins on the wire, but the contradiction is surfaced.
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('encoding')).toBe('pcm_f32le');
+
+    const reader = result.stream.getReader();
+    ws.open();
+    await flush();
+    const first = await reader.read();
+    expect(first.value).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'other',
+          message:
+            "providerOptions.cartesia.streaming.encoding 'pcm_f32le' contradicts inputAudioFormat.type 'audio/pcmu' (inferred 'pcm_mulaw'); sending 'pcm_f32le'.",
+        },
+      ],
+    });
+    await reader.cancel();
+  });
+
+  it('warns when generic audio/pcm is overridden to a G.711 encoding', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    const result = await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 8000 },
+      providerOptions: {
+        cartesia: {
+          streaming: { encoding: 'pcm_mulaw' },
+        },
+      },
+    });
+
+    // Only linear PCM widths widen `audio/pcm` silently — G.711 contradicts it.
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url).searchParams.get('encoding')).toBe('pcm_mulaw');
+
+    const reader = result.stream.getReader();
+    ws.open();
+    await flush();
+    const first = await reader.read();
+    expect(first.value).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'other',
+          message:
+            "providerOptions.cartesia.streaming.encoding 'pcm_mulaw' contradicts inputAudioFormat.type 'audio/pcm' (inferred 'pcm_s16le'); sending 'pcm_mulaw'.",
+        },
+      ],
+    });
+    await reader.cancel();
   });
 
   it('rejects unsupported model operations and Ink 2 languages', async () => {

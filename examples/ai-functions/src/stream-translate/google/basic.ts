@@ -10,7 +10,7 @@ import { resamplePcm16Mono } from './resample-pcm16-mono';
 run(async () => {
   // generate raw PCM audio (24kHz, 16-bit, mono):
   const speech = await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello from the AI SDK! Streaming translation is experimental.',
     outputFormat: 'pcm',
   });

@@ -7,7 +7,7 @@ import {
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
-import { generateText, streamText } from '../generate-text';
+import { generateText, Output, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractJsonMiddleware } from './extract-json-middleware';
@@ -41,6 +41,52 @@ function clearObjectPrototypeState() {
 
 describe('extractJsonMiddleware', () => {
   describe('wrapGenerate', () => {
+    it.each([
+      {
+        name: 'markdown fences',
+        text: '```json\n{"value":"final"}\n```',
+        options: undefined,
+      },
+      {
+        name: 'a custom transform',
+        text: 'PREFIX{"value":"final"}SUFFIX',
+        options: {
+          transform: (text: string) =>
+            text.replace('PREFIX', '').replace('SUFFIX', ''),
+        },
+      },
+    ])(
+      'should apply $name to structured output text without losing other text',
+      async ({ text, options }) => {
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                content: [
+                  { type: 'text', text: '{"value":"draft"}' },
+                  { type: 'text', text },
+                ],
+                structuredOutputText: text,
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+                warnings: [],
+              },
+            }),
+            middleware: extractJsonMiddleware(options),
+          }),
+          output: Output.json(),
+          prompt: 'Generate JSON',
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.text).toBe('{"value":"draft"}{"value":"final"}');
+        expect(result.content).toEqual([
+          { type: 'text', text: '{"value":"draft"}' },
+          { type: 'text', text: '{"value":"final"}' },
+        ]);
+      },
+    );
+
     it('should strip markdown json fence from text content', async () => {
       const mockModel = new MockLanguageModelV4({
         async doGenerate() {
@@ -792,6 +838,89 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(await result.text).toBe('{"value": "test"}');
+    });
+
+    it('should strip a closing fence followed by long trailing whitespace', async () => {
+      const json = '{"value": "test"}';
+      const fencedJson = `\`\`\`json\n${json}\n\`\`\``;
+
+      for (const trailingWhitespace of [' '.repeat(20), '\n'.repeat(20)]) {
+        const text = fencedJson + trailingWhitespace;
+        const chunkLayouts = [
+          [text],
+          [...text],
+          [`\`\`\`json\n${json}\n`, '```', trailingWhitespace],
+        ];
+
+        for (const chunks of chunkLayouts) {
+          const mockModel = new MockLanguageModelV4({
+            async doStream() {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'text-start', id: '1' },
+                  ...chunks.map(delta => ({
+                    type: 'text-delta' as const,
+                    id: '1',
+                    delta,
+                  })),
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          });
+
+          const result = streamText({
+            model: wrapLanguageModel({
+              model: mockModel,
+              middleware: extractJsonMiddleware(),
+            }),
+            prompt: 'Generate JSON',
+          });
+
+          expect(await result.text).toBe(json);
+        }
+      }
+    });
+
+    it('should efficiently stream whitespace-heavy content followed by non-whitespace', async () => {
+      const text = `${' '.repeat(10_000)}x`;
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: text },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractJsonMiddleware(),
+        }),
+        prompt: 'Generate JSON',
+      });
+
+      expect(await result.text).toBe(text);
     });
 
     it('should verify stream output matches expected structure', async () => {

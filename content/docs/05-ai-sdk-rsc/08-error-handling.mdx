@@ -40,6 +40,8 @@ export async function getStreamedUI() {
 With this method, you can catch any error with the stream, and return relevant UI. On the client, you can also use a [React Error Boundary](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) to wrap the streamed component and catch any additional errors.
 
 ```tsx filename='app/page.tsx'
+'use client';
+
 import { getStreamedUI } from '@/actions';
 import { useState } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
