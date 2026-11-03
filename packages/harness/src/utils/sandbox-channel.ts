@@ -394,7 +394,8 @@ export class SandboxChannel<
    * Queue a frame if disconnected. `onSent` runs in a microtask after the frame
    * is handed to the socket, not after bridge acknowledgement. Reconnect
    * handlers run before notifications for frames flushed on that connection.
-   * Set `queueIfDisconnected` to false when the caller owns reconnect replay.
+   * Set `queueIfDisconnected` to false when the caller owns reconnect replay;
+   * an unsent frame is then discarded and its `onSent` callback never runs.
    */
   send(
     message: TIn,

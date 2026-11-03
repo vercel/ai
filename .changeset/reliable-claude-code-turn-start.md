@@ -8,3 +8,5 @@ Recover Claude Code turn starts lost on a dropped WebSocket connection using ide
 Preserve first delivery of turns submitted during an idle reconnect, including on older bridges, without sending duplicate starts or treating an unsent start as lost.
 
 Clean up failed initial sends without leaving a delayed unhandled rejection, and replay pending steering only after the recovered start.
+
+`SandboxChannel.send` accepts `queueIfDisconnected: false` for callers that own reconnect replay; discarded frames do not invoke `onSent`. The default continues queueing frames.

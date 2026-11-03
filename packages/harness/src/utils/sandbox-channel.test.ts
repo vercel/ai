@@ -459,6 +459,28 @@ describe('SandboxChannel', () => {
     ]);
   });
 
+  it.each(['disconnected', 2, 3] as const)(
+    'lets the caller own replay when the socket is %s',
+    async state => {
+      const connector = makeConnector();
+      const channel = makeChannel(connector);
+      await channel.open();
+      const first = connector.current();
+      if (state === 'disconnected') first.drop();
+      else first.setReadyState(state);
+      const onSent = vi.fn();
+      channel.send({ type: 'abort' }, { onSent, queueIfDisconnected: false });
+      if (state !== 'disconnected') first.drop();
+      await flush();
+      expect(first.sent).toEqual([]);
+      expect(connector.current().sent).toEqual([
+        JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+      ]);
+      expect(onSent).not.toHaveBeenCalled();
+      channel.close();
+    },
+  );
+
   it.each([2, 3])(
     'queues sends before the close event at readyState %s',
     async readyState => {
