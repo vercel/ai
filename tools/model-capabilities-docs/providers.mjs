@@ -5,6 +5,41 @@ import { formatSupport } from './render-tables.mjs';
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
   {
+    catalogPath: 'packages/cohere/src/cohere-model-catalog.ts',
+    catalogExport: 'cohereModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/25-cohere.mdx',
+    tables: [
+      {
+        id: 'cohere-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+      {
+        id: 'cohere-embedding',
+        capability: 'embedding',
+        columns: [
+          ['Default Dimensions', 'defaultDimensions', String],
+          ['Supported Dimensions', 'dimensions', values => values.join(', ')],
+          ['Custom Dimensions', 'customDimensions'],
+        ],
+      },
+      {
+        id: 'cohere-reranking',
+        capability: 'reranking',
+        columns: [
+          ['Text Documents', 'documents.text'],
+          ['Object Documents', 'documents.object'],
+          ['Top N', 'topN'],
+        ],
+      },
+    ],
+  },
+  {
     catalogPath: 'packages/groq/src/groq-model-catalog.ts',
     catalogExport: 'groqModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/09-groq.mdx',
