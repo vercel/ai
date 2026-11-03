@@ -10,13 +10,14 @@ import type { Warning } from '../types/warning';
 export interface GenerateVideoResult {
   /**
    * The first video available to the SDK.
-   * Throws NoVideoGeneratedError when all videos were delivered directly
+   *
+   * @throws {NoVideoGeneratedError} When all videos were delivered directly
    * to caller-managed storage. Use `uploadedVideos` to handle upload-only results.
    */
   readonly video: GeneratedFile;
 
   /**
-   * All videos that were generated.
+   * All videos available to the SDK, excluding videos uploaded by the provider.
    */
   readonly videos: Array<GeneratedFile>;
 
