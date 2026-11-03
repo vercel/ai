@@ -296,7 +296,7 @@ In the standard `useChat` pattern, the server rebuilds the conversation from the
 
 Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
 
-During re-validation, `toolCall.toolMetadata`, `toolCall.dynamic`, and `toolCall.title` come from the current server-side tool definition. A server-side policy denial prevents execution even when the client supplies an approved response with a valid signature.
+During re-validation, `toolCall.toolMetadata` and `toolCall.dynamic` come from the current server-side tool definition. The deprecated `toolCall.title` field is also restored from that definition. A server-side policy denial prevents execution even when the client supplies an approved response with a valid signature.
 
 If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
 
