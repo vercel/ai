@@ -393,6 +393,28 @@ describe('doStream', () => {
     });
   });
 
+  it.each([
+    [
+      'more than 100 keyterms',
+      { keyterms: Array.from({ length: 101 }, (_, i) => `term${i}`) },
+    ],
+    ['a fractional turn timeout', { turnEndTimeoutMs: 800.5 }],
+  ])('rejects %s before creating a connection', async (_, streaming) => {
+    const model = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('ink-2');
+    await expect(
+      model.doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        providerOptions: { cartesia: { streaming } },
+      }),
+    ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+    expect(server.calls).toHaveLength(0);
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
   it('sends keyterms as repeated query parameters', async () => {
     const provider = createCartesia({
       apiKey: 'test-api-key',
