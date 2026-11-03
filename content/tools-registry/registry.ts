@@ -819,4 +819,35 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
 ];

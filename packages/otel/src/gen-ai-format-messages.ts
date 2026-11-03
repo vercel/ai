@@ -117,6 +117,7 @@ export function mapOperationName(operationId: string): string {
     'ai.streamText': 'invoke_agent',
     'ai.generateObject': 'invoke_agent',
     'ai.streamObject': 'invoke_agent',
+    'ai.workflowAgent.stream': 'invoke_agent',
     'ai.embed': 'embeddings',
     'ai.embedMany': 'embeddings',
     'ai.rerank': 'rerank',

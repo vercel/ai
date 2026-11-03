@@ -1,5 +1,25 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.177
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.176
+
+### Patch Changes
+
+- e3f24b6: fix(harness-claude-code): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
 ## 1.0.175
 
 ### Patch Changes

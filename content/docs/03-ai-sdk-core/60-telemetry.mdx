@@ -102,6 +102,23 @@ such as `gen_ai.usage.characters`, `gen_ai.usage.seconds`, and
 callbacks, and can also be included as the supplemental `ai.response.usage`
 attribute by enabling `usage: true`.
 
+### Provider endpoints
+
+For completed language-model calls, providers can report the known HTTP request
+endpoint. `OpenTelemetry` records its host as `server.address` and its port as
+`server.port` on the `chat` span. This includes default ports (443 for HTTPS and
+80 for HTTP) and works when input and output recording are disabled.
+
+OpenAI Chat reports this information for both `generateText` and `streamText`,
+including custom `baseURL` settings. Azure Chat and Bedrock Mantle Chat reuse
+this adapter and also report their configured endpoint. Other providers leave these attributes
+unset until they report their endpoint; no destination is inferred from the
+provider or model name, including an unknown backend behind an intermediary.
+
+The model-call end event's optional `request.url` contains only the HTTP origin.
+Credentials, paths, queries, and fragments are removed before telemetry events
+are emitted. The OpenTelemetry attributes contain only host and port.
+
 ### Opting out
 
 Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: false`:
@@ -253,6 +270,42 @@ registerTelemetry(
 );
 ```
 
+## Durable WorkflowAgent runs
+
+The steps of a durable `WorkflowAgent` run (`@ai-sdk/workflow`) can execute in
+different processes. To report the run as one `invoke_agent` span tree, use the
+same `OpenTelemetryIdGenerator` instance as your tracer provider's ID generator
+and sampler, and pass it to the globally registered `OpenTelemetry` integration:
+
+```ts
+import { OpenTelemetry, OpenTelemetryIdGenerator } from '@ai-sdk/otel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { registerTelemetry } from 'ai';
+
+const durable = new OpenTelemetryIdGenerator();
+new NodeSDK({ idGenerator: durable, sampler: durable }).start();
+registerTelemetry(new OpenTelemetry({ durable }));
+```
+
+Model calls are reported live from their durable steps, so spans started by the
+provider call (for example auto-instrumented HTTP spans) nest under their `chat`
+span. The root, step, and tool spans appear when the run ends or suspends (for
+example on a tool approval), using the original event timestamps. The root
+includes the run's prompt and final output, subject to `recordInputs` and
+`recordOutputs`.
+
+A preparation step captures the active parent trace and makes the run's sampling
+decision once. That context is carried to subsequent steps, preserving the trace
+ID, sampling decision, and trace state. By default, the bridge uses parent-based
+sampling with roots enabled. To use another sampler, pass it through
+`new OpenTelemetryIdGenerator({ sampler: yourSampler })` and keep the bridge as
+the provider's sampler. Unrelated spans use random IDs and the configured sampler.
+
+Install this setup in every process that executes workflow steps, with integrations
+registered in the same order. Without the bridge, `OpenTelemetry` preserves live
+per-model operation traces. Other globally registered telemetry integrations receive
+the recorded run lifecycle when it ends or suspends.
+
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
@@ -394,6 +447,18 @@ export function myIntegration(): Telemetry {
   return new MyIntegration();
 }
 ```
+
+For durable workflows, integrations normally receive recorded events after the
+run ends. Events can include `timestamp` (Unix milliseconds); use it for span
+start and end times instead of the current time. Integrations that can reconstruct
+traces across processes can implement the experimental
+`experimental_durable.captureContext(event)` hook. It runs in a preparation step
+and returns a serializable `DurableTelemetryContext`. Live model-start events
+then carry that context in `event.durableContext` with `phase: 'live'`; the
+recorded operation-start event carries it with `phase: 'replay'`. Such integrations
+should skip replayed model events to avoid duplicate spans. Returning `undefined`
+selects live per-model operations instead, with no deferred replay to that
+integration.
 
 ### Available lifecycle methods
 

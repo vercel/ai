@@ -1,5 +1,21 @@
 # @ai-sdk/typesafe-ai
 
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 3.0.31
 
 ### Patch Changes

@@ -1,5 +1,28 @@
 # ai
 
+## 7.0.162
+
+### Patch Changes
+
+- 857ca45: Restore server-defined tool metadata, dynamic status, and title when validating tool approval continuations so approval policies receive the same tool definition fields as new model calls.
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/gateway@4.0.135
+
+## 7.0.161
+
+### Patch Changes
+
+- 51ca5b7: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- 51ca5b7: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in data-content and file-part-data
+- 51ca5b7: fix(ai): support cross-realm binary buffers and circular structures in cloneModelMessages
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/gateway@4.0.134
+
 ## 7.0.160
 
 ### Patch Changes

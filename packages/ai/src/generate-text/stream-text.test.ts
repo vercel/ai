@@ -32060,6 +32060,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -32072,6 +32073,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -33635,3 +33637,52 @@ async function expectUndefinedUnhandledRejections({
   );
   expect(reasons.length).toBeLessThanOrEqual(maxCount);
 }
+
+it('sanitizes streamed provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = streamText({
+    model: new MockLanguageModelV4({
+      doStream: async () => ({
+        request,
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'text-start', id: 'text' },
+          { type: 'text-delta', id: 'text', delta: 'hello' },
+          { type: 'text-end', id: 'text' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  await result.consumeStream();
+  expect((await result.finalStep).request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  expect((await result.steps)[0].request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
+});
