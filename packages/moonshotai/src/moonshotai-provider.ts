@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -19,8 +21,9 @@ export interface MoonshotAIProviderSettings {
   /**
    * Moonshot API key. Default value is taken from the `MOONSHOT_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -68,16 +71,18 @@ export function createMoonshotAI(
 ): MoonshotAIProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'MOONSHOT_API_KEY',
-          description: 'Moonshot API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-moonshotai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'MOONSHOT_API_KEY',
+            description: 'Moonshot API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-moonshotai/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: MoonshotAIChatModelId) => {

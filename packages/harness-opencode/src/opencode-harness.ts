@@ -12,7 +12,6 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
   type HarnessV1MintBridgeTokenCallback,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
@@ -30,6 +29,7 @@ import {
   classifyDiskLog,
   resolveSandboxCredentialEnvironment,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -38,18 +38,19 @@ import {
   getRestrictedSandboxSession,
   extractHarnessPromptContent,
   markBridgeStarting,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeSkills,
   type SandboxChannelReconnectOptions,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
   tool,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession as SandboxSession,
@@ -293,18 +294,13 @@ export function createOpenCode(
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        sandboxId,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'opencode',
-          message:
-            'The OpenCode harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -447,26 +443,23 @@ export function createOpenCode(
 
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
+            portEndpointOverride: settings.portEndpoint,
             token: coords.token,
           });
           let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: ({ abortSignal }) =>
-              openWebSocket({
-                endpoint: attachEndpoint,
-                helloTimeoutMs: Math.min(timeoutMs, 5_000),
-                abortSignal,
-                onHello: supported => {
-                  supportsUserMessageResponses = supported;
-                },
-              }),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              webSocketConstructor: WebSocket,
+              onHello: hello => {
+                supportsUserMessageResponses =
+                  hello.capabilities?.experimental_userMessageResponses ===
+                  true;
+              },
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -519,7 +512,7 @@ export function createOpenCode(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
@@ -624,24 +617,25 @@ export function createOpenCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
       let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: ({ abortSignal }) =>
-          openWebSocket({
-            endpoint: bridgeEndpoint,
-            helloTimeoutMs: Math.min(timeoutMs, 5_000),
-            abortSignal,
-            onHello: supported => {
-              supportsUserMessageResponses = supported;
-            },
-          }),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+          onHello: hello => {
+            supportsUserMessageResponses =
+              hello.capabilities?.experimental_userMessageResponses === true;
+          },
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -705,205 +699,6 @@ function resolveInactiveBuiltinToolNames(
   return OPENCODE_BUILTIN_TOOL_NAMES.filter(
     toolName => !isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering }),
   );
-}
-
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'opencode',
-    message:
-      'The OpenCode harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createOpenCode({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'opencode',
-      message:
-        'The OpenCode harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'opencode',
-      message:
-        'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'opencode',
-    message:
-      'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
-function openWebSocket({
-  endpoint,
-  helloTimeoutMs,
-  abortSignal,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  helloTimeoutMs: number;
-  abortSignal: AbortSignal;
-  onHello(supportsUserMessageResponses: boolean): void;
-}): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const abortReason = () =>
-      abortSignal.reason ?? new Error('WebSocket connection aborted');
-    if (abortSignal.aborted) {
-      reject(abortReason());
-      return;
-    }
-
-    const ws = new WebSocket(endpoint.url, {
-      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
-    });
-    let opened = false;
-    let receivedHello = false;
-    let settled = false;
-    let helloTimer: ReturnType<typeof setTimeout> | undefined;
-    let onAbort: (() => void) | undefined;
-    const cleanup = () => {
-      clearTimeout(helloTimer);
-      ws.off('open', onOpen);
-      ws.off('message', onMessage);
-      ws.off('close', onClose);
-      ws.off('error', onError);
-      if (onAbort != null) {
-        abortSignal.removeEventListener('abort', onAbort);
-      }
-    };
-    const settle = (error?: unknown) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      if (error == null) {
-        resolve(ws);
-      } else {
-        const suppressError = () => {};
-        const socketWithOnce = ws as WebSocket & {
-          once?: (event: string, listener: () => void) => void;
-        };
-        socketWithOnce.once?.('error', suppressError);
-        try {
-          ws.terminate();
-        } catch {
-          try {
-            ws.close();
-          } catch {
-            // best-effort
-          }
-        }
-        reject(error);
-      }
-    };
-    const tryResolve = () => {
-      if (opened && receivedHello) settle();
-    };
-    const onOpen = () => {
-      opened = true;
-      tryResolve();
-    };
-    const onMessage = (raw: unknown) => {
-      void (async () => {
-        const parsed = await safeParseJSON({
-          text: webSocketMessageToString(raw),
-        });
-        if (!parsed.success) return;
-        const value = parsed.value;
-        if (
-          typeof value !== 'object' ||
-          value == null ||
-          Array.isArray(value) ||
-          (value as { type?: unknown }).type !== 'bridge-hello'
-        ) {
-          return;
-        }
-        const capabilities = (
-          value as {
-            capabilities?: { experimental_userMessageResponses?: unknown };
-          }
-        ).capabilities;
-        onHello(capabilities?.experimental_userMessageResponses === true);
-        receivedHello = true;
-        tryResolve();
-      })();
-    };
-    const onClose = () =>
-      settle(new Error('OpenCode bridge closed before sending bridge-hello.'));
-    const onError = (err: Error) => {
-      settle(err);
-    };
-    onAbort = () => settle(abortReason());
-    ws.on('open', onOpen);
-    ws.on('message', onMessage);
-    ws.on('close', onClose);
-    ws.on('error', onError);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-    if (abortSignal.aborted) {
-      onAbort();
-      return;
-    }
-    helloTimer = setTimeout(
-      () =>
-        settle(
-          new Error(
-            `OpenCode bridge did not send bridge-hello within ${helloTimeoutMs}ms.`,
-          ),
-        ),
-      helloTimeoutMs,
-    );
-    helloTimer.unref?.();
-  });
-}
-
-function webSocketMessageToString(raw: unknown): string {
-  if (typeof raw === 'string') return raw;
-  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
-  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
-  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
-  if (ArrayBuffer.isView(raw)) {
-    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
-      'utf8',
-    );
-  }
-  return String(raw);
 }
 
 function createSession({

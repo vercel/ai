@@ -89,10 +89,13 @@ You can use the following optional settings to customize the Perplexity provider
   Use a different URL prefix for API calls.
   The default prefix is `https://api.perplexity.ai`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `PERPLEXITY_API_KEY` environment variable.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -242,6 +245,7 @@ console.log(result.providerMetadata);
 //   perplexity: {
 //     usage: { citationTokens: null, numSearchQueries: 1 },
 //     images: null,
+//     searchQueries: ['latest quantum computing developments'],
 //     cost: { totalCost: 0.006, currency: 'USD', ... },
 //     toolCalls: { search_web: { invocation: 1 } },
 //   },
@@ -310,6 +314,8 @@ The response metadata includes:
 
 - `usage`: `citationTokens` (always `null` for Agent API responses) and the
   number of search queries
+- `searchQueries`: The web search queries Perplexity ran, in order and without
+  duplicates, or `null` when no web search ran
 - `cost`: Token, tool, and total costs returned by Perplexity
 - `toolCalls`: Invocation counts grouped by native tool
 - `images`: Always `null`; the Agent API does not return Sonar image results

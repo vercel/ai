@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -21,16 +23,17 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { mistralFailedResponseHandler } from './mistral-error';
-import { streamMistralTranscription } from './mistral-transcription-stream';
+import { getMistralTranscriptionModelEntry } from './mistral-model-catalog';
 import {
   mistralTranscriptionModelOptions,
   type MistralTranscriptionModelId,
 } from './mistral-transcription-model-options';
+import { streamMistralTranscription } from './mistral-transcription-stream';
 
 type MistralTranscriptionModelConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   webSocket?: WebSocketConstructor;
   _internal?: {
@@ -90,14 +93,9 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       }
     }
 
-    // Restrict only known legacy models so future and custom models can combine
-    // a pinned language with timestamps without an SDK update.
     if (
-      [
-        'voxtral-mini-2507',
-        'voxtral-mini-2602',
-        'voxtral-mini-latest',
-      ].includes(this.modelId) &&
+      !getMistralTranscriptionModelEntry(this.modelId).capabilities
+        .transcription.languageWithTimestamps &&
       mistralOptions?.language != null &&
       mistralOptions.timestampGranularities != null
     ) {
@@ -156,7 +154,10 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       ...options,
       modelId: this.modelId,
       baseURL: this.config.baseURL,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       webSocket: this.config.webSocket,
       currentDate: this.config._internal?.currentDate?.() ?? new Date(),
     });
@@ -174,7 +175,10 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: `${this.config.baseURL}/audio/transcriptions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

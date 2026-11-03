@@ -725,6 +725,45 @@ describe('doGenerate', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareJsonResponse({ content: 'done' });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 
@@ -2501,6 +2540,73 @@ describe('doGenerate', () => {
         },
       },
       required: ['elements'],
+    });
+  });
+
+  it('should pass propertyOrdering in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            zebra: { type: 'string', const: 'striped' },
+            apple: {
+              type: 'object',
+              properties: {
+                yellow: { type: 'string' },
+                banana: { type: 'string' },
+              },
+              propertyOrdering: ['banana', 'yellow'],
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  tango: { type: 'string' },
+                  alpha: { type: 'number' },
+                },
+                propertyOrdering: ['alpha', 'tango'],
+              },
+            },
+          },
+          propertyOrdering: ['apple', 'items', 'zebra'],
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        zebra: { type: 'string', enum: ['striped'] },
+        apple: {
+          type: 'object',
+          properties: {
+            yellow: { type: 'string' },
+            banana: { type: 'string' },
+          },
+          propertyOrdering: ['banana', 'yellow'],
+        },
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              tango: { type: 'string' },
+              alpha: { type: 'number' },
+            },
+            propertyOrdering: ['alpha', 'tango'],
+          },
+        },
+      },
+      propertyOrdering: ['apple', 'items', 'zebra'],
     });
   });
 
@@ -5185,13 +5291,13 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "low"', async () => {
+      it('should map reasoning "none" to thinkingLevel "low" with compatibility warning', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini3Model.doGenerate({
+        const { warnings } = await gemini3Model.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -5200,6 +5306,12 @@ describe('doGenerate', () => {
           generationConfig: {
             thinkingConfig: { thinkingLevel: 'low' },
           },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not directly supported by this model. mapped to effort "low".',
         });
       });
 
@@ -5460,13 +5572,37 @@ describe('doGenerate', () => {
       const gemini25ProModel = provider.chat('gemini-2.5-pro');
       const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
 
-      it('should map reasoning "none" to thinkingBudget 0', async () => {
+      it('should map reasoning "none" to the minimum thinkingBudget for Gemini 2.5 Pro', async () => {
         server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini25ProModel.doGenerate({
+        const { warnings } = await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 128 },
+          },
+        });
+        expect(warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "none" is not supported by this model. mapped to the minimum reasoning budget of 128 tokens.',
+        });
+      });
+
+      it('should map reasoning "none" to thinkingBudget 0 for models that can disable thinking', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25FlashLiteModel.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'none',
         });
@@ -5930,6 +6066,46 @@ describe('doStream', () => {
     };
   };
 
+  it('should send videoMetadata on video file parts', async () => {
+    prepareStreamResponse({ content: ['done'] });
+
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const result = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'url',
+                url: new URL('https://www.youtube.com/watch?v=example'),
+              },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ],
+    });
+    await convertReadableStreamToArray(result.stream);
+
+    expect((await server.calls[0].requestBodyJson).contents).toEqual([
+      {
+        role: 'user',
+        parts: [
+          {
+            fileData: {
+              mimeType: 'video/mp4',
+              fileUri: 'https://www.youtube.com/watch?v=example',
+            },
+            videoMetadata,
+          },
+        ],
+      },
+    ]);
+  });
+
   describe('in-stream errors', () => {
     it.each([
       {
@@ -5950,10 +6126,70 @@ describe('doStream', () => {
         status: 'INVALID_ARGUMENT',
         isRetryable: false,
       },
-      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+      {
+        partialText: false,
+        code: null,
+        status: 'CANCELLED',
+        statusCode: 499,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'ABORTED',
+        statusCode: 409,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNAVAILABLE',
+        statusCode: 503,
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: null,
+        status: 'RESOURCE_EXHAUSTED',
+        statusCode: 429,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'DEADLINE_EXCEEDED',
+        statusCode: 504,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'PERMISSION_DENIED',
+        statusCode: 403,
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'UNKNOWN',
+        statusCode: 500,
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: null,
+        status: 'FUTURE_STATUS',
+        isRetryable: false,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'UNAVAILABLE',
+        isRetryable: false,
+      },
     ])(
-      'should surface $status and finish with error (partial text: $partialText)',
-      async ({ partialText, code, status, isRetryable }) => {
+      'should surface $status with code $code and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, statusCode, isRetryable }) => {
         const error = {
           code,
           message: 'Provider error',
@@ -5998,7 +6234,7 @@ describe('doStream', () => {
             message: error.message,
             type: status,
             code: code ?? undefined,
-            statusCode: code ?? undefined,
+            statusCode: code ?? statusCode,
             isRetryable,
             data: error,
           },
@@ -6271,6 +6507,81 @@ describe('doStream', () => {
         ]
       `);
       expect(finish?.finishReason.unified).toBe('tool-calls');
+    });
+  });
+
+  describe('streaming-tool-call-empty-container-arguments', () => {
+    it('should keep empty arrays and objects in streamed function call arguments', async () => {
+      const functionCallChunk = (functionCall: Record<string, unknown>) => ({
+        candidates: [{ content: { role: 'model', parts: [{ functionCall }] } }],
+      });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          functionCallChunk({ name: 't', willContinue: true }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.id', stringValue: 'x' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.emptyArr[]' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.emptyObj' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.nested.tags[]' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.zero', numberValue: 0 }],
+          }),
+          {
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const inputDeltas = events.filter(e => e.type === 'tool-input-delta');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+
+      const expectedInput =
+        '{"id":"x","emptyArr":[],"emptyObj":{},"nested":{"tags":[]},"zero":0}';
+      expect(inputDeltas.map(e => e.delta).join('')).toBe(expectedInput);
+      expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
     });
   });
 
@@ -6846,7 +7157,7 @@ describe('doStream', () => {
       );
 
       expect(finishEvent?.finishReason).toEqual({
-        unified: 'other',
+        unified: 'interrupted',
         raw: undefined,
       });
     },
@@ -7149,6 +7460,169 @@ describe('doStream', () => {
       ]);
       expect(finish?.usage.inputTokens.total).toBe(33_246);
       expect(finish?.usage.outputTokens.total).toBe(33_306);
+    },
+  );
+
+  it.each([
+    [undefined, 'interrupted'],
+    ['STOP', 'stop'],
+    ['MAX_TOKENS', 'length'],
+    ['SAFETY', 'content-filter'],
+    ['unknown_reason', 'other'],
+  ] as const)(
+    'maps a stream ending with finishReason %j to %s',
+    async (raw, unified) => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: 'Partial answer' }] },
+                index: 0,
+                finishReason: raw,
+              },
+            ],
+          })}\n\n`,
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({ finishReason: { unified, raw } }),
+      ]);
+    },
+  );
+
+  it('reports interruption when an automatically continued stream ends without a finish reason', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Hello' }] }, finishReason: 'CONTINUATION', continuationToken: 'token-1' }] })}\n\n`,
+        ],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: ', partial' }] } }] })}\n\n`,
+        ],
+      },
+    ];
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await convertReadableStreamToArray(stream);
+    expect(server.calls).toHaveLength(2);
+    expect(
+      parts.filter(part => part.type === 'text-delta').map(part => part.delta),
+    ).toEqual(['Hello', ', partial']);
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    expect(parts.filter(part => part.type === 'finish')).toEqual([
+      expect.objectContaining({
+        finishReason: { unified: 'interrupted', raw: undefined },
+      }),
+    ]);
+  });
+
+  it.each(['empty', 'partial', 'complete', 'request-error'] as const)(
+    'tracks a %s continuation in stream order under backpressure',
+    async ending => {
+      const firstChunk = {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello' }] },
+            finishReason: 'CONTINUATION',
+            continuationToken: 'token-1',
+          },
+        ],
+        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+      };
+      const continuedChunks =
+        ending === 'empty' || ending === 'request-error'
+          ? []
+          : [
+              {
+                candidates: [
+                  {
+                    content: { parts: [{ text: ', world' }] },
+                    ...(ending === 'complete' ? { finishReason: 'STOP' } : {}),
+                  },
+                ],
+                usageMetadata: {
+                  promptTokenCount: 20,
+                  candidatesTokenCount: 2,
+                },
+              },
+            ];
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [`data: ${JSON.stringify(firstChunk)}\n\n`],
+        },
+        ending === 'request-error'
+          ? {
+              type: 'error',
+              status: 400,
+              body: JSON.stringify({
+                error: { code: 400, message: 'Invalid continuation token' },
+              }),
+            }
+          : {
+              type: 'stream-chunks',
+              chunks: continuedChunks.map(
+                chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+              ),
+            },
+      ];
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      // Leave output unread until the continuation starts. The first response's
+      // CONTINUATION chunk is still buffered ahead of the new response.
+      await vi.waitFor(() => expect(server.calls).toHaveLength(2));
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta),
+      ).toEqual(continuedChunks.length > 0 ? ['Hello', ', world'] : ['Hello']);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'request-error' ? 1 : 0,
+      );
+      expect(
+        parts
+          .filter(part => part.type === 'raw' && part.rawValue != null)
+          .map(part => part.type === 'raw' && part.rawValue),
+      ).toEqual([firstChunk, ...continuedChunks]);
+      const finish = parts.find(part => part.type === 'finish');
+      expect(finish?.finishReason).toEqual(
+        ending === 'complete'
+          ? { unified: 'stop', raw: 'STOP' }
+          : ending === 'request-error'
+            ? { unified: 'length', raw: 'CONTINUATION' }
+            : { unified: 'interrupted', raw: undefined },
+      );
+      expect(finish?.usage.inputTokens.total).toBe(
+        continuedChunks.length > 0 ? 30 : 10,
+      );
+      expect(finish?.usage.outputTokens.total).toBe(
+        continuedChunks.length > 0 ? 7 : 5,
+      );
+      if (ending === 'request-error') {
+        expect(finish?.providerMetadata?.google.continuationToken).toBe(
+          'token-1',
+        );
+      }
     },
   );
 

@@ -75,6 +75,53 @@ describe('normalizeOpenAIJsonSchema', () => {
     expect(schema.properties?.variables).toHaveProperty('propertyNames');
   });
 
+  it('removes propertyNames schemas without an explicit type and warns', () => {
+    const { schema, warnings } = normalizeOpenAIJsonSchema({
+      type: 'object',
+      properties: {
+        constrained: {
+          type: 'object',
+          propertyNames: { minLength: 1 },
+          additionalProperties: { type: 'string' },
+        },
+        enumerated: {
+          type: 'object',
+          propertyNames: { enum: ['a', 'b'] },
+          additionalProperties: { type: 'string' },
+        },
+      },
+    });
+
+    expect(schema).toMatchInlineSnapshot(`
+      {
+        "properties": {
+          "constrained": {
+            "additionalProperties": {
+              "type": "string",
+            },
+            "type": "object",
+          },
+          "enumerated": {
+            "additionalProperties": {
+              "type": "string",
+            },
+            "type": "object",
+          },
+        },
+        "type": "object",
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.",
+          "feature": "JSON Schema propertyNames",
+          "type": "compatibility",
+        },
+      ]
+    `);
+  });
+
   it('rejects non-string propertyNames schemas', () => {
     expect(() =>
       normalizeOpenAIJsonSchema({

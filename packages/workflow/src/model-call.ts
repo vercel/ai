@@ -7,7 +7,8 @@ import type {
 } from '@ai-sdk/provider';
 import type { Context } from '@ai-sdk/provider-utils';
 import type {
-  Experimental_LanguageModelStreamPart,
+  DurableTelemetryContext,
+  LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
   StepResultPerformance,
@@ -24,7 +25,7 @@ import type {
 } from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
+  | LanguageModelStreamPart<TTools>
   | {
       type: 'tool-approval-request';
       approvalId: string;
@@ -81,8 +82,10 @@ export interface ModelCallOptions {
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
   /**
-   * Set when the model step dispatches telemetry to globally registered
-   * integrations, which are not available in the workflow body.
+   * Set when globally registered integrations are not available in the
+   * workflow body. The model step then runs the provider call in the
+   * integrations' context and returns its timing, so the workflow can report
+   * the call when the run ends.
    */
   telemetry?: ModelCallTelemetry;
 }
@@ -91,6 +94,12 @@ export interface ModelCallOptions {
  * Serializable telemetry settings for a durable model call.
  */
 export interface ModelCallTelemetry {
+  /**
+   * Telemetry call ID of the durable run, shared with the events reported
+   * when the run ends.
+   */
+  callId?: string;
+  contexts?: Array<DurableTelemetryContext | undefined>;
   functionId?: string;
   recordInputs?: boolean;
   recordOutputs?: boolean;
@@ -215,10 +224,21 @@ export interface ModelCallRawResult {
   warnings?: unknown[];
 }
 
+/**
+ * Wall-clock time of the provider call inside a durable model step, in
+ * milliseconds since the Unix epoch. Used to report model-call telemetry with
+ * the time it happened.
+ */
+export interface ModelCallTiming {
+  startedAt: number;
+  endedAt: number;
+}
+
 export type ModelCallResult =
-  | { aborted: true }
+  | { aborted: true; timing?: ModelCallTiming }
   | {
       aborted?: false;
+      timing?: ModelCallTiming;
       toolCalls: ParsedToolCall[];
       finish: ModelCallFinish | undefined;
       raw: ModelCallRawResult;

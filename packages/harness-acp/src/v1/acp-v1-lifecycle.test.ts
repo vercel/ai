@@ -21,6 +21,8 @@ const baseSettings = {
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: { PROVIDER_BASE_URL: 'https://provider.example' },
   modelMapping: { type: 'session-config-option', path: 'model' },
+  isMcpToolCall: () => false,
+  resolveHostToolCall: () => undefined,
 } as const satisfies ACPV1Settings;
 
 function identity({

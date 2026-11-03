@@ -1,5 +1,6 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -120,7 +121,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {

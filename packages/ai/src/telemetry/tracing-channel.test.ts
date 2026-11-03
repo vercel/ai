@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
@@ -16,11 +16,17 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import type { InferTelemetryEvent } from './telemetry';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+import { VERSION } from '../version';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 type TelemetryTracingChannelAsyncEndMessage = TelemetryTracingChannelMessage & {
   result?: unknown;
@@ -221,6 +227,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         {
           "event": {
+            "aiVersion": "0.0.0-test",
             "callId": "tracing-channel-generate-text",
             "functionId": "enabled-function",
             "recordInputs": undefined,
@@ -278,6 +285,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "language-model-call",
           "functionId": "execution-function",
           "modelId": "mock-model",
@@ -344,6 +352,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "tool-call",
           "functionId": "execution-function",
           "messages": [],
@@ -561,7 +570,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('filters tracing context using telemetry allowlists', async () => {
+  it('includes the SDK version with allowlisted context on every tracing span', async () => {
     const usage = {
       inputTokens: {
         total: 3,
@@ -708,6 +717,26 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry,
       });
     });
+
+    expect(messages.map(message => message.type)).toEqual(
+      expect.arrayContaining([
+        'generateText',
+        'streamText',
+        'step',
+        'languageModelCall',
+        'executeTool',
+        'embed',
+        'embedMany',
+        'rerank',
+        'experimental_decide',
+      ]),
+    );
+
+    for (const message of messages) {
+      expect((message.event as InferTelemetryEvent<unknown>).aiVersion).toBe(
+        VERSION,
+      );
+    }
 
     for (const type of [
       'generateText',

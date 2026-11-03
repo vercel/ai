@@ -77,7 +77,10 @@ const gladia = createGladia({
 
 You can use the following optional settings to customize the Gladia provider instance:
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a synchronous or asynchronous callback to resolve the key before each
+  request. The callback is responsible for caching and refreshing credentials.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `GLADIA_API_KEY` environment variable.

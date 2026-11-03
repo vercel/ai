@@ -9,6 +9,7 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -227,7 +228,10 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -298,7 +302,10 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -309,8 +316,9 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     });
 
     // Track state across chunks
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: z.infer<ReturnType<typeof alibabaUsageSchema>> | undefined =
@@ -343,6 +351,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
 
             // Handle parse errors
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -519,7 +528,7 @@ function resolveAlibabaThinking({
 
   return {
     enable_thinking: true,
-    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+    thinking_budget: thinkingBudget,
   };
 }
 

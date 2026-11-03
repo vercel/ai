@@ -659,6 +659,13 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
+                      name: 'experimental_steeringMessages',
+                      type: 'Array<UserModelMessage> | undefined',
+                      isOptional: true,
+                      description:
+                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. `messages` already contains them. If you return a `messages` override that is rebuilt from other fields, add them back together with the steering messages of previous steps from `steps`.',
+                    },
+                    {
                       name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,
@@ -844,6 +851,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
+      name: 'experimental_steering',
+      type: 'Experimental_Steering',
+      isOptional: true,
+      description:
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` and `queue()` resolve with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
@@ -1264,6 +1278,11 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'GenerateTextStepStartEvent',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
               name: 'stepNumber',
               type: 'number',
               description: 'Zero-based index of the current step.',
@@ -1326,38 +1345,10 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Additional provider-specific options for this step.',
             },
             {
-              name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
-              description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
-            },
-            {
-              name: 'headers',
-              type: 'Record<string, string | undefined> | undefined',
-              description: 'Additional HTTP headers sent with the request.',
-            },
-            {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description:
-                'Condition(s) for stopping the generation. When the condition is an array, any of the conditions can be met to stop.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
                 'The output specification for structured outputs, if configured.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Abort signal for cancelling the operation.',
-            },
-            {
-              name: 'include',
-              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
-              description:
-                'Settings for controlling what data is included in step results.',
             },
             {
               name: 'runtimeContext',
@@ -1735,7 +1726,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -2000,6 +1991,31 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out. `onStepEnd` is not called for such a step. For aborts and timeouts, `error` is the abort or timeout error, or a provider error that has it as its `cause`.',
+      properties: [
+        {
+          type: 'GenerateTextStepErrorEvent',
+          parameters: [
+            {
+              name: '...GenerateTextStepStartEvent',
+              type: 'GenerateTextStepStartEvent',
+              description:
+                'All properties of the `onStepStart` event of the step that failed, such as `callId`, `stepNumber`, `steps`, `messages`, `runtimeContext`, and `toolsContext`.',
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that ended the step.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,
@@ -2029,7 +2045,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -2634,7 +2650,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
       description: 'The reason the model finished generating the text.',
     },
     {
@@ -3039,7 +3055,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason why the generation finished.',
             },
             {
@@ -3225,6 +3241,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'ProviderMetadata | undefined',
               description:
                 'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
+            },
+            {
+              name: 'experimental_steeringMessages',
+              type: 'Array<UserModelMessage> | undefined',
+              isOptional: true,
+              description:
+                'The user messages that were sent with `experimental_steering` and added to the input of this step. Undefined when the step received no steering messages.',
             },
           ],
         },

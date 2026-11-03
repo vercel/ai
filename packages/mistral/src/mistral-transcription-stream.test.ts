@@ -171,6 +171,30 @@ describe('realtime transcription', () => {
     await result.stream.cancel();
   });
 
+  it('resolves async API keys for each realtime session', async () => {
+    const apiKey = vi
+      .fn()
+      .mockResolvedValueOnce('first-key')
+      .mockResolvedValueOnce('second-key');
+    const mistral = createMistral({ apiKey, webSocket: MockWebSocket });
+    const transcription = mistral.transcription(
+      'voxtral-mini-transcribe-realtime-3',
+    );
+
+    for (const key of ['first-key', 'second-key']) {
+      const result = await transcription.doStream!({
+        audio: emptyAudio(),
+        inputAudioFormat: audioFormat,
+      });
+      expect(MockWebSocket.instances.at(-1)?.options?.headers).toMatchObject({
+        authorization: `Bearer ${key}`,
+      });
+      await result.stream.cancel();
+    }
+
+    expect(apiKey).toHaveBeenCalledTimes(2);
+  });
+
   it('preserves untimed speaker segments without fabricating timestamps', async () => {
     const { result, ws } = await start({
       providerOptions: {

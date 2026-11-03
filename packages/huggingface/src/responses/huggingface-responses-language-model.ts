@@ -10,6 +10,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -195,7 +196,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -370,7 +374,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -380,8 +387,9 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let responseId: string | null = null;

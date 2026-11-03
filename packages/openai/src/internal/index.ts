@@ -17,5 +17,6 @@ export * from '../tool/code-interpreter';
 export * from '../tool/file-search';
 export * from '../tool/image-generation';
 export * from '../tool/programmatic-tool-calling';
+export * from '../tool/tool-search';
 export * from '../tool/web-search';
 export * from '../tool/web-search-preview';

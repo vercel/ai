@@ -17,7 +17,7 @@ vi.mock('node:fs/promises', async importOriginal => {
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
         return '{"name":"harness-acp-bridge"}\n';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return "lockfileVersion: '9.0'\n";
       const readFile = actual.readFile as unknown as (
         ...args: unknown[]
@@ -85,12 +85,13 @@ describe('createACPBootstrap', () => {
         .filter(
           path =>
             path.endsWith('/bridge/package.json') ||
-            path.endsWith('/bridge/pnpm-lock.yaml'),
+            path.endsWith('/bridge/pnpm-lockfile.yaml'),
         ),
     ).toEqual([]);
   });
 
   it('installs the bridge manifest before running an install command', async () => {
+    vi.mocked(fsPromises.readFile).mockClear();
     const bootstrap = await createACPBootstrap({
       harnessId: 'cursor-acp',
       source: {
@@ -110,6 +111,17 @@ describe('createACPBootstrap', () => {
       bootstrap.files.find(file => file.path.endsWith('/package.json'))
         ?.content,
     ).toBe('{"name":"harness-acp-bridge"}\n');
+    expect(
+      bootstrap.files.find(file => file.path.endsWith('/pnpm-lock.yaml'))
+        ?.content,
+    ).toBe("lockfileVersion: '9.0'\n");
+    expect(
+      vi
+        .mocked(fsPromises.readFile)
+        .mock.calls.some(([input]) =>
+          String(input).endsWith('/bridge/pnpm-lockfile.yaml'),
+        ),
+    ).toBe(true);
     expect(
       bootstrap.files.find(file => file.path.endsWith('/install.sh'))?.content,
     ).toContain('curl https://cursor.com/install -fsS | bash');

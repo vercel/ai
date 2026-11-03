@@ -36,6 +36,7 @@ import {
 import {
   getModelCapabilities,
   sanitizeJsonSchema,
+  supportsNativeStructuredOutputSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
@@ -186,6 +187,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsForcedToolUse,
+      rejectsThinkingDisabled,
+      rejectsThinkingDisabledAboveHighEffort,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -284,6 +288,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
 
+    const hasExplicitDisabledThinking =
+      amazonBedrockOptions.reasoningConfig?.type === 'disabled';
+    const explicitReasoningEffort =
+      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
       amazonBedrockOptions,
@@ -293,9 +302,80 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
     });
 
+    let thinkingType:
+      | 'enabled'
+      | 'disabled'
+      | 'adaptive'
+      | 'between_tools'
+      | undefined = amazonBedrockOptions.reasoningConfig?.type;
+    let maxReasoningEffort =
+      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
+
+    if (isAnthropicModel && thinkingType === 'disabled') {
+      if (
+        /claude-(?:instant|v?2|3-(?:5-)?(?:haiku|sonnet|opus))(?=[-.:]|$)/.test(
+          this.modelId,
+        )
+      ) {
+        // Claude 3.5 and earlier do not accept a thinking field, even disabled.
+        thinkingType = undefined;
+      } else if (rejectsThinkingDisabled) {
+        thinkingType = supportsBetweenToolsThinking
+          ? 'between_tools'
+          : 'adaptive';
+
+        if (!hasExplicitDisabledThinking && thinkingType === 'adaptive') {
+          maxReasoningEffort ??= explicitReasoningEffort;
+
+          if (
+            maxReasoningEffort == null &&
+            amazonBedrockOptions.additionalModelRequestFields?.output_config
+              ?.effort == null
+          ) {
+            maxReasoningEffort = 'low';
+          }
+        }
+
+        warnings.push({
+          type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
+          feature: hasExplicitDisabledThinking
+            ? 'providerOptions.amazonBedrock.reasoningConfig'
+            : 'reasoning',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using '${thinkingType}' thinking instead.`,
+        });
+      }
+
+      const effort =
+        maxReasoningEffort ??
+        amazonBedrockOptions.additionalModelRequestFields?.output_config
+          ?.effort;
+
+      if (
+        ((thinkingType === 'disabled' &&
+          rejectsThinkingDisabledAboveHighEffort) ||
+          thinkingType === 'between_tools') &&
+        (effort === 'xhigh' || effort === 'max')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature:
+            maxReasoningEffort != null
+              ? 'providerOptions.amazonBedrock.reasoningConfig.maxReasoningEffort'
+              : 'providerOptions.amazonBedrock.additionalModelRequestFields.output_config.effort',
+          details:
+            `effort '${effort}' is not supported by ${this.modelId} with '${thinkingType}' thinking. ` +
+            `The effort has been lowered to 'high'.`,
+        });
+        maxReasoningEffort = 'high';
+      }
+    }
+
     const isThinkingEnabled =
-      amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
-      amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
 
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
@@ -342,7 +422,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          modelSupportsNativeStructuredOutput));
+          modelSupportsNativeStructuredOutput &&
+          supportsNativeStructuredOutputSchema(responseFormat.schema)));
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
@@ -374,7 +455,17 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const { toolConfig, additionalTools, toolWarnings, betas } =
       await prepareTools({
-        tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
+        tools: jsonResponseTool
+          ? [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ]
+          : tools,
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
@@ -407,7 +498,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       };
     }
 
-    const thinkingType = amazonBedrockOptions.reasoningConfig?.type;
     const thinkingBudget =
       thinkingType === 'enabled'
         ? amazonBedrockOptions.reasoningConfig?.budgetTokens
@@ -426,7 +516,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    if (isAnthropicThinkingEnabled) {
+    if (isAnthropicModel) {
       if (thinkingBudget != null) {
         if (inferenceConfig.maxTokens != null) {
           inferenceConfig.maxTokens += thinkingBudget;
@@ -448,8 +538,16 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
             ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
+      } else if (
+        thinkingType === 'disabled' ||
+        thinkingType === 'between_tools'
+      ) {
+        amazonBedrockOptions.additionalModelRequestFields = {
+          ...amazonBedrockOptions.additionalModelRequestFields,
+          thinking: { type: thinkingType },
+        };
       }
-    } else if (!isAnthropicModel) {
+    } else {
       if (amazonBedrockOptions.reasoningConfig?.budgetTokens != null) {
         warnings.push({
           type: 'unsupported',
@@ -467,9 +565,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         });
       }
     }
-
-    const maxReasoningEffort =
-      amazonBedrockOptions.reasoningConfig?.maxReasoningEffort;
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -918,8 +1013,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: AmazonBedrockUsage | undefined = undefined;
@@ -1635,27 +1731,38 @@ export {
   type AmazonBedrockReasoningMetadata,
 } from './amazon-bedrock-reasoning-metadata';
 
-const amazonBedrockReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high' | 'max'>
-> = {
-  minimal: 'low',
+// Effort maps only list the supported levels. Other levels are mapped to the
+// closest supported level by mapReasoningToProviderEffort.
+const amazonBedrockReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'max',
   max: 'max',
-};
+} as const;
 
-const amazonNovaReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high'>
-> = {
-  minimal: 'low',
+const amazonNovaReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'high',
-  max: 'high',
-};
+} as const;
+
+const openAIGptOssReasoningEffortMap = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+// The reasoning efforts of other OpenAI models are not known, so reasoning
+// values are sent directly.
+const openAIReasoningEffortMap = {
+  none: 'none',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  max: 'max',
+} as const;
 
 function isNova2ReasoningModel(modelId: string): boolean {
   return modelId.includes('amazon.nova-2-lite-v1:0');
@@ -1684,8 +1791,8 @@ function resolveAmazonBedrockReasoningConfig({
 
   const result = { ...amazonBedrockOptions };
 
-  // Preserve disabled thinking without deriving settings or warnings that will
-  // not be sent. Clone the configuration before removing effort and budget.
+  // Do not derive effort or budget from portable reasoning when thinking is
+  // explicitly disabled. Clone the configuration before removing those fields.
   if (reasoningConfig?.type === 'disabled') {
     result.reasoningConfig = { ...reasoningConfig };
     delete result.reasoningConfig.maxReasoningEffort;
@@ -1693,7 +1800,6 @@ function resolveAmazonBedrockReasoningConfig({
     return result;
   }
 
-  const hasPortableReasoning = reasoning !== 'none';
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
   const supportsPortableReasoning =
     isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
@@ -1708,7 +1814,12 @@ function resolveAmazonBedrockReasoningConfig({
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({
           reasoning,
-          effortMap: amazonBedrockReasoningEffortMap,
+          effortMap: {
+            ...amazonBedrockReasoningEffortMap,
+            ...(capabilities.supportsXhighEffort && {
+              xhigh: 'xhigh' as const,
+            }),
+          },
           warnings,
         });
       result.reasoningConfig = {
@@ -1725,25 +1836,34 @@ function resolveAmazonBedrockReasoningConfig({
           maxReasoningBudget: capabilities.maxOutputTokens,
           warnings,
         });
-      if (budgetTokens != null) {
-        result.reasoningConfig = {
-          ...reasoningConfig,
-          type: reasoningConfig?.type ?? 'enabled',
-          budgetTokens,
-        };
-      }
+      result.reasoningConfig = {
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'enabled',
+        budgetTokens,
+      };
     }
-  } else if (hasPortableReasoning) {
+  } else if (reasoning === 'none' && isNovaReasoningModel) {
+    // Nova 2 reasoning is disabled unless a reasoning effort is sent, so
+    // there is nothing to add.
+  } else {
     if (supportsPortableReasoning) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
-        mapReasoningToProviderEffort({
+        // OpenAI efforts such as 'none' are sent as `reasoning_effort` even
+        // though they are not accepted in the reasoningConfig provider option.
+        (mapReasoningToProviderEffort({
           reasoning,
           effortMap: isNovaReasoningModel
             ? amazonNovaReasoningEffortMap
-            : amazonBedrockReasoningEffortMap,
+            : isOpenAIModel
+              ? modelId.includes('openai.gpt-oss-')
+                ? openAIGptOssReasoningEffortMap
+                : openAIReasoningEffortMap
+              : amazonBedrockReasoningEffortMap,
           warnings,
-        });
+        }) as NonNullable<
+          AmazonBedrockLanguageModelChatOptions['reasoningConfig']
+        >['maxReasoningEffort']);
       result.reasoningConfig = {
         ...reasoningConfig,
         ...(isNovaReasoningModel && {

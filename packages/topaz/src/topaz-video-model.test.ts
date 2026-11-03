@@ -5,12 +5,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { TopazVideoModel } from './topaz-video-model';
 
 const TEST_BASE_URL = 'https://api.topazlabs.com';
 const REQUEST_ID = 'req-abc-123';
 const UPLOAD_URL = 'https://uploads.topazlabs.example.com/part-1';
+const REDIRECTED_UPLOAD_URL =
+  'https://uploads.topazlabs.example.com/redirected';
 const DOWNLOAD_URL = 'https://cdn.topazlabs.example.com/out.mp4';
 const SOURCE_URL = 'https://media.example.com/clips/input.mov';
 
@@ -94,6 +96,9 @@ describe('TopazVideoModel', () => {
         type: 'json-value',
         body: {},
       },
+    },
+    [REDIRECTED_UPLOAD_URL]: {
+      response: { type: 'empty', status: 204 },
     },
     [`${TEST_BASE_URL}/video/${REQUEST_ID}/status`]: {
       response: {
@@ -391,6 +396,112 @@ describe('TopazVideoModel', () => {
       await createModel().doStart({ ...defaultOptions });
 
       expect(server.calls[1].requestHeaders['x-api-key']).toBeUndefined();
+    });
+
+    it.each([307, 308])(
+      'rejects a %i upload redirect and cancels the request',
+      async status => {
+        server.urls[UPLOAD_URL].response = {
+          type: 'empty',
+          status,
+          headers: { Location: REDIRECTED_UPLOAD_URL },
+        };
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+        try {
+          await expect(
+            createModel().doStart({ ...defaultOptions }),
+          ).rejects.toThrow();
+
+          const uploadCall = fetchSpy.mock.calls.find(
+            ([, init]) => init?.method === 'PUT',
+          );
+          expect(uploadCall?.[1]?.redirect).toBe('error');
+          expect(
+            server.calls.map(call => [call.requestMethod, call.requestUrl]),
+          ).toEqual([
+            ['POST', `${TEST_BASE_URL}/video/express`],
+            ['PUT', UPLOAD_URL],
+            ['DELETE', `${TEST_BASE_URL}/video/${REQUEST_ID}`],
+          ]);
+        } finally {
+          fetchSpy.mockRestore();
+        }
+      },
+    );
+
+    it('preserves upload options and disables redirects with a custom fetch', async () => {
+      const abortSignal = new AbortController().signal;
+      let uploadInit: RequestInit | undefined;
+      const fetch: FetchFunction = (input, init) => {
+        if (init?.method === 'PUT') {
+          uploadInit = init;
+        }
+        return globalThis.fetch(input, init);
+      };
+
+      await createModel(undefined, fetch).doStart({
+        ...defaultOptions,
+        abortSignal,
+      });
+
+      expect(uploadInit).toMatchObject({
+        method: 'PUT',
+        body: inputVideo.data,
+        signal: abortSignal,
+        redirect: 'error',
+      });
+      const headers = new Headers(uploadInit?.headers);
+      expect(headers.get('content-type')).toBe('video/mp4');
+      expect(headers.get('user-agent')).toContain('ai-sdk-topaz/');
+      expect(headers.has('x-api-key')).toBe(false);
+    });
+
+    it('rejects an untrusted private upload URL before sending the video', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
+        type: 'json-value',
+        body: {
+          requestId: REQUEST_ID,
+          uploadUrls: ['http://127.0.0.1/upload'],
+        },
+      };
+
+      await expect(
+        createModel().doStart({ ...defaultOptions }),
+      ).rejects.toThrow();
+
+      expect(server.calls.map(call => call.requestMethod)).toEqual([
+        'POST',
+        'DELETE',
+      ]);
+    });
+
+    it('allows uploads to a configured private origin while disabling redirects', async () => {
+      const baseURL = 'http://127.0.0.1:8000';
+      let uploadInit: RequestInit | undefined;
+      const fetch: FetchFunction = async (_input, init) => {
+        if (init?.method === 'PUT') {
+          uploadInit = init;
+          return new Response(null, { status: 204 });
+        }
+        return Response.json({
+          requestId: REQUEST_ID,
+          uploadUrls: [`${baseURL}/upload`],
+          status: 'complete',
+          download: { url: DOWNLOAD_URL },
+        });
+      };
+      const model = new TopazVideoModel('starlight-precise-2.6', {
+        provider: 'topaz.video',
+        baseURL,
+        headers: () => ({ 'X-API-Key': 'test-key' }),
+        fetch,
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(uploadInit?.redirect).toBe('error');
+      expect(new Headers(uploadInit?.headers).has('x-api-key')).toBe(false);
     });
 
     it('sends the API key to the Topaz endpoints', async () => {

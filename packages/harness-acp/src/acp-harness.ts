@@ -9,7 +9,6 @@ import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
-import type { ACPToolCall } from './acp-tool-call';
 import {
   createACPV1,
   type ACPAskUserQuestionsSettings,
@@ -38,7 +37,16 @@ export type ACPHarnessSettings<
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
-  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Classifies an ACP tool call that did not resolve to a host tool as a
+   * dynamic MCP tool call.
+   */
+  readonly isMcpToolCall: ACPV1Settings['isMcpToolCall'];
+  /**
+   * Resolves an ACP tool call to the host tool it invokes. Host tools are
+   * exposed to the ACP agent through the harness-owned MCP server.
+   */
+  readonly resolveHostToolCall: ACPV1Settings['resolveHostToolCall'];
   readonly port?: number;
   /**
    * Override the host endpoint used to connect to the sandbox bridge. Required

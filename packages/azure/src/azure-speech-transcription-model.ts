@@ -8,6 +8,8 @@ import {
   createJsonResponseHandler,
   mediaTypeToExtension,
   postFormDataToApi,
+  resolve,
+  type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -23,7 +25,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
     readonly modelId: string,
     private readonly config: {
       url: () => string;
-      headers: () => Record<string, string | undefined>;
+      headers: Resolvable<Record<string, string | undefined>>;
       fetch?: FetchFunction;
     },
   ) {}
@@ -68,7 +70,10 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
 
     const { value, rawValue, responseHeaders } = await postFormDataToApi({
       url: this.config.url(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,

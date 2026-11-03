@@ -306,14 +306,14 @@ describe('createGrokBuild', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-1',
         title: 'External MCP tool',
         _meta: { 'x.ai/tool': { namespace: 'mcp' } },
       }),
     ).toBe(true);
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-2',
         title: 'Unknown non-MCP tool',
         _meta: { 'x.ai/tool': { namespace: 'custom' } },
@@ -325,3 +325,70 @@ describe('createGrokBuild', () => {
     expect(VERSION).toBe('0.0.0-test');
   });
 });
+
+describe('resolveHostToolCall', () => {
+  const serverName = 'ai-sdk-harness-tools';
+  const toolNames = ['weather'];
+
+  it.each([
+    {
+      tool_name: 'ai-sdk-harness-tools__weather',
+      tool_input: { city: 'Paris' },
+    },
+    {
+      variant: 'UseTool',
+      tool_name: 'ai-sdk-harness-tools__weather',
+      tool_input: { city: 'Paris' },
+    },
+  ])('resolves the captured use_tool raw input %j', rawInput => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'use_tool',
+          rawInput,
+          _meta: {
+            'x.ai/tool': {
+              version: 1,
+              name: 'use_tool',
+              kind: 'use_tool',
+              namespace: 'grok_build',
+              label: 'Use Tool',
+              read_only: false,
+            },
+          },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Paris",
+        },
+        "toolName": "weather",
+      }
+    `);
+  });
+
+  it.each([
+    { query: 'weather', limit: 5 },
+    { tool_name: 'other-server__weather', tool_input: { city: 'Paris' } },
+    { tool_name: 'ai-sdk-harness-tools__unknown', tool_input: {} },
+    { tool_name: 'ai-sdk-harness-tools__weather', tool_input: null },
+  ])('does not resolve a mismatched raw input: %j', rawInput => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', title: 'Tool', rawInput },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+function resolveHostToolCall(): ACPHarnessSettings['resolveHostToolCall'] {
+  createGrokBuild();
+  return (mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings)
+    .resolveHostToolCall;
+}
