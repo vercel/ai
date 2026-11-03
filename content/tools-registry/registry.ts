@@ -970,4 +970,35 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'chainanalyzer',
+    name: 'ChainAnalyzer',
+    description:
+      'Blockchain AML screening for agents that move crypto. Check an address against sanctions lists (OFAC, EU, UK, UN, JFSA), a multi-chain stolen-funds ledger, stablecoin issuer freezes and a full AML risk score across 12 chains including Bitcoin, Ethereum, Solana and TRON. Authenticate with an API key or pay per call via x402.',
+    packageName: '@chainanalyzer/ai-sdk',
+    tags: ['crypto', 'compliance', 'aml', 'security', 'x402'],
+    apiKeyEnvName: 'CHAINANALYZER_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @chainanalyzer/ai-sdk',
+      npm: 'npm install @chainanalyzer/ai-sdk',
+      yarn: 'yarn add @chainanalyzer/ai-sdk',
+      bun: 'bun add @chainanalyzer/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { chainAnalyzerTools } from '@chainanalyzer/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Screen 0x5227f603c1ee34ce3c06efe6477003bdfccb2f8c (Ethereum) before crediting a deposit.',
+  tools: chainAnalyzerTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://chain-analyzer.com/en/docs/ai-agents#frameworks',
+    apiKeyUrl: 'https://chain-analyzer.com/account/api',
+    websiteUrl: 'https://chain-analyzer.com',
+    npmUrl: 'https://www.npmjs.com/package/@chainanalyzer/ai-sdk',
+  },
 ];
