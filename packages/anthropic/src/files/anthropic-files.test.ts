@@ -351,20 +351,24 @@ describe('AnthropicFiles', () => {
       expect(result.providerReference).toEqual({ anthropic: 'file-abc123' });
     });
 
-    it('should handle delete response without type field', async () => {
-      server.urls['https://api.anthropic.com/v1/files/file-abc123'].response = {
-        type: 'json-value',
-        body: { id: 'file-abc123' },
-      };
+    it.each([undefined, null])(
+      'reports successful deletion with an omitted/null type (%s)',
+      async type => {
+        server.urls['https://api.anthropic.com/v1/files/file-abc123'].response =
+          {
+            type: 'json-value',
+            body: { id: 'file-abc123', type },
+          };
 
-      const files = createFiles();
-      const result = await files.deleteFile({
-        file: { anthropic: 'file-abc123' },
-      });
+        const files = createFiles();
+        const result = await files.deleteFile({
+          file: { anthropic: 'file-abc123' },
+        });
 
-      expect(result.deleted).toBe(false);
-      expect(result.providerReference).toEqual({ anthropic: 'file-abc123' });
-    });
+        expect(result.deleted).toBe(true);
+        expect(result.providerReference).toEqual({ anthropic: 'file-abc123' });
+      },
+    );
 
     it('should reject a blank anthropic file id', async () => {
       const files = createFiles();

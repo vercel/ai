@@ -19,7 +19,7 @@ export const anthropicUploadFileResponseSchema = lazySchema(() =>
 export const anthropicDeleteFileResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      type: z.literal('file_deleted').optional(),
+      type: z.literal('file_deleted').nullish(),
       id: z.string(),
     }),
   ),

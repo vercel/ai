@@ -143,7 +143,7 @@ export class AnthropicFiles implements FilesV4 {
     return {
       warnings: [],
       providerReference: { anthropic: response.id },
-      deleted: response.type === 'file_deleted',
+      deleted: true,
     };
   }
 
