@@ -412,6 +412,39 @@ describe('CartesiaSpeechModel', () => {
       expect(result.warnings).toEqual([]);
     });
 
+    it('sends a locale alone without language or warnings', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { locale: 'en-GB' } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.locale).toBe('en-GB');
+      expect(body).not.toHaveProperty('language');
+      expect(body).not.toHaveProperty('normalization');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each(['auto', 'off', 'es-MX'])(
+      'sends normalization %s independently of locale',
+      async normalization => {
+        prepareAudioResponse();
+        const result = await model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          language: 'en',
+          providerOptions: { cartesia: { normalization } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({ language: 'en', normalization });
+        expect(body).not.toHaveProperty('locale');
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
     it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
       prepareAudioResponse();
 
