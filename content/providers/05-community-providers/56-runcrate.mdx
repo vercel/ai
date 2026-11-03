@@ -1,0 +1,123 @@
+---
+title: Runcrate
+description: Learn how to use the Runcrate provider for the AI SDK.
+---
+
+# Runcrate Provider
+
+[@runcrate/ai](https://github.com/runcrateai/runcrate-ai) contains language and image model support for [Runcrate](https://www.runcrate.ai/?utm_source=vercel-ai&utm_medium=directory&utm_campaign=gpu_pricing), a GPU cloud for AI developers and agents that serves open and frontier models (DeepSeek, Qwen, Llama, Kimi, GLM, FLUX and more) through an OpenAI-compatible API.
+
+API keys can be created in the Runcrate dashboard, see the [API keys docs](https://www.runcrate.ai/docs/account/api-keys?utm_source=vercel-ai&utm_medium=directory&utm_campaign=gpu_pricing).
+
+## Setup
+
+The Runcrate provider is available via the `@runcrate/ai` module. You can install it with:
+
+<InstallPackages packages="@runcrate/ai" />
+
+### Environment variables
+
+Create a `.env` file with a `RUNCRATE_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `runcrate` from `@runcrate/ai`:
+
+```ts
+import { runcrate } from "@runcrate/ai";
+```
+
+If you need a customized setup, you can import `createRuncrate` from `@runcrate/ai` and create a provider instance with your settings:
+
+```ts
+import { createRuncrate } from "@runcrate/ai";
+
+const runcrate = createRuncrate({
+  // Optional settings
+});
+```
+
+You can use the following optional settings to customize the Runcrate provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.runcrate.ai/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `RUNCRATE_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { runcrate } from "@runcrate/ai";
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: runcrate("deepseek-ai/DeepSeek-V3.2"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+});
+```
+
+Runcrate language models can also be used in the `streamText` function:
+
+```ts
+import { runcrate } from "@runcrate/ai";
+import { streamText } from "ai";
+
+const result = streamText({
+  model: runcrate("moonshotai/Kimi-K2.6"),
+  prompt: "Write a haiku about GPUs.",
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Image Models
+
+You can create image models using the `.imageModel()` factory method:
+
+```ts
+import { runcrate } from "@runcrate/ai";
+import { generateImage } from "ai";
+
+const { image } = await generateImage({
+  model: runcrate.imageModel("black-forest-labs/FLUX.1-schnell"),
+  prompt: "A futuristic cityscape at sunset",
+  size: "1024x768",
+});
+```
+
+## Model Capabilities
+
+| Model                                       | Text Generation     | Streaming           |
+| ------------------------------------------- | ------------------- | ------------------- |
+| `deepseek-ai/DeepSeek-V3.2`                 | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo`   | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2.6`                      | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                       | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507`        | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo` | <Check size={18} /> | <Check size={18} /> |
+| `zai-org/GLM-5.3`                           | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  The table above lists popular models. The full catalog is available from `GET
+  https://api.runcrate.ai/v1/models` and the [Runcrate models
+  docs](https://www.runcrate.ai/docs/models/overview?utm_source=vercel-ai&utm_medium=directory&utm_campaign=gpu_pricing).
+  Any model ID available on Runcrate can be passed as a plain string.
+</Note>
