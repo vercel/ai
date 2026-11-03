@@ -12,6 +12,7 @@ import {
   lazySchema,
   safeParseJSON,
   parseProviderOptions,
+  removeUndefinedEntries,
   resolve,
   toWebSocketUrl,
   validateTypes,
@@ -118,7 +119,7 @@ export async function streamDeepgramTranscription(
     await resolve(config.headers),
     options.headers,
   );
-  const authorization = new Headers(headers as Record<string, string>).get(
+  const authorization = new Headers(removeUndefinedEntries(headers)).get(
     'authorization',
   );
   // The subprotocol authentication channel also works with native WebSockets,
