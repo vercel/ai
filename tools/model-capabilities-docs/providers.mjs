@@ -5,6 +5,44 @@ import { formatSupport } from './render-tables.mjs';
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
   {
+    catalogPath: 'packages/perplexity/src/perplexity-model-catalog.ts',
+    catalogExport: 'perplexityModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/70-perplexity.mdx',
+    tables: [
+      {
+        id: 'perplexity-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+      {
+        id: 'perplexity-embedding',
+        capability: 'embedding',
+        columns: [
+          ['Dimensions', 'defaultDimensions', String],
+          ['Max Values Per Call', 'maxEmbeddingsPerCall', String],
+        ],
+      },
+      {
+        id: 'perplexity-decision',
+        capability: 'decision',
+        columns: [
+          ['Boolean', 'questionTypes.boolean'],
+          ['Choice', 'questionTypes.choice'],
+          ['Score', 'questionTypes.score'],
+          ['Box', 'questionTypes.box'],
+          ['Image Input', 'inputs.image'],
+          ['Reasoning', 'reasoning'],
+          ['Max Output Tokens', 'maxOutputTokens'],
+        ],
+      },
+    ],
+  },
+  {
     catalogPath: 'packages/cerebras/src/cerebras-model-catalog.ts',
     catalogExport: 'cerebrasModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/40-cerebras.mdx',
