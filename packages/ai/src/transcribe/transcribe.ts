@@ -89,9 +89,10 @@ export async function transcribe({
   /**
    * Word and segment timings to request.
    *
-   * Each provider maps this onto its native control when the matching provider
-   * option is omitted. An explicit provider option wins. Providers that cannot
-   * return a requested granularity add a warning.
+   * Supported adapters map this onto the provider's native control when the
+   * matching provider option is omitted. An explicit provider option wins.
+   * Supported adapters warn when they cannot return a requested granularity.
+   * An empty array requests no shared timing granularity; provider defaults may vary.
    */
   timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 
@@ -305,7 +306,7 @@ export async function transcribe({
         return new DefaultTranscriptionResult({
           text: result.text,
           segments: result.segments,
-          words: result.words ?? [],
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           warnings: result.warnings,
@@ -327,7 +328,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     startSecond: number;
     endSecond: number;
   }>;
-  readonly words: Array<{
+  readonly words?: Array<{
     text: string;
     startSecond: number;
     endSecond: number;
@@ -345,7 +346,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
       startSecond: number;
       endSecond: number;
     }>;
-    words: Array<{
+    words?: Array<{
       text: string;
       startSecond: number;
       endSecond: number;

@@ -139,6 +139,23 @@ describe('transcribe', () => {
     expect(capturedArgs.timestampGranularities).toEqual(['word', 'segment']);
   });
 
+  it('should preserve an empty timestampGranularities request', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse(sampleTranscript);
+        },
+      }),
+      audio: audioData,
+      timestampGranularities: [],
+    });
+
+    expect(capturedArgs.timestampGranularities).toEqual([]);
+  });
+
   it('should detect MP4 audio with an ftyp box', async () => {
     const mp4AudioData = new Uint8Array([
       0x00,
@@ -349,29 +366,72 @@ describe('transcribe', () => {
         },
       ],
       providerMetadata: {},
-      words: [],
+      words: undefined,
     });
+    expect(result.words).toBeUndefined();
   });
 
-  it('should return word timings separately from segments', async () => {
-    const words = [
-      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
-      { text: 'world', startSecond: 0.4, endSecond: 1 },
-    ];
+  it.each([
+    { timestampGranularities: undefined },
+    { timestampGranularities: [] },
+    { timestampGranularities: ['word'] },
+  ] as const)(
+    'should return provider word timings with $timestampGranularities',
+    async ({ timestampGranularities }) => {
+      const words = [
+        { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+        { text: 'world', startSecond: 0.4, endSecond: 1 },
+      ];
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => ({
+            ...createMockResponse({
+              ...sampleTranscript,
+            }),
+            words,
+          }),
+        }),
+        audio: audioData,
+        timestampGranularities:
+          timestampGranularities == null
+            ? undefined
+            : [...timestampGranularities],
+      });
+
+      expect(result.segments).toEqual(sampleTranscript.segments);
+      expect(result.words).toEqual(words);
+    },
+  );
+
+  it('should preserve an empty array of provider word timings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({
         doGenerate: async () => ({
-          ...createMockResponse({
-            ...sampleTranscript,
-          }),
-          words,
+          ...createMockResponse(sampleTranscript),
+          words: [],
         }),
       }),
       audio: audioData,
     });
 
-    expect(result.segments).toEqual(sampleTranscript.segments);
-    expect(result.words).toEqual(words);
+    expect(result.words).toEqual([]);
+  });
+
+  it('should preserve word-level segments returned by the provider', async () => {
+    const segments = [
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ];
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () =>
+          createMockResponse({ ...sampleTranscript, segments }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.segments).toEqual(segments);
+    expect(result.words).toBeUndefined();
   });
 
   it('should return an empty transcript', async () => {

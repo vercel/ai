@@ -15,6 +15,7 @@ export interface TranscriptionResult {
   /**
    * Array of transcript segments with timing information.
    * Each segment represents a portion of the transcribed text with start and end times.
+   * Segments retain the provider's behavior and may represent individual words.
    */
   readonly segments: Array<{
     /**
@@ -32,11 +33,10 @@ export interface TranscriptionResult {
   }>;
 
   /**
-   * Word-level timings, when the provider returns them.
-   * Empty when the provider did not report word timestamps.
-   * This is separate from `segments`, which stay phrase- or utterance-level.
+   * Word-level timings returned by the provider, whether explicitly requested
+   * or returned by default. Undefined when the provider does not return them.
    */
-  readonly words: Array<{
+  readonly words?: Array<{
     /**
      * The text of this word.
      */
