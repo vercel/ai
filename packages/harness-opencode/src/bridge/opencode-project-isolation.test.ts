@@ -4,6 +4,7 @@ import {
   realpathSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -70,6 +71,39 @@ describe('resolveOpenCodeInstructions', () => {
       'http://example.com/b.md',
       '~/a.md',
       '/etc/b.md',
+    ]);
+  });
+
+  it('expands host entries with glob characters in a directory segment', () => {
+    const workdir = createTempDirectory();
+    mkdirSync(path.join(workdir, 'docs', 'a', 'b'), { recursive: true });
+    mkdirSync(path.join(workdir, 'docs', 'folder.md'));
+    writeFileSync(path.join(workdir, 'docs', 'top.md'), 'top');
+    writeFileSync(path.join(workdir, 'docs', 'a', 'b', 'rules.md'), 'rules');
+    writeFileSync(path.join(workdir, 'docs', 'a', 'notes.txt'), 'notes');
+
+    expect(
+      resolveOpenCodeInstructions({
+        workdir,
+        hostInstructions: ['docs/**/*.md', 'missing/**/*.md'],
+      }),
+    ).toEqual([
+      path.join(workdir, 'AGENTS.md'),
+      path.join(workdir, 'docs', 'a', 'b', 'rules.md'),
+      path.join(workdir, 'docs', 'top.md'),
+    ]);
+  });
+
+  it('keeps host entries with glob characters only in the file name as one absolute entry', () => {
+    expect(
+      resolveOpenCodeInstructions({
+        workdir: '/work/repo',
+        hostInstructions: ['docs/*.md', '*.md'],
+      }),
+    ).toEqual([
+      '/work/repo/AGENTS.md',
+      '/work/repo/docs/*.md',
+      '/work/repo/*.md',
     ]);
   });
 

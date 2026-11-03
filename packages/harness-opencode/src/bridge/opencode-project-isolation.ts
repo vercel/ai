@@ -1,5 +1,7 @@
-import { realpathSync } from 'node:fs';
+import { globSync, realpathSync } from 'node:fs';
 import path from 'node:path';
+
+const GLOB_CHARACTERS = /[*?[\]{}]/;
 
 /*
  * With project configuration disabled, OpenCode no longer discovers the
@@ -11,6 +13,11 @@ import path from 'node:path';
  * The working directory is resolved the same way OpenCode resolves its
  * instance directory, so the paths match the `Instructions from: <path>`
  * headers OpenCode renders for natively discovered files.
+ *
+ * OpenCode only treats the last segment of an absolute entry as a glob
+ * pattern and uses the rest as a literal directory. Relative entries with
+ * glob characters in a directory segment, such as a `**` segment, are
+ * therefore expanded here into the matching files.
  */
 export function resolveOpenCodeInstructions({
   workdir,
@@ -31,14 +38,23 @@ export function resolveOpenCodeInstructions({
   const directory = resolveRealPath(workdir);
   return [
     path.join(directory, 'AGENTS.md'),
-    ...((hostInstructions as string[] | undefined) ?? []).map(entry =>
-      entry.startsWith('http://') ||
-      entry.startsWith('https://') ||
-      entry.startsWith('~/') ||
-      path.isAbsolute(entry)
-        ? entry
-        : path.join(directory, entry),
-    ),
+    ...((hostInstructions as string[] | undefined) ?? []).flatMap(entry => {
+      if (
+        entry.startsWith('http://') ||
+        entry.startsWith('https://') ||
+        entry.startsWith('~/') ||
+        path.isAbsolute(entry)
+      ) {
+        return [entry];
+      }
+      if (!GLOB_CHARACTERS.test(path.dirname(entry))) {
+        return [path.join(directory, entry)];
+      }
+      return globSync(entry, { cwd: directory, withFileTypes: true })
+        .filter(match => match.isFile())
+        .map(match => path.join(match.parentPath, match.name))
+        .sort();
+    }),
   ];
 }
 
@@ -47,7 +63,9 @@ function resolveRealPath(file: string): string {
   try {
     return realpathSync(resolved);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return resolved;
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return resolved;
+    }
     throw error;
   }
 }
