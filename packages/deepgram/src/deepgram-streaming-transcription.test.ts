@@ -125,7 +125,7 @@ describe('Deepgram streaming transcription', () => {
     expect(socket.options?.headers).toMatchObject({
       authorization: 'Token resolved-key',
       'x-provider': 'provider',
-      'X-Request': 'request',
+      'x-request': 'request',
     });
     expect(result.request?.body).not.toContain('resolved-key');
     await result.stream.cancel();
@@ -172,6 +172,19 @@ describe('Deepgram streaming transcription', () => {
       await result.stream.cancel();
     },
   );
+
+  it('accepts an Authorization override with conventional header casing', async () => {
+    const result = await model().doStream!({
+      audio: audio(),
+      inputAudioFormat,
+      headers: { Authorization: 'Bearer temporary-jwt' },
+    });
+    expect(MockWebSocket.instances[0].protocols).toEqual([
+      'bearer',
+      'temporary-jwt',
+    ]);
+    await result.stream.cancel();
+  });
 
   it('rejects unsupported authentication schemes without exposing credentials', async () => {
     await expect(

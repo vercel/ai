@@ -6,7 +6,6 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  combineHeaders,
   connectToWebSocket,
   convertBase64ToUint8Array,
   lazySchema,
@@ -116,10 +115,12 @@ export async function streamDeepgramTranscription(
       );
   }
 
-  const headers = combineHeaders(
-    await resolve(config.headers),
-    options.headers,
-  );
+  const headers: Record<string, string | undefined> = {};
+  for (const source of [await resolve(config.headers), options.headers]) {
+    for (const [name, value] of Object.entries(source ?? {})) {
+      headers[name.toLowerCase()] = value;
+    }
+  }
   const authorization = new Headers(removeUndefinedEntries(headers)).get(
     'authorization',
   );
