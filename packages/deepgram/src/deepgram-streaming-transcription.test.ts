@@ -223,6 +223,40 @@ describe('Deepgram streaming transcription', () => {
     });
   });
 
+  it.each([false, true])(
+    'accepts speech and utterance events with raw chunks enabled: %s',
+    async includeRawChunks => {
+      const result = await model().doStream!({
+        audio: audio(),
+        inputAudioFormat,
+        includeRawChunks,
+      });
+      const parts = convertReadableStreamToArray(result.stream);
+      const socket = MockWebSocket.instances[0];
+      socket.open();
+      await flush();
+      const events = [
+        { type: 'SpeechStarted', channel: [0], timestamp: 0.1 },
+        { type: 'UtteranceEnd', channel: [0, 1], last_word_end: 1.5 },
+        { type: 'FutureEvent', channel: 'provider-specific' },
+      ];
+      for (const event of events) socket.message(event);
+      socket.message(results('Hello!'));
+      socket.message({ type: 'Metadata', duration: 2 });
+      const values = await parts;
+      expect(values.at(-1)).toMatchObject({ type: 'finish', text: 'Hello!' });
+      expect(values.filter(part => part.type === 'raw')).toEqual(
+        includeRawChunks
+          ? [
+              ...events,
+              results('Hello!'),
+              { type: 'Metadata', duration: 2 },
+            ].map(rawValue => ({ type: 'raw', rawValue }))
+          : [],
+      );
+    },
+  );
+
   it.each([
     ['audio/pcmu', 'mulaw'],
     ['audio/pcma', 'alaw'],

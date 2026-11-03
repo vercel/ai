@@ -10,10 +10,11 @@ import {
   connectToWebSocket,
   convertBase64ToUint8Array,
   lazySchema,
-  parseJSON,
+  safeParseJSON,
   parseProviderOptions,
   resolve,
   toWebSocketUrl,
+  validateTypes,
   waitForWebSocketBufferDrain,
   zodSchema,
   type WebSocketConnection,
@@ -229,18 +230,23 @@ export async function streamDeepgramTranscription(
           },
           async onMessageText(text) {
             if (finished) return;
-            const event = await parseJSON({
+            const parsed = await safeParseJSON({
               text,
-              schema: streamingEventSchema,
+              schema: streamingEventTypeSchema,
             });
+            if (!parsed.success) throw parsed.error;
             if (finished) return;
             if (options.includeRawChunks) {
               controller.enqueue({
                 type: 'raw',
-                rawValue: await parseJSON({ text }),
+                rawValue: parsed.rawValue,
               });
             }
-            if (event.type === 'Error') {
+            if (parsed.value.type === 'Error') {
+              const event = await validateTypes({
+                value: parsed.rawValue,
+                schema: streamingErrorSchema,
+              });
               fail(
                 new Error(
                   event.description ??
@@ -248,16 +254,24 @@ export async function streamDeepgramTranscription(
                     'Deepgram streaming transcription failed.',
                 ),
               );
-            } else if (event.type === 'Metadata') {
+            } else if (parsed.value.type === 'Metadata') {
+              const event = await validateTypes({
+                value: parsed.rawValue,
+                schema: streamingMetadataSchema,
+              });
               duration = event.duration ?? duration;
               controller.enqueue({
                 type: 'response-metadata',
                 timestamp,
                 modelId,
-                body: event,
+                body: parsed.rawValue,
               });
               if (inputEnded) finish();
-            } else if (event.type === 'Results') {
+            } else if (parsed.value.type === 'Results') {
+              const event = await validateTypes({
+                value: parsed.rawValue,
+                schema: streamingResultSchema,
+              });
               const alternative = event.channel?.alternatives[0];
               if (alternative == null)
                 throw new Error(
@@ -323,10 +337,26 @@ export async function streamDeepgramTranscription(
   };
 }
 
-const streamingEventSchema = lazySchema(() =>
+const streamingEventTypeSchema = lazySchema(() =>
+  zodSchema(z.object({ type: z.string() })),
+);
+
+const streamingMetadataSchema = lazySchema(() =>
+  zodSchema(z.object({ duration: z.number().nullish() })),
+);
+
+const streamingErrorSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      type: z.string(),
+      description: z.string().nullish(),
+      message: z.string().nullish(),
+    }),
+  ),
+);
+
+const streamingResultSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
       is_final: z.boolean().nullish(),
       speech_final: z.boolean().nullish(),
       start: z.number().nullish(),
@@ -352,8 +382,6 @@ const streamingEventSchema = lazySchema(() =>
           ),
         })
         .nullish(),
-      description: z.string().nullish(),
-      message: z.string().nullish(),
     }),
   ),
 );
