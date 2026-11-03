@@ -81,7 +81,7 @@ Run these from within a package directory (e.g., `packages/ai`):
 | `pnpm test:edge`   | Run Edge runtime tests only |
 | `pnpm test:watch`  | Run tests in watch mode     |
 
-### Guidelines
+### Guidelines And Verifiers
 
 Individual domain-scoped guideline Markdown files are found in `.agents/guidelines`. As you make code changes, you can run `pnpm discover-guidelines --modified` to get a list of all matching guidelines for the current set of added/modified files in the git diff.
 
