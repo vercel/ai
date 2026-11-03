@@ -5,6 +5,35 @@ import { formatSupport } from './render-tables.mjs';
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
   {
+    catalogPath: 'packages/groq/src/groq-model-catalog.ts',
+    catalogExport: 'groqModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/09-groq.mdx',
+    tables: [
+      {
+        id: 'groq-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Browser Search', 'tools.browserSearch'],
+        ],
+      },
+      {
+        id: 'groq-transcription',
+        capability: 'transcription',
+        columns: [
+          ['Transcription', 'transcription'],
+          ['Streaming', 'streaming'],
+          ['Duration', 'duration'],
+          ['Segments', 'segments'],
+          ['Language', 'language'],
+        ],
+      },
+    ],
+  },
+  {
     catalogPath: 'packages/openai/src/openai-model-catalog.ts',
     catalogExport: 'openaiModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/03-openai.mdx',
