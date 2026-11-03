@@ -58,6 +58,15 @@ export const mistralProviderOptions = {
     contextBias: {
       description: 'Vocabulary and context to guide transcription.',
     },
+    targetStreamingDelayMs: {
+      description: 'Target transcription delay in milliseconds. Realtime only.',
+    },
+    speakerReferences: {
+      description: 'Named audio clips for known speakers. Realtime only.',
+    },
+    turnDetection: {
+      description: 'Turn detection settings. Realtime only.',
+    },
   } satisfies Record<
     keyof MistralTranscriptionModelOptions,
     ProviderOptionDefinition
@@ -273,6 +282,9 @@ function createTranscriptionModelEntry(modelId: string, declared: boolean) {
         mistralProviderOptions.transcription,
         support,
         {
+          targetStreamingDelayMs: false,
+          speakerReferences: false,
+          turnDetection: false,
           returnLanguage: {
             condition: 'Only supported when language is not pinned.',
           },
