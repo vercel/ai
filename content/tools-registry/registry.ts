@@ -970,4 +970,40 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'ava',
+    name: 'AVA',
+    description: 'AVA tools for the Vercel AI SDK: load a local dataset (CSV/JSON/Parquet/XLSX), inspect its schema, run read-only SQL, profile columns, ask natural-language questions, and turn verified rows into a chart. AVA owns data access and rendering; the model owns reasoning. Runs in-process, no server required.',
+    packageName: 'ai-sdk-ava',
+    tags: ['data-analysis', 'sql', 'visualization', 'charts', 'ava'],
+    installCommand: {
+      pnpm: 'pnpm add ai-sdk-ava @antv/ava@beta ai zod',
+      npm: 'npm install ai-sdk-ava @antv/ava@beta ai zod',
+      yarn: 'yarn add ai-sdk-ava @antv/ava@beta ai zod',
+      bun: 'bun add ai-sdk-ava @antv/ava@beta ai zod',
+    },
+    codeExample: `import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { avaTools } from 'ai-sdk-ava';
+
+const { tools, dispose } = avaTools({
+  // Optional: omit to read OPENAI_API_KEY / OPENAI_MODEL / OPENAI_BASE_URL
+  llm: { model: 'gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY },
+  maxRows: 200,
+});
+
+try {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools,
+    prompt: 'Load examples/sales.csv, then tell me which region sells the most and chart it.',
+  });
+  console.log(text);
+} finally {
+  await dispose(); // closes the DuckDB connection
+}`,
+    docsUrl: 'https://github.com/DoubleCore/ai-sdk-ava',
+    websiteUrl: 'https://github.com/DoubleCore/ai-sdk-ava',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-ava',
+  },
 ];
