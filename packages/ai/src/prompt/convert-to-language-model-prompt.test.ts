@@ -4,6 +4,7 @@ import { createDefaultDownloadFunction } from '../util/download/download-functio
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
+  downloadAssets,
   mapToolResultOutput,
 } from './convert-to-language-model-prompt';
 
@@ -3529,6 +3530,69 @@ describe('convertToLanguageModelMessage', () => {
     });
   });
 });
+
+describe.each(['tool', 'assistant'] as const)(
+  'legacy URL downloads in %s results',
+  role => {
+    it.each([false, true])(
+      'respects URL support (%s) and preserves file options',
+      async supported => {
+        const url = 'https://example.com';
+        const providerOptions = { test: { detail: 'high' } };
+        const output = {
+          type: 'content' as const,
+          value: [
+            {
+              type: 'file-url' as const,
+              url,
+              mediaType: 'application/pdf',
+              providerOptions,
+            },
+          ],
+        };
+        const data = new Uint8Array([37, 80, 68, 70]);
+        const fetchAsset = vi.fn(async () => ({
+          data,
+          mediaType: 'application/pdf',
+        }));
+        const assets = await downloadAssets(
+          [
+            {
+              role,
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call',
+                  toolName: 'asset',
+                  output,
+                },
+              ],
+            },
+          ],
+          createDefaultDownloadFunction(fetchAsset),
+          supported ? { 'application/pdf': [/^https:\/\/example\.com\//] } : {},
+        );
+
+        expect(fetchAsset).toHaveBeenCalledTimes(supported ? 0 : 1);
+        expect(
+          mapToolResultOutput({ output, downloadedAssets: assets }),
+        ).toMatchObject({
+          type: 'content',
+          value: [
+            {
+              type: 'file',
+              data: supported
+                ? { type: 'url', url: new URL(url), originalUrl: url }
+                : { type: 'data', data },
+              mediaType: 'application/pdf',
+              providerOptions,
+            },
+          ],
+        });
+      },
+    );
+  },
+);
 
 it.each([
   [
