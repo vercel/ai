@@ -382,13 +382,16 @@ describe('CartesiaSpeechModel', () => {
     });
 
     it('rejects conflicting provider locale and language before sending a request', async () => {
-      const error = await model
-        .doGenerate({
+      let error: unknown;
+      try {
+        await model.doGenerate({
           text: 'Hello, world!',
           voice: 'test-voice-id',
           providerOptions: { cartesia: { locale: 'en-GB', language: 'en' } },
-        })
-        .catch(error => error);
+        });
+      } catch (cause) {
+        error = cause;
+      }
 
       expect(InvalidArgumentError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
