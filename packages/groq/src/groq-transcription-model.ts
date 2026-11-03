@@ -85,16 +85,19 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
       if (
         !['https:', 'http:'].includes(audio.protocol) ||
         audio.username !== '' ||
-        audio.password !== '' ||
-        audio.hash !== ''
+        audio.password !== ''
       ) {
         throw new InvalidArgumentError({
           argument: 'audio',
           message:
-            'Groq URL transcription requires an HTTP(S) URL without userinfo or fragments.',
+            'Groq URL transcription requires an HTTP(S) URL without userinfo.',
         });
       }
-      formData.append('url', audio.href);
+      // Fetch does not send fragments to the audio host. Preserve that behavior
+      // without changing the caller's URL object.
+      const audioUrl = new URL(audio.href);
+      audioUrl.hash = '';
+      formData.append('url', audioUrl.href);
     } else {
       const blob =
         audio instanceof Uint8Array

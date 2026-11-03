@@ -91,15 +91,25 @@ describe('doGenerate', () => {
     expect(server.calls).toHaveLength(1);
   });
 
+  it('strips media fragments without mutating the input URL', async () => {
+    prepareJsonResponse();
+    const audio = new URL('https://example.com/audio.mp3#t=0');
+    const result = await model.doGenerateFromUrl!({ audio });
+    expect(result.text).toBe('Hello world!');
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      url: 'https://example.com/audio.mp3',
+    });
+    expect(audio.hash).toBe('#t=0');
+  });
+
   it.each([
     'ftp://example.com/audio.mp3',
     'https://user:secret@example.com/audio.mp3',
-    'https://example.com/audio.mp3#fragment',
   ])('rejects unsupported URL forms before HTTP: %s', async value => {
     await expect(
       model.doGenerateFromUrl!({ audio: new URL(value) }),
     ).rejects.toThrow(
-      'Groq URL transcription requires an HTTP(S) URL without userinfo or fragments.',
+      'Groq URL transcription requires an HTTP(S) URL without userinfo.',
     );
     expect(server.calls).toHaveLength(0);
   });
