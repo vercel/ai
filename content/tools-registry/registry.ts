@@ -787,4 +787,36 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'fetchrouter',
+    name: 'Fetch Router',
+    description:
+      'Verified web fetch for agents. Fetches a public URL with plain HTTP, falls back to a headless browser when needed, and checks every page for block and challenge pages (Cloudflare, DataDome, PerimeterX…), empty JavaScript shells and expected text. Failed fetches are returned with a reason and not billed.',
+    packageName: 'fetchrouter-ai-sdk',
+    tags: ['web', 'extraction', 'scraping'],
+    apiKeyEnvName: 'FETCHROUTER_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add fetchrouter-ai-sdk',
+      npm: 'npm install fetchrouter-ai-sdk',
+      yarn: 'yarn add fetchrouter-ai-sdk',
+      bun: 'bun add fetchrouter-ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { fetchPage } from 'fetchrouter-ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt: 'Summarise the pricing on https://fetchrouter.dev',
+  tools: {
+    fetchPage: fetchPage(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://fetchrouter.dev/docs#ai-sdk',
+    apiKeyUrl: 'https://fetchrouter.dev/#signup',
+    websiteUrl: 'https://fetchrouter.dev',
+    npmUrl: 'https://www.npmjs.com/package/fetchrouter-ai-sdk',
+  },
 ];
