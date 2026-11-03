@@ -42,6 +42,44 @@ const successfulResponse = {
 };
 
 describe('AnthropicFiles', () => {
+  it.each(['getFileMetadata', 'downloadFile', 'deleteFile'] as const)(
+    'preserves API errors and async request headers for %s',
+    async operation => {
+      const url =
+        operation === 'downloadFile'
+          ? 'https://api.anthropic.com/v1/files/file-abc123/content'
+          : 'https://api.anthropic.com/v1/files/file-abc123';
+      server.urls[url].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          type: 'error',
+          error: { type: 'not_found_error', message: 'File not found' },
+        }),
+      };
+      const headers = vi.fn(async () => ({
+        authorization: 'Bearer test-token',
+      }));
+      const files = new AnthropicFiles({
+        provider: 'anthropic.files',
+        baseURL: 'https://api.anthropic.com/v1',
+        headers,
+      });
+      await expect(
+        files[operation]({
+          file: { anthropic: 'file-abc123' },
+          headers: { 'x-request-id': 'request-1' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 404, message: 'File not found' });
+      expect(headers).toHaveBeenCalledOnce();
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-token',
+        'x-request-id': 'request-1',
+        'anthropic-beta': 'files-api-2025-04-14',
+      });
+    },
+  );
+
   describe('uploadFile', () => {
     it('sends POST to /v1/files with correct beta header', async () => {
       server.urls['https://api.anthropic.com/v1/files'].response =
@@ -424,8 +462,9 @@ describe('AnthropicFiles', () => {
     it.each([
       { fileId: '.', encodedFileId: '%252E' },
       { fileId: '..', encodedFileId: '%252E%252E' },
+      { fileId: 'file/a?#%', encodedFileId: 'file%2Fa%3F%23%25' },
     ])(
-      'should preserve dot-segment file id $fileId as a URL path segment',
+      'should encode file id $fileId as one URL path segment',
       async ({ fileId, encodedFileId }) => {
         const requestUrls: string[] = [];
         const files = new AnthropicFiles({
@@ -610,8 +649,9 @@ describe('AnthropicFiles', () => {
     it.each([
       { fileId: '.', encodedFileId: '%252E' },
       { fileId: '..', encodedFileId: '%252E%252E' },
+      { fileId: 'file/a?#%', encodedFileId: 'file%2Fa%3F%23%25' },
     ])(
-      'should preserve dot-segment file id $fileId as a URL path segment',
+      'should encode file id $fileId as one URL path segment',
       async ({ fileId, encodedFileId }) => {
         const requestUrls: string[] = [];
         const files = new AnthropicFiles({
@@ -789,8 +829,9 @@ describe('AnthropicFiles', () => {
     it.each([
       { fileId: '.', encodedFileId: '%252E' },
       { fileId: '..', encodedFileId: '%252E%252E' },
+      { fileId: 'file/a?#%', encodedFileId: 'file%2Fa%3F%23%25' },
     ])(
-      'should preserve dot-segment file id $fileId as a URL path segment',
+      'should encode file id $fileId as one URL path segment',
       async ({ fileId, encodedFileId }) => {
         const requestUrls: string[] = [];
         const files = new AnthropicFiles({

@@ -18,6 +18,7 @@ import {
   createJsonResponseHandler,
   deleteFromApi,
   getFromApi,
+  encodePathSegment,
   postFormDataToApi,
   resolve,
   type Resolvable,
@@ -35,17 +36,6 @@ interface AnthropicFilesConfig {
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
-}
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
 }
 
 export class AnthropicFiles implements FilesV4 {
