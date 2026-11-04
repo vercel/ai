@@ -105,9 +105,9 @@ describe('Output.object', () => {
 
     expectTypeOf<InferCompleteOutput<typeof output>>().toEqualTypeOf<A | B>();
 
-    const single = Output.object<A>({ schema: schemaA });
-
-    expectTypeOf<InferCompleteOutput<typeof single>>().toEqualTypeOf<A>();
+    expectTypeOf<
+      InferCompleteOutput<ReturnType<typeof Output.object<A>>>
+    >().toEqualTypeOf<A>();
   });
 
   it('should support an explicit any type argument', () => {
@@ -187,9 +187,9 @@ describe('Output.array', () => {
 
     expectTypeOf<InferElementOutput<typeof output>>().toEqualTypeOf<A | B>();
 
-    const single = Output.array<A>({ element: schemaA });
-
-    expectTypeOf<InferElementOutput<typeof single>>().toEqualTypeOf<A>();
+    expectTypeOf<
+      InferElementOutput<ReturnType<typeof Output.array<A>>>
+    >().toEqualTypeOf<A>();
   });
 
   it('should support an explicit any type argument', () => {

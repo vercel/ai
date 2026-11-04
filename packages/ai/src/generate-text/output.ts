@@ -89,6 +89,13 @@ type ValidatedSchema<SCHEMA> = 0 extends 1 & SCHEMA
     ? SCHEMA
     : never;
 
+// The output type is the first type parameter so that an explicit output type
+// (e.g. `typeof Output.object<Person>`) is preserved. Otherwise it is inferred
+// from the schema.
+type ResolveOutput<OUTPUT, SCHEMA> = [OUTPUT] extends [never]
+  ? InferSchema<SCHEMA>
+  : OUTPUT;
+
 type ObjectOptions<SCHEMA> = {
   /**
    * The schema of the object to generate.
@@ -119,9 +126,13 @@ type ObjectOptions<SCHEMA> = {
 export function object<OBJECT>(
   options: ObjectOptions<FlexibleSchema<OBJECT>>,
 ): Output<OBJECT, DeepPartial<OBJECT>, never>;
-export function object<SCHEMA>(
+export function object<OUTPUT = never, SCHEMA = FlexibleSchema<OUTPUT>>(
   options: ObjectOptions<ValidatedSchema<SCHEMA>>,
-): Output<InferSchema<SCHEMA>, DeepPartial<InferSchema<SCHEMA>>, never>;
+): Output<
+  ResolveOutput<OUTPUT, SCHEMA>,
+  DeepPartial<ResolveOutput<OUTPUT, SCHEMA>>,
+  never
+>;
 export function object<OBJECT>({
   schema: inputSchema,
   name,
@@ -248,12 +259,12 @@ type ArrayOptions<SCHEMA> = {
 export function array<ELEMENT>(
   options: ArrayOptions<FlexibleSchema<ELEMENT>>,
 ): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>;
-export function array<SCHEMA>(
+export function array<OUTPUT = never, SCHEMA = FlexibleSchema<OUTPUT>>(
   options: ArrayOptions<ValidatedSchema<SCHEMA>>,
 ): Output<
-  Array<InferSchema<SCHEMA>>,
-  Array<InferSchema<SCHEMA>>,
-  InferSchema<SCHEMA>
+  Array<ResolveOutput<OUTPUT, SCHEMA>>,
+  Array<ResolveOutput<OUTPUT, SCHEMA>>,
+  ResolveOutput<OUTPUT, SCHEMA>
 >;
 export function array<ELEMENT>({
   element: inputElementSchema,
