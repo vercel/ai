@@ -53,7 +53,7 @@
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "vue": "^3.3.4"
