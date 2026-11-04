@@ -70,10 +70,11 @@ function createLanguageModelEntry(image?: boolean): CerebrasLanguageModelEntry {
             condition: 'Requires a JSON schema response format.',
           },
           serviceTier: {
-            condition: 'Availability depends on the account and endpoint.',
+            condition: 'Requires a preview-enabled dedicated endpoint.',
           },
           queueThreshold: {
-            condition: 'Requires a flex/auto tier on a supported endpoint.',
+            condition:
+              'Requires flex/auto on a preview-enabled dedicated endpoint.',
           },
           reasoningEffort:
             image != null
