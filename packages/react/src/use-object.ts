@@ -120,6 +120,10 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   clear: () => void;
 };
 
+type ObjectState<RESULT> = {
+  object: DeepPartial<RESULT> | undefined;
+};
+
 function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
@@ -143,10 +147,10 @@ function useObject<
   const completionId = id ?? hookId;
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate } = useSWR<DeepPartial<RESULT>>(
+  const { data, mutate } = useSWR<ObjectState<RESULT>>(
     [completionId, 'object'],
     null,
-    { fallbackData: initialValue },
+    { fallbackData: { object: initialValue } },
   );
 
   const [error, setError] = useState<undefined | Error>(undefined);
@@ -215,7 +219,7 @@ function useObject<
               latestObject = currentObject;
 
               if (abortControllerRef.current === abortController) {
-                mutate(currentObject);
+                mutate({ object: currentObject });
               }
             }
           },
@@ -269,12 +273,12 @@ function useObject<
   const clearObject = () => {
     setError(undefined);
     setIsLoading(false);
-    mutate(undefined);
+    mutate({ object: undefined });
   };
 
   return {
     submit,
-    object: data,
+    object: data?.object,
     error,
     isLoading,
     stop,
