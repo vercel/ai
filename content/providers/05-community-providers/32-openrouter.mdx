@@ -42,11 +42,11 @@ OpenRouter supports both chat and completion models. Use `openrouter.chat()` for
 
 ```typescript
 // Chat models (recommended)
-const chatModel = openrouter.chat('anthropic/claude-3.5-sonnet');
+const chatModel = openrouter.chat('anthropic/claude-sonnet-4');
 
 // Completion models
 const completionModel = openrouter.completion(
-  'meta-llama/llama-3.1-405b-instruct',
+  'meta-llama/llama-3.3-70b-instruct',
 );
 ```
 
@@ -67,7 +67,7 @@ const openrouter = createOpenRouter({
 });
 
 const { text } = await generateText({
-  model: openrouter.chat('anthropic/claude-3.5-sonnet'),
+  model: openrouter.chat('anthropic/claude-sonnet-4'),
   prompt: 'What is OpenRouter?',
 });
 
@@ -85,7 +85,7 @@ const openrouter = createOpenRouter({
 });
 
 const result = streamText({
-  model: openrouter.chat('meta-llama/llama-3.1-405b-instruct'),
+  model: openrouter.chat('meta-llama/llama-3.3-70b-instruct'),
   prompt: 'Write a short story about AI.',
 });
 
