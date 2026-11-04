@@ -3,6 +3,8 @@ import { isStepCount, streamText } from 'ai';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
+// This example runs model-proposed commands directly on your computer.
+// For interactive approval, see generate-text/azure/responses-shell-tool-with-approval.ts.
 run(async () => {
   const result = streamText({
     // Replace with your Azure deployment name that supports this shell mode.
