@@ -170,23 +170,27 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                   | Default Dimensions | Context Length |
-| ----------------------- | ------------------ | -------------- |
-| `voyage-4-large`        | 1024               | 32,000         |
-| `voyage-4`              | 1024               | 32,000         |
-| `voyage-4-lite`         | 1024               | 32,000         |
-| `voyage-4-nano`         | 1024               | 32,000         |
-| `voyage-code-3.5`       | 1024               | 32,000         |
-| `voyage-code-3`         | 1024               | 32,000         |
-| `voyage-3-large`        | 1024               | 32,000         |
-| `voyage-3.5`            | 1024               | 32,000         |
-| `voyage-3.5-lite`       | 1024               | 32,000         |
-| `voyage-3`              | 1024               | 32,000         |
-| `voyage-3-lite`         | 512                | 32,000         |
-| `voyage-finance-2`      | 1024               | 32,000         |
-| `voyage-multilingual-2` | 1024               | 32,000         |
-| `voyage-law-2`          | 1024               | 16,000         |
-| `voyage-code-2`         | 1536               | 16,000         |
+{/* model-capabilities:voyage-embedding:start */}
+
+| Model                   | Default Dimensions | Context Length | Custom Dimensions | Max Values per Call |
+| ----------------------- | ------------------ | -------------- | ----------------- | ------------------- |
+| `voyage-4-large`        | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4`              | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4-lite`         | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-4-nano`         | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-code-3.5`       | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-code-3`         | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3-large`        | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3.5`            | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3.5-lite`       | 1024               | 32,000         | <Check />         | 128                 |
+| `voyage-3`              | 1024               | 32,000         | Unknown           | 128                 |
+| `voyage-3-lite`         | 512                | 32,000         | Unknown           | 128                 |
+| `voyage-finance-2`      | 1024               | 32,000         | Unknown           | 128                 |
+| `voyage-law-2`          | 1024               | 16,000         | Unknown           | 128                 |
+| `voyage-multilingual-2` | 1024               | 32,000         | Unknown           | 128                 |
+| `voyage-code-2`         | 1536               | 16,000         | Unknown           | 128                 |
+
+{/* model-capabilities:voyage-embedding:end */}
 
 <Note>
   The table above lists popular models. Please see the [Voyage AI
@@ -257,11 +261,32 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model             | Context Length |
-| ----------------- | -------------- |
-| `rerank-2.5`      | 32,000         |
-| `rerank-2.5-lite` | 32,000         |
-| `rerank-2`        | 16,000         |
-| `rerank-2-lite`   | 8,000          |
-| `rerank-1`        | 8,000          |
-| `rerank-lite-1`   | 4,000          |
+{/* model-capabilities:voyage-reranking:start */}
+
+| Model             | Context Length | Text Documents | Object Documents | Top N     |
+| ----------------- | -------------- | -------------- | ---------------- | --------- |
+| `rerank-2.5`      | 32,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2.5-lite` | 32,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2`        | 16,000         | <Check />      | <Check />        | <Check /> |
+| `rerank-2-lite`   | 8,000          | <Check />      | <Check />        | <Check /> |
+| `rerank-1`        | 8,000          | <Check />      | <Check />        | <Check /> |
+| `rerank-lite-1`   | 4,000          | <Check />      | <Check />        | <Check /> |
+
+{/* model-capabilities:voyage-reranking:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:voyage-provider-options:start */}
+
+| Operation | Option            | Description     |
+| --------- | ----------------- | --------------- |
+| embedding | `inputType`       | inputType       |
+| embedding | `truncation`      | truncation      |
+| embedding | `outputDimension` | outputDimension |
+| embedding | `outputDtype`     | outputDtype     |
+| reranking | `returnDocuments` | returnDocuments |
+| reranking | `truncation`      | truncation      |
+
+{/* model-capabilities:voyage-provider-options:end */}
