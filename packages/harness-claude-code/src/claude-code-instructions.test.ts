@@ -5,6 +5,9 @@ import type {
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -50,7 +53,11 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }
     close(): void {}
   }
-  return { ...actual, SandboxChannel: FakeSandboxChannel };
+  return {
+    ...actual,
+    SandboxChannel: FakeSandboxChannel,
+    readMacOSKeychainPassword: async () => undefined,
+  };
 });
 
 // eslint-disable-next-line import/first
@@ -130,7 +137,8 @@ function lastStart(): Record<string, unknown> {
 const INSTRUCTIONS = 'Use turbo build --concurrency=4.';
 
 describe('claude-code adapter — instructions transport', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.stubEnv('CLAUDE_CONFIG_DIR', await mkdtemp(join(tmpdir(), 'claude-')));
     sentMessages.length = 0;
     openCalls.length = 0;
     listenerAttachmentsStarted = 0;
