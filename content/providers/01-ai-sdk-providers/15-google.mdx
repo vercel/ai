@@ -2514,6 +2514,10 @@ the provider passes those bytes through unchanged. Older models return raw PCM,
 which the provider wraps in a WAV container. Write `result.audio.uint8Array`
 directly to disk without adding another WAV header.
 
+Set `language` to a supported BCP-47 language code, such as `en-US`. The provider
+forwards it as `speechConfig.languageCode`. When omitted, Gemini detects the
+language from the input text.
+
 Gemini 3.8 supports the following `outputFormat` values:
 
 | Format | Values                 | Result                       |
@@ -2614,9 +2618,8 @@ Older models continue to use labelled transcripts, such as
 `multiSpeakerVoiceConfig` and without `turns`.
 
 <Note>
-  Gemini TTS models do not support the `speed` or `language` options; passing
-  them adds a warning to `result.warnings`. Language is detected automatically
-  from the input text.
+  Gemini TTS models do not support the `speed` option; passing it adds a warning
+  to `result.warnings`.
 </Note>
 
 ### Model Capabilities

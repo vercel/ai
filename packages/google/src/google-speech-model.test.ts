@@ -294,7 +294,7 @@ describe('doGenerate', () => {
     );
   });
 
-  it('should warn for unsupported speed and language options', async () => {
+  it('should warn for the unsupported speed option', async () => {
     prepareJsonResponse();
 
     const result = await model.doGenerate({
@@ -306,9 +306,27 @@ describe('doGenerate', () => {
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ type: 'unsupported', feature: 'speed' }),
     );
-    expect(result.warnings).toContainEqual(
+    expect(result.warnings).not.toContainEqual(
       expect.objectContaining({ type: 'unsupported', feature: 'language' }),
     );
+  });
+
+  it('should map language onto single-speaker speechConfig', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+      language: 'en-US',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        speechConfig: {
+          languageCode: 'en-US',
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
+    });
   });
 
   it('should prepend instructions to the prompt text', async () => {
@@ -344,6 +362,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Joe: Hi. Jane: Hello.',
+      language: 'en-US',
       providerOptions: { google: { multiSpeakerVoiceConfig } },
     });
 
@@ -352,7 +371,10 @@ describe('doGenerate', () => {
       contents: [{ role: 'user', parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
-        speechConfig: { multiSpeakerVoiceConfig },
+        speechConfig: {
+          languageCode: 'en-US',
+          multiSpeakerVoiceConfig,
+        },
       },
     });
   });
