@@ -3248,6 +3248,8 @@ is supported.
 
 ## Realtime Models
 
+OpenAI Realtime also supports trusted [server-owned connections](/docs/ai-sdk-core/realtime#server-owned-connections) through `getServerWebSocketConfig({ intent })`, with conversation and transcription intents and normalized completion usage. Use the same intent for connection setup and event serialization. OpenAI Live retains its conversation-only server connection API and duration snapshots.
+
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 Use `.experimental_realtime()` for both [OpenAI Realtime](https://platform.openai.com/docs/guides/realtime)
