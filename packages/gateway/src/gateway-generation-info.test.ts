@@ -271,25 +271,28 @@ describe('GatewayGenerationInfoFetcher', () => {
       expect(result.providerName).toBe('anthropic');
     });
 
-    it('should default marketCost to 0 when market_cost is absent from the response', async () => {
-      server.urls['https://api.example.com/*'].response = {
-        type: 'json-value',
-        body: {
-          data: {
-            ...mockGenerationResponse.data,
-            market_cost: undefined,
+    it.each([undefined, null])(
+      'should omit unavailable marketCost (%s)',
+      async marketCost => {
+        server.urls['https://api.example.com/*'].response = {
+          type: 'json-value',
+          body: {
+            data: {
+              ...mockGenerationResponse.data,
+              market_cost: marketCost,
+            },
           },
-        },
-      };
+        };
 
-      const fetcher = createFetcher();
-      const result = await fetcher.getGenerationInfo({
-        id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
-      });
+        const fetcher = createFetcher();
+        const result = await fetcher.getGenerationInfo({
+          id: 'gen_01ARZ3NDEKTSV4RRFFQ69G5FAV',
+        });
 
-      expect(result.marketCost).toBe(0);
-      expect(result.surchargeCost).toBe(0.00013);
-      expect(result.gatewayCost).toBe(0.00123);
-    });
+        expect(result).not.toHaveProperty('marketCost');
+        expect(result.surchargeCost).toBe(0.00013);
+        expect(result.gatewayCost).toBe(0.00123);
+      },
+    );
   });
 });

@@ -22,11 +22,11 @@ export interface GatewayGenerationInfo {
   /** Total cost in USD */
   totalCost: number;
   /** Cost at undiscounted market rates in USD, excluding surcharges */
-  marketCost: number;
+  marketCost?: number;
   /** Total surcharges applied in USD */
-  surchargeCost: number;
+  surchargeCost?: number;
   /** Total amount debited in USD (same as totalCost) */
-  gatewayCost: number;
+  gatewayCost?: number;
   /** Upstream inference cost in USD (BYOK only) */
   upstreamInferenceCost: number;
   /** Usage cost in USD (same as totalCost) */
@@ -101,7 +101,7 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
           .object({
             id: z.string(),
             total_cost: z.number(),
-            market_cost: z.number().optional(),
+            market_cost: z.number().nullish(),
             surcharge_cost: z.number(),
             gateway_cost: z.number(),
             upstream_inference_cost: z.number(),
@@ -143,7 +143,7 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             }) => ({
               ...rest,
               totalCost: total_cost,
-              marketCost: market_cost ?? 0,
+              ...(market_cost != null ? { marketCost: market_cost } : {}),
               surchargeCost: surcharge_cost,
               gatewayCost: gateway_cost,
               upstreamInferenceCost: upstream_inference_cost,
