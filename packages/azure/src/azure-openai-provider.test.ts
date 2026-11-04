@@ -2256,6 +2256,218 @@ describe('responses', () => {
       );
     });
 
+    describe('shell tool', () => {
+      type Mode = 'local' | 'containerAuto' | 'containerReference';
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+      const call = {
+        id: 'sh_test',
+        type: 'shell_call',
+        status: 'completed',
+        call_id: 'call_test',
+        action: {
+          commands: ['printf azure-shell'],
+          timeout_ms: 1000,
+          max_output_length: 1000,
+        },
+      };
+      const input = {
+        action: {
+          commands: call.action.commands,
+          timeoutMs: 1000,
+          maxOutputLength: 1000,
+        },
+      };
+      const output = {
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exitCode: 0 },
+          },
+        ],
+      };
+      const nativeOutput = {
+        type: 'shell_call_output',
+        call_id: call.call_id,
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exit_code: 0 },
+          },
+        ],
+      };
+      const tools = (mode: Mode): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.shell',
+          name: 'shell',
+          args: {
+            environment:
+              mode === 'local'
+                ? {
+                    type: 'local',
+                    skills: [
+                      {
+                        name: 'test',
+                        description: 'Test',
+                        path: '/skills/test',
+                      },
+                    ],
+                  }
+                : mode === 'containerAuto'
+                  ? { type: 'containerAuto' }
+                  : { type: 'containerReference', containerId: 'cntr_test' },
+          },
+        },
+      ];
+      const response = {
+        id: 'resp_test',
+        created_at: 1764713372,
+        model: 'test-deployment',
+        output: [call],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+
+      it('should expose the shared Azure shell factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.shell({
+            execute: async () => ({ output: [] }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.shell' });
+      });
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should serialize %s and retain Azure metadata when generating',
+        async mode => {
+          server.urls[url].response = { type: 'json-value', body: response };
+          const result = await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          expect((await server.calls[0].requestBodyJson).tools).toEqual([
+            {
+              type: 'shell',
+              environment:
+                mode === 'local'
+                  ? {
+                      type: 'local',
+                      skills: [
+                        {
+                          name: 'test',
+                          description: 'Test',
+                          path: '/skills/test',
+                        },
+                      ],
+                    }
+                  : mode === 'containerAuto'
+                    ? { type: 'container_auto' }
+                    : {
+                        type: 'container_reference',
+                        container_id: 'cntr_test',
+                      },
+            },
+          ]);
+          const toolCall = result.content.find(
+            part => part.type === 'tool-call',
+          );
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should retain Azure metadata and execution mode for %s streams',
+        async mode => {
+          const events = [
+            { type: 'response.created', response: { ...response, output: [] } },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...call, status: 'in_progress' },
+            },
+            { type: 'response.output_item.done', output_index: 0, item: call },
+            { type: 'response.completed', response },
+          ];
+          server.urls[url].response = {
+            type: 'stream-chunks',
+            chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+          };
+          const { stream } = await createModel('test-deployment').doStream({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          const parts = await convertReadableStreamToArray(stream);
+          const toolCall = parts.find(part => part.type === 'tool-call');
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each([
+        { store: true, hosted: false },
+        { store: false, hosted: false },
+        { store: true, hosted: true },
+        { store: false, hosted: true },
+      ])(
+        'should round-trip shell results with $store storage and hosted=$hosted',
+        async ({ store, hosted }) => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools: tools(hosted ? 'containerAuto' : 'local'),
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    input,
+                    providerExecuted: hosted,
+                    providerOptions: { azure: { itemId: call.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    output: { type: 'json', value: output },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store ? { type: 'item_reference', id: call.id } : call,
+            nativeOutput,
+          ]);
+        },
+      );
+    });
+
     describe('tool search tool', () => {
       it('should expose toolSearch as an Azure tool', () => {
         expect(

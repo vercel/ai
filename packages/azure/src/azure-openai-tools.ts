@@ -4,6 +4,7 @@ import {
   customTool,
   fileSearch,
   imageGeneration,
+  shell,
   toolSearch,
   webSearch,
   webSearchPreview,
@@ -15,6 +16,7 @@ export const azureOpenaiTools: {
   customTool: typeof customTool;
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
+  shell: typeof shell;
   toolSearch: typeof toolSearch;
   webSearch: typeof webSearch;
   /**
@@ -27,6 +29,7 @@ export const azureOpenaiTools: {
   customTool,
   fileSearch,
   imageGeneration,
+  shell,
   toolSearch,
   webSearch,
   webSearchPreview,

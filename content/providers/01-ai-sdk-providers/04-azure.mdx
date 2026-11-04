@@ -888,6 +888,199 @@ Your execute function must return:
 - **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
 - **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
 
+#### Shell Tool
+
+Configure the shell tool for Azure Responses models with `azure.tools.shell`.
+Availability of shell execution, hosted containers, container references, and skills
+depends on your model deployment, region, and API version. See the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
+The shell tool allows running bash commands and interacting with a command line.
+The model proposes shell commands; your application executes them in local mode,
+while the Azure OpenAI service executes them in hosted mode.
+
+<Note type="warning">
+  Running arbitrary shell commands can be dangerous. Always sandbox execution or
+  add strict allow-/deny-lists before forwarding a command to the system shell.
+</Note>
+
+The shell tool supports three environment modes that control where commands are executed:
+
+##### Local Execution (default)
+
+When no `environment` is specified (or `type: 'local'` is used), commands are executed locally via your `execute` callback.
+Connect it to your sandbox; the placeholder below returns a failed result without executing commands:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      execute: async ({ action }) => {
+        // Replace this placeholder with your sandbox integration.
+        return {
+          output: action.commands.map(() => ({
+            stdout: '',
+            stderr: 'No sandbox executor configured.',
+            outcome: { type: 'exit' as const, exitCode: 1 },
+          })),
+        };
+      },
+    }),
+  },
+  prompt: 'List the files in the current directory and show disk usage.',
+  stopWhen: isStepCount(5),
+});
+```
+
+##### Hosted Container (auto)
+
+Set `environment.type` to `'containerAuto'` to run commands in a container hosted by the Azure OpenAI service. No `execute` callback is needed — Azure OpenAI handles execution server-side:
+
+<Note type="warning">
+  The Azure OpenAI Responses API shell tool currently does not support
+  `networkPolicy`. The shared factory accepts and forwards this option, so check
+  your deployment's service support before using it.
+</Note>
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        // optional configuration:
+        memoryLimit: '4g',
+        fileIds: ['assistant-abc123'],
+      },
+    }),
+  },
+  prompt: 'Install numpy and compute the eigenvalues of a 3x3 matrix.',
+});
+```
+
+The `containerAuto` environment supports:
+
+- **fileIds** _string[]_ - File IDs to make available in the container
+- **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ - Memory limit for the container
+
+##### Existing Container Reference
+
+Set `environment.type` to `'containerReference'` to use an existing container by ID:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerReference',
+        containerId: 'cntr_abc123',
+      },
+    }),
+  },
+  prompt: 'Check the status of running processes.',
+});
+```
+
+##### Execute Callback
+
+For local execution (default or `type: 'local'`), your execute function must return an output array with results for each command:
+
+- **stdout** _string_ - Standard output from the command
+- **stderr** _string_ - Standard error from the command
+- **outcome** - Either `{ type: 'timeout' }` or `{ type: 'exit', exitCode: number }`
+
+##### Skills
+
+[Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
+
+<Note type="warning">
+  Azure skill-ID resolution is not implemented by the shared shell adapter. Use
+  local skill directories or inline archives instead of OpenAI platform skill
+  references.
+</Note>
+
+**Local skills** point to a directory on disk containing a `SKILL.md` file:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+import { resolve } from 'node:path';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      execute: async ({ action }) => {
+        // Replace this placeholder with your sandbox integration.
+        return {
+          output: action.commands.map(() => ({
+            stdout: '',
+            stderr: 'No sandbox executor configured.',
+            outcome: { type: 'exit' as const, exitCode: 1 },
+          })),
+        };
+      },
+      environment: {
+        type: 'local',
+        skills: [
+          {
+            name: 'my-skill',
+            description: 'What this skill does',
+            path: resolve('path/to/skill-directory'),
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+  stopWhen: isStepCount(5),
+});
+```
+
+**Inline container skills** provide a ZIP archive containing the skill's `SKILL.md`
+and supporting files. For a deployment that supports hosted shell skills:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        skills: [
+          {
+            type: 'inline',
+            name: 'my-skill',
+            description: 'What this skill does',
+            source: {
+              type: 'base64',
+              mediaType: 'application/zip',
+              data: readFileSync('my-skill.zip').toString('base64'),
+            },
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+});
+```
+
 #### Tool Search Tool
 
 The Azure OpenAI provider supports [tool search](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/tool-search) through the `azure.tools.toolSearch` tool.
