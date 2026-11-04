@@ -2501,6 +2501,49 @@ The following optional provider options are available for OpenAI chat models:
 
   Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
+#### Message Names
+
+Chat Completions accepts an optional participant name on each system, developer,
+user, or assistant message. Set `providerOptions.openai.name` on the message to
+help the model distinguish participants with the same role. Use pseudonyms instead
+of personal identifiers when possible; names are sent to the provider with the
+message.
+
+```ts
+import { openai, type OpenAIChatMessageProviderOptions } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.chat('gpt-4.1-mini'),
+  messages: [
+    {
+      role: 'user',
+      content: 'My favorite color is blue.',
+      providerOptions: {
+        openai: { name: 'alice' } satisfies OpenAIChatMessageProviderOptions,
+      },
+    },
+    {
+      role: 'user',
+      content: 'My favorite color is green. What are our favorite colors?',
+      providerOptions: {
+        openai: { name: 'bob' } satisfies OpenAIChatMessageProviderOptions,
+      },
+    },
+  ],
+});
+```
+
+Names also work with `streamText`. Configure them on the message, rather than on
+individual content parts or in the call-level provider options. Non-string values
+are rejected during provider option validation. Tool messages do not support
+participant names: a configured name is omitted with an `unsupported` warning.
+
+This option applies to Chat Completions through `openai.chat()`, including Azure
+Chat models using `providerOptions.openai.name`. The default OpenAI Responses
+model does not support message names. A name identifies a conversation participant;
+it is separate from the call-level `user` and `safetyIdentifier` options.
+
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
