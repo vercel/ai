@@ -209,17 +209,36 @@ describe('parseOpenAIRealtimeServerEvent', () => {
 });
 
 describe('buildOpenAISessionConfig', () => {
+  it.each([
+    { voice: 'alloy' },
+    { instructions: 'hello' },
+    { tools: [] },
+    { outputModalities: ['audio'] as const },
+  ])('rejects unsupported transcription configuration: %j', config => {
+    expect(() =>
+      buildOpenAISessionConfig(
+        {
+          ...config,
+          outputModalities:
+            'outputModalities' in config ? ['audio'] : undefined,
+        },
+        'gpt-realtime-whisper',
+        { intent: 'transcription' },
+      ),
+    ).toThrow(/transcription sessions do not support/);
+  });
+
   it('builds a dedicated transcription session with the selected model id', () => {
     const result = buildOpenAISessionConfig(
       {
         inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
         inputAudioTranscription: {
-          model: 'ignored-override',
+          model: 'gpt-realtime-whisper',
           language: 'en',
           prompt: 'Medical vocabulary.',
         },
       },
-      'gpt-realtime-whisper',
+      'gpt-realtime',
       { intent: 'transcription' },
     );
 

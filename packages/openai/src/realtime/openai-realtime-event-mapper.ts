@@ -446,6 +446,21 @@ export function buildOpenAISessionConfig(
 ): Record<string, unknown> {
   const intent = options?.intent ?? 'conversation';
   assertSupportedOpenAIIntent(intent);
+  if (intent === 'transcription') {
+    for (const key of [
+      'instructions',
+      'voice',
+      'outputModalities',
+      'outputAudioFormat',
+      'outputAudioTranscription',
+      'tools',
+    ] as const) {
+      if (config[key] != null)
+        throw new Error(
+          `OpenAI realtime transcription sessions do not support '${key}'.`,
+        );
+    }
+  }
 
   const session: Record<string, unknown> = {
     type: intent === 'transcription' ? 'transcription' : 'realtime',
@@ -504,7 +519,7 @@ export function buildOpenAISessionConfig(
 
     if (intent === 'transcription') {
       input.transcription = {
-        model: modelId,
+        model: config.inputAudioTranscription?.model ?? modelId,
         ...(config.inputAudioTranscription?.language != null
           ? { language: config.inputAudioTranscription.language }
           : {}),
