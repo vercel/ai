@@ -94,6 +94,7 @@ describe('GatewayRealtimeModel', () => {
         provider: 'gateway.realtime',
         baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
         createClientSecret,
+        getHeaders: async () => ({}),
       });
 
       const result = await model.doCreateClientSecret({
