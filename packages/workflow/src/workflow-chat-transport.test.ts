@@ -1075,6 +1075,195 @@ describe('WorkflowChatTransport', () => {
     });
   });
 
+  describe('terminal reconnection stopping', () => {
+    function response(...chunks: UIMessageChunk[]) {
+      return new Response(
+        chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join(''),
+        { headers: { 'x-workflow-run-id': 'test-run' } },
+      );
+    }
+
+    it('stops after an interrupted POST without a forged finish chunk or reconnect request', async () => {
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        stopWhen: () => true,
+        onChatEnd,
+      });
+      mockFetch.mockResolvedValueOnce(response());
+
+      const stream = await transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'test-chat',
+        messages: [],
+      });
+
+      await expect(stream.getReader().read()).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('prevents future reconnect requests after an unfinished reconnect stream', async () => {
+      let stopRequested = false;
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        stopWhen: () => stopRequested,
+        onChatEnd,
+      });
+      mockFetch.mockImplementation(async () => {
+        if (mockFetch.mock.calls.length > 1) {
+          throw new Error('Unexpected reconnect request after terminal stop');
+        }
+        return response({ type: 'start-step' });
+      });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const reader = stream!.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'start-step' },
+      });
+      stopRequested = true;
+      await expect(reader.read()).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('takes precedence over maxConsecutiveErrors', async () => {
+      let stopRequested = false;
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 1,
+        stopWhen: () => stopRequested,
+      });
+      mockFetch.mockImplementation(async () => {
+        stopRequested = true;
+        return response();
+      });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+
+      await expect(stream!.getReader().read()).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('takes precedence while reconnect request preparation is pending', async () => {
+      let stopRequested = false;
+      let finishPreparingRequest!: () => void;
+      const requestPreparation = new Promise<void>(resolve => {
+        finishPreparingRequest = resolve;
+      });
+      let markRequestPreparationStarted!: () => void;
+      const requestPreparationStarted = new Promise<void>(resolve => {
+        markRequestPreparationStarted = resolve;
+      });
+      const prepareReconnectToStreamRequest = vi.fn(async () => {
+        markRequestPreparationStarted();
+        await requestPreparation;
+        return {};
+      });
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        stopWhen: () => stopRequested,
+        prepareReconnectToStreamRequest,
+      });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const readPromise = stream!.getReader().read();
+
+      await requestPreparationStarted;
+      stopRequested = true;
+      finishPreparingRequest();
+
+      await expect(readPromise).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+      expect(prepareReconnectToStreamRequest).toHaveBeenCalledOnce();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('takes precedence when a pending reconnect fetch settles', async () => {
+      let stopRequested = false;
+      let finishFetch!: (response: Response) => void;
+      const pendingResponse = new Promise<Response>(resolve => {
+        finishFetch = resolve;
+      });
+      let markFetchStarted!: () => void;
+      const fetchStarted = new Promise<void>(resolve => {
+        markFetchStarted = resolve;
+      });
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        stopWhen: () => stopRequested,
+        onChatEnd,
+      });
+      mockFetch.mockImplementation(() => {
+        markFetchStarted();
+        return pendingResponse;
+      });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const readPromise = stream!.getReader().read();
+
+      await fetchStarted;
+      expect(mockFetch).toHaveBeenCalledOnce();
+      stopRequested = true;
+      finishFetch(response({ type: 'finish' }));
+
+      await expect(readPromise).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+      expect(onChatEnd).not.toHaveBeenCalled();
+    });
+
+    it('preserves the default finish lifecycle when stopWhen is omitted', async () => {
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        onChatEnd,
+      });
+      mockFetch.mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+      const reader = stream!.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({ done: true });
+      expect(onChatEnd).toHaveBeenCalledExactlyOnceWith({
+        chatId: 'test-chat',
+        chunkIndex: 1,
+      });
+    });
+  });
+
   describe('reconnection error formatting', () => {
     it('should format object errors with JSON instead of [object Object]', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
