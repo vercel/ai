@@ -18,6 +18,7 @@ export const cerebrasProviderOptions = {
     },
     logitBias: { description: 'Bias token selection by token ID.' },
     serviceTier: { description: 'Request processing tier.' },
+    queueThreshold: { description: 'Maximum acceptable flex queue time.' },
     reasoningEffort: {
       description: 'Reasoning effort for configurable models.',
     },
@@ -70,6 +71,9 @@ function createLanguageModelEntry(image?: boolean): CerebrasLanguageModelEntry {
           },
           serviceTier: {
             condition: 'Availability depends on the account and endpoint.',
+          },
+          queueThreshold: {
+            condition: 'Requires a flex/auto tier on a supported endpoint.',
           },
           reasoningEffort:
             image != null

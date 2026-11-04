@@ -188,6 +188,12 @@ The following optional provider options are available for Cerebras language mode
 
   Controls request priority. Availability depends on your account and endpoint.
 
+  When the API returns the effective tier, it is surfaced on `result.providerMetadata.cerebras.serviceTier`.
+
+- **queueThreshold** _number_
+
+  Maximum acceptable queue time, in milliseconds, for `flex`/`auto` requests. Sent as the `queue_threshold` header. Valid range: `50`–`20000`.
+
 - **reasoningEffort** _'none' | 'low' | 'medium' | 'high'_
 
   Controls the amount of reasoning performed by supported models. Supported values and defaults depend on the model.
