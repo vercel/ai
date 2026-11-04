@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: { anthropic: { includePings: true } },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'ping') {
       console.log('[provider heartbeat]');
     } else if (part.type === 'text-delta') {

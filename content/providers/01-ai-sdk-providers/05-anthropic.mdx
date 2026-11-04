@@ -257,7 +257,7 @@ const result = streamText({
   providerOptions: { anthropic: { includePings: true } },
 });
 
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'ping') console.log('Provider is still connected.');
 }
 ```
@@ -265,7 +265,10 @@ for await (const part of result.fullStream) {
 Pings are transient stream events. They do not contain generated output, change
 usage, reset model-output timeouts, or become response content. They are omitted
 from text projections and UI message streams. Raw pings remain available through
-`include.rawChunks` independently of this option.
+`include.rawChunks` independently of this option. Workflow durable streams record stream parts, including
+pings, even though pings are excluded from generated content and UI messages.
+This option applies to the Anthropic Messages implementation (including wrappers
+that use it); Amazon Bedrock Converse does not emit typed Anthropic pings.
 
 Enable this option only when all normalized stream consumers support the `ping`
 part. In particular, a Gateway server must negotiate support before forwarding
@@ -276,7 +279,7 @@ UI responses; applications can send SSE comments at their transport boundary.
 
 The following optional provider options are available for Anthropic models:
 
-- **includePings** _boolean_
+- `includePings` _boolean_
 
   Optional. Defaults to `false`. Emit typed `ping` parts during streaming without
   enabling raw chunks. See [Streaming heartbeats](#streaming-heartbeats).
