@@ -149,7 +149,10 @@ describe('doGenerate', () => {
           },
         },
       ],
-      tool_choice: 'any',
+      tool_choice: {
+        type: 'function',
+        function: { name: 'test-tool' },
+      },
     });
   });
 
