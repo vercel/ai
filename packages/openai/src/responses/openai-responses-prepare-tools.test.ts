@@ -718,6 +718,44 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
+    it('should combine a memory limit with an allowlist without domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toStrictEqual([
+        {
+          type: 'code_interpreter',
+          container: {
+            type: 'auto',
+            file_ids: undefined,
+            memory_limit: '4g',
+            network_policy: {
+              type: 'allowlist',
+              allowed_domains: ['example.com'],
+              domain_secrets: undefined,
+            },
+          },
+        },
+      ]);
+    });
+
     it('should prepare code interpreter tool with network policy allowlist and domain secrets', async () => {
       const result = await prepareResponsesTools({
         tools: [
