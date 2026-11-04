@@ -129,17 +129,8 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
     start.model && hasGatewayAuth && !start.model.includes('/')
       ? `openai/${start.model}`
       : start.model;
-  /*
-   * AI Gateway only returns populated reasoning summaries for its
-   * creator-qualified model IDs. Codex treats qualified IDs as custom model
-   * metadata, so its reasoning-summary capability is also enabled by default
-   * for the OpenAI Gateway route.
-   */
   const codexConfig: Record<string, unknown> = {
     model_reasoning_summary: 'detailed',
-    ...(hasGatewayAuth && codexModel?.startsWith('openai/')
-      ? { model_supports_reasoning_summaries: true }
-      : {}),
     ...start.codexConfig,
     developer_instructions: [
       start.instructions,

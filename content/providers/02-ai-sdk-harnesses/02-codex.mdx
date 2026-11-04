@@ -103,13 +103,13 @@ Settings:
 - `codexConfig`: additional native Codex configuration. Values pass through as
   provided, so use the snake_case keys from Codex's `config.toml` reference.
   The adapter's managed values take precedence over conflicting entries.
-  Reasoning-summary settings are overridable defaults: `model_reasoning_summary`
-  defaults to `'detailed'`, and `model_supports_reasoning_summaries` defaults to
-  `true` for `openai/`-prefixed AI Gateway models. Set
+  The `model_reasoning_summary` default of `'detailed'` can be overridden. Set
   `model_reasoning_summary: 'none'` to disable summaries, or use another native
-  Codex summary setting such as `'concise'`. For custom model IDs such as
-  `@cf/openai/gpt-oss-120b`, explicitly set
-  `model_supports_reasoning_summaries: true` if the model supports summaries.
+  Codex summary setting such as `'concise'`. Summary support is determined by
+  native Codex model metadata. Codex 0.165.0 already enables summary requests in
+  its fallback metadata for unknown model IDs, including custom IDs such as
+  `@cf/openai/gpt-oss-120b`; `model_supports_reasoning_summaries` is not a supported
+  native configuration key.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `reasoningEffort`: `low`, `medium`, `high`, `xhigh`, or `max`.
 - `webSearch`: allow live web search.

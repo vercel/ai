@@ -2,4 +2,4 @@
 '@ai-sdk/harness-codex': patch
 ---
 
-Honor caller-provided `codexConfig.model_reasoning_summary` and `model_supports_reasoning_summaries` instead of overwriting them with adapter defaults. Callers can disable or customize summaries and explicitly configure reasoning-summary support for custom model IDs.
+Honor caller-provided `codexConfig.model_reasoning_summary` instead of overwriting it with the adapter default. Callers can disable summaries with `'none'` or customize them with settings such as `'concise'`. Remove an ineffective reasoning-capability override; support is determined by native Codex model metadata.

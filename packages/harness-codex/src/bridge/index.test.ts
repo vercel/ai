@@ -251,66 +251,28 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  test.each([
-    { model: 'gpt-5.5', gateway: false, summary: 'none', supports: undefined },
-    {
-      model: 'openai/gpt-5.5',
-      gateway: true,
-      summary: 'none',
-      supports: undefined,
-    },
-    {
-      model: 'openai/gpt-5.5',
-      gateway: true,
-      summary: 'concise',
-      supports: undefined,
-    },
-    {
-      model: 'gpt-5.5',
-      gateway: true,
-      summary: 'none',
-      supports: false,
-    },
-    {
-      model: 'openai/gpt-5.5',
-      gateway: true,
-      summary: 'concise',
-      supports: false,
-    },
-    {
-      model: '@cf/openai/gpt-oss-20b',
-      gateway: true,
-      summary: 'none',
-      supports: undefined,
-    },
-    {
-      model: '@cf/openai/gpt-oss-120b',
-      gateway: true,
-      summary: 'none',
-      supports: undefined,
-    },
-    {
-      model: '@cf/openai/gpt-oss-20b',
-      gateway: true,
-      summary: 'none',
-      supports: true,
-    },
-    {
-      model: '@cf/openai/gpt-oss-120b',
-      gateway: true,
-      summary: 'none',
-      supports: true,
-    },
-  ])(
-    'respects caller reasoning summary $summary for $model (support override $supports)',
-    async ({ model, gateway, summary, supports }) => {
+  test.each(
+    [
+      { model: 'gpt-5.5', gateway: false },
+      { model: 'gpt-5.5', gateway: true },
+      { model: 'openai/gpt-5.5', gateway: true },
+      { model: '@cf/openai/gpt-oss-20b', gateway: true },
+      { model: '@cf/openai/gpt-oss-120b', gateway: true },
+    ].flatMap(({ model, gateway }) =>
+      [undefined, 'none', 'concise', 'detailed'].map(summary => ({
+        model,
+        gateway,
+        summary,
+      })),
+    ),
+  )(
+    'respects reasoning summary $summary for $model (gateway $gateway)',
+    async ({ model, gateway, summary }) => {
       state.startModel = model;
-      state.startCodexConfig = {
-        model_reasoning_summary: summary,
-        ...(supports === undefined
-          ? {}
-          : { model_supports_reasoning_summaries: supports }),
-      };
+      state.startCodexConfig =
+        summary === undefined
+          ? undefined
+          : { model_reasoning_summary: summary };
       if (gateway) {
         process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
       }
@@ -320,9 +282,8 @@ describe('Codex bridge config', () => {
       expect(state.emittedErrors).toEqual([]);
       expect(state.appServerOptions).toHaveLength(1);
       const actual = state.appServerOptions[0]!;
-      expect(actual.codexConfig.model_reasoning_summary).toBe(summary);
-      expect(actual.codexConfig.model_supports_reasoning_summaries).toBe(
-        supports ?? (gateway && model.startsWith('openai/') ? true : undefined),
+      expect(actual.codexConfig.model_reasoning_summary).toBe(
+        summary ?? 'detailed',
       );
     },
   );
@@ -453,14 +414,10 @@ describe('Codex bridge config', () => {
       model: state.appServerOptions[0]?.codexModel,
       reasoningSummary:
         state.appServerOptions[0]?.codexConfig.model_reasoning_summary,
-      supportsReasoningSummaries:
-        state.appServerOptions[0]?.codexConfig
-          .model_supports_reasoning_summaries,
     }).toMatchInlineSnapshot(`
       {
         "model": "openai/gpt-5.5",
         "reasoningSummary": "detailed",
-        "supportsReasoningSummaries": true,
       }
     `);
   });
