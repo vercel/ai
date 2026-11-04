@@ -41,6 +41,9 @@ type GoogleRealtimeUsageMetadata = {
   promptTokenCount?: number;
   responseTokenCount?: number;
   totalTokenCount?: number;
+  toolUsePromptTokenCount?: number;
+  thoughtsTokenCount?: number;
+  cachedContentTokenCount?: number;
   promptTokensDetails?: GoogleRealtimeTokenDetail[];
   responseTokensDetails?: GoogleRealtimeTokenDetail[];
 };
@@ -517,8 +520,17 @@ function mapGoogleUsage(
   const output = sumByModality(usageMetadata.responseTokensDetails);
 
   return compactUsage({
-    inputTokens: usageMetadata.promptTokenCount,
-    outputTokens: usageMetadata.responseTokenCount,
+    inputTokens:
+      usageMetadata.promptTokenCount != null
+        ? usageMetadata.promptTokenCount +
+          (usageMetadata.toolUsePromptTokenCount ?? 0)
+        : undefined,
+    outputTokens:
+      usageMetadata.responseTokenCount != null
+        ? usageMetadata.responseTokenCount +
+          (usageMetadata.thoughtsTokenCount ?? 0)
+        : undefined,
+    cachedInputTokens: usageMetadata.cachedContentTokenCount,
     inputTextTokens: input.text,
     inputAudioTokens: input.audio,
     outputTextTokens: output.text,

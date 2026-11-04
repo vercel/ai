@@ -1790,6 +1790,46 @@ describe('buildGoogleSessionConfig', () => {
 });
 
 describe('GoogleRealtimeEventMapper usage', () => {
+  it('includes reported thinking, tool-use and cache counts without changing modality subsets', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const result = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+      usageMetadata: {
+        promptTokenCount: 30,
+        responseTokenCount: 9,
+        toolUsePromptTokenCount: 3,
+        thoughtsTokenCount: 7,
+        cachedContentTokenCount: 8,
+        promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 30 }],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 9 }],
+      },
+    });
+    const events = Array.isArray(result) ? result : [result];
+    expect(events.find(event => event.type === 'response-done')).toMatchObject({
+      usage: {
+        inputTokens: 33,
+        outputTokens: 16,
+        cachedInputTokens: 8,
+        inputAudioTokens: 30,
+        outputAudioTokens: 9,
+      },
+    });
+  });
+
+  it('does not invent gross totals from partial thinking or tool-use counts', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const event = mapper.parseServerEvent({
+      usageMetadata: {
+        toolUsePromptTokenCount: 3,
+        thoughtsTokenCount: 7,
+        cachedContentTokenCount: 0,
+      },
+    });
+    expect(event).toMatchObject({ usage: { cachedInputTokens: 0 } });
+    expect('usage' in event && event.usage).not.toHaveProperty('inputTokens');
+    expect('usage' in event && event.usage).not.toHaveProperty('outputTokens');
+  });
+
   it('preserves totals and known zeros without inventing missing modality counts', () => {
     const mapper = new GoogleRealtimeEventMapper();
     const event = mapper.parseServerEvent({
