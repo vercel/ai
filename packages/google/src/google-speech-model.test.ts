@@ -670,6 +670,7 @@ describe.each(modernModels)('%s', modelId => {
     prepareResponse();
     const result = await modernModel.doGenerate({
       text: '',
+      language: 'de-DE',
       instructions: 'speaking slowly',
       providerOptions: {
         google: {
@@ -699,7 +700,27 @@ describe.each(modernModels)('%s', modelId => {
           ],
         },
       ],
-      generationConfig: { speechConfig: { multiSpeakerVoiceConfig } },
+      generationConfig: {
+        speechConfig: { languageCode: 'de-DE', multiSpeakerVoiceConfig },
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('forwards language alongside a single structured speech voice', async () => {
+    prepareResponse();
+    const result = await modernModel.doGenerate({
+      text: 'Hallo.',
+      language: 'de-DE',
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [{ parts: [{ text: 'Hallo.' }] }],
+      generationConfig: {
+        speechConfig: {
+          languageCode: 'de-DE',
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
     });
     expect(result.warnings).toEqual([]);
   });
