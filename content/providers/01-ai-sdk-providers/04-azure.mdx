@@ -735,7 +735,6 @@ const result = await generateText({
 The code interpreter tool can be configured with:
 
 - **container**: Either:
-
   - a container ID (`string`) to reuse an existing container, or
   - a configuration `object` to create and configure a new container.
 
@@ -744,10 +743,11 @@ The code interpreter tool can be configured with:
   - **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ — Memory limit for the container
 
 <Note type="warning">
-  The `networkPolicy` container option is currently not supported on the
-  Microsoft platform (Azure OpenAI). At this time, Azure OpenAI Code Interpreter
-  does not provide outbound external network access. As a result, outbound
-  networking cannot be enabled or configured via the `networkPolicy` property.
+  The shared `networkPolicy` container option is exposed by
+  `azure.tools.codeInterpreter`, but outbound networking availability is
+  controlled by Azure OpenAI. Check the supported options for your deployment
+  and API version in the [Azure Responses API
+  documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses).
 </Note>
 
 <Note>
