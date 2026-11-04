@@ -1081,6 +1081,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.responseId,
+                ...(value.usageMetadata != null
+                  ? { usage: convertGoogleUsage(value.usageMetadata) }
+                  : {}),
               });
             }
 

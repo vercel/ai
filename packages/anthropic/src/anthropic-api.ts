@@ -1162,6 +1162,7 @@ export const anthropicChunkSchema = lazySchema(() =>
           usage: z.looseObject({
             service_tier: z.string().nullish(),
             input_tokens: z.number(),
+            output_tokens: z.number().nullish(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
           }),
