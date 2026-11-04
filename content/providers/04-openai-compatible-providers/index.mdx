@@ -772,3 +772,50 @@ console.log(providerMetadata.myProvider.customMetrics);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
+
+The adapter accepts arbitrary backend model IDs. The capability reference below leaves backend support unknown; configure support according to the selected provider and model.
+
+## Model Capability Reference
+
+{/* model-capabilities:openai-compatible-language:start */}
+
+| Model              | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `configured model` | Unknown     | Unknown           | Unknown    | Unknown        |
+
+{/* model-capabilities:openai-compatible-language:end */}
+
+### Image Capability Reference
+
+{/* model-capabilities:openai-compatible-image:start */}
+
+| Model              | Sizes                                        | Image Editing | Mask Input | Max Images Per Call |
+| ------------------ | -------------------------------------------- | ------------- | ---------- | ------------------- |
+| `configured model` | Depends on the configured backend and model. | Unknown       | Unknown    | 10                  |
+
+{/* model-capabilities:openai-compatible-image:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:openai-compatible-provider-options:start */}
+
+| Operation | Option               | Description                                                                                                                                                                                                    |
+| --------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`               | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| language  | `reasoningEffort`    | Reasoning effort for reasoning models. Defaults to `medium`. Set to `null` to send `"reasoning_effort": null`, for providers that treat an explicit `null` differently from an omitted field.                  |
+| language  | `textVerbosity`      | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                                            |
+| language  | `strictJsonSchema`   | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when the provider supports structured outputs and a schema is provided. |
+| language  | `echo`               | Echo back the prompt in addition to the completion.                                                                                                                                                            |
+| language  | `logitBias`          | Modify the likelihood of specified tokens appearing in the completion. Accepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. |
+| language  | `suffix`             | The suffix that comes after a completion of inserted text.                                                                                                                                                     |
+| embedding | `dimensions`         | The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.                                                                                     |
+| embedding | `user`               | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                          |
+| image     | `size`               | Dimensions of the generated image. Supported values depend on the provider and model.                                                                                                                          |
+| image     | `quality`            | Quality of the generated image. Supported values depend on the provider and model.                                                                                                                             |
+| image     | `output_format`      | File format of the generated image. Supported values depend on the provider and model.                                                                                                                         |
+| image     | `output_compression` | Compression level for JPEG and WebP images.                                                                                                                                                                    |
+| image     | `background`         | Background behavior for the generated image. Supported values depend on the provider and model.                                                                                                                |
+
+{/* model-capabilities:openai-compatible-provider-options:end */}

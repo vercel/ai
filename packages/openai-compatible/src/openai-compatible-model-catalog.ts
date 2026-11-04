@@ -136,3 +136,8 @@ export function getOpenAICompatibleModelEntry(_modelId: string) {
     requestConfig: openaiCompatibleRequestDefaults,
   } satisfies ModelEntry<typeof openaiCompatibleRequestDefaults>;
 }
+
+/** An arbitrary configured model; this adapter does not own a hosted inventory. */
+export const openaiCompatibleModelCatalog = {
+  '*': getOpenAICompatibleModelEntry('*'),
+};
