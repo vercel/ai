@@ -108,6 +108,7 @@ type CodexRuntime = {
 
 function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
   const codexConfig: Record<string, unknown> = {
+    model_reasoning_summary: 'detailed',
     ...start.codexConfig,
     developer_instructions: [
       start.instructions,
@@ -115,7 +116,6 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
     ]
       .filter((instruction): instruction is string => Boolean(instruction))
       .join('\n\n'),
-    model_reasoning_summary: 'detailed',
   };
 
   const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
