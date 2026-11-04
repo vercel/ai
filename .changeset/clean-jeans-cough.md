@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/mistral": minor
+"@ai-sdk/mistral": patch
 ---
 
-Use Mistral's official tool choice syntax when defining a specific tool to be called
+Fix specific tool selection in Mistral Chat Completions by sending the native function choice and preserving all tool definitions in the request.
