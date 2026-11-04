@@ -2,6 +2,8 @@ import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   InvalidResponseDataError,
+  TypeValidationError,
+  type LanguageModelV4CallOptions,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -4739,4 +4741,518 @@ describe('transformRequestBody', () => {
     });
     expect(requestBody).not.toHaveProperty('custom_field');
   });
+});
+
+describe('prepareRequest', () => {
+  const model = provider('grok-3') as OpenAICompatibleChatLanguageModel;
+
+  function prepareTextResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'Hello!' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+  }
+
+  const richOptions: LanguageModelV4CallOptions = {
+    prompt: TEST_PROMPT,
+    maxOutputTokens: 100,
+    temperature: 0.5,
+    topK: 10,
+    stopSequences: ['\n\n'],
+    seed: 42,
+    responseFormat: {
+      type: 'json',
+      name: 'answer',
+      schema: {
+        type: 'object',
+        properties: { value: { type: 'string' } },
+        required: ['value'],
+      },
+    },
+    tools: [
+      {
+        type: 'function',
+        name: 'weather',
+        inputSchema: {
+          type: 'object',
+          properties: { location: { type: 'string' } },
+          required: ['location'],
+        },
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'weather' },
+    providerOptions: {
+      testProvider: {
+        user: 'test-user',
+        reasoningEffort: 'medium',
+        custom_passthrough: 'value',
+      },
+    },
+  };
+
+  it('should match the body and warnings of doGenerate', async () => {
+    prepareTextResponse();
+
+    const model = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      supportsStructuredOutputs: true,
+    }).chatModel('grok-3') as OpenAICompatibleChatLanguageModel;
+
+    const prepared = await model.prepareRequest(richOptions);
+    const result = await model.doGenerate(richOptions);
+
+    expect(JSON.stringify(prepared.body)).toBe(result.request?.body);
+    expect(await server.calls[0].requestBodyJson).toEqual(
+      JSON.parse(JSON.stringify(prepared.body)),
+    );
+    expect(prepared.warnings).toEqual(result.warnings);
+    expect(prepared.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'topK',
+    });
+    expect(prepared.body).toMatchObject({
+      user: 'test-user',
+      reasoning_effort: 'medium',
+      custom_passthrough: 'value',
+      response_format: { type: 'json_schema' },
+      tool_choice: { type: 'function', function: { name: 'weather' } },
+    });
+  });
+
+  it('should not make a network call', async () => {
+    const fetch = vi.fn();
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      fetch,
+    });
+
+    await model.prepareRequest({ prompt: TEST_PROMPT });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should apply transformRequestBody and include its warnings', async () => {
+    const transformFn = vi.fn(
+      (body: Record<string, any>, warnings?: Array<unknown>) => {
+        warnings?.push({ type: 'other', message: 'transformed' });
+        return { ...body, custom_field: 'added-by-transform' };
+      },
+    );
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      includeUsage: true,
+      transformRequestBody: transformFn,
+    });
+
+    const { body, warnings } = await model.prepareRequest({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(body).toMatchObject({
+      model: 'grok-3',
+      custom_field: 'added-by-transform',
+    });
+    expect(warnings).toEqual([{ type: 'other', message: 'transformed' }]);
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn.mock.calls[0][0]).not.toHaveProperty('stream');
+    expect(transformFn.mock.calls[0][0]).not.toHaveProperty('stream_options');
+  });
+
+  it('should not include stream fields', async () => {
+    const model = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      includeUsage: true,
+    }).chatModel('grok-3') as OpenAICompatibleChatLanguageModel;
+
+    const { body } = await model.prepareRequest({ prompt: TEST_PROMPT });
+
+    expect(body).not.toHaveProperty('stream');
+    expect(body).not.toHaveProperty('stream_options');
+  });
+
+  it('should apply mapReasoning', async () => {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      mapReasoning: ({ warnings }) => {
+        warnings.push({ type: 'other', message: 'mapped reasoning' });
+        return 'low';
+      },
+    });
+
+    const { body, warnings } = await model.prepareRequest({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+    });
+
+    expect(body.reasoning_effort).toBe('low');
+    expect(warnings).toContainEqual({
+      type: 'other',
+      message: 'mapped reasoning',
+    });
+  });
+
+  it('should warn about the deprecated raw provider options key like doGenerate', async () => {
+    prepareTextResponse();
+
+    const options: LanguageModelV4CallOptions = {
+      prompt: TEST_PROMPT,
+      providerOptions: { 'test-provider': { user: 'test-user' } },
+    };
+
+    const { warnings } = await model.prepareRequest(options);
+    const result = await model.doGenerate(options);
+
+    expect(warnings).toContainEqual({
+      type: 'deprecated',
+      setting: "providerOptions key 'test-provider'",
+      message: "Use 'testProvider' instead.",
+    });
+    expect(warnings).toEqual(result.warnings);
+  });
+});
+
+describe('convertResponse', () => {
+  const model = provider('grok-3') as OpenAICompatibleChatLanguageModel;
+
+  function readFixture(filename: string) {
+    return JSON.parse(
+      fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
+    );
+  }
+
+  function createResponseBody(
+    message: Record<string, unknown>,
+    overrides: Record<string, unknown> = {},
+  ) {
+    return {
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 1711115037,
+      model: 'grok-3',
+      choices: [{ index: 0, message, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      ...overrides,
+    };
+  }
+
+  it.each(['xai-text', 'xai-tool-call'])(
+    'should match doGenerate for the %s fixture',
+    async fixture => {
+      prepareJsonFixtureResponse(fixture);
+
+      const generated = await model.doGenerate({ prompt: TEST_PROMPT });
+      const converted = await model.convertResponse({
+        body: readFixture(fixture),
+      });
+
+      expect(converted.content).toEqual(generated.content);
+      expect(converted.finishReason).toEqual(generated.finishReason);
+      expect(converted.usage).toEqual(generated.usage);
+      expect(converted.providerMetadata).toEqual(generated.providerMetadata);
+      expect(converted.response).toEqual({
+        id: generated.response?.id,
+        modelId: generated.response?.modelId,
+        timestamp: generated.response?.timestamp,
+      });
+      expect(converted.warnings).toEqual([]);
+      expect(converted.request).toBeUndefined();
+      expect(converted.response?.headers).toBeUndefined();
+      expect(converted.response?.body).toBeUndefined();
+    },
+  );
+
+  it('should convert reasoning, text, tool calls and prediction tokens', async () => {
+    const result = await model.convertResponse({
+      body: createResponseBody(
+        {
+          role: 'assistant',
+          content: 'Hello!',
+          reasoning_content: 'Thinking...',
+          tool_calls: [
+            {
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'weather', arguments: '{"location":"SF"}' },
+              extra_content: { google: { thought_signature: 'sig-123' } },
+            },
+          ],
+        },
+        {
+          usage: {
+            prompt_tokens: 4,
+            completion_tokens: 30,
+            total_tokens: 34,
+            completion_tokens_details: {
+              accepted_prediction_tokens: 5,
+              rejected_prediction_tokens: 2,
+            },
+          },
+        },
+      ),
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "Thinking...",
+            "type": "reasoning",
+          },
+          {
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
+            "input": "{"location":"SF"}",
+            "providerMetadata": {
+              "test-provider": {
+                "thoughtSignature": "sig-123",
+              },
+            },
+            "toolCallId": "call_1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+        ],
+        "finishReason": {
+          "raw": "stop",
+          "unified": "stop",
+        },
+        "providerMetadata": {
+          "test-provider": {
+            "acceptedPredictionTokens": 5,
+            "rejectedPredictionTokens": 2,
+          },
+        },
+        "response": {
+          "id": "chatcmpl-test",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-22T13:43:57.000Z,
+        },
+        "usage": {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 4,
+            "total": 4,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 30,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": 5,
+              "rejected_prediction_tokens": 2,
+            },
+            "prompt_tokens": 4,
+            "total_tokens": 34,
+          },
+        },
+        "warnings": [],
+      }
+    `);
+  });
+
+  it('should generate an id for tool calls without one', async () => {
+    const result = await model.convertResponse({
+      body: createResponseBody({
+        role: 'assistant',
+        tool_calls: [
+          {
+            type: 'function',
+            function: { name: 'weather', arguments: '{}' },
+          },
+        ],
+      }),
+    });
+
+    const toolCall = result.content[0];
+    expect(toolCall.type).toBe('tool-call');
+    expect(toolCall.type === 'tool-call' && toolCall.toolCallId).toEqual(
+      expect.any(String),
+    );
+    expect(
+      toolCall.type === 'tool-call' && toolCall.toolCallId.length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('should key provider metadata by the raw provider name by default', async () => {
+    const body = createResponseBody({
+      role: 'assistant',
+      tool_calls: [
+        {
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'weather', arguments: '{}' },
+          extra_content: { google: { thought_signature: 'sig-123' } },
+        },
+      ],
+    });
+
+    const result = await model.convertResponse({ body });
+
+    expect(Object.keys(result.providerMetadata ?? {})).toEqual([
+      'test-provider',
+    ]);
+    expect(result.content[0]).toMatchObject({
+      providerMetadata: { 'test-provider': { thoughtSignature: 'sig-123' } },
+    });
+  });
+
+  it('should key provider metadata by the camelCase name when providerOptions use it', async () => {
+    const body = createResponseBody({
+      role: 'assistant',
+      tool_calls: [
+        {
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'weather', arguments: '{}' },
+          extra_content: { google: { thought_signature: 'sig-123' } },
+        },
+      ],
+    });
+
+    const result = await model.convertResponse({
+      body,
+      providerOptions: { testProvider: {} },
+    });
+
+    expect(Object.keys(result.providerMetadata ?? {})).toEqual([
+      'testProvider',
+    ]);
+    expect(result.content[0]).toMatchObject({
+      providerMetadata: { testProvider: { thoughtSignature: 'sig-123' } },
+    });
+  });
+
+  it('should call metadataExtractor with the unvalidated body', async () => {
+    const extractMetadata = vi.fn(async () => ({
+      'test-provider': { value: 'extracted' },
+    }));
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      metadataExtractor: {
+        extractMetadata,
+        createStreamExtractor: () => ({
+          processChunk: () => {},
+          buildMetadata: () => undefined,
+        }),
+      },
+    });
+
+    const body = createResponseBody(
+      { role: 'assistant', content: 'Hello!' },
+      { test_field: 'unknown-field' },
+    );
+
+    const result = await model.convertResponse({ body });
+
+    expect(extractMetadata).toHaveBeenCalledOnce();
+    expect(extractMetadata).toHaveBeenCalledWith({ parsedBody: body });
+    expect(result.providerMetadata).toEqual({
+      'test-provider': { value: 'extracted' },
+    });
+  });
+
+  it('should use a custom convertUsage', async () => {
+    const usage = {
+      inputTokens: {
+        total: 1,
+        noCache: 1,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 2, text: 2, reasoning: undefined },
+    };
+    const convertUsage = vi.fn(() => usage);
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      convertUsage,
+    });
+
+    const result = await model.convertResponse({
+      body: createResponseBody({ role: 'assistant', content: 'Hello!' }),
+    });
+
+    expect(convertUsage).toHaveBeenCalledOnce();
+    expect(result.usage).toBe(usage);
+  });
+
+  it('should convert content arrays with text and thinking parts', async () => {
+    const result = await model.convertResponse({
+      body: createResponseBody({
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: [{ type: 'text', text: 'Let me think.' }],
+          },
+          { type: 'text', text: 'Answer.' },
+        ],
+      }),
+    });
+
+    expect(result.content).toEqual([
+      { type: 'reasoning', text: 'Let me think.' },
+      { type: 'text', text: 'Answer.' },
+    ]);
+  });
+
+  it('should throw InvalidResponseDataError when there are no choices', async () => {
+    const body = createResponseBody({}, { choices: [] });
+    const error = await model
+      .convertResponse({ body })
+      .catch((error: unknown) => error);
+
+    expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: 'Response did not contain any choices.',
+      data: body,
+    });
+  });
+
+  it.each([
+    ['invalid choices', { choices: 'nope' }],
+    ['null', null],
+  ])(
+    'should throw TypeValidationError for an invalid body (%s)',
+    async (_, body) => {
+      const error = await model
+        .convertResponse({ body })
+        .catch((error: unknown) => error);
+      expect(TypeValidationError.isInstance(error)).toBe(true);
+    },
+  );
 });

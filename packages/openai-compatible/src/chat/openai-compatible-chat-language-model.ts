@@ -6,10 +6,12 @@ import {
   type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
   type LanguageModelV4GenerateResult,
+  type LanguageModelV4ResponseMetadata,
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type LanguageModelV4Usage,
   type SharedV4ProviderMetadata,
+  type SharedV4ProviderOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -27,8 +29,10 @@ import {
   postJsonToApi,
   serializeModelOptions,
   StreamingToolCallTracker,
+  validateTypes,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type InferSchema,
   type StreamingToolCallDelta,
   type FetchFunction,
   type ParseResult,
@@ -370,37 +374,70 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     };
   }
 
-  async doGenerate(
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
+  /**
+   * Builds the Chat Completions request body that `doGenerate` would send,
+   * including `transformRequestBody`, without making a network call.
+   * The body has no `stream` fields. Subclass overrides of `doGenerate` aren't applied.
+   */
+  async prepareRequest(options: LanguageModelV4CallOptions): Promise<{
+    body: Record<string, unknown>;
+    warnings: SharedV4Warning[];
+  }> {
+    const { body, warnings } = await this.prepareGenerateRequest(options);
+    return { body, warnings };
+  }
 
-    const transformedBody = this.transformRequestBody(args, warnings);
-    const body = JSON.stringify(transformedBody);
-
-    const {
-      responseHeaders,
-      value: responseBody,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
-      body: transformedBody,
-      failedResponseHandler: this.failedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        OpenAICompatibleChatResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+  /**
+   * Converts a Chat Completions response body into a generate result, without
+   * a network call. Throws if the body is invalid or has no choices.
+   */
+  async convertResponse({
+    body,
+    providerOptions,
+  }: {
+    body: unknown;
+    /** Selects the providerMetadata key like `doGenerate`. Defaults to the provider name. */
+    providerOptions?: SharedV4ProviderOptions;
+  }): Promise<LanguageModelV4GenerateResult> {
+    const response = await validateTypes({
+      value: body,
+      schema: OpenAICompatibleChatResponseSchema,
     });
 
-    const choice = responseBody.choices[0];
+    const result = await this.convertGenerateResponse({
+      response,
+      rawResponse: body,
+      metadataKey: resolveProviderOptionsKey(
+        this.providerOptionsName,
+        providerOptions,
+      ),
+    });
+
+    return { ...result, warnings: [] };
+  }
+
+  private async prepareGenerateRequest(options: LanguageModelV4CallOptions) {
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
+    const body = this.transformRequestBody(args, warnings);
+    return { body, warnings, metadataKey };
+  }
+
+  private async convertGenerateResponse({
+    response,
+    rawResponse,
+    metadataKey,
+  }: {
+    response: OpenAICompatibleChatResponse;
+    rawResponse: unknown;
+    metadataKey: string;
+  }): Promise<{
+    content: Array<LanguageModelV4Content>;
+    finishReason: LanguageModelV4FinishReason;
+    usage: LanguageModelV4Usage;
+    providerMetadata: SharedV4ProviderMetadata;
+    response: LanguageModelV4ResponseMetadata;
+  }> {
+    const choice = response.choices[0];
     if (choice == null) {
       throw new InvalidResponseDataError({
         data: rawResponse,
@@ -450,8 +487,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         parsedBody: rawResponse,
       })),
     };
-    const completionTokenDetails =
-      responseBody.usage?.completion_tokens_details;
+    const completionTokenDetails = response.usage?.completion_tokens_details;
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata[metadataKey].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -467,11 +503,58 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: this.convertUsage(responseBody.usage),
+      usage: this.convertUsage(response.usage),
       providerMetadata,
+      response: getResponseMetadata(response),
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const {
+      body: transformedBody,
+      warnings,
+      metadataKey,
+    } = await this.prepareGenerateRequest(options);
+    const body = JSON.stringify(transformedBody);
+
+    const {
+      responseHeaders,
+      value: responseBody,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: '/chat/completions',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: transformedBody,
+      failedResponseHandler: this.failedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        OpenAICompatibleChatResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const result = await this.convertGenerateResponse({
+      response: responseBody,
+      rawResponse,
+      metadataKey,
+    });
+
+    return {
+      content: result.content,
+      finishReason: result.finishReason,
+      usage: result.usage,
+      providerMetadata: result.providerMetadata,
       request: { body },
       response: {
-        ...getResponseMetadata(responseBody),
+        ...result.response,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -945,6 +1028,10 @@ const OpenAICompatibleChatResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+type OpenAICompatibleChatResponse = InferSchema<
+  typeof OpenAICompatibleChatResponseSchema
+>;
 
 const chunkBaseSchema = () =>
   z.looseObject({
