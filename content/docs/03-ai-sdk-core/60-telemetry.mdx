@@ -74,6 +74,13 @@ By default, both inputs and outputs are recorded. You can disable them by settin
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
 
+These settings filter content before lifecycle events reach telemetry integrations
+and Node.js `ai:telemetry` subscribers. Raw provider bodies and provider metadata
+are omitted when either recording option is disabled. Raw tracing span results
+are also omitted in that case because they can contain both inputs and outputs.
+Tracing span errors use a generic failure message.
+Application lifecycle callbacks and returned results retain their full content.
+
 For `generateSpeech`, input telemetry contains the source text and output
 telemetry contains the generated audio byte length, media type, and format.
 For `transcribe` and `experimental_streamTranscribe`, telemetry contains the
