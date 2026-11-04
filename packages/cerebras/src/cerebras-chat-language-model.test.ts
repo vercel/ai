@@ -97,7 +97,7 @@ const SERVICE_TIER_STREAM_CHUNKS = [
     model: 'gpt-oss-120b',
     choices: [{ delta: {}, finish_reason: 'stop' }],
     usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-    service_tier_used: 'flex',
+    service_tier: 'flex',
   },
 ];
 
@@ -430,10 +430,10 @@ describe('service tiers', () => {
       expect(headers.get('queue_threshold')).toBeNull();
     });
 
-    it('exposes the effective service tier from service_tier_used', async () => {
+    it('exposes the effective service tier from service_tier', async () => {
       const { fetch } = createRecordingJsonFetchMock({
         ...SERVICE_TIER_RESPONSE_BODY,
-        service_tier_used: 'flex',
+        service_tier: 'flex',
       });
       const model = createCerebras({ apiKey: 'test-api-key', fetch })(
         'gpt-oss-120b',
@@ -447,21 +447,80 @@ describe('service tiers', () => {
       expect(result.providerMetadata?.cerebras?.serviceTier).toBe('flex');
     });
 
-    it('does not set serviceTier metadata when the response omits it', async () => {
-      const { fetch } = createRecordingJsonFetchMock(
-        SERVICE_TIER_RESPONSE_BODY,
-      );
-      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
-        'gpt-oss-120b',
-      );
+    it.each([undefined, null])(
+      'does not fabricate missing serviceTier metadata (%s)',
+      async serviceTier => {
+        const { fetch } = createRecordingJsonFetchMock({
+          ...SERVICE_TIER_RESPONSE_BODY,
+          service_tier: serviceTier,
+        });
+        const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+          'gpt-oss-120b',
+        );
 
-      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { serviceTier: 'auto' } },
+        });
 
-      expect(result.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
-    });
+        expect(result.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
+      },
+    );
   });
 
   describe('doStream', () => {
+    it.each([undefined, null])(
+      'does not fabricate missing streamed tier metadata (%s)',
+      async serviceTier => {
+        const { fetch } = createRecordingStreamFetchMock(
+          SERVICE_TIER_STREAM_CHUNKS.map(chunk => ({
+            ...chunk,
+            service_tier: serviceTier,
+          })),
+        );
+        const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+          'gpt-oss-120b',
+        );
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { cerebras: { serviceTier: 'auto' } },
+        });
+        const chunks = await convertStreamToArray(stream);
+        const finish = chunks.find(chunk => chunk.type === 'finish');
+        expect(finish?.providerMetadata?.cerebras?.serviceTier).toBeUndefined();
+      },
+    );
+
+    it('uses the final returned tier while preserving prediction metadata', async () => {
+      const { fetch } = createRecordingStreamFetchMock([
+        { ...SERVICE_TIER_STREAM_CHUNKS[0], service_tier: 'auto' },
+        {
+          ...SERVICE_TIER_STREAM_CHUNKS[1],
+          service_tier: 'flex',
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 1,
+            total_tokens: 2,
+            completion_tokens_details: {
+              accepted_prediction_tokens: 1,
+              rejected_prediction_tokens: 0,
+            },
+          },
+        },
+      ]);
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertStreamToArray(stream);
+      const finish = chunks.find(chunk => chunk.type === 'finish');
+      expect(finish?.providerMetadata?.cerebras).toMatchObject({
+        serviceTier: 'flex',
+        acceptedPredictionTokens: 1,
+        rejectedPredictionTokens: 0,
+      });
+    });
+
     it('sends the queue_threshold header and exposes the effective tier', async () => {
       const { fetch, calls } = createRecordingStreamFetchMock(
         SERVICE_TIER_STREAM_CHUNKS,

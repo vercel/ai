@@ -217,7 +217,7 @@ describe('CerebrasProvider', () => {
 
       await expect(
         config.metadataExtractor!.extractMetadata({
-          parsedBody: { service_tier_used: 'flex' },
+          parsedBody: { service_tier: 'flex' },
         }),
       ).resolves.toEqual({ cerebras: { serviceTier: 'flex' } });
 
@@ -231,7 +231,7 @@ describe('CerebrasProvider', () => {
 
       const withTier = config.metadataExtractor!.createStreamExtractor();
       withTier.processChunk({ choices: [{ delta: { content: 'blue' } }] });
-      withTier.processChunk({ service_tier_used: 'flex' });
+      withTier.processChunk({ service_tier: 'flex' });
       expect(withTier.buildMetadata()).toEqual({
         cerebras: { serviceTier: 'flex' },
       });

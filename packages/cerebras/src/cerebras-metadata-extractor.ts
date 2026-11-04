@@ -13,7 +13,7 @@ export const cerebrasMetadataExtractor: MetadataExtractor = {
       return undefined;
     }
 
-    const serviceTier = parsed.value.service_tier_used ?? undefined;
+    const serviceTier = parsed.value.service_tier ?? undefined;
 
     return serviceTier != null ? { cerebras: { serviceTier } } : undefined;
   },
@@ -23,7 +23,7 @@ export const cerebrasMetadataExtractor: MetadataExtractor = {
 
     return {
       processChunk(parsedChunk) {
-        serviceTier ??= getServiceTier(parsedChunk);
+        serviceTier = getServiceTier(parsedChunk) ?? serviceTier;
       },
 
       buildMetadata() {
@@ -38,11 +38,10 @@ function getServiceTier(value: unknown): string | undefined {
   if (!parsed.success) {
     return undefined;
   }
-  return parsed.data.service_tier_used ?? undefined;
+  return parsed.data.service_tier ?? undefined;
 }
 
 const cerebrasServiceTierSchema = z.looseObject({
-  // Cerebras returns the effective tier as `service_tier_used` (documented for
-  // the `auto` tier).
-  service_tier_used: z.string().nullish(),
+  // The response tier may be absent or null when service-tier handling is not applied.
+  service_tier: z.string().nullish(),
 });
