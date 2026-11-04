@@ -71,17 +71,79 @@ export const amazonBedrockProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
-const LEGACY_CLAUDE_PATTERN = /claude-(?:instant|v?2|3)(?=[-.:]|$)/;
+type BedrockStructuredOutputCapabilities = {
+  tools: { strict: boolean };
+  structuredOutput: { native: boolean };
+};
 
-const MODELS_WITH_STRICT_TOOL_SUPPORT = [
-  // Original Claude 4 IDs include a release date instead of a minor version.
-  /claude-(?:opus|sonnet)-4(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/,
-  /claude-opus-4-(?:1|5|6)(?=[-.:]|$)/,
-  /claude-sonnet-4-(?:5|6)(?=[-.:]|$)/,
-  /claude-haiku-4-5(?=[-.:]|$)/,
-  /claude-(?:opus|sonnet)-5(?:-5)?(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/,
-  /claude-haiku-5-5(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/,
-];
+const strictToolsAndNativeOutput = {
+  tools: { strict: true },
+  structuredOutput: { native: true },
+} satisfies BedrockStructuredOutputCapabilities;
+
+const strictToolsOnly = {
+  tools: { strict: true },
+  structuredOutput: { native: false },
+} satisfies BedrockStructuredOutputCapabilities;
+
+const noStrictToolsOrNativeOutput = {
+  tools: { strict: false },
+  structuredOutput: { native: false },
+} satisfies BedrockStructuredOutputCapabilities;
+
+// Bedrock's Messages schema differs from Anthropic's. Declare its support on
+// each model instead of maintaining a separate regex support allowlist.
+const claudeStructuredOutputCapabilities: Readonly<
+  Record<string, BedrockStructuredOutputCapabilities>
+> = {
+  'claude-opus-4': strictToolsAndNativeOutput,
+  'claude-sonnet-4': strictToolsAndNativeOutput,
+  'claude-opus-4-1': strictToolsAndNativeOutput,
+  'claude-opus-4-5': strictToolsAndNativeOutput,
+  'claude-sonnet-4-5': strictToolsAndNativeOutput,
+  'claude-haiku-4-5': strictToolsOnly,
+  'claude-opus-4-6': strictToolsAndNativeOutput,
+  'claude-sonnet-4-6': strictToolsOnly,
+  'claude-opus-4-7': noStrictToolsOrNativeOutput,
+  'claude-opus-4-8': noStrictToolsOrNativeOutput,
+  'claude-opus-5': strictToolsAndNativeOutput,
+  'claude-sonnet-5': strictToolsAndNativeOutput,
+  'claude-opus-5-5': strictToolsAndNativeOutput,
+  'claude-sonnet-5-5': strictToolsAndNativeOutput,
+  'claude-haiku-5-5': strictToolsAndNativeOutput,
+  'claude-fable-5': noStrictToolsOrNativeOutput,
+  'claude-fable-5-1': noStrictToolsOrNativeOutput,
+};
+
+function resolveClaudeStructuredOutputCapabilities(
+  modelId: string,
+): BedrockStructuredOutputCapabilities {
+  // Preserve the existing request fallback for non-Claude models, opaque
+  // inference profiles, and legacy Claude IDs.
+  if (
+    !modelId.includes('claude-') ||
+    /claude-(?:instant|v?2|3)(?=[-.:]|$)/.test(modelId)
+  ) {
+    return strictToolsAndNativeOutput;
+  }
+
+  // Normalize regional/provider prefixes, release dates, and Bedrock revisions.
+  // Claude 4 minor-version IDs historically accept additional suffixes; other
+  // aliases must end at a version, release date, or Bedrock revision.
+  const canonicalModelId =
+    /claude-[a-z]+-4-\d{1,2}(?=[-.:]|$)/.exec(modelId)?.[0] ??
+    /(claude-[a-z]+-\d+(?:-\d{1,2})?)(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/.exec(
+      modelId,
+    )?.[1];
+
+  return canonicalModelId != null &&
+    Object.prototype.hasOwnProperty.call(
+      claudeStructuredOutputCapabilities,
+      canonicalModelId,
+    )
+    ? claudeStructuredOutputCapabilities[canonicalModelId]
+    : noStrictToolsOrNativeOutput;
+}
 
 type LanguageEntry = ModelEntry<{
   language: {
@@ -488,12 +550,8 @@ function createLanguageEntry(modelId: string): LanguageEntry {
   const documented = documentedLanguageModels[modelId];
   const anthropic = getModelCapabilities(modelId);
   const claude = modelId.includes('claude-');
-  const strict =
-    !claude ||
-    LEGACY_CLAUDE_PATTERN.test(modelId) ||
-    MODELS_WITH_STRICT_TOOL_SUPPORT.some(pattern => pattern.test(modelId));
-  const native =
-    strict && !/claude-(?:sonnet-4-6|haiku-4-5)(?=[-.:]|$)/.test(modelId);
+  const structuredOutputCapabilities =
+    resolveClaudeStructuredOutputCapabilities(modelId);
   const openaiModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(modelId)?.[1];
   const nova2Reasoning = modelId.includes('amazon.nova-2-lite-v1:0');
   const sampling: ModelCapability = anthropic.rejectsSamplingParameters
@@ -507,13 +565,13 @@ function createLanguageEntry(modelId: string): LanguageEntry {
         tools: {
           usage: documented?.tools ?? 'unknown',
           streaming: documented?.streaming ?? 'unknown',
-          strict,
+          strict: structuredOutputCapabilities.tools.strict,
         },
         reasoning: {
           support: openaiModelId != null || nova2Reasoning ? true : 'unknown',
         },
         sampling: { temperature: sampling, topP: sampling, logprobs: false },
-        structuredOutput: { native },
+        structuredOutput: structuredOutputCapabilities.structuredOutput,
       },
     },
     providerOptions: {
