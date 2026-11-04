@@ -113,7 +113,7 @@ factory method. If you omit it, the Gladia API uses its default model
 const model = gladia.transcription('solaria-3');
 ```
 
-The following models are available:
+Examples of supported models include:
 
 - **solaria-1** (default) — Gladia's generalist model with the broadest language
   coverage (100+ languages). Supports code switching and multi-language
@@ -150,9 +150,12 @@ const result = await transcribe({
 
 The following provider options are available:
 
-- **customVocabulary** _boolean_
+- **customVocabulary** _boolean | (string | object)[]_
 
-  Custom vocabulary to improve transcription accuracy.
+  Custom vocabulary to improve transcription accuracy. The array form is
+  deprecated; use `true` with `customVocabularyConfig.vocabulary` instead.
+  Invalid array entries are ignored with a warning. An explicit vocabulary
+  configuration overrides the legacy array with a warning.
   Optional.
 
 - **customVocabularyConfig** _object_
@@ -168,6 +171,8 @@ The following provider options are available:
   Optional.
   - **languages** _string[]_ — If one language is set, it is used for transcription. Otherwise, language is auto-detected.
   - **codeSwitching** _boolean_ — If true, language is auto-detected on each utterance.
+
+  When provided, this configuration overrides all legacy language options.
 
 - **callback** _boolean_
 
@@ -220,7 +225,7 @@ The following provider options are available:
   Configuration for translation.
   Optional.
   - **targetLanguages** _string[]_
-  - **model** _'base' | 'enhanced'_
+  - **model** _'base' | 'batch' | 'enhanced'_
   - **matchOriginalUtterances** _boolean_
   - **lipsync** _boolean_
   - **contextAdaptation** _boolean_
@@ -283,7 +288,13 @@ The following provider options are available:
   - **entityTypes** _string[]_
   - **processedTextType** _'MARKER' | 'MASK'_
 
-- **customMetadata** _Record&lt;string, unknown&gt;_
+  This configuration requires `piiRedaction: true`; otherwise the SDK emits a
+  warning. A non-empty `entityTypes` list limits redaction to the listed types
+  and replaces the default coverage. Omit it or use an empty list for the
+  provider's default coverage. See [Gladia's PII documentation](https://docs.gladia.io/chapters/audio-intelligence/pii-redaction)
+  for entity types and presets.
+
+- **customMetadata** _Record&lt;string, any&gt;_
 
   Custom metadata to include with the request.
   Optional.
@@ -297,6 +308,34 @@ The following provider options are available:
 
   Enable enhanced punctuation.
   Optional.
+
+### Deprecated Options
+
+Legacy options remain accepted. The SDK emits `deprecated` warnings when
+translating these options to the current request shape:
+
+| Legacy option                   | Replacement and behavior                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `language`                      | `languageConfig.languages: [language]`                                                      |
+| `detectLanguage`                | An empty `languageConfig.languages` enables detection when no fixed language is configured. |
+| `enableCodeSwitching`           | `languageConfig.codeSwitching`                                                              |
+| `codeSwitchingConfig.languages` | `languageConfig.languages`; used only when legacy `enableCodeSwitching` is `true`.          |
+| `customVocabulary` array        | `customVocabulary: true` and `customVocabularyConfig.vocabulary`                            |
+
+An explicit `languageConfig`, including `{}`, overrides all legacy language
+fields. When legacy code switching is enabled, its candidate languages take
+precedence over a legacy fixed `language`. A legacy configuration object alone
+does not enable code switching.
+
+The following options are no longer supported by the Gladia v2 pre-recorded API
+and are omitted with an `unsupported` warning: `contextPrompt`, `moderation`,
+`chapterization`, `nameConsistency`, `structuredDataExtraction`,
+`structuredDataExtractionConfig`, `displayMode`, and `diarizationConfig.enhanced`.
+
+The standard `transcriptionModel(id)` provider alias, used by model registries,
+also forwards the selected identifier to Gladia. The `default` identifier omits
+`model` so Gladia chooses its default; other identifiers are validated by the
+provider service.
 
 ### Model Capabilities
 

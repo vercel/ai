@@ -2,4 +2,4 @@
 '@ai-sdk/gladia': patch
 ---
 
-Align Gladia transcription provider options with the Gladia v2 OpenAPI spec: replace flat language options with `languageConfig`, add `piiRedaction` support, and remove request options no longer accepted by the pre-recorded init API. Also support selecting the transcription model (e.g. `solaria-1` or `solaria-3`) via `gladia.transcription(modelId)`.
+Add Gladia v2 `languageConfig`, PII redaction, translation options (including the `batch` model), audio-to-LLM model selection, and transcription model IDs. Keep legacy options compatible: translate language and vocabulary aliases with deprecation warnings and warn when obsolete options are ignored. Preserve selected model IDs in responses and workflow serialization, and validate options before audio upload. The registry-facing `transcriptionModel(id)` alias now forwards non-default IDs; `default` still lets Gladia choose its model.
